@@ -31,15 +31,37 @@ export function scopeStates(state: string) {
   return state === "US" ? ["US"] : ["US", state]
 }
 
+// The Data API caps a result at 1 MB, and all 52 jurisdictions at 40 bills each
+// is comfortably past it. Read the jurisdictions in batches and stitch them back
+// together; the batches go out in parallel, so this is one round trip's latency,
+// not seven.
+const STATE_BATCH = 8
+
 export async function getStream({ states, limit = 40 }: { states?: string[]; limit?: number } = {}): Promise<{ groups: StreamGroup[]; source: "database" | "snapshot" }> {
   if (sql) {
+    const run = sql
     try {
-      const rows = (await sql`
+      const targets =
+        states ??
+        ((await run`select distinct state from public.mv_stream_latest order by state`) as {
+          state: string
+        }[]).map((r) => String(r.state))
+
+      const batches: string[][] = []
+      for (let i = 0; i < targets.length; i += STATE_BATCH) batches.push(targets.slice(i, i + STATE_BATCH))
+
+      const rows = (
+        await Promise.all(
+          batches.map(
+            (batch) => run`
         select state, session_id, bill_id, bill_number, title, description, status_desc, last_action, last_action_date,
                committee, body, url, state_link, text_chars, sponsor, sponsor_party, sponsor_id
         from public.mv_stream_latest
-        where rank <= ${limit} and (${states ?? null}::text[] is null or state = any(${states ?? null}::text[]))
-        order by state, rank`) as (StreamBill & { state: string; session_id: number })[]
+        where rank <= ${limit} and state = any(${batch}::text[])
+        order by state, rank`
+          )
+        )
+      ).flat() as (StreamBill & { state: string; session_id: number })[]
       const groups = new Map<string, StreamGroup>()
       for (const { state, session_id, ...bill } of rows) {
         const group = groups.get(state) ?? { state, session: Number(session_id), bills: [] }

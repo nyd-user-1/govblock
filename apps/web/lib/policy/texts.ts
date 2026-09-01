@@ -1,6 +1,9 @@
 import { TEXTS } from "@/lib/data"
 import { sql } from "@/lib/policy/db"
 
+// Comfortably inside the Data API's 1 MB result cap after JSON framing.
+const MAX_TEXT = 800_000
+
 // Bill texts, latest version per bill, in one query — "BillTexts" is indexed
 // on bill_id. The committed texts stand in when the database is not reachable.
 
@@ -18,13 +21,32 @@ export async function getBillTexts(ids: number[]): Promise<Map<number, string>> 
   const out = new Map<number, string>()
   if (!ids.length) return out
   if (sql) {
+    const run = sql
     try {
-      const rows = (await sql`
-        select distinct on (t.bill_id) t.bill_id, t.text
+      // One bill per call, in parallel: the Data API caps a result at 1 MB and a
+      // single bill's text can approach that on its own, so batching several into
+      // one statement would fail on exactly the long bills people care about.
+      // MAX_TEXT keeps one oversized bill from failing the whole page; the full
+      // text is in the lake (s3://govblock-lake-.../lake/v1/text/bill_texts).
+      const rows = (
+        await Promise.all(
+          ids.map(
+            (id) => run`
+        select t.bill_id, left(t.text, ${MAX_TEXT}) as text, length(t.text) as full_length
         from "BillTexts" t
-        where t.bill_id = any(${ids}::bigint[]) and t.text is not null
-        order by t.bill_id, t.document_id desc`) as { bill_id: number | string; text: string }[]
-      for (const row of rows) out.set(Number(row.bill_id), cleanBillText(row.text))
+        where t.bill_id = ${id} and t.text is not null
+        order by t.document_id desc
+        limit 1`
+          )
+        )
+      ).flat() as { bill_id: number | string; text: string; full_length: number }[]
+
+      for (const row of rows) {
+        if (row.full_length > MAX_TEXT) {
+          console.warn(`texts: bill ${row.bill_id} truncated at ${MAX_TEXT} of ${row.full_length} chars`)
+        }
+        out.set(Number(row.bill_id), cleanBillText(row.text))
+      }
       return out
     } catch (error) {
       console.error("texts: database unavailable, serving snapshot", error)
