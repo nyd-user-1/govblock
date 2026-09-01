@@ -13,6 +13,8 @@ applications:
         build:
           commands:
             - pnpm -C ../.. exec turbo build --filter=web
+            # Amplify packages <appRoot>/node_modules; prove next resolves there.
+            - node -e "console.log('next at', require.resolve('next/package.json'))"
       artifacts:
         baseDirectory: .next
         files:
