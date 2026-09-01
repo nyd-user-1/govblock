@@ -11,8 +11,25 @@
 // counts and wall time printed, so a regression is visible in the log without
 // opening a single PNG.
 
-import { chromium } from "playwright"
 import { mkdirSync } from "node:fs"
+import { createRequire } from "node:module"
+import { homedir } from "node:os"
+
+// govblock does not depend on playwright and should not: it is a build-time
+// dependency of nothing. Resolve it from wherever it already exists on the box
+// (the livingston checkout has it) rather than adding it to a lockfile another
+// lane is holding.
+const ROOTS = [process.cwd(), `${homedir()}/Code/livingston`, `${homedir()}/Code/livingston-v3`]
+const chromium = (() => {
+  for (const root of ROOTS) {
+    // require, not import(): playwright's entry is CommonJS, and a dynamic
+    // import of it hands back a namespace whose `chromium` is undefined.
+    try {
+      return createRequire(`${root}/`)("playwright").chromium
+    } catch {}
+  }
+  throw new Error(`playwright not found. Tried: ${ROOTS.join(", ")}. Install it, or run from a checkout that has it.`)
+})()
 
 const ORIGIN = process.argv[2] ?? "https://policy.nysgpt.com"
 const OUT = process.argv[3] ?? "/tmp/search-shots"
