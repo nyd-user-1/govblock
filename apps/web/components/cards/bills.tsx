@@ -1,8 +1,11 @@
 "use client"
 
+import * as React from "react"
+
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { SubjectPicker } from "@/components/subject-picker"
@@ -12,9 +15,18 @@ import { Progress } from "@govblock/ui/components/progress"
 
 // Bills — where this session's bills stand. Every status is a link into the
 // bill list filtered to it.
+type Option = { value: string; count: number }
+
 export function BillsCard() {
-  const state = F.STATE
-  const { total, rows } = F.bills
+  const { data: options, state } = useScoped<{ statuses: Option[] }>("options", null as unknown as { statuses: Option[] })
+  const { data: bills } = useScoped<{ total: number }>("bills", null as unknown as { total: number }, { limit: 1 })
+  const { total, rows } = React.useMemo(() => {
+    if (!options) return F.bills
+    return {
+      total: bills?.total ?? options.statuses.reduce((sum, r) => sum + r.count, 0),
+      rows: options.statuses.slice(0, 5).map((r) => ({ label: r.value, bills: r.count })),
+    }
+  }, [options, bills])
   return (
     <CardFrame id="bills-status">
       <CardHeader>

@@ -1,8 +1,10 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { memberHref } from "@/lib/filters"
 import { honorific } from "@/lib/format"
 import { portraitFor } from "@/lib/imagery"
@@ -14,16 +16,21 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 
 // Members — the headshot grid. Real portraits where the jurisdiction publishes
 // them; the chamber's seal where none exists.
+type Person = (typeof F.members.rows)[number] & { active?: boolean }
+
 export function MembersCard() {
-  const state = F.STATE
-  const rows = F.members.rows
+  const { data, state } = useScoped<Person[]>("members", F.members.rows)
+  // The card shows the sitting chamber; former members belong to the bills
+  // they sponsored, not to a roster.
+  const sitting = React.useMemo(() => (data ?? []).filter((m) => m.active !== false), [data])
+  const rows = sitting.slice(0, 12)
   const withPhoto = rows.filter((r) => portraitFor(r)).length
   return (
     <CardFrame id="members">
       <CardHeader>
         <CardTitle>Members</CardTitle>
         <CardDescription>
-          {F.members.total} members · {withPhoto} of {rows.length} shown with a portrait
+          {sitting.length} members · {withPhoto} of {rows.length} shown with a portrait
         </CardDescription>
         <CardAction>
           <ComponentActions />

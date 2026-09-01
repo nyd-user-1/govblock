@@ -1,8 +1,11 @@
 "use client"
 
+import * as React from "react"
+
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber, truncate } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -12,7 +15,11 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } f
 
 // Committees — each with its bill count and a four-bar chart of the quarters
 // it acted. The chart is the one from shadcn's Q2 Dividend Income card.
-function Bars({ label, values }: { label: string; values: number[] }) {
+function Bars({ label, values }: { label: string; values?: number[] }) {
+  // The quarterly split is a fixture; there is no per-committee activity series
+  // in the database yet, so live rows simply carry no chart rather than a made
+  // up one.
+  if (!values?.length) return null
   const max = Math.max(...values, 1)
   return (
     <div className="hidden h-8 w-24 items-end gap-1 md:flex" role="img" aria-label={`${label} bills by quarter`}>
@@ -23,8 +30,20 @@ function Bars({ label, values }: { label: string; values: number[] }) {
   )
 }
 
+type Committee = { committee_name: string; chamber: string; bills: number }
+
 export function CommitteesCard() {
-  const state = F.STATE
+  const { data, state } = useScoped<Committee[]>("committees", null as unknown as Committee[])
+  const committees = React.useMemo(
+    () =>
+      data
+        ? [...data]
+            .sort((a, b) => b.bills - a.bills)
+            .slice(0, 6)
+            .map((c) => ({ label: c.committee_name, bills: c.bills, chamber: c.chamber, bars: undefined as number[] | undefined }))
+        : F.committees.map((c) => ({ ...c, bars: c.bars as number[] | undefined })),
+    [data]
+  )
   return (
     <CardFrame id="committees">
       <CardHeader>
@@ -36,7 +55,7 @@ export function CommitteesCard() {
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {F.committees.map((row) => (
+          {committees.map((row) => (
             <Item
               key={row.label}
               variant="muted"

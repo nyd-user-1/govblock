@@ -1,6 +1,9 @@
 "use client"
 
+import * as React from "react"
+
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
@@ -8,7 +11,24 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govbl
 
 // Sessions — the picker. Choosing one scopes every other card; the current
 // one is marked.
+type ApiSession = { session_id: number; bills: number; title: string }
+
 export function SessionsCard() {
+  const { data, session } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
+  const sessions = React.useMemo(
+    () =>
+      data
+        ? data.map((row) => ({
+            session_year: row.session_id,
+            label: row.title,
+            // The ledger cannot tell a one-year session from a two-year one, so
+            // the span is only ever printed as the year it opened.
+            years: String(row.session_id),
+            bills: row.bills,
+          }))
+        : F.sessions,
+    [data]
+  )
   return (
     <CardFrame id="sessions">
       <CardHeader>
@@ -20,8 +40,8 @@ export function SessionsCard() {
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {F.sessions.map((row) => {
-            const isCurrent = row.session_year === F.SESSION
+          {sessions.map((row) => {
+            const isCurrent = row.session_year === session
             return (
               <Item
                 key={row.session_year}

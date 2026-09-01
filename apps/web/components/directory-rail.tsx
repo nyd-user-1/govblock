@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { truncate } from "@/lib/format"
 import {
   SidebarGroup,
@@ -66,9 +67,12 @@ function RailGroup({ label, items, className }: { label: string; items: RailItem
   )
 }
 
+type Committee = { committee_name: string; chamber: string; bills: number }
+
 export function DirectoryRail() {
   const pathname = usePathname()
-  const state = F.STATE
+  const { data: billData, state } = useScoped<{ rows: typeof F.recentBills }>("bills", { rows: F.recentBills }, { limit: 12 })
+  const { data: committeeData } = useScoped<Committee[]>("committees", F.committeesAll)
   const scope = `?state=${state}`
 
   const directory: RailItem[] = [
@@ -77,7 +81,7 @@ export function DirectoryRail() {
     { key: "members", href: `/docs/directory${scope}`, label: "Members", active: pathname.startsWith("/docs/members") || pathname.startsWith("/docs/directory") },
     { key: "money", href: `/docs/money${scope}`, label: "Finance", active: pathname.startsWith("/docs/money") },
   ]
-  const bills: RailItem[] = F.recentBills.slice(0, 12).map((bill) => ({
+  const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
     href: `/docs/bills/${bill.bill_id}`,
     label: (
@@ -90,7 +94,7 @@ export function DirectoryRail() {
     active: pathname === `/docs/bills/${bill.bill_id}`,
     wide: true,
   }))
-  const committees: RailItem[] = [...F.committeesAll]
+  const committees: RailItem[] = [...(committeeData ?? [])]
     .sort((a, b) => a.committee_name.localeCompare(b.committee_name))
     .map((c) => ({
       key: `${c.chamber}/${c.committee_name}`,

@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -28,7 +29,7 @@ function Tally({ yea, nay }: { yea: number; nay: number }) {
 }
 
 export function VotesCard() {
-  const state = F.STATE
+  const { data, state } = useScoped<typeof F.votes>("rollcalls", F.votes, { limit: 5 })
   return (
     <CardFrame id="votes">
       <CardHeader>
@@ -40,7 +41,7 @@ export function VotesCard() {
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {F.votes.map((row) => (
+          {(data ?? []).map((row) => (
             <Item key={row.roll_call_id} variant="muted" render={<Link href={`/docs/bills/${row.bill_id}`} className="no-underline" />}>
               <ItemMedia>
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />

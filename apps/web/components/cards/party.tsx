@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { partyName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { partyColor } from "@/lib/imagery"
@@ -14,11 +15,12 @@ import { ToggleGroup, ToggleGroupItem } from "@govblock/ui/components/toggle-gro
 
 // Party — the two-tone proportion: who holds the seats, chamber by chamber.
 export function PartyCard() {
-  const state = F.STATE
+  const { data, state } = useScoped<typeof F.seats>("seats", F.seats)
+  const all = React.useMemo(() => data ?? [], [data])
   const [chamber, setChamber] = React.useState("")
-  const chambers = React.useMemo(() => [...new Set(F.seats.map((row) => row.chamber))].sort(), [])
-  const active = chamber || chambers[0] || ""
-  const seats = F.seats.filter((row) => row.chamber === active)
+  const chambers = React.useMemo(() => [...new Set(all.map((row) => row.chamber))].sort(), [all])
+  const active = chamber && chambers.includes(chamber) ? chamber : (chambers[0] ?? "")
+  const seats = all.filter((row) => row.chamber === active)
   const total = seats.reduce((sum, row) => sum + row.seats, 0)
   const ordered = [...seats].sort((a, b) => b.seats - a.seats)
 

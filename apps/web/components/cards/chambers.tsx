@@ -1,8 +1,11 @@
 "use client"
 
+import * as React from "react"
+
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -11,8 +14,17 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } f
 
 // Chambers — each chamber with the bills before it and the members in it.
 // The seal is the avatar, and the row filters the rest of the grid.
+type Option = { value: string; count: number }
+
 export function ChambersCard() {
-  const state = F.STATE
+  const { data: options, state } = useScoped<{ chambers: Option[] }>("options", null as unknown as { chambers: Option[] })
+  const { data: seats } = useScoped<{ chamber: string; seats: number }[]>("seats", null as unknown as { chamber: string; seats: number }[])
+  const chambers = React.useMemo(() => {
+    if (!options) return F.chambers
+    const members = new Map<string, number>()
+    for (const row of seats ?? []) members.set(row.chamber, (members.get(row.chamber) ?? 0) + row.seats)
+    return options.chambers.map((c) => ({ label: c.value, bills: c.count, members: members.get(c.value) ?? 0 }))
+  }, [options, seats])
   return (
     <CardFrame id="chambers">
       <CardHeader>
@@ -24,7 +36,7 @@ export function ChambersCard() {
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {F.chambers.map((row) => (
+          {chambers.map((row) => (
             <Item
               key={row.label}
               variant="muted"

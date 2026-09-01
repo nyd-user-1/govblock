@@ -1,8 +1,12 @@
 "use client"
 
+import * as React from "react"
+
 import Link from "next/link"
 
+import { stateName } from "@/lib/filters"
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { SubjectPicker } from "@/components/subject-picker"
@@ -13,7 +17,11 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 // committee a bill sits in where it does not. The substitution prints itself
 // in the footer; it is never silent.
 export function TopicsCard() {
-  const state = F.STATE
+  const { data, state } = useScoped<{ value: string; count: number }[]>("subjects", null as unknown as { value: string; count: number }[])
+  const rows = React.useMemo(
+    () => (data ? data.slice(0, 8).map((r) => ({ label: r.value, bills: r.count })) : F.topics.rows),
+    [data]
+  )
   return (
     <CardFrame id="subjects">
       <CardHeader>
@@ -25,7 +33,7 @@ export function TopicsCard() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-1.5">
-          {F.topics.rows.map((row) => (
+          {rows.map((row) => (
             <Link key={row.label} href={`/docs/bills?state=${state}&committee=${encodeURIComponent(row.label)}`} className="no-underline">
               <Badge variant="outline" className="gap-1.5 font-normal hover:bg-muted">
                 {row.label}
@@ -36,7 +44,7 @@ export function TopicsCard() {
         </div>
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-2">
-        <p className="text-[11px] text-balance text-muted-foreground">{F.topics.note}</p>
+        <p className="text-[11px] text-balance text-muted-foreground">{`LegiScan subject tags for the current ${stateName(state)} session.`}</p>
         <SubjectPicker label="Chamber" allLabel="Both chambers" items={["Assembly", "Senate"]} />
       </CardFooter>
     </CardFrame>

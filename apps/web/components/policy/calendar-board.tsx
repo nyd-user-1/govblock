@@ -34,8 +34,11 @@ export function CalendarBoard() {
   const [selected, setSelected] = React.useState(ALL)
   const [search, setSearch] = React.useState("")
 
-  const { data, isLoading } = usePolicy<Hearing[]>(
-    "hearings",
+  // hearings-recent falls back to the 60 days before the jurisdiction's last
+  // hearing when the window around today is empty, which it is for most of the
+  // 52 between sessions, and reports the date it runs through.
+  const { data, isLoading } = usePolicy<{ rows: Hearing[]; through: string | null }>(
+    "hearings-recent",
     { state },
     {
       from: iso(-30),
@@ -43,9 +46,10 @@ export function CalendarBoard() {
       limit: 3000,
     }
   )
+  const through = data?.through ?? null
 
   const rows = React.useMemo(() => {
-    const all = data ?? []
+    const all = data?.rows ?? []
     const query = search.trim().toLowerCase()
     return all
       .filter((hearing) => {
@@ -62,7 +66,7 @@ export function CalendarBoard() {
   }, [data, search, selected])
 
   const groups = React.useMemo<RailGroup[]>(() => {
-    const all = data ?? []
+    const all = data?.rows ?? []
     const byCommittee = new Map<string, number>()
     for (const hearing of all) {
       const key = hearing.committee ?? ""
@@ -107,6 +111,13 @@ export function CalendarBoard() {
           <Badge variant="outline" className="font-normal">
             {fmtNumber(rows.length)} · {session} session
           </Badge>
+          {/* Anchored on the last sitting rather than on today, so the rows do
+              not read as upcoming when the legislature is between sessions. */}
+          {through && (
+            <Badge variant="secondary" className="font-normal">
+              through {fmtDate(through, false)}
+            </Badge>
+          )}
         </>
       }
     >
