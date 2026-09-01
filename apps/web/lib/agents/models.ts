@@ -60,17 +60,22 @@ export type Usage = {
   inputTokens: number
   outputTokens: number
   cacheReadInputTokens?: number
+  cacheWriteInputTokens?: number
 }
 
 /** What one exchange cost, in dollars, at the list prices above. */
 export function costOf(tier: ModelTier, usage: Usage) {
   const model = MODELS[tier]
-  // Cache reads bill at a tenth of the input rate on Bedrock; they arrive in
-  // `cacheReadInputTokens` and are *not* included in `inputTokens`.
-  const cached = usage.cacheReadInputTokens ?? 0
+  // Cached tokens are reported separately and are not included in
+  // `inputTokens`: a read bills at a tenth of the input rate, a write at
+  // 1.25× — which is why marking a prefix that is never read again costs
+  // slightly more than not caching at all.
+  const read = usage.cacheReadInputTokens ?? 0
+  const written = usage.cacheWriteInputTokens ?? 0
   return (
     (usage.inputTokens * model.usdPerMTokIn +
-      cached * model.usdPerMTokIn * 0.1 +
+      read * model.usdPerMTokIn * 0.1 +
+      written * model.usdPerMTokIn * 1.25 +
       usage.outputTokens * model.usdPerMTokOut) /
     1_000_000
   )

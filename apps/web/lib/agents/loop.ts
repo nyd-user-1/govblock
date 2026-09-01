@@ -33,6 +33,7 @@ export type StepResult = {
   ms: number
   inputTokens: number
   outputTokens: number
+  cacheReadInputTokens: number
   toolCalls: number
 }
 
@@ -78,6 +79,7 @@ export async function* runStep({
       ms: Date.now() - started,
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,
+      cacheReadInputTokens: result.usage.cacheReadInputTokens ?? 0,
       toolCalls: 0,
     }
   }
@@ -124,6 +126,7 @@ export async function* runStep({
     ms: Date.now() - started,
     inputTokens: result.usage.inputTokens,
     outputTokens: result.usage.outputTokens,
+    cacheReadInputTokens: result.usage.cacheReadInputTokens ?? 0,
     toolCalls: outcomes.length,
   }
 }

@@ -34,6 +34,29 @@ function bedrock() {
 
 export type ChatTurn = { role: "user" | "assistant"; text: string }
 
+const CACHE_POINT = { type: "default" as const }
+
+/**
+ * Mark the history so the prefix survives to the next round.
+ *
+ * Two points, not one: the older marks what the previous round wrote, so this
+ * round reads it; the newer extends the cache to cover the tool results this
+ * round just appended. Bedrock allows four in total and the system prompt and
+ * tool list take one each. The caller's array is never touched — it is handed
+ * back to the browser as `state` and must stay clean, or the points would
+ * accumulate a round at a time.
+ */
+function withCachePoints(messages: Message[]): Message[] {
+  const marks = new Set(
+    [messages.length - 1, messages.length - 3].filter((index) => index >= 0)
+  )
+  return messages.map((message, index) =>
+    marks.has(index)
+      ? { ...message, content: [...(message.content ?? []), { cachePoint: CACHE_POINT }] }
+      : message
+  )
+}
+
 /** A step the browser can watch happen. The chat route serialises these as
  *  newline-delimited JSON — one line, one event, flushed as it is produced. */
 export type StreamEvent =
@@ -82,13 +105,22 @@ export async function* converseStream(
   const response = await bedrock().send(
     new ConverseStreamCommand({
       modelId: model.id,
-      system: [{ text: args.system }],
-      messages: args.messages,
+      // Three cache points, in the order Converse renders them. The tool
+      // definitions and the system prompt never change for an agent, and the
+      // history only ever grows, so after the first round of a run almost the
+      // whole request is a prefix that has already been sent. Cache reads bill
+      // at a tenth of the input rate, and a Tracker run resends every bill
+      // record it has read on every subsequent round — that is where the money
+      // is, not in the answer.
+      system: [{ text: args.system }, { cachePoint: CACHE_POINT }],
+      messages: withCachePoints(args.messages),
       inferenceConfig: {
         maxTokens: args.maxTokens ?? 4096,
         temperature: args.temperature ?? 0.2,
       },
-      ...(args.tools?.length ? { toolConfig: { tools: args.tools } } : {}),
+      ...(args.tools?.length
+        ? { toolConfig: { tools: [...args.tools, { cachePoint: CACHE_POINT }] } }
+        : {}),
     })
   )
 
@@ -158,6 +190,7 @@ export async function* converseStream(
         inputTokens: event.metadata.usage.inputTokens ?? 0,
         outputTokens: event.metadata.usage.outputTokens ?? 0,
         cacheReadInputTokens: event.metadata.usage.cacheReadInputTokens ?? 0,
+        cacheWriteInputTokens: event.metadata.usage.cacheWriteInputTokens ?? 0,
       }
       continue
     }

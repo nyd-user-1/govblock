@@ -23,7 +23,8 @@ import { agent } from "@/lib/agents/registry"
 //             { t: "tool",  id, name, input }         // a call the model made
 //             { t: "tool_result", id, name, ok, summary, ms }
 //             { t: "state", messages, done }          // send `messages` back if !done
-//             { t: "done",  stopReason, usage, usd, ms }
+//             { t: "done",  stopReason, usage, usd, ms }   // usage carries
+//                     inputTokens, outputTokens and cacheReadInputTokens
 //             { t: "error", message }
 //
 // One request is one round of the loop, not the whole run. Amplify WEB_COMPUTE
@@ -144,7 +145,11 @@ export async function POST(request: Request) {
           line({
             t: "done",
             stopReason: result.done ? "answered" : `${result.toolCalls} tool calls`,
-            usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens },
+            usage: {
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              cacheReadInputTokens: result.cacheReadInputTokens,
+            },
             usd: result.usd,
             ms: result.ms,
           })

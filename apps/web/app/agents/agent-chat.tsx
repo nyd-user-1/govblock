@@ -114,6 +114,7 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
       let usd = 0
       let inTokens = 0
       let outTokens = 0
+      let cached = 0
       const began = Date.now()
 
       try {
@@ -184,10 +185,15 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                   tokens: "",
                 }
               } else if (event.t === "done") {
-                const usage = event.usage as { inputTokens: number; outputTokens: number }
+                const usage = event.usage as {
+                  inputTokens: number
+                  outputTokens: number
+                  cacheReadInputTokens?: number
+                }
                 usd += Number(event.usd)
                 inTokens += usage.inputTokens
                 outTokens += usage.outputTokens
+                cached += usage.cacheReadInputTokens ?? 0
                 draft.meta = {
                   model: draft.meta?.model ?? "",
                   usd,
@@ -195,7 +201,9 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                   stopReason: done
                     ? `${rounds} round${rounds === 1 ? "" : "s"}`
                     : `round ${rounds}…`,
-                  tokens: `${inTokens.toLocaleString()} in / ${outTokens.toLocaleString()} out`,
+                  tokens:
+                    `${inTokens.toLocaleString()} in / ${outTokens.toLocaleString()} out` +
+                    (cached ? ` · ${cached.toLocaleString()} cached` : ""),
                 }
               }
               push()
