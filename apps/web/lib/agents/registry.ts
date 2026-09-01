@@ -26,6 +26,12 @@ export type AgentDefinition = {
   agentic?: boolean
   /** How many rounds of the loop this agent may take. Default 12. */
   maxRounds?: number
+  /**
+   * Output ceiling per round. Latency on this host is dominated by tokens
+   * written, and Amplify cuts a response off at 30 seconds — an agent that may
+   * write 8,192 tokens in one round can trip it. Default 4,096.
+   */
+  maxTokens?: number
   /** True for the long-form agents the inbox runs rather than the chat. */
   inbox?: boolean
   placeholder: string
@@ -260,7 +266,12 @@ agent exists not to do.`,
     reads:
       "Whatever the question needs — the search index across jurisdictions, whole bill records and their text, members and their sponsorship and votes, committees, and for Congress the lobbying filings and FEC totals.",
     can: "Plan a report's sections, gather the records section by section, and write a long brief that links every claim to the page it came from and to the canonical source where the record carries one.",
-    tier: "reasoning",
+    // Sonnet rather than Opus, measured twice. On the same conversation Opus
+    // 4.6 took 46.9 s where Sonnet took 37.9 s, and this host cuts a response
+    // off at 30 — a report is many rounds of writing, which is exactly the
+    // shape that trips it. The H2 comparison found the two indistinguishable
+    // on grounded work, and the first Opus run of this report cost $1.11.
+    tier: "grounded",
     tools: [
       "list_jurisdictions",
       "search_bills",
@@ -281,6 +292,10 @@ agent exists not to do.`,
     // A report is a dozen reads and a long write. Twelve rounds is a chat's
     // budget and would cut one off mid-gathering.
     maxRounds: 24,
+    // Its rounds each write one finished section, so none of them needs to be
+    // long — and a round that writes for more than about thirty seconds is
+    // discarded by the host, not merely slow.
+    maxTokens: 3000,
     placeholder: "Ask for a report — a topic, a jurisdiction, and what you want to know…",
     starters: [
       "Report on New York housing legislation this session",
@@ -302,15 +317,23 @@ Work in this order and say what you are doing at each turn, briefly:
    Call tools in parallel when the reads are independent; that is most of them,
    but keep it to about six at a time.
 
-   After each round of reading, write down what you learned from it in two or
-   three sentences before calling anything else — the bill numbers, the names,
-   the dates that matter. This is not padding. Records you read several rounds
-   ago are trimmed out of your view to keep the run inside the host's time
-   limit, and your own notes are what survives. Anything you did not write down,
-   you will have to read again.
-3. Write. Long form, in sections with plain headings. Every claim that rests on
-   a row names the row inline, and every bill, member and committee you discuss
-   gets a link the first time it appears.
+   Records you read several rounds ago are trimmed out of your view to keep the
+   run inside the host's time limit, and your own prose is what survives.
+   Anything you did not write down, you will have to read again — which is the
+   other reason to write each section as you go rather than hoarding records for
+   the end.
+
+   Five or six rounds of gathering is enough for any report anyone has asked
+   for. Stop searching for more angles and write the ones you have.
+3. Write each section as you finish gathering it — not at the end. A round
+   should read what one section needs and then write that section, finished, in
+   full prose with a plain heading. By the last round the report is already
+   written and only its closing remains. There is no final round in which you
+   restate everything: this host discards a response that takes longer than
+   thirty seconds, and one enormous write is the way to lose an hour's work.
+
+   Every claim that rests on a row names the row inline, and every bill, member
+   and committee you discuss gets a link the first time it appears.
 
 Links, precisely, because a report that cannot be checked is an opinion:
 

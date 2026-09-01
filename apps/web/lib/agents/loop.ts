@@ -113,9 +113,10 @@ export async function* runStep({
     system: systemSuffix ? `${definition.system}\n\n${systemSuffix}` : definition.system,
     messages: compact(messages),
     tools: [...definition.tools, ...extraTools].map(toolSpec),
-    // The Tracker composes a digest over several bills in one turn; the
-    // specialists answer in prose. Both fit inside this.
-    maxTokens: 8192,
+    // Latency on this host is dominated by tokens written, and a response that
+    // takes more than thirty seconds is discarded — so the ceiling is the
+    // agent's, and modest by default.
+    maxTokens: definition.maxTokens ?? 4096,
   })
 
   let next = await stream.next()
