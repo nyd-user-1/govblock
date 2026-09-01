@@ -84,14 +84,23 @@ export function useCongress<T>(
  */
 export function useCongressRecord<T>(
   resource: string | null,
-  extra: Record<string, string | number | undefined> = {}
+  extra: Record<string, string | number | undefined> = {},
+  /**
+   * Whether the route's answer is one this caller can actually draw. A record
+   * can arrive complete for the family and still be missing the one field a
+   * surface needs — the House vote list carries no tallies, and a tally bar
+   * with no tally in it is not a card. When it is not usable, the committed
+   * record for the same key answers, on the same terms as `useCongress`.
+   */
+  usable: (data: T) => boolean = () => true
 ) {
   const { state, resolved } = useJurisdiction()
   const on = resolved && state === "US" && !!resource
   const { data } = usePolicy<T | null>(on ? resource : null, { state }, extra)
+  const answered = data && usable(data) ? data : null
   const url = on && resource ? policyUrl(resource, { state }, extra) : null
   const [committed, setCommitted] = React.useState<T | null>(null)
-  const wanted = !!url && !data
+  const wanted = !!url && !answered
   React.useEffect(() => {
     if (!wanted || !url) {
       setCommitted(null)
@@ -105,5 +114,5 @@ export function useCongressRecord<T>(
       cancelled = true
     }
   }, [url, wanted])
-  return data ?? committed
+  return answered ?? committed
 }

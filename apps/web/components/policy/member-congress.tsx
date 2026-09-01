@@ -34,7 +34,7 @@ type Detail = {
   portraitUrl?: string | null
 }
 type Vote = {
-  identifier?: number
+  identifier?: number | string
   rollCallNumber?: number
   sessionNumber?: number
   startDate?: string
@@ -46,23 +46,57 @@ type Vote = {
   voteCast?: string
 }
 
+// The same roll call, spelled two ways: the API's own camelCase where the
+// record came from congress.gov, and the column names where it came from the
+// positions table. One shape reaches the table.
+type RawVote = Record<string, unknown>
+const pick = (row: RawVote, ...keys: string[]) => {
+  for (const key of keys) if (row[key] !== undefined && row[key] !== null) return row[key]
+  return undefined
+}
+const asVote = (row: RawVote): Vote => ({
+  identifier: pick(row, "identifier", "vote_identifier") as Vote["identifier"],
+  rollCallNumber: pick(row, "rollCallNumber", "roll_call_number") as number | undefined,
+  sessionNumber: pick(row, "sessionNumber", "session_number") as number | undefined,
+  startDate: pick(row, "startDate", "start_date") as string | undefined,
+  legislationType: pick(row, "legislationType", "legislation_type") as string | undefined,
+  legislationNumber: pick(row, "legislationNumber", "legislation_number") as string | undefined,
+  legislationUrl: pick(row, "legislationUrl", "legislation_url") as string | undefined,
+  voteQuestion: pick(row, "voteQuestion", "vote_question") as string | undefined,
+  result: pick(row, "result") as string | undefined,
+  voteCast: pick(row, "voteCast", "vote_cast") as string | undefined,
+})
+
 type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean }
 const Ctx = React.createContext<Value>({ detail: null, votes: [], onCongress: false })
 const use = () => React.useContext(Ctx)
 
 export function MemberCongressProvider({
+  peopleId,
   bioguide,
   children,
 }: {
+  peopleId: number
   bioguide: string | null
   children: React.ReactNode
 }) {
   const { state, resolved } = useJurisdiction()
   const on = resolved && state === "US" && !!bioguide
   const detail = usePolicy<Detail>(on ? "member-detail" : null, { state }, { bioguide: bioguide ?? undefined })
-  const votes = usePolicy<{ votes?: Vote[] }>(on ? "member-votes" : null, { state }, { bioguide: bioguide ?? undefined })
+  // Aurora keys a member's positions by `people_id`; the committed record is
+  // keyed by bioguide, because that is what congress.gov keys a member by.
+  // Both are sent and each answer takes the one it knows.
+  const votes = usePolicy<{ memberVotes?: RawVote[]; votes?: RawVote[] }>(
+    on ? "member-votes" : null,
+    { state },
+    { member: peopleId, bioguide: bioguide ?? undefined }
+  )
   const value = React.useMemo<Value>(
-    () => ({ detail: detail.data ?? null, votes: votes.data?.votes ?? [], onCongress: on }),
+    () => ({
+      detail: detail.data ?? null,
+      votes: (votes.data?.memberVotes ?? votes.data?.votes ?? []).map(asVote),
+      onCongress: on,
+    }),
     [detail.data, votes.data, on]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

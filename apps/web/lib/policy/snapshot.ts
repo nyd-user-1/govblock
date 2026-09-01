@@ -216,7 +216,9 @@ export async function resolveCongress(url: string): Promise<unknown> {
           votes.push({ ...rollCall, voteCast: cast.voteCast })
         }
       }
-      return { bioguide, count: votes.length, votes }
+      // `memberVotes` is the name the route answers under; `votes` stays for
+      // anything still reading the older one.
+      return { bioguide, count: votes.length, memberVotes: votes, votes }
     }
     default:
       return undefined

@@ -81,9 +81,15 @@ export function VotesBoard() {
   // Under Congress the board reads the House Clerk's own roll calls beside
   // LegiScan's, because LegiScan's are almost all Senate. Where both recorded
   // the same vote the Clerk's tally wins: it is the count of record.
+  // The House vote list carries no tallies — the positions are a table of
+  // their own, one request per roll call, which is not something a board of
+  // 647 cards can ask for. So an answer is only usable here if the positions
+  // rode along with it; otherwise the committed record, which carries both,
+  // answers instead.
   const house = useCongressRecord<{ houseRollCallVotes?: HouseVote[]; positions?: Positions }>(
     state === "US" ? "house-votes" : null,
-    { limit: 250 }
+    { limit: 250 },
+    (answer) => Object.keys(answer?.positions ?? {}).length > 0
   )
   const floor = React.useMemo<VoteRow[]>(() => {
     const positions = house?.positions ?? {}
