@@ -25,6 +25,8 @@ export type ToolName =
   | "list_committees"
   | "get_committee"
   | "top_sponsors"
+  | "get_lobbying"
+  | "get_fec"
   | "post_to_slack"
 
 // Converse types a tool's input schema as DocumentType — JSON, all the way
@@ -219,6 +221,40 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
     },
     request: (input) => query("sponsors", input, ["limit"]),
     shape: (data) => trim(data as unknown[], 20),
+  },
+
+  get_lobbying: {
+    description:
+      "Federal lobbying filings that name a bill — who filed, for which client, and the issue they registered. Congress only.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["bill_id"],
+    request: (input) => query("lobbying", input, ["id"]),
+    shape: (data) => {
+      // getLobbying answers { clients, registrants, count, filings: [...] } —
+      // `filings` is the list, `count` is how many there were before the ten.
+      const d = data as { filings?: unknown[]; count?: number; clients?: number; registrants?: number } | null
+      if (!d) return null
+      return { count: d.count, clients: d.clients, registrants: d.registrants, filings: trim(d.filings, 10) }
+    },
+  },
+
+  get_fec: {
+    description:
+      "A member of Congress's FEC totals by cycle and their largest reported contributions. Congress only.",
+    properties: {
+      people_id: { type: "integer", description: "The numeric member id." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["people_id"],
+    request: (input) => query("fec", input, ["id"]),
+    shape: (data) => {
+      const d = data as { totals?: unknown[]; contributions?: unknown[] } | null
+      if (!d) return null
+      return { totals: trim(d.totals, 8), contributions: trim(d.contributions, 12) }
+    },
   },
 
   post_to_slack: {
