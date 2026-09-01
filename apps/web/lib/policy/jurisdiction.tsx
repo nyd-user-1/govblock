@@ -73,6 +73,18 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
   const urlState = isJurisdiction(fromUrl) ? fromUrl : ""
   const resolved = !!urlState || mounted
 
+  // A scope that arrives by URL becomes this browser's memory too, so a
+  // shared `?state=TX` link followed by a nav click (plain hrefs) stays in
+  // Texas instead of dropping back to the default. Brendan, 2026-09-01.
+  React.useEffect(() => {
+    if (!urlState) return
+    setStored((previous) =>
+      previous.state === urlState
+        ? previous
+        : { state: urlState, recent: [urlState, ...(previous.recent ?? []).filter((c) => c !== urlState)].slice(0, 5) }
+    )
+  }, [urlState, setStored])
+
   const state = React.useMemo(() => {
     if (urlState) return urlState
     const remembered = stored.state?.toUpperCase()

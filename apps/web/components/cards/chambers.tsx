@@ -16,7 +16,8 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } f
 // The seal is the avatar, and the row filters the rest of the grid.
 type Option = { value: string; count: number }
 
-export function ChambersCard() {
+// `compact` is the docs-rail size, as on the calendar card.
+export function ChambersCard({ compact = false }: { compact?: boolean }) {
   const { data: options, state, congress } = useScoped<{ chambers: Option[] }>("options", null as unknown as { chambers: Option[] })
   const { data: seats } = useScoped<{ chamber: string; seats: number }[]>("seats", null as unknown as { chamber: string; seats: number }[])
   const chambers = React.useMemo(() => {
@@ -26,7 +27,7 @@ export function ChambersCard() {
     return options.chambers.map((c) => ({ label: c.value, bills: c.count, members: members.get(c.value) ?? 0 }))
   }, [options, seats, congress])
   return (
-    <CardFrame id="chambers">
+    <CardFrame id="chambers" size={compact ? "sm" : "default"}>
       <CardHeader>
         <CardTitle>Chambers</CardTitle>
         <CardDescription>Bills before each chamber, and who sits in it</CardDescription>
@@ -40,10 +41,11 @@ export function ChambersCard() {
             <Item
               key={row.label}
               variant="muted"
+              size={compact ? "sm" : "default"}
               render={<Link href={`/docs/bills?state=${state}&chamber=${encodeURIComponent(row.label)}`} className="no-underline" />}
             >
               <ItemMedia>
-                <ChamberSeal state={state} chamber={row.label} size={36} />
+                <ChamberSeal state={state} chamber={row.label} size={compact ? 28 : 36} />
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>{row.label}</ItemTitle>
