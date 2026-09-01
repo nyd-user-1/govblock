@@ -1485,6 +1485,9 @@ export async function getTextVersions(billId: number) {
        from "BillTexts" t
        left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
       where t.bill_id = $1
+        -- govinfo-billsum rows are CRS summaries, not text versions; they belong
+        -- to the summaries family and were showing up here as an undated stage.
+        and t.source <> 'govinfo-billsum'
       order by coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) desc nulls last, t.document_id desc`,
     [billId],
   );
