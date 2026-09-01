@@ -6,6 +6,7 @@ import {
   type ContentBlock,
   type Message,
   type Tool,
+  type ToolUseBlock,
 } from "@aws-sdk/client-bedrock-runtime"
 
 import { MODELS, costOf, type ModelTier, type Usage } from "@/lib/agents/models"
@@ -132,7 +133,7 @@ export async function* converseStream(
       if (start) {
         const raw = toolInputs.get(index) ?? ""
         // Bedrock sends `""` for a no-argument tool call; `{}` is the value.
-        let input: unknown = {}
+        let input: ToolUseBlock["input"] = {}
         try {
           if (raw.trim()) input = JSON.parse(raw)
         } catch {
