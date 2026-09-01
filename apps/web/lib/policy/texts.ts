@@ -2,6 +2,8 @@ import { TEXTS } from "@/lib/data"
 import { sql } from "@/lib/policy/db"
 
 // Comfortably inside the Data API's 1 MB result cap after JSON framing.
+// The ::int cast at the call site matters: the shim binds a JS integer as
+// bigint, and left(text, bigint) is not a function Postgres has.
 const MAX_TEXT = 800_000
 
 // Bill texts, latest version per bill, in one query — "BillTexts" is indexed
@@ -32,7 +34,7 @@ export async function getBillTexts(ids: number[]): Promise<Map<number, string>> 
         await Promise.all(
           ids.map(
             (id) => run`
-        select t.bill_id, left(t.text, ${MAX_TEXT}) as text, length(t.text) as full_length
+        select t.bill_id, left(t.text, ${MAX_TEXT}::int) as text, length(t.text) as full_length
         from "BillTexts" t
         where t.bill_id = ${id} and t.text is not null
         order by t.document_id desc
