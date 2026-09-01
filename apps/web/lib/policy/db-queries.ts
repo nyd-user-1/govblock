@@ -1637,12 +1637,13 @@ export async function searchAll(f: Resolved, term: string, limit = 8) {
       role: string
       chamber: string
       district: string
+      state: string
     }>(
-      `select p.people_id, p.name, p.party, p.role, p.chamber, p.district
+      `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.state
        from "People" p
-       where p.state = $1 and p.committee_id is null and not coalesce(p.archived, false)
+       where p.committee_id is null and not coalesce(p.archived, false)
          and p.role in ('Rep', 'Sen') and p.name ilike $2
-       order by p.last_name, p.first_name
+       order by (p.state = $1) desc, p.last_name, p.first_name
        limit $3`,
       [f.state, like, limit]
     ),

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 
 import { memberHref, stateName } from "@/lib/filters"
+import { FlagChip } from "@/components/policy/imagery"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { policyUrl } from "@/lib/policy/use-policy"
 import { matchPages, SEARCH_PAGES } from "@/lib/search-pages"
@@ -34,7 +35,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 type SearchPayload = {
   q: string
   bills: { bill_id: number; bill_number: string; title: string }[]
-  members: { people_id: number; name: string; party: string; chamber: string }[]
+  members: { people_id: number; name: string; party: string; chamber: string; state: string }[]
   committees: { committee: string; bills: number; chamber: string }[]
 }
 
@@ -158,6 +159,7 @@ export function CommandMenu() {
                       value={`bill-${bill.bill_id}`}
                       onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${state}`)}
                     >
+                      <FlagChip state={state} width={20} />
                       <span className="shrink-0 font-medium">{bill.bill_number}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
                     </CommandItem>
@@ -170,8 +172,9 @@ export function CommandMenu() {
                     <CommandItem
                       key={`member-${member.people_id}`}
                       value={`member-${member.people_id}`}
-                      onSelect={() => go(memberHref(member.people_id, state))}
+                      onSelect={() => go(memberHref(member.people_id, member.state))}
                     >
+                      <FlagChip state={member.state} width={20} />
                       <span className="shrink-0 font-medium">{member.name}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {[member.party, member.chamber].filter(Boolean).join(" · ")}
@@ -190,6 +193,7 @@ export function CommandMenu() {
                         go(`/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee)}`)
                       }
                     >
+                      <FlagChip state={state} width={20} />
                       <span className="shrink-0 font-medium">{committee.committee}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {committee.bills} bills

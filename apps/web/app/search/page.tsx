@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { SearchDirectory } from "@/components/directory-search"
 import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
+import { FlagChip } from "@/components/policy/imagery"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { matchPages } from "@/lib/search-pages"
@@ -33,6 +34,7 @@ type SearchPayload = {
     role: string
     chamber: string
     district: string
+    state: string
   }[]
   committees: { committee: string; bills: number; chamber: string }[]
 }
@@ -131,6 +133,7 @@ function SearchResults() {
           <Section title="Bills" count={bills.length}>
             {bills.map((bill) => (
               <Row key={bill.bill_id} href={`/docs/bills/${bill.bill_id}?state=${state}`}>
+                <FlagChip state={state} width={20} className="self-center" />
                 <span className="shrink-0 font-medium">{bill.bill_number}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
                 <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
@@ -142,10 +145,11 @@ function SearchResults() {
           </Section>
           <Section title="Members" count={members.length}>
             {members.map((member) => (
-              <Row key={member.people_id} href={memberHref(member.people_id, state)}>
+              <Row key={member.people_id} href={memberHref(member.people_id, member.state)}>
+                <FlagChip state={member.state} width={20} className="self-center" />
                 <span className="shrink-0 font-medium">{member.name}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {[member.party, member.chamber, member.district].filter(Boolean).join(" · ")}
+                  {[stateName(member.state), member.party, member.chamber, member.district].filter(Boolean).join(" · ")}
                 </span>
               </Row>
             ))}
@@ -156,6 +160,7 @@ function SearchResults() {
                 key={committee.committee}
                 href={`/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee)}`}
               >
+                <FlagChip state={state} width={20} className="self-center" />
                 <span className="shrink-0 font-medium">{committee.committee}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">
                   {committee.chamber} · {committee.bills} bills this session
