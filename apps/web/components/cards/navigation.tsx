@@ -15,6 +15,7 @@ import {
 } from "@tabler/icons-react"
 
 import * as F from "@/lib/fixtures"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import {
@@ -33,7 +34,7 @@ import {
 // and the scoped ones carry the jurisdiction so a click keeps the state you
 // are in.
 export function NavigationCard() {
-  const state = F.STATE
+  const { state } = useJurisdiction()
   const scoped = (href: string) => `${href}?state=${state}`
 
   const groups = [

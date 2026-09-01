@@ -3,12 +3,14 @@
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { Button } from "@govblock/ui/components/button"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Lobbying — registrations, clients and reported spend, and who spends most.
 export function LobbyingCard() {
+  const { state } = useJurisdiction()
   return (
     <CardFrame id="lobbying">
       <CardHeader>
@@ -37,7 +39,7 @@ export function LobbyingCard() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/lobbying?state=${F.STATE}`} />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/lobbying?state=${state}`} />}>
           All registrations
         </Button>
       </CardFooter>

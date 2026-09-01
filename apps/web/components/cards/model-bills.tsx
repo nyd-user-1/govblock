@@ -3,12 +3,14 @@
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { Button } from "@govblock/ui/components/button"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Model bills — bills whose text is shared with bills in other states.
 export function ModelBillsCard() {
+  const { state } = useJurisdiction()
   return (
     <CardFrame id="model-bills">
       <CardHeader>
@@ -37,7 +39,7 @@ export function ModelBillsCard() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/model-bills?state=${F.STATE}`} />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/model-bills?state=${state}`} />}>
           All lineages
         </Button>
       </CardFooter>

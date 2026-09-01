@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CopyButton } from "@/components/copy-button"
 import { Button } from "@govblock/ui/components/button"
@@ -11,7 +12,8 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 // API — the same numbers this page renders, as JSON, for the scope in the
 // header. The card is the documentation: the URL it shows is meant to be live.
 export function ApiCard() {
-  const path = `/api/policy/bills?state=${F.STATE}&limit=5`
+  const { state } = useJurisdiction()
+  const path = `/api/policy/bills?state=${state}&limit=5`
   const command = `curl https://govblock.app${path}`
   return (
     <CardFrame id="api">
