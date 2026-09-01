@@ -1830,15 +1830,35 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
               where c.state <> $1 and ${options.all ? "true" : "false"}
            ),
            picked as (
-             select s.tier, x.bill_id, x.document_id, x.state
+             select s.tier, x.bill_id, x.document_id, x.state, x.head_from
              from scopes s
              cross join lateral (
-               select distinct on (t.bill_id) t.bill_id, t.document_id, t.state
-               from "BillTexts" t
-               where t.state = s.state and t.session_id = s.session_id
-                 and t.text is not null
-                 and t.search_tsv @@ websearch_to_tsquery('english', $5)
-               order by t.bill_id desc, t.document_id desc
+               -- Two indexes, one question. search_tsv covers the first megabyte
+               -- of every document; "BillTextChunks" covers everything after it,
+               -- for the 2,110 documents that have an after. Both are gin(state,
+               -- session_id, tsv), so both cut the same way in the same plan.
+               --
+               -- head_from is the character offset ts_headline has to start at.
+               -- Without it a chunk hit would be found and then thrown away: the
+               -- headline would be cut from the top of the document, contain no
+               -- match, and be dropped by the highlight filter below. 1 means the
+               -- first megabyte; anything else is the chunk's own start.
+               select distinct on (u.bill_id) u.bill_id, u.document_id, u.state, u.head_from
+               from (
+                 select t.bill_id, t.document_id, t.state, 1 as head_from
+                 from "BillTexts" t
+                 where t.state = s.state and t.session_id = s.session_id
+                   and t.text is not null
+                   and t.search_tsv @@ websearch_to_tsquery('english', $5)
+                 union all
+                 select c.bill_id, c.document_id, c.state, 999001 + c.chunk_no * 799000
+                 from "BillTextChunks" c
+                 where c.state = s.state and c.session_id = s.session_id
+                   and c.tsv @@ websearch_to_tsquery('english', $5)
+               ) u
+               -- head_from ascending breaks the tie when a bill matches in both:
+               -- prefer the first megabyte, whose headline is a quarter the cost.
+               order by u.bill_id desc, u.document_id desc, u.head_from
                limit s.cap
              ) x
            ),
@@ -1853,8 +1873,15 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
            ),
            snippets as (
              select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title,
-                    ts_headline('english', left(${BODY}, 200000),
-                                websearch_to_tsquery('english', $5), $6) as snippet
+                    ts_headline('english',
+                      case when p.head_from <= 1
+                           -- the first megabyte, minus New York's scraped preamble
+                           then left(${BODY}, 200000)
+                           -- the exact chunk that matched, whole, so the match is
+                           -- certain to be inside the window rather than probably
+                           else substr(t.text, p.head_from, 800000)
+                      end,
+                      websearch_to_tsquery('english', $5), $6) as snippet
              from shortlist p
              join "Bills" b on b.bill_id = p.bill_id
              join "BillTexts" t on t.document_id = p.document_id
