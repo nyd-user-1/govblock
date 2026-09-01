@@ -18,7 +18,10 @@ import { Progress } from "@govblock/ui/components/progress"
 type Option = { value: string; count: number }
 
 export function BillsCard() {
-  const { data: options, state, congress } = useScoped<{ statuses: Option[] }>("options", null as unknown as { statuses: Option[] })
+  const { data: options, state, session, congress } = useScoped<{ statuses: Option[]; sessions: { session_id: number }[] }>(
+    "options",
+    null as unknown as { statuses: Option[]; sessions: { session_id: number }[] }
+  )
   const { data: bills } = useScoped<{ total: number }>("bills", null as unknown as { total: number }, { limit: 1 })
   const { total, rows } = React.useMemo(() => {
     if (!options) return congress ? F.bills : { total: 0, rows: [] }
@@ -27,6 +30,18 @@ export function BillsCard() {
       rows: options.statuses.slice(0, 5).map((r) => ({ label: r.value, bills: r.count })),
     }
   }, [options, bills, congress])
+
+  // The picker listed Congress's sessions whatever the scope. Take them from
+  // the jurisdiction's own ledger, and label the current one from the scope.
+  const sessions = React.useMemo(
+    () =>
+      options?.sessions
+        ? options.sessions.slice(1, 8).map((row) => String(row.session_id))
+        : congress
+          ? F.sessions.slice(1).map((row) => row.label.slice(0, 9))
+          : [],
+    [options, congress]
+  )
   return (
     <CardFrame id="bills-status">
       <CardHeader>
@@ -52,7 +67,7 @@ export function BillsCard() {
         ))}
       </CardContent>
       <CardFooter className="justify-between gap-2">
-        <SubjectPicker label="Session" allLabel="2025-2026" items={F.sessions.slice(1).map((s) => s.label.slice(0, 9))} />
+        <SubjectPicker label="Session" allLabel={session ? String(session) : "Session"} items={sessions} />
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/bills?state=${state}`} />}>
           All bills
         </Button>
