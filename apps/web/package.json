@@ -12,14 +12,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
     "@govblock/ui": "workspace:*",
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/react": "^1.1.10",
+    "@internationalized/date": "^3.12.3",
     "@neondatabase/serverless": "^1.1.0",
     "@tabler/icons-react": "^3.46.0",
+    "date-fns": "^4.4.0",
     "lucide-react": "^1.38.0",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
+    "nuqs": "^2.10.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "3.8.0"

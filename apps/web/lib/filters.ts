@@ -49,3 +49,10 @@ export function partyName(code: string | null | undefined) {
 export function memberHref(peopleId: number | string, state: string) {
   return `/docs/directory/${peopleId}?state=${state}`
 }
+
+// v3 lib/policy/filters.ts: which name the lower house goes by.
+const ASSEMBLY_STATES = new Set(["CA", "NV", "NJ", "NY", "WI"])
+
+export function lowerChamber(state: string | undefined) {
+  return ASSEMBLY_STATES.has((state ?? "").toUpperCase()) ? "Assembly" : "House"
+}

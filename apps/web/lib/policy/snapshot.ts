@@ -6,6 +6,7 @@ import texts from "@/lib/data/texts-us.json"
 import textBodies from "@/lib/data/text-bodies-us.json"
 import fecCandidates from "@/lib/data/fec-candidates-us.json"
 import fecManifest from "@/lib/data/fec-manifest.json"
+import states from "@/lib/data/states.json"
 
 // What livingston-v3's /api/policy/* and /api/fec/* answered for Congress on
 // 2026-09-01, answered here from lib/data instead. The boards still ask by
@@ -21,6 +22,8 @@ export function resolve(url: string): unknown {
   const { pathname, searchParams: q } = new URL(url, "http://snapshot")
   const limit = Number(q.get("limit") ?? 0)
   switch (pathname) {
+    case "/api/policy/states":
+      return states
     case "/api/policy/committees":
       return F.committeesAll
     case "/api/policy/members":

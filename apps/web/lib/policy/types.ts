@@ -41,3 +41,10 @@ export type Hearing = {
   body: string | null
   status_desc: string | null
 }
+
+export type StateRow = {
+  state: string
+  bills: number
+  latest_year: number
+  sessions: number
+}
