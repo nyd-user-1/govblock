@@ -60,7 +60,7 @@ type HouseVote = {
   voteType?: string
   result?: string
 }
-type Positions = Record<string, { results?: { voteCast?: string }[]; voteQuestion?: string }>
+type Positions = Record<string, HouseVote & { results?: { voteCast?: string }[] }>
 
 // LegiScan writes H.R. 3424 as HB3424; the two have to agree before a duplicate
 // can be recognised.
@@ -87,24 +87,32 @@ export function VotesBoard() {
   )
   const floor = React.useMemo<VoteRow[]>(() => {
     const positions = house?.positions ?? {}
-    return (house?.houseRollCallVotes ?? []).flatMap((vote) => {
-      const cast = positions[String(vote.identifier)]?.results
+    return (house?.houseRollCallVotes ?? []).flatMap((row) => {
+      // The positions record is the fuller of the two — it is the only one
+      // that carries the question the House was actually asked — so it wins
+      // where both describe the same roll call.
+      const record = positions[String(row.identifier)]
+      const cast = record?.results
       if (!cast?.length) return []
+      const vote = { ...row, ...record }
       const yea = cast.filter((v) => /^(yea|aye)$/i.test(String(v.voteCast))).length
       const nay = cast.filter((v) => /^(nay|no)$/i.test(String(v.voteCast))).length
       const type = String(vote.legislationType ?? "").toUpperCase()
+      // Not every roll call is on a bill — the House also votes on adjourning
+      // and on its own journal — and those name themselves by their number.
+      const named = vote.legislationNumber ? `${LEGISCAN_TYPE[type] ?? type}${vote.legislationNumber}` : ""
       return [
         {
           roll_call_id: -Number(vote.identifier ?? 0),
           date: String(vote.startDate ?? "").slice(0, 10),
           chamber: "House",
-          description: vote.voteQuestion ?? vote.voteType ?? `Roll call ${vote.rollCallNumber}`,
+          description: vote.voteQuestion ?? vote.voteType ?? "",
           yea,
           nay,
           total: cast.length,
           bill_id: 0,
-          bill_number: `${LEGISCAN_TYPE[type] ?? type}${vote.legislationNumber ?? ""}`,
-          title: vote.result ? `${vote.result} · roll call ${vote.rollCallNumber}` : "",
+          bill_number: named || `Roll call ${vote.rollCallNumber ?? "—"}`,
+          title: [vote.result, vote.voteType].filter(Boolean).join(" · "),
           href: vote.legislationUrl,
           source: "House Clerk",
         },
@@ -189,7 +197,7 @@ export function VotesBoard() {
                       >
                         {row.bill_number}
                       </Link>
-                    ) : (
+                    ) : row.href ? (
                       <a
                         href={row.href}
                         target="_blank"
@@ -199,6 +207,8 @@ export function VotesBoard() {
                       >
                         {row.bill_number}
                       </a>
+                    ) : (
+                      <span title={row.title}>{row.bill_number}</span>
                     )}
                   </CardTitle>
                   <CardDescription>
