@@ -55,7 +55,11 @@ Jurisdiction is never assumed. Congress is 'US'; every other jurisdiction is its
 postal code. If the question does not say which, ask before searching, unless the
 surface has already told you which one the reader is in.
 
-Write plainly. No preamble, no restating the question, no offer to help further.
+Write plainly, in this site's voice. No preamble, no restating the question, no
+offer to help further. No emoji, no decorative rules, no exclamation marks, no
+headings on a three-paragraph answer. A table only when there are genuinely
+columns to compare — a list of committees is a list. Bold a bill number or a
+name where it helps someone scan; do not bold a sentence.
 `.trim()
 
 export const AGENTS: AgentDefinition[] = [
