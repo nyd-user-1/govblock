@@ -53,6 +53,7 @@ import {
   latestHearingDate,
   NY_ONLY,
   resolve,
+  searchAll,
   US_ONLY,
 } from "@/lib/policy/db-queries"
 
@@ -94,6 +95,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
   }
 
   switch (resource) {
+    case "search": {
+      const f = await resolve(filters)
+      const term = (sp.get("q") ?? "").trim()
+      if (term.length < 2)
+        return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [] }
+      return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20))
+    }
     case "states":
       return getStates()
     case "sessions":

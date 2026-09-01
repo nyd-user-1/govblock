@@ -1602,3 +1602,64 @@ export async function getCommunications(limit = 50, offset = 0, chamber?: string
     communications: await congressFamily("congress_communications", limit, offset, where, params),
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Search: one scoped pass over bills, people and committees, for the header
+// menu and /search. ILIKE inside the (state, session) slice the btree indexes
+// already cut — measured well under a second on the largest session. Bill
+// numbers match on a prefix with the spaces squeezed out, so "hb 10" and
+// "HB10" both reach HB10160.
+
+export async function searchAll(f: Resolved, term: string, limit = 8) {
+  const like = `%${term}%`
+  const numberLike = `${term.replace(/\s+/g, "")}%`
+  const [bills, members, committees] = await Promise.all([
+    q<{
+      bill_id: number
+      bill_number: string
+      title: string
+      status_desc: string | null
+      last_action_date: string | null
+    }>(
+      `select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action_date
+       from "Bills" b
+       where b.state = $1 and b.session_id = $2
+         and (b.bill_number ilike $3 or b.title ilike $4)
+       order by (b.bill_number ilike $3) desc, b.last_action_date desc nulls last, b.bill_id desc
+       limit $5`,
+      [f.state, f.session, numberLike, like, limit]
+    ),
+    q<{
+      people_id: number
+      name: string
+      party: string
+      role: string
+      chamber: string
+      district: string
+    }>(
+      `select p.people_id, p.name, p.party, p.role, p.chamber, p.district
+       from "People" p
+       where p.state = $1 and p.committee_id is null and not coalesce(p.archived, false)
+         and p.role in ('Rep', 'Sen') and p.name ilike $2
+       order by p.last_name, p.first_name
+       limit $3`,
+      [f.state, like, limit]
+    ),
+    q<{ committee: string; bills: number; chamber: string }>(
+      `select committee, count(*)::int bills, min(body) chamber
+       from "Bills"
+       where state = $1 and session_id = $2 and coalesce(committee, '') <> '' and committee ilike $3
+       group by 1 order by 2 desc limit $4`,
+      [f.state, f.session, like, Math.min(limit, 6)]
+    ),
+  ])
+  return {
+    q: term,
+    state: f.state,
+    session: f.session,
+    bills: bills.map((r) => ({ ...r, bill_id: n(r.bill_id) })),
+    members: members.map((r) => ({ ...r, people_id: n(r.people_id) })),
+    committees,
+  }
+}
