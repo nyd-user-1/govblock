@@ -6,6 +6,7 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react"
 
 import members from "@/lib/data/members-us.json"
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { memberHref, partyName, stateName } from "@/lib/filters"
 import { honorific } from "@/lib/format"
 import { portraitFor } from "@/lib/imagery"
@@ -50,14 +51,21 @@ const matches = (m: Member, q: string) =>
   m.name.toLowerCase().includes(q) || (m.district ?? "").toLowerCase().includes(q) || partyName(m.party).toLowerCase().includes(q) || (m.chamber ?? "").toLowerCase().includes(q)
 
 export function DirectoryList() {
-  const state = F.STATE
+  const { data, state } = useScoped<Member[]>("members", members)
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
 
+  // The page is "every sitting member": the roster is who sits this session.
+  // Former members come back too — they sponsored the bills the rest of the app
+  // links to — but they do not belong in a directory of the current chamber.
+  const sitting = React.useMemo(() => (data ?? []).filter((m) => m.active), [data])
+
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase()
-    return q ? members.filter((m) => matches(m, q)) : members
-  }, [query])
+    return q ? sitting.filter((m) => matches(m, q)) : sitting
+  }, [sitting, query])
+  React.useEffect(() => setPage(1), [state])
+
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
   const current = Math.min(page, totalPages)
   const shown = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)

@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
 import { SearchDirectory } from "@/components/directory-search"
@@ -27,12 +28,14 @@ import {
 
 const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
 
+type Bill = (typeof F.recentBills)[number] & { sponsor?: string | null }
+
 export function BillsList() {
-  const state = F.STATE
+  const { data, state } = useScoped<{ rows: Bill[] }>("bills", { rows: F.recentBills })
   const [query, setQuery] = React.useState("")
 
   const bills = React.useMemo(() => {
-    const rows = F.recentBills
+    const rows = data?.rows ?? []
     if (!query.trim()) return rows
     const q = query.toLowerCase()
     return rows.filter(
@@ -42,7 +45,7 @@ export function BillsList() {
         (bill.committee ?? "").toLowerCase().includes(q) ||
         (bill.sponsor ?? "").toLowerCase().includes(q)
     )
-  }, [query])
+  }, [data, query])
 
   return (
     <>

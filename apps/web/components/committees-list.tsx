@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import * as F from "@/lib/fixtures"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { SearchDirectory } from "@/components/directory-search"
@@ -12,14 +13,17 @@ import { ProjectCard, ProjectGrid } from "@/components/project-card"
 // Ported from livingston-v3 components/committees-list.tsx — two columns at a
 // 24px gap, cards all the same size: seal, name, bill count — with the search
 // field the bills page has, so the two directory pages read the same.
+type Committee = { committee_name: string; chamber: string; bills: number }
+
 export function CommitteesList() {
-  const state = F.STATE
+  const { data, state } = useScoped<Committee[]>("committees", F.committeesAll)
   const [query, setQuery] = React.useState("")
 
   const committees = React.useMemo(() => {
+    const rows = data ?? []
     const q = query.trim().toLowerCase()
-    return q ? F.committeesAll.filter((c) => c.committee_name.toLowerCase().includes(q)) : F.committeesAll
-  }, [query])
+    return q ? rows.filter((c) => c.committee_name.toLowerCase().includes(q)) : rows
+  }, [data, query])
 
   const groups = React.useMemo(() => {
     const order = new Map<string, typeof committees>()
