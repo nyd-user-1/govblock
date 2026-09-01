@@ -1,25 +1,31 @@
 "use client"
 
 import * as React from "react"
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport, type UIMessage } from "ai"
 
 import { cn } from "@/lib/utils"
+import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
+import { emptyRun, runAgent, type RunState } from "@/lib/agents/run-client"
+import { agent as agentBySlug, maxRounds } from "@/lib/agents/registry"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Textarea } from "@govblock/ui/components/nova/textarea"
 
-function textOf(message: UIMessage) {
-  return message.parts
-    .filter((part): part is Extract<UIMessage["parts"][number], { type: "text" }> => part.type === "text")
-    .map((part) => part.text)
-    .join("")
-}
-
 // The assistant, framed by the surface it sits in (the bill, the member).
-// One chat per `chatId`; the transcript stays in this browser.
+//
+// This panel posted to /api/chat since the v3 port, and no such route ever
+// existed here. It now speaks the agents protocol (lane X §10): one POST per
+// round, tool calls rendered as they happen, answered by a real specialist —
+// the Bill Reader unless the surface says otherwise. The old `system` framing
+// has no field in that protocol, so it rides in-band: prefixed to the first
+// user turn on the wire, never shown in the transcript. Same words, same
+// effect, honest transport.
+
+type Turn = { role: "user"; text: string } | { role: "assistant"; run: RunState }
+
 export function AssistChat({
   chatId,
   system,
+  agentSlug = "bill-reader",
   placeholder = "Ask about this bill…",
   className,
   compact = false,
@@ -27,62 +33,88 @@ export function AssistChat({
 }: {
   chatId: string
   system: string
+  agentSlug?: string
   placeholder?: string
   className?: string
   compact?: boolean
   starters?: string[]
 }) {
-  const storageKey = `livingston:chat:${chatId}`
-  const transport = React.useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat", body: { system } }),
-    [system]
-  )
-  const { messages, sendMessage, status, setMessages, error } = useChat({
-    id: chatId,
-    transport,
-  })
+  // The old key held the AI SDK's message shape; this one holds runs.
+  const storageKey = `govblock:panel:${chatId}`
+  const definition = agentBySlug(agentSlug)
+  const { state, resolved } = useJurisdiction()
+  const [turns, setTurns] = React.useState<Turn[]>([])
   const [input, setInput] = React.useState("")
+  const [busy, setBusy] = React.useState(false)
   const [restored, setRestored] = React.useState<string | null>(null)
   const bottomRef = React.useRef<HTMLDivElement | null>(null)
 
-  // Restore the transcript once per chat id, then keep it current.
   React.useEffect(() => {
     if (restored === chatId) return
     try {
       const raw = window.localStorage.getItem(storageKey)
-      if (raw) setMessages(JSON.parse(raw) as UIMessage[])
-      else setMessages([])
-    } catch {}
+      setTurns(raw ? (JSON.parse(raw) as Turn[]) : [])
+    } catch {
+      setTurns([])
+    }
     setRestored(chatId)
-  }, [chatId, storageKey, restored, setMessages])
+  }, [chatId, storageKey, restored])
 
   React.useEffect(() => {
     if (restored !== chatId) return
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(messages))
+      window.localStorage.setItem(storageKey, JSON.stringify(turns))
     } catch {}
     bottomRef.current?.scrollIntoView({ block: "end" })
-  }, [messages, restored, chatId, storageKey])
+  }, [turns, restored, chatId, storageKey])
 
-  const busy = status === "submitted" || status === "streaming"
+  const send = React.useCallback(
+    async (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed || busy || !definition) return
+      setInput("")
+      setBusy(true)
 
-  const submit = (text: string) => {
-    const trimmed = text.trim()
-    if (!trimmed || busy) return
-    void sendMessage({ text: trimmed })
-    setInput("")
-  }
+      const history: Turn[] = [...turns, { role: "user", text: trimmed }]
+      setTurns([...history, { role: "assistant", run: emptyRun() }])
+
+      // The surface's framing rides on the first user turn of the wire copy.
+      let framed = false
+      const wire = history.map((turn) => {
+        if (turn.role === "user") {
+          const first = !framed
+          framed = true
+          return {
+            role: "user" as const,
+            text: first && system ? `${system}\n\n${turn.text}` : turn.text,
+          }
+        }
+        return { role: "assistant" as const, text: turn.run.text }
+      })
+
+      await runAgent({
+        agent: definition.slug,
+        maxRounds: maxRounds(definition),
+        jurisdiction: resolved ? state : undefined,
+        turns: wire,
+        onUpdate: (run) => setTurns([...history, { role: "assistant", run }]),
+      })
+
+      setBusy(false)
+    },
+    [busy, definition, resolved, state, system, turns]
+  )
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>
       <div className={cn("flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto", compact ? "text-sm" : "")}>
-        {messages.length === 0 && (
+        {turns.length === 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-sm text-muted-foreground">{placeholder}</p>
             {starters.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {starters.map((starter) => (
-                  <Button key={starter} variant="outline" size="sm" onClick={() => submit(starter)}>
+                  <Button key={starter} variant="outline" size="sm" onClick={() => void send(starter)}>
                     {starter}
                   </Button>
                 ))}
@@ -90,23 +122,25 @@ export function AssistChat({
             )}
           </div>
         )}
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              message.role === "user"
-                ? "ml-auto w-fit max-w-[85%] rounded-3xl bg-muted px-4 py-2.5"
-                : "w-full whitespace-pre-wrap"
-            )}
-          >
-            {textOf(message)}
-          </div>
-        ))}
-        {busy && messages.at(-1)?.role === "user" && (
-          <div className="text-sm text-muted-foreground">Thinking…</div>
+        {turns.map((turn, index) =>
+          turn.role === "user" ? (
+            <div key={index} className="ml-auto w-fit max-w-[85%] rounded-3xl bg-muted px-4 py-2.5">
+              {turn.text}
+            </div>
+          ) : (
+            <div key={index} className="flex w-full flex-col gap-3">
+              <RunSteps steps={turn.run.steps} />
+              {turn.run.text && (
+                <div className={cn("whitespace-pre-wrap", turn.run.failed && "text-destructive")}>
+                  <Prose text={turn.run.text} />
+                </div>
+              )}
+              <RunMeta run={turn.run} />
+            </div>
+          )
         )}
-        {error && (
-          <div className="text-sm text-destructive">{error.message}</div>
+        {busy && turns.at(-1)?.role === "user" && (
+          <div className="text-sm text-muted-foreground">Working…</div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -114,7 +148,7 @@ export function AssistChat({
         className="flex shrink-0 flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault()
-          submit(input)
+          void send(input)
         }}
       >
         <Textarea
@@ -123,7 +157,7 @@ export function AssistChat({
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault()
-              submit(input)
+              void send(input)
             }
           }}
           placeholder={placeholder}
@@ -135,13 +169,13 @@ export function AssistChat({
             variant="ghost"
             size="sm"
             className="text-muted-foreground"
-            onClick={() => setMessages([])}
-            disabled={!messages.length || busy}
+            onClick={() => setTurns([])}
+            disabled={!turns.length || busy}
           >
             Clear
           </Button>
-          <Button type="submit" size="sm" disabled={busy || !input.trim()}>
-            {busy ? "Sending…" : "Send"}
+          <Button type="submit" size="sm" disabled={busy || !input.trim() || !definition}>
+            {busy ? "Working…" : "Send"}
           </Button>
         </div>
       </form>
