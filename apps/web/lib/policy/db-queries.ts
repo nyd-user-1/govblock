@@ -730,18 +730,27 @@ export async function getMemberRecord(
     q<BillRow & { vote_desc: string; vote_date: string }>(
       // Both directions in one pass, then split — the join is the expensive
       // part and doing it twice doubles it.
+      // Bounded in SQL, not just in JS: the Data API caps a response at 1 MB,
+      // and a prolific member's full vote history blew it before the slice
+      // below ever ran (found live by the agents lane: record?id=1326).
+      // row_number per side keeps up to `limit` Yea AND `limit` Nay.
       `select * from (
-         select distinct on (b.bill_id, v.vote_desc)
-                b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
-                b.committee, b.body, b.url, b.state_link,
-                v.vote_desc, r.date as vote_date
-         from "Votes" v
-         join "Roll Call" r using (roll_call_id)
-         join "Bills" b on b.bill_id = r.bill_id
-         where v.people_id = $1 and b.state = $2 and b.session_id = $3
-           and v.vote_desc in ('Yea', 'Nay')
-         order by b.bill_id, v.vote_desc, r.date desc
-       ) t order by t.last_action_date desc nulls last, t.bill_id desc`,
+         select t.*, row_number() over (partition by t.vote_desc
+                  order by t.last_action_date desc nulls last, t.bill_id desc) as rn
+         from (
+           select distinct on (b.bill_id, v.vote_desc)
+                  b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
+                  b.committee, b.body, b.url, b.state_link,
+                  v.vote_desc, r.date as vote_date
+           from "Votes" v
+           join "Roll Call" r using (roll_call_id)
+           join "Bills" b on b.bill_id = r.bill_id
+           where v.people_id = $1 and b.state = $2 and b.session_id = $3
+             and v.vote_desc in ('Yea', 'Nay')
+           order by b.bill_id, v.vote_desc, r.date desc
+         ) t
+       ) ranked where rn <= ${Number(limit) || 50}
+       order by last_action_date desc nulls last, bill_id desc`,
       scope
     ),
   ])
