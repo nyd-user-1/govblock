@@ -3,7 +3,15 @@
 import * as React from "react"
 
 import { AGENTS, agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { deliveredTo, loadTasks, newTask, saveTasks, when, type Task } from "@/lib/agents/inbox"
+import {
+  deliveredTo,
+  loadTasks,
+  newTask,
+  running,
+  saveTasks,
+  when,
+  type Task,
+} from "@/lib/agents/inbox"
 import { runAgent } from "@/lib/agents/run-client"
 import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
@@ -221,7 +229,7 @@ export default function Page() {
                 </p>
               </header>
 
-              {open.run.text ? (
+              {open.run.text && (
                 <div
                   className={
                     open.status === "failed"
@@ -231,8 +239,19 @@ export default function Page() {
                 >
                   <Prose text={open.run.text} />
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Working…</p>
+              )}
+
+              {open.status === "running" && (
+                // The reading pane's own sign of life. It names the tool in
+                // flight rather than saying "working", so a long gather reads
+                // as progress instead of as a hang.
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
+                  />
+                  <span className="animate-pulse">{running(open)}</span>
+                </div>
               )}
 
               {open.run.steps.length > 0 && (

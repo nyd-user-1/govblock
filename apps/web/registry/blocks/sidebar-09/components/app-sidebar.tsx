@@ -172,10 +172,19 @@ export function AppSidebar({
                     <span className="ml-auto text-xs">{when(task.createdAt)}</span>
                   </div>
                   <span className="w-[260px] truncate font-medium">{task.tasking}</span>
-                  <span className="line-clamp-2 w-[260px] text-xs whitespace-break-spaces">
-                    {task.status === "running" && "Running · "}
-                    {task.status === "failed" && "Failed · "}
-                    {teaser(task)}
+                  <span className="line-clamp-2 flex w-[260px] items-start gap-1.5 text-xs whitespace-break-spaces">
+                    {task.status === "running" && (
+                      // A running task must never be mistaken for a finished
+                      // one. The dot pulses beside whatever tool is in flight.
+                      <span
+                        aria-hidden
+                        className="mt-1 size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
+                      />
+                    )}
+                    <span className={task.status === "running" ? "animate-pulse" : undefined}>
+                      {task.status === "failed" && "Failed · "}
+                      {teaser(task)}
+                    </span>
                   </span>
                 </button>
               ))}

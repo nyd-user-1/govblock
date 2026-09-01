@@ -72,6 +72,16 @@ export function teaser(task: Task) {
   return body.slice(0, 160)
 }
 
+/** What a running task is doing right now, for the pulse beside the dot. */
+export function running(task: Task) {
+  const step = [...task.run.steps].reverse().find((s) => s.kind === "tool")
+  if (step && step.kind === "tool") {
+    if (step.summary === undefined) return `Reading — ${step.name}…`
+    return `${step.name} → ${step.summary}`
+  }
+  return task.run.rounds ? `Round ${task.run.rounds}, thinking…` : "Starting…"
+}
+
 export function when(at: number) {
   const seconds = Math.max(0, Math.round((Date.now() - at) / 1000))
   if (seconds < 60) return "just now"
