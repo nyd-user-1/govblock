@@ -946,6 +946,33 @@ export async function getHearingDays(
   )
 }
 
+// The default window is [today-30, today+60], and between sessions every
+// jurisdiction is honestly empty in it — on 2026-09-01 Texas returns nothing
+// there and 3,000 rows over 2025-2026. For the surfaces that mean "what the
+// committees have been doing" rather than "this month", fall back to the 60 days
+// before the jurisdiction's last hearing and say which date that runs through,
+// so it reads as most recent rather than as upcoming. /calendar keeps its own
+// URL date: an empty September is the truth for September.
+export async function getRecentHearings(
+  state: string,
+  session: number,
+  from: string,
+  to: string,
+  limit = 200
+) {
+  const rows = await getHearings(state, session, from, to, undefined, limit)
+  if (rows.length) return { rows, through: null as string | null }
+
+  const latest = await latestHearingDate(state, session)
+  if (!latest) return { rows: [], through: null as string | null }
+  const start = new Date(`${latest}T00:00:00Z`)
+  start.setUTCDate(start.getUTCDate() - 60)
+  return {
+    rows: await getHearings(state, session, start.toISOString().slice(0, 10), latest, undefined, limit),
+    through: latest,
+  }
+}
+
 export async function latestHearingDate(state: string, session: number) {
   const row = await one<{ date: string }>(
     `select max(c.date) as date from "Calendar" c join "Bills" b using (bill_id)
@@ -1167,6 +1194,11 @@ export async function getStream(states: string[], limit = 12) {
 // state's name; the API route turns that into an empty payload with the
 // scope on it.
 export const NY_ONLY = [
+  // member_vote_tallies exists for New York alone. Audited 2026-09-01 against
+  // every resource this route serves: seats, activity, sponsors, committees and
+  // the rest all scope through "Bills" and were verified to return different
+  // rows per jurisdiction. This is the only one that does not.
+  "tallies",
   "discretionary",
   "contracts",
   "capital",

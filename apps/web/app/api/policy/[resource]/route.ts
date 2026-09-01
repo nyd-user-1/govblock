@@ -12,6 +12,7 @@ import {
   getCommittees,
   getHearingDays,
   getHearings,
+  getRecentHearings,
   getMember,
   getMemberRecord,
   getMembers,
@@ -143,6 +144,16 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         sp.get("to") ?? today(60),
         sp.get("committee") ?? f.committee,
         int(sp.get("limit"), 3000)
+      )
+    }
+    case "hearings-recent": {
+      const f = await resolve(filters)
+      return getRecentHearings(
+        f.state,
+        f.session,
+        sp.get("from") ?? today(-30),
+        sp.get("to") ?? today(60),
+        int(sp.get("limit"), 200)
       )
     }
     case "hearing-days": {
