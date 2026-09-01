@@ -9,13 +9,15 @@ import { Button } from "@govblock/ui/components/button"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Model bills — bills whose text is shared with bills in other states.
+// Model bills are a cross-jurisdiction measure by definition: the match is
+// between states. The card is national under every scope and labels itself so.
 export function ModelBillsCard() {
   const { state } = useJurisdiction()
   return (
     <CardFrame id="model-bills">
       <CardHeader>
         <CardTitle>Model bills</CardTitle>
-        <CardDescription>Bills sharing text with bills in other states</CardDescription>
+        <CardDescription>Text shared across states — all 52 jurisdictions</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>

@@ -9,13 +9,16 @@ import { Button } from "@govblock/ui/components/button"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Lobbying — registrations, clients and reported spend, and who spends most.
+// The Senate LDA is a federal register, not a per-state one, so this card reads
+// the same under every jurisdiction. It says so rather than letting the numbers
+// pass for the state in scope.
 export function LobbyingCard() {
   const { state } = useJurisdiction()
   return (
     <CardFrame id="lobbying">
       <CardHeader>
         <CardTitle>Lobbying</CardTitle>
-        <CardDescription>Registered lobbyists, and who pays them</CardDescription>
+        <CardDescription>Federal registrations — the Senate LDA, nationwide</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>
