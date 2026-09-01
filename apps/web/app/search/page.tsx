@@ -26,6 +26,7 @@ type SearchPayload = {
     title: string
     status_desc: string | null
     last_action_date: string | null
+    state: string
   }[]
   members: {
     people_id: number
@@ -37,7 +38,37 @@ type SearchPayload = {
     state: string
     active: boolean
   }[]
-  committees: { committee: string; bills: number; chamber: string }[]
+  committees: { committee: string; bills: number; chamber: string; state: string }[]
+  texts: {
+    bill_id: number
+    document_id: number
+    state: string
+    bill_number: string
+    title: string
+    snippet: string
+  }[]
+}
+
+// ts_headline wraps the match in « », not in HTML — nothing has to trust markup
+// coming out of the database. A snippet is therefore split on the guillemets and
+// the odd pieces are the hits. (A bill that itself contains a « would show a
+// stray highlight; across 3.3 M documents that is a better trade than
+// dangerouslySetInnerHTML.)
+function Snippet({ text }: { text: string }) {
+  const pieces = text.split(/[«»]/)
+  return (
+    <span className="min-w-0 flex-1 text-muted-foreground">
+      {pieces.map((piece, i) =>
+        i % 2 ? (
+          <mark key={i} className="rounded-[2px] bg-primary/15 px-0.5 text-foreground">
+            {piece}
+          </mark>
+        ) : (
+          <React.Fragment key={i}>{piece}</React.Fragment>
+        )
+      )}
+    </span>
+  )
 }
 
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
@@ -91,9 +122,12 @@ function SearchResults() {
 
   const active = resolved && debounced.trim().length >= 2
   const filters = { state, session: session ? String(session) : undefined }
+  // text=1 is what separates this page from the ⌘K menu: the same route, but
+  // only /search pays for the pass over "BillTexts".
   const { data, isLoading } = usePolicy<SearchPayload>(active ? "search" : null, filters, {
     q: debounced.trim(),
     limit: 20,
+    text: 1,
   })
   const { data: subjects } = usePolicy<{ value: string; count: number }[]>(resolved ? "subjects" : null, filters)
 
@@ -107,7 +141,8 @@ function SearchResults() {
   const bills = data?.bills ?? []
   const members = data?.members ?? []
   const committees = data?.committees ?? []
-  const total = bills.length + members.length + committees.length + topics.length + pages.length
+  const texts = data?.texts ?? []
+  const total = bills.length + members.length + committees.length + texts.length + topics.length + pages.length
   const here = stateName(state) || "this jurisdiction"
 
   return (
@@ -116,31 +151,41 @@ function SearchResults() {
         query={query}
         setQuery={(value) => setQuery(value ?? "")}
         registriesCount={total}
-        placeholder={`Search ${here}...`}
+        placeholder={`Search ${here} and every jurisdiction...`}
         noun="result"
       />
       {debounced.trim().length < 2 ? (
         <p className="text-sm text-muted-foreground">
-          Type at least two characters — a bill number, a name, a committee, a topic, a page.
+          Type at least two characters — a bill number, a name, a committee, a topic, a page, or a
+          phrase from a bill&rsquo;s text. {here} sorts first; every other jurisdiction follows.
         </p>
       ) : isLoading && !data ? (
-        <p className="text-sm text-muted-foreground">Searching {here}...</p>
+        <p className="text-sm text-muted-foreground">Searching every jurisdiction...</p>
       ) : total === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nothing under {here} for &ldquo;{debounced.trim()}&rdquo;.
+          Nothing in any jurisdiction for &ldquo;{debounced.trim()}&rdquo;.
         </p>
       ) : (
         <>
           <Section title="Bills" count={bills.length}>
             {bills.map((bill) => (
-              <Row key={bill.bill_id} href={`/docs/bills/${bill.bill_id}?state=${state}`}>
-                <FlagChip state={state} width={20} className="self-center" />
+              <Row key={bill.bill_id} href={`/docs/bills/${bill.bill_id}?state=${bill.state}`}>
+                <FlagChip state={bill.state} width={20} className="self-center" />
                 <span className="shrink-0 font-medium">{bill.bill_number}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
                 <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                   {bill.status_desc ?? ""}
                   {bill.last_action_date ? ` · ${String(bill.last_action_date).slice(0, 10)}` : ""}
                 </span>
+              </Row>
+            ))}
+          </Section>
+          <Section title="Text" count={texts.length}>
+            {texts.map((text) => (
+              <Row key={`${text.bill_id}-${text.document_id}`} href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}>
+                <FlagChip state={text.state} width={20} className="self-center" />
+                <span className="shrink-0 font-medium">{text.bill_number}</span>
+                <Snippet text={text.snippet} />
               </Row>
             ))}
           </Section>
@@ -161,13 +206,14 @@ function SearchResults() {
           <Section title="Committees" count={committees.length}>
             {committees.map((committee) => (
               <Row
-                key={committee.committee}
-                href={`/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee)}`}
+                key={`${committee.state}-${committee.committee}`}
+                href={`/docs/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
               >
-                <FlagChip state={state} width={20} className="self-center" />
+                <FlagChip state={committee.state} width={20} className="self-center" />
                 <span className="shrink-0 font-medium">{committee.committee}</span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {committee.chamber} · {committee.bills} bills this session
+                  {[stateName(committee.state), committee.chamber].filter(Boolean).join(" · ")} ·{" "}
+                  {committee.bills} bills this session
                 </span>
               </Row>
             ))}
@@ -201,7 +247,7 @@ export default function SearchPage() {
   return (
     <DocsPage
       title="Search"
-      description="Bills, members, committees, topics and pages, under the jurisdiction you are in."
+      description="Bills, bill text, members, committees, topics and pages — across every jurisdiction, with the one you are in first."
       slug="search"
       previous={{ name: "Directory", url: "/docs/directory" }}
       next={{ name: "Bills", url: "/docs/bills" }}
