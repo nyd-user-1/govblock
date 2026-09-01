@@ -2,10 +2,10 @@ import * as React from "react"
 import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
-import { TEXTS } from "@/lib/data"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
 import { getStream, type StreamBill } from "@/lib/policy/stream"
+import { getBillTexts } from "@/lib/policy/texts"
 import { CodeFigure, printedWithChanges } from "@/components/code-block"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { FlagChip } from "@/components/policy/imagery"
@@ -19,17 +19,21 @@ export const metadata = { title: "Changelog", description: "Latest updates and a
 // Rebuilt every hour from mv_stream_latest.
 export const revalidate = 3600
 
-const STREAMS = ["NY", "NJ", "US"]
+// Every jurisdiction, four bills each. At fifty-one legislatures a full text
+// per step is megabytes of line-numbered markup, so each figure carries its
+// first MAX_LINES and says how many follow — the amended lines cluster early.
 const PER_STREAM = 4
 const LONG = 14
+const MAX_LINES = 40
 
 type Entry = StreamBill & { state: string; session: number }
 
 export default async function ChangelogV2Page() {
-  const { groups, source } = await getStream({ states: STREAMS, limit: PER_STREAM })
+  const { groups, source } = await getStream({ limit: PER_STREAM })
   const entries: Entry[] = groups
     .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
     .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
+  const texts = await getBillTexts(entries.map((bill) => Number(bill.bill_id)))
   return (
     <div data-slot="docs" data-source={source} className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -48,8 +52,10 @@ export default async function ChangelogV2Page() {
           <div className="typeset w-full flex-1 pb-16 sm:pb-0">
             <div className="steps mb-12 md:ml-4 md:border-l md:pl-8">
               {entries.map((bill) => {
-                const text = TEXTS[String(bill.bill_id)]?.text
+                const text = texts.get(Number(bill.bill_id))
                 const block = text ? printedWithChanges(text) : null
+                const lines = block ? block.code.split("\n") : []
+                const code = lines.length > MAX_LINES ? lines.slice(0, MAX_LINES).join("\n") + `\n… ${lines.length - MAX_LINES} more lines` : block?.code
                 return (
                   <React.Fragment key={`${bill.state}-${bill.bill_id}`}>
                     <h3 id={`${bill.state}-${bill.bill_number}`} className="scroll-mt-24 md:relative">
@@ -69,9 +75,9 @@ export default async function ChangelogV2Page() {
                     {block && (
                       <CodeFigure
                         title={`${bill.state.toLowerCase()}/${bill.session}/${bill.bill_number}.txt`}
-                        code={block.code}
+                        code={code!}
                         highlighted={block.changed}
-                        collapsible={block.code.split("\n").length > LONG}
+                        collapsible={lines.length > LONG}
                       />
                     )}
                   </React.Fragment>
