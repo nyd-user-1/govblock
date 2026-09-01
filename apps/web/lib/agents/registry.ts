@@ -22,8 +22,12 @@ export type AgentDefinition = {
   tools: ToolName[]
   /** Connections it needs; an unconnected one is named on the card. */
   connections?: string[]
-  /** True for the one that plans and acts across steps rather than answering. */
+  /** True for the ones that plan and act across steps rather than answering. */
   agentic?: boolean
+  /** How many rounds of the loop this agent may take. Default 12. */
+  maxRounds?: number
+  /** True for the long-form agents the inbox runs rather than the chat. */
+  inbox?: boolean
   placeholder: string
   starters: string[]
   system: string
@@ -248,8 +252,83 @@ went.
 Never skip step 3. A digest written from search rows alone is the thing this
 agent exists not to do.`,
   },
+
+  {
+    slug: "researcher",
+    name: "Researcher",
+    speciality: "The long one: a sourced report over the whole record, delivered rather than chatted.",
+    reads:
+      "Whatever the question needs — the search index across jurisdictions, whole bill records and their text, members and their sponsorship and votes, committees, and for Congress the lobbying filings and FEC totals.",
+    can: "Plan a report's sections, gather the records section by section, and write a long brief that links every claim to the page it came from and to the canonical source where the record carries one.",
+    tier: "reasoning",
+    tools: [
+      "list_jurisdictions",
+      "search_bills",
+      "get_bill",
+      "get_bill_text",
+      "list_members",
+      "get_member",
+      "get_member_record",
+      "list_committees",
+      "get_committee",
+      "top_sponsors",
+      "get_lobbying",
+      "get_fec",
+    ],
+    connections: ["discord", "slack"],
+    agentic: true,
+    inbox: true,
+    // A report is a dozen reads and a long write. Twelve rounds is a chat's
+    // budget and would cut one off mid-gathering.
+    maxRounds: 24,
+    placeholder: "Ask for a report — a topic, a jurisdiction, and what you want to know…",
+    starters: [
+      "Report on New York housing legislation this session",
+      "Report on what Congress has done on artificial intelligence in the 119th",
+      "Report on who is behind the biggest bills in California this session",
+    ],
+    system: `${GROUND}
+
+You are the Researcher. You are not in a conversation — you are writing one
+report, once, and it has to stand on its own.
+
+Work in this order and say what you are doing at each turn, briefly:
+
+1. Plan. Name the three to six sections the report will have and what each one
+   needs read. One short paragraph, not a document.
+2. Gather. Work section by section. Search, then open records — a search row
+   carries a title and a status and nothing else, and a report built from search
+   rows is the thing this agent exists not to produce. Call tools in parallel
+   when the reads are independent; that is most of them.
+3. Write. Long form, in sections with plain headings. Every claim that rests on
+   a row names the row inline, and every bill, member and committee you discuss
+   gets a link the first time it appears.
+
+Links, precisely, because a report that cannot be checked is an opinion:
+
+- A bill: [A07380](https://policy.nysgpt.com/docs/bills/2014457) — the path is
+  /docs/bills/ plus its bill_id.
+- A member: /docs/directory/ plus their people_id.
+- The canonical source: bill records carry \`url\` and often \`state_link\`;
+  those are the legislature's own pages and congress.gov. Link them where the
+  record has them, and do not invent one where it does not.
+
+End with what you could not find out and why — a jurisdiction the record holds
+thinly, a dataset that is Congress-only, a text you did not read. That section is
+not optional and it is not an apology; it is what makes the rest usable.
+
+When you are given a posting tool, post the report once at the end and say where
+it went. Discord's markdown is **bold**, *italic* and [label](url).`,
+  },
 ]
 
 export function agent(slug: string) {
   return AGENTS.find((a) => a.slug === slug)
+}
+
+/** A chat's round budget unless the agent asks for more. */
+export const DEFAULT_MAX_ROUNDS = 12
+
+export function maxRounds(definition: AgentDefinition) {
+  return definition.maxRounds ?? DEFAULT_MAX_ROUNDS
 }

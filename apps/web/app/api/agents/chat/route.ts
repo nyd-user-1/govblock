@@ -5,7 +5,7 @@ import type { Message } from "@aws-sdk/client-bedrock-runtime"
 import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedrock"
 import { runStep } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
-import { agent } from "@/lib/agents/registry"
+import { agent, maxRounds } from "@/lib/agents/registry"
 import { liveTools } from "@/lib/agents/connections"
 
 // The one route behind every agent on /agents. A specialist answering a
@@ -47,10 +47,11 @@ export const maxDuration = 300
 // kilobytes of bill records.
 const MAX_MESSAGES = 60
 const MAX_STATE_CHARS = 600_000
-// The client drives the rounds, so the server counts them too. A runaway or
-// hostile client would otherwise be an open-ended Bedrock bill rather than a
+// The client drives the rounds, so the server counts them too — at whichever
+// ceiling the agent itself declares (a chat's twelve; the Researcher's
+// twenty-four, because a report is a dozen reads and a long write). A runaway
+// or hostile client would otherwise be an open-ended Bedrock bill rather than a
 // broken page.
-const MAX_ROUNDS = 12
 // Best-effort, and honestly so: this Map lives in one warm compute instance, so
 // a burst spread across instances gets more than this. It is a brake on a stuck
 // client and a crude spend ceiling, not an access control.
@@ -107,11 +108,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "conversation too large to continue" }, { status: 413 })
     if (messages.some((m) => m.role !== "user" && m.role !== "assistant"))
       return NextResponse.json({ error: "messages may only be user or assistant" }, { status: 400 })
-    // One assistant turn is one round already run. The client is told to stop
-    // at twelve; this is the same ceiling, enforced where it cannot be edited.
-    if (messages.filter((m) => m.role === "assistant").length >= MAX_ROUNDS)
+    // One assistant turn is one round already run. The client is told the
+    // agent's ceiling; this is the same one, enforced where it cannot be
+    // edited.
+    const ceiling = maxRounds(definition)
+    if (messages.filter((m) => m.role === "assistant").length >= ceiling)
       return NextResponse.json(
-        { error: `this conversation has already run ${MAX_ROUNDS} rounds` },
+        { error: `this conversation has already run ${ceiling} rounds` },
         { status: 409 }
       )
   } else {
