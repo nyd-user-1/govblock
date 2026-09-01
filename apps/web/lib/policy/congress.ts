@@ -155,3 +155,28 @@ export function rowsOf<T>(data: unknown, key: string): T[] {
   const rows = (data as Record<string, unknown>)[key]
   return Array.isArray(rows) ? (rows as T[]) : []
 }
+
+/**
+ * One spelling for a committee. LegiScan writes `Subcommittee on Health` and
+ * `Permanent Select Intelligence`; congress.gov writes `Health Subcommittee`
+ * and `Intelligence (Permanent Select) Committee`. Both reduce to `health` and
+ * `intelligence`, which is what `committee-codes.json` is keyed on.
+ */
+export function committeeKey(chamber: string | null | undefined, name: string | null | undefined) {
+  let value = String(name ?? "").trim().toLowerCase()
+  value = value.replace(/\([^)]*\)/g, " ")
+  value = value.replace(/^(sub)?committee\s+on\s+/, "")
+  value = value.replace(/^(house|senate|joint)\s+/, "")
+  value = value.replace(/^(sub)?committee\s+on\s+/, "")
+  value = value.replace(/\s+(sub)?committee$/, "")
+  value = value.replace(/^(permanent\s+)?select\s+/, "")
+  return `${chamber ?? ""}|${value.replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).join(" ")}`
+}
+
+/**
+ * A system code is chamber + committee + subcommittee: `hsvr00` is the House
+ * Veterans' Affairs Committee and `hsvr02` one of its subcommittees. The first
+ * four characters are therefore the committee a meeting or a transcript
+ * belongs to, whichever of its rooms it was held in.
+ */
+export const parentCode = (code: string | null | undefined) => String(code ?? "").toLowerCase().slice(0, 4)

@@ -113,6 +113,9 @@ const FIXTURES: Record<string, () => Promise<{ default: unknown }>> = {
   laws: () => import("@/lib/data/congress/laws.json"),
   "member-detail": () => import("@/lib/data/congress/member-detail.json"),
   "member-votes": () => import("@/lib/data/congress/house-votes.json"),
+  "committee-detail": () => import("@/lib/data/congress/committee-detail.json"),
+  "committee-meetings": () => import("@/lib/data/congress/committee-meetings.json"),
+  "hearings-congress": () => import("@/lib/data/congress/hearings-congress.json"),
 }
 
 async function fixture<T>(name: string): Promise<T | undefined> {
@@ -129,10 +132,15 @@ function slice(body: Keyed, key: string, offset: number, limit: number) {
   return { count: body.count ?? rows.length, [key]: limit ? rows.slice(offset, offset + limit) : rows }
 }
 
-// Meetings and transcripts name their committees inside their own record.
+// Meetings and transcripts name their committees inside their own record, and
+// name the room they were held in: a subcommittee's markup belongs on its
+// parent committee's page, which is what the code's first four characters say.
 function forCommittee(detail: unknown, code: string) {
+  const parent = code.slice(0, 4)
   return Object.values((detail as Keyed) ?? {}).filter((row) =>
-    ((row as { committees?: { systemCode?: string }[] }).committees ?? []).some((c) => String(c.systemCode ?? "").toLowerCase() === code)
+    ((row as { committees?: { systemCode?: string }[] }).committees ?? []).some(
+      (c) => String(c.systemCode ?? "").toLowerCase().slice(0, 4) === parent
+    )
   )
 }
 

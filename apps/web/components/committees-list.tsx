@@ -2,7 +2,9 @@
 
 import * as React from "react"
 
+import CODES from "@/lib/data/congress/committee-codes.json"
 import * as F from "@/lib/fixtures"
+import { committeeKey } from "@/lib/policy/congress"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
@@ -14,6 +16,13 @@ import { ProjectCard, ProjectGrid } from "@/components/project-card"
 // 24px gap, cards all the same size: seal, name, bill count — with the search
 // field the bills page has, so the two directory pages read the same.
 type Committee = { committee_name: string; chamber: string; bills: number }
+
+// A federal committee has a page of its own, keyed by the system code
+// congress.gov gives it. `committees` does not carry the code yet, so the map
+// committed beside the fixtures supplies it; a committee without one keeps the
+// card's older destination, the bills before it.
+const codeFor = (chamber: string, name: string): string | undefined =>
+  (CODES as { byName: Record<string, string> }).byName[committeeKey(chamber, name)]
 
 export function CommitteesList() {
   const { data, state } = useScoped<Committee[]>("committees", F.committeesAll)
@@ -50,16 +59,19 @@ export function CommitteesList() {
           <section key={chamber}>
             <h3 className="mb-4 text-sm font-medium text-muted-foreground">{chamber}</h3>
             <ProjectGrid>
-              {rows.map((committee) => (
+              {rows.map((committee) => {
+                const code = state === "US" ? codeFor(committee.chamber, committee.committee_name) : undefined
+                return (
                 <ProjectCard
                   key={`${committee.chamber}/${committee.committee_name}`}
-                  href={`/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
+                  href={code ? `/docs/committees/${code}` : `/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
                   title={committee.committee_name}
                   media={<ChamberSeal state={state} chamber={committee.chamber} size={28} />}
                   meta={`${fmtNumber(committee.bills)} Bills`}
                   feedHref={`/docs/committee-feed.xml?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
                 />
-              ))}
+                )
+              })}
             </ProjectGrid>
           </section>
         ))}

@@ -76,3 +76,34 @@ export function useCongress<T>(
     onCongress: on,
   }
 }
+
+/**
+ * One congress.gov record rather than a family — a committee, a member. Same
+ * order as `useCongress`: what the route knows, then what is committed for
+ * exactly this key, then nothing.
+ */
+export function useCongressRecord<T>(
+  resource: string | null,
+  extra: Record<string, string | number | undefined> = {}
+) {
+  const { state, resolved } = useJurisdiction()
+  const on = resolved && state === "US" && !!resource
+  const { data } = usePolicy<T | null>(on ? resource : null, { state }, extra)
+  const url = on && resource ? policyUrl(resource, { state }, extra) : null
+  const [committed, setCommitted] = React.useState<T | null>(null)
+  const wanted = !!url && !data
+  React.useEffect(() => {
+    if (!wanted || !url) {
+      setCommitted(null)
+      return
+    }
+    let cancelled = false
+    void resolveCongress(url).then((answer) => {
+      if (!cancelled) setCommitted((answer as T | null) ?? null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [url, wanted])
+  return data ?? committed
+}
