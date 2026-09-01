@@ -30,10 +30,11 @@ import { DocsTableOfContents } from "@/components/docs-toc"
 // standing under another state's header.
 
 type Version = {
-  document_id: number
+  document_id: number | null
   version: string | null
   source: string | null
   chars: number | null
+  fetched_at?: string | null
   url: string | null
   date?: string | null
 }
@@ -481,41 +482,51 @@ export function BillVersions({
             <th>Stage</th>
             <th>Date</th>
             <th>Source</th>
+            <th>Length</th>
             <th>Text</th>
           </tr>
         </thead>
         <tbody>
-          {versions.map((version) => (
-            <tr key={version.document_id}>
-              <td>{version.version ?? "—"}</td>
-              <td>{version.date ? fmtDate(version.date) : "—"}</td>
-              <td>{version.source ?? "—"}</td>
-              <td>
-                {version.document_id > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setChosen(version.document_id)}
-                    className="cursor-pointer bg-transparent p-0 underline underline-offset-4"
-                  >
-                    {version.document_id === current ? "Shown below" : "Read"}
-                    {version.chars
-                      ? ` · ${fmtNumber(version.chars)} characters`
-                      : ""}
-                  </button>
-                ) : version.url ? (
-                  <a
-                    href={version.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    congress.gov
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </td>
-            </tr>
-          ))}
+          {versions.map((version, index) => {
+            // A version harvested in bulk carries no stage date, and the row
+            // then holds the day it was fetched instead. Printing that as the
+            // day the bill was engrossed would be a plain untruth, so a date
+            // that is the fetch day is treated as no date at all.
+            const stage =
+              version.date && day(version.date) !== day(version.fetched_at)
+                ? version.date
+                : null
+            const document = version.document_id
+            return (
+              <tr key={document ?? `${version.version}-${index}`}>
+                <td>{version.version ?? "—"}</td>
+                <td>{stage ? fmtDate(stage) : "—"}</td>
+                <td>{version.source ?? "—"}</td>
+                <td>{version.chars ? fmtNumber(version.chars) : "—"}</td>
+                <td>
+                  {typeof document === "number" ? (
+                    <button
+                      type="button"
+                      onClick={() => setChosen(document)}
+                      className="cursor-pointer bg-transparent p-0 underline underline-offset-4"
+                    >
+                      {document === current ? "Shown below" : "Read"}
+                    </button>
+                  ) : version.url ? (
+                    <a
+                      href={version.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      congress.gov
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </Table>
       {chosen && isLoading && <p>Loading that version…</p>}
