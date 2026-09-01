@@ -193,7 +193,7 @@ export function CommandMenu() {
                   <CommandSeparator />
                   <CommandGroup>
                     <CommandItem
-                      value="see-all-results"
+                      value={`see-all-${query}`}
                       onSelect={() => go(`/search?q=${encodeURIComponent(query)}&state=${state}`)}
                     >
                       See all results for &ldquo;{query}&rdquo;
