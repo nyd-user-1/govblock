@@ -11,11 +11,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@workspace/ui/components",
-    "utils": "@workspace/ui/lib/utils",
-    "hooks": "@workspace/ui/hooks",
-    "lib": "@workspace/ui/lib",
-    "ui": "@workspace/ui/components"
+    "components": "@govblock/ui/components",
+    "utils": "@govblock/ui/lib/utils",
+    "hooks": "@govblock/ui/hooks",
+    "lib": "@govblock/ui/lib",
+    "ui": "@govblock/ui/components"
   },
   "rtl": false,
   "menuColor": "default",
