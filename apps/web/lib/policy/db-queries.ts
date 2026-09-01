@@ -995,20 +995,33 @@ export async function getNewsroom(f: Resolved, days = 14) {
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10)
   const params: unknown[] = []
   const where = billWhere(f, params)
-  // Materialise the matching set before ordering it. Left to itself the planner
-  // walks bills_last_action_idx backwards and stops at the limit, which is right
-  // where matches are dense and catastrophic where they are not: Congress's 2025
-  // session holds two enacted bills, so it scanned the whole index looking for
-  // six and took 2.9 s, against 3 ms for New York. This bounds the work by the
-  // number of matches instead — US 2.9 s -> 28 ms, NY 3 ms -> 379 ms, so the
-  // worst case across 52 jurisdictions is bounded rather than open-ended.
+  // Filter first, order second, and never join back to "Bills" for the ordering.
+  //
+  // Left to itself the planner walks bills_last_action_idx backwards and stops at
+  // the limit — right where matches are dense, catastrophic where they are not.
+  // Congress's 2025 session holds two enacted bills, so it scanned the whole
+  // index looking for six: 2.9 s, against 3 ms for New York. Two rewrites that
+  // did *not* fix it, because both let the ordered index scan back in: putting
+  // order by/limit inside the CTE, and materialising only bill_id and joining
+  // "Bills" again (the planner then sorted 886k rows and looped against a CTE it
+  // estimated at 1036 rows when it holds 2). Carrying the columns through the CTE
+  // and ordering the matched set alone is what works.
+  //
+  // Measured: US 2.9 s -> 28 ms, NY 400 ms, TX 69 ms, CA 117 ms — bounded by the
+  // match count rather than open-ended.
   const withSince = (extra: string) =>
     `with matched as materialized (
-       select b.bill_id from "Bills" b
+       select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action,
+              b.last_action_date, b.committee, b.body, b.url, b.state_link, b.text_chars
+       from "Bills" b
        where ${where} and coalesce(b.last_action_date, '') <> '' ${extra}
      )
-     select ${BILL_COLUMNS} from matched m join "Bills" b using (bill_id) ${PRIME_SPONSOR}
-     order by b.last_action_date desc, b.bill_id desc limit $${params.length + 1}`
+     select m.*, sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id
+     from matched m
+     left join lateral (
+       select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
+       where s.bill_id = m.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
+     order by m.last_action_date desc, m.bill_id desc limit $${params.length + 1}`
 
   const [enacted, passed, committee, introduced, rollCalls, hearings] =
     await Promise.all([
