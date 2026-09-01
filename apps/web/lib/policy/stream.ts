@@ -26,6 +26,11 @@ export type StreamGroup = { state: string; session: number; bills: StreamBill[] 
 
 const SNAPSHOT = snapshot as unknown as StreamGroup[]
 
+/** The jurisdictions a scoped page shows: Congress, plus the one in scope. */
+export function scopeStates(state: string) {
+  return state === "US" ? ["US"] : ["US", state]
+}
+
 export async function getStream({ states, limit = 40 }: { states?: string[]; limit?: number } = {}): Promise<{ groups: StreamGroup[]; source: "database" | "snapshot" }> {
   if (sql) {
     try {

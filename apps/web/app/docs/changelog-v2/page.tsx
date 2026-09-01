@@ -4,7 +4,8 @@ import { IconRss } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
-import { getStream, type StreamBill } from "@/lib/policy/stream"
+import * as F from "@/lib/fixtures"
+import { getStream, scopeStates, type StreamBill } from "@/lib/policy/stream"
 import { getBillTexts } from "@/lib/policy/texts"
 import { CodeFigure, printedWithChanges } from "@/components/code-block"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
@@ -16,20 +17,19 @@ import { Button } from "@govblock/ui/components/nova/button"
 // action as the step, the text as the titled code block beneath with the
 // amended lines highlighted.
 export const metadata = { title: "Changelog", description: "Latest updates and announcements." }
-// Rebuilt every hour from mv_stream_latest.
+// Congress and the jurisdiction in scope, from mv_stream_latest, rebuilt hourly.
 export const revalidate = 3600
 
-// Every jurisdiction, four bills each. At fifty-one legislatures a full text
-// per step is megabytes of line-numbered markup, so each figure carries its
-// first MAX_LINES and says how many follow — the amended lines cluster early.
-const PER_STREAM = 4
+// Congress and the jurisdiction in scope, twelve bills each, full text behind
+// Expand. MAX_LINES is a safety for a runaway text, not a design.
+const PER_STREAM = 12
 const LONG = 14
-const MAX_LINES = 40
+const MAX_LINES = 400
 
 type Entry = StreamBill & { state: string; session: number }
 
 export default async function ChangelogV2Page() {
-  const { groups, source } = await getStream({ limit: PER_STREAM })
+  const { groups, source } = await getStream({ states: scopeStates(F.STATE), limit: PER_STREAM })
   const entries: Entry[] = groups
     .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
     .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))

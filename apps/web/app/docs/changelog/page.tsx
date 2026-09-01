@@ -3,14 +3,15 @@ import { IconRss } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
-import { getStream, type StreamBill } from "@/lib/policy/stream"
+import * as F from "@/lib/fixtures"
+import { getStream, scopeStates, type StreamBill } from "@/lib/policy/stream"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/nova/button"
 
 // Ported from livingston-v3 app/(app)/docs/changelog/page.tsx: bills as they
 // move, across jurisdictions, in the changelog's own layout.
 export const metadata = { title: "Changelog", description: "Latest updates and announcements." }
-// Rebuilt every hour from mv_stream_latest.
+// Congress and the jurisdiction in scope, from mv_stream_latest, rebuilt hourly.
 export const revalidate = 3600
 
 const NUMBER_OF_LATEST_PAGES = 5
@@ -20,7 +21,7 @@ type Entry = StreamBill & { state: string; session: number }
 const workspaceHref = (bill: Entry) => `/typeset?state=${bill.state}&session=${bill.session}&bill=${bill.bill_id}`
 
 export default async function ChangelogPage() {
-  const { groups, source } = await getStream({ limit: 40 })
+  const { groups, source } = await getStream({ states: scopeStates(F.STATE), limit: 40 })
   const entries: Entry[] = groups
     .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
     .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))

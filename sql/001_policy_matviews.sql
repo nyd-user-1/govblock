@@ -7,8 +7,14 @@
 -- (S3) will mirror; the site serves.
 --
 -- Semantics are v3's lib/policy/queries.ts getStream / getNewsroom, kept
--- exactly: latest session per state from "LegiscanDatasets"; the prime sponsor
--- is sponsor_type_id = 1 by position; dates are the text YYYY-MM-DD columns.
+-- exactly but for one cap: latest session per state from "LegiscanDatasets";
+-- the prime sponsor is sponsor_type_id = 1 by position; dates are the text
+-- YYYY-MM-DD columns.
+--
+-- The cap: LegiScan records a law's *effective date* as its last action
+-- ("Effective", dated when the law takes force), so Ohio, DC and Michigan
+-- carried actions in October 2026 on 2026-09-01 and sorted to the top of a
+-- changelog. A stream of things that happened stops at today.
 
 -- The newest session that actually has bills, per state.
 create or replace view public.v_policy_latest_session as
@@ -26,6 +32,7 @@ with ranked as (
   from "Bills" b
   join public.v_policy_latest_session s on s.state = b.state and s.session = b.session_id
   where coalesce(b.last_action_date, '') <> '' and b.title <> ''
+    and b.last_action_date <= to_char(now(), 'YYYY-MM-DD')
 )
 select b.bill_id, b.state, b.session_id, r.rank,
        b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
@@ -58,6 +65,7 @@ cur as (
   from "Bills" b
   join public.v_policy_latest_session s on s.state = b.state and s.session = b.session_id
   where coalesce(b.last_action_date, '') <> ''
+    and b.last_action_date <= to_char(now(), 'YYYY-MM-DD')
 ),
 picks as (
   select 'enacted' as section, bill_id, state, session_id, rn from (
