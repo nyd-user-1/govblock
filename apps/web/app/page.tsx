@@ -1,17 +1,33 @@
-import { Button } from "@govblock/ui/components/button"
+import Link from "next/link"
+import { IconArrowRight } from "@tabler/icons-react"
 
-export default function Page() {
+import { siteConfig } from "@/lib/config"
+import { Announcement } from "@/components/announcement"
+import { CardsDemo } from "@/components/cards"
+import { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading } from "@/components/page-header"
+import { Button } from "@govblock/ui/components/nova/button"
+
+// Ported from livingston-v3 app/(app)/(root)/page.tsx.
+const title = "The Foundation for your Design System"
+
+export default function IndexPage() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="text-muted-foreground font-mono text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
+    <div className="flex flex-1 flex-col">
+      <PageHeader className="md:**:[.container]:pb-8 lg:**:[.container]:pb-12">
+        <Announcement />
+        <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
+        <PageHeaderDescription>{siteConfig.description}</PageHeaderDescription>
+        <PageActions>
+          <Button render={<Link href="/create" />} nativeButton={false} className="h-[31px] rounded-lg">
+            Build Your Own <IconArrowRight data-icon="inline-end" />
+          </Button>
+        </PageActions>
+      </PageHeader>
+      <div className="container-wrapper flex-1 p-0">
+        <div className="container overflow-hidden md:px-0 lg:max-w-none">
+          <section className="hidden md:block">
+            <CardsDemo />
+          </section>
         </div>
       </div>
     </div>

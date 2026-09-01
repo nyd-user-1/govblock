@@ -1,0 +1,310 @@
+// Fixtures for the home page, scoped to Congress. Static rows shaped exactly
+// like what the livingston-v3 cards read from the API, so the card JSX ports
+// unchanged. Members, committees, subjects, sessions and hearings are real,
+// pulled from the v3 API on 2026-08-31. Where the API has no aggregate
+// (status split, roll calls) the rows are marked estimated.
+
+export const STATE = "US"
+export const SESSION = 2025
+
+// Status split is estimated against the real session total of 18,470.
+export const bills = {
+  total: 18470,
+  rows: [
+    { label: "In House Committee", bills: 9457 },
+    { label: "In Senate Committee", bills: 4950 },
+    { label: "Passed House", bills: 1127 },
+    { label: "Enacted", bills: 351 },
+    { label: "Introduced", bills: 2586 },
+  ],
+}
+
+export const votes = [
+  {"roll_call_id": 1716678, "bill_id": 2057965, "bill_number": "HB6500", "description": "On Passage of the Bill H.R. 6500 RC# 228", "date": "2026-08-08", "chamber": "Senate", "yea": 90, "nay": 6},
+  {"roll_call_id": 1716677, "bill_id": 2057965, "bill_number": "HB6500", "description": "On the Motion to Table S.Amdt. 6747 to S.Amdt. 6732 to H.R. 6500 (No short title on file) RC# 227", "date": "2026-08-08", "chamber": "Senate", "yea": 61, "nay": 32},
+  {"roll_call_id": 1716674, "bill_id": 2156910, "bill_number": "SB5271", "description": "On Cloture on the Motion to Proceed S. 5271 RC# 231", "date": "2026-08-08", "chamber": "Senate", "yea": 52, "nay": 46},
+  {"roll_call_id": 1724538, "bill_id": 2057965, "bill_number": "HB6500", "description": "On the Cloture Motion S.Amdt. 6732 to H.R. 6500 (No short title on file) RC# 226", "date": "2026-08-07", "chamber": "Senate", "yea": 91, "nay": 6},
+  {"roll_call_id": 1724533, "bill_id": 2057965, "bill_number": "HB6500", "description": "On the Nomination PN961-1 and PN937-5 and PN901-1 and PN730-38 and PN962-3 and PN931-6 and PN1022-25 and PN806-5 and PN1022-10 and PN1012 and PN931-5 and PN931-4 and PN937-2 and PN1022-22 and PN962-1 and PN961-4 and PN901-3 and PN806-7 and PN730-23 and PN", "date": "2026-08-07", "chamber": "Senate", "yea": 51, "nay": 47},
+]
+
+export const topics = {
+  rows: [
+    { label: "Health", bills: 2121 },
+    { label: "Armed forces and national security", bills: 1468 },
+    { label: "Government operations and politics", bills: 1369 },
+    { label: "International affairs", bills: 1288 },
+    { label: "Taxation", bills: 1250 },
+    { label: "Crime and law enforcement", bills: 1110 },
+    { label: "Agriculture and food", bills: 752 },
+    { label: "Transportation and public works", bills: 741 },
+  ],
+  note: "LegiScan subject tags for the 119th Congress.",
+}
+
+export const chambers = [
+  { label: "House", members: 449, bills: 12098 },
+  { label: "Senate", members: 104, bills: 6187 },
+  { label: "Other", members: 0, bills: 185 },
+]
+
+// Sitting members by party, counted from the roster.
+export const seats = [
+  { chamber: "House", party: "R", seats: 225 },
+  { chamber: "House", party: "D", seats: 223 },
+  { chamber: "House", party: "I", seats: 1 },
+  { chamber: "Senate", party: "R", seats: 57 },
+  { chamber: "Senate", party: "D", seats: 45 },
+  { chamber: "Senate", party: "I", seats: 2 },
+]
+
+export const sessions = [
+  { session_year: 2025, label: "119th Congress", years: "2025–2026", bills: 18470 },
+  { session_year: 2023, label: "118th Congress", years: "2023–2024", bills: 19304 },
+  { session_year: 2021, label: "117th Congress", years: "2021–2022", bills: 17817 },
+  { session_year: 2019, label: "116th Congress", years: "2019–2020", bills: 16601 },
+  { session_year: 2017, label: "115th Congress", years: "2017–2018", bills: 13557 },
+  { session_year: 2015, label: "114th Congress", years: "2015–2016", bills: 12073 },
+  { session_year: 2013, label: "113th Congress", years: "2013–2014", bills: 10639 },
+  { session_year: 2011, label: "112th Congress", years: "2011–2012", bills: 12276 },
+]
+
+// `bars` is the committee's activity by quarter, drawn as four bars.
+export const committees = [
+  { label: "Judiciary", bills: 2181, chamber: "House", bars: [95, 105, 98, 163] },
+  { label: "Energy And Commerce", bills: 1636, chamber: "House", bars: [90, 105, 160, 109] },
+  { label: "Ways And Means", bills: 1160, chamber: "House", bars: [60, 70, 120, 90] },
+  { label: "Finance", bills: 902, chamber: "House", bars: [120, 130, 140, 180] },
+  { label: "Education and Workforce", bills: 824, chamber: "House", bars: [40, 85, 150, 70] },
+  { label: "Health, Education, Labor, And Pensions", bills: 747, chamber: "House", bars: [110, 60, 95, 140] },
+]
+
+export const members = {
+  total: 553,
+  rows: [
+    { people_id: 16271, name: "Alma Adams", party: "D", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000370", serving: true },
+    { people_id: 9346, name: "Robert Aderholt", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000055", serving: true },
+    { people_id: 16496, name: "Pete Aguilar", party: "D", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000371", serving: true },
+    { people_id: 23997, name: "Mark Alford", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000379", serving: true },
+    { people_id: 16447, name: "Rick Allen", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000372", serving: true },
+    { people_id: 24963, name: "Gabe Amo", party: "D", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000380", serving: true },
+    { people_id: 13318, name: "Mark Amodei", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000369", serving: true },
+    { people_id: 25893, name: "Yassamin Ansari", party: "D", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000381", serving: true },
+    { people_id: 18286, name: "Jodey Arrington", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000375", serving: true },
+    { people_id: 21947, name: "Jake Auchincloss", party: "D", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/A000148", serving: true },
+    { people_id: 16449, name: "Brian Babin", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/B001291", serving: true },
+    { people_id: 18287, name: "Don Bacon", party: "R", role: "Rep", chamber: "House", photo_url: "https://clerk.house.gov/content/assets/img/members/B001298", serving: true },
+  ],
+}
+
+export const hearings = [
+  { bill_id: 2032003, description: "Senate Commerce, Science, and Transportation Hearing", date: "2026-08-05", time: "10:00", bill_number: "SB1748" },
+  { bill_id: 2138581, description: "Senate Commerce, Science, and Transportation Hearing", date: "2026-08-05", time: "10:00", bill_number: "SB4199" },
+  { bill_id: 2146489, description: "Senate Commerce, Science, and Transportation Hearing", date: "2026-08-05", time: "10:00", bill_number: "SB4407" },
+  { bill_id: 2156580, description: "Senate Commerce, Science, and Transportation Hearing", date: "2026-08-05", time: "10:00", bill_number: "SB5171" },
+  { bill_id: 1986568, description: "Senate Commerce, Science, and Transportation Hearing", date: "2026-08-05", time: "10:00", bill_number: "SB737" },
+]
+
+// ── new cards (invented numbers) ───────────────────────────────────────────
+
+export const lobbying = {
+  stats: [
+    { label: "Registrations", value: "12,940" },
+    { label: "Clients", value: "5,312" },
+    { label: "Reported spend", value: "$4.4B" },
+  ],
+  top: ["U.S. Chamber of Commerce", "National Association of Realtors", "Pharmaceutical Research & Manufacturers", "American Hospital Association"],
+}
+
+export const modelBills = {
+  stats: [
+    { label: "Bills matched", value: "2,318" },
+    { label: "Source states", value: "46" },
+  ],
+  top: [
+    { bill: "HB1", states: 21 },
+    { bill: "SB1748", states: 17 },
+    { bill: "HB4681", states: 12 },
+  ],
+}
+
+export const connect = {
+  title: "Not connected",
+  description: "Send bills, votes and hearings where your team already works.",
+  services: [
+    { name: "Slack", src: "/logos/slack.png" },
+    { name: "Discord", src: "/logos/discord.svg" },
+    { name: "Google Drive", src: "/logos/google-drive.svg" },
+  ],
+}
+
+// The bills most recently acted on in Congress — the /docs/bills list and the
+// Recent Bills rail. Real rows from the v3 API, 2026-08-31.
+export const recentBills = [
+  { bill_id: 2157698, bill_number: "HB10171", title: "To establish a supplemental food and nutrition services grant program, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Joseph Morelle", body: "House", committee: "Agriculture" },
+  { bill_id: 2157697, bill_number: "HB10156", title: "To authorize workforce development innovation grants for the implementation, expansion, and evaluation of evidence-based workforce programs, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Josh Harder", body: "House", committee: "Education and Workforce" },
+  { bill_id: 2157696, bill_number: "HB10172", title: "To amend title 38, United States Code, to extend eligibility for survivors' and dependents' educational assistance to the dependent parent of a person who dies of a service-connected disability or has a total and permanent service-connected disability, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Eleanor Norton", body: "House", committee: "Veterans' Affairs" },
+  { bill_id: 2157695, bill_number: "HB10160", title: "To direct the Secretary of Veterans Affairs to improve mental health care for veterans through the establishment of a minimum requirement for the number of Vet Centers per State.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Thomas Kean", body: "House", committee: "Veterans' Affairs" },
+  { bill_id: 2157694, bill_number: "HB10181", title: "To establish a national placement framework and grant program to prevent the disproportionate concentration of conditionally released sexually violent predators, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "George Whitesides", body: "House", committee: "Judiciary" },
+  { bill_id: 2157693, bill_number: "HB10176", title: "To prohibit Chinese seafood products in congressional dining facilities, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Christopher Smith", body: "House", committee: "Administration" },
+  { bill_id: 2157692, bill_number: "HR1496", title: "Commemorating the fifth anniversary of the evacuation of Afghanistan, the Gulf war era, and honoring Gulf war era veterans.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Addison McDowell", body: "House", committee: "Veterans' Affairs" },
+  { bill_id: 2157691, bill_number: "HB10164", title: "BEDROCK Act Biomanufacturing Excellence, Domestic Resilience, Output, and Competitive Know-how Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Robert Latta", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157690, bill_number: "HB10170", title: "Memory Chip Competitiveness Assessment Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Mariannette Miller-Meeks", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157689, bill_number: "HR1494", title: "Honoring the life and enduring public service of Congresswoman Sheila Jackson Lee, a fearless advocate for justice, equality, and the people of the United States.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Al Green", body: "House", committee: "Administration" },
+  { bill_id: 2157688, bill_number: "HB10163", title: "American Quantum Competitiveness Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Nicholas Langworthy", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157687, bill_number: "HB10157", title: "To amend the Internal Revenue Code of 1986 to exempt home distillery establishments from taxation and other requirements, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Diana Harshbarger", body: "House", committee: "Ways And Means" },
+  { bill_id: 2157686, bill_number: "HB10162", title: "STORMWATER Act Stormwater Treatment Optimization, Resilience, and Management With Academic Technological Expertise and Research Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Timothy Kennedy", body: "House", committee: "Science, Space, And Technology" },
+  { bill_id: 2157685, bill_number: "HB10168", title: "To authorize the Secretary of Housing and Urban Development to establish a pilot program to recapture and reallocate rental assistance for veterans, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Dan Meuser", body: "House", committee: "Financial Services" },
+  { bill_id: 2157684, bill_number: "HB10150", title: "To amend the Federal Food, Drug, and Cosmetic Act to provide a period of market exclusivity for botanical drugs, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Lauren Boebert", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157683, bill_number: "HB10158", title: "Automotive National and Economic Security Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Diana Harshbarger", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157682, bill_number: "HB10174", title: "GRANITE Act Guaranteeing Rights Against Novel International Tyranny and Extortion Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Michael Rulli", body: "House", committee: "Judiciary" },
+  { bill_id: 2157681, bill_number: "HB10167", title: "To direct the Secretary of the Treasury to stop minting the penny, to require cash transactions to be rounded up or down to the nearest 5 cents, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Lisa McClain", body: "House", committee: "Financial Services" },
+  { bill_id: 2157680, bill_number: "HB10179", title: "To amend the charter of the Reserve Organization of the United States, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Suhas Subramanyam", body: "House", committee: "Judiciary" },
+  { bill_id: 2157679, bill_number: "HR1491", title: "Expressing support for the designation of the week of August 25 through August 31, 2026, as \"Black Breastfeeding Week\".", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Alma Adams", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157678, bill_number: "HR1493", title: "Declaring unconditional war on racism and invidious discrimination and providing for the establishment of a Cabinet-level Department of Reconciliation charged with eliminating racism and invidious discrimination.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Al Green", body: "House", committee: "Judiciary" },
+  { bill_id: 2157677, bill_number: "HB10175", title: "To repeal section 338 of the Tariff Act of 1930 and nullify certain Presidential proclamations imposing a tariff or other duty pursuant to such section, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Bradley Schneider", body: "House", committee: "Ways And Means" },
+  { bill_id: 2157676, bill_number: "HB10173", title: "To amend the America COMPETES Reauthorization Act of 2010 to reauthorize the research experiences for undergraduates program at the National Science Foundation, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Luz Rivas", body: "House", committee: "Science, Space, And Technology" },
+  { bill_id: 2157675, bill_number: "HR1492", title: "Reaffirming the enduring partnership between the Pacific Islands Forum (PIF) and its eighteen members and the United States toward stability, prosperity, and peace in the Pacific, and expressing the sense of the House of Representatives that the United States will continue to remain a strong, reliable, and active partner in advancing a peaceful, resilient, and prosperous Blue Pacific.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Ed Case", body: "House", committee: "Foreign Affairs" },
+  { bill_id: 2157674, bill_number: "HB10154", title: "To amend the Clean Air Act to impose concurrence requirements prior to the adoption and enforcement of certain State emissions standards, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "James Gallagher", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157673, bill_number: "HB10169", title: "To prohibit the provision of federal financial benefit for the construction, expansion, or substantial rehabilitation of data centers on prime farmland and other certain farmland.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Mary Miller", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157672, bill_number: "HB10159", title: "To authorize the Secretary of the Army to convey to the State of North Carolina a certain parcel of real property located at Fort Bragg, North Carolina, on which the State shall construct a veterans' State home, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Richard Hudson", body: "House", committee: "Armed Services" },
+  { bill_id: 2157671, bill_number: "HB10180", title: "To amend the National Institute of Standards and Technology Act to authorize certain assessments by the Director of the Institute and impose requirements on certain memorandums of understanding relating to artificial intelligence, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "George Whitesides", body: "House", committee: "Science, Space, And Technology" },
+  { bill_id: 2157670, bill_number: "HB10182", title: "To amend the Public Works and Economic Development Act of 1965 to require eligible recipients of certain grants to develop a comprehensive economic development strategy that directly or indirectly increases the accessibility of affordable, quality care-based services, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Nikema Williams", body: "House", committee: "Transportation And Infrastructure" },
+  { bill_id: 2157669, bill_number: "HB10152", title: "Open-Source AI Leadership Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Gabe Evans", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157668, bill_number: "HB10183", title: "SRBIJA Act Supporting the Rule of law, Building Institutional Justice, and Accountability Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Joe Wilson", body: "House", committee: "Foreign Affairs" },
+  { bill_id: 2157667, bill_number: "HB10166", title: "To amend the Foreign Agents Registration Act to require social media influencers to submit registration statements, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Anna Luna", body: "House", committee: "Judiciary" },
+  { bill_id: 2157666, bill_number: "HB10153", title: "To amend the Internal Revenue Code of 1986 to treat income earned by United States merchant mariners as foreign earned income.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Brian Fitzpatrick", body: "House", committee: "Ways And Means" },
+  { bill_id: 2157665, bill_number: "HB10178", title: "To amend the General Education Provisions Act to require certain local educational agencies to notify parents before distributing or disseminating information about abortion or abortion-related services to students, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Greg Steube", body: "House", committee: "Education and Workforce" },
+  { bill_id: 2157664, bill_number: "HB10161", title: "To amend the Public Health Service Act to require States to prohibit the sale of certain products containing nitrous oxide as a condition on receipt of block grants for community mental health services, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Thomas Kean", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157663, bill_number: "HB10151", title: "To amend the Safe Drinking Water Act to adjust the limits for technical assistance, grants for small systems, and the authorization of appropriations for the Drinking Water Infrastructure Risk and Resilience Program.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Christopher Deluzio", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157662, bill_number: "HR1490", title: "Providing for the condemnation and denouncement of socialism in all its forms, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Jeff Crank", body: "House", committee: "Administration" },
+  { bill_id: 2157661, bill_number: "HB10165", title: "To permanently reform quorum requirements for the Board of Directors of the Export-Import Bank of the United States to ensure continuity of operations.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Michael Lawler", body: "House", committee: "Financial Services" },
+  { bill_id: 2157660, bill_number: "HR1497", title: "Commemorating the 13 United States servicemembers killed at Abbey Gate during and as a result of President Biden's disastrous Afghanistan withdrawal.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Matt Van Epps", body: "House", committee: "Armed Services" },
+  { bill_id: 2157659, bill_number: "HB10177", title: "Competition in State Healthcare Markets Act", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Victoria Spartz", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157658, bill_number: "HB10155", title: "To amend title 10, United States Code, to include certain prior active duty as a regular member of an Armed Force for reduced eligibility age for retirement as a member of the reserve components.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Abraham Hamadeh", body: "House", committee: "Armed Services" },
+  { bill_id: 2157657, bill_number: "HR1495", title: "Honoring the life and legacy of Congressman Sylvester Turner, a tireless champion of Houston's diverse communities.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Al Green", body: "House", committee: "Administration" },
+  { bill_id: 2156083, bill_number: "HB9771", title: "Stopping Foreign Influence in Elections Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Nicole Malliotakis", body: "House", committee: null },
+  { bill_id: 2156082, bill_number: "HB9772", title: "Foreign Funding Transparency Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "David Schweikert", body: "House", committee: null },
+  { bill_id: 2156001, bill_number: "HB9722", title: "Fair Treatment of Religious Organizations Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Blake Moore", body: "House", committee: null },
+  { bill_id: 2154931, bill_number: "HB9436", title: "Northeast Lobsterman Protection Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Michael Lawler", body: "House", committee: null },
+  { bill_id: 2148026, bill_number: "HB8658", title: "Indian Health Service Emergency Claims Parity Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Mike Kennedy", body: "House", committee: null },
+  { bill_id: 2145220, bill_number: "HB8454", title: "To provide for the transfer of administrative jurisdiction over certain Federal land in the State of California, and for other purposes.", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Tom McClintock", body: "House", committee: null },
+  { bill_id: 2138890, bill_number: "HB8121", title: "To designate the Christiansted Bandstand at the Christiansted National Historic Site, St. Croix, Virgin Islands, as the \"Peter G. Thurland, Sr., Bandstand\".", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Stacey Plaskett", body: "House", committee: null },
+  { bill_id: 2126019, bill_number: "HB7730", title: "Bankruptcy Threshold Adjustment Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Ben Cline", body: "House", committee: null },
+  { bill_id: 2114877, bill_number: "HB7487", title: "Rural Jobs and Hydropower Expansion Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Lauren Boebert", body: "House", committee: null },
+  { bill_id: 2052344, bill_number: "HB6021", title: "Archie Cavanaugh Migratory Bird Treaty Clarification Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Nicholas Begich", body: "House", committee: null },
+  { bill_id: 2045206, bill_number: "HB5576", title: "Enhancing Geothermal Production on Federal Lands Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Russ Fulcher", body: "House", committee: null },
+  { bill_id: 2042972, bill_number: "HB5063", title: "Safe Beaches, Safe Swimmers Act", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Jennifer Kiggans", body: "House", committee: null },
+  { bill_id: 2040899, bill_number: "HB4795", title: "Protect Economic and Academic Freedom Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Virginia Foxx", body: "House", committee: null },
+  { bill_id: 2038607, bill_number: "HB4219", title: "National Wildlife Refuge System Invasive Species Strike Team Act of 2025", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Ed Case", body: "House", committee: null },
+  { bill_id: 2018781, bill_number: "HB2555", title: "Freedom of Association in Higher Education Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Erin Houchin", body: "House", committee: null },
+  { bill_id: 1993056, bill_number: "HB1869", title: "Protecting American Industry and Labor from International Trade Crimes Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Ashley Hinson", body: "House", committee: null },
+  { bill_id: 1988061, bill_number: "HB1693", title: "To redesignate the National Historic Trails Interpretive Center in Casper, Wyoming, as the \"Barbara L. Cubin National Historic Trails Interpretive Center\".", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Harriet Hageman", body: "House", committee: null },
+  { bill_id: 1945405, bill_number: "HB741", title: "Stronger Engagement for Indian Health Needs Act of 2025", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Greg Stanton", body: "House", committee: null },
+  { bill_id: 1941765, bill_number: "HB726", title: "Crow Tribe Water Rights Settlement Amendments Act of 2025", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Troy Downing", body: "House", committee: null },
+  { bill_id: 1936800, bill_number: "HB625", title: "LACA of 2026 Local Access to Courts Act of 2026", status_desc: "House Floor Calendar", last_action_date: "2026-08-27", sponsor: "Michael McCaul", body: "House", committee: null },
+  { bill_id: 2157480, bill_number: "HB10128", title: "To codify Secretary's Order 3434 of the Department of the Interior.", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Tom McClintock", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2157471, bill_number: "HB10136", title: "Crossett Experimental Forest Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Bruce Westerman", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2156102, bill_number: "HB9779", title: "Hands Off Our Boca Chica Beach Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Vicente Gonzalez", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2155580, bill_number: "HB9600", title: "Common Sense 250 Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Jamie Raskin", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2153760, bill_number: "HB9269", title: "Renewing the African American Civil Rights Network Act", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "James Clyburn", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2059629, bill_number: "HB6788", title: "Montana Sportsmen Conservation Act", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Troy Downing", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2044763, bill_number: "HB5470", title: "Route 66 National Historic Trail Designation Act", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Darin LaHood", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 1939556, bill_number: "HB642", title: "Myakka Wild and Scenic River Act of 2025", status_desc: "In House Committee", last_action_date: "2026-08-26", sponsor: "Greg Steube", body: "House", committee: "Subcommittee on Federal Lands" },
+  { bill_id: 2157524, bill_number: "HR1489", title: "Honoring the crew of the Artemis II mission for their historic lunar flyby.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Norma Torres", body: "House", committee: "Science, Space, And Technology" },
+  { bill_id: 2157522, bill_number: "HR1486", title: "Impeaching Donald John Trump, President of the United States, for high crimes and misdemeanors.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Al Green", body: "House", committee: "Judiciary" },
+  { bill_id: 2157521, bill_number: "HR1488", title: "Recognizing the significance of \"Chicano/Chicana Heritage Month\" in August as an important time to celebrate the significant contributions of Mexican Americans to the history of the United States.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Luis Correa", body: "House", committee: "Oversight And Government Reform" },
+  { bill_id: 2157520, bill_number: "HR1487", title: "Recognizing the 1960 University of Missouri Tigers Football Team for its undefeated regular season, Orange Bowl victory, and claim to the 1960 National Championship.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Wesley Bell", body: "House", committee: "Education and Workforce" },
+  { bill_id: 2157519, bill_number: "HB10139", title: "Ratepayer Bill of Rights Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Henry Cuellar", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157518, bill_number: "HB10149", title: "For the relief of Maria Cordova.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Juan Vargas", body: "House", committee: "Judiciary" },
+  { bill_id: 2157517, bill_number: "HB10140", title: "SPF Act of 2026 Sunscreen in Parks Findings Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Debbie Dingell", body: "House", committee: "Natural Resources" },
+  { bill_id: 2157516, bill_number: "HB10147", title: "To amend the Harmonized Tariff Schedule for the United States to establish a new subheading in chapter 39 for silicone prosthetics for women who are breast cancer survivors and a new subheading in chapter 90 for mastectomy bras.", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Carol Miller", body: "House", committee: "Ways And Means" },
+  { bill_id: 2157515, bill_number: "HB10145", title: "SOUND Pesticide Research Act Scientific Oversight for Unbiased and Neutral Data in Pesticide Research Act", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Nancy Mace", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157514, bill_number: "HB10142", title: "Multi-State Worker Tax Fairness Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "James Himes", body: "House", committee: "Judiciary" },
+  { bill_id: 2157513, bill_number: "HB10148", title: "Safeguarding America\u2019s Nonprofits Act", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Greg Steube", body: "House", committee: "Ways And Means" },
+  { bill_id: 2157512, bill_number: "HB10138", title: "CCP Fentanyl Sanctions Act", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Jake Auchincloss", body: "House", committee: "Foreign Affairs" },
+  { bill_id: 2157511, bill_number: "HB10143", title: "Jobs, Not Waste Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Suzanne Lee", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157510, bill_number: "HB10144", title: "Pesticide Harm Accountability Act", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Nancy Mace", body: "House", committee: "Agriculture" },
+  { bill_id: 2157509, bill_number: "HB10146", title: "AI Advertising Disclosure Act", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Seth Magaziner", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157508, bill_number: "HB10141", title: "To designate the facility of the United States Postal Service located at 4450 Oak Park Lane in Fort Worth, Texas, as the \"United States Representative Kay Granger Post Office Building\".", status_desc: "In House Committee", last_action_date: "2026-08-24", sponsor: "Craig Goldman", body: "House", committee: "Oversight And Government Reform" },
+  { bill_id: 2157493, bill_number: "HB10119", title: "Protecting Local Control of Data Centers Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Tom Barrett", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157484, bill_number: "HB10131", title: "National Archives Protection Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Kevin Mullin", body: "House", committee: "Oversight And Government Reform" },
+  { bill_id: 2157483, bill_number: "HB10129", title: "Stamps for Staying Connected Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Grace Meng", body: "House", committee: "Judiciary" },
+  { bill_id: 2157482, bill_number: "HB10130", title: "Army Quantum Readiness Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Tim Moore", body: "House", committee: "Armed Services" },
+  { bill_id: 2157481, bill_number: "HB10125", title: "NO PROFIT Act No Preferential Release Of Federal Information for Transactions Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "James Himes", body: "House", committee: "Financial Services" },
+  { bill_id: 2157479, bill_number: "HB10135", title: "Not In My Barn Yard Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Glenn Thompson", body: "House", committee: "Judiciary" },
+  { bill_id: 2157478, bill_number: "HB10126", title: "DEMAND Act of 2026 Defense Export Modeling Alignment for National Defense Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Ronny Jackson", body: "House", committee: "Armed Services" },
+  { bill_id: 2157477, bill_number: "HB10122", title: "STORM FORTIFIED and Wildfire Prepared Act Safeguarding Tomorrow through Ongoing Risk Mitigation FORTIFIED and Wildfire Prepared Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Troy Carter", body: "House", committee: "Transportation And Infrastructure" },
+  { bill_id: 2157476, bill_number: "HB10123", title: "STOP Improper Licensing Act Strengthening Transportation Oversight and Preventing Improper Licensing Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Harriet Hageman", body: "House", committee: "Transportation And Infrastructure" },
+  { bill_id: 2157475, bill_number: "HB10121", title: "To obtain and direct the placement in the Capitol or on the Capitol Grounds of a statue to honor American humanitarian and star athlete Roberto Clemente of Puerto Rico.", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Gus Bilirakis", body: "House", committee: "Administration" },
+  { bill_id: 2157474, bill_number: "HB10132", title: "ARTICLE ONE Act Assuring that Robust, Thorough, and Informed Congressional Leadership is Exercised Over National Emergencies Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Chip Roy", body: "House", committee: "Transportation And Infrastructure" },
+  { bill_id: 2157473, bill_number: "HR1485", title: "Expressing support for the designation of August 22, 2026, as \"Chuck Brown Day\", and honoring Chuck Brown's contributions to music and to the District of Columbia.", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Eleanor Norton", body: "House", committee: "Oversight And Government Reform" },
+  { bill_id: 2157472, bill_number: "HB10133", title: "Fair Prescription Pricing Act of 2026", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Hillary Scholten", body: "House", committee: "Energy And Commerce" },
+  { bill_id: 2157470, bill_number: "HB10127", title: "TRANS Government Research Act Terminating Radical Attempts to Negate Sex Through Government Research Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Nancy Mace", body: "House", committee: "Energy And Commerce" },
+]
+
+// Every committee of the jurisdiction in scope, for /docs/committees and the
+// rail. Real rows from the v3 API, 2026-08-31 (its Senate rows are labelled
+// House upstream; the page groups by what the data says).
+export const committeesAll = [
+  { committee_name: "Administration", chamber: "House", bills: 196 },
+  { committee_name: "Agriculture", chamber: "House", bills: 226 },
+  { committee_name: "Agriculture, Nutrition, And Forestry", chamber: "House", bills: 334 },
+  { committee_name: "Appropriations", chamber: "House", bills: 91 },
+  { committee_name: "Armed Services", chamber: "House", bills: 581 },
+  { committee_name: "Banking, Housing, And Urban Affairs", chamber: "House", bills: 465 },
+  { committee_name: "Budget", chamber: "House", bills: 48 },
+  { committee_name: "Commerce, Science, And Transportation", chamber: "House", bills: 458 },
+  { committee_name: "Education and Workforce", chamber: "House", bills: 824 },
+  { committee_name: "Energy And Commerce", chamber: "House", bills: 1636 },
+  { committee_name: "Energy And Natural Resources", chamber: "House", bills: 314 },
+  { committee_name: "Environment And Public Works", chamber: "House", bills: 257 },
+  { committee_name: "Ethics", chamber: "House", bills: 39 },
+  { committee_name: "Finance", chamber: "House", bills: 902 },
+  { committee_name: "Financial Services", chamber: "House", bills: 559 },
+  { committee_name: "Foreign Affairs", chamber: "House", bills: 658 },
+  { committee_name: "Foreign Relations", chamber: "House", bills: 385 },
+  { committee_name: "Health, Education, Labor, And Pensions", chamber: "House", bills: 747 },
+  { committee_name: "Homeland Security", chamber: "House", bills: 6 },
+  { committee_name: "Homeland Security And Governmental Affairs", chamber: "House", bills: 444 },
+  { committee_name: "Indian Affairs", chamber: "House", bills: 49 },
+  { committee_name: "Indian and Insular Affairs", chamber: "House", bills: 15 },
+  { committee_name: "Intelligence", chamber: "House", bills: 3 },
+  { committee_name: "Judiciary", chamber: "House", bills: 2181 },
+  { committee_name: "Natural Resources", chamber: "House", bills: 395 },
+  { committee_name: "Oversight And Government Reform", chamber: "House", bills: 696 },
+  { committee_name: "Permanent Select Intelligence", chamber: "House", bills: 6 },
+  { committee_name: "Rules", chamber: "House", bills: 75 },
+  { committee_name: "Rules And Administration", chamber: "House", bills: 87 },
+  { committee_name: "Science, Space, And Technology", chamber: "House", bills: 178 },
+  { committee_name: "Small Business", chamber: "House", bills: 81 },
+  { committee_name: "Small Business And Entrepreneurship", chamber: "House", bills: 80 },
+  { committee_name: "Subcommittee on Aviation", chamber: "House", bills: 73 },
+  { committee_name: "Subcommittee on Border Security and Enforcement", chamber: "House", bills: 73 },
+  { committee_name: "Subcommittee on Coast Guard and Maritime Transportation", chamber: "House", bills: 42 },
+  { committee_name: "Subcommittee on Commodity Markets, Digital Assets, and Rural Development", chamber: "House", bills: 46 },
+  { committee_name: "Subcommittee on Conservation, Research, and Biotechnology", chamber: "House", bills: 57 },
+  { committee_name: "Subcommittee on Counterterrorism and Intelligence", chamber: "House", bills: 20 },
+  { committee_name: "Subcommittee on Cybersecurity and Infrastructure Protection", chamber: "House", bills: 13 },
+  { committee_name: "Subcommittee on Disability Assistance and Memorial Affairs", chamber: "House", bills: 62 },
+  { committee_name: "Subcommittee on Economic Development, Public Buildings, and Emergency Management", chamber: "House", bills: 127 },
+  { committee_name: "Subcommittee on Economic Opportunity", chamber: "House", bills: 65 },
+  { committee_name: "Subcommittee on Emergency Management and Technology", chamber: "House", bills: 11 },
+  { committee_name: "Subcommittee on Energy and Mineral Resources", chamber: "House", bills: 15 },
+  { committee_name: "Subcommittee on Federal Lands", chamber: "House", bills: 34 },
+  { committee_name: "Subcommittee on Forestry and Horticulture", chamber: "House", bills: 45 },
+  { committee_name: "Subcommittee on General Farm Commodities, Risk Management, and Credit", chamber: "House", bills: 39 },
+  { committee_name: "Subcommittee on Health", chamber: "House", bills: 143 },
+  { committee_name: "Subcommittee on Highways and Transit", chamber: "House", bills: 174 },
+  { committee_name: "Subcommittee on Livestock, Dairy, and Poultry", chamber: "House", bills: 27 },
+  { committee_name: "Subcommittee on Nutrition and Foreign Agriculture", chamber: "House", bills: 79 },
+  { committee_name: "Subcommittee on Oversight and Investigations", chamber: "House", bills: 28 },
+  { committee_name: "Subcommittee on Oversight, Investigations, and Accountability", chamber: "House", bills: 22 },
+  { committee_name: "Subcommittee on Railroads, Pipelines, and Hazardous Materials", chamber: "House", bills: 47 },
+  { committee_name: "Subcommittee on Transportation and Maritime Security", chamber: "House", bills: 28 },
+  { committee_name: "Subcommittee on Water Resources and Environment", chamber: "House", bills: 85 },
+  { committee_name: "Subcommittee on Water, Wildlife and Fisheries", chamber: "House", bills: 24 },
+  { committee_name: "Transportation And Infrastructure", chamber: "House", bills: 156 },
+  { committee_name: "Veterans' Affairs", chamber: "House", bills: 285 },
+  { committee_name: "Ways And Means", chamber: "House", bills: 1160 },
+  { committee_name: "Select Intelligence", chamber: "Senate", bills: 21 },
+]

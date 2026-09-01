@@ -1,29 +1,40 @@
-import { Geist, Geist_Mono, Inter } from "next/font/google"
+import type { Metadata } from "next"
+
+import { siteConfig } from "@/lib/config"
+import { fontVariables } from "@/lib/fonts"
+import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
+import { ThemeProvider } from "@/components/theme-provider"
+import { TooltipProvider } from "@govblock/ui/components/tooltip"
+import { cn } from "@govblock/ui/lib/utils"
 
 import "@govblock/ui/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@govblock/ui/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
+export const metadata: Metadata = {
+  title: { default: siteConfig.name, template: `%s - ${siteConfig.name}` },
+  description: siteConfig.description,
+}
 
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+// Ported from livingston-v3 app/layout.tsx + app/(app)/layout.tsx. The header
+// and footer heights are CSS variables the header, footer and scroll padding
+// all read.
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+      className={cn(fontVariables, "[--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)]")}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
+        <ThemeProvider>
+          <TooltipProvider delay={0}>
+            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background">
+              <SiteHeader />
+              <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+              <SiteFooter />
+            </div>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

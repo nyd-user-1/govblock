@@ -127,3 +127,151 @@
     @apply bg-background text-foreground;
     }
 }
+/* ── ported from livingston-v3 apps/v4/app/globals.css + legacy-themes.css ── */
+
+@custom-variant fixed (&:is(.layout-fixed *));
+
+@theme inline {
+  --breakpoint-3xl: 1600px;
+  --breakpoint-4xl: 2000px;
+  --font-mono: var(--font-mono);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+}
+
+:root {
+  --surface: oklch(0.98 0 0);
+  --surface-foreground: var(--foreground);
+  --selection: oklch(0% 0 0);
+  --selection-foreground: oklch(1 0 0);
+}
+
+.dark {
+  --surface: oklch(0.2 0 0);
+  --surface-foreground: var(--foreground);
+  --selection: oklch(0.922 0 0);
+  --selection-foreground: oklch(0.205 0 0);
+}
+
+/* The home grid is drawn in the neutral theme: black primary, grey charts. */
+.theme-neutral {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  @variant dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+}
+
+@layer base {
+  html {
+    scroll-padding-top: var(--header-height);
+  }
+  ::selection {
+    @apply bg-selection text-selection-foreground;
+  }
+  body {
+    position: relative;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+  .cn-font-heading {
+    @apply font-heading;
+  }
+  [data-slot="layout"] {
+    @apply overscroll-none;
+  }
+  a:active,
+  button:active {
+    @apply opacity-60 md:opacity-100;
+  }
+}
+
+@utility border-grid {
+  @apply border-border/50 dark:border-border;
+}
+
+@utility container-wrapper {
+  @apply mx-auto w-full px-2 3xl:fixed:max-w-[calc(var(--breakpoint-2xl)+2rem)];
+}
+
+@utility container {
+  @apply mx-auto max-w-[1400px] px-4 3xl:max-w-screen-2xl lg:px-8;
+}
+
+@utility extend-touch-target {
+  @media (pointer: coarse) {
+    @apply relative touch-manipulation after:absolute after:-inset-2;
+  }
+}
+
+/* Docs rail: fade the top and bottom of a scrolling list; hide its scrollbar. */
+@utility scroll-fade {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
