@@ -35,7 +35,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 type SearchPayload = {
   q: string
   bills: { bill_id: number; bill_number: string; title: string }[]
-  members: { people_id: number; name: string; party: string; chamber: string; state: string }[]
+  members: { people_id: number; name: string; party: string; chamber: string; state: string; active: boolean }[]
   committees: { committee: string; bills: number; chamber: string }[]
 }
 
@@ -175,7 +175,10 @@ export function CommandMenu() {
                       onSelect={() => go(memberHref(member.people_id, member.state))}
                     >
                       <FlagChip state={member.state} width={20} />
-                      <span className="shrink-0 font-medium">{member.name}</span>
+                      <span className="shrink-0 font-medium">
+                        {member.name}
+                        {member.active ? "" : " (Ret.)"}
+                      </span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {[member.party, member.chamber].filter(Boolean).join(" · ")}
                       </span>

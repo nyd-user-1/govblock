@@ -35,6 +35,7 @@ type SearchPayload = {
     chamber: string
     district: string
     state: string
+    active: boolean
   }[]
   committees: { committee: string; bills: number; chamber: string }[]
 }
@@ -147,7 +148,10 @@ function SearchResults() {
             {members.map((member) => (
               <Row key={member.people_id} href={memberHref(member.people_id, member.state)}>
                 <FlagChip state={member.state} width={20} className="self-center" />
-                <span className="shrink-0 font-medium">{member.name}</span>
+                <span className="shrink-0 font-medium">
+                  {member.name}
+                  {member.active ? "" : " (Ret.)"}
+                </span>
                 <span className="min-w-0 flex-1 truncate text-muted-foreground">
                   {[stateName(member.state), member.party, member.chamber, member.district].filter(Boolean).join(" · ")}
                 </span>
