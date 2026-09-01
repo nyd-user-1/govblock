@@ -1358,7 +1358,7 @@ export const US_ONLY = [
   "amendments", "summaries", "committee-reports", "laws", "member-detail",
   "committee-detail", "committee-meetings", "hearings", "nominations",
   "crs-reports", "record-issues", "house-votes", "treaties",
-  "summaries", "titles", "related-bills",
+  "summaries", "titles", "related-bills", "cosponsors", "member-votes", "communications",
 ] as const;
 
 /** The payload as the API returned it, newest first, for a whole family. */
@@ -1525,4 +1525,77 @@ export async function getRelatedBills(billId: number) {
     [billId],
   );
   return { bill: billId, count: rows.length, relatedBills: rows };
+}
+
+/* ---- votes, cosponsors, and the reference families ----------------------- */
+
+/**
+ * Cosponsors, from the BILLSTATUS zips rather than one request per bill.
+ * `payload` is the record as govinfo published it, so the field names are the
+ * API's own — bioguideId, fullName, sponsorshipDate, isOriginalCosponsor — and
+ * `people_id` is added beside it so a page can link without a second lookup.
+ */
+export async function getCosponsors(billId: number) {
+  const rows = await q<{ payload: Record<string, unknown>; people_id: number | null }>(
+    `select payload, people_id from congress_cosponsors where bill_id = $1
+      order by sponsorship_date nulls last, full_name`, [billId]);
+  return { bill: billId, count: rows.length, cosponsors: rows.map((r) => ({ ...r.payload, people_id: r.people_id })) };
+}
+
+/** House roll calls. With `bill=`, only the ones on that bill's legislation. */
+export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
+  if (billId) {
+    const bill = await one<{ bill_number: string }>(`select bill_number from "Bills" where bill_id = $1 and state = 'US'`, [billId]);
+    if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] };
+    const prefix = String(bill.bill_number).replace(/[0-9].*$/, "").toUpperCase();
+    const number = String(bill.bill_number).replace(/^[A-Z]+/, "");
+    const rows = await q<{ payload: unknown }>(
+      `select payload from congress_house_votes
+        where legislation_type = $1 and legislation_number = $2 order by start_date desc`,
+      [CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix, number]);
+    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map((r) => r.payload) };
+  }
+  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: await congressFamily("congress_house_votes", limit, offset) };
+}
+
+/**
+ * Per-member positions. By `vote=`, the roll call's own members; by `member=`,
+ * one member's record across every roll call — which is the question a member
+ * page asks and `"Roll Call"` has never been able to answer, because LegiScan
+ * records the tally and not who was in it.
+ */
+export async function getMemberVotes({ vote, member, limit = 500 }: { vote?: string; member?: number; limit?: number }) {
+  if (vote) {
+    const rows = await q(
+      `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
+         from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`, [vote]);
+    return { vote, count: rows.length, memberVotes: rows };
+  }
+  if (member) {
+    const rows = await q(
+      `select p.vote_identifier, p.vote_cast, v.roll_call_number, v.legislation_type, v.legislation_number,
+              v.result, v.start_date
+         from congress_house_vote_positions p
+         join congress_house_votes v on v.key = p.vote_identifier
+        where p.people_id = $1 order by v.start_date desc limit $2`, [member, limit]);
+    return { member, count: rows.length, memberVotes: rows };
+  }
+  return { count: 0, memberVotes: [] };
+}
+
+export async function getCrsReports(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_crs_reports"), CRSReports: await congressFamily("congress_crs_reports", limit, offset) };
+}
+
+export async function getRecordIssues(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_record_daily"), dailyCongressionalRecord: await congressFamily("congress_record_daily", limit, offset) };
+}
+
+export async function getCommunications(limit = 50, offset = 0, chamber?: string) {
+  const where = chamber ? `where chamber = $1` : "";
+  const params = chamber ? [chamber] : [];
+  return {
+    count: await congressCount("congress_communications", where, params),
+    communications: await congressFamily("congress_communications", limit, offset, where, params),
+  };
 }

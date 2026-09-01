@@ -29,6 +29,12 @@ import {
   getStream,
   getSubjects,
   bioguideOf,
+  getCommunications,
+  getCosponsors,
+  getCrsReports,
+  getHouseVotes,
+  getMemberVotes,
+  getRecordIssues,
   getCommitteeDetail,
   getCommitteeMeetings,
   getCommitteeReports,
@@ -240,6 +246,21 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       if (!id) throw new Error("bill id required")
       return getRelatedBills(id)
     }
+    case "cosponsors": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getCosponsors(id)
+    }
+    case "house-votes":
+      return getHouseVotes(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
+    case "member-votes":
+      return getMemberVotes({ vote: sp.get("vote") ?? undefined, member: int(sp.get("member"), 0) || undefined, limit: int(sp.get("limit"), 500) })
+    case "crs-reports":
+      return getCrsReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "record-issues":
+      return getRecordIssues(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "communications":
+      return getCommunications(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, sp.get("chamber") ?? undefined)
     case "amendments":
       return getAmendments(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "committee-reports":
