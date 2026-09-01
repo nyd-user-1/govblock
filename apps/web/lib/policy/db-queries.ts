@@ -1359,6 +1359,10 @@ export const US_ONLY = [
   "committee-detail", "committee-meetings", "hearings", "nominations",
   "crs-reports", "record-issues", "house-votes", "treaties",
   "summaries", "titles", "related-bills", "cosponsors", "member-votes", "communications",
+  // Federal money. "LobbyingBills" joins 560,789 rows and every one of them to a
+  // US bill; "FecTotals" holds 5,517 rows across 726 members, all US. Measured
+  // 2026-09-01 before either was exposed on the route.
+  "lobbying", "fec",
 ] as const;
 
 /** The payload as the API returned it, newest first, for a whole family. */

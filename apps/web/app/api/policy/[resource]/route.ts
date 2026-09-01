@@ -32,7 +32,9 @@ import {
   getCommunications,
   getCosponsors,
   getCrsReports,
+  getFec,
   getHouseVotes,
+  getLobbying,
   getMemberVotes,
   getRecordIssues,
   getCommitteeDetail,
@@ -237,6 +239,24 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean)
       return getStream([...new Set(requested)].slice(0, 6), int(sp.get("limit"), 12))
+    }
+    /* ---- money, and it is federal (US only) -------------------------------- */
+    // Both readers already existed in db-queries.ts and had no way in. Measured
+    // before exposing: all 560,789 joinable "LobbyingBills" rows land on a bill
+    // whose state is US (federal LDA filings), and all 5,517 "FecTotals" rows on
+    // one of 726 US members. So both are US_ONLY, and another jurisdiction is
+    // told what it asked for rather than handed Congress's money as its own.
+    case "lobbying": {
+      const f = await resolve(filters)
+      const id = int(sp.get("bill") ?? sp.get("id") ?? f.bill ?? null, 0)
+      if (!id) throw new Error("bill id required")
+      return getLobbying(id)
+    }
+    case "fec": {
+      const f = await resolve(filters)
+      const id = int(sp.get("member") ?? sp.get("id") ?? f.member ?? null, 0)
+      if (!id) throw new Error("member id required")
+      return getFec(id)
     }
     /* ---- congress.gov families (US only) ---------------------------------- */
     case "text-versions": {
