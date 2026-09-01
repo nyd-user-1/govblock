@@ -51,7 +51,7 @@ const matches = (m: Member, q: string) =>
   m.name.toLowerCase().includes(q) || (m.district ?? "").toLowerCase().includes(q) || partyName(m.party).toLowerCase().includes(q) || (m.chamber ?? "").toLowerCase().includes(q)
 
 export function DirectoryList() {
-  const { data, state } = useScoped<Member[]>("members", members)
+  const { data, state, resolved } = useScoped<Member[]>("members", members)
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
 
@@ -85,7 +85,7 @@ export function DirectoryList() {
           setQuery(value ?? "")
           setPage(1)
         }}
-        placeholder={`Search ${stateName(state)} members by name, district or party…`}
+        placeholder={resolved ? `Search ${stateName(state)} members by name, district or party…` : "Search members by name, district or party…"}
       />
       <ItemGroup className="my-8">
         {shown.map((member, index) => (

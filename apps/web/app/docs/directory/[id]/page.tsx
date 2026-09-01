@@ -30,6 +30,11 @@ import { H2 } from "@/components/typeset"
 
 const SECTIONS = ["Record"]
 
+// "Congress House" is not a thing anyone says, and it is the one place this
+// page would print the jurisdiction into a shell every reader shares.
+const chamberName = (state: string, chamber: string) =>
+  state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`
+
 // One entry per member, half an hour each. The three exports have to appear
 // together: `revalidate` alone on a dynamic segment does nothing.
 export const revalidate = 1800
@@ -64,7 +69,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${member.name}`.trim()
   return {
     title,
-    description: `${title} — ${stateName(state)} ${member.chamber}. Sponsored bills, aye and nay votes.`,
+    description: `${title} — ${chamberName(state, String(member.chamber ?? ""))}. Sponsored bills, aye and nay votes.`,
   }
 }
 
@@ -83,7 +88,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   const description = [
     member.leadership_title ? String(member.leadership_title) : null,
     member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null,
-    `${stateName(state)} ${member.chamber}`,
+    chamberName(state, String(member.chamber ?? "")),
   ]
     .filter(Boolean)
     .join(" · ")

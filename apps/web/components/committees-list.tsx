@@ -25,7 +25,7 @@ const codeFor = (chamber: string, name: string): string | undefined =>
   (CODES as { byName: Record<string, string> }).byName[committeeKey(chamber, name)]
 
 export function CommitteesList() {
-  const { data, state } = useScoped<Committee[]>("committees", F.committeesAll)
+  const { data, state, resolved } = useScoped<Committee[]>("committees", F.committeesAll)
   const [query, setQuery] = React.useState("")
 
   const committees = React.useMemo(() => {
@@ -52,7 +52,9 @@ export function CommitteesList() {
         registriesCount={committees.length}
         setQuery={(value) => setQuery(value ?? "")}
         noun="committee"
-        placeholder={`Search ${stateName(state)} committees by name…`}
+        // The shell is prerendered once for every reader, so it cannot name a
+        // jurisdiction until it knows which one was asked for.
+        placeholder={resolved ? `Search ${stateName(state)} committees by name…` : "Search committees by name…"}
       />
       <div className="my-8 flex flex-col gap-10">
         {groups.map(([chamber, rows]) => (
