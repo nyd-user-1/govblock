@@ -41,6 +41,8 @@ type VoteRow = {
   href?: string
   /** Who counted it, when that is not the legislature's own clerk feed. */
   source?: string
+  /** Chamber, roll call number and day — what makes two records one vote. */
+  key?: string | null
 }
 
 // The House floor, as the House Clerk records it. LegiScan carries 120 roll
@@ -67,6 +69,16 @@ type Positions = Record<string, HouseVote & { results?: { voteCast?: string }[] 
 const LEGISCAN_TYPE: Record<string, string> = {
   HR: "HB", S: "SB", HRES: "HR", SRES: "SR",
   HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR",
+}
+
+// Both sources number a chamber's roll calls the same way, and LegiScan prints
+// the number in its description ("... RC# 228"). That number and the day is
+// what makes two records the same vote — the bill and the day is not, because
+// the House can vote on one bill four times in an afternoon, and keying on
+// that collapses an amendment, a recommittal and a passage into one card.
+const rollCallKey = (chamber: string, description: string, date: string) => {
+  const number = /RC#\s*(\d+)/.exec(description ?? "")?.[1]
+  return number ? `${chamber}/${number}/${date}` : null
 }
 
 const ALL = "__all__"
@@ -118,6 +130,7 @@ export function VotesBoard() {
           total: cast.length,
           bill_id: 0,
           bill_number: named || `Roll call ${vote.rollCallNumber ?? "—"}`,
+          key: vote.rollCallNumber ? `House/${vote.rollCallNumber}/${String(vote.startDate ?? "").slice(0, 10)}` : null,
           title: [vote.result, vote.voteType].filter(Boolean).join(" · "),
           href: vote.legislationUrl,
           source: "House Clerk",
@@ -126,10 +139,23 @@ export function VotesBoard() {
     })
   }, [house])
 
+  const counted = React.useMemo(
+    () => new Set(floor.map((row) => row.key).filter(Boolean) as string[]),
+    [floor]
+  )
+  // A LegiScan row is dropped only when the Clerk demonstrably counted the same
+  // roll call; one that does not print its number is kept, since there is no
+  // way to know it is a duplicate and a missing vote is worse than two cards.
+  const superseded = React.useCallback(
+    (row: VoteRow) => {
+      const key = rollCallKey(row.chamber, row.description, row.date)
+      return !!key && counted.has(key)
+    },
+    [counted]
+  )
+
   const rows = React.useMemo(() => {
-    const legiscan = data ?? []
-    const counted = new Set(floor.map((row) => `${row.bill_number}/${row.date}`))
-    const all = [...floor, ...legiscan.filter((row) => !counted.has(`${row.bill_number}/${row.date}`))].sort((a, b) =>
+    const all = [...floor, ...(data ?? []).filter((row) => !superseded(row))].sort((a, b) =>
       b.date.localeCompare(a.date)
     )
     const query = search.trim().toLowerCase()
@@ -142,11 +168,10 @@ export function VotesBoard() {
         (row.title ?? "").toLowerCase().includes(query)
       )
     })
-  }, [data, floor, search, selected])
+  }, [data, floor, superseded, search, selected])
 
   const groups = React.useMemo<RailGroup[]>(() => {
-    const counted = new Set(floor.map((row) => `${row.bill_number}/${row.date}`))
-    const all = [...floor, ...(data ?? []).filter((row) => !counted.has(`${row.bill_number}/${row.date}`))]
+    const all = [...floor, ...(data ?? []).filter((row) => !superseded(row))]
     const chambers = [
       ...new Set(all.map((r) => r.chamber).filter(Boolean)),
     ].sort()
@@ -163,7 +188,7 @@ export function VotesBoard() {
         ],
       },
     ]
-  }, [data, floor])
+  }, [data, floor, superseded])
 
   return (
     <RailAndCards
