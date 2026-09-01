@@ -158,8 +158,17 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "bill": {
       const f = await resolve(filters)
       let id = int(sp.get("id") ?? f.bill ?? null, 0)
-      if (!id && sp.get("number")) {
-        id = Number((await getBillByNumber(f.state, f.session, sp.get("number")!))?.bill_id ?? 0)
+      const number = sp.get("number")
+      if (!id && number) {
+        // Numbers are stored bare and upper — "HB10171", "A07380" — so "hr 1"
+        // and "H.R. 1" normalise before the lookup.
+        const bare = number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+        id = Number((await getBillByNumber(f.state, f.session, bare))?.bill_id ?? 0)
+        // A supplied number that matches nothing is a miss, never the newest
+        // bill: the fallthrough below is only correct when no identifier was
+        // given at all. (Found live by the agents lane: HR 1 answered HB10171
+        // with a 200.)
+        if (!id) throw new Error(`No bill numbered "${number}" in ${stateName(f.state)} ${f.session}.`)
       }
       if (!id) {
         const { rows } = await getBills(f, 1)
