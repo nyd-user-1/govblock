@@ -19,6 +19,11 @@ export async function GET() {
 
   if (!sql) {
     body.detail = "no database configured; pages serve their committed snapshots"
+    // Names only, never values: which of these the SSR runtime actually receives
+    // is the whole question when the site silently serves snapshots.
+    body.envKeys = Object.keys(process.env)
+      .filter((k) => /^(POLICY_|AMPLIFY|AWS_REGION|_HANDLER|NEXT_)/.test(k))
+      .sort()
     return NextResponse.json(body, { status: 200 })
   }
 
