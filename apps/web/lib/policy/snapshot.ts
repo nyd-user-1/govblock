@@ -84,3 +84,125 @@ export function resolve(url: string): unknown {
       return undefined
   }
 }
+
+// ---------------------------------------------------------------------------
+// The congress.gov families.
+//
+// Lane C serves eleven of these from Aurora already; the rest have no table
+// yet. Both answer the same URLs, so the fixtures below are cut into the same
+// envelopes the routes return — a page reads one shape either way, and each
+// family switches over the moment its table lands, with no page change.
+//
+// The records are the API's own, field names unchanged, pulled from
+// api.congress.gov on 2026-09-01 for H.R. 1 of the 119th (the rich one: six
+// text versions, five CRS summaries, 493 amendments, 38 related bills) and the
+// twelve bills already on file.
+//
+// Loaded one family at a time, and only when a route did not answer: a bill
+// page must not carry three megabytes of committee meetings it will never show.
+// A family is registered here as the page that reads it lands, so `resolve`
+// below names the whole contract while this map names what is on file.
+const FIXTURES: Record<string, () => Promise<{ default: unknown }>> = {
+  "text-versions": () => import("@/lib/data/congress/text-versions.json"),
+  summaries: () => import("@/lib/data/congress/summaries.json"),
+  amendments: () => import("@/lib/data/congress/amendments.json"),
+  "related-bills": () => import("@/lib/data/congress/related-bills.json"),
+  titles: () => import("@/lib/data/congress/titles.json"),
+  cosponsors: () => import("@/lib/data/congress/cosponsors.json"),
+  "committee-reports": () => import("@/lib/data/congress/committee-reports.json"),
+  laws: () => import("@/lib/data/congress/laws.json"),
+}
+
+async function fixture<T>(name: string): Promise<T | undefined> {
+  const load = FIXTURES[name]
+  return load ? ((await load()).default as T) : undefined
+}
+
+type Keyed = Record<string, unknown>
+const at = (map: unknown, key: string | null) => (key && map && typeof map === "object" ? (map as Keyed)[key] : undefined)
+
+// A window over a family list, in the shape the routes page them.
+function slice(body: Keyed, key: string, offset: number, limit: number) {
+  const rows = (body[key] as unknown[]) ?? []
+  return { count: body.count ?? rows.length, [key]: limit ? rows.slice(offset, offset + limit) : rows }
+}
+
+// Meetings and transcripts name their committees inside their own record.
+function forCommittee(detail: unknown, code: string) {
+  return Object.values((detail as Keyed) ?? {}).filter((row) =>
+    ((row as { committees?: { systemCode?: string }[] }).committees ?? []).some((c) => String(c.systemCode ?? "").toLowerCase() === code)
+  )
+}
+
+const EMPTY_KEY: Record<string, string> = { "related-bills": "relatedBills" }
+
+export async function resolveCongress(url: string): Promise<unknown> {
+  const { pathname, searchParams: q } = new URL(url, "http://snapshot")
+  const resource = pathname.replace(/^\/api\/policy\//, "")
+  const bill = q.get("bill") ?? q.get("id")
+  const bioguide = (q.get("bioguide") ?? q.get("member") ?? "").toUpperCase() || null
+  const committee = (q.get("systemCode") ?? q.get("committee") ?? q.get("code") ?? "").toLowerCase() || null
+  const offset = Number(q.get("offset") ?? 0) || 0
+  const limit = Number(q.get("limit") ?? 0) || 0
+  const body = await fixture<Keyed>(resource)
+  if (!body) return undefined
+
+  switch (resource) {
+    case "text-versions":
+      return at(body, bill) ?? []
+    case "summaries":
+    case "related-bills":
+    case "titles":
+    case "cosponsors":
+      return at(body, bill) ?? { bill: Number(bill), count: 0, [EMPTY_KEY[resource] ?? resource]: [] }
+    case "amendments":
+      return at(body.byBill, bill) ?? { bill: Number(bill), count: 0, amendments: [] }
+    case "laws":
+      return bill ? (at(body.byBill, bill) ?? { bill: Number(bill), count: 0, bills: [] }) : slice(body.all as Keyed, "bills", offset, limit)
+    case "committee-reports":
+      if (bill) return at(body.byBill, bill) ?? { bill: Number(bill), count: 0, reports: [] }
+      if (committee) return at(body.byCommittee, committee) ?? { committee, count: 0, reports: [] }
+      return slice(body.all as Keyed, "reports", offset, limit)
+    case "committee-detail":
+      return committee ? (at(body.byCode, committee) ?? null) : body.all
+    case "committee-meetings": {
+      if (!committee) return slice(body, "committeeMeetings", offset, limit)
+      const rows = forCommittee(body.detail, committee)
+      return { committee, count: rows.length, committeeMeetings: rows }
+    }
+    case "hearings-congress": {
+      if (!committee) return slice(body, "hearings", offset, limit)
+      const rows = forCommittee(body.detail, committee)
+      return { committee, count: rows.length, hearings: rows }
+    }
+    case "nominations":
+      return slice(body, "nominations", offset, limit)
+    case "crs-reports":
+      return slice(body, "CRSReports", offset, limit)
+    case "record-issues":
+      return slice(body, "dailyCongressionalRecord", offset, limit)
+    case "house-votes":
+      return slice(body, "houseRollCallVotes", offset, limit)
+    case "member-detail":
+      return bioguide ? (at(body, bioguide) ?? null) : null
+    case "member-votes": {
+      // No such endpoint exists upstream: a member's positions are the roll
+      // calls they appear in. Derived here from the same records the vote board
+      // reads, so the board and the member page can never disagree.
+      if (!bioguide) return { count: 0, votes: [] }
+      const votes: unknown[] = []
+      for (const vote of Object.values((body.positions as Keyed) ?? {})) {
+        const record = vote as Record<string, unknown> & { results?: { bioguideID?: string; voteCast?: string }[] }
+        const cast = (record.results ?? []).find((r) => String(r.bioguideID ?? "").toUpperCase() === bioguide)
+        if (cast) {
+          const { results, ...rollCall } = record
+          void results
+          votes.push({ ...rollCall, voteCast: cast.voteCast })
+        }
+      }
+      return { bioguide, count: votes.length, votes }
+    }
+    default:
+      return undefined
+  }
+}

@@ -6,8 +6,8 @@ import { getBill, getBillText } from "@/lib/policy/queries"
 import { memberHref } from "@/lib/filters"
 import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { DocsTableOfContents } from "@/components/docs-toc"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillFederalNote, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
@@ -17,8 +17,10 @@ import { Callout, H2, Table } from "@/components/typeset"
 // lib/data are prerendered at build time and stand in if the database is
 // unreachable; the rest render on demand and are then cached.
 
+// The sections a bill always has. What congress.gov adds — committee reports,
+// amendments, related bills, titles — joins the contents only where the bill
+// has rows for it, so the rail names what is on the page and nothing else.
 const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
-const TOC = SECTIONS.map((title) => ({ title, url: `#${title.toLowerCase()}`, depth: 2 }))
 const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
 const MAX_SPONSORS = 20
 
@@ -54,7 +56,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   const { id } = await params
   const bill = await getBill(Number(id))
   if (!bill) notFound()
-  const text = (await getBillText(Number(id)))?.text
+  const held = await getBillText(Number(id))
+  const text = held?.text
   const summary = bill.description || bill.title
   const shownSponsors = bill.sponsors.slice(0, MAX_SPONSORS)
   const moreSponsors = bill.sponsors.length - shownSponsors.length
@@ -70,7 +73,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   const markdown = [`# ${bill.bill_number}`, "", summary, "", `**${bill.status_desc ?? "—"}**${statusParts.map((p) => ` · ${p}`).join("")}`, "", "## Summary", "", summary].join("\n")
 
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+    <BillCongressProvider billId={bill.bill_id} billNumber={bill.bill_number}>
+      <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
         <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
@@ -94,11 +98,12 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 {statusParts.map((part) => (
                   <span key={part}> · {part}</span>
                 ))}
+                <BillStatusExtras />
               </p>
             </Callout>
 
             <H2>Summary</H2>
-            <p>{summary}</p>
+            <BillSummaries fallback={<p>{summary}</p>} />
 
             <H2>Sponsors</H2>
             <ul>
@@ -113,6 +118,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
               {moreSponsors > 0 && <li>…and {moreSponsors} more co-sponsors</li>}
               {!bill.sponsors.length && <li>—</li>}
             </ul>
+            <BillCosponsorDates />
 
             <H2>History</H2>
             {bill.history.length ? (
@@ -137,6 +143,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             ) : (
               <p>No history recorded yet.</p>
             )}
+
+            <BillCommitteeReports />
 
             <H2>Votes</H2>
             {bill.rollCalls.length ? (
@@ -168,24 +176,34 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
               <p>No roll call recorded yet.</p>
             )}
 
+            <BillAmendments />
+            <BillRelatedBills />
+            <BillTitles />
+
             <H2>Text</H2>
-            {text ? (
-              <BillText text={text} />
-            ) : (
-              <p>
-                No text on file yet
-                {sources[0] ? (
-                  <>
-                    {" "}
-                    — read it at{" "}
-                    <a href={sources[0].href} target="_blank" rel="noopener noreferrer">
-                      {sources[0].label}
-                    </a>
-                  </>
-                ) : null}
-                .
-              </p>
-            )}
+            <BillVersions
+              held={held?.document_id ?? null}
+              fallback={
+                text ? (
+                  <BillText text={text} />
+                ) : (
+                  <p>
+                    No text on file yet
+                    {sources[0] ? (
+                      <>
+                        {" "}
+                        — read it at{" "}
+                        <a href={sources[0].href} target="_blank" rel="noopener noreferrer">
+                          {sources[0].label}
+                        </a>
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                )
+              }
+            />
+            <BillFederalNote />
 
             {sources.length > 0 && (
               <>
@@ -209,12 +227,13 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
         <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-          <DocsTableOfContents toc={TOC} />
+          <BillToc base={SECTIONS} />
         </div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
           <OpenInV0Cta />
         </div>
+        </div>
       </div>
-    </div>
+    </BillCongressProvider>
   )
 }

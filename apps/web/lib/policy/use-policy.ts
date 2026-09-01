@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { resolve } from "@/lib/policy/snapshot"
+import { resolve, resolveCongress } from "@/lib/policy/snapshot"
 
 // livingston-v3 lib/policy/use-policy.ts: one hook for every widget,
 // `usePolicy("bills", filters, { limit: 8 })`, keyed by the request URL. v3
@@ -43,7 +43,10 @@ export function useSnapshot<T>(key: string | null) {
         // and a quieter one than an empty board.
         const scope = new URL(key, "http://snapshot").searchParams.get("state") || "US"
         if (scope !== "US") console.error(`policy: ${key} failed`, error)
-        if (!cancelled) setState({ key, data: scope === "US" ? (resolve(key) as T | undefined) : undefined })
+        // The congress.gov families are loaded a family at a time, and only on
+        // this path — a page that never asks for one never carries its weight.
+        const snapshot = scope === "US" ? ((resolve(key) as T | undefined) ?? ((await resolveCongress(key)) as T | undefined)) : undefined
+        if (!cancelled) setState({ key, data: snapshot })
       }
     })()
     return () => {
