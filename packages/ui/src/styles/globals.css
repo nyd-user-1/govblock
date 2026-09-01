@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./typeset.css";
 
 @custom-variant dark (&:is(.dark *));
 @source "../../../apps/**/*.{ts,tsx}";
@@ -269,9 +270,178 @@
 
 /* Docs rail: fade the top and bottom of a scrolling list; hide its scrollbar. */
 @utility scroll-fade {
-  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 90%, transparent 100%);
 }
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+}
+
+/* ── code blocks, steps, prose links — ported from livingston-v3 globals.css ── */
+
+@theme inline {
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --color-code-highlight: var(--code-highlight);
+  --color-code-number: var(--code-number);
+}
+
+:root {
+  --code: var(--surface);
+  --code-foreground: var(--surface-foreground);
+  --code-highlight: oklch(0.96 0 0);
+  --code-number: oklch(0.56 0 0);
+}
+
+.dark {
+  --code: var(--surface);
+  --code-foreground: var(--surface-foreground);
+  --code-highlight: oklch(0.27 0 0);
+  --code-number: oklch(0.72 0 0);
+}
+
+@utility scroll-fade-x {
+  mask-image: linear-gradient(to right, black 0%, black 94%, transparent 100%);
+}
+
+@utility step {
+  counter-increment: step;
+
+  &:before {
+    @apply mr-2 inline-flex size-6 items-center justify-center rounded-full border-background bg-muted text-center -indent-px font-mono text-sm font-medium md:absolute md:mt-[-4px] md:ml-[-50px] md:size-9 md:border-4;
+    content: counter(step);
+  }
+}
+
+@layer components {
+  .typeset a[data-slot] {
+    font-weight: inherit;
+    text-decoration-line: none;
+  }
+
+  .steps {
+    &:first-child {
+      @apply !mt-0;
+    }
+    &:first-child > h3:first-child {
+      @apply !mt-0;
+    }
+    > h3 {
+      @apply !mt-8;
+    }
+    > h3 + p {
+      @apply !mt-2;
+    }
+  }
+
+  [data-rehype-pretty-code-figure] {
+    background-color: var(--color-code);
+    color: var(--color-code-foreground);
+    border-radius: var(--radius-2xl);
+    border-width: 0px;
+    border-color: var(--border);
+    margin-top: calc(var(--spacing) * 6);
+    overflow: hidden;
+    font-size: var(--text-sm);
+    outline: none;
+    position: relative;
+    @apply -mx-1 md:-mx-1;
+
+    &:has([data-rehype-pretty-code-title]) [data-slot="copy-button"] {
+      top: calc(var(--spacing) * 1.5) !important;
+    }
+    [data-slot="copy-button"] {
+      position: absolute;
+      top: calc(var(--spacing) * 3);
+      right: calc(var(--spacing) * 2);
+      z-index: 10;
+    }
+  }
+
+  [data-rehype-pretty-code-figure] code,
+  [data-rehype-pretty-code-figure] code span {
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0;
+  }
+
+  [data-rehype-pretty-code-title] {
+    border-bottom: color-mix(in oklab, var(--border) 30%, transparent);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    padding-block: calc(var(--spacing) * 2.5);
+    padding-inline: calc(var(--spacing) * 4);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    color: var(--color-code-foreground);
+  }
+
+  [data-line-numbers] {
+    display: grid;
+    min-width: 100%;
+    white-space: pre;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    counter-reset: line;
+    box-decoration-break: clone;
+  }
+
+  [data-line-numbers] [data-line]::before {
+    font-size: var(--text-sm);
+    counter-increment: line;
+    content: counter(line);
+    display: inline-block;
+    width: calc(var(--spacing) * 16);
+    padding-right: calc(var(--spacing) * 6);
+    text-align: right;
+    color: var(--color-code-number);
+    background-color: var(--color-code);
+    position: sticky;
+    left: 0;
+  }
+
+  [data-line-numbers] [data-highlighted-line][data-line]::before {
+    background-color: var(--color-code-highlight);
+  }
+
+  [data-line] {
+    padding-top: calc(var(--spacing) * 0.25);
+    padding-bottom: calc(var(--spacing) * 0.25);
+    min-height: calc(var(--spacing) * 0.875);
+    width: 100%;
+    display: inline-block;
+  }
+
+  [data-rehype-pretty-code-figure] pre[data-language="text"] code,
+  [data-slot="docs"] pre[data-language="text"] code {
+    display: block !important;
+    white-space: pre;
+    line-height: 0.95;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-variant-ligatures: none;
+  }
+
+  [data-rehype-pretty-code-figure] pre[data-language="text"] [data-line],
+  [data-slot="docs"] pre[data-language="text"] [data-line] {
+    padding-top: 0;
+    padding-bottom: 0;
+    min-height: unset;
+    line-height: 0.95;
+    display: block;
+  }
+
+  [data-highlighted-line] {
+    position: relative;
+    background-color: var(--color-code-highlight);
+
+    &:after {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      content: "";
+      background-color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+    }
+  }
 }

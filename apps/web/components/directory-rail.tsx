@@ -22,9 +22,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 const MENU_CLASS =
   "relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48"
 
+// Rows that carry a description fill the rail so the text ellipsizes inside
+// the hover pill instead of running off its right edge.
+const WIDE_CLASS = MENU_CLASS.replace("w-fit", "w-full max-w-52")
+
 const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
 
-type RailItem = { key: string; href: string; label: string; tooltip?: string; active: boolean }
+type RailItem = { key: string; href: string; label: React.ReactNode; tooltip?: string; active: boolean; wide?: boolean }
 
 function RailGroup({ label, items, className }: { label: string; items: RailItem[]; className?: string }) {
   return (
@@ -34,10 +38,10 @@ function RailGroup({ label, items, className }: { label: string; items: RailItem
         <SidebarMenu>
           {items.map((item) => {
             const button = (
-              <SidebarMenuButton asChild isActive={item.active} className={MENU_CLASS}>
+              <SidebarMenuButton asChild isActive={item.active} className={item.wide ? WIDE_CLASS : MENU_CLASS}>
                 <Link href={item.href}>
                   <span className="absolute inset-0 flex w-(--sidebar-menu-width) bg-transparent" />
-                  <span className="truncate">{item.label}</span>
+                  <span className="min-w-0 truncate">{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             )
@@ -76,19 +80,25 @@ export function DirectoryRail() {
   const bills: RailItem[] = F.recentBills.slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
     href: `/docs/bills/${bill.bill_id}`,
-    label: print(bill.bill_number),
+    label: (
+      <>
+        <span className="font-mono text-[0.75rem]">{print(bill.bill_number)}</span>{" "}
+        <span className="font-normal text-muted-foreground">{truncate(bill.title, 40)}</span>
+      </>
+    ),
     tooltip: bill.title,
     active: pathname === `/docs/bills/${bill.bill_id}`,
+    wide: true,
   }))
   const committees: RailItem[] = [...F.committeesAll]
     .sort((a, b) => a.committee_name.localeCompare(b.committee_name))
-    .slice(0, 12)
     .map((c) => ({
       key: `${c.chamber}/${c.committee_name}`,
       href: `/docs/bills${scope}&committee=${encodeURIComponent(c.committee_name)}`,
-      label: truncate(c.committee_name, 26),
+      label: truncate(c.committee_name, 40),
       tooltip: c.committee_name,
       active: false,
+      wide: true,
     }))
 
   return (

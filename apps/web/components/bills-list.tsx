@@ -60,10 +60,10 @@ export function BillsList() {
               <ItemMedia>
                 <ChamberSeal state={state} chamber={bill.body} size={40} />
               </ItemMedia>
-              <ItemContent>
-                <ItemTitle className="flex items-baseline gap-2">
+              <ItemContent className="min-w-0">
+                <ItemTitle className="flex w-full min-w-0 items-baseline gap-2">
                   <span className="shrink-0 font-mono text-sm">{print(bill.bill_number)}</span>
-                  <span className="truncate">{truncate(bill.title, 90)}</span>
+                  <span className="min-w-0 flex-1 truncate">{truncate(bill.title, 90)}</span>
                 </ItemTitle>
                 <ItemDescription className="text-pretty">
                   {[bill.status_desc || "Introduced", bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.sponsor]

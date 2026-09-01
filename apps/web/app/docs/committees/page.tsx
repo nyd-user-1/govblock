@@ -3,6 +3,7 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { CommitteesList } from "@/components/committees-list"
 import { DocsCopyPage } from "@/components/docs-copy-page"
+import { DocsRailCalendar } from "@/components/docs-rail-calendar"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/ny4/button"
 
@@ -20,7 +21,7 @@ export default function CommitteesPage() {
     <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full min-w-0 max-w-[835px] flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+        <div className="mx-auto flex w-full min-w-0 max-w-160 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between md:items-start">
@@ -68,6 +69,7 @@ export default function CommitteesPage() {
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+          <DocsRailCalendar />
           <OpenInV0Cta />
         </div>
       </div>

@@ -1,0 +1,215 @@
+import Link from "next/link"
+import { notFound } from "next/navigation"
+
+import { BILLS, TEXTS } from "@/lib/data"
+import { memberHref } from "@/lib/filters"
+import { BillText } from "@/components/bill-text"
+import { DocsCopyPage } from "@/components/docs-copy-page"
+import { DocsRailCalendar } from "@/components/docs-rail-calendar"
+import { DocsTableOfContents } from "@/components/docs-toc"
+import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { TrackDemo } from "@/components/track-demo"
+import { Callout, H2, Table } from "@/components/typeset"
+
+// Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
+// page — status, Summary, Sponsors, History, Votes, Track, Text, Source.
+// Twelve Congress bills are on file; the rest 404 until the data layer lands.
+
+const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Track", "Text"]
+const TOC = SECTIONS.map((title) => ({ title, url: `#${title.toLowerCase()}`, depth: 2 }))
+const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
+const MAX_SPONSORS = 20
+
+const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
+const district = (value: string | null | undefined) => (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")
+const host = (href: string) => {
+  try {
+    return new URL(href).hostname.replace(/^www\./, "")
+  } catch {
+    return href
+  }
+}
+
+export function generateStaticParams() {
+  return Object.keys(BILLS).map((id) => ({ id }))
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const bill = BILLS[id]
+  if (!bill) return { title: "Bill" }
+  return { title: bill.bill_number, description: bill.description || bill.title }
+}
+
+export default async function BillRoute({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const bill = BILLS[id]
+  if (!bill) notFound()
+  const text = TEXTS[id]?.text
+  const summary = bill.description || bill.title
+  const shownSponsors = bill.sponsors.slice(0, MAX_SPONSORS)
+  const moreSponsors = bill.sponsors.length - shownSponsors.length
+
+  const statusParts: string[] = []
+  if (bill.last_action_date || bill.last_action) statusParts.push(`last action ${day(bill.last_action_date)}: ${bill.last_action ?? ""}`.trim())
+  if (bill.committee) statusParts.push(bill.committee)
+
+  const sources: { prefix: string; label: string; href: string }[] = []
+  if (bill.state_link) sources.push({ prefix: "Source: ", label: host(bill.state_link), href: bill.state_link })
+  if (bill.url) sources.push({ prefix: sources.length ? "" : "Source: ", label: host(bill.url), href: bill.url })
+
+  const markdown = [`# ${bill.bill_number}`, "", summary, "", `**${bill.status_desc ?? "—"}**${statusParts.map((p) => ` · ${p}`).join("")}`, "", "## Summary", "", summary].join("\n")
+
+  return (
+    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="h-(--top-spacing) shrink-0" />
+        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between md:items-start">
+                <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight sm:text-3xl">{bill.bill_number}</h1>
+                <div className="docs-nav flex items-center gap-2">
+                  <div className="hidden sm:block">
+                    <DocsCopyPage page={markdown} url={`https://govblock.app/docs/bills/${bill.bill_id}`} />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{summary}</p>
+            </div>
+          </div>
+          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
+            <Callout className="bg-muted">
+              <p>
+                <strong>{bill.status_desc ?? "—"}</strong>
+                {statusParts.map((part) => (
+                  <span key={part}> · {part}</span>
+                ))}
+              </p>
+            </Callout>
+
+            <H2>Summary</H2>
+            <p>{summary}</p>
+
+            <H2>Sponsors</H2>
+            <ul>
+              {shownSponsors.map((sponsor) => (
+                <li key={sponsor.people_id}>
+                  <Link href={memberHref(sponsor.people_id, bill.state)} className="no-underline hover:underline">
+                    <strong>{sponsor.name}</strong>
+                  </Link>{" "}
+                  ({sponsor.party ?? "—"}–{district(sponsor.district)}) — {SPONSOR_TYPE[sponsor.type] ?? "sponsor"}
+                </li>
+              ))}
+              {moreSponsors > 0 && <li>…and {moreSponsors} more co-sponsors</li>}
+              {!bill.sponsors.length && <li>—</li>}
+            </ul>
+
+            <H2>History</H2>
+            {bill.history.length ? (
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Chamber</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.history.map((row, index) => (
+                    <tr key={`${row.date}-${row.sequence}-${index}`}>
+                      <td>{day(row.date)}</td>
+                      <td>{row.chamber}</td>
+                      <td>{row.action}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <p>No history recorded yet.</p>
+            )}
+
+            <H2>Votes</H2>
+            {bill.rollCalls.length ? (
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Vote</th>
+                    <th>Yea</th>
+                    <th>Nay</th>
+                    <th>NV</th>
+                    <th>Absent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.rollCalls.map((row: { roll_call_id: number; date: string; description: string; yea?: number; nay?: number; nv?: number; absent?: number }) => (
+                    <tr key={row.roll_call_id}>
+                      <td>{day(row.date)}</td>
+                      <td>{row.description}</td>
+                      <td>{row.yea ?? 0}</td>
+                      <td>{row.nay ?? 0}</td>
+                      <td>{row.nv ?? 0}</td>
+                      <td>{row.absent ?? 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <p>No roll call recorded yet.</p>
+            )}
+
+            <H2>Track</H2>
+            <TrackDemo />
+
+            <H2>Text</H2>
+            {text ? (
+              <BillText text={text} />
+            ) : (
+              <p>
+                No text on file yet
+                {sources[0] ? (
+                  <>
+                    {" "}
+                    — read it at{" "}
+                    <a href={sources[0].href} target="_blank" rel="noopener noreferrer">
+                      {sources[0].label}
+                    </a>
+                  </>
+                ) : null}
+                .
+              </p>
+            )}
+
+            {sources.length > 0 && (
+              <>
+                <hr />
+                <p>
+                  {sources.map((link, index) => (
+                    <span key={link.href}>
+                      {index > 0 && " · "}
+                      {link.prefix}
+                      <a href={link.href} target="_blank" rel="noopener noreferrer">
+                        {link.label}
+                      </a>
+                    </span>
+                  ))}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+        <div className="h-(--top-spacing) shrink-0"></div>
+        <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
+          <DocsTableOfContents toc={TOC} />
+        </div>
+        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+          <DocsRailCalendar />
+          <OpenInV0Cta />
+        </div>
+      </div>
+    </div>
+  )
+}
