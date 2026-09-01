@@ -106,16 +106,26 @@ export function CommitteeAbout({ bills }: { bills: number }) {
   const c = use()
   const detail = c?.detail
   const history = detail?.history?.[0]
+  const parent = detail?.parent
   const facts = [
-    detail?.type ? `${detail.type} committee` : null,
+    detail?.type && !parent ? `${detail.type} committee` : null,
     detail?.chamber ?? null,
     history?.startDate ? `Established ${fmtDate(history.startDate)}` : null,
     bills ? `${fmtNumber(bills)} bills referred this session` : null,
     typeof detail?.reports?.count === "number" ? `${fmtNumber(detail.reports.count)} reports filed` : null,
   ].filter(Boolean)
-  if (!facts.length && !detail?.committeeWebsiteUrl) return null
+  if (!facts.length && !parent && !detail?.committeeWebsiteUrl) return null
   return (
     <p>
+      {parent && (
+        <>
+          Subcommittee of{" "}
+          <Link href={`/docs/committees/${parent.systemCode}`} className="no-underline hover:underline">
+            {parent.name}
+          </Link>
+          {facts.length ? " · " : ""}
+        </>
+      )}
       {facts.join(" · ")}
       {detail?.committeeWebsiteUrl && (
         <>

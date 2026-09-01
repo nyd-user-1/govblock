@@ -44,13 +44,18 @@ function known(id: string) {
   return CODE_MAP.byCode[id.toLowerCase()] ?? null
 }
 
+// LegiScan names a standing committee by its subject ("Veterans' Affairs") and
+// a subcommittee by its full title ("Subcommittee on Health"). Only the first
+// wants the word appended; the second already says it.
+const committeeTitle = (name: string) => (/\b(sub)?committee\b/i.test(name) ? name : `${name} Committee`)
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
   const committee = known(id)
   if (!committee) return { title: "Committee" }
   return {
-    title: `${committee.name} Committee`,
-    description: `The ${committee.name} Committee of the federal legislature — bills before it, what it met about, and what it filed.`,
+    title: committeeTitle(committee.name),
+    description: `${committeeTitle(committee.name)} of the federal legislature — bills before it, what it met about, and what it filed.`,
   }
 }
 
@@ -63,7 +68,7 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
   // `bills` is the 25 most recent; the true total is the status breakdown,
   // which counts every bill referred this session.
   const referred = record.statuses.reduce((total, row) => total + row.bills, 0)
-  const title = `${committee.name} Committee`
+  const title = committeeTitle(committee.name)
   const description = `Bills before the committee this session, the meetings it held, and the reports and transcripts it filed.`
   const markdown = [`# ${title}`, "", description].join("\n")
 
