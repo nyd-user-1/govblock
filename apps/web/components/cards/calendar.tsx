@@ -45,12 +45,22 @@ export function CalendarCard({ compact = false, committee }: { compact?: boolean
     const today = key(new Date())
     return days.find((d) => d >= today) ?? days[days.length - 1]
   }, [days])
-  const [date, setDate] = React.useState<Date | undefined>(() => (initial ? parse(initial) : new Date()))
+  // The lazy initialiser ran once, on the fixture, so when the jurisdiction's
+  // own hearings arrived the grid stayed on the month it opened with — Texas
+  // showed an empty September 2026 while its rows ran through 2025-09-03.
+  // Follow `initial` until the reader picks a day of their own.
+  const [date, setDate] = React.useState<Date | undefined>(undefined)
+  const [picked, setPicked] = React.useState(false)
+  React.useEffect(() => {
+    if (picked) return
+    setDate(initial ? parse(initial) : new Date())
+  }, [initial, picked])
   const [open, setOpen] = React.useState(false)
   const from = date ? key(date) : ""
   const upcoming = hearings.filter((h) => h.date >= from)
   const shown = open ? upcoming : upcoming.slice(0, 2)
   const marked = React.useMemo(() => days.map(parse), [days])
+  const through = data?.through ?? null
 
   return (
     <CardFrame id="hearings" size={compact ? "sm" : "default"}>
@@ -59,14 +69,24 @@ export function CalendarCard({ compact = false, committee }: { compact?: boolean
           mode="single"
           selected={date}
           onSelect={(d) => {
+            setPicked(true)
             setDate(d)
             setOpen(false)
           }}
-          defaultMonth={date}
+          month={date}
+          onMonthChange={(m) => {
+            setPicked(true)
+            setDate(m)
+          }}
           modifiers={{ hearing: marked }}
           modifiersClassNames={{ hearing: "[&>button]:font-semibold [&>button]:underline [&>button]:decoration-primary [&>button]:decoration-2 [&>button]:underline-offset-4" }}
           className={cn("w-full rounded-2xl border", compact ? "p-2 [--cell-size:--spacing(6.5)]" : "p-3 [--cell-size:--spacing(10)]")}
         />
+        {through && (
+          <p className="-mt-1 text-xs text-muted-foreground">
+            Most recent sitting · through {fmtDate(through, false)}
+          </p>
+        )}
         <ItemGroup className={cn(open && "max-h-80 overflow-y-auto")}>
           {shown.map((row, index) => (
             <Item key={`${row.bill_id}-${index}`} variant="muted" size={compact ? "sm" : "default"} render={<Link href={`/docs/bills/${row.bill_id}`} className="no-underline" />}>

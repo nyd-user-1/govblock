@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
+import { SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/policy/scope-script"
+import { ScopeReady } from "@/components/scope-ready"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -27,14 +29,22 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       suppressHydrationWarning
       className={cn(fontVariables, "[--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)]")}
     >
+      <head>
+        {/* Before first paint: which jurisdiction this document is about to be
+            for, and the rule that keeps Congress off a Texas reader's screen
+            until the client has taken over. */}
+        <script dangerouslySetInnerHTML={{ __html: SCOPE_SCRIPT }} />
+        <style dangerouslySetInnerHTML={{ __html: SCOPE_STYLE }} />
+      </head>
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
         <NuqsAdapter>
         <ThemeProvider>
           <TooltipProvider delay={0}>
             <JurisdictionProvider>
+            <ScopeReady />
             <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden">
               <SiteHeader />
-              <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+              <main data-scope-content className="flex min-h-0 flex-1 flex-col">{children}</main>
               <SiteFooter />
             </div>
             </JurisdictionProvider>

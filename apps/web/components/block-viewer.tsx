@@ -22,6 +22,7 @@ import {
 import { type PanelImperativeHandle } from "react-resizable-panels"
 
 import { type Block, type BlockFile, type FileTree } from "@/lib/blocks"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { cn } from "@govblock/ui/lib/utils"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { getIconForLanguageExtension } from "@/components/icons"
@@ -69,6 +70,25 @@ type BlockViewerContext = {
 }
 
 const BlockViewerContext = React.createContext<BlockViewerContext | null>(null)
+
+// The board inside the frame is a whole document of its own: without the scope
+// on the src it renders Congress inside a page whose header says Texas, and a
+// shared link opens on Congress in a fresh context.
+function useScopedViewHref() {
+  const { state, session, resolved } = useJurisdiction()
+  return React.useCallback(
+    (styleName: string, name: string) => {
+      const params = new URLSearchParams()
+      if (resolved) {
+        params.set("state", state)
+        if (session) params.set("session", String(session))
+      }
+      const query = params.toString()
+      return `/view/${styleName}/${name}${query ? `?${query}` : ""}`
+    },
+    [state, session, resolved]
+  )
+}
 
 function useBlockViewer() {
   const context = React.useContext(BlockViewerContext)
@@ -136,6 +156,7 @@ function BlockViewerToolbar({ styleName }: { styleName: string }) {
   const { setView, view, item, resizablePanelRef, setIframeKey } =
     useBlockViewer()
   const { copyToClipboard, isCopied } = useCopyToClipboard()
+  const viewHref = useScopedViewHref()
 
   return (
     <div className="hidden w-full items-center gap-2 pl-2 md:pr-6 lg:flex">
@@ -185,7 +206,7 @@ function BlockViewerToolbar({ styleName }: { styleName: string }) {
               asChild
               title="Open in New Tab"
             >
-              <Link href={`/view/${styleName}/${item.name}`} target="_blank">
+              <Link href={viewHref(styleName, item.name)} target="_blank">
                 <span className="sr-only">Open in New Tab</span>
                 <Fullscreen />
               </Link>
@@ -234,11 +255,12 @@ function BlockViewerIframe({
   styleName: string
 }) {
   const { item, iframeKey } = useBlockViewer()
+  const viewHref = useScopedViewHref()
 
   return (
     <iframe
       key={iframeKey}
-      src={`/view/${styleName}/${item.name}`}
+      src={viewHref(styleName, item.name)}
       height={item.meta?.iframeHeight ?? 930}
       loading="lazy"
       className={cn(
