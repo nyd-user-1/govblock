@@ -15,6 +15,7 @@
     "@ai-sdk/react": "^4.0.90",
     "@aws-sdk/client-bedrock-runtime": "^3.1124.0",
     "@aws-sdk/client-rds-data": "^3.1123.0",
+    "@aws-sdk/client-secrets-manager": "^3.1124.0",
     "@base-ui/react": "^1.7.0",
     "@govblock/ui": "workspace:*",
     "@hugeicons/core-free-icons": "^4.3.0",

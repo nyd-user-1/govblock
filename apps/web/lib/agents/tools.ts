@@ -1,0 +1,256 @@
+import "server-only"
+
+import type { Tool } from "@aws-sdk/client-bedrock-runtime"
+
+// The agents read the record through /api/policy/[resource] — the same routes
+// every surface on the site reads. Not the query layer underneath it: the route
+// already carries the jurisdiction scoping (§0.2's rule that no jurisdiction's
+// rows are ever served under another's name), the NY-only and Congress-only
+// guards, and a half-hour CloudFront cache. An agent asking the same question
+// as a page gets the page's cached answer.
+//
+// Each tool below is one resource with the parameters that resource actually
+// takes, and a `shape` that trims the payload before it is billed as input
+// tokens: a whole bill record with its texts and history can run past 100 kB,
+// and the model needs the rows, not every column of them.
+
+export type ToolName =
+  | "list_jurisdictions"
+  | "search_bills"
+  | "get_bill"
+  | "get_bill_text"
+  | "list_members"
+  | "get_member"
+  | "get_member_record"
+  | "list_committees"
+  | "get_committee"
+  | "top_sponsors"
+  | "post_to_slack"
+
+type Definition = {
+  description: string
+  properties: Record<string, unknown>
+  required?: string[]
+  /** resource + query string for /api/policy; absent for connection tools. */
+  request?: (input: Record<string, string>) => string
+  shape?: (data: unknown, input: Record<string, string>) => unknown
+}
+
+const JURISDICTION = {
+  type: "string",
+  description:
+    "Two-letter jurisdiction code. 'US' is Congress; the 50 states and DC use their postal codes. Defaults to US.",
+}
+
+function trim<T>(rows: T[] | undefined, n: number) {
+  return Array.isArray(rows) ? rows.slice(0, n) : []
+}
+
+function query(resource: string, input: Record<string, string>, keys: string[]) {
+  const sp = new URLSearchParams()
+  sp.set("state", (input.jurisdiction || "US").toUpperCase())
+  for (const key of keys) {
+    const value = input[key]
+    if (value !== undefined && value !== null && String(value).trim() !== "")
+      sp.set(key === "jurisdiction" ? "state" : key, String(value))
+  }
+  return `${resource}?${sp.toString()}`
+}
+
+export const DEFINITIONS: Record<ToolName, Definition> = {
+  list_jurisdictions: {
+    description:
+      "Every jurisdiction the record covers, with how many bills each holds. Call this when unsure a jurisdiction is present.",
+    properties: {},
+    request: () => "states",
+    shape: (data) => data,
+  },
+
+  search_bills: {
+    description:
+      "Search bills, members and committees in one jurisdiction by keyword. Set full_text to search the bills' own text rather than titles alone — slower, but it finds bills whose titles do not carry the word.",
+    properties: {
+      q: { type: "string", description: "The search term. Two characters minimum." },
+      jurisdiction: JURISDICTION,
+      full_text: { type: "boolean", description: "Search bill text as well as titles. Default false." },
+      limit: { type: "integer", description: "1–20, default 8." },
+    },
+    required: ["q"],
+    request: (input) => {
+      const sp = new URLSearchParams({
+        state: (input.jurisdiction || "US").toUpperCase(),
+        q: input.q ?? "",
+        limit: String(Math.min(Number(input.limit) || 8, 20)),
+      })
+      if (String(input.full_text) === "true") sp.set("text", "1")
+      return `search?${sp.toString()}`
+    },
+    shape: (data) => {
+      const d = data as Record<string, unknown[]>
+      return {
+        bills: trim(d.bills, 20),
+        members: trim(d.members, 10),
+        committees: trim(d.committees, 10),
+        texts: trim(d.texts, 10),
+      }
+    },
+  },
+
+  get_bill: {
+    description:
+      "The whole record of one bill in a single read: description, status, its sponsors with party and district, its full legislative history, roll calls, committee referrals, progress, same-as bills, documents, subjects and the text versions on file. Identify it by bill_id, or by bill_number within a jurisdiction.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric id, as returned by search_bills." },
+      bill_number: { type: "string", description: "e.g. 'A07380', 'HR 1'. Requires a jurisdiction." },
+      jurisdiction: JURISDICTION,
+    },
+    request: (input) => query("bill", input, ["id", "number"]),
+    shape: (data) => {
+      if (!data) return null
+      const b = data as Record<string, unknown>
+      return {
+        ...b,
+        sponsors: trim(b.sponsors as unknown[], 12),
+        history: trim(b.history as unknown[], 25),
+        rollCalls: trim(b.rollCalls as unknown[], 10),
+        referrals: trim(b.referrals as unknown[], 10),
+        progress: trim(b.progress as unknown[], 15),
+        documents: trim(b.documents as unknown[], 8),
+        subjects: trim(b.subjects as unknown[], 15),
+        texts: trim(b.texts as unknown[], 8),
+        hearings: trim(b.hearings as unknown[], 5),
+      }
+    },
+  },
+
+  get_bill_text: {
+    description:
+      "The text of a bill as filed. Long — call it only when the question turns on the wording, and quote rather than summarise from memory.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["bill_id"],
+    request: (input) => query("text", input, ["id"]),
+    shape: (data) => {
+      const t = data as Record<string, unknown> | null
+      if (!t) return null
+      const text = typeof t.text === "string" ? t.text : ""
+      return {
+        ...t,
+        // 60k characters is about 15k tokens — enough for any single bill this
+        // record holds, and a ceiling on a runaway federal omnibus.
+        text: text.slice(0, 60_000),
+        truncated: text.length > 60_000,
+      }
+    },
+  },
+
+  list_members: {
+    description: "The sitting members of a jurisdiction, with party, chamber and district.",
+    properties: { jurisdiction: JURISDICTION },
+    request: (input) => query("members", input, []),
+    shape: (data) => trim(data as unknown[], 60),
+  },
+
+  get_member: {
+    description: "One member: party, chamber, district, identifiers.",
+    properties: {
+      people_id: { type: "integer", description: "The numeric member id." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["people_id"],
+    request: (input) => query("member", input, ["id"]),
+    shape: (data) => data,
+  },
+
+  get_member_record: {
+    description:
+      "What a member has actually done: the bills they sponsored, how they voted, and — for members of Congress — their FEC totals and largest reported contributions.",
+    properties: {
+      people_id: { type: "integer", description: "The numeric member id." },
+      jurisdiction: JURISDICTION,
+      limit: { type: "integer", description: "Rows per list, default 25." },
+    },
+    required: ["people_id"],
+    request: (input) => query("record", { ...input, limit: input.limit ?? "25" }, ["id", "limit"]),
+    shape: (data) => {
+      const r = data as Record<string, unknown>
+      return {
+        counts: r.counts,
+        fec: r.fec,
+        sponsored: trim(r.sponsored as unknown[], 25),
+        aye: trim(r.aye as unknown[], 15),
+        nay: trim(r.nay as unknown[], 15),
+      }
+    },
+  },
+
+  list_committees: {
+    description: "The committees of a jurisdiction.",
+    properties: { jurisdiction: JURISDICTION },
+    request: (input) => query("committees", input, []),
+    shape: (data) => trim(data as unknown[], 80),
+  },
+
+  get_committee: {
+    description: "One committee and the bills before it.",
+    properties: {
+      name: { type: "string", description: "The committee's name, as list_committees gives it." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["name"],
+    request: (input) => query("committee", input, ["name"]),
+    shape: (data) => data,
+  },
+
+  top_sponsors: {
+    description: "Who sponsors the most bills in a jurisdiction this session.",
+    properties: {
+      jurisdiction: JURISDICTION,
+      limit: { type: "integer", description: "Default 8." },
+    },
+    request: (input) => query("sponsors", input, ["limit"]),
+    shape: (data) => trim(data as unknown[], 20),
+  },
+
+  post_to_slack: {
+    description:
+      "Post a message to the govblock Slack channel. Use it once, at the end of a tracking run, with the finished digest — not for progress notes.",
+    properties: {
+      text: { type: "string", description: "The message. Slack mrkdwn: *bold*, <url|label>." },
+      channel: { type: "string", description: "Channel id or name. Defaults to the configured one." },
+    },
+    required: ["text"],
+  },
+}
+
+/** `id` and `number` are what /api/policy calls bill_id and bill_number. */
+export function normalise(name: ToolName, input: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(input ?? {})) {
+    if (value === undefined || value === null) continue
+    const mapped =
+      key === "bill_id" || key === "people_id" ? "id" : key === "bill_number" ? "number" : key
+    out[mapped] = String(value)
+  }
+  if (name === "get_bill" && !out.id && !out.number) delete out.id
+  return out
+}
+
+export function toolSpec(name: ToolName): Tool {
+  const definition = DEFINITIONS[name]
+  return {
+    toolSpec: {
+      name,
+      description: definition.description,
+      inputSchema: {
+        json: {
+          type: "object",
+          properties: definition.properties,
+          required: definition.required ?? [],
+        },
+      },
+    },
+  }
+}

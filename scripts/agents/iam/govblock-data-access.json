@@ -16,13 +16,21 @@
     {
       "Sid": "PolicySecret",
       "Effect": "Allow",
-      "Action": ["secretsmanager:GetSecretValue"],
-      "Resource": "arn:aws:secretsmanager:us-east-1:638175140432:secret:rds!cluster-ee58a523-8533-4ef9-8436-a38afeb469ec-*"
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:us-east-1:638175140432:secret:rds!cluster-ee58a523-8533-4ef9-8436-a38afeb469ec-*",
+        "arn:aws:secretsmanager:us-east-1:638175140432:secret:govblock/slack-*"
+      ]
     },
     {
       "Sid": "LakeRead",
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
       "Resource": [
         "arn:aws:s3:::govblock-lake-638175140432",
         "arn:aws:s3:::govblock-lake-638175140432/*"
@@ -31,7 +39,10 @@
     {
       "Sid": "BedrockInvoke",
       "Effect": "Allow",
-      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
       "Resource": [
         "arn:aws:bedrock:us-east-1:638175140432:inference-profile/us.anthropic.claude-opus-4-6-v1",
         "arn:aws:bedrock:us-east-1:638175140432:inference-profile/us.anthropic.claude-sonnet-4-6",

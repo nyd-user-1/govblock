@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server"
 
-import {
-  converseStream,
-  toMessages,
-  type ChatTurn,
-  type StreamEvent,
-} from "@/lib/agents/bedrock"
+import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedrock"
+import { runAgent } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
+import { agent } from "@/lib/agents/registry"
 
-// The chat surface behind /agents. One POST, one newline-delimited JSON stream
-// out — the same protocol the Tracker's run route uses, so a chat and an
-// agentic run render through one client reader.
+// The one route behind every agent on /agents. A specialist answering a
+// question and the Tracker carrying out a watch are the same loop with
+// different tools, so they are the same route and the same client reader —
+// which is why a chat can show tool calls without a second protocol.
 //
-// Amplify WEB_COMPUTE fronts SSR with CloudFront. Streaming survives it only if
-// nothing downstream is allowed to buffer or transform the body, hence the
-// no-transform / no-store / X-Accel-Buffering headers and the first `open`
-// event, which is written before Bedrock is even called so time-to-first-byte
-// is measurable separately from time-to-first-token.
+// Amplify WEB_COMPUTE fronts SSR with CloudFront. Streaming survives that only
+// if nothing downstream buffers or transforms the body, hence no-transform,
+// no-store and X-Accel-Buffering: no. The `open` event is written before
+// Bedrock is called, so time-to-first-byte is measurable apart from
+// time-to-first-token.
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 120
+export const maxDuration = 300
 
 const encoder = new TextEncoder()
 
@@ -28,47 +26,54 @@ function line(event: StreamEvent) {
 }
 
 export async function POST(request: Request) {
-  let body: { system?: string; turns?: ChatTurn[]; tier?: "reasoning" | "routing" }
+  let body: { agent?: string; turns?: ChatTurn[]; jurisdiction?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: "expected a JSON body" }, { status: 400 })
   }
 
+  const definition = agent(String(body.agent ?? ""))
+  if (!definition) return NextResponse.json({ error: "unknown agent" }, { status: 404 })
+
   const turns = (body.turns ?? []).filter((turn) => turn && typeof turn.text === "string")
   if (!turns.length) return NextResponse.json({ error: "no turns" }, { status: 400 })
   if (turns.at(-1)?.role !== "user")
     return NextResponse.json({ error: "the last turn must be the user's" }, { status: 400 })
 
-  const tier = body.tier === "routing" ? "routing" : "reasoning"
-  const system =
-    typeof body.system === "string" && body.system.trim()
-      ? body.system
-      : "You are an assistant on govblock, a public record of legislation across all 52 US jurisdictions."
+  // The reader's scope, if the surface knows it. The agents are told rather
+  // than left to guess, which is what stops a Texas reader being answered with
+  // Congress's rows.
+  const jurisdiction = (body.jurisdiction ?? "").toUpperCase().slice(0, 2)
+  const systemSuffix = /^[A-Z]{2}$/.test(jurisdiction)
+    ? `The reader is currently scoped to jurisdiction ${jurisdiction}. Use it when the question does not name one.`
+    : undefined
+
+  const model = MODELS[definition.tier]
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      controller.enqueue(line({ t: "open", model: MODELS[tier].id, label: MODELS[tier].label }))
+      controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const rounds = converseStream({ tier, system, messages: toMessages(turns) })
-        let next = await rounds.next()
+        const run = runAgent({ definition, turns: toMessages(turns), systemSuffix })
+        let next = await run.next()
         while (!next.done) {
           controller.enqueue(line(next.value))
-          next = await rounds.next()
+          next = await run.next()
         }
         const result = next.value
         controller.enqueue(
           line({
             t: "done",
-            stopReason: result.stopReason,
-            usage: result.usage,
+            stopReason: `${result.rounds} round${result.rounds === 1 ? "" : "s"}, ${result.toolCalls} tool calls`,
+            usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens },
             usd: result.usd,
             ms: result.ms,
           })
         )
       } catch (error) {
-        // A failed exchange is reported in the transcript rather than as a
-        // 500 — by the time Bedrock throws, the response has already begun.
+        // By the time Bedrock throws, the response has already begun — so a
+        // failure is reported in the transcript, not as a status code.
         controller.enqueue(
           line({ t: "error", message: error instanceof Error ? error.message : String(error) })
         )

@@ -16,6 +16,7 @@ export const siteConfig = {
     { href: "/blocks", label: "Blocks" },
     { href: "/charts/area", label: "Charts" },
     { href: "/docs/directory", label: "Directory" },
+    { href: "/agents", label: "Agents" },
     { href: "/typeset", label: "Typeset" },
     { href: "/create", label: "Create" },
     { href: "/calendar", label: "Calendar" },
