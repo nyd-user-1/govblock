@@ -1605,30 +1605,114 @@ export async function getCommunications(limit = 50, offset = 0, chamber?: string
 
 
 // ---------------------------------------------------------------------------
-// Search: one scoped pass over bills, people and committees, for the header
-// menu and /search. ILIKE inside the (state, session) slice the btree indexes
-// already cut — measured well under a second on the largest session. Bill
-// numbers match on a prefix with the spaces squeezed out, so "hb 10" and
-// "HB10" both reach HB10160.
+// Search: bills, members, committees and bill text, across every jurisdiction,
+// for the header menu and /search.
+//
+// Two tiers everywhere: the jurisdiction the reader is in sorts first and gets
+// the most rows, then every other jurisdiction's *current* session with a cap
+// per jurisdiction so Congress cannot drown Wyoming. Bill numbers match on a
+// prefix with the spaces squeezed out, so "hb 10" and "HB10" both reach HB10160.
+//
+// Three things learned the hard way on this data, all load-bearing:
+//
+//  1. A LATERAL per jurisdiction is the obvious shape and the wrong one: it
+//     rebuilds the same global trgm bitmap 52 times (969 ms for "climate",
+//     1396 ms for "health"). One trgm pass plus row_number() over (partition by
+//     state) is the same answer in 18 ms / 232 ms. Metadata therefore scans
+//     once and windows; only the text search, whose index *can* cut per
+//     jurisdiction, iterates.
+//  2. `default_text_search_config` on this cluster is `simple`, but
+//     "BillTexts".search_tsv is generated with 'english'. Every tsquery here
+//     names 'english' explicitly — drop it and the query parses as `simple`,
+//     matches none of the stemmed lexemes in the index, and returns zero rows
+//     with no error at all.
+//  3. The text search cuts by (state, session_id) *inside* billtexts_scope_search_idx
+//     — gin (state, session_id, search_tsv) over btree_gin. Without those two
+//     keys in the index, "health" matches 979,526 rows and fetching them off
+//     the 36 GB heap takes three minutes.
 
-export async function searchAll(f: Resolved, term: string, limit = 8) {
+// The newest session that actually has bills, per jurisdiction — the view the
+// matviews already define (sql/001_policy_matviews.sql). Cross-jurisdiction
+// rows come from these sessions, never from the archive.
+const CURRENT = `(select state, session::int as session_id from v_policy_latest_session)`
+
+// The oldest of those, as one InitPlan the bitmap scans can use as a lower
+// bound before the join prunes the rest. Without it "health" drags all 101,801
+// matching titles out of every session ever recorded.
+const SINCE = `(select min(session)::int from v_policy_latest_session)`
+
+// New York's Assembly texts arrive as a scrape of the whole page ahead of an
+// "<bill> Text:" marker (lib/policy/texts.ts, cleanBillText). A snippet cut
+// from that preamble quotes the site's navigation instead of the bill, so the
+// marker rule runs here too — over the first 20 k characters only, which is
+// where a preamble can be, rather than over an 11 MB body.
+const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
+  '(?n)^[[:blank:]]*[A-Z][0-9]+[A-Z]? Text:[[:blank:]]*$', 1, 1, 1), 1))`
+
+// Snippets, never bodies: the Data API caps a result at 1 MB, and ts_headline
+// over a whole 11 MB bill would cost more than the search did. « » delimit the
+// match — the surface splits on them, so nothing has to trust HTML from the
+// database.
+const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSel=»,FragmentDelimiter= … "
+
+export type SearchOptions = { text?: boolean; perState?: number }
+
+export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
   const like = `%${term}%`
   const numberLike = `${term.replace(/\s+/g, "")}%`
-  const [bills, members, committees] = await Promise.all([
+  // Two rows a jurisdiction: enough that a reader sees the answer is national,
+  // few enough that 51 other jurisdictions cannot bury the one they are in.
+  const perState = options.perState ?? 2
+  const elsewhereCap = Math.max(limit * 2, 24)
+
+  const [bills, members, committees, texts] = await Promise.all([
     q<{
       bill_id: number
       bill_number: string
       title: string
       status_desc: string | null
       last_action_date: string | null
+      state: string
+      tier: number
     }>(
-      `select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action_date
-       from "Bills" b
-       where b.state = $1 and b.session_id = $2
-         and (b.bill_number ilike $3 or b.title ilike $4)
-       order by (b.bill_number ilike $3) desc, b.last_action_date desc nulls last, b.bill_id desc
-       limit $5`,
-      [f.state, f.session, numberLike, like, limit]
+      `with scoped as (
+         select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action_date, b.state,
+                0 as tier,
+                row_number() over (order by (b.bill_number ilike $3) desc,
+                                            b.last_action_date desc nulls last, b.bill_id desc)::int as rn
+         from "Bills" b
+         where b.state = $1 and b.session_id = $2
+           and (b.bill_number ilike $3 or b.title ilike $4)
+         order by rn
+         limit $5
+       ),
+       -- "as materialized" is not decoration. Inlined, the planner joins the
+       -- 52-row session view first and re-derives the trgm bitmap once per
+       -- jurisdiction (loops=52, 969 ms). Materialised, the trgm scan runs
+       -- once and the join prunes what it produced: 18 ms.
+       hits as materialized (
+         select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action_date,
+                b.state, b.session_id
+         from "Bills" b
+         where b.session_id >= ${SINCE} and b.state <> $1
+           and (b.bill_number ilike $3 or b.title ilike $4)
+       ),
+       elsewhere as (
+         select bill_id, bill_number, title, status_desc, last_action_date, state, 1 as tier, rn
+         from (
+           select h.bill_id, h.bill_number, h.title, h.status_desc, h.last_action_date, h.state,
+                  row_number() over (partition by h.state
+                    order by (h.bill_number ilike $3) desc,
+                             h.last_action_date desc nulls last, h.bill_id desc)::int as rn
+           from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
+         ) ranked
+         where ranked.rn <= $6
+       )
+       select bill_id, bill_number, title, status_desc, last_action_date, state, tier
+       from (select * from scoped union all select * from elsewhere) hits
+       order by tier, rn, state
+       limit $7`,
+      [f.state, f.session, numberLike, like, limit, perState, limit + elsewhereCap]
     ),
     q<{
       people_id: number
@@ -1639,29 +1723,110 @@ export async function searchAll(f: Resolved, term: string, limit = 8) {
       district: string
       state: string
     }>(
+      // Name *and* aliases: "holmes" has to find Eleanor Holmes Norton, whose
+      // LegiScan name is "Eleanor Norton". scripts/search/people-aliases.sql
+      // writes the other forms she might be typed under into "People".aliases.
+      // A row inserted since that script last ran has a null alias and is still
+      // found by name, so drift degrades to the old behaviour, not to a hole.
       `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.state,
               exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id) as active
        from "People" p
        where p.committee_id is null and not coalesce(p.archived, false)
-         and p.role in ('Rep', 'Sen') and p.name ilike $2
+         and p.role in ('Rep', 'Sen') and (p.name ilike $2 or p.aliases ilike $2)
        order by (p.state = $1) desc, active desc, p.last_name, p.first_name
        limit $3`,
-      [f.state, like, limit]
+      [f.state, like, limit + perState * 4]
     ),
-    q<{ committee: string; bills: number; chamber: string }>(
-      `select committee, count(*)::int bills, min(body) chamber
-       from "Bills"
-       where state = $1 and session_id = $2 and coalesce(committee, '') <> '' and committee ilike $3
-       group by 1 order by 2 desc limit $4`,
-      [f.state, f.session, like, Math.min(limit, 6)]
+    q<{ committee: string; bills: number; chamber: string; state: string; tier: number }>(
+      // Committees are a group-by, so the two tiers are one pass with the
+      // scope decided per row rather than a union.
+      // Same `as materialized` rule as the bills query, and the same size of
+      // difference: 1244 ms inlined, 38.8 ms materialised.
+      `with hits as materialized (
+         select b.state, b.session_id, b.committee, b.body
+         from "Bills" b
+         where b.session_id >= ${SINCE}
+           and coalesce(b.committee, '') <> '' and b.committee ilike $2
+       )
+       select committee, bills, chamber, state, tier from (
+         select h.committee, count(*)::int as bills, min(h.body) as chamber, h.state,
+                case when h.state = $1 then 0 else 1 end as tier,
+                row_number() over (partition by h.state order by count(*) desc)::int as rn
+         from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
+         group by h.committee, h.state
+       ) g
+       where g.tier = 0 or g.rn <= $3
+       order by tier, bills desc
+       limit $4`,
+      [f.state, like, perState, Math.min(limit, 6) + 12]
     ),
+    options.text
+      ? q<{
+          bill_id: number
+          document_id: number
+          state: string
+          bill_number: string
+          title: string
+          snippet: string
+          tier: number
+        }>(
+          // The one query that iterates per jurisdiction, because here it pays:
+          // billtexts_scope_search_idx cuts state, session and the tsquery
+          // together, so each slice hands back only its own matches. The active
+          // jurisdiction is the first row of `scopes` and takes the larger cap.
+          `with scopes as (
+             select $1::text as state, $2::int as session_id, 0 as tier, $3::int as cap
+             union all
+             select c.state, c.session_id, 1, $4::int from ${CURRENT} c where c.state <> $1
+           ),
+           picked as (
+             select s.tier, x.bill_id, x.document_id, x.state
+             from scopes s
+             cross join lateral (
+               select distinct on (t.bill_id) t.bill_id, t.document_id, t.state
+               from "BillTexts" t
+               where t.state = s.state and t.session_id = s.session_id
+                 and t.text is not null
+                 and t.search_tsv @@ websearch_to_tsquery('english', $5)
+               order by t.bill_id desc, t.document_id desc
+               limit s.cap
+             ) x
+           ),
+           snippets as (
+             select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title,
+                    ts_headline('english', left(${BODY}, 200000),
+                                websearch_to_tsquery('english', $5), $6) as snippet
+             from picked p
+             join "Bills" b on b.bill_id = p.bill_id
+             join "BillTexts" t on t.document_id = p.document_id
+           )
+           -- ts_headline given no match inside its window returns the opening of
+           -- the document instead of nothing, which reads as a result and teaches
+           -- the reader nothing. 2,707 of the 444,220 current-session documents
+           -- (0.61%) run past 200 k characters; when one of them matched further
+           -- in than that, it is dropped here rather than shown unhighlighted.
+           select tier, bill_id, document_id, state, bill_number, title, snippet
+           from snippets
+           where snippet like '%«%'
+           order by tier, state
+           limit $7`,
+          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12]
+        )
+      : Promise.resolve([]),
   ])
+
   return {
     q: term,
     state: f.state,
     session: f.session,
-    bills: bills.map((r) => ({ ...r, bill_id: n(r.bill_id) })),
+    bills: bills.map((r) => ({ ...r, bill_id: n(r.bill_id), tier: n(r.tier) })),
     members: members.map((r) => ({ ...r, people_id: n(r.people_id) })),
-    committees,
+    committees: committees.map((r) => ({ ...r, bills: n(r.bills), tier: n(r.tier) })),
+    texts: texts.map((r) => ({
+      ...r,
+      bill_id: n(r.bill_id),
+      document_id: n(r.document_id),
+      tier: n(r.tier),
+    })),
   }
 }

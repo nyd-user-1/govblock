@@ -98,9 +98,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "search": {
       const f = await resolve(filters)
       const term = (sp.get("q") ?? "").trim()
+      // Full text is opt-in. This route answers both the ⌘K menu, which has to
+      // stay metadata-fast, and /search, which can afford a pass over
+      // "BillTexts"; only the latter sends ?text=1.
+      const text = sp.get("text") === "1"
       if (term.length < 2)
-        return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [] }
-      return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20))
+        return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [], texts: [] }
+      return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20), { text })
     }
     case "states":
       return getStates()
