@@ -1655,15 +1655,23 @@ const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
 // database.
 const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSel=»,FragmentDelimiter= … "
 
-export type SearchOptions = { text?: boolean; perState?: number }
+// Both extras are opt-in, and for different reasons. `text` is a cost: the pass
+// over "BillTexts" is the expensive one and the ⌘K menu must not pay it.
+// `all` is a *contract*: the moment bills[] and committees[] can carry a
+// jurisdiction that is not the reader's, every caller has to render each row's
+// own `state`. /search does. components/command-menu.tsx still draws
+// `FlagChip state={state}` from the page's scope and links to `?state=${state}`,
+// so turning this on for the menu without changing those two lines would put a
+// New York flag on an Arizona bill. It stays off until the menu opts in.
+export type SearchOptions = { text?: boolean; all?: boolean; perState?: number }
 
 export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
   const like = `%${term}%`
   const numberLike = `${term.replace(/\s+/g, "")}%`
   // Two rows a jurisdiction: enough that a reader sees the answer is national,
   // few enough that 51 other jurisdictions cannot bury the one they are in.
-  const perState = options.perState ?? 2
-  const elsewhereCap = Math.max(limit * 2, 24)
+  const perState = options.all ? (options.perState ?? 2) : 0
+  const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
 
   const [bills, members, committees, texts] = await Promise.all([
     q<{
@@ -1694,7 +1702,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
          select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action_date,
                 b.state, b.session_id
          from "Bills" b
-         where b.session_id >= ${SINCE} and b.state <> $1
+         where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1` : "false"}
            and (b.bill_number ilike $3 or b.title ilike $4)
        ),
        elsewhere as (
@@ -1745,7 +1753,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       `with hits as materialized (
          select b.state, b.session_id, b.committee, b.body
          from "Bills" b
-         where b.session_id >= ${SINCE}
+         where ${options.all ? "" : "b.state = $1 and "}b.session_id >= ${SINCE}
            and coalesce(b.committee, '') <> '' and b.committee ilike $2
        )
        select committee, bills, chamber, state, tier from (
@@ -1777,7 +1785,8 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
           `with scopes as (
              select $1::text as state, $2::int as session_id, 0 as tier, $3::int as cap
              union all
-             select c.state, c.session_id, 1, $4::int from ${CURRENT} c where c.state <> $1
+             select c.state, c.session_id, 1, $4::int from ${CURRENT} c
+              where c.state <> $1 and ${options.all ? "true" : "false"}
            ),
            picked as (
              select s.tier, x.bill_id, x.document_id, x.state

@@ -98,13 +98,18 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "search": {
       const f = await resolve(filters)
       const term = (sp.get("q") ?? "").trim()
-      // Full text is opt-in. This route answers both the ⌘K menu, which has to
-      // stay metadata-fast, and /search, which can afford a pass over
-      // "BillTexts"; only the latter sends ?text=1.
+      // Both extras are opt-in, and only /search asks for them. ?text=1 buys the
+      // pass over "BillTexts"; ?all=1 lets bills[] and committees[] carry
+      // jurisdictions other than the reader's. The ⌘K menu sends neither: it
+      // has to stay metadata-fast, and it still draws every bill and committee
+      // under the flag of the scope you are in, which is only true one
+      // jurisdiction at a time. Members were already national and the menu
+      // renders them from their own state, so they need no gate.
       const text = sp.get("text") === "1"
+      const all = sp.get("all") === "1"
       if (term.length < 2)
         return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [], texts: [] }
-      return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20), { text })
+      return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20), { text, all })
     }
     case "states":
       return getStates()

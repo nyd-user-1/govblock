@@ -12,9 +12,11 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { matchPages } from "@/lib/search-pages"
 
-// Search, as a page: the same scoped pass the header menu runs, with room to
-// show everything it found. One query string, five sections — bills, members,
-// committees, topics, pages — each rendered only when it has rows.
+// Search, as a page: the header menu's pass with the brakes off. Same route,
+// but this page asks for every jurisdiction (`all=1`) and for the bill text
+// itself (`text=1`), so one query string answers in six sections — bills, text,
+// members, committees, topics, pages — each rendered only when it has rows, and
+// each row carrying the jurisdiction it actually came from.
 
 type SearchPayload = {
   q: string
@@ -122,11 +124,14 @@ function SearchResults() {
 
   const active = resolved && debounced.trim().length >= 2
   const filters = { state, session: session ? String(session) : undefined }
-  // text=1 is what separates this page from the ⌘K menu: the same route, but
-  // only /search pays for the pass over "BillTexts".
+  // all=1 and text=1 are what separate this page from the ⌘K menu on the same
+  // route: only /search searches every jurisdiction's bills and committees, and
+  // only /search pays for the pass over "BillTexts". Every row below renders its
+  // own jurisdiction, which is what earns the flag.
   const { data, isLoading } = usePolicy<SearchPayload>(active ? "search" : null, filters, {
     q: debounced.trim(),
     limit: 20,
+    all: 1,
     text: 1,
   })
   const { data: subjects } = usePolicy<{ value: string; count: number }[]>(resolved ? "subjects" : null, filters)
