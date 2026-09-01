@@ -1653,6 +1653,19 @@ const SINCE = `(select min(session)::int from v_policy_latest_session)`
 const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
   '(?n)^[[:blank:]]*[A-Z][0-9]+[A-Z]? Text:[[:blank:]]*$', 1, 1, 1), 1))`
 
+// "BillTextChunks" geometry. These three numbers are the contract between
+// scripts/search/bill-text-chunks.sh, which writes the rows, and the text query
+// below, which has to know where chunk N starts in order to cut a snippet from
+// the right part of an 11 MB document. They were duplicated once and drifted
+// once — the script moved to 80 k chunks from offset 1 and the query kept
+// computing offsets for the 800 k ones, so every chunk hit was found and then
+// silently dropped, because the headline was cut from the wrong place and
+// contained no match. Change them here and in the script's FIRST/STRIDE/LEN
+// together, or not at all.
+const CHUNK_FIRST = 1
+const CHUNK_STRIDE = 79_000
+const CHUNK_LEN = 80_000
+
 // Snippets, never bodies: the Data API caps a result at 1 MB, and ts_headline
 // over a whole 11 MB bill would cost more than the search did. « » delimit the
 // match — the surface splits on them, so nothing has to trust HTML from the
@@ -1851,7 +1864,8 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                    and t.text is not null
                    and t.search_tsv @@ websearch_to_tsquery('english', $5)
                  union all
-                 select c.bill_id, c.document_id, c.state, 999001 + c.chunk_no * 799000
+                 select c.bill_id, c.document_id, c.state,
+                        ${CHUNK_FIRST} + c.chunk_no * ${CHUNK_STRIDE}
                  from "BillTextChunks" c
                  where c.state = s.state and c.session_id = s.session_id
                    and c.tsv @@ websearch_to_tsquery('english', $5)
@@ -1879,7 +1893,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                            then left(${BODY}, 200000)
                            -- the exact chunk that matched, whole, so the match is
                            -- certain to be inside the window rather than probably
-                           else substr(t.text, p.head_from, 800000)
+                           else substr(t.text, p.head_from, ${CHUNK_LEN})
                       end,
                       websearch_to_tsquery('english', $5), $6) as snippet
              from shortlist p
