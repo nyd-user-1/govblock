@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { BILLS, TEXTS } from "@/lib/data"
+import { BILLS } from "@/lib/data"
+import { getBill, getBillText } from "@/lib/policy/queries"
 import { memberHref } from "@/lib/filters"
 import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
@@ -11,7 +12,10 @@ import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
 // page — status, Summary, Sponsors, History, Votes, Text, Source.
-// Twelve Congress bills are on file; the rest 404 until the data layer lands.
+//
+// Every bill in the policy database has a page. The twelve committed under
+// lib/data are prerendered at build time and stand in if the database is
+// unreachable; the rest render on demand and are then cached.
 
 const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
 const TOC = SECTIONS.map((title) => ({ title, url: `#${title.toLowerCase()}`, depth: 2 }))
@@ -34,16 +38,16 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const bill = BILLS[id]
+  const bill = await getBill(Number(id))
   if (!bill) return { title: "Bill" }
   return { title: bill.bill_number, description: bill.description || bill.title }
 }
 
 export default async function BillRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const bill = BILLS[id]
+  const bill = await getBill(Number(id))
   if (!bill) notFound()
-  const text = TEXTS[id]?.text
+  const text = (await getBillText(Number(id)))?.text
   const summary = bill.description || bill.title
   const shownSponsors = bill.sponsors.slice(0, MAX_SPONSORS)
   const moreSponsors = bill.sponsors.length - shownSponsors.length
