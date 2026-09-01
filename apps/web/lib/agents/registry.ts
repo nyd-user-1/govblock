@@ -348,8 +348,10 @@ End with what you could not find out and why — a jurisdiction the record holds
 thinly, a dataset that is Congress-only, a text you did not read. That section is
 not optional and it is not an apology; it is what makes the rest usable.
 
-When you are given a posting tool, post the report once at the end and say where
-it went. Discord's markdown is **bold**, *italic* and [label](url).`,
+When you are given deliver_report, call it once when the report is finished,
+with a title. You do not pass it the report — it sends what you have already
+written, which is why writing each section as you go is not just tidier but the
+only way the whole thing arrives. Then say in one line where it went.`,
   },
 ]
 

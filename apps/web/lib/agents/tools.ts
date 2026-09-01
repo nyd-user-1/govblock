@@ -29,6 +29,7 @@ export type ToolName =
   | "get_fec"
   | "post_to_slack"
   | "post_to_discord"
+  | "deliver_report"
 
 // Converse types a tool's input schema as DocumentType — JSON, all the way
 // down — so `Record<string, unknown>` will not go in. Naming the two shapes a
@@ -295,6 +296,24 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       text: { type: "string", description: "The message. Slack mrkdwn: *bold*, <url|label>." },
     },
     required: ["text"],
+  },
+
+  deliver_report: {
+    // No text parameter, deliberately, and not only for the reason the two
+    // posting tools have none. A report is thousands of tokens the agent has
+    // already written; making it retype them into an argument doubles the cost
+    // of the longest thing it does and — on a host that discards a response
+    // after thirty seconds — is how a finished report gets lost on its last
+    // step. This tool sends what the run has already said.
+    description:
+      "Deliver the report you have written so far to wherever this agent is connected. Call it once, when the report is finished. You do not pass the report — it is what you have already written in this run. Give it a title.",
+    properties: {
+      title: {
+        type: "string",
+        description: "One line naming the report, as a subject line would.",
+      },
+    },
+    required: ["title"],
   },
 
   post_to_discord: {

@@ -1,6 +1,7 @@
 import "server-only"
 
 import { DEFINITIONS, normalise, type ToolName } from "@/lib/agents/tools"
+import { deliver } from "@/lib/agents/connections"
 import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
 
@@ -46,13 +47,40 @@ function count(payload: unknown): string {
   return payload == null ? "nothing" : "1 value"
 }
 
+export type ToolContext = {
+  /** Everything the agent has written this run — what deliver_report sends. */
+  report?: string
+}
+
 export async function runTool(
   name: ToolName,
-  rawInput: Record<string, unknown>
+  rawInput: Record<string, unknown>,
+  context?: ToolContext
 ): Promise<ToolOutcome> {
   const started = Date.now()
   const definition = DEFINITIONS[name]
   const input = normalise(name, rawInput)
+
+  if (name === "deliver_report") {
+    const title = String(rawInput.title ?? "").trim() || "govblock report"
+    const body = (context?.report ?? "").trim()
+    if (!body)
+      return {
+        ok: false,
+        payload: { error: "There is nothing written to deliver yet." },
+        summary: "nothing written yet",
+        ms: Date.now() - started,
+      }
+    const result = await deliver(`**${title}**\n\n${body}`)
+    return {
+      ok: result.ok,
+      payload: result,
+      summary: result.ok
+        ? `delivered to ${result.where}${result.ref ? ` · id ${result.ref}` : ""}`
+        : `not delivered — ${result.error}`,
+      ms: Date.now() - started,
+    }
+  }
 
   if (name === "post_to_slack" || name === "post_to_discord") {
     // The destination is the connection's, never the model's — see the note

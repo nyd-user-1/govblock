@@ -1,8 +1,9 @@
 import "server-only"
 
 import type { ToolName } from "@/lib/agents/tools"
-import { discord } from "@/lib/agents/connections/discord"
-import { slack } from "@/lib/agents/connections/slack"
+import { discord, postToDiscord } from "@/lib/agents/connections/discord"
+import { slack, postToSlack } from "@/lib/agents/connections/slack"
+import type { Posted } from "@/lib/agents/connections/slack"
 
 // A connection is an outside service an agent may act on. Vercel calls these
 // Connections; the AWS-standard equivalent evaluated for this lane is Bedrock
@@ -63,4 +64,27 @@ export async function liveTools(ids: string[] = []) {
 
 export function connection(id: string) {
   return CONNECTIONS.find((c) => c.id === id)
+}
+
+const POSTERS: Record<string, (args: { text: string }) => Promise<Posted>> = {
+  discord: postToDiscord,
+  slack: postToSlack,
+}
+
+/**
+ * Send a finished report to the first connection that is live.
+ *
+ * Used by `deliver_report`, which exists because the alternative — a tool whose
+ * argument is the whole report — makes the model retype thousands of tokens it
+ * has already written. On a host that discards a response after thirty seconds
+ * that is not a cost problem, it is a correctness one.
+ */
+export async function deliver(text: string): Promise<Posted> {
+  for (const connection of CONNECTIONS) {
+    const status = await connection.status()
+    if (!status.connected) continue
+    const post = POSTERS[connection.id]
+    if (post) return post({ text })
+  }
+  return { ok: false, error: "No connection is live, so there is nowhere to deliver it." }
 }

@@ -145,6 +145,10 @@ export async function POST(request: Request) {
   // the agent is told which services it does and does not have so it can say so
   // rather than discover it by calling.
   const live = await liveTools(definition.connections)
+  // A long-form agent delivers what it has already written rather than posting
+  // a copy of it: same connection, one tool, no retyping.
+  const contributed =
+    definition.inbox && live.tools.length ? (["deliver_report"] as const) : live.tools
   if (definition.connections?.length) {
     if (live.connected.length) notes.push(`Connected right now: ${live.connected.join(", ")}.`)
     if (live.missing.length)
@@ -160,7 +164,7 @@ export async function POST(request: Request) {
     async start(controller) {
       controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const step = runStep({ definition, messages, systemSuffix, extraTools: live.tools })
+        const step = runStep({ definition, messages, systemSuffix, extraTools: [...contributed] })
         let next = await step.next()
         while (!next.done) {
           controller.enqueue(line(next.value))

@@ -148,12 +148,20 @@ export async function* runStep({
   // Parallel: Converse may ask for several tools at once, and every result must
   // come back in a single user message — splitting them teaches the model to
   // stop asking for more than one at a time.
+  // Everything the agent has written this run, which is what deliver_report
+  // sends — so the report never has to be retyped into a tool argument.
+  const report = [...incoming, result.message]
+    .filter((message) => message.role === "assistant")
+    .flatMap((message) => (message.content ?? []).map((block) => block.text).filter(Boolean))
+    .join("\n\n")
+
   const outcomes = await Promise.all(
     calls.map(async (call) => ({
       call,
       outcome: await runTool(
         call.name as ToolName,
-        (call.input ?? {}) as Record<string, unknown>
+        (call.input ?? {}) as Record<string, unknown>,
+        { report }
       ),
     }))
   )
