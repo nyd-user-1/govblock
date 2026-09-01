@@ -445,3 +445,29 @@
     }
   }
 }
+
+/* From livingston-v3 app/globals.css, for /blocks: the page well behind the
+   block viewer, scrollbar-less code panes, and the highlighter's dark tokens
+   (shiki emits color + --shiki-dark inline; dark mode reads the variable). */
+@utility section-soft {
+  @apply bg-linear-to-b from-background to-surface/40 dark:bg-background 3xl:fixed:bg-none;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  [data-line] span {
+    color: var(--shiki-light);
+
+    @variant dark {
+      color: var(--shiki-dark) !important;
+    }
+  }
+}

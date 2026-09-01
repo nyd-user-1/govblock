@@ -14,7 +14,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 // nav and the designer actions are not ported yet).
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full bg-background">
+    <header className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden">
       <div className="container-wrapper px-6 3xl:fixed:px-0">
         <div className="flex h-(--header-height) items-center **:data-[slot=separator]:h-4! 3xl:fixed:container">
           <MainNav items={siteConfig.navItems} className="hidden lg:flex" />

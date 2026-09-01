@@ -142,8 +142,10 @@ begin
   refresh materialized view concurrently public.mv_newsroom_latest;
 end $$;
 
--- Schedule: the worker box, hourly (ops/refresh-matviews.sh):
---   7 * * * *  POLICY_DATABASE_URL=... ops/refresh-matviews.sh
+-- Schedule: nightly on the worker box, after the syncs — the livingston
+-- manifest ops/box/jobs.d/lv-refresh-matviews.json runs
+-- scripts/box/refresh-matviews.mjs. The inputs change at night; a clock would
+-- refresh an unchanged view. ops/refresh-matviews.sh here is the by-hand run.
 -- Not pg_cron. On this Neon project the extension can only be created in the
 -- `postgres` database, where neondb_owner has no CREATE privilege — and pg_cron
 -- only fires while the compute is awake anyway, so an external clock is the

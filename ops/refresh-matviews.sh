@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
-# Hourly on the worker box (crontab: 7 * * * *). pg_cron on Neon only runs
-# while the compute is awake; this keeps the views fresh regardless.
-#   7 * * * *  POLICY_DATABASE_URL=... /path/to/govblock/ops/refresh-matviews.sh
+# By hand. The scheduled run is the worker box's nightly manifest
+# (livingston/ops/box/jobs.d/lv-refresh-matviews.json); this is the same
+# refresh from a laptop with psql, e.g. right after a bulk import.
 set -eu
 : "${POLICY_DATABASE_URL:?set POLICY_DATABASE_URL}"
 psql "$POLICY_DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -c "select public.refresh_policy_matviews()"
