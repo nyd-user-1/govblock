@@ -1,0 +1,23 @@
+version: 1
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - corepack enable
+            - corepack prepare pnpm@10.33.4 --activate
+            # The workspace root owns the lockfile; -C keeps the shell in appRoot,
+            # which is where Amplify expects to find .next afterwards.
+            - pnpm -C ../.. install --frozen-lockfile
+        build:
+          commands:
+            - pnpm -C ../.. exec turbo build --filter=web
+      artifacts:
+        baseDirectory: .next
+        files:
+          - "**/*"
+      cache:
+        paths:
+          - ../../node_modules/**/*
+          - .next/cache/**/*
