@@ -24,7 +24,9 @@ import { agent } from "@/lib/agents/registry"
 //             { t: "tool_result", id, name, ok, summary, ms }
 //             { t: "state", messages, done }          // send `messages` back if !done
 //             { t: "done",  stopReason, usage, usd, ms }   // usage carries
-//                     inputTokens, outputTokens and cacheReadInputTokens
+//                     inputTokens, outputTokens, cacheReadInputTokens and
+//                     cacheWriteInputTokens — the three input counts are
+//                     disjoint, so add them for the total read
 //             { t: "error", message }
 //
 // One request is one round of the loop, not the whole run. Amplify WEB_COMPUTE
@@ -149,6 +151,7 @@ export async function POST(request: Request) {
               inputTokens: result.inputTokens,
               outputTokens: result.outputTokens,
               cacheReadInputTokens: result.cacheReadInputTokens,
+              cacheWriteInputTokens: result.cacheWriteInputTokens,
             },
             usd: result.usd,
             ms: result.ms,

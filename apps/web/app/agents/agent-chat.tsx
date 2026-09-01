@@ -217,11 +217,19 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                   inputTokens: number
                   outputTokens: number
                   cacheReadInputTokens?: number
+                  cacheWriteInputTokens?: number
                 }
                 usd += Number(event.usd)
-                inTokens += usage.inputTokens
-                outTokens += usage.outputTokens
+                // The three input counts are disjoint — a cached token is not
+                // also in inputTokens — so "in" is their sum. Printing
+                // inputTokens alone reads as "3 in" on a round that in fact
+                // sent thousands and wrote them to the cache.
                 cached += usage.cacheReadInputTokens ?? 0
+                inTokens +=
+                  usage.inputTokens +
+                  (usage.cacheReadInputTokens ?? 0) +
+                  (usage.cacheWriteInputTokens ?? 0)
+                outTokens += usage.outputTokens
                 draft.meta = {
                   model: draft.meta?.model ?? "",
                   usd,
