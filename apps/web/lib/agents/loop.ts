@@ -24,6 +24,61 @@ import { toolSpec, type ToolName } from "@/lib/agents/tools"
 // round. The conversation is stateless either way (Converse is resent in full
 // every round), so this costs round trips, not tokens.
 
+// Amplify WEB_COMPUTE cuts a response off at **30 seconds** — measured twice on
+// the deploy, 30.5 s and 30.8 s, returning 500 with an empty body; `maxDuration`
+// is not honoured. A round's latency here is driven by how much conversation the
+// model has to read before deciding what to do next, so the conversation is
+// bounded in two places rather than allowed to grow until a round runs long.
+//
+// One: a single tool result is capped. A whole bill record is tens of kilobytes
+// and the model needs its fields, not every character of its history.
+const RESULT_MAX = 8_000
+// Two: older tool results are compacted. The last two rounds stay verbatim —
+// that is what the model is reasoning about right now — and everything before
+// them keeps a readable head and says what was cut. This is why the Researcher
+// is told to write each section's notes as it gathers: its own prose survives
+// compaction, and a raw record does not.
+const VERBATIM_ROUNDS = 2
+const COMPACTED_MAX = 700
+
+function resultText(payload: unknown) {
+  const json = JSON.stringify(payload)
+  if (json.length <= RESULT_MAX) return json
+  return `${json.slice(0, RESULT_MAX)}\n\n[truncated: ${json.length.toLocaleString()} characters in all. Ask for a narrower slice if you need the rest.]`
+}
+
+/** Trim what the model no longer needs to re-read, newest kept whole. */
+function compact(messages: Message[]): Message[] {
+  const resultTurns = messages
+    .map((message, index) => ({ message, index }))
+    .filter(({ message }) => (message.content ?? []).some((block) => block.toolResult))
+  const keepFrom = resultTurns.length - VERBATIM_ROUNDS
+  const compactable = new Set(resultTurns.slice(0, Math.max(0, keepFrom)).map((t) => t.index))
+  if (!compactable.size) return messages
+
+  return messages.map((message, index) => {
+    if (!compactable.has(index)) return message
+    return {
+      ...message,
+      content: (message.content ?? []).map((block) => {
+        const text = block.toolResult?.content?.[0]?.text
+        if (!block.toolResult || typeof text !== "string" || text.length <= COMPACTED_MAX)
+          return block
+        return {
+          toolResult: {
+            ...block.toolResult,
+            content: [
+              {
+                text: `${text.slice(0, COMPACTED_MAX)}\n\n[earlier read, trimmed from ${text.length.toLocaleString()} characters. Your own notes above are what carries it forward.]`,
+              },
+            ],
+          },
+        }
+      }),
+    }
+  })
+}
+
 export type StepResult = {
   /** The whole conversation including this round, to send back next time. */
   messages: Message[]
@@ -56,7 +111,7 @@ export async function* runStep({
   const stream = converseStream({
     tier: definition.tier,
     system: systemSuffix ? `${definition.system}\n\n${systemSuffix}` : definition.system,
-    messages,
+    messages: compact(messages),
     tools: [...definition.tools, ...extraTools].map(toolSpec),
     // The Tracker composes a digest over several bills in one turn; the
     // specialists answer in prose. Both fit inside this.
@@ -118,7 +173,7 @@ export async function* runStep({
     content: outcomes.map(({ call, outcome }) => ({
       toolResult: {
         toolUseId: call.toolUseId,
-        content: [{ text: JSON.stringify(outcome.payload) }],
+        content: [{ text: resultText(outcome.payload) }],
         status: outcome.ok ? ("success" as const) : ("error" as const),
       },
     })),

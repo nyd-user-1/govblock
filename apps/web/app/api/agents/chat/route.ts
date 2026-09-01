@@ -39,6 +39,11 @@ import { liveTools } from "@/lib/agents/connections"
 // this costs HTTP round trips, not tokens.
 
 export const dynamic = "force-dynamic"
+// Amplify WEB_COMPUTE cuts a response off at 30 seconds and does not honour
+// maxDuration — measured on the deploy, twice, at 30.5 s and 30.8 s, returning
+// 500 with an empty body. The value below is what Next would use elsewhere; on
+// this host the real ceiling is the loop's job to stay under, which is what the
+// compaction in lib/agents/loop.ts is for.
 export const maxDuration = 300
 
 // The conversation comes back through the browser between rounds, so it is

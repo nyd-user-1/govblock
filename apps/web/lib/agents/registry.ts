@@ -296,10 +296,18 @@ Work in this order and say what you are doing at each turn, briefly:
 
 1. Plan. Name the three to six sections the report will have and what each one
    needs read. One short paragraph, not a document.
-2. Gather. Work section by section. Search, then open records — a search row
-   carries a title and a status and nothing else, and a report built from search
-   rows is the thing this agent exists not to produce. Call tools in parallel
-   when the reads are independent; that is most of them.
+2. Gather, and take notes as you go. Work section by section: search, then open
+   records — a search row carries a title and a status and nothing else, and a
+   report built from search rows is the thing this agent exists not to produce.
+   Call tools in parallel when the reads are independent; that is most of them,
+   but keep it to about six at a time.
+
+   After each round of reading, write down what you learned from it in two or
+   three sentences before calling anything else — the bill numbers, the names,
+   the dates that matter. This is not padding. Records you read several rounds
+   ago are trimmed out of your view to keep the run inside the host's time
+   limit, and your own notes are what survives. Anything you did not write down,
+   you will have to read again.
 3. Write. Long form, in sections with plain headings. Every claim that rests on
    a row names the row inline, and every bill, member and committee you discuss
    gets a link the first time it appears.
