@@ -1339,3 +1339,104 @@ export async function getFec(peopleId: number) {
   ])
   return { totals, contributions }
 }
+
+/* ---------------------------------------------------------------------------
+ * congress.gov — the families LegiScan and govinfo never carried.
+ *
+ * Written by scripts/pipeline/congress/harvest.mjs in the livingston repo: the
+ * API's own key as the primary key, typed columns for what a page reads, and the
+ * record verbatim in `payload`. These readers hand back the API's own shape —
+ * field names unchanged — so a page built against a fixture pulled straight from
+ * api.congress.gov keeps working when it is pointed here.
+ *
+ * Congress-only by construction: the tables hold the 119th and nothing else.
+ * `US_ONLY` names them so another jurisdiction is told what it asked for rather
+ * than handed Congress's rows, exactly as NY_ONLY does for New York's.
+ * ------------------------------------------------------------------------- */
+
+export const US_ONLY = [
+  "amendments", "summaries", "committee-reports", "laws", "member-detail",
+  "committee-detail", "committee-meetings", "hearings", "nominations",
+  "crs-reports", "record-issues", "house-votes", "treaties",
+] as const;
+
+/** The payload as the API returned it, newest first, for a whole family. */
+async function congressFamily(table: string, limit: number, offset: number, where = "", params: unknown[] = []) {
+  const rows = await q<{ payload: unknown }>(
+    `select payload from ${table} ${where} order by update_date desc nulls last, key limit $${params.length + 1} offset $${params.length + 2}`,
+    [...params, limit, offset],
+  );
+  return rows.map((r) => r.payload);
+}
+
+async function congressCount(table: string, where = "", params: unknown[] = []) {
+  const row = await one<{ n: number }>(`select count(*)::int as n from ${table} ${where}`, params);
+  return n(row?.n);
+}
+
+export async function getAmendments(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_amendments"), amendments: await congressFamily("congress_amendments", limit, offset) };
+}
+
+export async function getCommitteeReports(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) };
+}
+
+export async function getLaws(limit = 250, offset = 0) {
+  return { count: await congressCount("congress_laws"), bills: await congressFamily("congress_laws", limit, offset) };
+}
+
+export async function getNominations(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_nominations"), nominations: await congressFamily("congress_nominations", limit, offset) };
+}
+
+export async function getCommitteeMeetings(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_committee_meetings"), committeeMeetings: await congressFamily("congress_committee_meetings", limit, offset) };
+}
+
+export async function getCongressHearings(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_hearings"), hearings: await congressFamily("congress_hearings", limit, offset) };
+}
+
+export async function getTreaties(limit = 50, offset = 0) {
+  return { count: await congressCount("congress_treaties"), treaties: await congressFamily("congress_treaties", limit, offset) };
+}
+
+/** One member, by bioguide id — the record that carries the official portrait. */
+export async function getMemberDetail(bioguideId: string) {
+  const row = await one<{ payload: unknown; portrait_url: string | null }>(
+    `select payload, portrait_url from congress_members where key = $1`, [String(bioguideId).toUpperCase()],
+  );
+  return row ? { member: row.payload, portraitUrl: row.portrait_url } : null;
+}
+
+/** Every sitting member with a portrait, for a roster that wants faces. */
+export async function getMembersWithPortraits(limit = 600) {
+  return q<{ bioguide_id: string; name: string; party: string; state: string; district: string | null; portrait_url: string | null }>(
+    `select bioguide_id, name, party, state, district, portrait_url
+       from congress_members where portrait_url is not null order by name limit $1`, [limit],
+  );
+}
+
+/** One committee, by systemCode. */
+export async function getCommitteeDetail(systemCode: string) {
+  const row = await one<{ payload: unknown }>(`select payload from congress_committees where key = $1`, [String(systemCode).toLowerCase()]);
+  return row?.payload ?? null;
+}
+
+/**
+ * A bill's text versions as the site holds them — the resource that answers the
+ * question this lane started from. Reads "BillTexts" and "Documents" rather than
+ * a congress_ table: the versions are already there, and which source won for a
+ * given version is part of the answer.
+ */
+export async function getTextVersions(billId: number) {
+  return q<{ document_id: number; version: string; source: string; chars: number; fetched_at: string | null; url: string | null }>(
+    `select t.document_id, t.version, t.source, t.chars, t.fetched_at, d.url
+       from "BillTexts" t
+       left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+      where t.bill_id = $1
+      order by t.document_id desc`,
+    [billId],
+  );
+}

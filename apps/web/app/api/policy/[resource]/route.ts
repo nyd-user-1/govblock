@@ -4,6 +4,7 @@ import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillTexts } from "@/lib/policy/texts"
 import {
   getActivity,
+  getAmendments,
   getBill,
   getBillByNumber,
   getBillVotes,
@@ -27,11 +28,22 @@ import {
   getStates,
   getStream,
   getSubjects,
+  getCommitteeDetail,
+  getCommitteeMeetings,
+  getCommitteeReports,
+  getCongressHearings,
+  getLaws,
+  getMemberDetail,
+  getMembersWithPortraits,
+  getNominations,
   getTallies,
+  getTextVersions,
   getTopSponsors,
+  getTreaties,
   latestHearingDate,
   NY_ONLY,
   resolve,
+  US_ONLY,
 } from "@/lib/policy/db-queries"
 
 // Every legislative read the client makes, scoped by ?state= and ?session=.
@@ -64,6 +76,11 @@ async function dispatch(resource: string, sp: URLSearchParams) {
   // back New York's rows wearing another state's name.
   if ((NY_ONLY as readonly string[]).includes(resource) && state !== "NY") {
     throw new Error(`${resource} is a New York dataset. Nothing for ${stateName(state)}.`)
+  }
+  // The congress.gov families hold the 119th and nothing else. Say so rather
+  // than hand Congress's rows to a reader who asked about Texas.
+  if ((US_ONLY as readonly string[]).includes(resource) && state !== "US") {
+    throw new Error(`${resource} is a Congress dataset. Nothing for ${stateName(state)}.`)
   }
 
   switch (resource) {
@@ -193,6 +210,37 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean)
       return getStream([...new Set(requested)].slice(0, 6), int(sp.get("limit"), 12))
+    }
+    /* ---- congress.gov families (US only) ---------------------------------- */
+    case "text-versions": {
+      const f = await resolve(filters)
+      const id = int(sp.get("bill") ?? sp.get("id") ?? f.bill ?? null, 0)
+      if (!id) throw new Error("bill id required")
+      return getTextVersions(id)
+    }
+    case "amendments":
+      return getAmendments(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "committee-reports":
+      return getCommitteeReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "laws":
+      return getLaws(int(sp.get("limit"), 250), int(sp.get("offset"), 0) || 0)
+    case "nominations":
+      return getNominations(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "committee-meetings":
+      return getCommitteeMeetings(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "hearings-congress":
+      return getCongressHearings(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "treaties":
+      return getTreaties(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "member-detail": {
+      const id = sp.get("bioguide") ?? sp.get("id")
+      if (!id) return { members: await getMembersWithPortraits(int(sp.get("limit"), 600)) }
+      return getMemberDetail(id)
+    }
+    case "committee-detail": {
+      const code = sp.get("systemCode") ?? sp.get("code")
+      if (!code) throw new Error("systemCode required")
+      return getCommitteeDetail(code)
     }
     default:
       return undefined
