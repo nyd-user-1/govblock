@@ -28,13 +28,19 @@ function origin() {
 }
 
 function count(payload: unknown): string {
-  if (Array.isArray(payload)) return `${payload.length} rows`
+  if (Array.isArray(payload)) return payload.length ? `${payload.length} rows` : "nothing"
   if (payload && typeof payload === "object") {
+    const entries = Object.entries(payload)
     const parts: string[] = []
-    for (const [key, value] of Object.entries(payload)) {
+    for (const [key, value] of entries) {
       if (Array.isArray(value) && value.length) parts.push(`${value.length} ${key}`)
     }
     if (parts.length) return parts.slice(0, 4).join(", ")
+    // A search that matched nothing answers with the same shape as one that
+    // matched everything — all the arrays are simply empty. Saying "1 record"
+    // there read as a hit in the transcript.
+    if (entries.length && entries.every(([, value]) => Array.isArray(value) && !value.length))
+      return "nothing"
     return "1 record"
   }
   return payload == null ? "nothing" : "1 value"
