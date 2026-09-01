@@ -74,7 +74,18 @@ SQL
   echo "bill-text-chunks: +$moved chunks · $done_docs documents done · $(date -u +%H:%M:%SZ)"
 done
 
-psql "$AURORA_POLICY_URL" -c 'analyze "BillTextChunks"' -c \
-  'select count(distinct document_id) documents, count(*) chunks,
-          pg_size_pretty(pg_total_relation_size(''"BillTextChunks"'')) total
-     from "BillTextChunks"'
+# A quoted heredoc, not -c: bash does not escape a single quote by doubling it,
+# so '' inside a '-c' argument closes and reopens the quote and the table name
+# arrives as an identifier rather than a string. That is how this line first
+# shipped, and it errored with "function pg_total_relation_size("BillTextChunks")
+# does not exist" after a twenty-minute build had already succeeded.
+psql "$AURORA_POLICY_URL" <<'SQL'
+analyze "BillTextChunks";
+select count(distinct document_id) as documents,
+       count(*) as chunks,
+       avg(pg_column_size(tsv))::int as avg_tsv_bytes,
+       pg_size_pretty(pg_table_size('"BillTextChunks"'::regclass)) as table,
+       pg_size_pretty(pg_indexes_size('"BillTextChunks"'::regclass)) as index,
+       pg_size_pretty(pg_total_relation_size('"BillTextChunks"'::regclass)) as total
+  from "BillTextChunks";
+SQL
