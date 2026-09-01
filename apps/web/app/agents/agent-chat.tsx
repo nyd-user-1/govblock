@@ -38,6 +38,28 @@ function money(usd: number) {
   return `${(usd * 100).toFixed(2)}¢`
 }
 
+// The models write **bold** and `code` and the panel showed the asterisks. This
+// renders those two and nothing else — not a markdown library, and deliberately
+// not headings or lists, which would start dictating the shape of an answer.
+function Prose({ text }: { text: string }) {
+  const pieces = text.split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g)
+  return (
+    <>
+      {pieces.map((piece, i) => {
+        if (piece.startsWith("**") && piece.endsWith("**") && piece.length > 4)
+          return <strong key={i}>{piece.slice(2, -2)}</strong>
+        if (piece.startsWith("`") && piece.endsWith("`") && piece.length > 2)
+          return (
+            <code key={i} className="rounded bg-muted px-1 py-0.5 text-[0.9em]">
+              {piece.slice(1, -1)}
+            </code>
+          )
+        return <React.Fragment key={i}>{piece}</React.Fragment>
+      })}
+    </>
+  )
+}
+
 function StepLine({ step }: { step: Step }) {
   if (step.kind === "note") {
     return <div className="text-xs text-muted-foreground">{step.text}</div>
@@ -120,6 +142,7 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
       try {
         while (!done && rounds < MAX_ROUNDS) {
           rounds += 1
+          let roundText = 0
           const response = await fetch("/api/agents/chat", {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -155,6 +178,11 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                 continue
               }
               if (event.t === "text") {
+                // A round's prose is its own paragraph. Without this the
+                // Tracker's "I'll search…" runs straight into its "Now I'll
+                // open the top five bills…" with no space between them.
+                if (draft.text && roundText === 0) draft.text += "\n\n"
+                roundText += 1
                 draft.text += String(event.v)
               } else if (event.t === "tool") {
                 draft.steps = [
@@ -265,7 +293,7 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                 )}
                 {turn.text && (
                   <div className={cn("text-sm whitespace-pre-wrap", turn.failed && "text-destructive")}>
-                    {turn.text}
+                    <Prose text={turn.text} />
                   </div>
                 )}
                 {turn.meta?.stopReason && (
