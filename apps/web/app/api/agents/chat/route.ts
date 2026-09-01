@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 
+import type { Message } from "@aws-sdk/client-bedrock-runtime"
+
 import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedrock"
-import { runAgent } from "@/lib/agents/loop"
+import { runStep } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
 import { agent } from "@/lib/agents/registry"
 
@@ -10,32 +12,50 @@ import { agent } from "@/lib/agents/registry"
 // different tools, so they are the same route and the same client reader —
 // which is why a chat can show tool calls without a second protocol.
 //
-// Amplify WEB_COMPUTE fronts SSR with CloudFront. Streaming survives that only
-// if nothing downstream buffers or transforms the body, hence no-transform,
-// no-store and X-Accel-Buffering: no. The `open` event is written before
-// Bedrock is called, so time-to-first-byte is measurable apart from
-// time-to-first-token.
+// **Contract.** POST JSON, get newline-delimited JSON back, one event per line:
+//
+//   request   { agent: slug, jurisdiction?: "NY",
+//               turns:  [{ role: "user" | "assistant", text }]   // first call
+//               state?: { messages: Message[] } }                // every call after
+//
+//   events    { t: "open",  model, label }
+//             { t: "text",  v }                       // a fragment of the answer
+//             { t: "tool",  id, name, input }         // a call the model made
+//             { t: "tool_result", id, name, ok, summary, ms }
+//             { t: "state", messages, done }          // send `messages` back if !done
+//             { t: "done",  stopReason, usage, usd, ms }
+//             { t: "error", message }
+//
+// One request is one round of the loop, not the whole run. Amplify WEB_COMPUTE
+// buffers a response body — measured on this deployment, as ndjson and as SSE,
+// 4,712 characters over 418 events all arriving in the same instant at 23.27 s —
+// so a server-side loop would deliver a finished transcript after a silent
+// minute. A round per request is what makes the steps arrive as they happen.
+// Converse is stateless and the history is resent every round regardless, so
+// this costs HTTP round trips, not tokens.
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 300
 
+// The conversation comes back through the browser between rounds, so it is
+// bounded on the way in. Both limits are far above any real run: the Tracker's
+// longest is about a dozen messages and a few hundred kilobytes of bill records.
+const MAX_MESSAGES = 60
+const MAX_STATE_CHARS = 600_000
+
 const encoder = new TextEncoder()
 
-// Two framings of the same events. Newline-delimited JSON is the default and
-// what the panel reads; Server-Sent Events is offered because some proxies
-// treat text/event-stream as a special case and decline to buffer it, and
-// measuring that on this deployment is the only way to know whether Amplify
-// does. Ask for it with `Accept: text/event-stream`.
-function framer(sse: boolean) {
-  return (event: StreamEvent) =>
-    encoder.encode(sse ? `data: ${JSON.stringify(event)}\n\n` : JSON.stringify(event) + "\n")
+function line(event: StreamEvent | { t: "state"; messages: Message[]; done: boolean }) {
+  return encoder.encode(JSON.stringify(event) + "\n")
 }
 
 export async function POST(request: Request) {
-  const sse = (request.headers.get("accept") ?? "").includes("text/event-stream")
-  const line = framer(sse)
-
-  let body: { agent?: string; turns?: ChatTurn[]; jurisdiction?: string }
+  let body: {
+    agent?: string
+    turns?: ChatTurn[]
+    jurisdiction?: string
+    state?: { messages?: Message[] }
+  }
   try {
     body = await request.json()
   } catch {
@@ -45,10 +65,24 @@ export async function POST(request: Request) {
   const definition = agent(String(body.agent ?? ""))
   if (!definition) return NextResponse.json({ error: "unknown agent" }, { status: 404 })
 
-  const turns = (body.turns ?? []).filter((turn) => turn && typeof turn.text === "string")
-  if (!turns.length) return NextResponse.json({ error: "no turns" }, { status: 400 })
-  if (turns.at(-1)?.role !== "user")
-    return NextResponse.json({ error: "the last turn must be the user's" }, { status: 400 })
+  let messages: Message[]
+  if (body.state?.messages) {
+    messages = body.state.messages
+    if (!Array.isArray(messages) || !messages.length)
+      return NextResponse.json({ error: "state.messages must be a non-empty array" }, { status: 400 })
+    if (messages.length > MAX_MESSAGES)
+      return NextResponse.json({ error: `at most ${MAX_MESSAGES} messages` }, { status: 413 })
+    if (JSON.stringify(messages).length > MAX_STATE_CHARS)
+      return NextResponse.json({ error: "conversation too large to continue" }, { status: 413 })
+    if (messages.some((m) => m.role !== "user" && m.role !== "assistant"))
+      return NextResponse.json({ error: "messages may only be user or assistant" }, { status: 400 })
+  } else {
+    const turns = (body.turns ?? []).filter((turn) => turn && typeof turn.text === "string")
+    if (!turns.length) return NextResponse.json({ error: "no turns" }, { status: 400 })
+    if (turns.at(-1)?.role !== "user")
+      return NextResponse.json({ error: "the last turn must be the user's" }, { status: 400 })
+    messages = toMessages(turns)
+  }
 
   // The reader's scope, if the surface knows it. The agents are told rather
   // than left to guess, which is what stops a Texas reader being answered with
@@ -64,17 +98,18 @@ export async function POST(request: Request) {
     async start(controller) {
       controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const run = runAgent({ definition, turns: toMessages(turns), systemSuffix })
-        let next = await run.next()
+        const step = runStep({ definition, messages, systemSuffix })
+        let next = await step.next()
         while (!next.done) {
           controller.enqueue(line(next.value))
-          next = await run.next()
+          next = await step.next()
         }
         const result = next.value
+        controller.enqueue(line({ t: "state", messages: result.messages, done: result.done }))
         controller.enqueue(
           line({
             t: "done",
-            stopReason: `${result.rounds} round${result.rounds === 1 ? "" : "s"}, ${result.toolCalls} tool calls`,
+            stopReason: result.done ? "answered" : `${result.toolCalls} tool calls`,
             usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens },
             usd: result.usd,
             ms: result.ms,
@@ -94,9 +129,7 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": sse
-        ? "text/event-stream; charset=utf-8"
-        : "application/x-ndjson; charset=utf-8",
+      "Content-Type": "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-store, no-transform",
       "X-Accel-Buffering": "no",
     },

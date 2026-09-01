@@ -48,10 +48,9 @@ export async function runTool(
   const input = normalise(name, rawInput)
 
   if (name === "post_to_slack") {
-    const result = await postToSlack({
-      text: String(rawInput.text ?? ""),
-      channel: rawInput.channel ? String(rawInput.channel) : undefined,
-    })
+    // The channel is the secret's, never the model's — see the note on
+    // post_to_slack in tools.ts.
+    const result = await postToSlack({ text: String(rawInput.text ?? "") })
     return {
       ok: result.ok,
       payload: result,

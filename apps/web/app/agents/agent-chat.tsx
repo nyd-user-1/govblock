@@ -28,6 +28,11 @@ type Turn = {
 
 const STORAGE = (slug: string) => `govblock:agent:${slug}`
 
+// The Tracker's canonical run is a search, three to five bills and a Slack
+// post — seven rounds. Twelve leaves room without letting a confused agent
+// spin on the reader's bill.
+const MAX_ROUNDS = 12
+
 function money(usd: number) {
   if (usd >= 0.01) return `$${usd.toFixed(3)}`
   return `${(usd * 100).toFixed(2)}¢`
@@ -93,72 +98,115 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
       setTurns([...history, { role: "assistant", text: "", steps: [] }])
 
       // Everything below mutates this one draft and pushes it into the last
-      // turn, so a partial answer is on screen the moment the first token
-      // arrives rather than after the run finishes.
+      // turn, so a partial answer is on screen the moment a round comes back
+      // rather than after the whole run finishes.
       const draft: Turn = { role: "assistant", text: "", steps: [] }
       const push = () => setTurns([...history, { ...draft, steps: [...(draft.steps ?? [])] }])
 
+      // One request is one round of the agent's loop; the conversation comes
+      // back in `state` and goes out again until the model stops asking for
+      // tools. That is what makes the Tracker's steps arrive as they happen —
+      // Amplify holds a response body until it is finished, so a server-side
+      // loop would show nothing for a minute and then everything at once.
+      let carry: unknown = null
+      let done = false
+      let rounds = 0
+      let usd = 0
+      let inTokens = 0
+      let outTokens = 0
+      const began = Date.now()
+
       try {
-        const response = await fetch("/api/agents/chat", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            agent: agent.slug,
-            jurisdiction: resolved ? state : undefined,
-            turns: history.map(({ role, text }) => ({ role, text })),
-          }),
-        })
+        while (!done && rounds < MAX_ROUNDS) {
+          rounds += 1
+          const response = await fetch("/api/agents/chat", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(
+              carry
+                ? { agent: agent.slug, jurisdiction: resolved ? state : undefined, state: carry }
+                : {
+                    agent: agent.slug,
+                    jurisdiction: resolved ? state : undefined,
+                    turns: history.map(({ role, text }) => ({ role, text })),
+                  }
+            ),
+          })
 
-        if (!response.body) throw new Error(`no stream (${response.status})`)
+          if (!response.body) throw new Error(`no stream (${response.status})`)
 
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ""
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ""
 
-        for (;;) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split("\n")
-          buffer = lines.pop() ?? ""
-          for (const raw of lines) {
-            if (!raw.trim()) continue
-            let event: Record<string, unknown>
-            try {
-              event = JSON.parse(raw)
-            } catch {
-              continue
-            }
-            if (event.t === "text") {
-              draft.text += String(event.v)
-            } else if (event.t === "tool") {
-              draft.steps = [
-                ...(draft.steps ?? []),
-                { kind: "tool", id: String(event.id), name: String(event.name), input: event.input },
-              ]
-            } else if (event.t === "tool_result") {
-              draft.steps = (draft.steps ?? []).map((step) =>
-                step.kind === "tool" && step.id === event.id
-                  ? { ...step, summary: String(event.summary), ok: Boolean(event.ok), ms: Number(event.ms) }
-                  : step
-              )
-            } else if (event.t === "error") {
-              draft.failed = true
-              draft.text += (draft.text ? "\n\n" : "") + String(event.message)
-            } else if (event.t === "open") {
-              draft.meta = { model: String(event.label), usd: 0, ms: 0, stopReason: "", tokens: "" }
-            } else if (event.t === "done") {
-              const usage = event.usage as { inputTokens: number; outputTokens: number }
-              draft.meta = {
-                model: draft.meta?.model ?? "",
-                usd: Number(event.usd),
-                ms: Number(event.ms),
-                stopReason: String(event.stopReason),
-                tokens: `${usage.inputTokens.toLocaleString()} in / ${usage.outputTokens.toLocaleString()} out`,
+          for (;;) {
+            const { done: finished, value } = await reader.read()
+            if (finished) break
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split("\n")
+            buffer = lines.pop() ?? ""
+            for (const raw of lines) {
+              if (!raw.trim()) continue
+              let event: Record<string, unknown>
+              try {
+                event = JSON.parse(raw)
+              } catch {
+                continue
               }
+              if (event.t === "text") {
+                draft.text += String(event.v)
+              } else if (event.t === "tool") {
+                draft.steps = [
+                  ...(draft.steps ?? []),
+                  { kind: "tool", id: String(event.id), name: String(event.name), input: event.input },
+                ]
+              } else if (event.t === "tool_result") {
+                draft.steps = (draft.steps ?? []).map((step) =>
+                  step.kind === "tool" && step.id === event.id
+                    ? { ...step, summary: String(event.summary), ok: Boolean(event.ok), ms: Number(event.ms) }
+                    : step
+                )
+              } else if (event.t === "state") {
+                carry = { messages: event.messages }
+                done = Boolean(event.done)
+              } else if (event.t === "error") {
+                draft.failed = true
+                done = true
+                draft.text += (draft.text ? "\n\n" : "") + String(event.message)
+              } else if (event.t === "open") {
+                // Only the first round names the model; later rounds must not
+                // blank the running totals already on screen.
+                draft.meta = draft.meta ?? {
+                  model: String(event.label),
+                  usd: 0,
+                  ms: 0,
+                  stopReason: "",
+                  tokens: "",
+                }
+              } else if (event.t === "done") {
+                const usage = event.usage as { inputTokens: number; outputTokens: number }
+                usd += Number(event.usd)
+                inTokens += usage.inputTokens
+                outTokens += usage.outputTokens
+                draft.meta = {
+                  model: draft.meta?.model ?? "",
+                  usd,
+                  ms: Date.now() - began,
+                  stopReason: done
+                    ? `${rounds} round${rounds === 1 ? "" : "s"}`
+                    : `round ${rounds}…`,
+                  tokens: `${inTokens.toLocaleString()} in / ${outTokens.toLocaleString()} out`,
+                }
+              }
+              push()
             }
-            push()
           }
+        }
+
+        if (!done) {
+          draft.failed = true
+          draft.text += (draft.text ? "\n\n" : "") + `Stopped after ${MAX_ROUNDS} rounds without reaching an answer.`
+          push()
         }
       } catch (error) {
         draft.failed = true

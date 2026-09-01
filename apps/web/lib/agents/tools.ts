@@ -258,11 +258,15 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
   },
 
   post_to_slack: {
+    // No channel parameter, deliberately. This route is public, so the model —
+    // and anyone who can reach the site and phrase a request — decides the
+    // text; letting it also decide the destination would turn one agent into a
+    // way to write into any channel the bot can see. The channel is the one in
+    // the secret, and that is the whole grant.
     description:
       "Post a message to the govblock Slack channel. Use it once, at the end of a tracking run, with the finished digest — not for progress notes.",
     properties: {
       text: { type: "string", description: "The message. Slack mrkdwn: *bold*, <url|label>." },
-      channel: { type: "string", description: "Channel id or name. Defaults to the configured one." },
     },
     required: ["text"],
   },
