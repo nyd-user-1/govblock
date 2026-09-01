@@ -65,10 +65,15 @@ export function resolve(url: string): unknown {
       const cycle = q.get("cycle") ?? "2026"
       const snapshot = (fecCandidates as Record<string, (typeof fecCandidates)["2026"]>)[cycle] ?? fecCandidates["2026"]
       const office = q.get("office") ?? "", party = q.get("party") ?? "", ici = q.get("ici") ?? ""
+      // The rows carry the seat's state, so the explorer can be scoped without a
+      // round trip. "US" is the explorer's own word for every state at once;
+      // "00" is the FEC's for a nationwide seat, which belongs to no one state.
+      const scope = q.get("state") ?? ""
+      const inScope = (row: FecRow) => !scope || scope === "US" || row.state === scope
       const sort = (q.get("sort") ?? "receipts") as keyof FecRow, dir = q.get("dir") === "asc" ? 1 : -1
       const offset = Number(q.get("offset") ?? 0), page = Number(q.get("limit") ?? 25)
       const rows = (cycle in fecCandidates ? snapshot.rows : [])
-        .filter((r) => (!office || r.office === office) && (!party || PARTY(r.party) === party) && (!ici || r.ici === ici))
+        .filter((r) => inScope(r) && (!office || r.office === office) && (!party || PARTY(r.party) === party) && (!ici || r.ici === ici))
         .sort((a, b) => { const x = a[sort] ?? 0, y = b[sort] ?? 0; return x > y ? dir : x < y ? -dir : 0 })
       return {
         meta: { ...snapshot.meta, cycle: Number(cycle), office, party, ici, sort, dir: dir > 0 ? "asc" : "desc", offset, matched: rows.length, returned: Math.min(page, rows.length - offset) },
