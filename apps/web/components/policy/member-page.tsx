@@ -126,9 +126,10 @@ export function MemberHeader({
             <PartyDot party={party} />({party ?? "—"})
           </span>
           <span>•</span>
-          <span>
-            {stateName(state)} {chamber}
-          </span>
+          {/* "Congress House" is not a thing anyone says. Every other
+              jurisdiction reads "New York Assembly"; the federal one reads
+              "U.S. House". */}
+          <span>{state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`}</span>
         </p>
         <p className="text-sm text-muted-foreground">
           {fmtNumber(counts.sponsored)} sponsored · {fmtNumber(counts.aye)} aye · {fmtNumber(counts.nay)} nay in the{" "}
