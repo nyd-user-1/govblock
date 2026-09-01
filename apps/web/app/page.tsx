@@ -16,7 +16,11 @@ export default function IndexPage() {
       <PageHeader className="md:**:[.container]:pb-8 lg:**:[.container]:pb-12">
         <Announcement />
         <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
-        <PageHeaderDescription>{siteConfig.description}</PageHeaderDescription>
+        <PageHeaderDescription>
+          One view over all fifty states.
+          <br />
+          Open Source. Open Code. Open Data.
+        </PageHeaderDescription>
         <PageActions>
           <Button render={<Link href="/create" />} nativeButton={false} className="h-[31px] rounded-lg">
             Build Your Own <IconArrowRight data-icon="inline-end" />
