@@ -10,10 +10,10 @@ import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
+import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
-// Chambers — each chamber with the bills before it and the members in it.
-// The seal is the avatar, and the row filters the rest of the grid.
+// Chambers — each chamber and who sits in it (Brendan, 2026-09-01: the row is
+// seal · name · members; the bill count moved out). The row filters the grid.
 type Option = { value: string; count: number }
 
 // `compact` is the docs-rail size, as on the calendar card.
@@ -49,9 +49,8 @@ export function ChambersCard({ compact = false }: { compact?: boolean }) {
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>{row.label}</ItemTitle>
-                <ItemDescription>{fmtNumber(row.members)} members</ItemDescription>
               </ItemContent>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtNumber(row.bills)}</span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtNumber(row.members)}</span>
             </Item>
           ))}
         </ItemGroup>

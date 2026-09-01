@@ -9,42 +9,29 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber, truncate } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { SubjectPicker } from "@/components/subject-picker"
+import { ChamberPills } from "@/components/chamber-pills"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
-// Committees — each with its bill count and a four-bar chart of the quarters
-// it acted. The chart is the one from shadcn's Q2 Dividend Income card.
-function Bars({ label, values }: { label: string; values?: number[] }) {
-  // The quarterly split is a fixture; there is no per-committee activity series
-  // in the database yet, so live rows simply carry no chart rather than a made
-  // up one.
-  if (!values?.length) return null
-  const max = Math.max(...values, 1)
-  return (
-    <div className="hidden h-8 w-24 items-end gap-1 md:flex" role="img" aria-label={`${label} bills by quarter`}>
-      {values.map((value, index) => (
-        <div key={index} className="min-h-1 flex-1 rounded-t-sm bg-chart-2" style={{ height: `${(value / max) * 100}%` }} />
-      ))}
-    </div>
-  )
-}
-
+// Committees — each with its bill count; the footer picks the chamber
+// (Brendan, 2026-09-01: pills, as on the Party card; the quarterly bars are gone).
 type Committee = { committee_name: string; chamber: string; bills: number }
 
 export function CommitteesCard() {
+  const [chamber, setChamber] = React.useState("")
   const { data, state, congress } = useScoped<Committee[]>("committees", null as unknown as Committee[])
   const committees = React.useMemo(
     () =>
       data
         ? [...data]
+            .filter((c) => !chamber || c.chamber === chamber)
             .sort((a, b) => b.bills - a.bills)
             .slice(0, 6)
-            .map((c) => ({ label: c.committee_name, bills: c.bills, chamber: c.chamber, bars: undefined as number[] | undefined }))
+            .map((c) => ({ label: c.committee_name, bills: c.bills, chamber: c.chamber }))
         : congress
-          ? F.committees.map((c) => ({ ...c, bars: c.bars as number[] | undefined }))
+          ? F.committees.filter((c) => !chamber || c.chamber === chamber).map((c) => ({ label: c.label, bills: c.bills, chamber: c.chamber }))
           : [],
-    [data, congress]
+    [data, congress, chamber]
   )
   return (
     <CardFrame id="committees">
@@ -70,13 +57,12 @@ export function CommitteesCard() {
                 <ItemTitle>{truncate(row.label, 30)}</ItemTitle>
                 <ItemDescription>{fmtNumber(row.bills)} bills</ItemDescription>
               </ItemContent>
-              <Bars label={row.label} values={row.bars} />
             </Item>
           ))}
         </ItemGroup>
       </CardContent>
       <CardFooter>
-        <SubjectPicker label="Chamber" allLabel="Both chambers" items={["Assembly", "Senate"]} />
+        <ChamberPills value={chamber} onChange={setChamber} />
       </CardFooter>
     </CardFrame>
   )

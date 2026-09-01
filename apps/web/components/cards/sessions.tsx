@@ -21,9 +21,9 @@ export function SessionsCard() {
         ? data.map((row) => ({
             session_year: row.session_id,
             label: row.title,
-            // The ledger cannot tell a one-year session from a two-year one, so
-            // the span is only ever printed as the year it opened.
-            years: String(row.session_id),
+            // The span when the title carries one ("2025-2026 Regular Session"),
+            // otherwise the year the session opened.
+            years: row.title.match(/\d{4}-\d{4}/)?.[0] ?? String(row.session_id),
             bills: row.bills,
           }))
         : congress
@@ -55,7 +55,7 @@ export function SessionsCard() {
                 <ItemContent>
                   <ItemTitle>{row.label}</ItemTitle>
                   <ItemDescription>
-                    {row.years} · {fmtNumber(row.bills)} bills{isCurrent ? " · current" : ""}
+                    {row.years} · {fmtNumber(row.bills)} bills
                   </ItemDescription>
                 </ItemContent>
               </Item>

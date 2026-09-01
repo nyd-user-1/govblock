@@ -4,6 +4,8 @@ import * as React from "react"
 import { EllipsisVerticalIcon } from "lucide-react"
 
 import { SIZE_CHOICES, SIZE_LABEL } from "@/lib/layout"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { usePolicy } from "@/lib/policy/use-policy"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/button"
 import { Card } from "@govblock/ui/components/card"
@@ -39,6 +41,30 @@ export function CardFrame({
   )
 }
 
+// Choose Session — the first item of every card's menu (Brendan, 2026-09-01: it
+// used to be a footer picker on some cards). The jurisdiction's own sessions,
+// newest first; choosing one writes the shared scope, so every card follows.
+function ChooseSession() {
+  const { state, session, resolved, setSession } = useJurisdiction()
+  const { data } = usePolicy<{ session_id: number; bills: number; title: string }[]>(resolved ? "sessions" : null, { state })
+  const sessions = data ?? []
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>Choose Session</DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        <DropdownMenuRadioGroup value={session ? String(session) : ""} onValueChange={(value) => setSession(String(value))}>
+          {sessions.map((row) => (
+            <DropdownMenuRadioItem key={row.session_id} value={String(row.session_id)}>
+              {row.title || String(row.session_id)}
+            </DropdownMenuRadioItem>
+          ))}
+          {!sessions.length && <DropdownMenuItem disabled>No sessions</DropdownMenuItem>}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  )
+}
+
 export function ComponentActions({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
     <div className={cn("flex items-center gap-1", className)}>
@@ -50,6 +76,7 @@ export function ComponentActions({ className, children }: { className?: string; 
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">
+          <ChooseSession />
           <DropdownMenuItem>Edit Component</DropdownMenuItem>
           <DropdownMenuItem>Choose Component</DropdownMenuItem>
           <DropdownMenuItem>Save Component</DropdownMenuItem>

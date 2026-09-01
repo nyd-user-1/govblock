@@ -14,11 +14,12 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 import { Progress } from "@govblock/ui/components/progress"
 
 // Bills — where this session's bills stand. Every status is a link into the
-// bill list filtered to it.
+// bill list filtered to it; the footer picks a status, the session lives in
+// the ⋮ menu (Brendan, 2026-09-01).
 type Option = { value: string; count: number }
 
 export function BillsCard() {
-  const { data: options, state, session, congress } = useScoped<{ statuses: Option[]; sessions: { session_id: number }[] }>(
+  const { data: options, state, congress } = useScoped<{ statuses: Option[]; sessions: { session_id: number }[] }>(
     "options",
     null as unknown as { statuses: Option[]; sessions: { session_id: number }[] }
   )
@@ -31,17 +32,6 @@ export function BillsCard() {
     }
   }, [options, bills, congress])
 
-  // The picker listed Congress's sessions whatever the scope. Take them from
-  // the jurisdiction's own ledger, and label the current one from the scope.
-  const sessions = React.useMemo(
-    () =>
-      options?.sessions
-        ? options.sessions.slice(1, 8).map((row) => String(row.session_id))
-        : congress
-          ? F.sessions.slice(1).map((row) => row.label.slice(0, 9))
-          : [],
-    [options, congress]
-  )
   return (
     <CardFrame id="bills-status">
       <CardHeader>
@@ -67,7 +57,7 @@ export function BillsCard() {
         ))}
       </CardContent>
       <CardFooter className="justify-between gap-2">
-        <SubjectPicker label="Session" allLabel={session ? String(session) : "Session"} items={sessions} />
+        <SubjectPicker label="Status" allLabel="Status" items={rows.map((row) => row.label)} />
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/bills?state=${state}`} />}>
           All bills
         </Button>

@@ -1,13 +1,14 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { fmtDate, fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { SubjectPicker } from "@/components/subject-picker"
+import { ChamberPills } from "@/components/chamber-pills"
 import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
@@ -29,7 +30,8 @@ function Tally({ yea, nay }: { yea: number; nay: number }) {
 }
 
 export function VotesCard() {
-  const { data, state } = useScoped<typeof F.votes>("rollcalls", F.votes, { limit: 5 })
+  const [chamber, setChamber] = React.useState("")
+  const { data, state } = useScoped<typeof F.votes>("rollcalls", F.votes, { limit: 5, chamber: chamber || undefined })
   return (
     <CardFrame id="votes">
       <CardHeader>
@@ -47,9 +49,7 @@ export function VotesCard() {
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>
-                  {row.bill_number} · {truncate(row.description, 28)}
-                </ItemTitle>
+                <ItemTitle>{row.bill_number}</ItemTitle>
                 <ItemDescription>
                   {fmtDate(row.date, false)} · {row.chamber}
                 </ItemDescription>
@@ -60,7 +60,7 @@ export function VotesCard() {
         </ItemGroup>
       </CardContent>
       <CardFooter>
-        <SubjectPicker label="Chamber" allLabel="Both chambers" items={["Assembly", "Senate"]} />
+        <ChamberPills value={chamber} onChange={setChamber} />
       </CardFooter>
     </CardFrame>
   )
