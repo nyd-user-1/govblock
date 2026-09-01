@@ -99,6 +99,69 @@ function dataApiTag(client: RDSDataClient): SqlTag {
   }
 }
 
+// $1 -> :p0, but only where it is really a placeholder. A scanner rather than a
+// regex because '$1' inside a string literal is data, "$1" is an identifier, and
+// $$ ... $$ is a quoted body — Postgres treats all three as text, and so must we.
+// $10 has to survive as one number, not :p0 followed by a stray 0.
+export function toNamedParameters(text: string) {
+  let out = ""
+  let i = 0
+  let highest = -1
+  while (i < text.length) {
+    const c = text[i]
+    const rest = text.slice(i)
+    if (c === "'" || c === '"') {
+      // A quote doubled inside its own literal escapes it: 'it''s'.
+      const quote = c
+      let j = i + 1
+      while (j < text.length) {
+        if (text[j] === "\\") j += 2
+        else if (text[j] === quote) {
+          if (text[j + 1] === quote) j += 2
+          else break
+        } else j += 1
+      }
+      out += text.slice(i, j + 1)
+      i = j + 1
+      continue
+    }
+    const dollarTag = /^\$[A-Za-z_]*\$/.exec(rest)
+    if (dollarTag) {
+      const tag = dollarTag[0]
+      const close = text.indexOf(tag, i + tag.length)
+      const end = close === -1 ? text.length : close + tag.length
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    if (rest.startsWith("--")) {
+      const nl = text.indexOf("\n", i)
+      const end = nl === -1 ? text.length : nl
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    if (rest.startsWith("/*")) {
+      const close = text.indexOf("*/", i + 2)
+      const end = close === -1 ? text.length : close + 2
+      out += text.slice(i, end)
+      i = end
+      continue
+    }
+    const placeholder = /^\$(\d+)/.exec(rest)
+    if (placeholder) {
+      const index = Number(placeholder[1]) - 1
+      highest = Math.max(highest, index)
+      out += `:p${index}`
+      i += placeholder[0].length
+      continue
+    }
+    out += c
+    i += 1
+  }
+  return { text: out, highest }
+}
+
 function build(): SqlTag | null {
   if (url) return neon(url) as unknown as SqlTag
   if (resourceArn && secretArn) {
@@ -108,6 +171,48 @@ function build(): SqlTag | null {
 }
 
 export const sql = build()
+
+// The positional interface livingston-v3's queries are written against —
+// `q("select ... where state = $1", [state])` — so ~46 KB of working SQL ports
+// without being rewritten. Over the Data API the placeholders are renamed; over
+// a plain Postgres URL the driver already speaks $n.
+const client = resourceArn && secretArn && !url ? new RDSDataClient({ region: process.env.AWS_REGION ?? "us-east-1" }) : null
+
+export async function q<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T[]> {
+  if (url) {
+    const neonClient = neon(url) as unknown as { query: (t: string, p: unknown[]) => Promise<unknown> }
+    return (await neonClient.query(text, params)) as T[]
+  }
+  if (!client) throw new Error("no policy database configured")
+
+  const statement = toNamedParameters(text)
+  const response = await client.send(
+    new ExecuteStatementCommand({
+      resourceArn,
+      secretArn,
+      database,
+      sql: statement.text,
+      parameters: params.map((value, i) => parameter(`p${i}`, value)),
+      includeResultMetadata: true,
+    })
+  )
+  const columns = response.columnMetadata ?? []
+  return (response.records ?? []).map((record) => {
+    const row: Record<string, unknown> = {}
+    record.forEach((field, i) => {
+      const column = columns[i]
+      row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+    })
+    return row as T
+  })
+}
+
+export async function one<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T | null> {
+  const rows = await q<T>(text, params)
+  return rows[0] ?? null
+}
+
+export const n = (value: unknown) => Number(value ?? 0)
 
 export function hasDatabase() {
   return !!sql

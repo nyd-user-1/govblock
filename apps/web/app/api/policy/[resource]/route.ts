@@ -1,0 +1,192 @@
+import { NextResponse } from "next/server"
+
+import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
+import {
+  getActivity,
+  getBill,
+  getBillByNumber,
+  getBillVotes,
+  getBills,
+  getBillText,
+  getCommittee,
+  getCommittees,
+  getHearingDays,
+  getHearings,
+  getMember,
+  getMemberRecord,
+  getMembers,
+  getNewsroom,
+  getOptions,
+  getPartySeats,
+  getRecentTexts,
+  getRollCalls,
+  getSessions,
+  getSessionsWithTitles,
+  getStates,
+  getStream,
+  getSubjects,
+  getTallies,
+  getTopSponsors,
+  latestHearingDate,
+  NY_ONLY,
+  resolve,
+} from "@/lib/policy/db-queries"
+
+// Every legislative read the client makes, scoped by ?state= and ?session=.
+// Ported from livingston-v3's route of the same name.
+
+export const dynamic = "force-dynamic"
+
+// Half an hour at the edge, stale-while-revalidate behind it. This is what
+// makes the switcher cheap: CloudFront caches per URL, so 52 jurisdictions cost
+// ~52 Aurora reads per half hour rather than one per visitor.
+const CACHE = "public, s-maxage=1800, stale-while-revalidate=86400"
+
+function int(value: string | null, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function today(offsetDays = 0) {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + offsetDays)
+  return d.toISOString().slice(0, 10)
+}
+
+async function dispatch(resource: string, sp: URLSearchParams) {
+  const filters = readFilters(sp)
+  const state = filters.state || DEFAULT_STATE
+
+  // Some tables are New York's alone and carry no state column. Under any
+  // other scope the honest answer names what was asked for rather than handing
+  // back New York's rows wearing another state's name.
+  if ((NY_ONLY as readonly string[]).includes(resource) && state !== "NY") {
+    throw new Error(`${resource} is a New York dataset. Nothing for ${stateName(state)}.`)
+  }
+
+  switch (resource) {
+    case "states":
+      return getStates()
+    case "sessions":
+      // Titles cost a cold read of "Bills" (15 s for Texas); only the surfaces
+      // that actually show one ask for them.
+      return sp.get("titles") ? getSessionsWithTitles(state) : getSessions(state)
+    case "options":
+      return getOptions(await resolve(filters))
+    case "subjects":
+      return getSubjects(await resolve(filters))
+    case "members":
+      return getMembers(await resolve(filters))
+    case "member": {
+      const f = await resolve(filters)
+      const id = int(sp.get("id") ?? f.member ?? null, 0)
+      if (!id) throw new Error("member id required")
+      return getMember(id, f.session)
+    }
+    case "record": {
+      const f = await resolve(filters)
+      const id = int(sp.get("id") ?? f.member ?? null, 0)
+      if (!id) throw new Error("member id required")
+      return getMemberRecord(f, id, int(sp.get("limit"), 50))
+    }
+    case "sponsors":
+      return getTopSponsors(await resolve(filters), int(sp.get("limit"), 8))
+    case "seats":
+      return getPartySeats(state)
+    case "tallies":
+      return getTallies(state)
+    case "committees":
+      return getCommittees(await resolve(filters))
+    case "committee": {
+      const f = await resolve(filters)
+      const name = sp.get("name") ?? f.committee
+      if (!name) throw new Error("committee name required")
+      return getCommittee(f, name)
+    }
+    case "bills": {
+      const f = await resolve(filters)
+      return getBills(f, int(sp.get("limit"), 40), int(sp.get("offset"), 0) || 0)
+    }
+    case "bill": {
+      const f = await resolve(filters)
+      let id = int(sp.get("id") ?? f.bill ?? null, 0)
+      if (!id && sp.get("number")) {
+        id = Number((await getBillByNumber(f.state, f.session, sp.get("number")!))?.bill_id ?? 0)
+      }
+      if (!id) {
+        const { rows } = await getBills(f, 1)
+        id = rows[0]?.bill_id ?? 0
+      }
+      if (!id) return null
+      return getBill(id)
+    }
+    case "text": {
+      const f = await resolve(filters)
+      const id = int(sp.get("id") ?? f.bill ?? null, 0)
+      if (!id) throw new Error("bill id required")
+      return getBillText(id, int(sp.get("document"), 0) || undefined)
+    }
+    case "texts":
+      return getRecentTexts(await resolve(filters), int(sp.get("limit"), 60))
+    case "votes": {
+      const f = await resolve(filters)
+      const id = int(sp.get("id") ?? f.bill ?? null, 0)
+      if (!id) throw new Error("bill id required")
+      return getBillVotes(id)
+    }
+    case "hearings": {
+      const f = await resolve(filters)
+      return getHearings(
+        f.state,
+        f.session,
+        sp.get("from") ?? today(-30),
+        sp.get("to") ?? today(60),
+        sp.get("committee") ?? f.committee,
+        int(sp.get("limit"), 3000)
+      )
+    }
+    case "hearing-days": {
+      const f = await resolve(filters)
+      return getHearingDays(f.state, f.session, sp.get("from") ?? today(-365), sp.get("to") ?? today(365))
+    }
+    case "latest-hearing": {
+      const f = await resolve(filters)
+      return { date: await latestHearingDate(f.state, f.session) }
+    }
+    case "rollcalls":
+      return getRollCalls(await resolve(filters), int(sp.get("limit"), 120))
+    case "newsroom":
+      return getNewsroom(await resolve(filters), int(sp.get("days"), 14))
+    case "activity":
+      return getActivity(await resolve(filters))
+    case "stream": {
+      const named = sp.get("states")
+      const requested = (named ?? state)
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean)
+      return getStream([...new Set(requested)].slice(0, 6), int(sp.get("limit"), 12))
+    }
+    default:
+      return undefined
+  }
+}
+
+export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
+  const { resource } = await params
+  const sp = new URL(request.url).searchParams
+  try {
+    const data = await dispatch(resource, sp)
+    if (data === undefined) {
+      return NextResponse.json({ error: `unknown resource ${resource}` }, { status: 404 })
+    }
+    return NextResponse.json(data, { headers: { "cache-control": CACHE } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`policy/${resource} failed`, message)
+    // 503, not 500: the caller decides whether to stand in a snapshot, and it
+    // may only do so for Congress (§0.2 — never one jurisdiction's rows under
+    // another's name).
+    return NextResponse.json({ error: message, resource }, { status: 503 })
+  }
+}
