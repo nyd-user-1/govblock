@@ -32,6 +32,13 @@ const host = (href: string) => {
   }
 }
 
+// A bill's record changes under it — an action, a cosponsor, and above all a new
+// text version as it moves. The twelve prerendered here would otherwise be
+// frozen at build time: HB10160's introduced text landed in Aurora and the page
+// still said "No text on file yet", because nothing asked it again. The rest of
+// the app already revalidates hourly.
+export const revalidate = 3600
+
 export function generateStaticParams() {
   return Object.keys(BILLS).map((id) => ({ id }))
 }
