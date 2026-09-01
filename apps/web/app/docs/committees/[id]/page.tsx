@@ -60,6 +60,9 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
   const committee = known(code)
   if (!committee) notFound()
   const record = await getCommittee({ state: "US", session: 2025 }, committee.name)
+  // `bills` is the 25 most recent; the true total is the status breakdown,
+  // which counts every bill referred this session.
+  const referred = record.statuses.reduce((total, row) => total + row.bills, 0)
   const title = `${committee.name} Committee`
   const description = `Bills before the committee this session, the meetings it held, and the reports and transcripts it filed.`
   const markdown = [`# ${title}`, "", description].join("\n")
@@ -97,7 +100,7 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
               </p>
             </div>
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              <CommitteeAbout bills={record.bills.length} />
+              <CommitteeAbout bills={referred} />
 
               <H2>Bills</H2>
               {record.bills.length ? (
@@ -125,6 +128,11 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
                 </Table>
               ) : (
                 <p>No bills before this committee this session.</p>
+              )}
+              {referred > record.bills.length && (
+                <p>
+                  Showing the {record.bills.length} most recent of {referred.toLocaleString("en-US")}.
+                </p>
               )}
 
               <CommitteeSubcommittees />
