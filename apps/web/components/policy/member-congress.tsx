@@ -3,7 +3,6 @@
 import * as React from "react"
 
 import { fmtDate, fmtNumber } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { day } from "@/lib/policy/congress"
 import { MemberPortrait } from "@/components/policy/imagery"
