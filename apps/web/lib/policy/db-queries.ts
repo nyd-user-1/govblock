@@ -539,7 +539,7 @@ export async function getMembers(f: Resolved) {
     active: boolean
   }>(
     `select p.people_id, p.name, p.first_name, p.last_name, p.party, p.role,
-            p.chamber, p.district, p.photo_url, p.leadership_title,
+            p.chamber, p.district, p.photo_url, p.leadership_title, p.bioguide_id,
             (sp.people_id is not null) as active
      from "People" p
      left join "SessionPeople" sp
@@ -1374,15 +1374,52 @@ async function congressCount(table: string, where = "", params: unknown[] = []) 
   return n(row?.n);
 }
 
-export async function getAmendments(limit = 50, offset = 0) {
+/**
+ * The scoped answer echoes what it was scoped to.
+ *
+ * These resources took `bill=` and ignored it, so a bill page asking for HR 1's
+ * amendments got all 7,035 and the fetch "succeeded" with the wrong rows — the
+ * quietest kind of wrong. A caller can now tell a scoped answer from a family
+ * list by looking at the envelope, and a scope we cannot honour is an error
+ * rather than everything.
+ */
+export async function getAmendments(limit = 50, offset = 0, billId?: number) {
+  if (billId) {
+    const rows = await q<{ payload: unknown }>(
+      `select payload from congress_amendments where amended_bill_id = $1
+        order by update_date desc nulls last, key limit $2 offset $3`, [billId, limit, offset]);
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId]);
+    return { bill: billId, count: n(total?.n), amendments: rows.map((r) => r.payload) };
+  }
   return { count: await congressCount("congress_amendments"), amendments: await congressFamily("congress_amendments", limit, offset) };
 }
 
-export async function getCommitteeReports(limit = 50, offset = 0) {
+export async function getCommitteeReports(limit = 50, offset = 0, billId?: number) {
+  if (billId) {
+    const rows = await q<{ payload: unknown }>(
+      `select payload from congress_committee_reports where bill_id = $1
+        order by update_date desc nulls last, key limit $2 offset $3`, [billId, limit, offset]);
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_committee_reports where bill_id = $1`, [billId]);
+    return { bill: billId, count: n(total?.n), reports: rows.map((r) => r.payload) };
+  }
   return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) };
 }
 
-export async function getLaws(limit = 250, offset = 0) {
+// congress.gov's bill type <- our bill_number prefix, the same table the sync
+// and api/bill-text.ts carry, so the three agree on what a bill is called.
+const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" };
+
+/** A law IS a bill, so this one can be scoped without any new linkage. */
+export async function getLaws(limit = 250, offset = 0, billId?: number) {
+  if (billId) {
+    const bill = await one<{ bill_number: string; session_id: number }>(
+      `select bill_number, session_id from "Bills" where bill_id = $1 and state = 'US'`, [billId]);
+    if (!bill) return { bill: billId, count: 0, bills: [] };
+    const prefix = String(bill.bill_number).replace(/[0-9].*$/, "").toUpperCase();
+    const key = `${Math.floor((n(bill.session_id) - 1789) / 2) + 1}-${CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix}-${String(bill.bill_number).replace(/^[A-Z]+/, "")}`;
+    const rows = await q<{ payload: unknown }>(`select payload from congress_laws where key = $1`, [key]);
+    return { bill: billId, count: rows.length, bills: rows.map((r) => r.payload) };
+  }
   return { count: await congressCount("congress_laws"), bills: await congressFamily("congress_laws", limit, offset) };
 }
 
@@ -1403,6 +1440,12 @@ export async function getTreaties(limit = 50, offset = 0) {
 }
 
 /** One member, by bioguide id — the record that carries the official portrait. */
+/** Our people_id -> the bioguide the congress.gov tables are keyed on. */
+export async function bioguideOf(peopleId: number) {
+  const row = await one<{ bioguide_id: string | null }>(`select bioguide_id from "People" where people_id = $1`, [peopleId]);
+  return row?.bioguide_id ?? null;
+}
+
 export async function getMemberDetail(bioguideId: string) {
   const row = await one<{ payload: unknown; portrait_url: string | null }>(
     `select payload, portrait_url from congress_members where key = $1`, [String(bioguideId).toUpperCase()],
@@ -1431,12 +1474,17 @@ export async function getCommitteeDetail(systemCode: string) {
  * given version is part of the answer.
  */
 export async function getTextVersions(billId: number) {
-  return q<{ document_id: number; version: string; source: string; chars: number; fetched_at: string | null; url: string | null }>(
-    `select t.document_id, t.version, t.source, t.chars, t.fetched_at, d.url
+  // `date` is the stage's own date — when the bill was introduced, reported,
+  // engrossed — not when we fetched it. A version list without it cannot be read
+  // as a timeline, which is the only reason to show one.
+  return q<{ document_id: number; version: string; source: string; chars: number; date: string | null; fetched_at: string | null; url: string | null }>(
+    `select t.document_id, t.version, t.source, t.chars,
+            coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) as date,
+            t.fetched_at, d.url
        from "BillTexts" t
        left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
       where t.bill_id = $1
-      order by t.document_id desc`,
+      order by coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) desc nulls last, t.document_id desc`,
     [billId],
   );
 }

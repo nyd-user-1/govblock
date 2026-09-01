@@ -28,6 +28,7 @@ import {
   getStates,
   getStream,
   getSubjects,
+  bioguideOf,
   getCommitteeDetail,
   getCommitteeMeetings,
   getCommitteeReports,
@@ -218,12 +219,15 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       if (!id) throw new Error("bill id required")
       return getTextVersions(id)
     }
+    // `bill=` is honoured, not ignored. These three took the parameter and
+    // returned the whole family, so a bill page asking for HR 1's amendments got
+    // all 7,035 and the fetch succeeded with the wrong rows.
     case "amendments":
-      return getAmendments(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+      return getAmendments(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "committee-reports":
-      return getCommitteeReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+      return getCommitteeReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "laws":
-      return getLaws(int(sp.get("limit"), 250), int(sp.get("offset"), 0) || 0)
+      return getLaws(int(sp.get("limit"), 250), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "nominations":
       return getNominations(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     case "committee-meetings":
@@ -233,7 +237,11 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "treaties":
       return getTreaties(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     case "member-detail": {
-      const id = sp.get("bioguide") ?? sp.get("id")
+      // Pages hold our people_id, not the bioguide the congress.gov tables are
+      // keyed on; translate rather than making every caller do it.
+      const peopleId = int(sp.get("member"), 0)
+      const id = peopleId ? await bioguideOf(peopleId) : (sp.get("bioguide") ?? sp.get("id"))
+      if (peopleId && !id) return { member: null, people_id: peopleId, detail: "no bioguide on file for that member" }
       if (!id) return { members: await getMembersWithPortraits(int(sp.get("limit"), 600)) }
       return getMemberDetail(id)
     }
