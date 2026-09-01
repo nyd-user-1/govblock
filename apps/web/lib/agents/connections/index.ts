@@ -9,6 +9,16 @@ import { slack } from "@/lib/agents/connections/slack"
 // (Drive and Gmail) and Microsoft as first-class vendors. The evaluation and
 // the ruling live in prompts/2026-09-01-bedrock-agents.md §3.
 //
+// The adoption trigger, ruled 2026-09-01: Slack ships now as a bot token in
+// Secrets Manager, because one workspace bot posting to one channel needs no
+// OAuth flow and AgentCore Identity would want a Cognito pool and a
+// workload-identity token to hand back a string we can already read. Move to
+// AgentCore Identity at whichever comes first — a SECOND workspace, or the
+// FIRST per-user token (a connection acting as the reader rather than as the
+// app, which is what Drive and Gmail will be). At that point the OAuth dance is
+// real work we would otherwise write ourselves, and its SlackOauth2 /
+// GoogleOauth2 / MicrosoftOauth2 vendors already cover the list.
+//
 // Whatever the vault turns out to be, the shape below is what an agent sees:
 // a name, where the credential comes from, whether it is live right now, and
 // the tools it contributes. Adding Drive, Gmail or Discord is a new file in

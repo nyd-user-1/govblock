@@ -27,16 +27,23 @@ export type ToolName =
   | "top_sponsors"
   | "post_to_slack"
 
+// Converse types a tool's input schema as DocumentType — JSON, all the way
+// down — so `Record<string, unknown>` will not go in. Naming the two shapes a
+// JSON-Schema property can actually take here is both what the API wants and a
+// check that no tool grows a parameter the model cannot be told the type of.
+type SchemaProperty = { type: "string" | "integer" | "boolean"; description: string }
+type Schema = { type: "object"; properties: Record<string, SchemaProperty>; required: string[] }
+
 type Definition = {
   description: string
-  properties: Record<string, unknown>
+  properties: Record<string, SchemaProperty>
   required?: string[]
   /** resource + query string for /api/policy; absent for connection tools. */
   request?: (input: Record<string, string>) => string
   shape?: (data: unknown, input: Record<string, string>) => unknown
 }
 
-const JURISDICTION = {
+const JURISDICTION: SchemaProperty = {
   type: "string",
   description:
     "Two-letter jurisdiction code. 'US' is Congress; the 50 states and DC use their postal codes. Defaults to US.",
@@ -240,17 +247,12 @@ export function normalise(name: ToolName, input: Record<string, unknown>): Recor
 
 export function toolSpec(name: ToolName): Tool {
   const definition = DEFINITIONS[name]
+  const json: Schema = {
+    type: "object",
+    properties: definition.properties,
+    required: definition.required ?? [],
+  }
   return {
-    toolSpec: {
-      name,
-      description: definition.description,
-      inputSchema: {
-        json: {
-          type: "object",
-          properties: definition.properties,
-          required: definition.required ?? [],
-        },
-      },
-    },
+    toolSpec: { name, description: definition.description, inputSchema: { json } },
   }
 }
