@@ -9,11 +9,10 @@ import {
   billRef,
   congressGovHref,
   day,
-  familyCount,
-  scopedRows,
   stageRank,
   summaryParagraphs,
 } from "@/lib/policy/congress"
+import { useCongress } from "@/lib/policy/use-congress"
 import { H2, Table } from "@/components/typeset"
 import { BillText } from "@/components/bill-text"
 import { DocsTableOfContents } from "@/components/docs-toc"
@@ -82,10 +81,9 @@ type LawBill = {
   type?: string
   number?: string
   laws?: { number?: string; type?: string }[]
-}
-type LawAnswer = {
+  // CRS's one-line classification of the bill. It rides on the bill record the
+  // law family is cut from; where the route trims it, it is simply absent.
   policyArea?: { name?: string } | null
-  introducedDate?: string | null
 }
 
 type Bill = { billId: number; billNumber: string }
@@ -120,93 +118,57 @@ export function BillCongressProvider({
   children,
 }: Bill & { children: React.ReactNode }) {
   const { state, resolved } = useJurisdiction()
-  const bill = String(billId)
   const on = resolved && state === "US"
+  const bill = String(billId)
+  const scope = React.useMemo(() => ({ param: "bill", value: bill }), [bill])
+  const ref = React.useMemo(() => billRef(billNumber), [billNumber])
   const ask = (resource: string) => (on ? resource : null)
 
-  const versions = usePolicy<Version[]>(
-    ask("text-versions"),
-    { state },
-    { bill }
-  )
-  const summaries = usePolicy<unknown>(ask("summaries"), { state }, { bill })
-  const amendments = usePolicy<unknown>(
-    ask("amendments"),
-    { state },
-    { bill, limit: 50 }
-  )
-  const related = usePolicy<unknown>(ask("related-bills"), { state }, { bill })
-  const titles = usePolicy<unknown>(ask("titles"), { state }, { bill })
-  const reports = usePolicy<unknown>(
-    ask("committee-reports"),
-    { state },
-    { bill }
-  )
-  const cosponsors = usePolicy<unknown>(ask("cosponsors"), { state }, { bill })
-  const laws = usePolicy<unknown>(ask("laws"), { state }, { bill })
-
-  const value = React.useMemo<Congress>(() => {
-    const ref = billRef(billNumber)
-    // An amendment belongs on this page only if its own record says it amends
-    // this bill; a law row only if it is this bill's row.
-    const isThisBill = (row: {
-      amendedBill?: { number?: string; type?: string }
-    }) =>
+  // An amendment belongs on this page only if its own record says it amends
+  // this bill; a law row only if it is this bill's row.
+  const amends = React.useCallback(
+    (row: Amendment) =>
       !!ref &&
       String(row.amendedBill?.type ?? "").toUpperCase() === ref.type &&
-      String(row.amendedBill?.number ?? "") === ref.number
-    const isThisLaw = (row: LawBill) =>
-      !!ref &&
-      String(row.type ?? "").toUpperCase() === ref.type &&
-      String(row.number ?? "") === ref.number
+      String(row.amendedBill?.number ?? "") === ref.number,
+    [ref]
+  )
+  const enacts = React.useCallback(
+    (row: LawBill) =>
+      !!ref && String(row.type ?? "").toUpperCase() === ref.type && String(row.number ?? "") === ref.number,
+    [ref]
+  )
 
-    const scope = { param: "bill", value: bill }
-    const lawRows = scopedRows<LawBill>(laws.data, "bills", scope, isThisLaw)
-    const amendmentRows = scopedRows<Amendment>(
-      amendments.data,
-      "amendments",
-      scope,
-      isThisBill
-    )
-    const answer = (laws.data ?? {}) as LawAnswer
-    return {
+  const versions = useCongress<Version>(ask("text-versions"), "textVersions", scope, { bill })
+  const summaries = useCongress<Summary>(ask("summaries"), "summaries", scope, { bill })
+  const amendments = useCongress<Amendment>(ask("amendments"), "amendments", scope, { bill, limit: 50 }, amends)
+  const related = useCongress<Related>(ask("related-bills"), "relatedBills", scope, { bill })
+  const titles = useCongress<Title>(ask("titles"), "titles", scope, { bill })
+  const reports = useCongress<Report>(ask("committee-reports"), "reports", scope, { bill })
+  const cosponsors = useCongress<Cosponsor>(ask("cosponsors"), "cosponsors", scope, { bill })
+  const laws = useCongress<LawBill>(ask("laws"), "bills", scope, { bill }, enacts)
+
+  const value = React.useMemo<Congress>(
+    () => ({
       billId,
       billNumber,
       ready: on,
       onCongress: on,
-      versions: [
-        ...scopedRows<Version>(versions.data, "textVersions", scope),
-      ].sort(
-        (a, b) =>
-          stageRank(a.version) - stageRank(b.version) ||
-          day(a.date).localeCompare(day(b.date))
+      versions: [...versions.rows].sort(
+        (a, b) => stageRank(a.version) - stageRank(b.version) || day(a.date).localeCompare(day(b.date))
       ),
-      summaries: [
-        ...scopedRows<Summary>(summaries.data, "summaries", scope),
-      ].sort((a, b) => day(b.actionDate).localeCompare(day(a.actionDate))),
-      amendments: amendmentRows,
-      amendmentTotal: familyCount(amendments.data, amendmentRows),
-      related: scopedRows<Related>(related.data, "relatedBills", scope),
-      titles: scopedRows<Title>(titles.data, "titles", scope),
-      reports: scopedRows<Report>(reports.data, "reports", scope),
-      cosponsors: scopedRows<Cosponsor>(cosponsors.data, "cosponsors", scope),
-      law: lawRows[0]?.laws?.[0] ?? null,
-      policyArea: answer.policyArea?.name ?? null,
-    }
-  }, [
-    billId,
-    billNumber,
-    bill,
-    on,
-    versions.data,
-    summaries.data,
-    amendments.data,
-    related.data,
-    titles.data,
-    reports.data,
-    cosponsors.data,
-    laws.data,
-  ])
+      summaries: [...summaries.rows].sort((a, b) => day(b.actionDate).localeCompare(day(a.actionDate))),
+      amendments: amendments.rows,
+      amendmentTotal: amendments.count,
+      related: related.rows,
+      titles: titles.rows,
+      reports: reports.rows,
+      cosponsors: cosponsors.rows,
+      law: laws.rows[0]?.laws?.[0] ?? null,
+      policyArea: laws.rows[0]?.policyArea?.name ?? null,
+    }),
+    [billId, billNumber, on, versions.rows, summaries.rows, amendments.rows, amendments.count, related.rows, titles.rows, reports.rows, cosponsors.rows, laws.rows]
+  )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

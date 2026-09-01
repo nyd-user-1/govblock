@@ -147,3 +147,11 @@ export function stageRank(version: string | null | undefined) {
     if (name.includes(STAGES[i])) return i
   return STAGES.length
 }
+
+/** The rows of an unscoped family answer, whatever envelope it arrived in. */
+export function rowsOf<T>(data: unknown, key: string): T[] {
+  if (Array.isArray(data)) return data as T[]
+  if (!data || typeof data !== "object") return []
+  const rows = (data as Record<string, unknown>)[key]
+  return Array.isArray(rows) ? (rows as T[]) : []
+}
