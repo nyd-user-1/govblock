@@ -3,9 +3,9 @@ import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
 import { TEXTS } from "@/lib/data"
-import stream from "@/lib/data/stream-changelog.json"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
+import { getStream, type StreamBill } from "@/lib/policy/stream"
 import { CodeFigure, printedWithChanges } from "@/components/code-block"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { FlagChip } from "@/components/policy/imagery"
@@ -16,21 +16,22 @@ import { Button } from "@govblock/ui/components/nova/button"
 // action as the step, the text as the titled code block beneath with the
 // amended lines highlighted.
 export const metadata = { title: "Changelog", description: "Latest updates and announcements." }
+// Rebuilt every hour from mv_stream_latest.
+export const revalidate = 3600
 
 const STREAMS = ["NY", "NJ", "US"]
 const PER_STREAM = 4
 const LONG = 14
 
-type Entry = (typeof stream)[number]["bills"][number] & { state: string; session: number }
+type Entry = StreamBill & { state: string; session: number }
 
-const entries: Entry[] = stream
-  .filter((group) => STREAMS.includes(group.state))
-  .flatMap((group) => group.bills.slice(0, PER_STREAM).map((bill) => ({ ...bill, state: group.state, session: group.session })))
-  .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
-
-export default function ChangelogV2Page() {
+export default async function ChangelogV2Page() {
+  const { groups, source } = await getStream({ states: STREAMS, limit: PER_STREAM })
+  const entries: Entry[] = groups
+    .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
+    .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+    <div data-slot="docs" data-source={source} className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
         <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">

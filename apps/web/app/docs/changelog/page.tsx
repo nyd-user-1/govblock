@@ -1,32 +1,34 @@
 import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
-import stream from "@/lib/data/stream-changelog.json"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
+import { getStream, type StreamBill } from "@/lib/policy/stream"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/nova/button"
 
 // Ported from livingston-v3 app/(app)/docs/changelog/page.tsx: bills as they
 // move, across jurisdictions, in the changelog's own layout.
 export const metadata = { title: "Changelog", description: "Latest updates and announcements." }
+// Rebuilt every hour from mv_stream_latest.
+export const revalidate = 3600
 
 const NUMBER_OF_LATEST_PAGES = 5
 
-type Entry = (typeof stream)[number]["bills"][number] & { state: string; session: number }
-
-const entries: Entry[] = stream
-  .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
-  .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
+type Entry = StreamBill & { state: string; session: number }
 
 const workspaceHref = (bill: Entry) => `/typeset?state=${bill.state}&session=${bill.session}&bill=${bill.bill_id}`
 
-export default function ChangelogPage() {
+export default async function ChangelogPage() {
+  const { groups, source } = await getStream({ limit: 40 })
+  const entries: Entry[] = groups
+    .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
+    .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
   const latestPages = entries.slice(0, NUMBER_OF_LATEST_PAGES)
   const olderPages = entries.slice(NUMBER_OF_LATEST_PAGES)
 
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+    <div data-slot="docs" data-source={source} className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
         <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
