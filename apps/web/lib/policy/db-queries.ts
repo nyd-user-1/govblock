@@ -1801,11 +1801,20 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                limit s.cap
              ) x
            ),
+           -- ts_headline is the expensive half of this query — it detoasts the
+           -- body and re-parses it — so the row set is cut to what can actually
+           -- be returned *before* it runs. "picked" can hold 8 + 2x51 = 110 rows
+           -- when every jurisdiction matches; without this the query pays for
+           -- 110 headlines to show at most $7 of them. $8 leaves headroom for
+           -- the unhighlighted rows dropped below.
+           shortlist as (
+             select * from picked order by tier, state, bill_id desc limit $8
+           ),
            snippets as (
              select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title,
                     ts_headline('english', left(${BODY}, 200000),
                                 websearch_to_tsquery('english', $5), $6) as snippet
-             from picked p
+             from shortlist p
              join "Bills" b on b.bill_id = p.bill_id
              join "BillTexts" t on t.document_id = p.document_id
            )
@@ -1819,7 +1828,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
            where snippet like '%«%'
            order by tier, state
            limit $7`,
-          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12]
+          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12, limit + 24]
         )
       : Promise.resolve([]),
   ])
