@@ -73,6 +73,12 @@ function Shell({
 const has = (query: string, ...values: (string | number | null | undefined)[]) =>
   !query || values.some((value) => String(value ?? "").toLowerCase().includes(query))
 
+// The families arrive in the order their table was last touched, which is not
+// an order anyone reads in. Each page sorts on the date it prints.
+const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
+const byDate = <T,>(rows: T[], date: (row: T) => unknown) =>
+  [...rows].sort((a, b) => day(date(b)).localeCompare(day(date(a))))
+
 // ---------------------------------------------------------------- nominations
 
 type Nomination = {
@@ -89,7 +95,11 @@ type Nomination = {
 export function NominationsList() {
   const { rows, count } = useCongress<Nomination>("nominations", "nominations", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => rows.filter((row) => has(query, row.description, row.organization, row.citation)),
+    (query: string) =>
+      byDate(
+        rows.filter((row) => has(query, row.description, row.organization, row.citation)),
+        (row) => row.latestAction?.actionDate ?? row.receivedDate
+      ),
     [rows]
   )
   return (
@@ -155,7 +165,7 @@ type CrsReport = {
 export function ReportsList() {
   const { rows, count } = useCongress<CrsReport>("crs-reports", "CRSReports", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => rows.filter((row) => has(query, row.title, row.contentType, row.id)),
+    (query: string) => byDate(rows.filter((row) => has(query, row.title, row.contentType, row.id)), (row) => row.publishDate),
     [rows]
   )
   return (
@@ -214,7 +224,7 @@ const digestHref = (volume?: number, issue?: string) =>
 export function RecordList() {
   const { rows, count } = useCongress<Issue>("record-issues", "dailyCongressionalRecord", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => rows.filter((row) => has(query, row.issueDate, row.issueNumber, row.volumeNumber)),
+    (query: string) => byDate(rows.filter((row) => has(query, row.issueDate, row.issueNumber, row.volumeNumber)), (row) => row.issueDate),
     [rows]
   )
   return (
@@ -272,7 +282,11 @@ type Law = {
 export function LawsList() {
   const { rows, count } = useCongress<Law>("laws", "bills", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => rows.filter((row) => has(query, row.title, row.laws?.[0]?.number, `${row.type}${row.number}`)),
+    (query: string) =>
+      byDate(
+        rows.filter((row) => has(query, row.title, row.laws?.[0]?.number, `${row.type}${row.number}`)),
+        (row) => row.latestAction?.actionDate
+      ),
     [rows]
   )
   return (
