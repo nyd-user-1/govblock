@@ -112,6 +112,7 @@ const FIXTURES: Record<string, () => Promise<{ default: unknown }>> = {
   "committee-reports": () => import("@/lib/data/congress/committee-reports.json"),
   laws: () => import("@/lib/data/congress/laws.json"),
   "member-detail": () => import("@/lib/data/congress/member-detail.json"),
+  "house-votes": () => import("@/lib/data/congress/house-votes.json"),
   "member-votes": () => import("@/lib/data/congress/house-votes.json"),
   "committee-detail": () => import("@/lib/data/congress/committee-detail.json"),
   "committee-meetings": () => import("@/lib/data/congress/committee-meetings.json"),
