@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { siteConfig } from "@/lib/config"
 import { fontVariables } from "@/lib/fonts"
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       className={cn(fontVariables, "[--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)]")}
     >
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
+        <NuqsAdapter>
         <ThemeProvider>
           <TooltipProvider delay={0}>
             <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden">
@@ -35,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
           </TooltipProvider>
         </ThemeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   )

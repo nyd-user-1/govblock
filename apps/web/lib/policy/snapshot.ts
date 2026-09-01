@@ -7,6 +7,10 @@ import textBodies from "@/lib/data/text-bodies-us.json"
 import fecCandidates from "@/lib/data/fec-candidates-us.json"
 import fecManifest from "@/lib/data/fec-manifest.json"
 import states from "@/lib/data/states.json"
+import options from "@/lib/data/options-us.json"
+import sessions from "@/lib/data/sessions-us.json"
+import subjects from "@/lib/data/subjects-us.json"
+import { billsOnFile } from "@/lib/policy/queries"
 
 // What livingston-v3's /api/policy/* and /api/fec/* answered for Congress on
 // 2026-09-01, answered here from lib/data instead. The boards still ask by
@@ -24,6 +28,20 @@ export function resolve(url: string): unknown {
   switch (pathname) {
     case "/api/policy/states":
       return states
+    case "/api/policy/sessions":
+      return sessions
+    case "/api/policy/options":
+      return options
+    case "/api/policy/subjects":
+      return subjects
+    case "/api/policy/bills": {
+      const rows = billsOnFile()
+      return { rows: limit ? rows.slice(0, limit) : rows, total: rows.length }
+    }
+    case "/api/policy/bill": {
+      const rows = billsOnFile()
+      return rows.find((b) => String(b.bill_id) === q.get("bill")) ?? rows[0]
+    }
     case "/api/policy/committees":
       return F.committeesAll
     case "/api/policy/members":

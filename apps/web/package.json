@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/react": "^4.0.90",
     "@base-ui/react": "^1.7.0",
     "@govblock/ui": "workspace:*",
     "@hugeicons/core-free-icons": "^4.3.0",
@@ -19,6 +20,7 @@
     "@internationalized/date": "^3.12.3",
     "@neondatabase/serverless": "^1.1.0",
     "@tabler/icons-react": "^3.46.0",
+    "ai": "^7.0.87",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.38.0",
     "next": "16.2.6",
