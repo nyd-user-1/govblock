@@ -3,7 +3,6 @@
 import * as React from "react"
 
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import {
   billRef,
@@ -24,9 +23,10 @@ import { DocsTableOfContents } from "@/components/docs-toc"
 //
 // Every section is a section of the page that already exists, in the page's own
 // voice: an H2, a Table or a list, an honest sentence when there is nothing.
-// None of it paints before the jurisdiction resolves, and none of it paints at
-// all outside Congress: these are federal records and they say so rather than
-// standing under another state's header.
+// The path names one bill, so every read here is made in that bill's own
+// jurisdiction rather than the reader's: a federal bill's amendments are
+// federal records whoever is looking at them. Nothing is prerendered, so the
+// shell every reader shares still says nothing about a jurisdiction.
 
 type Version = {
   document_id: number | null
@@ -86,7 +86,7 @@ type LawBill = {
   policyArea?: { name?: string } | null
 }
 
-type Bill = { billId: number; billNumber: string }
+type Bill = { billId: number; billNumber: string; state: string }
 
 type Congress = Bill & {
   ready: boolean
@@ -106,23 +106,20 @@ type Congress = Bill & {
 const Ctx = React.createContext<Congress | null>(null)
 const use = () => React.useContext(Ctx)
 
-// The page's half of lane C's US_ONLY: named, not merely absent. It avoids
-// the word it is about, because the sentence is also what a reader would see
-// flash on the prerendered shell before the jurisdiction resolves.
-const FEDERAL =
-  "The text versions, summaries, amendments and titles on this bill are federal records. They read under the federal jurisdiction."
-
 export function BillCongressProvider({
   billId,
   billNumber,
+  state,
   children,
 }: Bill & { children: React.ReactNode }) {
-  const { state, resolved } = useJurisdiction()
-  const on = resolved && state === "US"
+  // The path names one bill, and a bill belongs to a jurisdiction of its own.
+  // A federal bill's text versions and amendments are federal records whoever
+  // is reading them, so this page reads in the bill's jurisdiction rather than
+  // the reader's — which is also why nothing here waits for the switcher.
+  const on = state === "US"
   const bill = String(billId)
   const scope = React.useMemo(() => ({ param: "bill", value: bill }), [bill])
   const ref = React.useMemo(() => billRef(billNumber), [billNumber])
-  const ask = (resource: string) => (on ? resource : null)
 
   // An amendment belongs on this page only if its own record says it amends
   // this bill; a law row only if it is this bill's row.
@@ -139,19 +136,20 @@ export function BillCongressProvider({
     [ref]
   )
 
-  const versions = useCongress<Version>(ask("text-versions"), "textVersions", scope, { bill })
-  const summaries = useCongress<Summary>(ask("summaries"), "summaries", scope, { bill })
-  const amendments = useCongress<Amendment>(ask("amendments"), "amendments", scope, { bill, limit: 50 }, amends)
-  const related = useCongress<Related>(ask("related-bills"), "relatedBills", scope, { bill })
-  const titles = useCongress<Title>(ask("titles"), "titles", scope, { bill })
-  const reports = useCongress<Report>(ask("committee-reports"), "reports", scope, { bill })
-  const cosponsors = useCongress<Cosponsor>(ask("cosponsors"), "cosponsors", scope, { bill })
-  const laws = useCongress<LawBill>(ask("laws"), "bills", scope, { bill }, enacts)
+  const versions = useCongress<Version>("text-versions", "textVersions", scope, { bill }, undefined, state)
+  const summaries = useCongress<Summary>("summaries", "summaries", scope, { bill }, undefined, state)
+  const amendments = useCongress<Amendment>("amendments", "amendments", scope, { bill, limit: 50 }, amends, state)
+  const related = useCongress<Related>("related-bills", "relatedBills", scope, { bill }, undefined, state)
+  const titles = useCongress<Title>("titles", "titles", scope, { bill }, undefined, state)
+  const reports = useCongress<Report>("committee-reports", "reports", scope, { bill }, undefined, state)
+  const cosponsors = useCongress<Cosponsor>("cosponsors", "cosponsors", scope, { bill }, undefined, state)
+  const laws = useCongress<LawBill>("laws", "bills", scope, { bill }, enacts, state)
 
   const value = React.useMemo<Congress>(
     () => ({
       billId,
       billNumber,
+      state,
       ready: on,
       onCongress: on,
       versions: [...versions.rows].sort(
@@ -167,7 +165,7 @@ export function BillCongressProvider({
       law: laws.rows[0]?.laws?.[0] ?? null,
       policyArea: laws.rows[0]?.policyArea?.name ?? null,
     }),
-    [billId, billNumber, on, versions.rows, summaries.rows, amendments.rows, amendments.count, related.rows, titles.rows, reports.rows, cosponsors.rows, laws.rows]
+    [billId, billNumber, state, on, versions.rows, summaries.rows, amendments.rows, amendments.count, related.rows, titles.rows, reports.rows, cosponsors.rows, laws.rows]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
@@ -426,11 +424,10 @@ export function BillVersions({
   held: number | null
 }) {
   const c = use()
-  const { state } = useJurisdiction()
   const [chosen, setChosen] = React.useState<number | null>(null)
   const { data, isLoading } = usePolicy<{ text?: string | null }>(
     chosen ? "text" : null,
-    { state },
+    { state: c?.state },
     { id: c?.billId, document: chosen ?? undefined }
   )
   const versions = c?.versions ?? []
@@ -538,10 +535,3 @@ export function BillToc({ base }: { base: readonly string[] }) {
   return <DocsTableOfContents toc={useBillSections(base)} />
 }
 
-/** Said once, at the foot of the page, when the reader is somewhere else. */
-export function BillFederalNote() {
-  const { state, resolved } = useJurisdiction()
-  const c = use()
-  if (!resolved || state === "US" || !c) return null
-  return <p className="text-sm text-muted-foreground">{FEDERAL}</p>
-}

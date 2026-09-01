@@ -9,7 +9,6 @@ import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import {
   CommitteeAbout,
-  CommitteeFederalNote,
   CommitteeHearings,
   CommitteeMeetings,
   CommitteeProvider,
@@ -144,7 +143,6 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
               <CommitteeMeetings />
               <CommitteeReports />
               <CommitteeHearings />
-              <CommitteeFederalNote />
             </div>
           </div>
         </div>

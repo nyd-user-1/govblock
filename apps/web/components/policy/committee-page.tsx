@@ -6,7 +6,6 @@ import Link from "next/link"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { parentCode } from "@/lib/policy/congress"
 import { useCongress, useCongressRecord } from "@/lib/policy/use-congress"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { H2, Table } from "@/components/typeset"
 import { DocsTableOfContents } from "@/components/docs-toc"
 
@@ -74,17 +73,19 @@ const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
 const inRoom = (code: string) => (row: { committees?: Sub[] }) =>
   (row.committees ?? []).some((c) => parentCode(c.systemCode) === parentCode(code))
 
+// A system code names a federal committee whoever is reading, so every read on
+// this page is made in the federal jurisdiction rather than the reader's.
+const FEDERAL = "US"
+
 export function CommitteeProvider({ code, children }: { code: string; children: React.ReactNode }) {
-  const { state, resolved } = useJurisdiction()
-  const on = resolved && state === "US"
   const scope = React.useMemo(() => ({ param: "committee", value: code }), [code])
   const room = React.useMemo(() => inRoom(code), [code])
-  const ask = (resource: string) => (on ? resource : null)
+  const of = { systemCode: code, committee: code }
 
-  const detailRead = useCongressRecord<Detail>(ask("committee-detail"), { systemCode: code, committee: code })
-  const meetings = useCongress<Meeting>(ask("committee-meetings"), "committeeMeetings", scope, { systemCode: code, committee: code, limit: 250 }, room)
-  const reports = useCongress<Report>(ask("committee-reports"), "reports", scope, { systemCode: code, committee: code, limit: 250 })
-  const hearings = useCongress<Hearing>(ask("hearings-congress"), "hearings", scope, { systemCode: code, committee: code, limit: 250 }, room)
+  const detailRead = useCongressRecord<Detail>("committee-detail", of, undefined, FEDERAL)
+  const meetings = useCongress<Meeting>("committee-meetings", "committeeMeetings", scope, { ...of, limit: 250 }, room, FEDERAL)
+  const reports = useCongress<Report>("committee-reports", "reports", scope, { ...of, limit: 250 }, undefined, FEDERAL)
+  const hearings = useCongress<Hearing>("hearings-congress", "hearings", scope, { ...of, limit: 250 }, room, FEDERAL)
 
   const value = React.useMemo<Value>(
     () => ({
@@ -95,9 +96,9 @@ export function CommitteeProvider({ code, children }: { code: string; children: 
       reports: reports.rows,
       reportCount: reports.count,
       hearings: hearings.rows,
-      onCongress: on,
+      onCongress: true,
     }),
-    [code, detailRead, meetings.rows, meetings.count, reports.rows, reports.count, hearings.rows, on]
+    [code, detailRead, meetings.rows, meetings.count, reports.rows, reports.count, hearings.rows]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -281,18 +282,6 @@ export function CommitteeHearings() {
         })}
       </ul>
     </>
-  )
-}
-
-/** Said once, when the reader is somewhere else. */
-export function CommitteeFederalNote() {
-  const { state, resolved } = useJurisdiction()
-  if (!resolved || state === "US") return null
-  return (
-    <p className="text-sm text-muted-foreground">
-      This is a committee of the federal legislature. Its meetings, reports and transcripts read under the federal
-      jurisdiction.
-    </p>
   )
 }
 

@@ -10,6 +10,21 @@ import { familyCount, rowsOf, scopedRows } from "@/lib/policy/congress"
 export type Scope = { param: string; value: string | number }
 
 /**
+ * Which jurisdiction a read is made in.
+ *
+ * A list page reads in the reader's — that is what the switcher is for, and it
+ * waits for the scope to resolve so the shared prerendered shell never asks on
+ * the wrong jurisdiction's behalf. A page whose path names one record reads in
+ * *that record's* jurisdiction instead: /docs/committees/hsvr00 is a federal
+ * committee whoever is looking at it, and its meetings are not a Texas reader's
+ * to be denied. The rail and the nav stay scoped to the reader either way.
+ */
+function useReadState(record?: string) {
+  const { state, resolved } = useJurisdiction()
+  return record ? { state: record, resolved: true } : { state, resolved }
+}
+
+/**
  * One read of a congress.gov family, scoped to one bill, member or committee.
  *
  * Three answers can come back and only one of them is the truth about the
@@ -34,9 +49,11 @@ export function useCongress<T>(
   key: string,
   scope: Scope | null,
   extra: Record<string, string | number | undefined> = {},
-  names?: (row: T) => boolean
+  names?: (row: T) => boolean,
+  /** The record's own jurisdiction, where the path names one. */
+  record?: string
 ) {
-  const { state, resolved } = useJurisdiction()
+  const { state, resolved } = useReadState(record)
   const on = resolved && state === "US" && !!resource
   const { data } = usePolicy<unknown>(on ? resource : null, { state }, extra)
 
@@ -92,9 +109,11 @@ export function useCongressRecord<T>(
    * with no tally in it is not a card. When it is not usable, the committed
    * record for the same key answers, on the same terms as `useCongress`.
    */
-  usable: (data: T) => boolean = () => true
+  usable: (data: T) => boolean = () => true,
+  /** The record's own jurisdiction, where the path names one. */
+  record?: string
 ) {
-  const { state, resolved } = useJurisdiction()
+  const { state, resolved } = useReadState(record)
   const on = resolved && state === "US" && !!resource
   const { data } = usePolicy<T | null>(on ? resource : null, { state }, extra)
   const answered = data && usable(data) ? data : null

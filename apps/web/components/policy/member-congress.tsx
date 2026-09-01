@@ -74,14 +74,17 @@ const use = () => React.useContext(Ctx)
 export function MemberCongressProvider({
   peopleId,
   bioguide,
+  state,
   children,
 }: {
   peopleId: number
   bioguide: string | null
+  /** The member's own jurisdiction — the path names one person, and they sit
+      in one legislature whoever is reading about them. */
+  state: string
   children: React.ReactNode
 }) {
-  const { state, resolved } = useJurisdiction()
-  const on = resolved && state === "US" && !!bioguide
+  const on = state === "US" && !!bioguide
   const detail = usePolicy<Detail>(on ? "member-detail" : null, { state }, { bioguide: bioguide ?? undefined })
   // Aurora keys a member's positions by `people_id`; the committed record is
   // keyed by bioguide, because that is what congress.gov keys a member by.
@@ -235,18 +238,6 @@ export function MemberVotes() {
         {fmtNumber(votes.length)} recorded {votes.length === 1 ? "position" : "positions"} on the roll calls on file.
       </p>
     </>
-  )
-}
-
-/** Said once, when the reader is somewhere else. */
-export function MemberFederalNote() {
-  const { state, resolved } = useJurisdiction()
-  if (!resolved || state === "US") return null
-  return (
-    <p className="text-sm text-muted-foreground">
-      The portrait, terms, office and floor votes on this page are federal records. They read under the federal
-      jurisdiction.
-    </p>
   )
 }
 
