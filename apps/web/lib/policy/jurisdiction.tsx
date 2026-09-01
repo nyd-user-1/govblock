@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import { JURISDICTION_KEY } from "@/lib/policy/scope-key"
+
 import { DEFAULT_STATE, isJurisdiction } from "@/lib/filters"
 import { type SessionRow } from "@/lib/policy/types"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
@@ -19,7 +21,7 @@ import { usePolicy } from "@/lib/policy/use-policy"
 // grid's Sessions card, the rail's session picker) sets it, so a link and a
 // /create config stay stable while a default keeps following the data.
 
-export const JURISDICTION_KEY = "govblock:jurisdiction"
+export { JURISDICTION_KEY } from "@/lib/policy/scope-key"
 
 export type Jurisdiction = {
   /** The two-letter code in scope. Always a real jurisdiction. */

@@ -1,4 +1,4 @@
-import { JURISDICTION_KEY } from "@/lib/policy/jurisdiction"
+import { JURISDICTION_KEY } from "@/lib/policy/scope-key"
 
 // The prerendered HTML is Congress's, because it is one document served to
 // everybody. A Texas visitor therefore sees Congress until React hydrates —
