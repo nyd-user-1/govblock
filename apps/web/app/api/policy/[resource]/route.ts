@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
+import { getBillTexts } from "@/lib/policy/texts"
 import {
   getActivity,
   getBill,
@@ -126,6 +127,21 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const id = int(sp.get("id") ?? f.bill ?? null, 0)
       if (!id) throw new Error("bill id required")
       return getBillText(id, int(sp.get("document"), 0) || undefined)
+    }
+    case "bill-texts": {
+      // The changelog prints a code block per bill, so one request rather than
+      // twenty-four. getBillTexts already fans out one statement per bill (the
+      // Data API caps a result at 1 MB and a single bill can approach it); the
+      // slice here is for the response, which only ever renders a few hundred
+      // lines.
+      const ids = (sp.get("ids") ?? "")
+        .split(",")
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value) && value > 0)
+        .slice(0, 40)
+      if (!ids.length) return {}
+      const texts = await getBillTexts(ids)
+      return Object.fromEntries([...texts].map(([id, text]) => [id, text.slice(0, 20_000)]))
     }
     case "texts":
       return getRecentTexts(await resolve(filters), int(sp.get("limit"), 60))
