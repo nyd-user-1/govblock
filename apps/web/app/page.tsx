@@ -8,7 +8,7 @@ import { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading } fro
 import { Button } from "@govblock/ui/components/nova/button"
 
 // Ported from livingston-v3 app/(app)/(root)/page.tsx.
-const title = "The Foundation for your Design System"
+const title = "The Foundation for Civic Engagement"
 
 export default function IndexPage() {
   return (
