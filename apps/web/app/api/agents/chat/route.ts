@@ -21,11 +21,20 @@ export const maxDuration = 300
 
 const encoder = new TextEncoder()
 
-function line(event: StreamEvent) {
-  return encoder.encode(JSON.stringify(event) + "\n")
+// Two framings of the same events. Newline-delimited JSON is the default and
+// what the panel reads; Server-Sent Events is offered because some proxies
+// treat text/event-stream as a special case and decline to buffer it, and
+// measuring that on this deployment is the only way to know whether Amplify
+// does. Ask for it with `Accept: text/event-stream`.
+function framer(sse: boolean) {
+  return (event: StreamEvent) =>
+    encoder.encode(sse ? `data: ${JSON.stringify(event)}\n\n` : JSON.stringify(event) + "\n")
 }
 
 export async function POST(request: Request) {
+  const sse = (request.headers.get("accept") ?? "").includes("text/event-stream")
+  const line = framer(sse)
+
   let body: { agent?: string; turns?: ChatTurn[]; jurisdiction?: string }
   try {
     body = await request.json()
@@ -85,7 +94,9 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Content-Type": sse
+        ? "text/event-stream; charset=utf-8"
+        : "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-store, no-transform",
       "X-Accel-Buffering": "no",
     },
