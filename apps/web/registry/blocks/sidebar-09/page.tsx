@@ -1,22 +1,28 @@
 "use client"
 
 import * as React from "react"
+import { RotateCcw, Star, Trash2 } from "lucide-react"
 
-import { AGENTS, agent as findAgent, maxRounds } from "@/lib/agents/registry"
+import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import {
-  deliveredTo,
-  loadTasks,
-  newTask,
+  addressOf,
+  findAddress,
+  isUnread,
+  loadThreads,
+  newThread,
+  reply,
   running,
-  saveTasks,
+  saveThreads,
   when,
-  type Task,
+  type Folder,
+  type Thread,
 } from "@/lib/agents/inbox"
-import { runAgent } from "@/lib/agents/run-client"
+import { emptyRun, runAgent } from "@/lib/agents/run-client"
+import { cn } from "@/lib/utils"
 import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
+import { Compose, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Textarea } from "@govblock/ui/components/nova/textarea"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -34,110 +40,176 @@ import {
 
 // The Agentic Inbox — shadcn's sidebar-09 mail block, repurposed.
 //
-// Live chat is what /agents already is. This is its long-form sibling: a task
-// goes in, an agent works it across many rounds, and the finished report is
-// read here like a delivered message with the run it did collapsed underneath.
-// The same round loop, the same renderer, a different frame around them.
+// Live chat is what /agents already is. This is its long-form sibling, and it is
+// mail all the way down because half a mail metaphor reads as a broken one: what
+// you send is in Sent the moment you send it, the report arrives as an unread
+// reply on the same thread, and stars, drafts and an undoable trash are what a
+// reader already knows how to use.
 //
 // v1 runs the task in this tab. That is the honest shape for a public site with
-// no accounts: tasks are kept in this browser, and the header says so rather
+// no accounts: threads are kept in this browser, and the surface says so rather
 // than letting anyone assume a server is holding them. What makes it feel
-// delivered anyway is Discord — the agent posts the finished report into the
-// channel, so it arrives somewhere that outlives the tab.
+// delivered anyway is Discord — the agent delivers the finished report into the
+// channel under the same subject line, so it arrives somewhere that outlives the
+// tab.
 
-const INBOX_AGENTS = AGENTS.filter((a) => a.inbox || a.agentic)
+const EMPTY: Draft = { to: "", subject: "", body: "" }
 
 export default function Page() {
-  const [tasks, setTasks] = React.useState<Task[]>([])
+  const [threads, setThreads] = React.useState<Thread[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
+  const [folder, setFolder] = React.useState<Folder>("inbox")
   const [composing, setComposing] = React.useState(false)
-  const [slug, setSlug] = React.useState(INBOX_AGENTS[0]?.slug ?? "researcher")
-  const [tasking, setTasking] = React.useState("")
+  const [draft, setDraft] = React.useState<Draft>(EMPTY)
+  const [draftId, setDraftId] = React.useState<string | null>(null)
   const [restored, setRestored] = React.useState(false)
 
   React.useEffect(() => {
-    const stored = loadTasks()
+    const stored = loadThreads()
     // A task that was running when the tab closed did not survive it. Say so
     // rather than leave a spinner that will never stop.
-    const settled = stored.map((task): Task =>
-      task.status === "running"
+    const settled = stored.map((thread): Thread =>
+      thread.status === "running"
         ? {
-            ...task,
-            status: "failed" as const,
-            run: {
-              ...task.run,
-              failed: true,
-              done: true,
-              text:
-                task.run.text +
-                (task.run.text ? "\n\n" : "") +
-                "This task was still running when the tab was closed, and v1 runs tasks in the tab. Send it again.",
-            },
+            ...thread,
+            status: "failed",
+            messages: thread.messages.map((message) =>
+              message.from === "you"
+                ? message
+                : {
+                    ...message,
+                    body:
+                      message.body +
+                      (message.body ? "\n\n" : "") +
+                      "This task was still running when the tab was closed, and tasks run in the tab. Send it again.",
+                  }
+            ),
           }
-        : task
+        : thread
     )
-    setTasks(settled)
-    setSelected(settled[0]?.id ?? null)
+    setThreads(settled)
     setRestored(true)
   }, [])
 
   React.useEffect(() => {
-    if (restored) saveTasks(tasks)
-  }, [tasks, restored])
+    if (restored) saveThreads(threads)
+  }, [threads, restored])
 
-  const submit = React.useCallback(
-    async (event: React.FormEvent) => {
-      event.preventDefault()
-      const definition = findAgent(slug)
-      const text = tasking.trim()
-      if (!definition || !text) return
+  const patch = React.useCallback((id: string, change: (thread: Thread) => Thread) => {
+    setThreads((current) => current.map((thread) => (thread.id === id ? change(thread) : thread)))
+  }, [])
 
-      const task = newTask(definition.slug, definition.name, text)
-      setTasks((current) => [task, ...current])
-      setSelected(task.id)
+  const send = React.useCallback(
+    async (agentSlug: string, subject: string, body: string, existingId?: string) => {
+      const definition = findAgent(agentSlug)
+      if (!definition) return
+
+      const thread = newThread({
+        agent: definition.slug,
+        agentName: definition.name,
+        subject,
+        body,
+        status: "running",
+      })
+      // Sending a draft replaces it in place, so the thread keeps its position
+      // rather than appearing twice.
+      setThreads((current) => [
+        thread,
+        ...current.filter((entry) => entry.id !== existingId),
+      ])
+      setSelected(thread.id)
+      setFolder("sent")
       setComposing(false)
-      setTasking("")
+      setDraft(EMPTY)
+      setDraftId(null)
+
+      // The reply exists from the first token, unread, so the thread reads as
+      // an arriving message rather than appearing whole at the end.
+      patch(thread.id, (current) => reply(current, emptyRun(), "running"))
 
       const finished = await runAgent({
         agent: definition.slug,
         maxRounds: maxRounds(definition),
-        turns: [{ role: "user", text }],
-        onUpdate: (run) =>
-          setTasks((current) =>
-            current.map((entry): Task => (entry.id === task.id ? { ...entry, run } : entry))
-          ),
+        subject: thread.subject,
+        turns: [{ role: "user", text: body }],
+        onUpdate: (run) => patch(thread.id, (current) => reply(current, run, "running")),
       })
 
-      setTasks((current) =>
-        current.map((entry): Task =>
-          entry.id === task.id
-            ? {
-                ...entry,
-                run: finished,
-                finishedAt: Date.now(),
-                status: finished.failed ? "failed" : "delivered",
-                deliveredTo: deliveredTo(finished),
-              }
-            : entry
-        )
+      patch(thread.id, (current) =>
+        reply(current, finished, finished.failed ? "failed" : "delivered")
       )
+      setFolder("inbox")
     },
-    [slug, tasking]
+    [patch]
   )
 
-  const open = tasks.find((task) => task.id === selected) ?? null
+  const open = threads.find((thread) => thread.id === selected) ?? null
+
+  // Opening a thread marks its reply read, the way opening a message does.
+  React.useEffect(() => {
+    if (!open || composing || !isUnread(open) || open.status === "running") return
+    patch(open.id, (thread) => ({
+      ...thread,
+      messages: thread.messages.map((message) =>
+        message.from === "you" ? message : { ...message, unread: false }
+      ),
+    }))
+  }, [open, composing, patch])
+
+  const startCompose = () => {
+    setDraft(EMPTY)
+    setDraftId(null)
+    setComposing(true)
+  }
+
+  const saveDraft = () => {
+    // An address resolves through findAddress, not by splitting the string:
+    // the slug has hyphens ("bill-reader") and the address does not.
+    const address = findAddress(draft.to)
+    const thread = newThread({
+      agent: address?.agent ?? draft.to,
+      agentName: address?.name ?? draft.to || "No recipient",
+      subject: draft.subject,
+      body: draft.body,
+      status: "draft",
+    })
+    setThreads((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
+    setComposing(false)
+    setFolder("drafts")
+    setSelected(thread.id)
+    setDraft(EMPTY)
+    setDraftId(null)
+  }
+
+  const editDraft = (thread: Thread) => {
+    const address = findAgent(thread.agent)
+    setDraft({
+      to: address ? addressOf(address).email : thread.agent,
+      subject: thread.subject === "(no subject)" ? "" : thread.subject,
+      body: thread.messages[0]?.body ?? "",
+    })
+    setDraftId(thread.id)
+    setComposing(true)
+  }
+
+  const agentMessage = open?.messages.find((message) => message.from !== "you")
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar
-        tasks={tasks}
+        threads={threads}
         selected={selected}
-        onOpenTask={(id) => {
+        folder={folder}
+        onFolder={(next) => {
+          setFolder(next)
+          setComposing(false)
+        }}
+        onOpenThread={(id) => {
           setSelected(id)
           setComposing(false)
         }}
         onClear={() => {
-          setTasks([])
+          setThreads([])
           setSelected(null)
         }}
       />
@@ -153,140 +225,153 @@ export default function Page() {
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {composing ? "New task" : (open?.agentName ?? "Inbox")}
+                  {composing ? "New task" : (open?.subject ?? "Inbox")}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <Button
-            size="sm"
-            className="ml-auto"
-            onClick={() => setComposing(true)}
-            disabled={composing}
-          >
-            New task
-          </Button>
+
+          <div className="ml-auto flex items-center gap-1">
+            {open && !composing && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={open.starred ? "Remove star" : "Star"}
+                  onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}
+                >
+                  <Star className={cn("size-4", open.starred && "fill-current")} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={open.trashed ? "Restore" : "Move to trash"}
+                  onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}
+                >
+                  {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
+                </Button>
+              </>
+            )}
+            <Button size="sm" onClick={startCompose} disabled={composing}>
+              Compose
+            </Button>
+          </div>
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4">
           {composing ? (
-            <form className="flex max-w-3xl flex-col gap-3" onSubmit={submit}>
-              <div className="flex flex-wrap gap-2">
-                {INBOX_AGENTS.map((entry) => (
-                  <Button
-                    key={entry.slug}
-                    type="button"
-                    variant={entry.slug === slug ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSlug(entry.slug)}
-                  >
-                    {entry.name}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {findAgent(slug)?.speciality}
-              </p>
-              <Textarea
-                value={tasking}
-                onChange={(event) => setTasking(event.target.value)}
-                placeholder={findAgent(slug)?.placeholder}
-                className="min-h-32"
-              />
-              <div className="flex flex-wrap gap-2">
-                {(findAgent(slug)?.starters ?? []).map((starter) => (
-                  <Button
-                    key={starter}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTasking(starter)}
-                  >
-                    {starter}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button type="submit" size="sm" disabled={!tasking.trim()}>
-                  Send
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setComposing(false)}>
-                  Cancel
-                </Button>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  Runs in this tab. Kept in this browser, not on a server.
-                </span>
-              </div>
-            </form>
+            <Compose
+              draft={draft}
+              onChange={setDraft}
+              onSend={(address, current) =>
+                void send(address.agent, current.subject, current.body, draftId ?? undefined)
+              }
+              onDiscard={() => {
+                setComposing(false)
+                setDraft(EMPTY)
+                setDraftId(null)
+              }}
+              onSaveDraft={saveDraft}
+            />
           ) : open ? (
-            <article className="flex max-w-3xl flex-col gap-4">
+            <article className="flex max-w-3xl flex-col gap-5">
               <header className="flex flex-col gap-1">
-                <h1 className="text-lg font-semibold tracking-tight">{open.tasking}</h1>
+                <h1 className="text-lg font-semibold tracking-tight">{open.subject}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {open.agentName} · {when(open.createdAt)}
-                  {open.status === "running" && " · running"}
+                  To {open.agentName} · {when(open.createdAt)}
+                  {open.trashed && " · in trash"}
                   {open.deliveredTo && ` · delivered to ${open.deliveredTo}`}
                 </p>
               </header>
 
-              {open.run.text && (
-                <div
-                  className={
-                    open.status === "failed"
-                      ? "text-sm whitespace-pre-wrap text-destructive"
-                      : "text-sm whitespace-pre-wrap"
-                  }
-                >
-                  <Prose text={open.run.text} />
-                </div>
-              )}
+              <div className="rounded-lg border p-4 text-sm whitespace-pre-wrap">
+                {open.messages[0]?.body}
+              </div>
 
-              {open.status === "running" && (
-                // The reading pane's own sign of life. It names the tool in
-                // flight rather than saying "working", so a long gather reads
-                // as progress instead of as a hang.
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span
-                    aria-hidden
-                    className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
-                  />
-                  <span className="animate-pulse">{running(open)}</span>
+              {open.status === "draft" ? (
+                <div>
+                  <Button size="sm" onClick={() => editDraft(open)}>
+                    Edit draft
+                  </Button>
                 </div>
-              )}
-
-              {open.run.steps.length > 0 && (
-                <details className="rounded-lg border p-3">
-                  <summary className="cursor-pointer text-sm text-muted-foreground">
-                    {open.run.steps.length} tool call
-                    {open.run.steps.length === 1 ? "" : "s"}
-                    {open.status === "running" ? " so far" : ""}
-                  </summary>
-                  <div className="pt-3">
-                    <RunSteps steps={open.run.steps} />
+              ) : (
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                      {open.agentName
+                        .split(/\s+/)
+                        .map((word) => word[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </span>
+                    <span>{open.agentName}</span>
+                    {agentMessage?.unread && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                        Unread
+                      </span>
+                    )}
                   </div>
-                </details>
-              )}
 
-              <RunMeta run={open.run} />
+                  {agentMessage?.body && (
+                    <div
+                      className={cn(
+                        "text-sm whitespace-pre-wrap",
+                        open.status === "failed" && "text-destructive"
+                      )}
+                    >
+                      <Prose text={agentMessage.body} />
+                    </div>
+                  )}
+
+                  {open.status === "running" && (
+                    // The reading pane's own sign of life. It names the tool in
+                    // flight rather than saying "working", so a long gather
+                    // reads as progress instead of as a hang.
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span
+                        aria-hidden
+                        className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
+                      />
+                      <span className="animate-pulse">{running(open)}</span>
+                    </div>
+                  )}
+
+                  {(agentMessage?.run?.steps.length ?? 0) > 0 && (
+                    <details className="rounded-lg border p-3">
+                      <summary className="cursor-pointer text-sm text-muted-foreground">
+                        {agentMessage!.run!.steps.length} tool call
+                        {agentMessage!.run!.steps.length === 1 ? "" : "s"}
+                        {open.status === "running" ? " so far" : ""}
+                      </summary>
+                      <div className="pt-3">
+                        <RunSteps steps={agentMessage!.run!.steps} />
+                      </div>
+                    </details>
+                  )}
+
+                  {agentMessage?.run && <RunMeta run={agentMessage.run} />}
+                </section>
+              )}
             </article>
           ) : (
             <div className="flex max-w-3xl flex-col gap-3">
               <h1 className="text-lg font-semibold tracking-tight">Agentic Inbox</h1>
               <p className="text-sm text-muted-foreground">
-                Longer work than a chat: give an agent a task, and its finished report is read
-                here like a delivered message, with the run it did underneath. The Researcher
-                writes a sourced report over the record; the Tracker watches a topic and posts a
-                digest.
+                Longer work than a chat. Compose a task to one of the five agents, and its
+                finished report arrives as a reply on the same thread, with the run it did
+                underneath. The Researcher writes a sourced report over the record; the Tracker
+                watches a topic and posts a digest; the other three answer in one message.
               </p>
               <p className="text-sm text-muted-foreground">
-                This site is public and has no accounts, so tasks are kept in this browser and
+                This site is public and has no accounts, so threads are kept in this browser and
                 nowhere else — nobody else can see them, and they do not follow you to another
-                device. A task runs while this tab is open. What outlives the tab is the post the
-                agent makes to Discord, which is where a finished report actually lands.
+                device. A task runs while this tab is open. What outlives the tab is the report
+                the agent delivers to Discord, under the same subject line.
               </p>
               <div>
-                <Button size="sm" onClick={() => setComposing(true)}>
-                  New task
+                <Button size="sm" onClick={startCompose}>
+                  Compose
                 </Button>
               </div>
             </div>

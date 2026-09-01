@@ -1,10 +1,20 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, CheckCheck, Command, Inbox, Loader } from "lucide-react"
+import { Command, File, Inbox, Send, Star, Trash2 } from "lucide-react"
 
-import { AGENTS } from "@/lib/agents/registry"
-import { teaser, when, type Task, type TaskStatus } from "@/lib/agents/inbox"
+import {
+  inFolder,
+  isUnread,
+  matches,
+  running,
+  teaser,
+  unreadIn,
+  when,
+  type Folder,
+  type Thread,
+} from "@/lib/agents/inbox"
+import { cn } from "@/lib/utils"
 import { NavUser } from "@/registry/blocks/sidebar-09/components/nav-user"
 import { Label } from "@govblock/ui/components/ny4/label"
 import {
@@ -23,44 +33,50 @@ import {
 import { Switch } from "@govblock/ui/components/ny4/switch"
 
 // The Agentic Inbox. This is shadcn's sidebar-09 mail block with its markup and
-// classNames intact and its contents replaced: the icon rail filters, the
-// second sidebar is the task list rather than a thread list, and each row is an
-// agent run — who ran it, what it was asked, and what it is doing right now.
-// Repurposed by content; nothing here was redesigned.
+// classNames intact and its contents replaced: the icon rail is the folders, the
+// second sidebar is the thread list, and a thread is a task — the message you
+// sent and the agent's reply to it. Repurposed by content; nothing redesigned.
 
-const FILTERS: { title: string; icon: typeof Inbox; status: TaskStatus | null }[] = [
-  { title: "All", icon: Inbox, status: null },
-  { title: "Running", icon: Loader, status: "running" },
-  { title: "Delivered", icon: CheckCheck, status: "delivered" },
-  { title: "Failed", icon: AlertCircle, status: "failed" },
+const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
+  { title: "Inbox", icon: Inbox, folder: "inbox" },
+  { title: "Sent", icon: Send, folder: "sent" },
+  { title: "Drafts", icon: File, folder: "drafts" },
+  { title: "Starred", icon: Star, folder: "starred" },
+  { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 
 export function AppSidebar({
-  tasks,
+  threads,
   selected,
+  folder,
+  onFolder,
   // Not `onSelect`: Sidebar spreads a div's props, whose own onSelect would
   // intersect with this one and hand the callback a SyntheticEvent.
-  onOpenTask,
+  onOpenThread,
   onClear,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  tasks: Task[]
+  threads: Thread[]
   selected: string | null
-  onOpenTask: (id: string) => void
+  folder: Folder
+  onFolder: (folder: Folder) => void
+  onOpenThread: (id: string) => void
   onClear: () => void
 }) {
-  const [activeItem, setActiveItem] = React.useState(FILTERS[0]!)
   const [query, setQuery] = React.useState("")
   const [unreadOnly, setUnreadOnly] = React.useState(false)
   const { setOpen } = useSidebar()
 
-  const shown = tasks.filter((task) => {
-    if (activeItem.status && task.status !== activeItem.status) return false
-    if (unreadOnly && task.status !== "running") return false
-    if (!query.trim()) return true
-    const hay = `${task.agentName} ${task.tasking} ${task.run.text}`.toLowerCase()
-    return hay.includes(query.trim().toLowerCase())
-  })
+  const active = FOLDERS.find((entry) => entry.folder === folder) ?? FOLDERS[0]!
+
+  // Search reaches across every folder, the way mail search does — a thread you
+  // sent and a report you were sent are the same thread, and looking for one
+  // should not depend on remembering which side of it you are on.
+  const searching = query.trim().length > 0
+  const shown = threads
+    .filter((thread) => (searching ? !thread.trashed || folder === "trash" : inFolder(thread, folder)))
+    .filter((thread) => matches(thread, query))
+    .filter((thread) => !unreadOnly || isUnread(thread))
 
   return (
     <Sidebar
@@ -96,22 +112,31 @@ export function AppSidebar({
           <SidebarGroup>
             <SidebarGroupContent className="px-1.5 md:px-0">
               <SidebarMenu>
-                {FILTERS.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={{ children: item.title, hidden: false }}
-                      onClick={() => {
-                        setActiveItem(item)
-                        setOpen(true)
-                      }}
-                      isActive={activeItem.title === item.title}
-                      className="px-2.5 md:px-2"
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {FOLDERS.map((item) => {
+                  const unread = unreadIn(threads, item.folder)
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        tooltip={{
+                          children: unread ? `${item.title} (${unread})` : item.title,
+                          hidden: false,
+                        }}
+                        onClick={() => {
+                          onFolder(item.folder)
+                          setOpen(true)
+                        }}
+                        isActive={folder === item.folder}
+                        className="px-2.5 md:px-2"
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                        {unread > 0 && (
+                          <span className="ml-auto text-xs tabular-nums">{unread}</span>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -120,7 +145,7 @@ export function AppSidebar({
           <NavUser
             user={{
               name: "This browser",
-              email: `${tasks.length} task${tasks.length === 1 ? "" : "s"} kept locally`,
+              email: `${threads.length} thread${threads.length === 1 ? "" : "s"} kept locally`,
               avatar: "",
             }}
             onClear={onClear}
@@ -133,9 +158,11 @@ export function AppSidebar({
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
         <SidebarHeader className="gap-3.5 border-b p-4">
           <div className="flex w-full items-center justify-between">
-            <div className="text-base font-medium text-foreground">{activeItem.title}</div>
+            <div className="text-base font-medium text-foreground">
+              {searching ? "All mail" : active.title}
+            </div>
             <Label className="flex items-center gap-2 text-sm">
-              <span>Running</span>
+              <span>Unreads</span>
               <Switch
                 className="shadow-none"
                 checked={unreadOnly}
@@ -144,7 +171,7 @@ export function AppSidebar({
             </Label>
           </div>
           <SidebarInput
-            placeholder="Type to search…"
+            placeholder="Search mail…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -154,40 +181,53 @@ export function AppSidebar({
             <SidebarGroupContent>
               {shown.length === 0 && (
                 <p className="p-4 text-sm text-muted-foreground">
-                  {tasks.length
-                    ? "Nothing here."
-                    : `No tasks yet. New task sends one to ${AGENTS.filter((a) => a.inbox || a.agentic).map((a) => a.name).join(" or ")}, and it runs while this tab is open.`}
+                  {searching
+                    ? `Nothing matches “${query.trim()}”.`
+                    : folder === "inbox"
+                      ? "Nothing has arrived yet. Compose a task and the reply lands here."
+                      : "Nothing here."}
                 </p>
               )}
-              {shown.map((task) => (
-                <button
-                  type="button"
-                  key={task.id}
-                  onClick={() => onOpenTask(task.id)}
-                  data-active={selected === task.id}
-                  className="flex w-full flex-col items-start gap-2 border-b p-4 text-left text-sm leading-tight whitespace-nowrap last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                >
-                  <div className="flex w-full items-center gap-2">
-                    <span>{task.agentName}</span>{" "}
-                    <span className="ml-auto text-xs">{when(task.createdAt)}</span>
-                  </div>
-                  <span className="w-[260px] truncate font-medium">{task.tasking}</span>
-                  <span className="line-clamp-2 flex w-[260px] items-start gap-1.5 text-xs whitespace-break-spaces">
-                    {task.status === "running" && (
-                      // A running task must never be mistaken for a finished
-                      // one. The dot pulses beside whatever tool is in flight.
-                      <span
-                        aria-hidden
-                        className="mt-1 size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
-                      />
-                    )}
-                    <span className={task.status === "running" ? "animate-pulse" : undefined}>
-                      {task.status === "failed" && "Failed · "}
-                      {teaser(task)}
+              {shown.map((thread) => {
+                const unread = isUnread(thread)
+                return (
+                  <button
+                    type="button"
+                    key={thread.id}
+                    onClick={() => onOpenThread(thread.id)}
+                    data-active={selected === thread.id}
+                    className="flex w-full flex-col items-start gap-2 border-b p-4 text-left text-sm leading-tight whitespace-nowrap last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  >
+                    <div className="flex w-full items-center gap-2">
+                      <span className={cn(unread && "font-semibold")}>{thread.agentName}</span>
+                      {thread.starred && (
+                        <Star className="size-3 fill-current text-muted-foreground" />
+                      )}
+                      <span className="ml-auto text-xs">{when(thread.updatedAt)}</span>
+                    </div>
+                    <span
+                      className={cn("w-[260px] truncate", unread ? "font-semibold" : "font-medium")}
+                    >
+                      {thread.subject}
                     </span>
-                  </span>
-                </button>
-              ))}
+                    <span className="line-clamp-2 flex w-[260px] items-start gap-1.5 text-xs whitespace-break-spaces">
+                      {thread.status === "running" && (
+                        // A running task must never be mistaken for a finished
+                        // one. The dot pulses beside whatever tool is in flight.
+                        <span
+                          aria-hidden
+                          className="mt-1 size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
+                        />
+                      )}
+                      <span className={thread.status === "running" ? "animate-pulse" : undefined}>
+                        {thread.status === "draft" && "Draft · "}
+                        {thread.status === "failed" && "Failed · "}
+                        {thread.status === "running" ? running(thread) : teaser(thread)}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>

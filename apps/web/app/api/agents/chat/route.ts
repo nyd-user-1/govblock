@@ -88,6 +88,7 @@ export async function POST(request: Request) {
     agent?: string
     turns?: ChatTurn[]
     jurisdiction?: string
+    subject?: string
     state?: { messages?: Message[] }
   }
   try {
@@ -144,6 +145,11 @@ export async function POST(request: Request) {
   // that would fail because a credential is missing is simply not offered, and
   // the agent is told which services it does and does not have so it can say so
   // rather than discover it by calling.
+  // The inbox gives a task a subject; it becomes the report's title and the
+  // Discord thread's name, so one set of words follows the work everywhere.
+  const subject = String(body.subject ?? "").trim().slice(0, 120)
+  if (subject) notes.push(`This task's subject is "${subject}". Use it as the report's title.`)
+
   const live = await liveTools(definition.connections)
   // A long-form agent delivers what it has already written rather than posting
   // a copy of it: same connection, one tool, no retyping.
@@ -164,7 +170,7 @@ export async function POST(request: Request) {
     async start(controller) {
       controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const step = runStep({ definition, messages, systemSuffix, extraTools: [...contributed] })
+        const step = runStep({ definition, messages, systemSuffix, extraTools: [...contributed], title: subject })
         let next = await step.next()
         while (!next.done) {
           controller.enqueue(line(next.value))

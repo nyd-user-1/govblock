@@ -99,12 +99,15 @@ export async function* runStep({
   messages: incoming,
   systemSuffix,
   extraTools = [],
+  title,
 }: {
   definition: AgentDefinition
   messages: Message[]
   systemSuffix?: string
   /** Tools contributed by the connections that are live right now. */
   extraTools?: ToolName[]
+  /** The subject the reader gave this task, if it came from the inbox. */
+  title?: string
 }): AsyncGenerator<StreamEvent, StepResult, void> {
   const started = Date.now()
   const messages: Message[] = [...incoming]
@@ -191,7 +194,7 @@ export async function* runStep({
       outcome: await runTool(
         call.name as ToolName,
         (call.input ?? {}) as Record<string, unknown>,
-        { report }
+        { report, title }
       ),
     }))
   )

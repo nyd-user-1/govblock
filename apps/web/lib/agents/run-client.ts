@@ -60,6 +60,7 @@ export async function runAgent({
   agent,
   turns,
   jurisdiction,
+  subject,
   maxRounds,
   onUpdate,
   signal,
@@ -67,6 +68,8 @@ export async function runAgent({
   agent: string
   turns: RunTurn[]
   jurisdiction?: string
+  /** The inbox's subject line, which becomes the report's title. */
+  subject?: string
   maxRounds: number
   /** Called after every event, with the run so far. */
   onUpdate: (run: RunState) => void
@@ -94,8 +97,13 @@ export async function runAgent({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(
           carry
-            ? { agent, jurisdiction, state: carry }
-            : { agent, jurisdiction, turns: turns.map(({ role, text }) => ({ role, text })) }
+            ? { agent, jurisdiction, subject, state: carry }
+            : {
+                agent,
+                jurisdiction,
+                subject,
+                turns: turns.map(({ role, text }) => ({ role, text })),
+              }
         ),
         signal,
       })

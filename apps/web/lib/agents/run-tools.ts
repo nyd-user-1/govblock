@@ -50,6 +50,12 @@ function count(payload: unknown): string {
 export type ToolContext = {
   /** Everything the agent has written this run — what deliver_report sends. */
   report?: string
+  /**
+   * The subject the reader gave the task. It wins over the title the model
+   * would have invented, so the Discord thread and the inbox thread carry the
+   * same words — which is the whole point of a subject line.
+   */
+  title?: string
 }
 
 export async function runTool(
@@ -62,7 +68,8 @@ export async function runTool(
   const input = normalise(name, rawInput)
 
   if (name === "deliver_report") {
-    const title = String(rawInput.title ?? "").trim() || "govblock report"
+    const title =
+      (context?.title ?? "").trim() || String(rawInput.title ?? "").trim() || "govblock report"
     const body = (context?.report ?? "").trim()
     if (!body)
       return {
