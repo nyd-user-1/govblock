@@ -7,7 +7,6 @@ import stream from "@/lib/data/stream-changelog.json"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
 import { CodeFigure, printedWithChanges } from "@/components/code-block"
-import { DocsRailCalendar } from "@/components/docs-rail-calendar"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -18,12 +17,14 @@ import { Button } from "@govblock/ui/components/nova/button"
 // amended lines highlighted.
 export const metadata = { title: "Changelog", description: "Latest updates and announcements." }
 
+const STREAMS = ["NY", "NJ", "US"]
 const PER_STREAM = 4
 const LONG = 14
 
 type Entry = (typeof stream)[number]["bills"][number] & { state: string; session: number }
 
 const entries: Entry[] = stream
+  .filter((group) => STREAMS.includes(group.state))
   .flatMap((group) => group.bills.slice(0, PER_STREAM).map((bill) => ({ ...bill, state: group.state, session: group.session })))
   .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
 
@@ -92,7 +93,6 @@ export default function ChangelogV2Page() {
           </div>
         </div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <DocsRailCalendar />
           <OpenInV0Cta />
         </div>
       </div>

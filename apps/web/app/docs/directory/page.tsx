@@ -3,7 +3,6 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { DirectoryList } from "@/components/directory-list"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { DocsRailCalendar } from "@/components/docs-rail-calendar"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/ny4/button"
 
@@ -68,7 +67,6 @@ export default function DirectoryPage() {
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <DocsRailCalendar />
           <OpenInV0Cta />
         </div>
       </div>

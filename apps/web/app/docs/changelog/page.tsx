@@ -4,7 +4,6 @@ import { IconRss } from "@tabler/icons-react"
 import stream from "@/lib/data/stream-changelog.json"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
-import { DocsRailCalendar } from "@/components/docs-rail-calendar"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/nova/button"
 
@@ -118,7 +117,6 @@ export default function ChangelogPage() {
           </div>
         </div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <DocsRailCalendar />
           <OpenInV0Cta />
         </div>
       </div>

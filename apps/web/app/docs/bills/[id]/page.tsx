@@ -5,17 +5,15 @@ import { BILLS, TEXTS } from "@/lib/data"
 import { memberHref } from "@/lib/filters"
 import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { DocsRailCalendar } from "@/components/docs-rail-calendar"
 import { DocsTableOfContents } from "@/components/docs-toc"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
-import { TrackDemo } from "@/components/track-demo"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
-// page — status, Summary, Sponsors, History, Votes, Track, Text, Source.
+// page — status, Summary, Sponsors, History, Votes, Text, Source.
 // Twelve Congress bills are on file; the rest 404 until the data layer lands.
 
-const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Track", "Text"]
+const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
 const TOC = SECTIONS.map((title) => ({ title, url: `#${title.toLowerCase()}`, depth: 2 }))
 const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
 const MAX_SPONSORS = 20
@@ -159,9 +157,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
               <p>No roll call recorded yet.</p>
             )}
 
-            <H2>Track</H2>
-            <TrackDemo />
-
             <H2>Text</H2>
             {text ? (
               <BillText text={text} />
@@ -206,7 +201,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
           <DocsTableOfContents toc={TOC} />
         </div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <DocsRailCalendar />
           <OpenInV0Cta />
         </div>
       </div>
