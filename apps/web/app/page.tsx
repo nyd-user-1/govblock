@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { IconArrowRight } from "@tabler/icons-react"
 
-import { siteConfig } from "@/lib/config"
 import { Announcement } from "@/components/announcement"
 import { CardsDemo } from "@/components/cards"
 import { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading } from "@/components/page-header"
