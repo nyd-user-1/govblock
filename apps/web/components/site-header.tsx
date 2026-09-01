@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 
 import { siteConfig } from "@/lib/config"
 import { CommandMenu } from "@/components/command-menu"
+import { DesignerActions } from "@/components/designer-actions"
 import { MainNav } from "@/components/main-nav"
 import { ModeSwitcher } from "@/components/mode-switcher"
 import { StateSwitcher } from "@/components/state-switcher"
@@ -25,7 +26,8 @@ export function SiteHeader() {
             </div>
             <Separator orientation="vertical" className="ml-2 hidden lg:block" />
             <ModeSwitcher />
-            <div className="flex items-center gap-2">
+            <DesignerActions />
+            <div className="flex items-center gap-2 group-has-data-[slot=designer]/layout:hidden">
               <Separator orientation="vertical" />
               <Button render={<Link href="/create" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
                 <HugeiconsIcon icon={PlusSignIcon} />

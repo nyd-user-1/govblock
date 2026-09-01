@@ -28,7 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
         <ThemeProvider>
           <TooltipProvider delay={0}>
-            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background">
+            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden">
               <SiteHeader />
               <main className="flex min-h-0 flex-1 flex-col">{children}</main>
               <SiteFooter />
