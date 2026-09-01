@@ -1672,6 +1672,9 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   // few enough that 51 other jurisdictions cannot bury the one they are in.
   const perState = options.all ? (options.perState ?? 2) : 0
   const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
+  // Four words is more than any name here needs and keeps the parameter list
+  // bounded; a one-word query is the old behaviour exactly.
+  const nameTokens = term.split(/\s+/).filter(Boolean).slice(0, 4).map((word) => `%${word}%`)
 
   const [bills, members, committees, texts] = await Promise.all([
     q<{
@@ -1731,19 +1734,27 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       district: string
       state: string
     }>(
-      // Name *and* aliases: "holmes" has to find Eleanor Holmes Norton, whose
-      // LegiScan name is "Eleanor Norton". scripts/search/people-aliases.sql
-      // writes the other forms she might be typed under into "People".aliases.
+      // Name *and* aliases, token by token. "holmes" has to find Eleanor Holmes
+      // Norton, whose LegiScan name is "Eleanor Norton";
+      // scripts/search/people-aliases.sql writes the other forms she might be
+      // typed under into "People".aliases. But one contiguous %like% over that
+      // column is not enough: Gil Cisneros's alias reads "Gilbert Ray Cisneros",
+      // so a reader who types "Gilbert Cisneros" — dropping a middle name they
+      // never knew he had — matched nothing. Each word of the query is required
+      // separately instead, in either column, so word order and missing middle
+      // names both stop mattering. Every clause can still use its trigram index.
+      //
       // A row inserted since that script last ran has a null alias and is still
       // found by name, so drift degrades to the old behaviour, not to a hole.
       `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.state,
               exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id) as active
        from "People" p
        where p.committee_id is null and not coalesce(p.archived, false)
-         and p.role in ('Rep', 'Sen') and (p.name ilike $2 or p.aliases ilike $2)
+         and p.role in ('Rep', 'Sen')
+         and ${nameTokens.map((_, i) => `(p.name ilike $${i + 2} or p.aliases ilike $${i + 2})`).join(" and ") || "false"}
        order by (p.state = $1) desc, active desc, p.last_name, p.first_name
-       limit $3`,
-      [f.state, like, limit + perState * 4]
+       limit $${nameTokens.length + 2}`,
+      [f.state, ...nameTokens, limit + perState * 4]
     ),
     q<{ committee: string; bills: number; chamber: string; state: string; tier: number }>(
       // Committees are a group-by, so the two tiers are one pass with the
