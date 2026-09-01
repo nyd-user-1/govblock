@@ -1754,6 +1754,32 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
               exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id) as active
        from "People" p
        where p.committee_id is null and not coalesce(p.archived, false)
+         -- LegiScan files some committees as people. The committee_id filter
+         -- catches most, but 487 of the 22,193 otherwise-searchable rows slip
+         -- through — Florida's "Health and Human Services Committee", Oregon's
+         -- "Committee On Human Services", and 266 whose names carry no such word
+         -- at all: California's "Utilities and Energy", Kansas's "Agriculture",
+         -- South Carolina's "Judiciary". Searching "health" across every
+         -- jurisdiction put about twenty of them in the Members section.
+         --
+         -- A name in two parts is what separates them. 487 have no last_name at
+         -- all, and exactly one of those carries a party or a district (Oregon's
+         -- "Transportation Reinvestment", HD-061, not sitting) — also a
+         -- committee. A further 24 have a surname but no given name, because
+         -- LegiScan copied the committee's name into both fields: Maryland's
+         -- "Health", "Ways", "Economic" and "Mental", New York's "Rules", South
+         -- Dakota's "Appropriations". Not one of those 24 has a party, a
+         -- district, a photo, an email, a bio, a VoteSmart id or a Ballotpedia
+         -- entry, and not one is sitting; five read like surnames (Barnes,
+         -- George, Nelson, Rice, Young) and are just as empty, one of them filed
+         -- as both Rep and Sen.
+         --
+         -- So: both halves of a name required. 511 of 22,193 rows leave the
+         -- member search and no sitting legislator does. Filtered here rather
+         -- than upstream because this is the query that shows people; getMembers
+         -- and the directory still list them, which is a data fix, not a search
+         -- one.
+         and coalesce(p.first_name, '') <> '' and coalesce(p.last_name, '') <> ''
          and p.role in ('Rep', 'Sen')
          and ${nameTokens.map((_, i) => `(p.name ilike $${i + 2} or p.aliases ilike $${i + 2})`).join(" and ") || "false"}
        order by (p.state = $1) desc, active desc, p.last_name, p.first_name
