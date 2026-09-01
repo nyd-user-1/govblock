@@ -69,7 +69,7 @@ export function resolve(url: string): unknown {
       const offset = Number(q.get("offset") ?? 0), page = Number(q.get("limit") ?? 25)
       const rows = (cycle in fecCandidates ? snapshot.rows : [])
         .filter((r) => (!office || r.office === office) && (!party || PARTY(r.party) === party) && (!ici || r.ici === ici))
-        .sort((a, b) => (a[sort] > b[sort] ? dir : a[sort] < b[sort] ? -dir : 0))
+        .sort((a, b) => { const x = a[sort] ?? 0, y = b[sort] ?? 0; return x > y ? dir : x < y ? -dir : 0 })
       return {
         meta: { ...snapshot.meta, cycle: Number(cycle), office, party, ici, sort, dir: dir > 0 ? "asc" : "desc", offset, matched: rows.length, returned: Math.min(page, rows.length - offset) },
         rows: rows.slice(offset, offset + page),

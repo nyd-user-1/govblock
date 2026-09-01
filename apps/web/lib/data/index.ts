@@ -26,7 +26,7 @@ import text2157690 from "./texts/2157690.json"
 import text2157691 from "./texts/2157691.json"
 import text2157692 from "./texts/2157692.json"
 
-export const BILLS: Record<string, typeof bill2157687> = {
+const BILLS_MAP = {
   "2157687": bill2157687,
   "2157688": bill2157688,
   "2157689": bill2157689,
@@ -40,6 +40,8 @@ export const BILLS: Record<string, typeof bill2157687> = {
   "2157697": bill2157697,
   "2157698": bill2157698,
 }
+
+export const BILLS: Record<string, (typeof BILLS_MAP)[keyof typeof BILLS_MAP]> = BILLS_MAP
 
 export const TEXTS: Record<string, { text: string; version?: string; chars?: number }> = {
   "2025009108": text2025009108,

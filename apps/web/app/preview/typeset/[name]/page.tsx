@@ -85,7 +85,7 @@ export default async function TypesetFixturePage({
             </em>
           </p>
         </div>
-        {text && <BillText id={bill.bill_id} text={text.text} className="my-2" />}
+        {text && <BillText text={text.text} className="my-2" />}
       </div>
     )
   }

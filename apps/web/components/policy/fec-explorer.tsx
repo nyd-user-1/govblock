@@ -236,7 +236,7 @@ export function FecExplorer() {
         >
           {scopeAll ? "All states" : stateName(state)}
         </Button>
-        <Select value={office} onValueChange={(value) => setOffice(value)} items={{ "": "Every office", House: "House", Senate: "Senate", President: "President" }}>
+        <Select value={office} onValueChange={(value) => setOffice(value ?? "")} items={{ "": "Every office", House: "House", Senate: "Senate", President: "President" }}>
           <SelectTrigger size="sm" aria-label="Office">
             <SelectValue />
           </SelectTrigger>
@@ -247,7 +247,7 @@ export function FecExplorer() {
           <SelectItem value="President">President</SelectItem>
         </SelectContent>
         </Select>
-        <Select value={party} onValueChange={(value) => setParty(value)} items={{ "": "Every party", DEM: "Democratic", REP: "Republican", OTHER: "Other" }}>
+        <Select value={party} onValueChange={(value) => setParty(value ?? "")} items={{ "": "Every party", DEM: "Democratic", REP: "Republican", OTHER: "Other" }}>
           <SelectTrigger size="sm" aria-label="Party">
             <SelectValue />
           </SelectTrigger>
@@ -258,7 +258,7 @@ export function FecExplorer() {
           <SelectItem value="OTHER">Other</SelectItem>
         </SelectContent>
         </Select>
-        <Select value={ici} onValueChange={(value) => setIci(value)} items={{ "": "Incumbent, challenger or open", I: "Incumbent", C: "Challenger", O: "Open seat" }}>
+        <Select value={ici} onValueChange={(value) => setIci(value ?? "")} items={{ "": "Incumbent, challenger or open", I: "Incumbent", C: "Challenger", O: "Open seat" }}>
           <SelectTrigger size="sm" aria-label="Incumbency">
             <SelectValue />
           </SelectTrigger>

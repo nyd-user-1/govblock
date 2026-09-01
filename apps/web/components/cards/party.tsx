@@ -61,7 +61,7 @@ export function PartyCard() {
         </div>
       </CardContent>
       <CardFooter>
-        <ToggleGroup value={active} onValueChange={(value) => setChamber(String(value ?? ""))} variant="outline" spacing={1}>
+        <ToggleGroup value={active ? [active] : []} onValueChange={(value) => setChamber(String(value ?? ""))} variant="outline" spacing={1}>
           {chambers.map((name) => (
             <ToggleGroupItem key={name} value={name}>
               {name}

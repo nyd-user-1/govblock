@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.90",
+    "@aws-sdk/client-rds-data": "^3.1123.0",
     "@base-ui/react": "^1.7.0",
     "@govblock/ui": "workspace:*",
     "@hugeicons/core-free-icons": "^4.3.0",
@@ -28,6 +29,7 @@
     "nuqs": "^2.10.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-resizable-panels": "^4.12.3",
     "recharts": "3.8.0"
   },
   "devDependencies": {

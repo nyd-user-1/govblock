@@ -1,6 +1,10 @@
 {
   "extends": "@govblock/typescript-config/nextjs.json",
   "compilerOptions": {
+    // The starter's base.json turns this on; the app's components were written
+    // against plain indexed access and reading it back as `T | undefined`
+    // buys nothing here but ~30 non-null assertions. `strict` stays on.
+    "noUncheckedIndexedAccess": false,
     "paths": {
       "@/*": ["./*"],
       "@govblock/ui/*": ["../../packages/ui/src/*"]

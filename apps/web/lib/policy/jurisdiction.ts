@@ -10,9 +10,11 @@ export type Jurisdiction = {
   isDefaultSession: boolean
   resolved: boolean
   setState: (next: string) => void
+  // The pickers hand back whatever the params bag holds, which is a string.
+  setSession: (next: string | number | null) => void
 }
 
-export const JURISDICTION: Jurisdiction = { state: "US", session: 2025, isDefaultSession: true, resolved: true, setState: () => {} }
+export const JURISDICTION: Jurisdiction = { state: "US", session: 2025, isDefaultSession: true, resolved: true, setState: () => {}, setSession: () => {} }
 
 export function useJurisdiction(): Jurisdiction {
   return JURISDICTION

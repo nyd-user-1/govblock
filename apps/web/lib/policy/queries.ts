@@ -4,7 +4,7 @@ import type { Bill, BillText } from "@/lib/policy/types"
 
 // The server-side reads livingston-v3's preview pages make against Neon
 // (lib/policy/queries.ts), answered from the bills on file in lib/data.
-export type Resolved = Filters & { state: string; session: number }
+export type Resolved = Omit<Filters, "state" | "session"> & { state: string; session: number }
 
 export async function resolve(filters: Filters): Promise<Resolved> {
   return { ...filters, state: filters.state || "US", session: Number(filters.session) || 2025 }
