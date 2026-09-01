@@ -195,7 +195,10 @@ export async function resolveCongress(url: string): Promise<unknown> {
     case "record-issues":
       return slice(body, "dailyCongressionalRecord", offset, limit)
     case "house-votes":
-      return slice(body, "houseRollCallVotes", offset, limit)
+      // The per-member positions ride along: the tally on a card and the
+      // position on a member's page are the same rows counted two ways, and
+      // reading them from one answer is what keeps the two agreeing.
+      return { ...slice(body, "houseRollCallVotes", offset, limit), positions: body.positions }
     case "member-detail":
       return bioguide ? (at(body, bioguide) ?? null) : null
     case "member-votes": {
