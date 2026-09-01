@@ -44,6 +44,7 @@ export function CommandMenu() {
   const [open, setOpen] = React.useState(false)
   const [term, setTerm] = React.useState("")
   const [results, setResults] = React.useState<SearchPayload | null>(null)
+  const [selected, setSelected] = React.useState("")
 
   React.useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -85,6 +86,25 @@ export function CommandMenu() {
     }
   }, [open, resolved, query, state, session])
 
+  // cmdk keeps whatever was selected when the list changes underneath it, and
+  // between keystroke and response the only stable item is "See all results" —
+  // so the selection is controlled, and snaps to the top result every time the
+  // query or its results change.
+  React.useEffect(() => {
+    const b = results?.bills?.[0]
+    const m = results?.members?.[0]
+    const c = results?.committees?.[0]
+    const p = (query.length >= 2 ? matchPages(query) : SEARCH_PAGES)[0]
+    setSelected(
+      b ? `bill-${b.bill_id}`
+        : m ? `member-${m.people_id}`
+        : c ? `committee-${c.committee}`
+        : p ? `page-${p.href}`
+        : query.length >= 2 ? `see-all-${query}`
+        : ""
+    )
+  }, [query, results])
+
   const go = React.useCallback(
     (href: string) => {
       setOpen(false)
@@ -120,7 +140,7 @@ export function CommandMenu() {
           <DialogDescription>Search bills, members, committees and pages...</DialogDescription>
         </DialogHeader>
         <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0" showCloseButton={false}>
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} value={selected} onValueChange={setSelected}>
             <CommandInput
               placeholder={`Search ${here}...`}
               value={term}
