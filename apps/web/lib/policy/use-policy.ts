@@ -25,7 +25,32 @@ export function policyUrl(resource: string, filters: Filters = {}, extra: Record
 export function useSnapshot<T>(key: string | null) {
   const [state, setState] = React.useState<{ key: string | null; data: T | undefined }>({ key: null, data: undefined })
   React.useEffect(() => {
-    setState({ key, data: key ? (resolve(key) as T | undefined) : undefined })
+    if (!key) {
+      setState({ key: null, data: undefined })
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const response = await fetch(key)
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+        const data = (await response.json()) as T
+        if (!cancelled) setState({ key, data })
+      } catch (error) {
+        // Congress alone may stand in its committed snapshot, because that is
+        // the jurisdiction the snapshots hold. Under any other scope a failure
+        // reads as empty: Congress's rows under Texas's name would be a lie,
+        // and a quieter one than an empty board.
+        const scope = new URL(key, "http://snapshot").searchParams.get("state") || "US"
+        if (scope !== "US") console.error(`policy: ${key} failed`, error)
+        if (!cancelled) setState({ key, data: scope === "US" ? (resolve(key) as T | undefined) : undefined })
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // The previous key's rows stay on screen until the new ones land, which is
+    // what SWR's keepPreviousData did for these callers.
   }, [key])
   return { data: state.data, error: undefined as Error | undefined, isLoading: !!key && state.key !== key }
 }

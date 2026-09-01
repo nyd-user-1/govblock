@@ -21,7 +21,9 @@ export type FilterKey = (typeof FILTER_KEYS)[number]
 
 export type Filters = Partial<Record<FilterKey, string>>
 
-export const DEFAULT_STATE = "NY"
+// Congress. Every committed snapshot in lib/data is Congress, so this is the
+// only default under which the offline fallback tells the truth.
+export const DEFAULT_STATE = "US"
 
 export const VOTE_OPTIONS = [
   { value: "Yea", label: "Aye" },

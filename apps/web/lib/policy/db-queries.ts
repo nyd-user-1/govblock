@@ -995,9 +995,19 @@ export async function getNewsroom(f: Resolved, days = 14) {
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10)
   const params: unknown[] = []
   const where = billWhere(f, params)
+  // Materialise the matching set before ordering it. Left to itself the planner
+  // walks bills_last_action_idx backwards and stops at the limit, which is right
+  // where matches are dense and catastrophic where they are not: Congress's 2025
+  // session holds two enacted bills, so it scanned the whole index looking for
+  // six and took 2.9 s, against 3 ms for New York. This bounds the work by the
+  // number of matches instead — US 2.9 s -> 28 ms, NY 3 ms -> 379 ms, so the
+  // worst case across 52 jurisdictions is bounded rather than open-ended.
   const withSince = (extra: string) =>
-    `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
-     where ${where} and coalesce(b.last_action_date, '') <> '' ${extra}
+    `with matched as materialized (
+       select b.bill_id from "Bills" b
+       where ${where} and coalesce(b.last_action_date, '') <> '' ${extra}
+     )
+     select ${BILL_COLUMNS} from matched m join "Bills" b using (bill_id) ${PRIME_SPONSOR}
      order by b.last_action_date desc, b.bill_id desc limit $${params.length + 1}`
 
   const [enacted, passed, committee, introduced, rollCalls, hearings] =

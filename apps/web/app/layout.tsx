@@ -6,6 +6,7 @@ import { fontVariables } from "@/lib/fonts"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
+import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -30,11 +31,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <NuqsAdapter>
         <ThemeProvider>
           <TooltipProvider delay={0}>
+            <JurisdictionProvider>
             <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden">
               <SiteHeader />
               <main className="flex min-h-0 flex-1 flex-col">{children}</main>
               <SiteFooter />
             </div>
+            </JurisdictionProvider>
           </TooltipProvider>
         </ThemeProvider>
         </NuqsAdapter>
