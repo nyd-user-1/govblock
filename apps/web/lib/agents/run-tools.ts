@@ -56,7 +56,11 @@ export async function runTool(
     return {
       ok: result.ok,
       payload: result,
-      summary: result.ok ? `posted to ${result.where}` : `not posted — ${result.error}`,
+      // The id is the proof the post exists — "posted" on its own is the agent
+      // asserting success, which is the thing this whole surface avoids.
+      summary: result.ok
+        ? `posted to ${result.where}${result.ref ? ` · id ${result.ref}` : ""}`
+        : `not posted — ${result.error}`,
       ms: Date.now() - started,
     }
   }
