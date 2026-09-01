@@ -17,14 +17,14 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } f
 type Option = { value: string; count: number }
 
 export function ChambersCard() {
-  const { data: options, state } = useScoped<{ chambers: Option[] }>("options", null as unknown as { chambers: Option[] })
+  const { data: options, state, congress } = useScoped<{ chambers: Option[] }>("options", null as unknown as { chambers: Option[] })
   const { data: seats } = useScoped<{ chamber: string; seats: number }[]>("seats", null as unknown as { chamber: string; seats: number }[])
   const chambers = React.useMemo(() => {
-    if (!options) return F.chambers
+    if (!options) return congress ? F.chambers : []
     const members = new Map<string, number>()
     for (const row of seats ?? []) members.set(row.chamber, (members.get(row.chamber) ?? 0) + row.seats)
     return options.chambers.map((c) => ({ label: c.value, bills: c.count, members: members.get(c.value) ?? 0 }))
-  }, [options, seats])
+  }, [options, seats, congress])
   return (
     <CardFrame id="chambers">
       <CardHeader>

@@ -14,7 +14,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govbl
 type ApiSession = { session_id: number; bills: number; title: string }
 
 export function SessionsCard() {
-  const { data, session } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
+  const { data, session, congress } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
   const sessions = React.useMemo(
     () =>
       data
@@ -26,8 +26,10 @@ export function SessionsCard() {
             years: String(row.session_id),
             bills: row.bills,
           }))
-        : F.sessions,
-    [data]
+        : congress
+          ? F.sessions
+          : [],
+    [data, congress]
   )
   return (
     <CardFrame id="sessions">

@@ -44,7 +44,10 @@ export function ChangelogV2Body({
   )
 
   const entries = React.useMemo(() => {
-    if (!scoped || !data) return initial
+    // Congress's entries are the prerender, and they may only stand in under
+    // Congress. Scoped and still loading means empty, not somebody else's bills.
+    if (!scoped) return initial
+    if (!data) return []
     return data
       .flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })))
       .sort((a, b) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1))
@@ -80,6 +83,11 @@ export function ChangelogV2Body({
             <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">Latest updates and announcements.</p>
           </div>
           <div className="typeset w-full flex-1 pb-16 sm:pb-0">
+            {!entries.length && (
+              <p className="py-10 text-sm text-muted-foreground">
+                {scoped ? `Reading the ${stateName(state)} stream…` : "Nothing on file."}
+              </p>
+            )}
             <div className="steps mb-12 md:ml-4 md:border-l md:pl-8">
               {entries.map((bill) => {
                 const text = texts.get(Number(bill.bill_id))

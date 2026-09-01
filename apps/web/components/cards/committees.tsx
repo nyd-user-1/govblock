@@ -33,7 +33,7 @@ function Bars({ label, values }: { label: string; values?: number[] }) {
 type Committee = { committee_name: string; chamber: string; bills: number }
 
 export function CommitteesCard() {
-  const { data, state } = useScoped<Committee[]>("committees", null as unknown as Committee[])
+  const { data, state, congress } = useScoped<Committee[]>("committees", null as unknown as Committee[])
   const committees = React.useMemo(
     () =>
       data
@@ -41,8 +41,10 @@ export function CommitteesCard() {
             .sort((a, b) => b.bills - a.bills)
             .slice(0, 6)
             .map((c) => ({ label: c.committee_name, bills: c.bills, chamber: c.chamber, bars: undefined as number[] | undefined }))
-        : F.committees.map((c) => ({ ...c, bars: c.bars as number[] | undefined })),
-    [data]
+        : congress
+          ? F.committees.map((c) => ({ ...c, bars: c.bars as number[] | undefined }))
+          : [],
+    [data, congress]
   )
   return (
     <CardFrame id="committees">

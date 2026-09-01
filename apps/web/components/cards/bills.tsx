@@ -18,15 +18,15 @@ import { Progress } from "@govblock/ui/components/progress"
 type Option = { value: string; count: number }
 
 export function BillsCard() {
-  const { data: options, state } = useScoped<{ statuses: Option[] }>("options", null as unknown as { statuses: Option[] })
+  const { data: options, state, congress } = useScoped<{ statuses: Option[] }>("options", null as unknown as { statuses: Option[] })
   const { data: bills } = useScoped<{ total: number }>("bills", null as unknown as { total: number }, { limit: 1 })
   const { total, rows } = React.useMemo(() => {
-    if (!options) return F.bills
+    if (!options) return congress ? F.bills : { total: 0, rows: [] }
     return {
       total: bills?.total ?? options.statuses.reduce((sum, r) => sum + r.count, 0),
       rows: options.statuses.slice(0, 5).map((r) => ({ label: r.value, bills: r.count })),
     }
-  }, [options, bills])
+  }, [options, bills, congress])
   return (
     <CardFrame id="bills-status">
       <CardHeader>

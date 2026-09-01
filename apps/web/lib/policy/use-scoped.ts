@@ -7,10 +7,14 @@ import { usePolicy } from "@/lib/policy/use-policy"
 // HTML is shared by every visitor, so issuing a request before then would ask
 // Congress on behalf of a Texas reader — and then follows the scope.
 //
-// `fallback` is what to show while the first answer is in flight. It is the
-// committed Congress fixture at every call site, so it may only stand in under
-// Congress: the same rule as use-policy's error path, and for the same reason.
-// Under any other jurisdiction the caller gets an empty list and says so.
+// `fallback` is the committed Congress fixture, and the hook is the only thing
+// allowed to decide whether it may stand in: **only under Congress**. Under any
+// other jurisdiction `data` is undefined until that jurisdiction's own rows
+// arrive, so the surface renders its own loading or empty state. A caller that
+// cannot use `fallback` directly — the several cards whose fixture is shaped
+// differently from the API — must gate on `congress` rather than reaching for
+// the fixture itself. Congress's rows under another state's name are a lie, and
+// a quieter one than an empty card.
 export function useScoped<T>(
   resource: string,
   fallback: T,
@@ -23,8 +27,11 @@ export function useScoped<T>(
     extra
   )
   const pending = !resolved || isLoading
+  const congress = state === "US"
   return {
-    data: data ?? (pending && state === "US" ? fallback : data),
+    data: data ?? (pending && congress ? fallback : data),
+    /** Whether a committed Congress fixture may stand in for missing rows. */
+    congress,
     pending,
     state,
     session,

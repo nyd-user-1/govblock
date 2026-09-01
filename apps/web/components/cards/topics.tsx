@@ -17,10 +17,10 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 // committee a bill sits in where it does not. The substitution prints itself
 // in the footer; it is never silent.
 export function TopicsCard() {
-  const { data, state } = useScoped<{ value: string; count: number }[]>("subjects", null as unknown as { value: string; count: number }[])
+  const { data, state, congress } = useScoped<{ value: string; count: number }[]>("subjects", null as unknown as { value: string; count: number }[])
   const rows = React.useMemo(
-    () => (data ? data.slice(0, 8).map((r) => ({ label: r.value, bills: r.count })) : F.topics.rows),
-    [data]
+    () => (data ? data.slice(0, 8).map((r) => ({ label: r.value, bills: r.count })) : congress ? F.topics.rows : []),
+    [data, congress]
   )
   return (
     <CardFrame id="subjects">
