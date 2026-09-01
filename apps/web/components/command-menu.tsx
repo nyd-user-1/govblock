@@ -34,9 +34,9 @@ import { Button } from "@govblock/ui/components/ny4/button"
 
 type SearchPayload = {
   q: string
-  bills: { bill_id: number; bill_number: string; title: string }[]
+  bills: { bill_id: number; bill_number: string; title: string; state?: string }[]
   members: { people_id: number; name: string; party: string; chamber: string; state: string; active: boolean }[]
-  committees: { committee: string; bills: number; chamber: string }[]
+  committees: { committee: string; bills: number; chamber: string; state?: string }[]
 }
 
 export function CommandMenu() {
@@ -71,7 +71,7 @@ export function CommandMenu() {
         const url = policyUrl(
           "search",
           { state, session: session ? String(session) : undefined },
-          { q: query, limit: 6 }
+          { q: query, limit: 6, all: 1 }
         )
         const response = await fetch(url)
         if (!response.ok) throw new Error(String(response.status))
@@ -152,14 +152,14 @@ export function CommandMenu() {
                 {query.length < 2 ? "Type to search bills, members, committees, pages..." : "Nothing found."}
               </CommandEmpty>
               {bills.length > 0 && (
-                <CommandGroup heading={`Bills — ${here}`}>
+                <CommandGroup heading="Bills">
                   {bills.map((bill) => (
                     <CommandItem
                       key={`bill-${bill.bill_id}`}
                       value={`bill-${bill.bill_id}`}
-                      onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${state}`)}
+                      onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
                     >
-                      <FlagChip state={state} width={20} />
+                      <FlagChip state={bill.state ?? state} width={20} />
                       <span className="shrink-0 font-medium">{bill.bill_number}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
                     </CommandItem>
@@ -193,10 +193,10 @@ export function CommandMenu() {
                       key={`committee-${committee.committee}`}
                       value={`committee-${committee.committee}`}
                       onSelect={() =>
-                        go(`/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee)}`)
+                        go(`/docs/bills?state=${committee.state ?? state}&committee=${encodeURIComponent(committee.committee)}`)
                       }
                     >
-                      <FlagChip state={state} width={20} />
+                      <FlagChip state={committee.state ?? state} width={20} />
                       <span className="shrink-0 font-medium">{committee.committee}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">
                         {committee.bills} bills
