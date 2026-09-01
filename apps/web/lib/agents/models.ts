@@ -21,6 +21,13 @@ export type ModelSpec = {
   /** Bedrock us-east-1 on-demand list price, USD per million tokens. */
   usdPerMTokIn: number
   usdPerMTokOut: number
+  /**
+   * Output tokens a second, measured on this account in us-east-1 on
+   * 2026-09-01 (1,200 tokens, single call, no tools). It is here because the
+   * host is the constraint: Amplify discards a response after thirty seconds,
+   * so how fast a model writes decides how much it may write in one round.
+   */
+  tokensPerSecond: number
 }
 
 export const MODELS: Record<ModelTier, ModelSpec> = {
@@ -31,6 +38,7 @@ export const MODELS: Record<ModelTier, ModelSpec> = {
     label: "Claude Opus 4.6",
     usdPerMTokIn: 5,
     usdPerMTokOut: 25,
+    tokensPerSecond: 51,
   },
   // Measured before it was chosen: on the Bill Reader's own prompt over a whole
   // bill record (1,365 input tokens), Sonnet 4.6 and Opus 4.6 produced briefs
@@ -44,6 +52,7 @@ export const MODELS: Record<ModelTier, ModelSpec> = {
     label: "Claude Sonnet 4.6",
     usdPerMTokIn: 3,
     usdPerMTokOut: 15,
+    tokensPerSecond: 46,
   },
   // The cheapest tier that does tool use competently, which is all the
   // Tracker's plan/route/observe loop needs. 44b's two AgentCore agents run on
@@ -53,6 +62,7 @@ export const MODELS: Record<ModelTier, ModelSpec> = {
     label: "Claude Haiku 4.5",
     usdPerMTokIn: 1,
     usdPerMTokOut: 5,
+    tokensPerSecond: 102,
   },
 }
 
@@ -82,3 +92,19 @@ export function costOf(tier: ModelTier, usage: Usage) {
 }
 
 export const MODEL_ARNS = Object.values(MODELS).map((m) => m.id)
+
+/**
+ * How much a model may write in one round on this host.
+ *
+ * Amplify WEB_COMPUTE discards a response after thirty seconds — measured, and
+ * silently, with a 500 and an empty body. Writing is the slow part, so the
+ * ceiling is a model's measured speed times the seconds we are willing to spend
+ * writing, leaving the rest for reading the conversation and deciding what to
+ * do. Hitting it is not a failure: the loop asks the model to continue in the
+ * next round.
+ */
+const SECONDS_SPENT_WRITING = 17
+
+export function roundTokens(tier: ModelTier) {
+  return Math.floor(MODELS[tier].tokensPerSecond * SECONDS_SPENT_WRITING)
+}

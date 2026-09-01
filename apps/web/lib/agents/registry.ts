@@ -27,9 +27,9 @@ export type AgentDefinition = {
   /** How many rounds of the loop this agent may take. Default 12. */
   maxRounds?: number
   /**
-   * Output ceiling per round. Latency on this host is dominated by tokens
-   * written, and Amplify cuts a response off at 30 seconds — an agent that may
-   * write 8,192 tokens in one round can trip it. Default 4,096.
+   * Output ceiling per round, if this agent needs one other than its model's.
+   * The default comes from the model's measured writing speed and the host's
+   * thirty-second deadline — see roundTokens in models.ts.
    */
   maxTokens?: number
   /** True for the long-form agents the inbox runs rather than the chat. */
@@ -292,11 +292,6 @@ agent exists not to do.`,
     // A report is a dozen reads and a long write. Twelve rounds is a chat's
     // budget and would cut one off mid-gathering.
     maxRounds: 24,
-    // Sonnet writes at roughly sixty tokens a second here, and the host
-    // discards a response after thirty. Twelve hundred is what fits with room
-    // for the read that precedes it; a round that runs out of room continues in
-    // the next one rather than being cut off.
-    maxTokens: 1200,
     placeholder: "Ask for a report — a topic, a jurisdiction, and what you want to know…",
     starters: [
       "Report on New York housing legislation this session",

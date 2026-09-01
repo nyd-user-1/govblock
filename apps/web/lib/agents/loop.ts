@@ -3,6 +3,7 @@ import "server-only"
 import type { Message } from "@aws-sdk/client-bedrock-runtime"
 
 import { converseStream, type StreamEvent } from "@/lib/agents/bedrock"
+import { roundTokens } from "@/lib/agents/models"
 import type { AgentDefinition } from "@/lib/agents/registry"
 import { runTool } from "@/lib/agents/run-tools"
 import { toolSpec, type ToolName } from "@/lib/agents/tools"
@@ -114,9 +115,9 @@ export async function* runStep({
     messages: compact(messages),
     tools: [...definition.tools, ...extraTools].map(toolSpec),
     // Latency on this host is dominated by tokens written, and a response that
-    // takes more than thirty seconds is discarded — so the ceiling is the
-    // agent's, and modest by default.
-    maxTokens: definition.maxTokens ?? 4096,
+    // takes more than thirty seconds is discarded — so the ceiling comes from
+    // the model's own measured speed.
+    maxTokens: definition.maxTokens ?? roundTokens(definition.tier),
   })
 
   let next = await stream.next()
