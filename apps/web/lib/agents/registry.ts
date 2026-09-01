@@ -58,7 +58,7 @@ export const AGENTS: AgentDefinition[] = [
     reads:
       "A bill's description and status, its sponsors with party and district, its full legislative history, committee referrals, roll calls, subjects, and the text as filed.",
     can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, and what has actually happened to it.",
-    tier: "reasoning",
+    tier: "grounded",
     tools: ["search_bills", "get_bill", "get_bill_text", "list_jurisdictions"],
     placeholder: "Ask about a bill — by number, or by what it does…",
     starters: [
@@ -89,7 +89,7 @@ holds no actions, not that none occurred.`,
     reads:
       "The sitting rosters of every jurisdiction, their committees and the bills before them, and which jurisdictions the record covers at all.",
     can: "Answer 'who represents…', 'which committee has…', 'where is this bill' in any of the 52, and say honestly when a jurisdiction's rows are thinner than another's.",
-    tier: "reasoning",
+    tier: "grounded",
     tools: [
       "list_jurisdictions",
       "list_members",

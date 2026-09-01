@@ -12,7 +12,7 @@
 // Every entitled model here is INFERENCE_PROFILE-only, so the id is always the
 // `us.` cross-region profile, never the bare `anthropic.` foundation model.
 
-export type ModelTier = "reasoning" | "routing"
+export type ModelTier = "reasoning" | "grounded" | "routing"
 
 export type ModelSpec = {
   /** The cross-region inference profile id passed to Converse. */
@@ -24,12 +24,26 @@ export type ModelSpec = {
 }
 
 export const MODELS: Record<ModelTier, ModelSpec> = {
-  // The strongest Claude this account can invoke. The specialists answer on it.
+  // The strongest Claude this account can invoke. Kept for the one agent that
+  // reasons across several records at once rather than reading one.
   reasoning: {
     id: "us.anthropic.claude-opus-4-6-v1",
     label: "Claude Opus 4.6",
     usdPerMTokIn: 5,
     usdPerMTokOut: 25,
+  },
+  // Measured before it was chosen: on the Bill Reader's own prompt over a whole
+  // bill record (1,365 input tokens), Sonnet 4.6 and Opus 4.6 produced briefs
+  // that were indistinguishable — same status, same three sponsors, same three
+  // history moves, same companion bill, both correctly refusing to characterise
+  // the text they had not read. Sonnet cost 0.96¢ against Opus's 1.83¢ and
+  // answered in 7.9 s against 10.7 s. Reading one record and explaining it does
+  // not need the larger model, so it does not get it.
+  grounded: {
+    id: "us.anthropic.claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
+    usdPerMTokIn: 3,
+    usdPerMTokOut: 15,
   },
   // The cheapest tier that does tool use competently, which is all the
   // Tracker's plan/route/observe loop needs. 44b's two AgentCore agents run on
