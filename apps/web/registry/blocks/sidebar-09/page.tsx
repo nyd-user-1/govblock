@@ -124,7 +124,7 @@ export default function Page() {
       <AppSidebar
         tasks={tasks}
         selected={selected}
-        onSelect={(id) => {
+        onOpenTask={(id) => {
           setSelected(id)
           setComposing(false)
         }}

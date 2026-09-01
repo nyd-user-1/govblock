@@ -38,13 +38,15 @@ const FILTERS: { title: string; icon: typeof Inbox; status: TaskStatus | null }[
 export function AppSidebar({
   tasks,
   selected,
-  onSelect,
+  // Not `onSelect`: Sidebar spreads a div's props, whose own onSelect would
+  // intersect with this one and hand the callback a SyntheticEvent.
+  onOpenTask,
   onClear,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   tasks: Task[]
   selected: string | null
-  onSelect: (id: string) => void
+  onOpenTask: (id: string) => void
   onClear: () => void
 }) {
   const [activeItem, setActiveItem] = React.useState(FILTERS[0]!)
@@ -161,7 +163,7 @@ export function AppSidebar({
                 <button
                   type="button"
                   key={task.id}
-                  onClick={() => onSelect(task.id)}
+                  onClick={() => onOpenTask(task.id)}
                   data-active={selected === task.id}
                   className="flex w-full flex-col items-start gap-2 border-b p-4 text-left text-sm leading-tight whitespace-nowrap last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                 >
