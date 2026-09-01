@@ -9,13 +9,13 @@ import { runMeta, type RunState, type Step } from "@/lib/agents/run-client"
 // exchange cost. Shared by the chat panel on /agents and the Agentic Inbox,
 // because a run is the same thing in both and a second renderer would drift.
 
-// The models write **bold**, *italic*, `code` and [label](url), and the panel
-// used to print the punctuation. This renders those four and nothing else — not
-// a markdown library, and deliberately not headings or lists, which would start
-// dictating the shape of an answer.
+// The models write **bold**, *italic*, `code`, [label](url), and plain markdown
+// headings, and the panel used to print the punctuation. This renders those and
+// nothing else — not a markdown library, and deliberately not lists or tables,
+// which would start dictating the shape of an answer.
 const INLINE = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g
 
-export function Prose({ text }: { text: string }) {
+function Inline({ text }: { text: string }) {
   return (
     <>
       {text.split(INLINE).map((piece, i) => {
@@ -34,15 +34,46 @@ export function Prose({ text }: { text: string }) {
               key={i}
               href={link[2]}
               className="underline underline-offset-4"
-              target={link[2]!.startsWith("http") ? "_blank" : undefined}
+              target={link[2].startsWith("http") ? "_blank" : undefined}
               rel="noreferrer"
             >
-              {link[1]}
+              {/* A link's label is often bold too — render it, do not print it. */}
+              <Inline text={link[1]} />
             </a>
           )
         if (piece.startsWith("*") && piece.endsWith("*") && piece.length > 2)
           return <em key={i}>{piece.slice(1, -1)}</em>
         return <React.Fragment key={i}>{piece}</React.Fragment>
+      })}
+    </>
+  )
+}
+
+const HEADING = /^(#{1,4})\s+(.*)$/
+
+export function Prose({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("\n").map((line, i, all) => {
+        const end = i === all.length - 1 ? "" : "\n"
+        const heading = HEADING.exec(line)
+        if (heading)
+          return (
+            <React.Fragment key={i}>
+              <strong className={heading[1].length <= 2 ? "text-base" : undefined}>
+                <Inline text={heading[2]} />
+              </strong>
+              {end}
+            </React.Fragment>
+          )
+        if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line))
+          return <hr key={i} className="my-2 border-border" />
+        return (
+          <React.Fragment key={i}>
+            <Inline text={line} />
+            {end}
+          </React.Fragment>
+        )
       })}
     </>
   )
