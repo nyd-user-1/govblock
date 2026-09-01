@@ -25,8 +25,11 @@ function arrayLiteral(values: unknown[]) {
   return `{${values
     .map((v) => {
       if (v === null || v === undefined) return "NULL"
-      const s = String(v)
-      return /^[A-Za-z0-9_.+-]+$/.test(s) ? s : `"${s.replace(/(["\\])/g, "\\$1")}"`
+      // Numbers go bare; everything else is quoted, including the string "NULL",
+      // which unquoted would become a SQL null. Postgres accepts quoted elements
+      // for any element type, so the ::bigint[] casts at the call sites still hold.
+      if (typeof v === "number" || typeof v === "bigint") return String(v)
+      return `"${String(v).replace(/(["\\])/g, "\\$1")}"`
     })
     .join(",")}}`
 }
