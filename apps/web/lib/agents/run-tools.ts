@@ -94,10 +94,19 @@ export async function runTool(
     }
 
     const shaped = definition.shape ? definition.shape(body, input) : body
+
+    // A shape may decide that a 200 was not an answer — get_bill does, when the
+    // route hands back a different bill than the number asked for. That is a
+    // miss, and the transcript should say so rather than print "1 record".
+    const refused =
+      shaped && typeof shaped === "object" && "error" in shaped
+        ? String((shaped as { error: unknown }).error)
+        : null
+
     return {
-      ok: true,
+      ok: !refused,
       payload: shaped,
-      summary: count(shaped),
+      summary: refused ? refused.slice(0, 120) : count(shaped),
       ms: Date.now() - started,
     }
   } catch (error) {

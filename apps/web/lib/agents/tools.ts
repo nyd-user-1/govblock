@@ -55,6 +55,11 @@ function trim<T>(rows: T[] | undefined, n: number) {
   return Array.isArray(rows) ? rows.slice(0, n) : []
 }
 
+/** A bill number with the spaces and punctuation people add taken back out. */
+function plain(value: unknown) {
+  return typeof value === "string" ? value.replace(/[^a-z0-9]/gi, "").toUpperCase() : ""
+}
+
 function query(resource: string, input: Record<string, string>, keys: string[]) {
   const sp = new URLSearchParams()
   sp.set("state", (input.jurisdiction || "US").toUpperCase())
@@ -110,13 +115,32 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       "The whole record of one bill in a single read: description, status, its sponsors with party and district, its full legislative history, roll calls, committee referrals, progress, same-as bills, documents, subjects and the text versions on file. Identify it by bill_id, or by bill_number within a jurisdiction.",
     properties: {
       bill_id: { type: "integer", description: "The numeric id, as returned by search_bills." },
-      bill_number: { type: "string", description: "e.g. 'A07380', 'HR 1'. Requires a jurisdiction." },
+      bill_number: {
+        type: "string",
+        description:
+          "As the record writes it, with no spaces or punctuation: 'A07380', 'S05226', 'HB10171', 'HR1496'. Requires a jurisdiction. If you are not certain of the number, use search_bills instead.",
+      },
       jurisdiction: JURISDICTION,
     },
     request: (input) => query("bill", input, ["id", "number"]),
-    shape: (data) => {
+    shape: (data, input) => {
       if (!data) return null
       const b = data as Record<string, unknown>
+
+      // The policy route answers an unmatched bill_number with the newest bill
+      // in the jurisdiction rather than with nothing — ask US for "HR 1" and it
+      // hands back HB10171, a food-and-nutrition grant bill, wearing the
+      // number you asked for. Caught on the deploy. A wrong record answered
+      // confidently is the worst failure this surface has, so a number that
+      // came back different from the number asked for is a miss, said out loud.
+      const asked = plain(input.number)
+      const got = plain(b.bill_number)
+      if (asked && got && asked !== got) {
+        return {
+          error: `No bill numbered ${input.number} in ${(input.jurisdiction || "US").toUpperCase()}. The record answered with ${b.bill_number}, which is a different bill. Use search_bills to find the right one, and tell the reader you could not find the number they gave.`,
+        }
+      }
+
       return {
         ...b,
         sponsors: trim(b.sponsors as unknown[], 12),
