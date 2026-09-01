@@ -75,7 +75,7 @@ export function DirectoryRail() {
     { key: "bills", href: `/docs/bills${scope}`, label: "Bills", active: pathname.startsWith("/docs/bills") },
     { key: "committees", href: `/docs/committees${scope}`, label: "Committees", active: pathname.startsWith("/docs/committees") },
     { key: "members", href: `/docs/directory${scope}`, label: "Members", active: pathname.startsWith("/docs/members") || pathname.startsWith("/docs/directory") },
-    { key: "money", href: `/docs/money${scope}`, label: "Federal money", active: pathname.startsWith("/docs/money") },
+    { key: "money", href: `/docs/money${scope}`, label: "Finance", active: pathname.startsWith("/docs/money") },
   ]
   const bills: RailItem[] = F.recentBills.slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),

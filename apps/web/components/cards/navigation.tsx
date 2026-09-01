@@ -43,7 +43,7 @@ export function NavigationCard() {
         { name: "Bills", href: scoped("/docs/bills"), icon: IconFileText },
         { name: "Committees", href: scoped("/docs/committees"), icon: IconUsersGroup },
         { name: "Members", href: scoped("/docs/directory"), icon: IconUsers },
-        { name: "Federal money", href: scoped("/docs/money"), icon: IconCoin },
+        { name: "Finance", href: scoped("/docs/money"), icon: IconCoin },
       ],
     },
     {

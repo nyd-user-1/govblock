@@ -34,3 +34,8 @@ export function truncate(value: string | null | undefined, length = 120) {
   const text = (value ?? "").replace(/\s+/g, " ").trim()
   return text.length > length ? `${text.slice(0, length - 1).trimEnd()}…` : text
 }
+
+export function fmtCompact(value: number | null | undefined, currency = true) {
+  const formatted = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value ?? 0))
+  return currency ? `$${formatted}` : formatted
+}

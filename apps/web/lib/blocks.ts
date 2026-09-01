@@ -1,4 +1,10 @@
-import sidebar07 from "@/lib/data/blocks/sidebar-07.json"
+import dashboard01 from "@/lib/data/blocks/dashboard-01.json"
+import sidebar03 from "@/lib/data/blocks/sidebar-03.json"
+import sidebar05 from "@/lib/data/blocks/sidebar-05.json"
+import sidebar08 from "@/lib/data/blocks/sidebar-08.json"
+import sidebar09 from "@/lib/data/blocks/sidebar-09.json"
+import sidebar11 from "@/lib/data/blocks/sidebar-11.json"
+import sidebar12 from "@/lib/data/blocks/sidebar-12.json"
 
 // A block on file. livingston-v3 computes this per request from its registry
 // (lib/registry.ts: fixImport, targets, then shiki); govblock generates it once
@@ -14,7 +20,15 @@ export type Block = {
   files: BlockFile[]
 }
 
-const blocks: Record<string, Block> = { "sidebar-07": sidebar07 }
+const blocks: Record<string, Block> = {
+  "sidebar-12": sidebar12,
+  "sidebar-11": sidebar11,
+  "sidebar-03": sidebar03,
+  "sidebar-08": sidebar08,
+  "sidebar-05": sidebar05,
+  "dashboard-01": dashboard01,
+  "sidebar-09": sidebar09,
+}
 
 export const getBlock = (name: string): Block | null => blocks[name] ?? null
 

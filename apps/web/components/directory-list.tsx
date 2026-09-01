@@ -115,8 +115,8 @@ export function DirectoryList() {
         )}
       </ItemGroup>
       {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
+        <Pagination className="not-typeset">
+          <PaginationContent className="not-typeset list-none p-0 [&>li]:m-0 [&>li]:p-0 [&>li]:before:hidden">
             <PaginationItem>
               <PageLink href="#" aria-label="Go to previous page" size="default" className={cn("pl-1.5!", current <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer")} onClick={(e) => go(e, current - 1, current <= 1)}>
                 <IconChevronLeft className="size-4" />

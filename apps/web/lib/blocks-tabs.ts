@@ -1,12 +1,12 @@
 // Ported from livingston-v3 lib/blocks-tabs.ts. Which blocks /blocks shows,
-// and what each one has become. A plain module, not the client component
+// and what each one has become. The stock "State" tab (sidebar-07) was
+// dropped on 2026-09-01: it was the template, not one of ours. A plain module, not the client component
 // beside it: a value imported from a "use client" module into a server
 // component is a client-reference proxy, not the array.
 
 export type BlocksTab = { value: string; label: string; block: string }
 
 export const BLOCK_TABS: BlocksTab[] = [
-  { value: "state", label: "State", block: "sidebar-07" },
   { value: "committee", label: "Committee", block: "sidebar-12" },
   { value: "documents", label: "Documents", block: "sidebar-11" },
   { value: "chamber", label: "Chamber", block: "sidebar-03" },
