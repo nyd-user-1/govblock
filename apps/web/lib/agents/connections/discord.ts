@@ -14,24 +14,39 @@ import type { Posted } from "@/lib/agents/connections/slack"
 // happens when a public route holds an actuator — the destination is not a
 // parameter anywhere in this system.
 //
-// Two limits shape the code. `content` caps at 2,000 characters and an embed's
-// `description` at 4,096, so a digest goes as an embed and only falls back to
-// splitting when even that is too long. `?wait=true` makes Discord return the
-// message it created instead of a bare 204, which is what lets the Tracker
-// report an id rather than assert success.
+// Three Discord facts shape the code:
+//
+// 1. A message's `content` caps at 2,000 characters and an embed's
+//    `description` at 4,096, so a long digest goes as embeds and splits on a
+//    blank line — between bills rather than mid-sentence.
+// 2. **A webhook pointed at a forum channel must carry `thread_name`**, and one
+//    pointed at a text channel must not. The webhook object does not say which
+//    kind it is, so rather than ask Brendan to know, the first post learns:
+//    it tries the plain shape, and if Discord says the channel is a forum it
+//    retries with a thread name taken from the digest's first line. The answer
+//    is remembered for the life of the compute instance. (Found the honest way
+//    — PolicyBot's channel is a forum and the first real run came back 400.)
+// 3. `?wait=true` makes Discord return the message it created instead of a bare
+//    204 — which is what lets the Tracker report an id rather than assert
+//    success, and gives the thread id that keeps a split digest in one thread
+//    instead of starting a new one per part.
 
 const SECRET_ID = process.env.DISCORD_SECRET_ID || "govblock/discord"
 const CONTENT_MAX = 2000
 const EMBED_MAX = 4096
+const THREAD_NAME_MAX = 100
 
-type Webhook = { id?: string; channel_id?: string }
+type Message = { id?: string; channel_id?: string }
+
+/** Unknown until the first post tells us. */
+let forum: boolean | null = null
 
 function chunk(text: string, size: number) {
   const parts: string[] = []
   let rest = text
   while (rest.length > size) {
-    // Break on a blank line if there is one in the last fifth of the window,
-    // so a digest splits between bills rather than mid-sentence.
+    // Break on a blank line if there is one in the last fifth of the window, so
+    // a digest splits between bills rather than mid-sentence.
     const window = rest.slice(0, size)
     const cut = window.lastIndexOf("\n\n")
     const at = cut > size * 0.8 ? cut : size
@@ -42,8 +57,16 @@ function chunk(text: string, size: number) {
   return parts
 }
 
-async function send(url: string, payload: unknown): Promise<Webhook> {
-  const response = await fetch(`${url}?wait=true`, {
+/** A forum post needs a title; the digest's own first line is the honest one. */
+function title(text: string) {
+  const first = (text.split("\n").find((line) => line.trim()) ?? "govblock digest")
+    .replace(/[*_`#>]/g, "")
+    .trim()
+  return first.slice(0, THREAD_NAME_MAX) || "govblock digest"
+}
+
+async function send(url: string, payload: Record<string, unknown>) {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -53,11 +76,13 @@ async function send(url: string, payload: unknown): Promise<Webhook> {
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(15_000),
   })
+  const body = await response.text()
   if (!response.ok) {
-    const detail = await response.text().catch(() => "")
-    throw new Error(`Discord returned ${response.status} ${detail.slice(0, 200)}`)
+    const error = new Error(`Discord returned ${response.status} ${body.slice(0, 200)}`)
+    ;(error as Error & { body: string }).body = body
+    throw error
   }
-  return (await response.json().catch(() => ({}))) as Webhook
+  return (body ? JSON.parse(body) : {}) as Message
 }
 
 export async function postToDiscord({ text }: { text: string }): Promise<Posted> {
@@ -70,28 +95,43 @@ export async function postToDiscord({ text }: { text: string }): Promise<Posted>
       error: `Discord is not connected — the secret ${SECRET_ID} holds no webhook_url.`,
     }
 
+  const parts = text.length <= CONTENT_MAX ? [text] : chunk(text, EMBED_MAX)
+  const first = parts[0] ?? ""
+  const body = (part: string) =>
+    part.length <= CONTENT_MAX
+      ? { content: part, allowed_mentions: { parse: [] } }
+      : { embeds: [{ description: part }], allowed_mentions: { parse: [] } }
+
   try {
-    if (text.length <= CONTENT_MAX) {
-      const message = await send(url, { content: text, allowed_mentions: { parse: [] } })
-      return { ok: true, where: "the PolicyBot channel", ref: message.id ?? "" }
+    let opened: Message
+    try {
+      opened = await send(
+        `${url}?wait=true`,
+        forum ? { ...body(first), thread_name: title(text) } : body(first)
+      )
+      if (forum === null) forum = false
+    } catch (error) {
+      const detail = (error as Error & { body?: string }).body ?? ""
+      if (forum !== null || !detail.includes("thread_name")) throw error
+      // The channel is a forum. Learn it and open a post instead of a message.
+      forum = true
+      opened = await send(`${url}?wait=true`, { ...body(first), thread_name: title(text) })
     }
 
-    const parts = chunk(text, EMBED_MAX)
-    let first = ""
-    for (const [index, part] of parts.entries()) {
-      // Discord allows ~5 requests a second per webhook; a digest is a handful
-      // of parts at most, so a small gap is cheaper than handling a 429.
-      if (index) await new Promise((resolve) => setTimeout(resolve, 300))
-      const message = await send(url, {
-        embeds: [{ description: part }],
-        allowed_mentions: { parse: [] },
-      })
-      if (!index) first = message.id ?? ""
+    // A forum post's own id is the thread; the rest of a split digest belongs
+    // inside it rather than in new posts beside it.
+    const thread = opened.channel_id
+    for (const part of parts.slice(1)) {
+      // A webhook allows about five requests a second; a digest is a handful of
+      // parts at most, so a small gap is cheaper than handling a 429.
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      await send(`${url}?wait=true${thread ? `&thread_id=${thread}` : ""}`, body(part))
     }
+
     return {
       ok: true,
-      where: parts.length > 1 ? `the PolicyBot channel, in ${parts.length} parts` : "the PolicyBot channel",
-      ref: first,
+      where: parts.length > 1 ? `Discord, in ${parts.length} parts` : "Discord",
+      ref: opened.id ?? "",
     }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) }
