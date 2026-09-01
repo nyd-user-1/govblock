@@ -37,6 +37,9 @@ import {
   getMemberDetail,
   getMembersWithPortraits,
   getNominations,
+  getRelatedBills,
+  getSummaries,
+  getTitles,
   getTallies,
   getTextVersions,
   getTopSponsors,
@@ -222,6 +225,21 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     // `bill=` is honoured, not ignored. These three took the parameter and
     // returned the whole family, so a bill page asking for HR 1's amendments got
     // all 7,035 and the fetch succeeded with the wrong rows.
+    case "summaries": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getSummaries(id)
+    }
+    case "titles": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getTitles(id)
+    }
+    case "related-bills": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getRelatedBills(id)
+    }
     case "amendments":
       return getAmendments(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "committee-reports":

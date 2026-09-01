@@ -1358,6 +1358,7 @@ export const US_ONLY = [
   "amendments", "summaries", "committee-reports", "laws", "member-detail",
   "committee-detail", "committee-meetings", "hearings", "nominations",
   "crs-reports", "record-issues", "house-votes", "treaties",
+  "summaries", "titles", "related-bills",
 ] as const;
 
 /** The payload as the API returned it, newest first, for a whole family. */
@@ -1487,4 +1488,41 @@ export async function getTextVersions(billId: number) {
       order by coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) desc nulls last, t.document_id desc`,
     [billId],
   );
+}
+
+/* ---- BILLSTATUS families (summaries, titles, related bills) --------------- */
+
+/** Every CRS summary the bill has carried, oldest first — the sequence is the point. */
+export async function getSummaries(billId: number) {
+  const rows = await q<{ payload: unknown }>(
+    `select payload from congress_summaries where bill_id = $1 order by action_date, version_code`, [billId]);
+  return { bill: billId, count: rows.length, summaries: rows.map((r) => r.payload) };
+}
+
+export async function getTitles(billId: number) {
+  const rows = await q<{ payload: unknown }>(
+    `select payload from congress_titles where bill_id = $1 order by key`, [billId]);
+  return { bill: billId, count: rows.length, titles: rows.map((r) => r.payload) };
+}
+
+/**
+ * Related bills, both ways round.
+ *
+ * BILLSTATUS records a relationship on one bill only: HR 1 lists 29 and is
+ * listed by 39 others, and congress.gov's own answer (38) sits in between. The
+ * complete graph is already here, recorded from each bill's own side, so reading
+ * it in one direction under-reports by a third at no saving.
+ */
+export async function getRelatedBills(billId: number) {
+  const rows = await q<{ payload: unknown; related_bill_number: string; relationship: string; direction: string }>(
+    `select payload, related_bill_number, relationship, 'names' as direction
+       from congress_related_bills where bill_id = $1
+     union all
+     select payload, bill_number as related_bill_number, relationship, 'named-by' as direction
+       from congress_related_bills where related_bill_id = $1
+        and bill_number not in (select related_bill_number from congress_related_bills where bill_id = $1)
+     order by related_bill_number`,
+    [billId],
+  );
+  return { bill: billId, count: rows.length, relatedBills: rows };
 }
