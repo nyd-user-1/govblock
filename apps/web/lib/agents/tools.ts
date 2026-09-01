@@ -28,6 +28,7 @@ export type ToolName =
   | "get_lobbying"
   | "get_fec"
   | "post_to_slack"
+  | "post_to_discord"
 
 // Converse types a tool's input schema as DocumentType — JSON, all the way
 // down — so `Record<string, unknown>` will not go in. Naming the two shapes a
@@ -281,16 +282,30 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
     },
   },
 
+  // Neither posting tool takes a destination, deliberately. This route is
+  // public, so the model — and anyone who can reach the site and phrase a
+  // request — decides the text; letting it also decide where the text lands
+  // would turn one agent into a way to write anywhere the credential reaches.
+  // Slack's channel is the secret's; Discord's is baked into the webhook URL
+  // and could not be a parameter even if we wanted it to be.
   post_to_slack: {
-    // No channel parameter, deliberately. This route is public, so the model —
-    // and anyone who can reach the site and phrase a request — decides the
-    // text; letting it also decide the destination would turn one agent into a
-    // way to write into any channel the bot can see. The channel is the one in
-    // the secret, and that is the whole grant.
     description:
       "Post a message to the govblock Slack channel. Use it once, at the end of a tracking run, with the finished digest — not for progress notes.",
     properties: {
       text: { type: "string", description: "The message. Slack mrkdwn: *bold*, <url|label>." },
+    },
+    required: ["text"],
+  },
+
+  post_to_discord: {
+    description:
+      "Post a message to the govblock PolicyBot channel on Discord. Use it once, at the end of a tracking run, with the finished digest — not for progress notes.",
+    properties: {
+      text: {
+        type: "string",
+        description:
+          "The message. Discord markdown: **bold**, *italic*, [label](url). Long digests are sent as an embed automatically; do not split it yourself.",
+      },
     },
     required: ["text"],
   },

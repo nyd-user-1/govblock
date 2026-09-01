@@ -16,6 +16,7 @@ export default async function AgentsPage() {
   const entries = await Promise.all(
     CONNECTIONS.map(async (c) => [c.id, await c.status()] as const)
   )
+  const tools = Object.fromEntries(CONNECTIONS.map((c) => [c.id, c.tools as string[]]))
 
   return (
     <DocsPage
@@ -31,7 +32,7 @@ export default async function AgentsPage() {
         the model&apos;s own memory: where what a model remembers disagrees with a row, the row
         wins, and the agent says which row it read.
       </p>
-      <AgentsList connections={Object.fromEntries(entries)} />
+      <AgentsList connections={Object.fromEntries(entries)} connectionTools={tools} />
     </DocsPage>
   )
 }

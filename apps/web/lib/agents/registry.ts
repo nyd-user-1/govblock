@@ -204,16 +204,20 @@ each other and let the reader draw the line.`,
     speciality: "The agentic one: give it a topic and a jurisdiction and it goes and does the work.",
     reads:
       "The search index, then each bill it finds in full — description, status, sponsors and the last actions taken.",
-    can: "Plan a watch, search for the bills, open each one, compose a digest, post it to Slack, and report back with what it read and what it posted. Every step is visible while it runs.",
+    can: "Plan a watch, search for the bills, open each one, compose a digest, post it to Discord, and report back with what it read and where it went. Every step is visible while it runs.",
     tier: "routing",
-    tools: ["list_jurisdictions", "search_bills", "get_bill", "post_to_slack"],
-    connections: ["slack"],
+    // The posting tool is not listed here — it is contributed by whichever
+    // connection is live, so an agent is never offered a way to post that does
+    // not work, and adding Discord beside Slack changed nothing in this file
+    // but this list of ids.
+    tools: ["list_jurisdictions", "search_bills", "get_bill"],
+    connections: ["discord", "slack"],
     agentic: true,
     placeholder: "Watch <topic> bills in <jurisdiction>…",
     starters: [
-      "Watch housing bills in New York and post the digest to Slack",
+      "Watch housing bills in New York and post the digest",
       "Watch artificial intelligence bills in California",
-      "Watch immigration bills in Congress and send it to Slack",
+      "Watch immigration bills in Congress and post it",
     ],
     system: `${GROUND}
 
@@ -231,13 +235,15 @@ The run, in order:
 4. Compose the digest: one paragraph of what is moving overall, then one line
    per bill — number, what it does in a clause, its status, its last action date
    and its lead sponsor.
-5. post_to_slack, once, with the finished digest. Slack's mrkdwn is *bold* and
-   <url|label>, not markdown.
-6. Report back: the bills you opened, and whether the post landed.
+5. Post it, once, with whichever posting tool you have been given —
+   post_to_discord or post_to_slack. Each one names the service whose formatting
+   it wants; use that service's, not the other's.
+6. Report back: the bills you opened, where the digest went, and its id.
 
-If post_to_slack says Slack is not connected, that is not a failure of the run.
-Print the digest in full in your reply, say plainly that it was not posted and
-why, and stop — do not retry and do not pretend it went.
+If you hold no posting tool, or the one you hold says it is not connected, that
+is not a failure of the run. Print the digest in full in your reply, say plainly
+that it was not posted and why, and stop — do not retry and do not pretend it
+went.
 
 Never skip step 3. A digest written from search rows alone is the thing this
 agent exists not to do.`,

@@ -11,13 +11,16 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 export function AgentsList({
   connections,
+  connectionTools,
 }: {
   connections: Record<string, { connected: boolean; detail: string }>
+  connectionTools: Record<string, string[]>
 }) {
   return (
     <div className="not-prose flex flex-col gap-4">
       {AGENTS.map((agent) => {
-        const missing = (agent.connections ?? []).filter((id) => !connections[id]?.connected)
+        const held = agent.connections ?? []
+        const live = held.filter((id) => connections[id]?.connected)
         return (
           <div
             key={agent.slug}
@@ -40,7 +43,7 @@ export function AgentsList({
               <dd className="text-muted-foreground">{agent.can}</dd>
               <dt className="text-muted-foreground">Tools</dt>
               <dd className="flex flex-wrap gap-1.5">
-                {agent.tools.map((tool) => (
+                {[...agent.tools, ...(agent.connections ?? []).flatMap((id) => connectionTools[id] ?? [])].map((tool) => (
                   <code key={tool} className="rounded bg-muted px-1.5 py-0.5 text-xs">
                     {tool}
                   </code>
@@ -48,13 +51,23 @@ export function AgentsList({
               </dd>
             </dl>
 
-            {missing.map((id) => (
-              <p key={id} className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{id} is not connected.</span>{" "}
-                {connections[id]?.detail} It runs the whole task and hands the result back as
-                text instead.
+            {held.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {live.length ? (
+                  <>
+                    Posts to <span className="font-medium text-foreground">{live.join(", ")}</span>.{" "}
+                  </>
+                ) : (
+                  <>Nothing to post to yet. </>
+                )}
+                {held
+                  .filter((id) => !connections[id]?.connected)
+                  .map((id) => connections[id]?.detail)
+                  .join(" ")}{" "}
+                A connection that is not live contributes no tool, so it runs the whole task and
+                hands the digest back as text rather than claiming to have sent it.
               </p>
-            ))}
+            )}
 
             <div>
               <Button size="sm" render={<Link href={`/agents/${agent.slug}`} />} nativeButton={false}>

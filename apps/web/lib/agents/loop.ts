@@ -42,10 +42,13 @@ export async function* runStep({
   definition,
   messages: incoming,
   systemSuffix,
+  extraTools = [],
 }: {
   definition: AgentDefinition
   messages: Message[]
   systemSuffix?: string
+  /** Tools contributed by the connections that are live right now. */
+  extraTools?: ToolName[]
 }): AsyncGenerator<StreamEvent, StepResult, void> {
   const started = Date.now()
   const messages: Message[] = [...incoming]
@@ -54,7 +57,7 @@ export async function* runStep({
     tier: definition.tier,
     system: systemSuffix ? `${definition.system}\n\n${systemSuffix}` : definition.system,
     messages,
-    tools: definition.tools.map(toolSpec),
+    tools: [...definition.tools, ...extraTools].map(toolSpec),
     // The Tracker composes a digest over several bills in one turn; the
     // specialists answer in prose. Both fit inside this.
     maxTokens: 8192,

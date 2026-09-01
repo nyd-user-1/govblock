@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { ToolName } from "@/lib/agents/tools"
+import { discord } from "@/lib/agents/connections/discord"
 import { slack } from "@/lib/agents/connections/slack"
 
 // A connection is an outside service an agent may act on. Vercel calls these
@@ -45,7 +46,20 @@ export type Connection = {
   status: () => Promise<ConnectionStatus>
 }
 
-export const CONNECTIONS: Connection[] = [slack]
+// Discord first because it is the one that is live. Adding it was one file and
+// this line — which is what the contract above was for.
+export const CONNECTIONS: Connection[] = [discord, slack]
+
+/** The tools of the connections an agent holds that are actually connected. */
+export async function liveTools(ids: string[] = []) {
+  const held = CONNECTIONS.filter((c) => ids.includes(c.id))
+  const statuses = await Promise.all(held.map(async (c) => [c, await c.status()] as const))
+  return {
+    tools: statuses.filter(([, s]) => s.connected).flatMap(([c]) => c.tools),
+    connected: statuses.filter(([, s]) => s.connected).map(([c]) => c.name),
+    missing: statuses.filter(([, s]) => !s.connected).map(([c]) => c.name),
+  }
+}
 
 export function connection(id: string) {
   return CONNECTIONS.find((c) => c.id === id)

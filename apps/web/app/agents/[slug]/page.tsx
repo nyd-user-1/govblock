@@ -47,7 +47,7 @@ export default async function AgentPage({ params }: { params: Promise<{ slug: st
         <dd className="text-muted-foreground">{MODELS[agent.tier].label}</dd>
         <dt className="text-muted-foreground">Tools</dt>
         <dd className="flex flex-wrap gap-1.5">
-          {agent.tools.map((tool) => (
+          {[...agent.tools, ...needed.flatMap((c) => c.tools as string[])].map((tool) => (
             <code key={tool} className="rounded bg-muted px-1.5 py-0.5 text-xs">
               {tool}
             </code>

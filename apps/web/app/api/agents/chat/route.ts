@@ -6,6 +6,7 @@ import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedroc
 import { runStep } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
 import { agent } from "@/lib/agents/registry"
+import { liveTools } from "@/lib/agents/connections"
 
 // The one route behind every agent on /agents. A specialist answering a
 // question and the Tracker carrying out a watch are the same loop with
@@ -125,9 +126,25 @@ export async function POST(request: Request) {
   // than left to guess, which is what stops a Texas reader being answered with
   // Congress's rows.
   const jurisdiction = (body.jurisdiction ?? "").toUpperCase().slice(0, 2)
-  const systemSuffix = /^[A-Z]{2}$/.test(jurisdiction)
-    ? `The reader is currently scoped to jurisdiction ${jurisdiction}. Use it when the question does not name one.`
-    : undefined
+  const notes: string[] = []
+  if (/^[A-Z]{2}$/.test(jurisdiction))
+    notes.push(
+      `The reader is currently scoped to jurisdiction ${jurisdiction}. Use it when the question does not name one.`
+    )
+
+  // Connections are resolved per request, not baked into the registry: a tool
+  // that would fail because a credential is missing is simply not offered, and
+  // the agent is told which services it does and does not have so it can say so
+  // rather than discover it by calling.
+  const live = await liveTools(definition.connections)
+  if (definition.connections?.length) {
+    if (live.connected.length) notes.push(`Connected right now: ${live.connected.join(", ")}.`)
+    if (live.missing.length)
+      notes.push(
+        `Not connected: ${live.missing.join(", ")} — you have no tool for ${live.missing.length === 1 ? "it" : "them"}, so do not claim to have posted there.`
+      )
+  }
+  const systemSuffix = notes.length ? notes.join(" ") : undefined
 
   const model = MODELS[definition.tier]
 
@@ -135,7 +152,7 @@ export async function POST(request: Request) {
     async start(controller) {
       controller.enqueue(line({ t: "open", model: model.id, label: model.label }))
       try {
-        const step = runStep({ definition, messages, systemSuffix })
+        const step = runStep({ definition, messages, systemSuffix, extraTools: live.tools })
         let next = await step.next()
         while (!next.done) {
           controller.enqueue(line(next.value))

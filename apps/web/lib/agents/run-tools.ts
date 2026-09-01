@@ -1,6 +1,7 @@
 import "server-only"
 
 import { DEFINITIONS, normalise, type ToolName } from "@/lib/agents/tools"
+import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
 
 // Executing a tool call. Everything except the connections goes out over HTTPS
@@ -47,16 +48,15 @@ export async function runTool(
   const definition = DEFINITIONS[name]
   const input = normalise(name, rawInput)
 
-  if (name === "post_to_slack") {
-    // The channel is the secret's, never the model's — see the note on
-    // post_to_slack in tools.ts.
-    const result = await postToSlack({ text: String(rawInput.text ?? "") })
+  if (name === "post_to_slack" || name === "post_to_discord") {
+    // The destination is the connection's, never the model's — see the note
+    // above the two posting tools in tools.ts.
+    const post = name === "post_to_slack" ? postToSlack : postToDiscord
+    const result = await post({ text: String(rawInput.text ?? "") })
     return {
       ok: result.ok,
       payload: result,
-      summary: result.ok
-        ? `posted to ${result.channel}`
-        : `not posted — ${result.error}`,
+      summary: result.ok ? `posted to ${result.where}` : `not posted — ${result.error}`,
       ms: Date.now() - started,
     }
   }
