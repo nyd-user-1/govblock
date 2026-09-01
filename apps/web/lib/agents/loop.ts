@@ -131,6 +131,35 @@ export async function* runStep({
     block.toolUse ? [block.toolUse] : []
   )
 
+  // A round that hits its output ceiling is not finished, it is out of room.
+  // The ceiling exists because Amplify discards a response after thirty
+  // seconds and latency here is dominated by tokens written, so a long report
+  // is written across several bounded rounds rather than one that never
+  // arrives. Asking it to continue is how: prefill is not available on these
+  // models, so the instruction goes in as a turn of its own.
+  if (result.stopReason === "max_tokens") {
+    yield { t: "continue" }
+    messages.push({
+      role: "user",
+      content: [
+        {
+          text: "You reached the length limit for one message. Continue from exactly where you stopped, mid-sentence if that is where it was. Do not repeat anything you have already written and do not summarise it.",
+        },
+      ],
+    })
+    return {
+      messages,
+      done: false,
+      usd: result.usd,
+      ms: Date.now() - started,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      cacheReadInputTokens: result.usage.cacheReadInputTokens ?? 0,
+      cacheWriteInputTokens: result.usage.cacheWriteInputTokens ?? 0,
+      toolCalls: 0,
+    }
+  }
+
   if (result.stopReason !== "tool_use" || !calls.length) {
     return {
       messages,

@@ -292,10 +292,11 @@ agent exists not to do.`,
     // A report is a dozen reads and a long write. Twelve rounds is a chat's
     // budget and would cut one off mid-gathering.
     maxRounds: 24,
-    // Its rounds each write one finished section, so none of them needs to be
-    // long — and a round that writes for more than about thirty seconds is
-    // discarded by the host, not merely slow.
-    maxTokens: 3000,
+    // Sonnet writes at roughly sixty tokens a second here, and the host
+    // discards a response after thirty. Twelve hundred is what fits with room
+    // for the read that precedes it; a round that runs out of room continues in
+    // the next one rather than being cut off.
+    maxTokens: 1200,
     placeholder: "Ask for a report — a topic, a jurisdiction, and what you want to know…",
     starters: [
       "Report on New York housing legislation this session",

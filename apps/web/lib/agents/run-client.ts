@@ -75,6 +75,7 @@ export async function runAgent({
   const run = emptyRun()
   const began = Date.now()
   let carry: unknown = null
+  let continuing = false
 
   const push = () => onUpdate({ ...run, steps: [...run.steps], ms: Date.now() - began })
 
@@ -82,6 +83,11 @@ export async function runAgent({
     while (!run.done && run.rounds < maxRounds) {
       run.rounds += 1
       let roundText = 0
+
+      // A round that was cut off mid-sentence continues in the next one; the
+      // paragraph break between rounds must not land inside a word.
+      if (continuing) roundText = 1
+      continuing = false
 
       const response = await fetch("/api/agents/chat", {
         method: "POST",
@@ -138,6 +144,8 @@ export async function runAgent({
                   }
                 : step
             )
+          } else if (event.t === "continue") {
+            continuing = true
           } else if (event.t === "state") {
             carry = { messages: event.messages }
             run.done = Boolean(event.done)

@@ -66,6 +66,7 @@ export type StreamEvent =
   | { t: "tool"; id: string; name: string; input: unknown }
   | { t: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number }
   | { t: "step"; n: number; of: number; label: string }
+  | { t: "continue" }
   | { t: "done"; stopReason: string; usage: Usage; usd: number; ms: number }
   | { t: "error"; message: string }
 
