@@ -38,10 +38,34 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 300
 
 // The conversation comes back through the browser between rounds, so it is
-// bounded on the way in. Both limits are far above any real run: the Tracker's
-// longest is about a dozen messages and a few hundred kilobytes of bill records.
+// bounded on the way in. All four limits are far above any real run: the
+// Tracker's canonical watch is four rounds, a dozen messages and a few hundred
+// kilobytes of bill records.
 const MAX_MESSAGES = 60
 const MAX_STATE_CHARS = 600_000
+// The client drives the rounds, so the server counts them too. A runaway or
+// hostile client would otherwise be an open-ended Bedrock bill rather than a
+// broken page.
+const MAX_ROUNDS = 12
+// Best-effort, and honestly so: this Map lives in one warm compute instance, so
+// a burst spread across instances gets more than this. It is a brake on a stuck
+// client and a crude spend ceiling, not an access control.
+const RATE_PER_MINUTE = 20
+const seen = new Map<string, number[]>()
+
+function rateLimited(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for") ?? ""
+  const ip = forwarded.split(",")[0]?.trim() || "unknown"
+  const now = Date.now()
+  const recent = (seen.get(ip) ?? []).filter((at) => now - at < 60_000)
+  recent.push(now)
+  seen.set(ip, recent)
+  // Keep the map from growing without bound across a long-lived instance.
+  if (seen.size > 5_000) {
+    for (const [key, times] of seen) if (!times.some((at) => now - at < 60_000)) seen.delete(key)
+  }
+  return recent.length > RATE_PER_MINUTE
+}
 
 const encoder = new TextEncoder()
 
@@ -65,6 +89,9 @@ export async function POST(request: Request) {
   const definition = agent(String(body.agent ?? ""))
   if (!definition) return NextResponse.json({ error: "unknown agent" }, { status: 404 })
 
+  if (rateLimited(request))
+    return NextResponse.json({ error: "too many rounds a minute" }, { status: 429 })
+
   let messages: Message[]
   if (body.state?.messages) {
     messages = body.state.messages
@@ -76,6 +103,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "conversation too large to continue" }, { status: 413 })
     if (messages.some((m) => m.role !== "user" && m.role !== "assistant"))
       return NextResponse.json({ error: "messages may only be user or assistant" }, { status: 400 })
+    // One assistant turn is one round already run. The client is told to stop
+    // at twelve; this is the same ceiling, enforced where it cannot be edited.
+    if (messages.filter((m) => m.role === "assistant").length >= MAX_ROUNDS)
+      return NextResponse.json(
+        { error: `this conversation has already run ${MAX_ROUNDS} rounds` },
+        { status: 409 }
+      )
   } else {
     const turns = (body.turns ?? []).filter((turn) => turn && typeof turn.text === "string")
     if (!turns.length) return NextResponse.json({ error: "no turns" }, { status: 400 })
