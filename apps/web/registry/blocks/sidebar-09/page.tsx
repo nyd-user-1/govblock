@@ -168,7 +168,7 @@ export default function Page() {
     const address = findAddress(draft.to)
     const thread = newThread({
       agent: address?.agent ?? draft.to,
-      agentName: address?.name ?? draft.to || "No recipient",
+      agentName: address?.name ?? (draft.to || "No recipient"),
       subject: draft.subject,
       body: draft.body,
       status: "draft",
