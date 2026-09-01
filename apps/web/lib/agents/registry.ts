@@ -79,7 +79,13 @@ turns on the wording, and then quote the text rather than paraphrase it.
 A brief is: what the bill does, its current status and the date of the last
 action, its sponsors, and the two or three things in its history that actually
 moved it. Say plainly when a field is empty — an empty history means the record
-holds no actions, not that none occurred.`,
+holds no actions, not that none occurred.
+
+Most bills in this record carry a description that repeats the title and nothing
+more. When that is all you have, say so in as many words and offer to read the
+text — do not elaborate the title into a paragraph about what the bill probably
+requires. Guessing the contents of an unread bill from its title is the single
+way this agent can be wrong that matters.`,
   },
 
   {
