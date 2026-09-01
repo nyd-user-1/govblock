@@ -116,6 +116,9 @@ const FIXTURES: Record<string, () => Promise<{ default: unknown }>> = {
   "committee-detail": () => import("@/lib/data/congress/committee-detail.json"),
   "committee-meetings": () => import("@/lib/data/congress/committee-meetings.json"),
   "hearings-congress": () => import("@/lib/data/congress/hearings-congress.json"),
+  nominations: () => import("@/lib/data/congress/nominations.json"),
+  "crs-reports": () => import("@/lib/data/congress/crs-reports.json"),
+  "record-issues": () => import("@/lib/data/congress/record-issues.json"),
 }
 
 async function fixture<T>(name: string): Promise<T | undefined> {

@@ -80,6 +80,13 @@ export function DirectoryRail() {
     { key: "committees", href: `/docs/committees${scope}`, label: "Committees", active: pathname.startsWith("/docs/committees") },
     { key: "members", href: `/docs/directory${scope}`, label: "Members", active: pathname.startsWith("/docs/members") || pathname.startsWith("/docs/directory") },
     { key: "money", href: `/docs/money${scope}`, label: "Finance", active: pathname.startsWith("/docs/money") },
+    // The four federal docs. They stay in the rail under every scope — the
+    // rail is the site's table of contents, not a filtered list — and each
+    // page names itself federal when the reader is somewhere else.
+    { key: "nominations", href: `/docs/nominations${scope}`, label: "Nominations", active: pathname.startsWith("/docs/nominations") },
+    { key: "reports", href: `/docs/reports${scope}`, label: "Reports", active: pathname.startsWith("/docs/reports") },
+    { key: "record", href: `/docs/record${scope}`, label: "Record", active: pathname.startsWith("/docs/record") },
+    { key: "laws", href: `/docs/laws${scope}`, label: "Laws", active: pathname.startsWith("/docs/laws") },
   ]
   const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
