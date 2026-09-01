@@ -16,7 +16,7 @@ export default function IndexPage() {
         <Announcement />
         <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
         <PageHeaderDescription>
-          One view over all fifty states.
+          One view over all 50 states and Congress.
           <br />
           Open Source. Open Code. Open Data.
         </PageHeaderDescription>

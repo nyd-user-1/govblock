@@ -3,7 +3,7 @@ export const siteConfig = {
   name: "govblock",
   url: "https://govblock.app",
   description:
-    "One view over all fifty states. Open Source. Open Code. Open Data.",
+    "One view over all 50 states and Congress. Open Source. Open Code. Open Data.",
   links: {
     twitter: "https://twitter.com/shadcn",
     github: "https://github.com/shadcn-ui/ui",
