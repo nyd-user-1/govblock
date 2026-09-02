@@ -28,18 +28,23 @@ export function ConnectionMark({
   return (
     <Avatar
       className={cn(
-        // overflow-hidden and the padding on the image rather than the box: the
-        // Avatar root is a flex container and a padded box with a size-full
-        // child pushes the mark out from under itself.
-        "size-6 shrink-0 overflow-hidden rounded-md bg-white",
+        // The Avatar root is a flex ROW, so an image and a fallback rendered
+        // together sit side by side and the second one falls out of a 24px
+        // box. Both are pinned to the box instead; whichever the primitive
+        // shows fills it.
+        "size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white",
         !live && "opacity-50",
         className
       )}
       style={{ boxShadow: `inset 0 0 0 1px ${tint}33` }}
     >
-      <AvatarImage src={logo} alt={name} className="size-full rounded-md object-contain p-0.5" />
+      <AvatarImage
+        src={logo}
+        alt={name}
+        className="absolute inset-0 size-full rounded-md object-contain p-0.5"
+      />
       <AvatarFallback
-        className="rounded-md text-[10px] font-semibold"
+        className="absolute inset-0 rounded-md bg-transparent text-[10px] font-semibold"
         style={{ color: tint }}
       >
         {name.slice(0, 1)}
