@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic"
 function Server({ widget }: { widget: Widget }) {
   if (!widget.enabled)
     return (
-      <div className="not-prose flex flex-col gap-3 rounded-xl border p-5">
+      <div className="flex flex-col gap-3 rounded-xl border p-5">
         <div className="flex items-center gap-2">
           <ConnectionMark name="Discord" logo={discord.logo} tint={discord.tint} live={false} />
           <span className="font-medium">The server widget is not switched on</span>
@@ -39,7 +39,7 @@ function Server({ widget }: { widget: Widget }) {
     )
 
   return (
-    <div className="not-prose flex flex-col gap-4 rounded-xl border p-5">
+    <div className="flex flex-col gap-4 rounded-xl border p-5">
       <div className="flex flex-wrap items-center gap-3">
         <ConnectionMark name="Discord" logo={discord.logo} tint={discord.tint} />
         <span className="font-medium">{widget.name}</span>
@@ -93,7 +93,7 @@ export default async function DiscordPage() {
       <h2 className="mt-8 text-lg font-semibold tracking-tight">PolicyBot&apos;s threads</h2>
       {bot.connected ? (
         threads.length ? (
-          <div className="not-prose divide-y divide-border rounded-xl border">
+          <div className="divide-y divide-border rounded-xl border">
             {threads.map((thread) => (
               <a
                 key={thread.id}
@@ -115,7 +115,7 @@ export default async function DiscordPage() {
           </p>
         )
       ) : (
-        <div className="not-prose flex flex-col gap-3 rounded-xl border p-5">
+        <div className="flex flex-col gap-3 rounded-xl border p-5">
           <div className="flex items-center gap-2">
             <ConnectionMark name="Discord" logo={discord.logo} tint={discord.tint} live={false} />
             <span className="font-medium">Not connected, so this shows nothing</span>

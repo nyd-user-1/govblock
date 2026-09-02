@@ -24,7 +24,7 @@ export type ConnectionCard = {
 export function AgentsList({ connections }: { connections: ConnectionCard[] }) {
   const byId = Object.fromEntries(connections.map((c) => [c.id, c]))
   return (
-    <div className="not-prose flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {AGENTS.map((agent) => {
         const held = (agent.connections ?? []).map((id) => byId[id]).filter(Boolean)
         const live = held.filter((c) => c.connected)

@@ -67,8 +67,8 @@ function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: bool
 //
 // data-not-typeset because a card is not an article: DocsPage puts its children
 // inside `.typeset`, which gives every <p> a 12.5px flow margin on top of the
-// flex gap. (This page also carries `not-prose`, Tailwind typography's opt-out,
-// which matches nothing in this codebase — reported separately.)
+// flex gap. (The `not-prose` this page used to carry was Tailwind typography's
+// opt-out and matched nothing here; it is gone, along with nine others.)
 function Card({ connector }: { connector: ConnectorStatus }) {
   const google = googleService(connector.id)
   return (
@@ -123,14 +123,14 @@ export default async function ConnectorsPage() {
         </p>
 
         <h2 className="mt-8 text-lg font-semibold tracking-tight">Popular</h2>
-        <div className="not-prose grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {popular.map((connector) => (
             <Card key={connector.id} connector={connector} />
           ))}
         </div>
 
         <h2 className="mt-10 text-lg font-semibold tracking-tight">All connectors</h2>
-        <div className="not-prose overflow-hidden rounded-xl border">
+        <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>

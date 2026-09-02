@@ -29,7 +29,9 @@ import { cn } from "@/lib/utils"
 // nothing, because an absolutely positioned flex container still honours its
 // child's margin. Four fixes to the box, none to the cause. The page also
 // carried `not-prose`, Tailwind typography's opt-out, which matches nothing in
-// this codebase: it read as an opt-out and was doing nothing at all.
+// this codebase: it read as an opt-out and was doing nothing at all. Those
+// tokens are deleted now — the accepted rendering is the spec, so nothing was
+// swapped for a real `not-typeset`; a leak gets one when a screenshot shows it.
 //
 // Measured after, on the deploy: image centre equals avatar centre, 0px drift.
 //

@@ -79,7 +79,7 @@ export function BillText({ text, className }: { text: string; className?: string
   const gutter = Math.max(0, 8 - indent)
   const code = printed(dedented)
   return (
-    <div className={cn("not-prose @container", className)}>
+    <div className={cn("@container", className)}>
       <PreviewFrame
         align="center"
         previewClassName="h-auto min-h-72 @container"

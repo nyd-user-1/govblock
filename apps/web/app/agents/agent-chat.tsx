@@ -74,7 +74,7 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
   )
 
   return (
-    <div className="not-prose flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex min-h-[22rem] flex-col gap-5 overflow-y-auto">
         {turns.length === 0 && (
           <div className="flex flex-col gap-3">
