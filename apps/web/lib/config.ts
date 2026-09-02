@@ -1,6 +1,10 @@
 // Ported from livingston-v3 lib/config.ts.
-export type NavLink = { href: string; label: string; description?: string }
-export type NavItem = NavLink | { label: string; href: string; items: NavLink[] }
+// `icon` is a lucide name; `components/main-nav.tsx` holds the one map from
+// name to component, so this file stays data and never imports a component.
+export type NavLink = { href: string; label: string; description?: string; icon?: string }
+export type NavItem =
+  | NavLink
+  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 }
 
 export const siteConfig = {
   name: "govblock",
@@ -22,14 +26,21 @@ export const siteConfig = {
     {
       label: "Records",
       href: "/docs/bills",
+      // Eight entries, four across and two down — Brendan, 08:10 ET. News Room
+      // is here as well as at the top level: it is a record of what happened,
+      // and a reader looking for the day's news should find it where the
+      // records are. Its sentence is the page's own metadata description, not a
+      // second one written for the menu.
+      columns: 4,
       items: [
-        { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first." },
-        { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them." },
-        { href: "/docs/directory", label: "Directory", description: "The sitting members, with party and district." },
-        { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as." },
-        { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate." },
-        { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research." },
-        { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue." },
+        { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first.", icon: "FileText" },
+        { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them.", icon: "Users" },
+        { href: "/docs/directory", label: "Directory", description: "The sitting members, with party and district.", icon: "BookUser" },
+        { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
+        { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate.", icon: "UserCheck" },
+        { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
+        { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
+        { href: "/newsroom", label: "News Room", description: "What the legislature did, newest first.", icon: "Newspaper" },
       ],
     },
     { href: "/newsroom", label: "News Room" },
