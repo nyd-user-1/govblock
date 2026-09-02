@@ -129,12 +129,36 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
     }
   }, [set])
 
+  // A click FORCES a new authorization. Twice now the intent was to drop the
+  // held session on a click and twice the edit silently failed to land, so the
+  // click kept using the passive path: it carried the session, the vault
+  // answered about THAT session (IN_PROGRESS, no url), and the button had
+  // nothing to open — "Opening Google…" for half a second and back to
+  // "Connect", no navigation, no explanation.
+  //
+  // Dropping our copy is not enough on its own either, because the vault
+  // remembers a reader's in-flight session server-side. `forceAuthentication`
+  // is the parameter for exactly this — "always initiate a new 3LO flow,
+  // regardless of any existing session" — and it is what a click means.
+  // Passive checks still carry the held session; only a click forces.
+  //
+  // And whatever happens, the button never reverts in silence: a click that
+  // produces no url says what the vault said. A control that appears to do
+  // nothing is the one bug a reader cannot report usefully.
   const connect = React.useCallback(
     async (service: GoogleService) => {
+      forgetSession(service)
       try {
-        const r = await ask(service)
+        const r = await askOnce(service, undefined, true)
         if (r.connected) return set(service, { kind: "connected" })
-        if (r.authorizeUrl) window.location.href = r.authorizeUrl
+        if (r.authorizeUrl) {
+          window.location.href = r.authorizeUrl
+          return
+        }
+        set(service, {
+          kind: "error",
+          message: `Google did not return a consent link${r.sessionStatus ? ` (${r.sessionStatus})` : ""}.`,
+        })
       } catch (e) {
         set(service, {
           kind: "error",
