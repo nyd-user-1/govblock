@@ -3,6 +3,7 @@ import { PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
 import { siteConfig } from "@/lib/config"
+import { AccountAffordance } from "@/components/account-affordance"
 import { CommandMenu } from "@/components/command-menu"
 import { DesignerActions } from "@/components/designer-actions"
 import { MainNav } from "@/components/main-nav"
@@ -33,6 +34,9 @@ export function SiteHeader() {
                 <HugeiconsIcon icon={PlusSignIcon} />
                 New
               </Button>
+              {/* The right side's account affordance — the one part §8 left
+                  alone. It is a client component on purpose; see the file. */}
+              <AccountAffordance />
             </div>
           </div>
         </div>

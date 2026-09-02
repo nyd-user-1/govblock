@@ -18,6 +18,19 @@ applications:
             - |
               printf 'POLICY_CLUSTER_ARN=%s\nPOLICY_SECRET_ARN=%s\nPOLICY_DATABASE=%s\n' \
                 "$POLICY_CLUSTER_ARN" "$POLICY_SECRET_ARN" "${POLICY_DATABASE:-policy}" > .env.production
+            # Sign-in (lane AUTH). Each line is written only when Amplify
+            # actually holds the value: an empty AUTH_SECRET or AUTH_GOOGLE_ID
+            # would leave Auth.js half-configured, whereas an ABSENT one makes
+            # `signInConfigured` false and /auth explains itself. Missing is a
+            # state this app renders; blank is one it does not.
+            - |
+              for name in AUTH_SECRET AUTH_URL AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET; do
+                eval "value=\${$name:-}"
+                if [ -n "$value" ]; then printf '%s=%s\n' "$name" "$value" >> .env.production; fi
+              done
+              # Names only — the values are Brendan's Google client and the
+              # session secret, and a public build log is not their home.
+              echo "sign-in env present: $(grep -c '^AUTH_' .env.production) of 4"
             - pnpm -C ../.. exec turbo build --filter=web
             # Amplify packages <appRoot>/node_modules; prove next resolves there.
             - node -e "console.log('next at', require.resolve('next/package.json'))"
