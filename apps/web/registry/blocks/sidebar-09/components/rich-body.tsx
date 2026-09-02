@@ -16,7 +16,7 @@ import Placeholder from "@tiptap/extension-placeholder"
 import { EditorContent, useEditor, type Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { Underline } from "@tiptap/extension-underline"
-import { Markdown } from "tiptap-markdown"
+import { Markdown, type MarkdownStorage } from "tiptap-markdown"
 
 import { cn } from "@/lib/utils"
 
@@ -45,6 +45,13 @@ const UnderlineAsHtml = Underline.extend({
     }
   },
 })
+
+// tiptap-markdown declares its storage but does not augment TipTap's Storage
+// map, so the extension's own exported type is what makes this honest — one
+// named cast rather than `any` at every call site.
+function markdownOf(editor: Editor) {
+  return (editor.storage as unknown as { markdown: MarkdownStorage }).markdown.getMarkdown()
+}
 
 export function useTaskEditor({
   value,
@@ -76,7 +83,7 @@ export function useTaskEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      const markdown = editor.storage.markdown.getMarkdown() as string
+      const markdown = markdownOf(editor)
       last.current = markdown
       emit.current(markdown)
     },
