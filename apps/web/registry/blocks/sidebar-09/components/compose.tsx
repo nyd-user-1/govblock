@@ -50,20 +50,41 @@ export function Compose({
     >
       <div className="relative flex flex-col gap-1">
         <div className="flex items-center gap-3 border-b pb-2">
-          <label htmlFor="compose-to" className="w-16 shrink-0 text-sm text-muted-foreground">
+          <label
+            htmlFor="task-recipient"
+            className="w-16 shrink-0 text-sm text-muted-foreground"
+          >
             To
           </label>
+          {/*
+            Chrome offers its own address autofill over ours — a "To" label and
+            an @-shaped placeholder is enough for its heuristics to call this an
+            email field, and the reader gets their personal gmail and "Manage
+            Addresses…" on top of the agent list. autoComplete="off" alone does
+            not stop it, so the field also carries no mail-ish token in its id or
+            name, declares text rather than email, and says what it actually is:
+            a combobox over a list this page owns. The placeholder shows a name
+            rather than an address for the same reason; the dropdown rows still
+            show the addresses, because that is where they belong.
+          */}
           <Input
-            id="compose-to"
-            value={draft.to}
+            id="task-recipient"
+            name="task-recipient"
+            type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={picking && suggestions.length > 0}
+            aria-controls="task-recipient-options"
             autoComplete="off"
+            spellCheck={false}
+            value={draft.to}
             onChange={(event) => {
               onChange({ ...draft, to: event.target.value })
               setPicking(true)
             }}
             onFocus={() => setPicking(true)}
             onBlur={() => window.setTimeout(() => setPicking(false), 150)}
-            placeholder="researcher@govblock"
+            placeholder="Researcher"
             className="border-0 shadow-none focus-visible:ring-0"
           />
           {resolved && (
@@ -72,11 +93,17 @@ export function Compose({
         </div>
 
         {picking && suggestions.length > 0 && (
-          <div className="absolute top-full right-0 left-16 z-20 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md">
+          <div
+            id="task-recipient-options"
+            role="listbox"
+            className="absolute top-full right-0 left-16 z-20 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
+          >
             {suggestions.map((address) => (
               <button
                 key={address.email}
                 type="button"
+                role="option"
+                aria-selected={resolved?.email === address.email}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(address)}
                 className={cn(
