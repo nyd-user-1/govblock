@@ -290,7 +290,9 @@ export function Compose({
         className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : ""}
       />
 
-      {!inline && first && (
+      {/* Starters are a way in, not furniture: once there is something to send,
+          the bottom bar belongs directly under what you wrote. */}
+      {!inline && first && !draft.body.trim() && (
         <div className="flex flex-wrap gap-2">
           {first.starters.map((starter) => (
             <Button
