@@ -304,7 +304,7 @@ export default function Page() {
         }}
       />
 
-      <ResizablePanelGroup direction="horizontal" className="min-w-0 flex-1">
+      <ResizablePanelGroup orientation="horizontal" className="min-w-0 flex-1">
         <ResizablePanel defaultSize={34} minSize={24} maxSize={48} className="min-w-0">
           <ThreadList
             threads={threads}
