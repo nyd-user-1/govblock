@@ -13,7 +13,8 @@ import { runMeta, type RunState, type Step } from "@/lib/agents/run-client"
 // headings, and the panel used to print the punctuation. This renders those and
 // nothing else — not a markdown library, and deliberately not lists or tables,
 // which would start dictating the shape of an answer.
-const INLINE = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g
+const INLINE =
+  /(\*\*[^*\n]+\*\*|~~[^~\n]+~~|<u>[^<\n]+<\/u>|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\))/g
 
 function Inline({ text }: { text: string }) {
   return (
@@ -21,6 +22,12 @@ function Inline({ text }: { text: string }) {
       {text.split(INLINE).map((piece, i) => {
         if (piece.startsWith("**") && piece.endsWith("**") && piece.length > 4)
           return <strong key={i}>{piece.slice(2, -2)}</strong>
+        if (piece.startsWith("~~") && piece.endsWith("~~") && piece.length > 4)
+          return <s key={i}>{piece.slice(2, -2)}</s>
+        // The composer has an underline button because Gmail does, and markdown
+        // has no underline, so it travels as the HTML it is.
+        if (piece.startsWith("<u>") && piece.endsWith("</u>"))
+          return <u key={i}>{piece.slice(3, -4)}</u>
         if (piece.startsWith("`") && piece.endsWith("`") && piece.length > 2)
           return (
             <code key={i} className="rounded bg-muted px-1 py-0.5 text-[0.9em]">
@@ -130,6 +137,16 @@ export function Prose({ text }: { text: string }) {
         // at them would be the same failure as printing the asterisks. The rule
         // against lists was always about the agents' prompts, which still ask
         // for plain prose; this is only about not lying about what was written.
+        const quote = /^\s*>\s?(.*)$/.exec(line)
+        if (quote)
+          return (
+            <React.Fragment key={i}>
+              <span className="block border-l-2 border-border pl-3 text-muted-foreground">
+                <Inline text={quote[1]} />
+              </span>
+              {end}
+            </React.Fragment>
+          )
         const bullet = /^(\s*)[-*+]\s+(.*)$/.exec(line)
         const numbered = /^(\s*)(\d+)[.)]\s+(.*)$/.exec(line)
         if (bullet || numbered) {

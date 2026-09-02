@@ -1,244 +1,200 @@
 "use client"
 
 import * as React from "react"
-import { Bold, Code, Italic, Link2, List, ListOrdered } from "lucide-react"
-import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands"
-import { history, redo, undo } from "prosemirror-history"
-import { InputRule, inputRules, textblockTypeInputRule, undoInputRule } from "prosemirror-inputrules"
-import { keymap } from "prosemirror-keymap"
 import {
-  defaultMarkdownParser,
-  defaultMarkdownSerializer,
-  schema,
-} from "prosemirror-markdown"
-import { liftListItem, sinkListItem, splitListItem, wrapInList } from "prosemirror-schema-list"
-import { EditorState, type Command, type Transaction } from "prosemirror-state"
-import { EditorView } from "prosemirror-view"
+  Bold,
+  Code,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Quote,
+  Strikethrough,
+  Underline as UnderlineIcon,
+} from "lucide-react"
+import Placeholder from "@tiptap/extension-placeholder"
+import { EditorContent, useEditor, type Editor } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import { Underline } from "@tiptap/extension-underline"
+import { Markdown } from "tiptap-markdown"
 
 import { cn } from "@/lib/utils"
 
-// The composer's body: ProseMirror configured as a WYSIWYG *markdown* editor,
-// ported from ~/Code/leuk's clinical-notes editor and reduced to what a task
-// needs — bold, italic, code, links, and the two lists. No tables, no slash
-// menu, no headings: this is a message to an agent, not a document, and the
-// agent reads it as text.
+// The composer's writing surface: TipTap 3, ported from
+// ~/Code/policy/src/components/TipTapEditor.tsx and reduced to what a mail
+// composer offers — bold, italic, underline, strike, the two lists, quote,
+// code and links. StarterKit 3 already carries Link and Underline, so the
+// extension list is short on purpose rather than by omission.
 //
-// **Value in and out is a markdown string.** That is the whole point: the
+// **Markdown is the wire format.** tiptap-markdown does the round trip, so the
 // reader sees formatting, the agent receives `**bold**` and `- item`, and the
-// transcript renderer speaks the same subset back when the thread shows what
-// was sent. The three cannot disagree, because there is only one
-// representation and the editor is a view onto it.
+// transcript renders the same subset back — one representation, three views of
+// it, and no way for them to disagree.
 //
-// prosemirror-markdown's default schema and serializer are used unchanged. Its
-// dialect is CommonMark, which is a superset of what the renderer draws — a
-// blockquote will serialise faithfully and render as its own text — so nothing
-// is ever lost on the wire, only occasionally undecorated on the way back.
-
-const BULLET = /^\s*([-+*])\s$/
-const ORDERED = /^(\d+)\.\s$/
-const CODE_BLOCK = /^```$/
-
-/**
- * "- " starts a list — unless you are already in one, where it is just a dash.
- *
- * prosemirror's own wrappingInputRule fires inside a list item too and nests a
- * second list, which is how you indent by typing in a rich-text editor and is
- * exactly wrong for someone typing markdown line by line: the second bullet
- * comes out indented under the first. So the rule checks its ancestors first,
- * and where it does apply it deletes the marker and lets wrapInList do the
- * wrapping — the command's steps are appended to the same transaction, so it
- * stays one undo.
- */
-function listRule(
-  match: RegExp,
-  type: (typeof schema.nodes)[string],
-  attrs?: (m: RegExpMatchArray) => Record<string, unknown>
-) {
-  return new InputRule(match, (state, m, start, end) => {
-    const $start = state.doc.resolve(start)
-    for (let depth = $start.depth; depth > 0; depth -= 1)
-      if ($start.node(depth).type === schema.nodes.list_item)
-        // Already in a list: Enter has already made this bullet, so the marker
-        // the reader typed is a duplicate. Swallow it rather than nesting a
-        // list (ProseMirror's default) or leaving an escaped "\-" in the text.
-        return state.tr.delete(start, end)
-
-    const tr = state.tr.delete(start, end)
-    let wrapped: Transaction | null = null
-    wrapInList(type!, attrs?.(m))(state.apply(tr), (next) => {
-      wrapped = next
-    })
-    if (!wrapped) return null
-    for (const step of (wrapped as Transaction).steps) tr.step(step)
-    return tr
-  })
-}
-
-const rules = inputRules({
-  rules: [
-    listRule(BULLET, schema.nodes.bullet_list!),
-    listRule(ORDERED, schema.nodes.ordered_list!, (m) => ({ order: Number(m[1]) })),
-    textblockTypeInputRule(CODE_BLOCK, schema.nodes.code_block!),
-  ],
+// Underline has no markdown of its own. Rather than drop the button Gmail has
+// or invent a syntax, it serialises to `<u>…</u>` — legal markdown, readable to
+// an agent as text, and drawn by the transcript renderer. The alternative was
+// silently losing a format the reader had applied, which is worse.
+const UnderlineAsHtml = Underline.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize: { open: "<u>", close: "</u>", expelEnclosingWhitespace: true },
+        parse: {},
+      },
+    }
+  },
 })
 
-/** Wrap the selection in a link, asking for the href the way mail does. */
-const addLink: Command = (state, dispatch) => {
-  const { from, to } = state.selection
-  if (from === to) return false
-  const href = window.prompt("Link to")
-  if (!href) return false
-  if (dispatch)
-    dispatch(state.tr.addMark(from, to, schema.marks.link!.create({ href, title: null })))
-  return true
-}
-
-type Tool = { icon: typeof Bold; label: string; run: Command }
-
-const TOOLS: Tool[] = [
-  { icon: Bold, label: "Bold", run: toggleMark(schema.marks.strong!) },
-  { icon: Italic, label: "Italic", run: toggleMark(schema.marks.em!) },
-  { icon: Code, label: "Code", run: toggleMark(schema.marks.code!) },
-  { icon: Link2, label: "Link", run: addLink },
-  { icon: List, label: "Bulleted list", run: wrapInList(schema.nodes.bullet_list!) },
-  { icon: ListOrdered, label: "Numbered list", run: wrapInList(schema.nodes.ordered_list!) },
-]
-
-export function RichBody({
+export function useTaskEditor({
   value,
   onChange,
   placeholder,
-  className,
 }: {
   value: string
   onChange: (markdown: string) => void
   placeholder?: string
-  className?: string
 }) {
-  const host = React.useRef<HTMLDivElement | null>(null)
-  const view = React.useRef<EditorView | null>(null)
   const emit = React.useRef(onChange)
   const last = React.useRef(value)
-  const [empty, setEmpty] = React.useState(!value)
-
   emit.current = onChange
 
-  React.useEffect(() => {
-    const node = host.current
-    if (!node) return
-
-    const state = EditorState.create({
-      doc: defaultMarkdownParser.parse(last.current) ?? undefined,
-      plugins: [
-        rules,
-        keymap({
-          "Mod-z": undo,
-          "Mod-y": redo,
-          "Mod-Shift-z": redo,
-          "Mod-b": toggleMark(schema.marks.strong!),
-          "Mod-i": toggleMark(schema.marks.em!),
-          "Mod-e": toggleMark(schema.marks.code!),
-          "Mod-Shift-8": wrapInList(schema.nodes.bullet_list!),
-          "Mod-Shift-9": wrapInList(schema.nodes.ordered_list!),
-          Enter: splitListItem(schema.nodes.list_item!),
-          Tab: sinkListItem(schema.nodes.list_item!),
-          "Shift-Tab": liftListItem(schema.nodes.list_item!),
-          // A rule that fired when you meant the characters is one key away
-          // from being undone, which is the standard escape hatch.
-          Backspace: undoInputRule,
-          "Shift-Enter": chainCommands((state, dispatch) => {
-            if (dispatch)
-              dispatch(
-                state.tr.replaceSelectionWith(schema.nodes.hard_break!.create()).scrollIntoView()
-              )
-            return true
-          }),
-        }),
-        keymap(baseKeymap),
-        history(),
-      ],
-    })
-
-    const editor = new EditorView(node, {
-      state,
-      attributes: { class: "outline-none min-h-40" },
-      dispatchTransaction(tr) {
-        const next = editor.state.apply(tr)
-        editor.updateState(next)
-        setEmpty(next.doc.textContent.length === 0 && next.doc.childCount <= 1)
-        if (tr.docChanged) {
-          const markdown = defaultMarkdownSerializer.serialize(next.doc)
-          last.current = markdown
-          emit.current(markdown)
-        }
+  const editor = useEditor({
+    // Next renders this on the server first; TipTap wants the DOM.
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ heading: false, underline: false }),
+      UnderlineAsHtml,
+      Markdown.configure({ html: true, breaks: true, transformPastedText: true }),
+      Placeholder.configure({ placeholder: placeholder ?? "Write…" }),
+    ],
+    content: value,
+    editorProps: {
+      attributes: {
+        class: "outline-none",
+        spellcheck: "true",
       },
-    })
-    view.current = editor
-    return () => {
-      view.current = null
-      editor.destroy()
-    }
-  }, [])
+    },
+    onUpdate: ({ editor }) => {
+      const markdown = editor.storage.markdown.getMarkdown() as string
+      last.current = markdown
+      emit.current(markdown)
+    },
+  })
 
   // Re-seed only when the value changed underneath us — a starter button, or a
-  // draft being opened. Echoing our own serialisation back in would reset the
+  // draft being opened. Echoing our own serialisation back would reset the
   // caret on every keystroke.
   React.useEffect(() => {
-    const editor = view.current
     if (!editor || value === last.current) return
     last.current = value
-    const doc = defaultMarkdownParser.parse(value)
-    if (!doc) return
-    editor.dispatch(editor.state.tr.replaceWith(0, editor.state.doc.content.size, doc.content))
-    setEmpty(doc.textContent.length === 0)
-  }, [value])
+    editor.commands.setContent(value)
+  }, [editor, value])
 
-  const run = (command: Command) => {
-    const editor = view.current
+  return editor
+}
+
+/** The writing surface, with nothing above it. */
+export function TaskSurface({ editor, className }: { editor: Editor | null; className?: string }) {
+  return (
+    <EditorContent
+      editor={editor}
+      className={cn(
+        "min-h-40 w-full rounded-lg text-sm",
+        "[&_.ProseMirror]:min-h-40 [&_.ProseMirror]:outline-none",
+        "[&_.ProseMirror_p]:my-1.5",
+        "[&_.ProseMirror_ul]:my-1.5 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5",
+        "[&_.ProseMirror_ol]:my-1.5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5",
+        "[&_.ProseMirror_blockquote]:my-1.5 [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-muted-foreground",
+        "[&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5",
+        "[&_.ProseMirror_pre]:my-1.5 [&_.ProseMirror_pre]:rounded-md [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:p-2",
+        "[&_.ProseMirror_a]:underline [&_.ProseMirror_a]:underline-offset-4",
+        // Placeholder: TipTap marks the first empty paragraph and the text
+        // comes from CSS, so it never lands in the document or the markdown.
+        "[&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none",
+        "[&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left",
+        "[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0",
+        "[&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground",
+        "[&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
+        className
+      )}
+    />
+  )
+}
+
+type Tool =
+  | { kind: "button"; icon: typeof Bold; label: string; run: (editor: Editor) => void; active?: string }
+  | { kind: "divider" }
+
+const TOOLS: Tool[] = [
+  { kind: "button", icon: Bold, label: "Bold", active: "bold", run: (e) => e.chain().focus().toggleBold().run() },
+  { kind: "button", icon: Italic, label: "Italic", active: "italic", run: (e) => e.chain().focus().toggleItalic().run() },
+  { kind: "button", icon: UnderlineIcon, label: "Underline", active: "underline", run: (e) => e.chain().focus().toggleUnderline().run() },
+  { kind: "button", icon: Strikethrough, label: "Strikethrough", active: "strike", run: (e) => e.chain().focus().toggleStrike().run() },
+  { kind: "divider" },
+  { kind: "button", icon: List, label: "Bulleted list", active: "bulletList", run: (e) => e.chain().focus().toggleBulletList().run() },
+  { kind: "button", icon: ListOrdered, label: "Numbered list", active: "orderedList", run: (e) => e.chain().focus().toggleOrderedList().run() },
+  { kind: "button", icon: Quote, label: "Quote", active: "blockquote", run: (e) => e.chain().focus().toggleBlockquote().run() },
+  { kind: "divider" },
+  { kind: "button", icon: Code, label: "Code", active: "code", run: (e) => e.chain().focus().toggleCode().run() },
+  {
+    kind: "button",
+    icon: Link2,
+    label: "Link",
+    active: "link",
+    run: (editor) => {
+      if (editor.isActive("link")) {
+        editor.chain().focus().unsetLink().run()
+        return
+      }
+      const href = window.prompt("Link to")
+      if (href) editor.chain().focus().extendMarkRange("link").setLink({ href }).run()
+    },
+  },
+]
+
+/** The formatting row. It belongs in the bottom bar, beside Send. */
+export function TaskToolbar({ editor, className }: { editor: Editor | null; className?: string }) {
+  // Re-render on selection so the active states are true rather than stale.
+  const [, bump] = React.useReducer((n: number) => n + 1, 0)
+  React.useEffect(() => {
     if (!editor) return
-    command(editor.state, editor.dispatch, editor)
-    editor.focus()
-  }
+    editor.on("selectionUpdate", bump)
+    editor.on("transaction", bump)
+    return () => {
+      editor.off("selectionUpdate", bump)
+      editor.off("transaction", bump)
+    }
+  }, [editor])
+
+  if (!editor) return null
 
   return (
-    <div className={cn("flex flex-col overflow-hidden rounded-lg border", className)}>
-      <div className="flex items-center gap-0.5 border-b bg-muted/40 px-1.5 py-1">
-        {TOOLS.map((tool) => (
+    <div className={cn("flex items-center gap-0.5", className)}>
+      {TOOLS.map((tool, i) =>
+        tool.kind === "divider" ? (
+          <span key={i} aria-hidden className="mx-1 h-4 w-px bg-border" />
+        ) : (
           <button
             key={tool.label}
             type="button"
             title={tool.label}
             aria-label={tool.label}
-            // ProseMirror loses the selection to a focus change; keeping it is
-            // the difference between bolding the selected words and bolding
+            aria-pressed={tool.active ? editor.isActive(tool.active) : undefined}
+            // TipTap loses the selection to a focus change; keeping it is the
+            // difference between bolding the selected words and bolding
             // nothing at all.
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => run(tool.run)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
+            onClick={() => tool.run(editor)}
+            className={cn(
+              "rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground",
+              tool.active && editor.isActive(tool.active) && "bg-muted text-foreground"
+            )}
           >
             <tool.icon className="size-4" />
           </button>
-        ))}
-      </div>
-      <div className="relative px-3 py-2 text-sm">
-        {empty && placeholder && (
-          <span className="pointer-events-none absolute px-0 text-muted-foreground">
-            {placeholder}
-          </span>
-        )}
-        <div
-          ref={host}
-          className={cn(
-            "[&_.ProseMirror]:min-h-40 [&_.ProseMirror]:whitespace-pre-wrap [&_.ProseMirror]:break-words [&_.ProseMirror]:outline-none",
-            "[&_.ProseMirror_p]:my-1",
-            "[&_.ProseMirror_ul]:my-1 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5",
-            "[&_.ProseMirror_ol]:my-1 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5",
-            "[&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5",
-            "[&_.ProseMirror_pre]:rounded-md [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:p-2",
-            "[&_.ProseMirror_a]:underline [&_.ProseMirror_a]:underline-offset-4"
-          )}
-        />
-      </div>
+        )
+      )}
     </div>
   )
 }

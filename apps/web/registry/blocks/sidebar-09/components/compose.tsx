@@ -9,7 +9,11 @@ import { MODELS } from "@/lib/agents/models"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
-import { RichBody } from "@/registry/blocks/sidebar-09/components/rich-body"
+import {
+  TaskSurface,
+  TaskToolbar,
+  useTaskEditor,
+} from "@/registry/blocks/sidebar-09/components/rich-body"
 
 // Compose. The recipient fields are the agent picker, because "who do I send
 // this to" is a question mail already answers well and a row of buttons is a
@@ -201,6 +205,12 @@ export function Compose({
   const people = everyone.filter(isPerson)
   const first = findAgent(draft.to.find((slug) => !isPerson(slug)) ?? "")
 
+  const editor = useTaskEditor({
+    value: draft.body,
+    onChange: (body) => onChange({ ...draft, body }),
+    placeholder: inline ? "Reply…" : (first?.placeholder ?? "What should it do?"),
+  })
+
   // n agents is n runs. Say what that costs before it is spent.
   const estimate = agents
     .map((slug) => findAgent(slug))
@@ -271,15 +281,13 @@ export function Compose({
         </>
       )}
 
-      {/* The body is markdown on the wire and formatting on the screen — the
-          agent reads `**bold**` and `- item`, the reader sees bold and a
-          bullet, and the thread renders the same subset back. One
-          representation, so the two cannot disagree. */}
-      <RichBody
-        value={draft.body}
-        onChange={(body) => onChange({ ...draft, body })}
-        placeholder={inline ? "Reply…" : (first?.placeholder ?? "What should it do?")}
-        className={inline ? "[&_.ProseMirror]:min-h-24" : "[&_.ProseMirror]:min-h-40"}
+      {/* A clean writing surface with nothing above it. The body is markdown
+          on the wire and formatting on the screen — the agent reads `**bold**`
+          and `- item`, the reader sees bold and a bullet, and the thread
+          renders the same subset back. */}
+      <TaskSurface
+        editor={editor}
+        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : ""}
       />
 
       {!inline && first && (
@@ -298,12 +306,17 @@ export function Compose({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* The bottom bar, in Gmail's arrangement: Send first, the formatting
+          row immediately beside it, and the rest pushed right. Formatting
+          belongs down here with the action, not on top of the page someone is
+          trying to write on. */}
+      <div className="flex flex-wrap items-center gap-2 border-t pt-3">
         <Button type="submit" size="sm" disabled={!everyone.length || !draft.body.trim()}>
           Send
         </Button>
+        <TaskToolbar editor={editor} />
         {onSaveDraft && (
-          <Button type="button" variant="outline" size="sm" onClick={onSaveDraft}>
+          <Button type="button" variant="ghost" size="sm" onClick={onSaveDraft}>
             Save draft
           </Button>
         )}
