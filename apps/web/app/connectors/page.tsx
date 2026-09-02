@@ -63,7 +63,7 @@ function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: bool
 function Card({ connector }: { connector: ConnectorStatus }) {
   const google = googleService(connector.id)
   return (
-    <div data-not-typeset="" className="flex min-w-0 flex-col gap-3 rounded-xl border p-4">
+    <div data-not-typeset="" className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40">
       <div className="flex min-w-0 items-center gap-2">
         <ConnectionMark
           name={connector.name}
