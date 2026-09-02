@@ -9,7 +9,7 @@ import { MODELS } from "@/lib/agents/models"
 import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
-import { Textarea } from "@govblock/ui/components/nova/textarea"
+import { RichBody } from "@/registry/blocks/sidebar-09/components/rich-body"
 
 // Compose. The recipient fields are the agent picker, because "who do I send
 // this to" is a question mail already answers well and a row of buttons is a
@@ -269,11 +269,15 @@ export function Compose({
         </>
       )}
 
-      <Textarea
+      {/* The body is markdown on the wire and formatting on the screen — the
+          agent reads `**bold**` and `- item`, the reader sees bold and a
+          bullet, and the thread renders the same subset back. One
+          representation, so the two cannot disagree. */}
+      <RichBody
         value={draft.body}
-        onChange={(event) => onChange({ ...draft, body: event.target.value })}
+        onChange={(body) => onChange({ ...draft, body })}
         placeholder={inline ? "Reply…" : (first?.placeholder ?? "What should it do?")}
-        className={inline ? "min-h-28" : "min-h-48"}
+        className={inline ? "[&_.ProseMirror]:min-h-24" : "[&_.ProseMirror]:min-h-40"}
       />
 
       {!inline && first && (

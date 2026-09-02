@@ -68,6 +68,29 @@ export function Prose({ text }: { text: string }) {
           )
         if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line))
           return <hr key={i} className="my-2 border-border" />
+        // Lists are drawn now that the reader writes them too — the composer
+        // serialises "- item" and "1. item", and printing the punctuation back
+        // at them would be the same failure as printing the asterisks. The rule
+        // against lists was always about the agents' prompts, which still ask
+        // for plain prose; this is only about not lying about what was written.
+        const bullet = /^(\s*)[-*+]\s+(.*)$/.exec(line)
+        const numbered = /^(\s*)(\d+)[.)]\s+(.*)$/.exec(line)
+        if (bullet || numbered) {
+          const indent = (bullet ? bullet[1] : numbered![1]).length
+          const marker = bullet ? "•" : `${numbered![2]}.`
+          const body = bullet ? bullet[2] : numbered![3]
+          return (
+            <React.Fragment key={i}>
+              <span className="flex gap-2" style={{ paddingLeft: `${indent * 0.5 + 0.75}rem` }}>
+                <span className="shrink-0 text-muted-foreground tabular-nums">{marker}</span>
+                <span className="min-w-0">
+                  <Inline text={body} />
+                </span>
+              </span>
+              {end}
+            </React.Fragment>
+          )
+        }
         return (
           <React.Fragment key={i}>
             <Inline text={line} />
