@@ -4,7 +4,7 @@ import * as React from "react"
 import { Bold, Code, Italic, Link2, List, ListOrdered } from "lucide-react"
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands"
 import { history, redo, undo } from "prosemirror-history"
-import { inputRules, textblockTypeInputRule, wrappingInputRule } from "prosemirror-inputrules"
+import { InputRule, inputRules, textblockTypeInputRule, undoInputRule } from "prosemirror-inputrules"
 import { keymap } from "prosemirror-keymap"
 import {
   defaultMarkdownParser,
@@ -12,7 +12,7 @@ import {
   schema,
 } from "prosemirror-markdown"
 import { liftListItem, sinkListItem, splitListItem, wrapInList } from "prosemirror-schema-list"
-import { EditorState, type Command } from "prosemirror-state"
+import { EditorState, type Command, type Transaction } from "prosemirror-state"
 import { EditorView } from "prosemirror-view"
 
 import { cn } from "@/lib/utils"
@@ -38,15 +38,42 @@ const BULLET = /^\s*([-+*])\s$/
 const ORDERED = /^(\d+)\.\s$/
 const CODE_BLOCK = /^```$/
 
+/**
+ * "- " starts a list — unless you are already in one, where it is just a dash.
+ *
+ * prosemirror's own wrappingInputRule fires inside a list item too and nests a
+ * second list, which is how you indent by typing in a rich-text editor and is
+ * exactly wrong for someone typing markdown line by line: the second bullet
+ * comes out indented under the first. So the rule checks its ancestors first,
+ * and where it does apply it deletes the marker and lets wrapInList do the
+ * wrapping — the command's steps are appended to the same transaction, so it
+ * stays one undo.
+ */
+function listRule(
+  match: RegExp,
+  type: (typeof schema.nodes)[string],
+  attrs?: (m: RegExpMatchArray) => Record<string, unknown>
+) {
+  return new InputRule(match, (state, m, start, end) => {
+    const $start = state.doc.resolve(start)
+    for (let depth = $start.depth; depth > 0; depth -= 1)
+      if ($start.node(depth).type === schema.nodes.list_item) return null
+
+    const tr = state.tr.delete(start, end)
+    let wrapped: Transaction | null = null
+    wrapInList(type!, attrs?.(m))(state.apply(tr), (next) => {
+      wrapped = next
+    })
+    if (!wrapped) return null
+    for (const step of (wrapped as Transaction).steps) tr.step(step)
+    return tr
+  })
+}
+
 const rules = inputRules({
   rules: [
-    wrappingInputRule(BULLET, schema.nodes.bullet_list!),
-    wrappingInputRule(
-      ORDERED,
-      schema.nodes.ordered_list!,
-      (match) => ({ order: Number(match[1]) }),
-      (match, node) => node.childCount + node.attrs.order === Number(match[1])
-    ),
+    listRule(BULLET, schema.nodes.bullet_list!),
+    listRule(ORDERED, schema.nodes.ordered_list!, (m) => ({ order: Number(m[1]) })),
     textblockTypeInputRule(CODE_BLOCK, schema.nodes.code_block!),
   ],
 })
@@ -112,6 +139,9 @@ export function RichBody({
           Enter: splitListItem(schema.nodes.list_item!),
           Tab: sinkListItem(schema.nodes.list_item!),
           "Shift-Tab": liftListItem(schema.nodes.list_item!),
+          // A rule that fired when you meant the characters is one key away
+          // from being undone, which is the standard escape hatch.
+          Backspace: undoInputRule,
           "Shift-Enter": chainCommands((state, dispatch) => {
             if (dispatch)
               dispatch(
