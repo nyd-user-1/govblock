@@ -18,9 +18,11 @@ export function MemberTabs({
   aye: React.ReactNode
   nay: React.ReactNode
 }) {
+  // The pills sat tight under the Record heading; twelve pixels is what the
+  // heading needed to stop touching them.
   return (
     <Tabs defaultValue="sponsored" className="not-typeset">
-      <TabsList>
+      <TabsList className="mt-3">
         <TabsTrigger value="sponsored">
           Sponsored <Badge variant="outline">{counts.sponsored}</Badge>
         </TabsTrigger>

@@ -161,6 +161,35 @@ export function MemberTerms() {
   )
 }
 
+/**
+ * The member's Washington office, as the record has it.
+ *
+ * Data, never prose: officeAddress, city, district and zipCode come from
+ * congress.gov's member detail, and a member the record holds no address for —
+ * every state legislator, today — renders nothing here rather than a plausible
+ * building. The heading is a constant because it only ever appears above real
+ * lines.
+ */
+export function MemberOffice() {
+  const { detail } = use()
+  const address = detail?.member?.addressInformation
+  const street = address?.officeAddress?.trim()
+  if (!street) return null
+
+  const cityLine = [address?.city, [address?.district, address?.zipCode].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ")
+
+  return (
+    <address className="mt-1 text-sm leading-relaxed text-muted-foreground not-italic">
+      <span className="block font-medium text-foreground">Washington, D.C. Office</span>
+      <span className="block">{street}</span>
+      {cityLine && <span className="block">{cityLine}</span>}
+      {address?.phoneNumber && <span className="block">Phone: {address.phoneNumber}</span>}
+    </address>
+  )
+}
+
 /** The office, the telephone and the member's own site. */
 export function MemberContact({ phone, bio }: { phone: string | null; bio: string | null }) {
   const { detail } = use()

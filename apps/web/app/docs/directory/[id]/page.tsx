@@ -76,7 +76,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   const { id } = await params
   const data = await load(id)
   if (!data) notFound()
-  const { peopleId, state, session, member, record } = data
+  const { peopleId, state, member, record } = data
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}`.trim()
@@ -99,12 +99,17 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="h-(--top-spacing) shrink-0" />
           <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-            <div className="flex items-center justify-end">
-              <div className="docs-nav hidden sm:block">
+            {/* The Copy Page control rides inside the header so the name
+                top-aligns with it, the way /docs/bills does — it used to sit in
+                a row of its own with the portrait block below. */}
+            <MemberHeader
+              peopleId={peopleId}
+              state={state}
+              member={member}
+              action={
                 <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
-              </div>
-            </div>
-            <MemberHeader peopleId={peopleId} state={state} session={session} member={member} counts={record.counts} />
+              }
+            />
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
               <H2>Record</H2>
               <MemberTabs
@@ -113,6 +118,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                   <MemberFeed
                     bills={record.sponsored}
                     total={record.counts.sponsored}
+                    state={state}
                     empty={`${name} has sponsored nothing this session.`}
                   />
                 }
@@ -121,6 +127,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                     bills={record.aye}
                     total={record.counts.aye}
                     vote="Aye"
+                    state={state}
                     empty="No recorded aye votes this session."
                   />
                 }
@@ -129,6 +136,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                     bills={record.nay}
                     total={record.counts.nay}
                     vote="Nay"
+                    state={state}
                     empty="No recorded nay votes this session."
                   />
                 }
