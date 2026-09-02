@@ -8,7 +8,7 @@ import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
-import { BillActions, BillDepthProvider, BillTracker } from "@/components/policy/bill-depth"
+import { BillActions, BillCommittees, BillDepthProvider, BillTracker } from "@/components/policy/bill-depth"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
@@ -25,7 +25,7 @@ const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
 // On a Congress bill the same section is called what congress.gov calls it, and
 // carries what congress.gov carries: the stage, the acting committee and the
 // roll call, on our own rows.
-const CONGRESS_SECTIONS = ["Summary", "Sponsors", "Actions", "Votes", "Text"]
+const CONGRESS_SECTIONS = ["Summary", "Sponsors", "Actions", "Committees", "Votes", "Text"]
 const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
 const MAX_SPONSORS = 20
 
@@ -157,6 +157,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             />
 
             <BillCommitteeReports />
+            <BillCommittees />
 
             <H2>Votes</H2>
             {bill.rollCalls.length ? (
