@@ -40,6 +40,7 @@ type Value = {
 const Context = React.createContext<Value | null>(null)
 
 async function askOnce(service: GoogleService, sessionUri: string | undefined, force = false) {
+  const heldBefore = loadSession(service)
   const response = await fetch(`/api/connectors/${service}/connect`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -66,7 +67,13 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined, f
   // A pending answer carries no new session: the one being held is the one in
   // flight, so it stays held — the reader may be finishing consent in another
   // tab, and the next check is the one that finds the token.
-  else if (json.sessionUri) rememberSession(service, json.sessionUri)
+  // Store a new session ONLY when this call is the one that started it — a
+  // click — or when the browser had none. A passive check must never overwrite
+  // a session it did not open: that session may be the handle on a consent the
+  // reader has just finished, and replacing it loses the grant exactly as
+  // discarding it does. Same defect as the retry, one line further on.
+  else if (json.sessionUri && (force || !heldBefore))
+    rememberSession(service, json.sessionUri)
   return {
     connected: Boolean(json.connected),
     authorizeUrl: json.authorizeUrl,
