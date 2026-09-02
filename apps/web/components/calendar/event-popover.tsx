@@ -3,7 +3,10 @@
 import * as React from "react"
 import { PencilIcon, Trash2Icon } from "lucide-react"
 
+import { isHearingEvent } from "@/lib/calendar/hearings"
+import { capitolZone } from "@/lib/policy/hearing-when"
 import type { CalendarEvent } from "@/lib/calendar/types"
+import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,7 +43,7 @@ export function EventPopover({
   children: (open: boolean) => React.ReactElement
 }) {
   const { formSide } = useCalendar()
-  const { removeEvent, updateEvent } = useCalendarEvents()
+  const { removeEvent, updateEvent, state } = useCalendarEvents()
   const { editingId, openEvent, closeEvent } = useEventEditor()
 
   const open = anchored && editingId === event.id
@@ -75,12 +78,44 @@ export function EventPopover({
             // form every time.
           >
             {open && (
-              <EventForm
-                event={event}
-                onSave={updateEvent}
-                onRemove={onRemove}
-                onEscape={() => closeEvent(event.id)}
-              />
+              <>
+                <EventForm
+                  event={event}
+                  onSave={updateEvent}
+                  onRemove={onRemove}
+                  onEscape={() => closeEvent(event.id)}
+                />
+                {/* A hearing is the legislature's schedule, not the reader's:
+                    it cannot be moved or deleted here, and the one useful
+                    thing to do with it is take a copy to a calendar that is
+                    theirs. The event's own times go across — including the
+                    capitol's timezone, because these are wall-clock times with
+                    no zone of their own. */}
+                {isHearingEvent(event.id) && (
+                  <div className="mt-1 border-t pt-1">
+                    <AddToCalendar
+                      className="w-full justify-start"
+                      summary={event.title}
+                      description={event.description}
+                      when={
+                        event.allDay
+                          ? {
+                              start: event.start.slice(0, 10),
+                              end: event.end.slice(0, 10),
+                              allDay: true,
+                            }
+                          : {
+                              start: event.start,
+                              end: event.end,
+                              timeZone: capitolZone(state),
+                              allDay: false,
+                            }
+                      }
+                      url="/calendar"
+                    />
+                  </div>
+                )}
+              </>
             )}
           </PopoverContent>
         </Popover>

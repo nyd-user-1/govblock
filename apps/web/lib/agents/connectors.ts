@@ -24,6 +24,13 @@ export type Connector = {
   summary: string
   /** Popular connectors lead the page. */
   popular?: boolean
+  /**
+   * A connector that is not its own grant: it rides on another's. Google's
+   * `drive.file` scope covers every file this app creates in Google's editors,
+   * so Docs and Sheets are already inside the Drive connection — the same one
+   * consent, and the surface says so rather than implying a second.
+   */
+  ridesOn?: string
   /** Where connecting begins, when it can begin. */
   href?: string
 }
@@ -46,6 +53,26 @@ export const CONNECTORS: Connector[] = [
     kind: "user",
     popular: true,
     summary: "Put a hearing on your own calendar, with the committee, the time and the link back.",
+  },
+  {
+    id: "google-docs",
+    name: "Google Docs",
+    logo: "/logos/google-docs.svg",
+    tint: "#1a73e8",
+    kind: "user",
+    popular: true,
+    ridesOn: "google-drive",
+    summary: "A delivered report lands as a Google Doc you can edit, not a file you download.",
+  },
+  {
+    id: "google-sheets",
+    name: "Google Sheets",
+    logo: "/logos/google-sheets.svg",
+    tint: "#0f9d58",
+    kind: "user",
+    popular: true,
+    ridesOn: "google-drive",
+    summary: "Export the hearings you are looking at to a spreadsheet in your own Drive.",
   },
   {
     id: "slack",

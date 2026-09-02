@@ -43,7 +43,7 @@ export function ConnectButton({
 
 // The bottom row of a Google card: the live status on the left, the thing to
 // click on the right. Both read the one answer.
-export function ConnectRow({ service }: { service: GoogleService }) {
+export function ConnectRow({ service, label }: { service: GoogleService; label?: string }) {
   const { state, connect } = useGoogle(service)
 
   if (state.kind === "error")
@@ -68,7 +68,7 @@ export function ConnectRow({ service }: { service: GoogleService }) {
         disabled={state.kind !== "ready"}
         onClick={() => void connect()}
       >
-        {state.kind === "working" ? "Opening Google…" : "Connect"}
+        {state.kind === "working" ? "Opening Google…" : (label ?? "Connect")}
       </Button>
     </div>
   )

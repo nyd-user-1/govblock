@@ -47,6 +47,16 @@ export async function getConnectorStatuses(): Promise<ConnectorStatus[]> {
             : "Scope calendar.events.owned — calendars you own, your primary included, and none merely shared with you.",
       }
 
+    // Docs and Sheets are not separate grants and the surface must not imply
+    // they are: they are what drive.file already covers, so their state is the
+    // Drive connection's state and connecting either one *is* connecting Drive.
+    if (connector.ridesOn === "google-drive")
+      return {
+        ...connector,
+        state: "available",
+        detail: "Included in your Google Drive connection — the same drive.file grant, no second consent.",
+      }
+
     if (connector.id === "slack")
       return {
         ...connector,

@@ -20,14 +20,16 @@ export const dynamic = "force-dynamic"
 // The two connectors the server cannot answer for: the grant lives in the vault
 // under this browser's claim check, so only the browser can ask.
 function googleService(id: string): GoogleService | null {
-  if (id === "google-drive") return "drive"
+  if (id === "google-drive" || id === "google-docs" || id === "google-sheets") return "drive"
   if (id === "google-calendar") return "calendar"
   return null
 }
 
 function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: boolean }) {
   const google = googleService(connector.id)
-  if (google) return <ConnectButton service={google} />
+  // A ride-along says which connection it is asking for, because it is not
+  // asking for its own.
+  if (google) return <ConnectButton service={google} label={connector.ridesOn ? "Connect Drive" : undefined} />
 
   if (connector.state === "connected")
     return connector.href ? (
@@ -81,8 +83,14 @@ function Card({ connector }: { connector: ConnectorStatus }) {
         <span className="min-w-0 truncate font-medium">{connector.name}</span>
       </div>
       <p className="min-h-10 text-sm text-muted-foreground">{connector.summary}</p>
+      {connector.ridesOn && (
+        // Said on the card, not left to be discovered: one grant, one consent.
+        <p className="text-xs text-muted-foreground">
+          Included in your Google Drive connection.
+        </p>
+      )}
       {google ? (
-        <ConnectRow service={google} />
+        <ConnectRow service={google} label={connector.ridesOn ? "Connect Drive" : undefined} />
       ) : (
         <div className="flex items-center justify-between gap-2">
           <StatusChip state={connector.state} />
@@ -115,7 +123,7 @@ export default async function ConnectorsPage() {
         </p>
 
         <h2 className="mt-8 text-lg font-semibold tracking-tight">Popular</h2>
-        <div className="not-prose grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="not-prose grid gap-4 sm:grid-cols-2">
           {popular.map((connector) => (
             <Card key={connector.id} connector={connector} />
           ))}

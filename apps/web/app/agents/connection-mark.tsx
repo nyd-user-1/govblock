@@ -6,6 +6,14 @@ import { cn } from "@/lib/utils"
 // blurple — a grayscale mark is a service nobody recognises at a glance, and
 // recognising it at a glance is the entire job of a logo.
 //
+// Full colour ALWAYS, connected or not, and no ring: Brendan's ruling, and it
+// is right. The status chip beside the mark already says what state the
+// connection is in, in words; dimming the glyph says it a second time in a way
+// that reads as "broken image" rather than as "not connected". The ring came
+// from the Avatar primitive's own `after:` border, which is drawn for round
+// photo avatars and looks like a hairline artefact around a square logo, so it
+// is switched off here rather than worked around.
+//
 // `data-not-typeset` is the fix, and it took five attempts because the first
 // four looked for the bug inside the Avatar primitive and it was never there.
 // Every call site of this mark sits inside a DocsPage, whose children are
@@ -39,14 +47,16 @@ export function ConnectionMark({
   logo: string
   tint: string
   className?: string
-  /** A connection that is not live reads as dimmed rather than absent. */
+  /**
+   * Kept in the signature because callers pass it and it is true information,
+   * but it no longer changes the mark — see above.
+   */
   live?: boolean
 }) {
   return (
     <Avatar
       data-not-typeset=""
-      className={cn("relative size-6 shrink-0 rounded-md bg-white", !live && "opacity-50", className)}
-      style={{ boxShadow: `inset 0 0 0 1px ${tint}33` }}
+      className={cn("relative size-6 shrink-0 rounded-md bg-white after:hidden", className)}
     >
       <AvatarFallback
         className="absolute inset-0 flex items-center justify-center rounded-md bg-white p-0.5 text-[10px] font-semibold"

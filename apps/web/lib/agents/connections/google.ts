@@ -139,6 +139,64 @@ export async function saveToDrive({
   return { id: json.id ?? "", name: json.name ?? name, url: json.webViewLink ?? "" }
 }
 
+/**
+ * Save rows into the reader's Drive as a Google Sheet.
+ *
+ * Drive converts on upload, so this needs no Sheets API and no second scope —
+ * `drive.file` covers every file this app creates in Google's editors, which is
+ * the whole basis of the ride-along cards. The Docs path above is the same
+ * mechanism with a different target mimeType.
+ */
+export async function saveSheet({
+  accessToken,
+  name,
+  rows,
+}: {
+  accessToken: string
+  name: string
+  rows: string[][]
+}) {
+  const cell = (value: string) => {
+    const text = String(value ?? "")
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  }
+  const csv = rows.map((row) => row.map(cell).join(",")).join("\r\n")
+  const boundary = `govblock-${Math.random().toString(36).slice(2)}`
+  const body = [
+    `--${boundary}`,
+    "Content-Type: application/json; charset=UTF-8",
+    "",
+    JSON.stringify({ name, mimeType: "application/vnd.google-apps.spreadsheet" }),
+    `--${boundary}`,
+    "Content-Type: text/csv; charset=UTF-8",
+    "",
+    csv,
+    `--${boundary}--`,
+    "",
+  ].join("\r\n")
+
+  const response = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+      signal: AbortSignal.timeout(30_000),
+    }
+  )
+  const json = (await response.json().catch(() => ({}))) as {
+    id?: string
+    name?: string
+    webViewLink?: string
+    error?: { message?: string }
+  }
+  if (!response.ok) throw new Error(json.error?.message ?? `Drive returned ${response.status}`)
+  return { id: json.id ?? "", name: json.name ?? name, url: json.webViewLink ?? "" }
+}
+
 /** Put a hearing on the reader's primary calendar. */
 export async function addToCalendar({
   accessToken,

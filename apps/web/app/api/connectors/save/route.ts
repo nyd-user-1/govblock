@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { addToCalendar, grantFor, saveToDrive } from "@/lib/agents/connections/google"
+import { addToCalendar, grantFor, saveSheet, saveToDrive } from "@/lib/agents/connections/google"
 import { publicOrigin } from "@/lib/agents/connections/origin"
 
 // Act on a reader's Google grant: save a report to their Drive, or put a
@@ -16,10 +16,12 @@ export const maxDuration = 60
 
 type Body = {
   claimCheck?: string
-  action?: "drive" | "calendar"
+  action?: "drive" | "calendar" | "sheet"
   /** Drive */
   name?: string
   markdown?: string
+  /** Sheet: the header row first, then the rows. */
+  rows?: string[][]
   /** Calendar */
   summary?: string
   description?: string
@@ -41,13 +43,31 @@ export async function POST(request: Request) {
   if (!/^[A-Za-z0-9-]{8,64}$/.test(userId))
     return NextResponse.json({ error: "a claim check is required" }, { status: 400 })
 
-  const action = body.action === "calendar" ? "calendar" : "drive"
+  const action =
+    body.action === "calendar" ? "calendar" : body.action === "sheet" ? "sheet" : "drive"
   const origin = publicOrigin(request)
 
   try {
-    const grant = await grantFor(userId, action, `${origin}/api/connectors/callback`)
+    // A Sheet is a Drive file, so it rides on the Drive grant — one consent,
+    // never a second one dressed up as a different connector.
+    const grant = await grantFor(
+      userId,
+      action === "calendar" ? "calendar" : "drive",
+      `${origin}/api/connectors/callback`
+    )
     if (grant.kind === "authorize")
       return NextResponse.json({ connected: false, authorizeUrl: grant.url })
+
+    if (action === "sheet") {
+      const rows = Array.isArray(body.rows) ? body.rows : []
+      if (!rows.length) return NextResponse.json({ error: "nothing to export" }, { status: 400 })
+      const file = await saveSheet({
+        accessToken: grant.accessToken,
+        name: String(body.name ?? "govblock export").slice(0, 200),
+        rows: rows.slice(0, 5000).map((row) => (Array.isArray(row) ? row.map(String) : [String(row)])),
+      })
+      return NextResponse.json({ connected: true, ...file })
+    }
 
     if (action === "drive") {
       const markdown = String(body.markdown ?? "")

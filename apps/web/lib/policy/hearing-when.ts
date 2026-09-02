@@ -69,6 +69,11 @@ const CAPITOL_TZ: Record<string, string> = {
 
 export type When = { start: string; end: string; timeZone?: string; allDay: boolean }
 
+/** The timezone a jurisdiction's legislature actually sits in, if we hold one. */
+export function capitolZone(state: string | null | undefined) {
+  return CAPITOL_TZ[(state ?? "").toUpperCase()]
+}
+
 const plusDay = (date: string) => {
   const d = new Date(`${date}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + 1)

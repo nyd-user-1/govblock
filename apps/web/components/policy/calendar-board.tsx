@@ -9,6 +9,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import type { Hearing } from "@/lib/policy/types"
 import { hearingWhen } from "@/lib/policy/hearing-when"
 import { AddToCalendar } from "@/components/connectors/add-to-calendar"
+import { ExportToSheet } from "@/components/connectors/export-to-sheet"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { ChamberSeal } from "@/components/policy/imagery"
 import {
@@ -138,6 +139,27 @@ export function CalendarBoard() {
             <Badge variant="secondary" className="font-normal">
               through {fmtDate(through, false)}
             </Badge>
+          )}
+          {/* The rows as filtered, not the whole table: what leaves with the
+              reader is what they are looking at. */}
+          {rows.length > 0 && (
+            <ExportToSheet
+              className="ml-auto"
+              name={`${stateName(state)} calendar — ${session} session`}
+              rows={() => [
+                ["Date", "Time", "Committee", "Chamber", "Bill", "Title", "Location", "Description"],
+                ...rows.map((hearing) => [
+                  hearing.date,
+                  hearing.time ?? "",
+                  hearing.committee ?? "",
+                  hearing.chamber ?? hearing.body ?? "",
+                  hearing.bill_number ?? "",
+                  hearing.title ?? "",
+                  hearing.location ?? "",
+                  hearing.description ?? "",
+                ]),
+              ]}
+            />
           )}
         </>
       }
