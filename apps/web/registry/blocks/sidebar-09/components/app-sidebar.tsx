@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Command, File, Inbox, Send, Star, Trash2 } from "lucide-react"
+import { Command, File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import {
   inFolder,
@@ -16,7 +16,6 @@ import {
 } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
 import { NavUser } from "@/registry/blocks/sidebar-09/components/nav-user"
-import { Label } from "@govblock/ui/components/ny4/label"
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +29,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@govblock/ui/components/ny4/sidebar"
-import { Switch } from "@govblock/ui/components/ny4/switch"
 
 // The Agentic Inbox. This is shadcn's sidebar-09 mail block with its markup and
 // classNames intact and its contents replaced: the icon rail is the folders, the
@@ -53,6 +51,7 @@ export function AppSidebar({
   // Not `onSelect`: Sidebar spreads a div's props, whose own onSelect would
   // intersect with this one and hand the callback a SyntheticEvent.
   onOpenThread,
+  onCompose,
   onClear,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
@@ -61,10 +60,10 @@ export function AppSidebar({
   folder: Folder
   onFolder: (folder: Folder) => void
   onOpenThread: (id: string) => void
+  onCompose: () => void
   onClear: () => void
 }) {
   const [query, setQuery] = React.useState("")
-  const [unreadOnly, setUnreadOnly] = React.useState(false)
   const { setOpen } = useSidebar()
 
   const active = FOLDERS.find((entry) => entry.folder === folder) ?? FOLDERS[0]!
@@ -76,7 +75,6 @@ export function AppSidebar({
   const shown = threads
     .filter((thread) => (searching ? !thread.trashed || folder === "trash" : inFolder(thread, folder)))
     .filter((thread) => matches(thread, query))
-    .filter((thread) => !unreadOnly || isUnread(thread))
 
   return (
     <Sidebar
@@ -112,6 +110,17 @@ export function AppSidebar({
           <SidebarGroup>
             <SidebarGroupContent className="px-1.5 md:px-0">
               <SidebarMenu>
+                {/* Compose sits above the folders, where mail clients put it. */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={{ children: "Compose", hidden: false }}
+                    onClick={onCompose}
+                    className="px-2.5 text-primary md:px-2"
+                  >
+                    <PenSquare />
+                    <span>Compose</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 {FOLDERS.map((item) => {
                   const unread = unreadIn(threads, item.folder)
                   return (
@@ -161,14 +170,9 @@ export function AppSidebar({
             <div className="text-base font-medium text-foreground">
               {searching ? "All mail" : active.title}
             </div>
-            <Label className="flex items-center gap-2 text-sm">
-              <span>Unreads</span>
-              <Switch
-                className="shadow-none"
-                checked={unreadOnly}
-                onCheckedChange={(next: boolean) => setUnreadOnly(next)}
-              />
-            </Label>
+            {/* No unread toggle. Unread is something a row looks like, the way
+                it is in every mail client — a filter for it is a control that
+                exists because the appearance was not doing its job. */}
           </div>
           <SidebarInput
             placeholder="Search mail…"
@@ -189,6 +193,8 @@ export function AppSidebar({
                 </p>
               )}
               {shown.map((thread) => {
+                // Unread is the arriving reply, never your own message — a
+                // thread you composed is born read on your side.
                 const unread = isUnread(thread)
                 return (
                   <button
@@ -196,17 +202,37 @@ export function AppSidebar({
                     key={thread.id}
                     onClick={() => onOpenThread(thread.id)}
                     data-active={selected === thread.id}
-                    className="flex w-full flex-col items-start gap-2 border-b p-4 text-left text-sm leading-tight whitespace-nowrap last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                    data-unread={unread}
+                    className={cn(
+                      "flex w-full flex-col items-start gap-2 border-b p-4 text-left text-sm leading-tight whitespace-nowrap transition-colors last:border-b-0",
+                      // Unread reads as a card that has not been touched: the
+                      // background comes forward and the type thickens. Read
+                      // recedes. No toggle — the row says which it is.
+                      unread
+                        ? "bg-background shadow-[inset_2px_0_0_0_var(--color-primary)]"
+                        : "bg-sidebar-accent/40 text-muted-foreground",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                    )}
                   >
                     <div className="flex w-full items-center gap-2">
-                      <span className={cn(unread && "font-semibold")}>{thread.agentName}</span>
+                      <span className={cn(unread ? "font-semibold text-foreground" : "font-normal")}>
+                        {/* Sent reads "To: <Agent>", the way a Sent folder does
+                            — the recipient is the useful name there. */}
+                        {folder === "sent" || folder === "drafts"
+                          ? `To: ${thread.agentName}`
+                          : thread.agentName}
+                      </span>
                       {thread.starred && (
-                        <Star className="size-3 fill-current text-muted-foreground" />
+                        <Star className="size-3 fill-yellow-400 text-yellow-500" />
                       )}
                       <span className="ml-auto text-xs">{when(thread.updatedAt)}</span>
                     </div>
                     <span
-                      className={cn("w-[260px] truncate", unread ? "font-semibold" : "font-medium")}
+                      className={cn(
+                        "w-[260px] truncate",
+                        unread ? "font-semibold text-foreground" : "font-medium"
+                      )}
                     >
                       {thread.subject}
                     </span>

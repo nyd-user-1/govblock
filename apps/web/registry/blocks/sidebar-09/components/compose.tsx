@@ -42,7 +42,7 @@ export function Compose({
 
   return (
     <form
-      className="flex max-w-3xl flex-col gap-3"
+      className="flex w-full flex-1 flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
         if (resolved) onSend(resolved, draft)

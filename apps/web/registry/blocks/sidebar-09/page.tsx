@@ -208,6 +208,7 @@ export default function Page() {
           setSelected(id)
           setComposing(false)
         }}
+        onCompose={startCompose}
         onClear={() => {
           setThreads([])
           setSelected(null)
@@ -240,7 +241,7 @@ export default function Page() {
                   aria-label={open.starred ? "Remove star" : "Star"}
                   onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}
                 >
-                  <Star className={cn("size-4", open.starred && "fill-current")} />
+                  <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -252,9 +253,6 @@ export default function Page() {
                 </Button>
               </>
             )}
-            <Button size="sm" onClick={startCompose} disabled={composing}>
-              Compose
-            </Button>
           </div>
         </header>
 
@@ -274,7 +272,7 @@ export default function Page() {
               onSaveDraft={saveDraft}
             />
           ) : open ? (
-            <article className="flex max-w-3xl flex-col gap-5">
+            <article className="flex w-full flex-1 flex-col gap-5">
               <header className="flex flex-col gap-1">
                 <h1 className="text-lg font-semibold tracking-tight">{open.subject}</h1>
                 <p className="text-sm text-muted-foreground">
@@ -355,7 +353,7 @@ export default function Page() {
               )}
             </article>
           ) : (
-            <div className="flex max-w-3xl flex-col gap-3">
+            <div className="flex w-full max-w-2xl flex-col gap-3">
               <h1 className="text-lg font-semibold tracking-tight">Agentic Inbox</h1>
               <p className="text-sm text-muted-foreground">
                 Longer work than a chat. Compose a task to one of the five agents, and its
