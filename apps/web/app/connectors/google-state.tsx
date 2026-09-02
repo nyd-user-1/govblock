@@ -91,18 +91,31 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
     []
   )
 
+  // Coming back from Google, the vault may not have finished recording the grant
+  // in the instant the page mounts. The callback marks the return with
+  // ?connected=1, so on exactly that load — and only that one — a service that
+  // still reads not-connected is asked once more a moment later. It carries the
+  // held session, so it opens nothing and costs nothing; it just gives the
+  // write a second to land rather than telling the reader their consent failed.
+  const justReturned = React.useRef(false)
+  React.useEffect(() => {
+    justReturned.current = new URLSearchParams(window.location.search).has("connected")
+  }, [])
+
   React.useEffect(() => {
     let live = true
     for (const service of SERVICES)
       ask(service)
-        .then(
-          (r) =>
-            live &&
-            set(
-              service,
-              r.connected ? { kind: "connected" } : { kind: "ready" }
-            )
-        )
+        .then((r) => {
+          if (!live) return
+          set(service, r.connected ? { kind: "connected" } : { kind: "ready" })
+          if (!r.connected && justReturned.current)
+            window.setTimeout(() => {
+              ask(service)
+                .then((again) => live && again.connected && set(service, { kind: "connected" }))
+                .catch(() => {})
+            }, 1500)
+        })
         .catch(
           (e) =>
             live &&
