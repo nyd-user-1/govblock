@@ -1,13 +1,11 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { BILLS } from "@/lib/data"
 import { getBill, getBillText } from "@/lib/policy/queries"
-import { memberHref } from "@/lib/filters"
 import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
-import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
+import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillRelatedBills, BillSponsors, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
 import { BillActions, BillCommittees, BillCostEstimates, BillDepthProvider, BillNotes, BillSubjects, BillTracker } from "@/components/policy/bill-depth"
 import { Callout, H2, Table } from "@/components/typeset"
 
@@ -26,11 +24,8 @@ const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
 // carries what congress.gov carries: the stage, the acting committee and the
 // roll call, on our own rows.
 const CONGRESS_SECTIONS = ["Summary", "Sponsors", "Actions", "Committees", "Subjects", "Votes", "Text"]
-const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
-const MAX_SPONSORS = 20
 
 const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
-const district = (value: string | null | undefined) => (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")
 const host = (href: string) => {
   try {
     return new URL(href).hostname.replace(/^www\./, "")
@@ -64,8 +59,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   const held = await getBillText(Number(id))
   const text = held?.text
   const summary = bill.description || bill.title
-  const shownSponsors = bill.sponsors.slice(0, MAX_SPONSORS)
-  const moreSponsors = bill.sponsors.length - shownSponsors.length
 
   const statusParts: string[] = []
   if (bill.last_action_date || bill.last_action) statusParts.push(`last action ${day(bill.last_action_date)}: ${bill.last_action ?? ""}`.trim())
@@ -113,19 +106,12 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             <BillSummaries fallback={<p>{summary}</p>} />
 
             <H2>Sponsors</H2>
-            <ul>
-              {shownSponsors.map((sponsor) => (
-                <li key={sponsor.people_id}>
-                  <Link href={memberHref(sponsor.people_id, bill.state)} className="no-underline hover:underline">
-                    <strong>{sponsor.name}</strong>
-                  </Link>{" "}
-                  ({sponsor.party ?? "—"}–{district(sponsor.district)}) — {SPONSOR_TYPE[sponsor.type] ?? "sponsor"}
-                </li>
-              ))}
-              {moreSponsors > 0 && <li>…and {moreSponsors} more co-sponsors</li>}
-              {!bill.sponsors.length && <li>—</li>}
-            </ul>
-            <BillCosponsorDates />
+            {/* One listing. It used to be LegiScan's bullets — cut off at
+                twenty and ending "…and 64 more co-sponsors" — with
+                congress.gov's table of those same 64 people directly beneath.
+                `BillSponsors` picks the source that knows the most and shows it
+                once; the cut-off goes with it, because the box scrolls. */}
+            <BillSponsors sponsors={bill.sponsors} state={bill.state} />
 
             <H2>{bill.state === "US" ? "Actions" : "History"}</H2>
             <BillActions

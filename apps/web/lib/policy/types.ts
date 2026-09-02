@@ -27,6 +27,8 @@ export type Sponsor = {
   chamber: string
   type: number
   photo_url: string | null
+  /** The join to congress.gov's cosponsor rows, which key on it. */
+  bioguide_id: string | null
 }
 
 export type RollCall = {

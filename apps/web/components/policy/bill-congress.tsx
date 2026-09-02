@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 
+import { memberHref } from "@/lib/filters"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { usePolicy } from "@/lib/policy/use-policy"
 import {
@@ -235,36 +237,176 @@ export function BillSummaries({ fallback }: { fallback: React.ReactNode }) {
   )
 }
 
-/** The dates under the sponsor list: when each name joined, and who left. */
-export function BillCosponsorDates() {
-  const c = use()
-  if (!c?.cosponsors.length) return null
+type SponsorRow = {
+  people_id: number
+  name: string
+  party: string
+  district: string
+  type: number
+  bioguide_id: string | null
+}
+
+const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
+// The page's own rule, moved with the block it served: drop the chamber
+// prefix and the zero padding, so "HD-NY-025" reads "NY-25".
+const district = (value: string | null | undefined) =>
+  (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")
+
+/**
+ * Ten rows, then a scroll — and a control that opens the box to its full height
+ * and closes it again. A bill with 84 cosponsors is a page of names between the
+ * sponsors and the actions; a bill with four is not, and gets no box at all.
+ */
+function RowBox({ count, children }: { count: number; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [height, setHeight] = React.useState<number | null>(null)
+
+  // Measured rather than assumed: a name that wraps makes its row taller, and a
+  // hardcoded row height would cut the tenth one in half. `useEffect` and not
+  // `useLayoutEffect` — a state bill's list renders on the server, and a layout
+  // effect there is a warning for a frame nobody sees.
+  React.useEffect(() => {
+    const box = ref.current
+    if (!box) return
+    const rows = box.querySelectorAll<HTMLElement>("[data-sponsor-row]")
+    if (rows.length <= 10) {
+      setHeight(null)
+      return
+    }
+    // Rects, not offsetTop: the box is not a positioned ancestor, so the two
+    // offsetTops would be measured against different parents.
+    setHeight(rows[10].getBoundingClientRect().top - box.getBoundingClientRect().top)
+  }, [count])
+
+  if (height === null) return <div ref={ref}>{children}</div>
+
   return (
-    <Table>
-      <thead>
-        <tr>
-          <th>Cosponsor</th>
-          <th>Joined</th>
-          <th>Withdrawn</th>
-        </tr>
-      </thead>
-      <tbody>
-        {c.cosponsors.map((row, index) => (
-          <tr key={`${row.bioguideId}-${index}`}>
-            <td>
-              {row.fullName ?? "—"}
-              {row.isOriginalCosponsor ? " (original)" : ""}
-            </td>
-            <td>{row.sponsorshipDate ? fmtDate(row.sponsorshipDate) : "—"}</td>
-            <td>
-              {row.sponsorshipWithdrawnDate
-                ? fmtDate(row.sponsorshipWithdrawnDate)
-                : "—"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+    <>
+      <div
+        ref={ref}
+        className="overflow-y-auto overscroll-contain"
+        style={open ? undefined : { maxHeight: height }}
+      >
+        {children}
+      </div>
+      <p>
+        <button
+          type="button"
+          onClick={() => setOpen((was) => !was)}
+          className="cursor-pointer text-sm font-medium text-foreground underline underline-offset-4"
+        >
+          {open ? "Show fewer" : `Show all ${fmtNumber(count)}`}
+        </button>
+      </p>
+    </>
+  )
+}
+
+/**
+ * The bill's sponsorship, once.
+ *
+ * It used to be twice: LegiScan's list of names in bullets ending in "…and 64
+ * more co-sponsors", and directly beneath it congress.gov's cosponsor table of
+ * the same 64 people. Brendan, 2026-09-02: "were we duplicating sponsorship
+ * listing?" — we were.
+ *
+ * Now the prime sponsor gets a line of their own, and everyone else gets one
+ * table. On a Congress bill that table is congress.gov's, because it is the
+ * source that knows when each name joined and who withdrew — but the *names*
+ * come from `People` where a bioguide id matches, so a cosponsor reads
+ * "Joseph Morelle" and links to their page here, rather than reading
+ * "Rep. Morelle, Joseph D. [D-NY-25]" and linking nowhere. Where no People row
+ * matches, congress.gov's own name stands as it is: a name we cannot resolve is
+ * still a name, and dropping it would be worse than printing it unlinked.
+ *
+ * A state bill has no congress.gov table, so it keeps LegiScan's list — under
+ * the same ten-row rule, because 84 names is 84 names either way.
+ */
+export function BillSponsors({ sponsors, state }: { sponsors: SponsorRow[]; state: string }) {
+  const c = use()
+  const prime = sponsors.find((row) => row.type === 1) ?? null
+  const rest = sponsors.filter((row) => row !== prime)
+  const byBioguide = React.useMemo(() => {
+    const map = new Map<string, SponsorRow>()
+    for (const row of sponsors) if (row.bioguide_id) map.set(row.bioguide_id.toUpperCase(), row)
+    return map
+  }, [sponsors])
+
+  const cosponsors = c?.cosponsors ?? []
+
+  const primeLine = prime ? (
+    <p>
+      <Link href={memberHref(prime.people_id, state)} className="no-underline hover:underline">
+        <strong>{prime.name}</strong>
+      </Link>{" "}
+      ({prime.party ?? "—"}–{district(prime.district)}) — prime sponsor
+    </p>
+  ) : (
+    <p>No sponsor on file.</p>
+  )
+
+  if (cosponsors.length) {
+    return (
+      <>
+        {primeLine}
+        <RowBox count={cosponsors.length}>
+          <Table>
+            <thead>
+              <tr>
+                <th>Cosponsor</th>
+                <th>Joined</th>
+                <th>Original</th>
+                <th>Withdrawn</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cosponsors.map((row, index) => {
+                const person = row.bioguideId ? byBioguide.get(row.bioguideId.toUpperCase()) : undefined
+                const where = [row.party, row.state].filter(Boolean).join("–")
+                return (
+                  <tr data-sponsor-row key={`${row.bioguideId}-${index}`}>
+                    <td>
+                      {person ? (
+                        <Link href={memberHref(person.people_id, state)} className="no-underline hover:underline">
+                          {person.name}
+                        </Link>
+                      ) : (
+                        (row.fullName ?? "—")
+                      )}
+                      {where ? ` (${where})` : ""}
+                    </td>
+                    <td>{row.sponsorshipDate ? fmtDate(row.sponsorshipDate) : "—"}</td>
+                    <td>{row.isOriginalCosponsor ? "Yes" : "—"}</td>
+                    <td>{row.sponsorshipWithdrawnDate ? fmtDate(row.sponsorshipWithdrawnDate) : "—"}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </Table>
+        </RowBox>
+      </>
+    )
+  }
+
+  if (!rest.length) return primeLine
+
+  return (
+    <>
+      {primeLine}
+      <RowBox count={rest.length}>
+        <ul>
+          {rest.map((row) => (
+            <li data-sponsor-row key={row.people_id}>
+              <Link href={memberHref(row.people_id, state)} className="no-underline hover:underline">
+                <strong>{row.name}</strong>
+              </Link>{" "}
+              ({row.party ?? "—"}–{district(row.district)}) — {SPONSOR_TYPE[row.type] ?? "sponsor"}
+            </li>
+          ))}
+        </ul>
+      </RowBox>
+    </>
   )
 }
 

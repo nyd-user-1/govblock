@@ -59,7 +59,7 @@ export async function getBill(billId: number): Promise<Bill | null> {
   coalesce((select jsonb_agg(jsonb_build_object(
       'people_id', p.people_id, 'name', p.name, 'party', p.party, 'role', p.role,
       'district', p.district, 'chamber', p.chamber, 'type', s.sponsor_type_id,
-      'photo_url', p.photo_url) order by s.position)
+      'photo_url', p.photo_url, 'bioguide_id', p.bioguide_id) order by s.position)
     from "Sponsors" s join "People" p using (people_id) where s.bill_id = b.bill_id), '[]') as sponsors,
   coalesce((select jsonb_agg(jsonb_build_object(
       'date', h.date, 'chamber', h.chamber, 'action', h.action, 'sequence', h.sequence)
