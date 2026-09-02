@@ -510,7 +510,10 @@ function useBillSections(base: readonly string[]) {
       const at = titles.indexOf(after)
       titles.splice(at < 0 ? titles.length : at + 1, 0, title)
     }
-    if (c?.reports.length) insert("History", "Committee reports")
+    // "History" on a state bill, "Actions" on a Congress bill — the same
+    // section, called what its source calls it.
+    const record = titles.includes("Actions") ? "Actions" : "History"
+    if (c?.reports.length) insert(record, "Committee reports")
     if (c?.amendmentTotal) insert("Votes", "Amendments")
     if (c?.related.length)
       insert(c.amendmentTotal ? "Amendments" : "Votes", "Related bills")

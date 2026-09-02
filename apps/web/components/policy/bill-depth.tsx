@@ -2,7 +2,10 @@
 
 import * as React from "react"
 
+import Link from "next/link"
+
 import { useCongress, useCongressRecord } from "@/lib/policy/use-congress"
+import { Table } from "@/components/typeset"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The depth congress.gov shows on a bill and we did not: where the bill got to,
@@ -213,5 +216,163 @@ export function BillTracker() {
         </p>
       )}
     </div>
+  )
+}
+
+/* ---- actions -------------------------------------------------------------- */
+
+export type HistoryRow = { date: string; chamber: string; action: string; sequence?: number }
+
+const norm = (value: unknown) => String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase()
+
+/**
+ * The Congressional Record page an action cites.
+ *
+ * congress.gov prints the citation inside the action's own text — "(text: CR
+ * H3059-3143)", "(consideration: CR S4072)" — and links it. Nothing in
+ * BILLSTATUS carries the URL, so it is built the way congress.gov builds it:
+ * the volume is the year less 1854 (2025 is volume 171, checked against
+ * /volume-171/house-section/page/H3059, which is the debate on the Senate
+ * amendment to H.R. 1), and the letter names the section.
+ *
+ * Only H, S and E are linked. D is the Daily Digest, which is paged separately,
+ * and anything else is left as the text it already is — a citation that reads
+ * is better than a link that 404s.
+ */
+const CR_SECTION: Record<string, string> = { H: "house-section", S: "senate-section", E: "extensions-of-remarks-section" }
+function recordHref(page: string, date: string | null | undefined) {
+  const year = Number(String(date ?? "").slice(0, 4))
+  const section = CR_SECTION[page.slice(0, 1).toUpperCase()]
+  if (!section || !Number.isFinite(year) || year < 1990) return null
+  return `https://www.congress.gov/congressional-record/volume-${year - 1854}/${section}/page/${page}`
+}
+
+/** An action's text with its Record citations turned into links. */
+function withRecordLinks(text: string, date: string | null | undefined) {
+  const parts: React.ReactNode[] = []
+  const pattern = /\bCR\s+([HSED]\d+)(-(?:[HSED]?\d+))?/g
+  let last = 0
+  for (let m = pattern.exec(text); m; m = pattern.exec(text)) {
+    const href = recordHref(m[1], date)
+    parts.push(text.slice(last, m.index))
+    if (href) {
+      parts.push(
+        <a key={m.index} href={href} target="_blank" rel="noopener noreferrer">
+          {m[0]}
+        </a>
+      )
+    } else {
+      parts.push(m[0])
+    }
+    last = m.index + m[0].length
+  }
+  if (!parts.length) return text
+  parts.push(text.slice(last))
+  return parts
+}
+
+/**
+ * Every action on the bill, with the stage, the committee that acted and the
+ * roll call it produced.
+ *
+ * The row set is ours plus congress.gov's, not congress.gov's instead of ours.
+ * Measured on H.R. 1: LegiScan holds 141 rows and congress.gov's Actions tab
+ * shows 140 — the same list — while BILLSTATUS holds 59, of which 53 are
+ * already in ours verbatim. The 87 rows only we have are the amendment actions
+ * congress.gov merges in from each amendment's own record, which neither
+ * BILLSTATUS nor the API returns as one list. Replacing one with the other
+ * would have deleted them.
+ *
+ * What BILLSTATUS adds is not rows, it is fields: the stage, the action code,
+ * the committee that acted, and the roll call with the Clerk's own URL. Those
+ * attach to the rows they match by date and text.
+ */
+export function BillActions({ history, fallback }: { history: HistoryRow[]; fallback: React.ReactNode }) {
+  const c = use()
+  const rows = React.useMemo(() => {
+    if (!c?.onCongress) return null
+    const byKey = new Map<string, Action>()
+    for (const a of c.actions) byKey.set(`${day(a.actionDate)}|${norm(a.text)}`, a)
+    const seen = new Set<string>()
+    const merged: { date: string; chamber: string; text: string; action: Action | null }[] = []
+    for (const h of history) {
+      const key = `${day(h.date)}|${norm(h.action)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push({ date: day(h.date), chamber: h.chamber, text: h.action, action: byKey.get(key) ?? null })
+    }
+    // Actions congress.gov has and our history does not — kept rather than
+    // dropped, and they name their own chamber through the system that filed
+    // them.
+    for (const [key, a] of byKey) {
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push({
+        date: day(a.actionDate),
+        chamber: /senate/i.test(a.sourceSystem?.name ?? "") ? "Senate" : /house/i.test(a.sourceSystem?.name ?? "") ? "House" : "",
+        text: a.text ?? "",
+        action: a,
+      })
+    }
+    return merged.sort((x, y) => y.date.localeCompare(x.date))
+  }, [c, history])
+
+  if (!c?.onCongress || !rows) return <>{fallback}</>
+  if (!rows.length) return <p>No actions on file yet.</p>
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {rows.length} action{rows.length === 1 ? "" : "s"}
+        {c.actionTotal ? `, ${c.actionTotal} of them carrying congress.gov's stage and codes` : ""}.
+      </p>
+      <Table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Chamber</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row.date}-${index}`}>
+              <td className="whitespace-nowrap tabular-nums">
+                {row.date}
+                {row.action?.actionTime && (
+                  <span className="block text-xs text-muted-foreground">{row.action.actionTime.slice(0, 5)}</span>
+                )}
+              </td>
+              <td>{row.chamber}</td>
+              <td>
+                {withRecordLinks(row.text, row.date)}
+                {Boolean(row.action?.committees?.length || row.action?.recordedVotes?.length) && (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {row.action?.committees?.map((cm) => (
+                      <span key={cm.systemCode ?? cm.name}>
+                        <Link href={`/docs/committees/${cm.systemCode}`} className="no-underline hover:underline">
+                          {cm.name}
+                        </Link>{" "}
+                      </span>
+                    ))}
+                    {row.action?.recordedVotes?.map((rv) => (
+                      <span key={rv.rollNumber}>
+                        {rv.url ? (
+                          <a href={rv.url} target="_blank" rel="noopener noreferrer">
+                            {rv.chamber} roll call {rv.rollNumber}
+                          </a>
+                        ) : (
+                          `${rv.chamber} roll call ${rv.rollNumber}`
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </>
   )
 }

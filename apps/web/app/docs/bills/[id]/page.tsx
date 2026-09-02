@@ -8,7 +8,7 @@ import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
-import { BillDepthProvider, BillTracker } from "@/components/policy/bill-depth"
+import { BillActions, BillDepthProvider, BillTracker } from "@/components/policy/bill-depth"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
@@ -22,6 +22,10 @@ import { Callout, H2, Table } from "@/components/typeset"
 // amendments, related bills, titles — joins the contents only where the bill
 // has rows for it, so the rail names what is on the page and nothing else.
 const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
+// On a Congress bill the same section is called what congress.gov calls it, and
+// carries what congress.gov carries: the stage, the acting committee and the
+// roll call, on our own rows.
+const CONGRESS_SECTIONS = ["Summary", "Sponsors", "Actions", "Votes", "Text"]
 const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
 const MAX_SPONSORS = 20
 
@@ -123,29 +127,34 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             </ul>
             <BillCosponsorDates />
 
-            <H2>History</H2>
-            {bill.history.length ? (
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Chamber</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.history.map((row, index) => (
-                    <tr key={`${row.date}-${row.sequence}-${index}`}>
-                      <td>{day(row.date)}</td>
-                      <td>{row.chamber}</td>
-                      <td>{row.action}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            ) : (
-              <p>No history recorded yet.</p>
-            )}
+            <H2>{bill.state === "US" ? "Actions" : "History"}</H2>
+            <BillActions
+              history={bill.history}
+              fallback={
+                bill.history.length ? (
+                  <Table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Chamber</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bill.history.map((row, index) => (
+                        <tr key={`${row.date}-${row.sequence}-${index}`}>
+                          <td>{day(row.date)}</td>
+                          <td>{row.chamber}</td>
+                          <td>{row.action}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                ) : (
+                  <p>No history recorded yet.</p>
+                )
+              }
+            />
 
             <BillCommitteeReports />
 
@@ -229,7 +238,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
         <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-          <BillToc base={SECTIONS} />
+          <BillToc base={bill.state === "US" ? CONGRESS_SECTIONS : SECTIONS} />
         </div>
         <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
           <OpenInV0Cta />
