@@ -5,7 +5,7 @@ import * as React from "react"
 import Link from "next/link"
 
 import { useCongress, useCongressRecord } from "@/lib/policy/use-congress"
-import { Table } from "@/components/typeset"
+import { H2, Table } from "@/components/typeset"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The depth congress.gov shows on a bill and we did not: where the bill got to,
@@ -60,6 +60,7 @@ type Depth = {
   actions: Action[]
   actionTotal: number
   record: BillRecord | null
+  committees: BillCommittee[]
 }
 
 const Ctx = React.createContext<Depth | null>(null)
@@ -87,6 +88,8 @@ export function BillDepthProvider({
     state
   )
 
+  const committees = useCongress<BillCommittee>("bill-committees", "committees", scope, { bill }, undefined, state)
+
   const value = React.useMemo<Depth>(
     () => ({
       billId,
@@ -94,8 +97,9 @@ export function BillDepthProvider({
       actions: actions.rows,
       actionTotal: actions.count,
       record: record?.record ?? null,
+      committees: committees.rows,
     }),
-    [billId, actions.onCongress, actions.rows, actions.count, record]
+    [billId, actions.onCongress, actions.rows, actions.count, record, committees.rows]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -168,6 +172,13 @@ export function BillTracker() {
       const held = reached.get(stage)
       if (!held || (when && when < held)) reached.set(stage, when)
     }
+    // H.R. 1 was reported as an original measure, so it has no "Introduced in
+    // House" action and the first rung had no date under it. The bill record
+    // carries the day it was introduced whether or not an action says so, and
+    // congress.gov prints that day beside the sponsor.
+    if (!reached.get("Introduced") && c.record?.introducedDate) {
+      reached.set("Introduced", day(c.record.introducedDate))
+    }
     const rungs = ladder(c.record?.type, c.record?.originChamber)
     const last = rungs.map((r) => reached.has(r)).lastIndexOf(true)
     return rungs.map((title, i) => ({ title, date: reached.get(title) ?? null, done: i <= last && last >= 0 }))
@@ -187,14 +198,14 @@ export function BillTracker() {
     <div className="not-typeset mt-6" aria-label="Status of legislation">
       <ol className="flex flex-wrap items-stretch gap-1">
         {steps.map((step) => (
-          <li key={step.title} className="min-w-28 flex-1">
+          <li key={step.title} className="min-w-0 flex-1 basis-0">
             <div
               className={cn(
                 "h-1 rounded-full",
                 step.done ? "bg-foreground" : "bg-border"
               )}
             />
-            <div className="mt-2 flex flex-col gap-0.5 pr-2">
+            <div className="mt-2 flex flex-col gap-0.5 pr-1">
               <span
                 className={cn(
                   "text-xs leading-tight font-medium",
@@ -373,6 +384,81 @@ export function BillActions({ history, fallback }: { history: HistoryRow[]; fall
           ))}
         </tbody>
       </Table>
+    </>
+  )
+}
+
+/* ---- committees, subjects, cost estimates ---------------------------------- */
+
+export type BillCommittee = {
+  systemCode?: string | null
+  name?: string | null
+  parent?: { systemCode?: string | null; name?: string | null } | null
+  chamber?: string | null
+  type?: string | null
+  activity?: string | null
+  date?: string | null
+}
+
+/**
+ * BILLSTATUS stamps committee activity in UTC; congress.gov prints it Eastern.
+ * H.R. 1's markup is `2025-05-21T03:55:00Z` and congress.gov shows 05/20/2025,
+ * so `slice(0, 10)` puts every evening action on the wrong day.
+ */
+const easternDay = (value: string | null | undefined) => {
+  if (!value) return ""
+  const at = new Date(value)
+  if (Number.isNaN(at.getTime())) return String(value).slice(0, 10)
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(at)
+}
+
+/**
+ * Every committee and subcommittee the bill touched, and what it did.
+ *
+ * congress.gov hides the activities it files as "Unknown" — BILLSTATUS carries
+ * two of them on H.R. 1 — and so does this: a row that cannot say what happened
+ * is not a row a reader can use. They are on Aurora either way.
+ */
+export function BillCommittees() {
+  const c = use()
+  if (!c?.onCongress) return null
+  const rows = (c.committees ?? []).filter((row) => row.activity && row.activity.toLowerCase() !== "unknown")
+  return (
+    <>
+      <H2>Committees</H2>
+      {rows.length ? (
+        <Table>
+          <thead>
+            <tr>
+              <th>Committee</th>
+              <th>Date</th>
+              <th>Activity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.systemCode}-${row.activity}-${index}`}>
+                <td>
+                  {row.systemCode ? (
+                    <Link href={`/docs/committees/${row.systemCode}`} className="no-underline hover:underline">
+                      {row.name}
+                    </Link>
+                  ) : (
+                    row.name
+                  )}
+                  {row.parent?.name && (
+                    <span className="block text-xs text-muted-foreground">{row.parent.name}</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap tabular-nums">{easternDay(row.date)}</td>
+                <td>{row.activity}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <p>No committee activity harvested for this bill yet.</p>
+      )}
     </>
   )
 }
