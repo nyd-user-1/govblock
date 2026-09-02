@@ -16,6 +16,7 @@ export const maxDuration = 60
 
 type Body = {
   claimCheck?: string
+  sessionUri?: string
   action?: "drive" | "calendar" | "sheet"
   /** Drive */
   name?: string
@@ -53,10 +54,15 @@ export async function POST(request: Request) {
     const grant = await grantFor(
       userId,
       action === "calendar" ? "calendar" : "drive",
-      `${origin}/api/connectors/callback`
+      `${origin}/api/connectors/callback`,
+      String(body.sessionUri ?? "").trim() || undefined
     )
     if (grant.kind === "authorize")
-      return NextResponse.json({ connected: false, authorizeUrl: grant.url })
+      return NextResponse.json({
+        connected: false,
+        authorizeUrl: grant.url,
+        sessionUri: grant.sessionUri,
+      })
 
     if (action === "sheet") {
       const rows = Array.isArray(body.rows) ? body.rows : []

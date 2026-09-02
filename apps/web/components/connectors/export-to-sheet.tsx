@@ -4,6 +4,7 @@ import * as React from "react"
 import { Check } from "lucide-react"
 
 import { claimCheck } from "@/lib/agents/claim-check"
+import { loadSession, rememberSession } from "@/lib/agents/connect-session"
 import { cn } from "@/lib/utils"
 
 // Export to Sheets — the rows on the page, as a spreadsheet in the reader's own
@@ -41,10 +42,24 @@ export function ExportToSheet({
       const response = await fetch("/api/connectors/save", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ claimCheck: claimCheck(), action: "sheet", name, rows: rows() }),
+        body: JSON.stringify({
+          claimCheck: claimCheck(),
+          sessionUri: loadSession("drive"),
+          action: "sheet",
+          name,
+          rows: rows(),
+        }),
       })
-      const json = (await response.json()) as { connected?: boolean; url?: string; error?: string }
+      const json = (await response.json()) as {
+        connected?: boolean
+        sessionUri?: string
+        url?: string
+        error?: string
+      }
       if (json.connected === false) {
+        // Carry the session forward so the connect the reader is about to walk
+        // through is the one this browser will ask about afterwards.
+        rememberSession("drive", json.sessionUri)
         window.location.href = "/connectors"
         return
       }

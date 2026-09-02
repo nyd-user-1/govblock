@@ -4,6 +4,7 @@ import * as React from "react"
 import { IconCalendarPlus, IconExternalLink } from "@tabler/icons-react"
 
 import { claimCheck } from "@/lib/agents/claim-check"
+import { loadSession, rememberSession } from "@/lib/agents/connect-session"
 import { hearingWhen, instantWhen, type When } from "@/lib/policy/hearing-when"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +55,7 @@ export function AddToCalendar({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           claimCheck: claimCheck(),
+          sessionUri: loadSession("calendar"),
           action: "calendar",
           summary,
           description,
@@ -66,10 +68,14 @@ export function AddToCalendar({
       const json = (await response.json()) as {
         connected?: boolean
         authorizeUrl?: string
+        sessionUri?: string
         url?: string
         error?: string
       }
       if (json.connected === false) {
+        // Carry the session forward so the connect the reader is about to walk
+        // through is the one this browser will ask about afterwards.
+        rememberSession("calendar", json.sessionUri)
         window.location.href = "/connectors"
         return
       }

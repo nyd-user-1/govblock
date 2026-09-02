@@ -4,6 +4,7 @@ import * as React from "react"
 import { Check } from "lucide-react"
 
 import { claimCheck } from "@/lib/agents/claim-check"
+import { loadSession, rememberSession } from "@/lib/agents/connect-session"
 import { cn } from "@/lib/utils"
 
 // Save to Drive — the report as a document in the reader's own Drive.
@@ -42,14 +43,24 @@ export function SaveToDrive({
       const response = await fetch("/api/connectors/save", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ claimCheck: claimCheck(), action: "drive", name, markdown }),
+        body: JSON.stringify({
+          claimCheck: claimCheck(),
+          sessionUri: loadSession("drive"),
+          action: "drive",
+          name,
+          markdown,
+        }),
       })
       const json = (await response.json()) as {
         connected?: boolean
+        sessionUri?: string
         url?: string
         error?: string
       }
       if (json.connected === false) {
+        // Carry the session forward so the connect the reader is about to walk
+        // through is the one this browser will ask about afterwards.
+        rememberSession("drive", json.sessionUri)
         window.location.href = "/connectors"
         return
       }

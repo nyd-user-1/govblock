@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   if (!SERVICES.has(service as GoogleService))
     return NextResponse.json({ error: `unknown service ${service}` }, { status: 404 })
 
-  let body: { claimCheck?: string }
+  let body: { claimCheck?: string; sessionUri?: string }
   try {
     body = await request.json()
   } catch {
@@ -34,10 +34,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
 
   const origin = publicOrigin(request)
   try {
-    const grant = await grantFor(userId, service as GoogleService, `${origin}/api/connectors/callback`)
+    // The session the browser is holding, if it has one: without it the vault
+    // opens a new authorization every time and can never report the one the
+    // reader just completed.
+    const session = String(body.sessionUri ?? "").trim() || undefined
+    const grant = await grantFor(
+      userId,
+      service as GoogleService,
+      `${origin}/api/connectors/callback`,
+      session
+    )
     return grant.kind === "token"
       ? NextResponse.json({ connected: true })
-      : NextResponse.json({ connected: false, authorizeUrl: grant.url })
+      : NextResponse.json({
+          connected: false,
+          authorizeUrl: grant.url,
+          sessionUri: grant.sessionUri,
+          sessionStatus: grant.sessionStatus,
+        })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },

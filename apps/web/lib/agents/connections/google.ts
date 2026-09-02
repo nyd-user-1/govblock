@@ -59,21 +59,35 @@ async function workloadToken(userId: string) {
 export type Grant =
   /** The reader has already consented; here is a token to act with. */
   | { kind: "token"; accessToken: string }
-  /** They have not; send the browser here and Google will ask them. */
-  | { kind: "authorize"; url: string }
+  /**
+   * They have not; send the browser here and Google will ask them. The session
+   * comes back too, and the caller MUST hand it to the next call — see below.
+   */
+  | { kind: "authorize"; url: string; sessionUri?: string; sessionStatus?: string }
 
 /**
  * Ask the vault for this reader's Google token, for one service.
  *
  * The same call does both jobs, which is the shape AgentCore chose: with a
  * grant on file it returns a token, and without one it returns the URL to go
- * and get consent. Callers branch on `kind` rather than tracking state, so
- * there is no local record of who has connected what to fall out of date.
+ * and get consent.
+ *
+ * **`sessionUri` is not optional in practice, only in the signature.** The 3LO
+ * flow is session-scoped — the parameter's own documentation says it "tracks
+ * the authorization flow state across multiple requests" — and a call that
+ * omits it opens a brand-new session rather than reporting on the one the
+ * reader just completed. Proved against the vault: two consecutive calls, same
+ * user id, same provider, same scope, no sessionUri, returned two different
+ * `request_uri`s. Brendan consented twice and the surface still read "Not
+ * connected" because every check was asking a question nobody had answered.
+ *
+ * So the browser keeps the session beside its claim check and hands it back.
  */
 export async function grantFor(
   userId: string,
   service: GoogleService,
-  returnUrl: string
+  returnUrl: string,
+  sessionUri?: string
 ): Promise<Grant> {
   const out = await agentcore().send(
     new GetResourceOauth2TokenCommand({
@@ -82,10 +96,17 @@ export async function grantFor(
       scopes: [SCOPES[service]],
       oauth2Flow: "USER_FEDERATION",
       resourceOauth2ReturnUrl: returnUrl,
+      ...(sessionUri ? { sessionUri } : {}),
     })
   )
   if (out.accessToken) return { kind: "token", accessToken: out.accessToken }
-  if (out.authorizationUrl) return { kind: "authorize", url: out.authorizationUrl }
+  if (out.authorizationUrl)
+    return {
+      kind: "authorize",
+      url: out.authorizationUrl,
+      sessionUri: out.sessionUri,
+      sessionStatus: out.sessionStatus,
+    }
   throw new Error("the vault returned neither a token nor an authorization url")
 }
 

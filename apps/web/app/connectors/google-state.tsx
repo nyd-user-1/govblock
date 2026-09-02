@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { claimCheck } from "@/lib/agents/claim-check"
+import { forgetSession, loadSession, rememberSession } from "@/lib/agents/connect-session"
 
 // One question, asked once, answered for the whole page.
 //
@@ -36,19 +37,40 @@ type Value = {
 
 const Context = React.createContext<Value | null>(null)
 
-async function ask(service: GoogleService) {
+async function askOnce(service: GoogleService, sessionUri: string | undefined) {
   const response = await fetch(`/api/connectors/${service}/connect`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ claimCheck: claimCheck() }),
+    // The session this browser already opened, so the vault answers about that
+    // one instead of starting another nobody will walk through.
+    body: JSON.stringify({ claimCheck: claimCheck(), sessionUri }),
   })
   const json = (await response.json()) as {
     connected?: boolean
     authorizeUrl?: string
+    sessionUri?: string
+    sessionStatus?: string
     error?: string
   }
   if (json.error) throw new Error(json.error)
+  if (json.connected) forgetSession(service)
+  else rememberSession(service, json.sessionUri)
   return { connected: Boolean(json.connected), authorizeUrl: json.authorizeUrl }
+}
+
+// A session outlives nothing and localStorage outlives everything, so a stale
+// one would brick the surface for good: the stored uri fails, the failure is
+// stored, and no click can ever get past it. One retry without it, once, and
+// the browser starts a fresh session like it did before any of this.
+async function ask(service: GoogleService) {
+  const held = loadSession(service)
+  try {
+    return await askOnce(service, held)
+  } catch (error) {
+    if (!held) throw error
+    forgetSession(service)
+    return await askOnce(service, undefined)
+  }
 }
 
 export function GoogleConnections({ children }: { children: React.ReactNode }) {
