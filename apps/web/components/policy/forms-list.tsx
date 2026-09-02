@@ -29,6 +29,7 @@ export type FormRow = {
   number: string
   numbered: boolean
   title: string | null
+  file: string
   pages: number | null
   bytes: number | null
   fields: number
@@ -69,6 +70,20 @@ export function formMeta(form: FormRow) {
     !form.inspected ? "not yet inspected" : null,
     monthYear(form.archived) ? `archived ${monthYear(form.archived)}` : null,
   ]
+}
+
+/**
+ * Row 1's muted tail. Usually the form's title — but a third of the corpus has
+ * no title, and on another slice the extractor only recovered the number, so
+ * `doh-4328_yi.pdf` and `doh-4328_ko.pdf` (the Yiddish and Korean editions of
+ * one form) both come back titled "DOH-4328" and draw as two identical rows.
+ * Where the title adds nothing to the number, the filename does.
+ */
+export function formLead(form: FormRow) {
+  const title = form.title?.trim()
+  if (!title) return form.file
+  const bare = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "")
+  return bare(title) === bare(form.number) ? form.file : title
 }
 
 export function FormsList() {
@@ -191,7 +206,7 @@ export function FormsList() {
             href={`/docs/forms/${form.id}`}
             avatar={<FormSeal gov={form.gov} agency={form.agency} />}
             title={form.number}
-            lead={form.title}
+            lead={formLead(form)}
             meta={formMeta(form)}
           />
         ))}

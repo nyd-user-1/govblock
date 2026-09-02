@@ -57,6 +57,27 @@ const FORM_CUT = `(
 /** The 195,530 rows we hold but have never opened, and so cannot triage. */
 export const UNINSPECTED_AGENCIES = ["DOL", "USDA-FNS"] as const
 
+/**
+ * The order the list reads in: strongest evidence that a thing is a form,
+ * first. Written after looking at the first deploy, which sorted by agency and
+ * number alone and therefore opened on `01-chapter1-ncci-medicaid-policy-manual`
+ * under Congress and eleven identical `brc-1062-*` rows under New York — the
+ * least form-like rows in the corpus, on the first screen of a page about forms.
+ *
+ * Three fields or more is the line. One stray field is what a PDF picks up by
+ * accident; three is somebody building something to be filled in. After that a
+ * row that says what it is beats one that does not, and a published number
+ * beats a filename. Agency and number break the tie, so the order stays
+ * legible rather than looking shuffled.
+ *
+ * This ranks rows; it never hides them. Everything the cut admits is still in
+ * the list, and the count above it is still Aurora's.
+ */
+const EVIDENCE = `
+  (${FIELDS} >= 3) desc,
+  (f.title is not null and f.title <> '') desc,
+  (f.form_number is not null and f.form_number <> '') desc`
+
 /* ------------------------------------------------------------------- scope */
 
 /**
@@ -82,6 +103,9 @@ export type FormRow = {
   /** True when `number` came from the column rather than the filename. */
   numbered: boolean
   title: string | null
+  /** The filename, extension and all. It is what tells `doh-4328_yi.pdf` from
+   *  `doh-4328_ko.pdf` when both carry the title "DOH-4328". */
+  file: string
   pages: number | null
   bytes: number | null
   fields: number
@@ -119,6 +143,7 @@ const SELECT = `
   coalesce(nullif(f.form_number, ''), ${STEM}) as number,
   (f.form_number is not null and f.form_number <> '') as numbered,
   nullif(f.title, '') as title,
+  ${FILE} as file,
   f.pages,
   f.bytes,
   ${FIELDS} as fields,
@@ -134,6 +159,7 @@ function row(record: Record<string, unknown>): FormRow {
     number: String(record.number ?? ""),
     numbered: record.numbered === true || record.numbered === "true",
     title: (record.title as string | null) ?? null,
+    file: String(record.file ?? ""),
     pages: record.pages === null || record.pages === undefined ? null : Number(record.pages),
     bytes: record.bytes === null || record.bytes === undefined ? null : Number(record.bytes),
     fields: Number(record.fields ?? 0),
@@ -194,7 +220,7 @@ export async function getForms(input: FormsQuery): Promise<FormsResult | null> {
        from "Forms" f
        where ${filtered}
        order by ${term ? `(upper(f.form_number) = $${rowParams.length + 1}) desc, (lower(${STEM}) = $${rowParams.length + 2}) desc,` : ""}
-                f.agency asc, number asc, f.id asc
+                ${EVIDENCE}, f.agency asc, number asc, f.id asc
        limit ${limit} offset ${offset}`,
       term ? [...rowParams, term.toUpperCase(), term.toLowerCase()] : rowParams
     ),
