@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 
 import { ConnectionMark } from "../agents/connection-mark"
+import { ConnectButton } from "./connect-button"
 
 const title = "Connectors"
 const description =
@@ -30,6 +31,11 @@ function Dot({ state }: { state: ConnectorStatus["state"] }) {
 }
 
 function Action({ connector }: { connector: ConnectorStatus }) {
+  // Whether *this browser* holds a Google grant is a question only the browser
+  // can ask, so those two hand off to a client component that asks the vault.
+  if (connector.id === "google-drive") return <ConnectButton service="drive" />
+  if (connector.id === "google-calendar") return <ConnectButton service="calendar" />
+
   if (connector.state === "connected")
     return connector.href ? (
       <Button

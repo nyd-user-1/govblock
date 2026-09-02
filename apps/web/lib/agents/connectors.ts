@@ -39,6 +39,15 @@ export const CONNECTORS: Connector[] = [
     summary: "Save a delivered report straight into your own Drive, as a document you own.",
   },
   {
+    id: "google-calendar",
+    name: "Google Calendar",
+    logo: "/logos/google-calendar.svg",
+    tint: "#1a73e8",
+    kind: "user",
+    popular: true,
+    summary: "Put a hearing on your own calendar, with the committee, the time and the link back.",
+  },
+  {
     id: "slack",
     name: "Slack",
     logo: "/logos/slack.png",

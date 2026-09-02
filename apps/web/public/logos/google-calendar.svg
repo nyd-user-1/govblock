@@ -1,0 +1,10 @@
+<!-- A stand-in for Google Calendar, not the trademarked mark: the recognisable
+     shape (white leaf, blue rule, the 31) in Google blue. Swap it for the
+     official asset if we ever ship under terms that permit it. -->
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="8" width="36" height="34" rx="5" fill="#fff" stroke="#1a73e8" stroke-width="3"/>
+  <path d="M6 13a5 5 0 0 1 5-5h26a5 5 0 0 1 5 5v3H6z" fill="#1a73e8"/>
+  <rect x="14" y="3" width="4" height="9" rx="2" fill="#1a73e8"/>
+  <rect x="30" y="3" width="4" height="9" rx="2" fill="#1a73e8"/>
+  <text x="24" y="35" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#1a73e8" text-anchor="middle">31</text>
+</svg>

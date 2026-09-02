@@ -34,6 +34,19 @@ export async function getConnectorStatuses(): Promise<ConnectorStatus[]> {
           : discordStatus.detail,
       }
 
+    // Drive and Calendar are connectable now: the client exists in the vault
+    // and the grant is per reader, so whether *this* browser has one is a
+    // question only the browser can ask — the card's button asks it on mount.
+    if (connector.id === "google-drive" || connector.id === "google-calendar")
+      return {
+        ...connector,
+        state: "available",
+        detail:
+          connector.id === "google-drive"
+            ? "Scope drive.file — it reaches files govblock creates for you and cannot read anything else in your Drive."
+            : "Scope calendar.events.owned — calendars you own, your primary included, and none merely shared with you.",
+      }
+
     if (connector.id === "slack")
       return {
         ...connector,
@@ -45,8 +58,7 @@ export async function getConnectorStatuses(): Promise<ConnectorStatus[]> {
     return {
       ...connector,
       state: "unavailable",
-      detail:
-        "A user connector needs a Google Cloud OAuth client and a consent screen, which do not exist yet. The scope will be drive.file — the narrowest one that can save a file, and it cannot read anything you did not create here.",
+      detail: "Not wired yet.",
     }
   })
 }
