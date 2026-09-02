@@ -1373,6 +1373,13 @@ export const US_ONLY = [
   "committee-detail", "committee-meetings", "hearings", "nominations",
   "crs-reports", "record-issues", "house-votes", "treaties",
   "summaries", "titles", "related-bills", "cosponsors", "member-votes", "communications",
+  // The depth congress.gov shows and we did not. Two of these wanted names that
+  // were already taken and mean something else for all 52 jurisdictions:
+  // `subjects` is the jurisdiction's subject list behind the bills board's
+  // filter, and `sponsors` is its top-sponsor table. Renaming either quietly to
+  // mean one bill's would have broken a board — the same trap `hearings` set for
+  // lane C, and the same answer.
+  "actions", "bill-record", "bill-committees", "bill-subjects", "bill-sponsors", "cbo-estimates",
   // Federal money. "LobbyingBills" joins 560,789 rows and every one of them to a
   // US bill; "FecTotals" holds 5,517 rows across 726 members, all US. Measured
   // 2026-09-01 before either was exposed on the route.
@@ -1628,6 +1635,150 @@ export async function getMemberVotes({ vote, member, limit = 500 }: { vote?: str
     return { member, count: rows.length, memberVotes: rows };
   }
   return { count: 0, memberVotes: [] };
+}
+
+/* ---- the bill at congress.gov depth ---------------------------------------
+ * Written by scripts/pipeline/congress/billstatus.mjs from the govinfo zips —
+ * eight requests for the whole congress, no API calls. Each reader hands back
+ * congress.gov's own field names, assembled from the typed columns rather than
+ * echoing the payload: BILLSTATUS nests `recordedVotes.recordedVote` and
+ * `committees.item` where the API returns plain arrays, and a page built
+ * against the API should not have to know which door the row came in.
+ * ------------------------------------------------------------------------- */
+
+type ActionRow = {
+  action_date: string | null; action_time: string | null; text: string | null;
+  action_type: string | null; action_code: string | null;
+  source_system: string | null; source_code: string | null;
+  committee_codes: string | null; committee_names: string | null;
+  roll_number: string | null; roll_chamber: string | null; roll_url: string | null;
+  roll_session: string | null; roll_date: string | null;
+};
+
+const pairs = (codes: string | null, names: string | null) => {
+  const c = (codes ?? "").split(",").filter(Boolean);
+  const nm = (names ?? "").split("; ").filter(Boolean);
+  return c.map((systemCode, i) => ({ systemCode, name: nm[i] ?? null }));
+};
+
+const asAction = (r: ActionRow) => ({
+  actionDate: r.action_date,
+  // The API omits the time; BILLSTATUS publishes it, Eastern as congress.gov
+  // prints it (14:31:38 is its "2:31pm"), so it rides along under its own name.
+  actionTime: r.action_time,
+  text: r.text,
+  type: r.action_type,
+  actionCode: r.action_code,
+  sourceSystem: r.source_system ? { code: r.source_code, name: r.source_system } : null,
+  committees: pairs(r.committee_codes, r.committee_names),
+  recordedVotes: r.roll_number
+    ? [{ rollNumber: r.roll_number, chamber: r.roll_chamber, url: r.roll_url, sessionNumber: r.roll_session, date: r.roll_date }]
+    : [],
+});
+
+/**
+ * A bill's own actions, oldest last — congress.gov's default order.
+ *
+ * Paged, because §0.3 is real: a long bill's actions can pass the Data API's
+ * 1 MB in one answer. The count in the envelope is the whole list, so a caller
+ * can tell a page from the end of it.
+ */
+export async function getBillActions(billId: number, limit = 250, offset = 0) {
+  const rows = await q<ActionRow>(
+    `select action_date, action_time, text, action_type, action_code, source_system, source_code,
+            committee_codes, committee_names, roll_number, roll_chamber, roll_url, roll_session, roll_date
+       from congress_bill_actions where bill_id = $1
+      order by action_date desc nulls last, action_time desc nulls last, sequence
+      limit $2 offset $3`, [billId, limit, offset]);
+  return { bill: billId, count: await congressCount("congress_bill_actions", "where bill_id = $1", [billId]), actions: rows.map(asAction) };
+}
+
+/**
+ * Every committee and subcommittee the bill touched, with what it did and when.
+ *
+ * Flat rows rather than the API's nested shape, because congress.gov's own
+ * Committees tab is a flat table of exactly these — committee or subcommittee,
+ * date, activity — and the nesting exists in the API only to avoid repeating a
+ * committee's name.
+ */
+export async function getBillCommittees(billId: number) {
+  const rows = await q<{ system_code: string | null; name: string | null; chamber: string | null; committee_type: string | null; subcommittee_code: string | null; subcommittee_name: string | null; activity: string | null; activity_date: string | null }>(
+    `select system_code, name, chamber, committee_type, subcommittee_code, subcommittee_name, activity, activity_date
+       from congress_bill_committees where bill_id = $1
+      order by activity_date desc nulls last, name`, [billId]);
+  return {
+    bill: billId,
+    count: rows.length,
+    committees: rows.map((r) => ({
+      systemCode: r.subcommittee_code ?? r.system_code,
+      name: r.subcommittee_name ?? r.name,
+      parent: r.subcommittee_code ? { systemCode: r.system_code, name: r.name } : null,
+      chamber: r.chamber,
+      type: r.committee_type,
+      activity: r.activity,
+      date: r.activity_date,
+    })),
+  };
+}
+
+/** The policy area and the legislative subjects, in the API's own nesting. */
+export async function getBillSubjects(billId: number) {
+  const rows = await q<{ name: string; is_policy_area: boolean }>(
+    `select name, is_policy_area from congress_bill_subjects where bill_id = $1 order by is_policy_area desc, name`, [billId]);
+  const area = rows.find((r) => r.is_policy_area);
+  const legislative = rows.filter((r) => !r.is_policy_area);
+  return {
+    bill: billId,
+    count: legislative.length,
+    subjects: { policyArea: area ? { name: area.name } : null, legislativeSubjects: legislative.map((r) => ({ name: r.name })) },
+  };
+}
+
+/**
+ * CBO's estimates for the bill: title, date and link.
+ *
+ * Metadata only, deliberately. Lane B found the numbers behind DataDome, so
+ * this links out and prints none of them.
+ */
+export async function getCboEstimates(billId: number) {
+  const rows = await q<{ pub_date: string | null; title: string | null; url: string; description: string | null }>(
+    `select pub_date, title, url, description from congress_cbo_estimates where bill_id = $1 order by pub_date desc nulls last`, [billId]);
+  return { bill: billId, count: rows.length, cboCostEstimates: rows.map((r) => ({ pubDate: r.pub_date, title: r.title, url: r.url, description: r.description })) };
+}
+
+/**
+ * The bill's own record: sponsor with a bioguide, display and popular titles,
+ * the constitutional authority statement, the stage its actions put it at.
+ *
+ * `bill-sponsors` reads the same row. `sponsors` was not available as a name:
+ * it is the jurisdiction's top-sponsor table for all 52 of them.
+ */
+export async function getBillRecord(billId: number) {
+  const row = await one<{ payload: Record<string, unknown>; display_title: string | null; popular_title: string | null; sponsor_people_id: number | null }>(
+    `select payload, display_title, popular_title, sponsor_people_id from congress_bills where bill_id = $1`, [billId]);
+  if (!row) return { bill: billId, record: null };
+  return {
+    bill: billId,
+    record: {
+      ...row.payload,
+      displayTitle: row.display_title,
+      popularTitle: row.popular_title,
+      // Our own id for the sponsor, so the page can link to the member without
+      // a second round trip through the bioguide.
+      sponsorPeopleId: row.sponsor_people_id ?? null,
+    },
+  };
+}
+
+export async function getBillSponsors(billId: number) {
+  const answer = await getBillRecord(billId);
+  const record = answer.record as { sponsors?: unknown[]; sponsorPeopleId?: number | null } | null;
+  const sponsors = (record?.sponsors ?? []) as Record<string, unknown>[];
+  return {
+    bill: billId,
+    count: sponsors.length,
+    sponsors: sponsors.map((sp, i) => (i === 0 ? { ...sp, peopleId: record?.sponsorPeopleId ?? null } : sp)),
+  };
 }
 
 export async function getCrsReports(limit = 50, offset = 0) {

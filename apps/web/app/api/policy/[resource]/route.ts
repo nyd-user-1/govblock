@@ -37,6 +37,12 @@ import {
   getLobbying,
   getMemberVotes,
   getRecordIssues,
+  getBillActions,
+  getBillCommittees,
+  getBillRecord,
+  getBillSponsors,
+  getBillSubjects,
+  getCboEstimates,
   getCommitteeDetail,
   getCommitteeMeetings,
   getCommitteeReports,
@@ -296,6 +302,39 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const id = int(sp.get("bill"), 0)
       if (!id) throw new Error("bill id required")
       return getCosponsors(id)
+    }
+    // The depth congress.gov shows. `bill-subjects` and `bill-sponsors` carry
+    // the prefix because `subjects` and `sponsors` already mean the
+    // jurisdiction's own, for all 52 of them.
+    case "actions": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getBillActions(id, int(sp.get("limit"), 250), int(sp.get("offset"), 0) || 0)
+    }
+    case "bill-record": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getBillRecord(id)
+    }
+    case "bill-sponsors": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getBillSponsors(id)
+    }
+    case "bill-committees": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getBillCommittees(id)
+    }
+    case "bill-subjects": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getBillSubjects(id)
+    }
+    case "cbo-estimates": {
+      const id = int(sp.get("bill"), 0)
+      if (!id) throw new Error("bill id required")
+      return getCboEstimates(id)
     }
     case "house-votes":
       return getHouseVotes(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
