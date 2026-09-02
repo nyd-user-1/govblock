@@ -32,6 +32,32 @@ export type GoogleState =
 
 const SERVICES: GoogleService[] = ["drive", "calendar", "slack"]
 
+const NAME: Record<GoogleService, string> = {
+  drive: "Google Drive",
+  calendar: "Google Calendar",
+  slack: "Slack",
+}
+
+// What this browser last knew to be connected — so the return from a consent
+// can say "Connected to Google Drive." for the thing that just changed, the
+// way every connector UI a reader has ever used says it.
+const CACHE = "govblock:connected-cache"
+function cachedConnected(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CACHE) ?? "[]") as string[])
+  } catch {
+    return new Set()
+  }
+}
+function rememberConnected(service: string, connected: boolean) {
+  try {
+    const set = cachedConnected()
+    if (connected) set.add(service)
+    else set.delete(service)
+    localStorage.setItem(CACHE, JSON.stringify([...set]))
+  } catch {}
+}
+
 type Value = {
   state: Record<GoogleService, GoogleState>
   connect: (service: GoogleService) => Promise<void>
@@ -134,6 +160,17 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
     justReturned.current = new URLSearchParams(window.location.search).has("connected")
   }, [])
 
+  // The one word a consent journey owes the reader at the end of it:
+  // "Connected to Google Drive." — a toast on the return, for the service that
+  // newly reads connected, and on a click that finds a grant already there.
+  const [toast, setToast] = React.useState<string | null>(null)
+  const toastTimer = React.useRef<number | undefined>(undefined)
+  const announce = React.useCallback((service: GoogleService) => {
+    setToast(`Connected to ${NAME[service]}.`)
+    window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(null), 6000)
+  }, [])
+
   React.useEffect(() => {
     let live = true
     for (const service of SERVICES)
@@ -142,11 +179,19 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
           if (!live) return
           if (r.unavailable)
             return set(service, { kind: "unavailable", reason: r.reason ?? "Not available yet." })
+          if (r.connected && justReturned.current && !cachedConnected().has(service))
+            announce(service)
+          rememberConnected(service, r.connected)
           set(service, r.connected ? { kind: "connected" } : { kind: "ready" })
           if (!r.connected && justReturned.current)
             window.setTimeout(() => {
               ask(service)
-                .then((again) => live && again.connected && set(service, { kind: "connected" }))
+                .then((again) => {
+                  if (!live || !again.connected) return
+                  announce(service)
+                  rememberConnected(service, true)
+                  set(service, { kind: "connected" })
+                })
                 .catch(() => {})
             }, 1500)
         })
@@ -186,7 +231,11 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
         const r = await askOnce(service, undefined, true)
         if (r.unavailable)
           return set(service, { kind: "unavailable", reason: r.reason ?? "Not available yet." })
-        if (r.connected) return set(service, { kind: "connected" })
+        if (r.connected) {
+          announce(service)
+          rememberConnected(service, true)
+          return set(service, { kind: "connected" })
+        }
         if (r.authorizeUrl) {
           window.location.href = r.authorizeUrl
           return
@@ -206,7 +255,23 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
   )
 
   const value = React.useMemo(() => ({ state, connect }), [state, connect])
-  return <Context.Provider value={value}>{children}</Context.Provider>
+  return (
+    <Context.Provider value={value}>
+      {children}
+      {toast ? (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm shadow-lg">
+          <span>{toast}</span>
+          <button
+            aria-label="Dismiss"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => setToast(null)}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+    </Context.Provider>
+  )
 }
 
 export function useGoogle(service: GoogleService) {

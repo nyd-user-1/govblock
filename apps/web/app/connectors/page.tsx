@@ -65,7 +65,7 @@ function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: bool
 function Card({ connector }: { connector: ConnectorStatus }) {
   const google = googleService(connector.id)
   return (
-    <div data-not-typeset="" className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40">
+    <div data-not-typeset="" className="flex min-w-0 flex-col gap-8 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40">
       <div className="flex min-w-0 items-center gap-2">
         <ConnectionMark
           name={connector.name}
@@ -100,14 +100,6 @@ export default async function ConnectorsPage() {
         previous={{ name: "Agents", url: "/agents" }}
         next={{ name: "Discord", url: "/agents/discord" }}
       >
-        <p>
-          There are two kinds here and the difference matters. A connector marked{" "}
-          <strong>the site&apos;s</strong> is one credential govblock holds — every reader shares
-          its destination, and an agent posting through it posts to the same place for everyone. A
-          connector marked <strong>yours</strong> is an OAuth grant to your own account: nobody
-          else can see it, and this site can only use it while you are the one asking.
-        </p>
-
         <h2 className="mt-8 text-lg font-semibold tracking-tight">Popular</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {popular.map((connector) => (
