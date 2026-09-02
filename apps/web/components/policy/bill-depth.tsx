@@ -33,6 +33,8 @@ export type Action = {
   }[]
 }
 
+export type CboEstimate = { pubDate?: string | null; title?: string | null; url: string; description?: string | null }
+
 export type BillRecord = {
   type?: string
   number?: string
@@ -63,10 +65,14 @@ type Depth = {
   committees: BillCommittee[]
   policyArea: string | null
   subjects: string[]
+  cbo: CboEstimate[]
 }
 
 const Ctx = React.createContext<Depth | null>(null)
 const use = () => React.useContext(Ctx)
+
+/** For the rail, which names the sections a bill actually has. */
+export const useBillDepth = () => React.useContext(Ctx)
 
 export function BillDepthProvider({
   billId,
@@ -91,6 +97,7 @@ export function BillDepthProvider({
   )
 
   const committees = useCongress<BillCommittee>("bill-committees", "committees", scope, { bill }, undefined, state)
+  const cbo = useCongress<CboEstimate>("cbo-estimates", "cboCostEstimates", scope, { bill }, undefined, state)
   // Subjects come back in the API's own nesting — a policy area beside a list —
   // so the envelope is read whole rather than as a family of rows.
   const subjects = useCongressRecord<{ bill?: number; subjects?: { policyArea?: { name?: string } | null; legislativeSubjects?: { name?: string }[] } }>(
@@ -110,8 +117,9 @@ export function BillDepthProvider({
       committees: committees.rows,
       policyArea: subjects?.subjects?.policyArea?.name ?? null,
       subjects: (subjects?.subjects?.legislativeSubjects ?? []).map((row) => row.name ?? "").filter(Boolean),
+      cbo: cbo.rows,
     }),
-    [billId, actions.onCongress, actions.rows, actions.count, record, committees.rows, subjects]
+    [billId, actions.onCongress, actions.rows, actions.count, record, committees.rows, subjects, cbo.rows]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -514,6 +522,35 @@ export function BillSubjects() {
           )}
         </>
       )}
+    </>
+  )
+}
+
+/**
+ * CBO's estimates: title, date and link, and no numbers.
+ *
+ * Lane B measured this — the metadata is free and the figures behind it are
+ * behind DataDome. Printing a number we cannot fetch would be inventing one.
+ */
+export function BillCostEstimates() {
+  const c = use()
+  if (!c?.onCongress) return null
+  const rows = c.cbo ?? []
+  if (!rows.length) return null
+  return (
+    <>
+      <H2>Cost estimate</H2>
+      <ul>
+        {rows.map((row) => (
+          <li key={row.url}>
+            <a href={row.url} target="_blank" rel="noopener noreferrer">
+              {row.title ?? row.url}
+            </a>
+            {row.pubDate && <> — {easternDay(row.pubDate)}</>}
+            {row.description && <span className="block text-sm text-muted-foreground">{row.description}</span>}
+          </li>
+        ))}
+      </ul>
     </>
   )
 }

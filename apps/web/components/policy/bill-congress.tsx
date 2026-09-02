@@ -13,6 +13,7 @@ import {
 } from "@/lib/policy/congress"
 import { useCongress } from "@/lib/policy/use-congress"
 import { H2, Table } from "@/components/typeset"
+import { useBillDepth } from "@/components/policy/bill-depth"
 import { BillText } from "@/components/bill-text"
 import { DocsTableOfContents } from "@/components/docs-toc"
 
@@ -504,6 +505,10 @@ export function BillVersions({
  */
 function useBillSections(base: readonly string[]) {
   const c = use()
+  // The sections that are always drawn are in `base`; a cost estimate exists
+  // for 1,115 of the 119th's 18,514 bills, so it names itself only when the
+  // bill has one — the same rule the other conditional sections follow.
+  const depth = useBillDepth()
   return React.useMemo(() => {
     const titles = [...base]
     const insert = (after: string, title: string) => {
@@ -514,6 +519,7 @@ function useBillSections(base: readonly string[]) {
     // section, called what its source calls it.
     const record = titles.includes("Actions") ? "Actions" : "History"
     if (c?.reports.length) insert(record, "Committee reports")
+    if (depth?.cbo.length) insert("Subjects", "Cost estimate")
     if (c?.amendmentTotal) insert("Votes", "Amendments")
     if (c?.related.length)
       insert(c.amendmentTotal ? "Amendments" : "Votes", "Related bills")
@@ -531,7 +537,7 @@ function useBillSections(base: readonly string[]) {
       url: `#${title.replace(/\s+/g, "-").toLowerCase()}`,
       depth: 2,
     }))
-  }, [base, c])
+  }, [base, c, depth])
 }
 
 export function BillToc({ base }: { base: readonly string[] }) {
