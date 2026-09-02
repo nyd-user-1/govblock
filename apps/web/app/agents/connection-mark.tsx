@@ -6,16 +6,27 @@ import { cn } from "@/lib/utils"
 // blurple — a grayscale mark is a service nobody recognises at a glance, and
 // recognising it at a glance is the entire job of a logo.
 //
-// The mark is positioned absolutely, and the reason is four attempts long. The
-// Avatar root is a flex row: an image and a fallback rendered together sit side
-// by side and the second falls out of a 24-pixel box. Clipping hid the logo
-// entirely. Pinning both children left it low. Moving it inside AvatarFallback
-// looked right in a screenshot and was still eight pixels down — measured, not
-// eyeballed, after Brendan spotted it again on /connectors.
+// `data-not-typeset` is the fix, and it took five attempts because the first
+// four looked for the bug inside the Avatar primitive and it was never there.
+// Every call site of this mark sits inside a DocsPage, whose children are
+// wrapped in `.typeset`, and typeset styles bare images for article flow:
+// `margin-block-start: var(--typeset-flow)` — 12.5px — plus `height: auto` and
+// a border radius. A 12.5px top margin on a flex item centred in a 24px box is
+// exactly the 6.25px drop that was measured, on all four marks, for two nights.
 //
-// Taking it out of flow ends the argument: the fallback fills the box, the mark
-// centres inside it, and nothing about the primitive's own layout can push it
-// anywhere. Measured after: image centre equals avatar centre.
+// What the earlier attempts got wrong, written down because the class of error
+// is the lesson: clipping hid the logo; pinning both children left it low;
+// moving it into AvatarFallback still measured eight pixels down; and taking it
+// out of flow with `absolute inset-0` — which shipped claiming victory — moved
+// nothing, because an absolutely positioned flex container still honours its
+// child's margin. Four fixes to the box, none to the cause. The page also
+// carried `not-prose`, Tailwind typography's opt-out, which matches nothing in
+// this codebase: it read as an opt-out and was doing nothing at all.
+//
+// Measured after, on the deploy: image centre equals avatar centre, 0px drift.
+//
+// The absolute fallback stays — it makes the box deterministic and costs
+// nothing — but it is not what fixed this.
 
 export function ConnectionMark({
   name,
@@ -33,6 +44,7 @@ export function ConnectionMark({
 }) {
   return (
     <Avatar
+      data-not-typeset=""
       className={cn("relative size-6 shrink-0 rounded-md bg-white", !live && "opacity-50", className)}
       style={{ boxShadow: `inset 0 0 0 1px ${tint}33` }}
     >
