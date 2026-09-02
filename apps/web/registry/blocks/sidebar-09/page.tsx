@@ -463,7 +463,15 @@ export default function Page() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [] })
+                        // The whole thread replies, Cc and Bcc included — so
+                        // the reply's cost line has to count them, or it
+                        // promises one run and bills for three.
+                        setReplyDraft({
+                          ...EMPTY_DRAFT,
+                          to: open.to ?? [],
+                          cc: open.cc ?? [],
+                          bcc: open.bcc ?? [],
+                        })
                         setReplying(true)
                       }}
                     >
