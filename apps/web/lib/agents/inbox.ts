@@ -20,11 +20,22 @@ import { emptyRun, type RunState } from "@/lib/agents/run-client"
 export type Folder = "inbox" | "sent" | "drafts" | "starred" | "trash"
 
 export type Address = {
+  /** An agent's slug, or a person's handle. */
   agent: string
   name: string
   email: string
   monogram: string
   speciality: string
+  kind: "agent" | "person"
+}
+
+function monogramOf(name: string) {
+  return name
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 }
 
 export function addressOf(definition: AgentDefinition): Address {
@@ -32,17 +43,37 @@ export function addressOf(definition: AgentDefinition): Address {
     agent: definition.slug,
     name: definition.name,
     email: `${definition.slug.replace(/-/g, "")}@govblock`,
-    monogram: definition.name
-      .split(/\s+/)
-      .map((word) => word[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase(),
+    monogram: monogramOf(definition.name),
     speciality: definition.speciality,
+    kind: "agent",
   }
 }
 
-export const ADDRESSES: Address[] = AGENTS.map(addressOf)
+// The people on the platform. Seeded rather than discovered, because there is
+// no identity system yet and pretending otherwise would be worse than saying
+// so: writing to a person records them on the thread and in Sent, and the
+// message reaches them when notifications exist. That is the whole mechanic
+// and it is stated once, on the surface, where someone is about to rely on it.
+const PEOPLE: { handle: string; name: string; role: string }[] = [
+  { handle: "brendan", name: "Brendan Stanton", role: "Admin — the first account on govblock." },
+  { handle: "peter", name: "Peter Parker", role: "Reader — receives what you send him." },
+  { handle: "tony", name: "Tony Stark", role: "Reader — receives what you send him." },
+]
+
+export const PEOPLE_ADDRESSES: Address[] = PEOPLE.map((person) => ({
+  agent: person.handle,
+  name: person.name,
+  email: `${person.handle}@govblock`,
+  monogram: monogramOf(person.name),
+  speciality: person.role,
+  kind: "person",
+}))
+
+export const ADDRESSES: Address[] = [...AGENTS.map(addressOf), ...PEOPLE_ADDRESSES]
+
+export function isPerson(handle: string) {
+  return PEOPLE_ADDRESSES.some((address) => address.agent === handle)
+}
 
 export function findAddress(query: string) {
   const q = query.trim().toLowerCase()
@@ -160,7 +191,12 @@ export function newThread({
 }
 
 export function nameOf(slug: string) {
-  return AGENTS.find((a) => a.slug === slug)?.name ?? slug
+  return ADDRESSES.find((a) => a.agent === slug)?.name ?? slug
+}
+
+/** Only the agents on the lines actually run. People are recorded, not run. */
+export function runners(thread: Thread) {
+  return allRecipients(thread).filter((slug) => !isPerson(slug))
 }
 
 /** Everyone who ran it. Bcc is deliberately absent — that is what bcc means. */
@@ -215,7 +251,7 @@ export function reply(
 export function settle(thread: Thread): ThreadStatus {
   const replies = thread.messages.filter((message) => message.from !== "you")
   if (!replies.length) return thread.status
-  if (replies.length < allRecipients(thread).length) return "running"
+  if (replies.length < runners(thread).length) return "running"
   return replies.every((message) => message.run?.failed) ? "failed" : "delivered"
 }
 

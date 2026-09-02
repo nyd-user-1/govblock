@@ -13,10 +13,20 @@ export const dynamic = "force-dynamic"
 export default async function AgentsPage() {
   // Read live rather than at build time: whether Slack is connected is a
   // property of a secret, and the card must not claim yesterday's answer.
-  const entries = await Promise.all(
-    CONNECTIONS.map(async (c) => [c.id, await c.status()] as const)
+  const connections = await Promise.all(
+    CONNECTIONS.map(async (c) => {
+      const status = await c.status()
+      return {
+        id: c.id,
+        name: c.name,
+        logo: c.logo,
+        tint: c.tint,
+        tools: c.tools as string[],
+        connected: status.connected,
+        detail: status.detail,
+      }
+    })
   )
-  const tools = Object.fromEntries(CONNECTIONS.map((c) => [c.id, c.tools as string[]]))
 
   return (
     <DocsPage
@@ -32,7 +42,7 @@ export default async function AgentsPage() {
         the model&apos;s own memory: where what a model remembers disagrees with a row, the row
         wins, and the agent says which row it read.
       </p>
-      <AgentsList connections={Object.fromEntries(entries)} connectionTools={tools} />
+      <AgentsList connections={connections} />
     </DocsPage>
   )
 }

@@ -57,6 +57,8 @@ export const slack: Connection = {
   id: "slack",
   name: "Slack",
   summary: "Post a finished digest into a channel, so a tracking run ends somewhere people already look.",
+  logo: "/logos/slack.png",
+  tint: "#611f69",
   auth: `Bot token in Secrets Manager, ${SECRET_ID}, read by the govblock-amplify-compute role.`,
   tools: ["post_to_slack"],
   async status() {

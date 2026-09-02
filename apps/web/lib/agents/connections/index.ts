@@ -40,6 +40,10 @@ export type Connection = {
   name: string
   /** One line: what an agent can do once this is connected. */
   summary: string
+  /** The service's own mark, in its own colours, under /public/logos. */
+  logo: string
+  /** The brand colour, for the ring around it. */
+  tint: string
   /** Where the credential lives, named precisely enough to go and look. */
   auth: string
   /** The tools this connection contributes to any agent that holds it. */

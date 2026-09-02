@@ -5,13 +5,14 @@ import { Check, Copy, Reply, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import {
-  allRecipients,
+  isPerson,
   isUnread,
   loadThreads,
   nameOf,
   newThread,
   reply,
   running,
+  runners,
   saveThreads,
   settle,
   shownRecipients,
@@ -105,8 +106,10 @@ export default function Page() {
 
   const send = React.useCallback(
     async (draft: Draft, existingId?: string) => {
-      const recipients = [...draft.to, ...draft.cc, ...draft.bcc]
-      if (!recipients.length) return
+      const everyone = [...draft.to, ...draft.cc, ...draft.bcc]
+      if (!everyone.length) return
+      // People are recorded on the thread; agents are the ones that run.
+      const recipients = everyone.filter((slug) => !isPerson(slug))
 
       const thread = newThread({
         to: draft.to,
@@ -121,6 +124,15 @@ export default function Page() {
       setThreads((current) => [thread, ...current.filter((entry) => entry.id !== existingId)])
       setSelected(thread.id)
       setFolder("sent")
+      if (!recipients.length) {
+        // Addressed only to people: it is sent, and it sits in Sent. Nothing
+        // runs and nothing replies, which is what the compose line said.
+        patch(thread.id, (current) => ({ ...current, status: "delivered" }))
+        setComposing(false)
+        setDraft(EMPTY_DRAFT)
+        setDraftId(null)
+        return
+      }
       setComposing(false)
       setDraft(EMPTY_DRAFT)
       setDraftId(null)
@@ -166,7 +178,7 @@ export default function Page() {
       }))
 
       await Promise.all(
-        allRecipients(thread).map(async (slug) => {
+        runners(thread).map(async (slug) => {
           const definition = findAgent(slug)
           if (!definition) return
           const prior = thread.messages.find((message) => message.from === slug)
@@ -324,7 +336,7 @@ export default function Page() {
                   {open.trashed && " · in trash"}
                   {open.deliveredTo && ` · delivered to ${open.deliveredTo}`}
                   {threadCost(open) > 0 &&
-                    ` · ${allRecipients(open).length} run${allRecipients(open).length === 1 ? "" : "s"}, $${threadCost(open).toFixed(3)}`}
+                    ` · ${runners(open).length} run${runners(open).length === 1 ? "" : "s"}, $${threadCost(open).toFixed(3)}`}
                 </p>
               </header>
 

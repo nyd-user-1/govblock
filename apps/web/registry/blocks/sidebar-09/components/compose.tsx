@@ -3,7 +3,7 @@
 import * as React from "react"
 import { X } from "lucide-react"
 
-import { matchAddresses, findAddress, nameOf, type Address } from "@/lib/agents/inbox"
+import { findAddress, isPerson, matchAddresses, nameOf, type Address } from "@/lib/agents/inbox"
 import { agent as findAgent } from "@/lib/agents/registry"
 import { MODELS } from "@/lib/agents/models"
 import { cn } from "@/lib/utils"
@@ -197,10 +197,12 @@ export function Compose({
   const [showCc, setShowCc] = React.useState(false)
   const [showBcc, setShowBcc] = React.useState(false)
   const everyone = [...draft.to, ...draft.cc, ...draft.bcc]
-  const first = findAgent(draft.to[0] ?? "")
+  const agents = everyone.filter((slug) => !isPerson(slug))
+  const people = everyone.filter(isPerson)
+  const first = findAgent(draft.to.find((slug) => !isPerson(slug)) ?? "")
 
-  // n recipients is n runs. Say what that costs before it is spent.
-  const estimate = everyone
+  // n agents is n runs. Say what that costs before it is spent.
+  const estimate = agents
     .map((slug) => findAgent(slug))
     .filter(Boolean)
     .map((definition) => MODELS[definition!.tier].label)
@@ -309,9 +311,12 @@ export function Compose({
           {inline ? "Cancel" : "Discard"}
         </Button>
         <span className={cn("ml-auto text-xs text-muted-foreground", !everyone.length && "hidden")}>
-          {everyone.length === 1
-            ? `One run on ${estimate[0]}. Kept in this browser, not on a server.`
-            : `${everyone.length} recipients means ${everyone.length} runs — ${estimate.join(", ")} — and ${everyone.length}× the cost.`}
+          {agents.length === 1 && `One run on ${estimate[0]}.`}
+          {agents.length > 1 &&
+            `${agents.length} agents means ${agents.length} runs — ${estimate.join(", ")} — and ${agents.length}× the cost.`}
+          {people.length > 0 &&
+            ` ${people.map(nameOf).join(", ")} ${people.length === 1 ? "is" : "are"} recorded on the thread; ${people.length === 1 ? "he gets" : "they get"} it when notifications exist.`}
+          {!agents.length && !people.length && "Kept in this browser, not on a server."}
         </span>
       </div>
     </form>

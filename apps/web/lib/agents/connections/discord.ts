@@ -142,6 +142,8 @@ export const discord: Connection = {
   id: "discord",
   name: "Discord",
   summary: "Post a finished digest into the PolicyBot channel, so a tracking run ends somewhere people already look.",
+  logo: "/logos/discord.svg",
+  tint: "#5865F2",
   auth: `Incoming-webhook URL in Secrets Manager, ${SECRET_ID}, read by the govblock-amplify-compute role. The URL names its own channel, so the destination is not a parameter anywhere in this system.`,
   tools: ["post_to_discord"],
   async status() {

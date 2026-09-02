@@ -7,6 +7,7 @@ import { MODELS } from "@/lib/agents/models"
 import { AGENTS, agent as findAgent } from "@/lib/agents/registry"
 
 import { AgentChat } from "../agent-chat"
+import { ConnectionMark } from "../connection-mark"
 
 // Dynamic: whether Slack is connected is a property of a secret, and the page
 // must not print a build-time answer to it.
@@ -55,7 +56,15 @@ export default async function AgentPage({ params }: { params: Promise<{ slug: st
         </dd>
         {statuses.map(([connection, status]) => (
           <React.Fragment key={connection.id}>
-            <dt className="text-muted-foreground">{connection.name}</dt>
+            <dt className="flex items-center gap-2 text-muted-foreground">
+              <ConnectionMark
+                name={connection.name}
+                logo={connection.logo}
+                tint={connection.tint}
+                live={status.connected}
+              />
+              {connection.name}
+            </dt>
             <dd className={status.connected ? "" : "text-muted-foreground"}>
               {status.detail}{" "}
               <span className="block text-xs">{connection.auth}</span>
