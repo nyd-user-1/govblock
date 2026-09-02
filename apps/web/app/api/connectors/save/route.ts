@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { addToCalendar, grantFor, saveToDrive } from "@/lib/agents/connections/google"
+import { publicOrigin } from "@/lib/agents/connections/origin"
 
 // Act on a reader's Google grant: save a report to their Drive, or put a
 // hearing on their calendar.
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "a claim check is required" }, { status: 400 })
 
   const action = body.action === "calendar" ? "calendar" : "drive"
-  const origin = new URL(request.url).origin
+  const origin = publicOrigin(request)
 
   try {
     const grant = await grantFor(userId, action, `${origin}/api/connectors/callback`)

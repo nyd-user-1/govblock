@@ -23,7 +23,8 @@
         "arn:aws:secretsmanager:us-east-1:638175140432:secret:rds!cluster-ee58a523-8533-4ef9-8436-a38afeb469ec-*",
         "arn:aws:secretsmanager:us-east-1:638175140432:secret:govblock/slack-*",
         "arn:aws:secretsmanager:us-east-1:638175140432:secret:govblock/discord-*",
-        "arn:aws:secretsmanager:us-east-1:638175140432:secret:govblock/discord-bot-*"
+        "arn:aws:secretsmanager:us-east-1:638175140432:secret:govblock/discord-bot-*",
+        "arn:aws:secretsmanager:us-east-1:638175140432:secret:bedrock-agentcore-identity!default/oauth2/govblock-*"
       ]
     },
     {

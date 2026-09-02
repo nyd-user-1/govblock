@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { grantFor, type GoogleService } from "@/lib/agents/connections/google"
+import { publicOrigin } from "@/lib/agents/connections/origin"
 
 // Start — or resume — a reader's Google connection.
 //
@@ -31,7 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   if (!/^[A-Za-z0-9-]{8,64}$/.test(userId))
     return NextResponse.json({ error: "a claim check is required" }, { status: 400 })
 
-  const origin = new URL(request.url).origin
+  const origin = publicOrigin(request)
   try {
     const grant = await grantFor(userId, service as GoogleService, `${origin}/api/connectors/callback`)
     return grant.kind === "token"
