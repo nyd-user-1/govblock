@@ -1563,6 +1563,29 @@ export async function getCosponsors(billId: number) {
   return { bill: billId, count: rows.length, cosponsors: rows.map((r) => ({ ...r.payload, people_id: r.people_id })) };
 }
 
+/**
+ * A roll call's tally, counted from the positions by the pipeline.
+ *
+ * congress.gov's house-vote list publishes no counts: a tally exists only as
+ * 434 rows of positions per roll call, one request each, which is not something
+ * a board of 647 cards can ask for. So the count is made once where the
+ * positions are, and rides here under a name of our own — `tally` is not a
+ * congress.gov field and does not pretend to be one.
+ *
+ * `casts` is the whole distribution rather than a yes and a no, because three
+ * of the 647 have neither: two quorum calls, and the election of the Speaker,
+ * where 434 members cast a candidate's name.
+ */
+const TALLY_COLUMNS = `yea, nay, present, not_voting, positions, casts`;
+type TallyRow = { yea: number | null; nay: number | null; present: number | null; not_voting: number | null; positions: number | null; casts: unknown };
+const withTally = (row: { payload: unknown } & TallyRow) => ({
+  ...(row.payload as Record<string, unknown>),
+  tally: row.yea == null ? null : {
+    yea: n(row.yea), nay: n(row.nay), present: n(row.present),
+    notVoting: n(row.not_voting), total: n(row.positions), casts: row.casts ?? {},
+  },
+});
+
 /** House roll calls. With `bill=`, only the ones on that bill's legislation. */
 export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
   if (billId) {
@@ -1570,13 +1593,16 @@ export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
     if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] };
     const prefix = String(bill.bill_number).replace(/[0-9].*$/, "").toUpperCase();
     const number = String(bill.bill_number).replace(/^[A-Z]+/, "");
-    const rows = await q<{ payload: unknown }>(
-      `select payload from congress_house_votes
+    const rows = await q<{ payload: unknown } & TallyRow>(
+      `select payload, ${TALLY_COLUMNS} from congress_house_votes
         where legislation_type = $1 and legislation_number = $2 order by start_date desc`,
       [CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix, number]);
-    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map((r) => r.payload) };
+    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) };
   }
-  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: await congressFamily("congress_house_votes", limit, offset) };
+  const rows = await q<{ payload: unknown } & TallyRow>(
+    `select payload, ${TALLY_COLUMNS} from congress_house_votes
+      order by update_date desc nulls last, key limit $1 offset $2`, [limit, offset]);
+  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: rows.map(withTally) };
 }
 
 /**

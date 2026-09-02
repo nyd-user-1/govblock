@@ -48,8 +48,23 @@ type VoteRow = {
 // The House floor, as the House Clerk records it. LegiScan carries 120 roll
 // calls for this Congress and almost all of them are the Senate's, so the
 // House's own record is most of what a reader came for. A roll call is only
-// drawn when its tally can be counted from the positions on file — the card
-// draws the vote, and a card with no vote in it is not a card.
+// drawn when its tally can be counted — the card draws the vote, and a card
+// with no vote in it is not a card.
+//
+// congress.gov's house-vote list publishes no counts; a tally exists there only
+// as 434 rows of positions per roll call, one request each, which is why this
+// board could draw six cards from a committed record and not the 647 on file.
+// The pipeline counts each roll call once, where the positions are, and the
+// route hands the count back as `tally` — ours, not congress.gov's, and named
+// so.
+type Tally = {
+  yea: number
+  nay: number
+  present: number
+  notVoting: number
+  total: number
+  casts: Record<string, number>
+}
 type HouseVote = {
   identifier?: number
   rollCallNumber?: number
@@ -61,6 +76,7 @@ type HouseVote = {
   voteQuestion?: string
   voteType?: string
   result?: string
+  tally?: Tally | null
 }
 type Positions = Record<string, HouseVote & { results?: { voteCast?: string }[] }>
 
@@ -100,21 +116,28 @@ export function VotesBoard() {
   // answers instead.
   const house = useCongressRecord<{ houseRollCallVotes?: HouseVote[]; positions?: Positions }>(
     state === "US" ? "house-votes" : null,
-    { limit: 250 },
-    (answer) => Object.keys(answer?.positions ?? {}).length > 0
+    { limit: 700 },
+    // Usable when the roll calls arrive counted. Before the tally existed the
+    // only countable answer was the committed record's six, and this predicate
+    // is what reached for it.
+    (answer) => (answer?.houseRollCallVotes ?? []).some((row) => !!row.tally)
   )
   const floor = React.useMemo<VoteRow[]>(() => {
     const positions = house?.positions ?? {}
     return (house?.houseRollCallVotes ?? []).flatMap((row) => {
-      // The positions record is the fuller of the two — it is the only one
-      // that carries the question the House was actually asked — so it wins
-      // where both describe the same roll call.
+      // The committed record carries the positions inline; the route carries a
+      // tally. Either can count a roll call, and neither is drawn without one.
       const record = positions[String(row.identifier)]
       const cast = record?.results
-      if (!cast?.length) return []
       const vote = { ...row, ...record }
-      const yea = cast.filter((v) => /^(yea|aye)$/i.test(String(v.voteCast))).length
-      const nay = cast.filter((v) => /^(nay|no)$/i.test(String(v.voteCast))).length
+      const counted = vote.tally
+      // Not every roll call has a yes and a no in it: two quorum calls and the
+      // election of the Speaker, where the votes cast were candidates' names.
+      // Those are real roll calls and they are drawn with the count they have.
+      if (!counted && !cast?.length) return []
+      const yea = counted ? counted.yea : (cast ?? []).filter((v) => /^(yea|aye)$/i.test(String(v.voteCast))).length
+      const nay = counted ? counted.nay : (cast ?? []).filter((v) => /^(nay|no)$/i.test(String(v.voteCast))).length
+      const total = counted ? counted.total : (cast ?? []).length
       const type = String(vote.legislationType ?? "").toUpperCase()
       // Not every roll call is on a bill — the House also votes on adjourning
       // and on its own journal — and those name themselves by their number.
@@ -127,7 +150,7 @@ export function VotesBoard() {
           description: vote.voteQuestion ?? vote.voteType ?? "",
           yea,
           nay,
-          total: cast.length,
+          total,
           bill_id: 0,
           bill_number: named || `Roll call ${vote.rollCallNumber ?? "—"}`,
           key: vote.rollCallNumber ? `House/${vote.rollCallNumber}/${String(vote.startDate ?? "").slice(0, 10)}` : null,
