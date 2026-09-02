@@ -130,6 +130,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             <H2>{bill.state === "US" ? "Actions" : "History"}</H2>
             <BillActions
               history={bill.history}
+              rollCalls={bill.rollCalls}
               fallback={
                 bill.history.length ? (
                   <Table>

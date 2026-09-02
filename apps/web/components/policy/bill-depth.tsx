@@ -4,6 +4,7 @@ import * as React from "react"
 
 import Link from "next/link"
 
+import type { RollCall } from "@/lib/policy/types"
 import { useCongress, useCongressRecord } from "@/lib/policy/use-congress"
 import { H2, Table } from "@/components/typeset"
 import { cn } from "@govblock/ui/lib/utils"
@@ -318,8 +319,45 @@ function withRecordLinks(text: string, date: string | null | undefined) {
  * the committee that acted, and the roll call with the Clerk's own URL. Those
  * attach to the rows they match by date and text.
  */
-export function BillActions({ history, fallback }: { history: HistoryRow[]; fallback: React.ReactNode }) {
+/**
+ * The roll call an action produced.
+ *
+ * Both chambers print the number in the action's own text — the House as "(Roll
+ * no. 190)", the Senate as "Record Vote Number: 372" — and BILLSTATUS carries
+ * the House's again as a structured `recordedVote`. The Senate's exists only in
+ * the text, because congress.gov publishes House votes and nothing else:
+ * /senate-vote/119 is a 404. So the number is read from wherever it is, and
+ * matched to the roll call the page is already showing.
+ */
+const ROLL_IN_TEXT = /\bRoll no\.\s*(\d+)|Record Vote Number:\s*(\d+)/
+const rollNumberOf = (action: Action | null, text: string) => {
+  const structured = action?.recordedVotes?.[0]?.rollNumber
+  if (structured) return String(structured)
+  const m = ROLL_IN_TEXT.exec(text)
+  return m ? (m[1] ?? m[2]) : null
+}
+const RC_NUMBER = /RC#\s*(\d+)/
+
+export function BillActions({
+  history,
+  rollCalls = [],
+  fallback,
+}: {
+  history: HistoryRow[]
+  rollCalls?: RollCall[]
+  fallback: React.ReactNode
+}) {
   const c = use()
+  // chamber/number -> the roll call, so an action can name the vote it took and
+  // the vote can be reached from the row that took it.
+  const votes = React.useMemo(() => {
+    const map = new Map<string, RollCall>()
+    for (const rc of rollCalls) {
+      const number = RC_NUMBER.exec(rc.description ?? "")?.[1]
+      if (number) map.set(`${rc.chamber}/${number}`, rc)
+    }
+    return map
+  }, [rollCalls])
   const rows = React.useMemo(() => {
     if (!c?.onCongress) return null
     const byKey = new Map<string, Action>()
@@ -386,17 +424,34 @@ export function BillActions({ history, fallback }: { history: HistoryRow[]; fall
                         </Link>{" "}
                       </span>
                     ))}
-                    {row.action?.recordedVotes?.map((rv) => (
-                      <span key={rv.rollNumber}>
-                        {rv.url ? (
-                          <a href={rv.url} target="_blank" rel="noopener noreferrer">
-                            {rv.chamber} roll call {rv.rollNumber}
+                    {(() => {
+                      const number = rollNumberOf(row.action, row.text)
+                      if (!number) return null
+                      const rc = votes.get(`${row.chamber}/${number}`)
+                      const clerk = row.action?.recordedVotes?.[0]?.url ?? null
+                      const label = `${row.chamber} roll call ${number}`
+                      return (
+                        <span>
+                          <a href="#votes" className="no-underline hover:underline">
+                            {label}
                           </a>
-                        ) : (
-                          `${rv.chamber} roll call ${rv.rollNumber}`
-                        )}
-                      </span>
-                    ))}
+                          {rc && (
+                            <span className="tabular-nums">
+                              {" "}
+                              {rc.yea ?? 0}–{rc.nay ?? 0}
+                            </span>
+                          )}
+                          {clerk && (
+                            <>
+                              {" · "}
+                              <a href={clerk} target="_blank" rel="noopener noreferrer">
+                                Clerk
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      )
+                    })()}
                   </span>
                 )}
               </td>
