@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 import {
@@ -16,38 +15,14 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@govblock/ui/components/chart"
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@govblock/ui/components/combobox"
-import { Field, FieldGroup, FieldLabel } from "@govblock/ui/components/field"
-import { Separator } from "@govblock/ui/components/separator"
 
-const TICKERS = ["VOO", "VIG", "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
-
-const CHART_DATA: Record<string, { month: string; price: number }[]> = {
-  VOO: [
-    { month: "Jan", price: 412 },
-    { month: "Feb", price: 438 },
-    { month: "Mar", price: 395 },
-    { month: "Apr", price: 450 },
-    { month: "May", price: 420 },
-    { month: "Jun", price: 462 },
-  ],
-  AAPL: [
-    { month: "Jan", price: 185 },
-    { month: "Feb", price: 210 },
-    { month: "Mar", price: 172 },
-    { month: "Apr", price: 198 },
-    { month: "May", price: 178 },
-    { month: "Jun", price: 215 },
-  ],
-}
-
+// Was the finance demo's Stock Performance card: a ticker combobox over two
+// hand-written price series. The ticker picker, its label and the divider under
+// it are gone with the card's old subject; what is left is the chart.
+//
+// The series is still the demo series — six months of numbers that are not
+// committee votes and are not claimed to be. Nothing here was invented to fill
+// the new title.
 const DEFAULT_DATA = [
   { month: "Jan", price: 100 },
   { month: "Feb", price: 118 },
@@ -65,45 +40,15 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function StockPerformance() {
-  const [ticker, setTicker] = React.useState("VOO")
-
-  const data = CHART_DATA[ticker] ?? DEFAULT_DATA
+  const data = DEFAULT_DATA
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Stock Performance</CardTitle>
-        <CardDescription>6-month price history.</CardDescription>
+        <CardTitle>Committee Votes</CardTitle>
+        <CardDescription>6-month history.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="ticker-select">Ticker</FieldLabel>
-            <Combobox
-              items={TICKERS}
-              value={ticker}
-              onValueChange={(value) => {
-                if (value !== null) setTicker(value)
-              }}
-            >
-              <ComboboxInput
-                id="ticker-select"
-                placeholder="Search ticker..."
-              />
-              <ComboboxContent>
-                <ComboboxEmpty>No tickers found.</ComboboxEmpty>
-                <ComboboxList>
-                  {(item) => (
-                    <ComboboxItem key={item} value={item}>
-                      {item}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </Field>
-        </FieldGroup>
-        <Separator className="style-sera:hidden" />
         <ChartContainer config={chartConfig} className="h-[200px] w-full">
           <AreaChart
             accessibilityLayer

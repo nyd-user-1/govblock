@@ -20,29 +20,33 @@ import {
   FieldLabel,
 } from "@govblock/ui/components/field"
 
+// The four rows Brendan mocked. The card was the finance demo's — deposits,
+// logins, goal milestones, a portfolio summary — on a site about legislatures.
+//
+// His mock spelled it "ammendment"; this ships "amendment".
 const NOTIFICATIONS = [
   {
-    id: "transactions",
-    label: "Transaction alerts",
-    description: "Deposits, withdrawals, and transfers.",
+    id: "bills",
+    label: "Bill alerts",
+    description: "Get amendment, status, and votes updates.",
     defaultChecked: true,
   },
   {
-    id: "security",
-    label: "Security alerts",
-    description: "Login attempts and account changes.",
+    id: "committees",
+    label: "Committee alerts",
+    description: "Get agenda, hearing, and vote updates.",
     defaultChecked: true,
   },
   {
-    id: "goals",
-    label: "Goal milestones",
-    description: "Updates at 25%, 50%, 75%, and 100%.",
-    defaultChecked: false,
+    id: "members",
+    label: "Member alerts",
+    description: "Get Member-specific updates.",
+    defaultChecked: true,
   },
   {
-    id: "market",
-    label: "Market updates",
-    description: "Daily portfolio summary and price alerts.",
+    id: "votes",
+    label: "Vote alerts",
+    description: "Get itemized vote results.",
     defaultChecked: false,
   },
 ]

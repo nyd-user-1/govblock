@@ -21,7 +21,9 @@ export const FIXTURES = {
 export const CONTENT_OPTIONS = [
   { value: "docs", label: "Docs" },
   { value: "chat", label: "Chat" },
-  { value: "article", label: "Article" },
+  // The pill reads "Text": what the block holds is a bill's text as GPO
+  // prints it. The `article` key and `?item=article` do not change.
+  { value: "article", label: "Text" },
   { value: "changelog", label: "Changelog" },
   { value: "notes", label: "Notes" },
   // { value: "recipe", label: "Recipe" },
