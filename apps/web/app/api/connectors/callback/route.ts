@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { publicOrigin } from "@/lib/agents/connections/origin"
+import { trace } from "@/lib/agents/trace"
 
 // Where the token vault sends the reader back after Google has asked them.
 //
@@ -42,5 +43,16 @@ export async function GET(request: Request) {
   const failed = url.searchParams.get("error")
   const to = new URL(safePath(url.searchParams.get("state")), publicOrigin(request))
   to.searchParams.set(failed ? "connectFailed" : "connected", failed ?? "1")
+  // The vault reaches this route with no identity we can read — the grant it
+  // just recorded is keyed to a claim check that lives in the browser, not in
+  // this request. So the useful facts are that the leg ran at all, whether
+  // Google refused, and which origin we resolved: the localhost bounce would
+  // have been one line here instead of a night.
+  trace("callback", {
+    outcome: failed ? "error" : "ok",
+    error: failed ?? undefined,
+    params: [...url.searchParams.keys()].join(","),
+    origin: publicOrigin(request),
+  })
   return NextResponse.redirect(to)
 }

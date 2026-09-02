@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { isUserId } from "@/lib/auth/contract"
+import { readerTrace, trace } from "@/lib/agents/trace"
 
 import { addToCalendar, grantFor, saveSheet, saveToDrive } from "@/lib/agents/connections/google"
 import { publicOrigin } from "@/lib/agents/connections/origin"
@@ -66,6 +67,14 @@ export async function POST(request: Request) {
       `${origin}/api/connectors/callback`,
       String(body.sessionUri ?? "").trim() || undefined
     )
+    trace("save", {
+      action,
+      reader: readerTrace(userId),
+      carried: Boolean(String(body.sessionUri ?? "").trim()),
+      answer: grant.kind,
+      status: grant.kind === "pending" ? grant.sessionStatus : undefined,
+    })
+
     if (grant.kind === "pending")
       return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus })
     if (grant.kind === "authorize")
@@ -110,9 +119,10 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ connected: true, ...event })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 502 }
-    )
+    // The loud failure: this is where a grant that never recorded finally says
+    // so, and after tonight it says so somewhere durable too.
+    const message = error instanceof Error ? error.message : String(error)
+    trace("save.failed", { action, reader: readerTrace(userId), message: message.slice(0, 160) })
+    return NextResponse.json({ error: message }, { status: 502 })
   }
 }

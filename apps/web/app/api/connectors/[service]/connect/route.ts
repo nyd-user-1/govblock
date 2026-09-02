@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { isUserId } from "@/lib/auth/contract"
+import { readerTrace, trace } from "@/lib/agents/trace"
 
 import { grantFor, type GoogleService } from "@/lib/agents/connections/google"
 import { publicOrigin } from "@/lib/agents/connections/origin"
@@ -54,19 +55,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
       session,
       body.force === true
     )
-    if (grant.kind === "token") return NextResponse.json({ connected: true })
+    const reader = readerTrace(userId)
+    trace("connect", {
+      service,
+      reader,
+      carried: Boolean(session),
+      force: body.force === true,
+      answer: grant.kind,
+      status: grant.kind === "pending" ? grant.sessionStatus : undefined,
+    })
+
+    if (grant.kind === "token") return NextResponse.json({ connected: true, reader })
     if (grant.kind === "pending")
-      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus })
+      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus, reader })
     return NextResponse.json({
       connected: false,
       authorizeUrl: grant.url,
       sessionUri: grant.sessionUri,
       sessionStatus: grant.sessionStatus,
+      reader,
     })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 502 }
-    )
+    const message = error instanceof Error ? error.message : String(error)
+    trace("connect.failed", { service, reader: readerTrace(userId), message: message.slice(0, 120) })
+    return NextResponse.json({ error: message, reader: readerTrace(userId) }, { status: 502 })
   }
 }
