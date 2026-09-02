@@ -676,8 +676,13 @@ export async function getTallies(state: string) {
 
 export async function getPartySeats(state: string) {
   return q<{ chamber: string; party: string; seats: number }>(
-    `select chamber, coalesce(nullif(party, ''), 'I') party, count(*)::int seats from "People"
-     where state = $1 and not coalesce(archived, false) and role in ('Rep', 'Sen') group by 1, 2 order by 1, 3 desc`,
+    // Seats are the sitting roster, not everyone the record has ever known:
+    // without the "SessionPeople" join this counted former members and the 511
+    // committee rows as seats ("1,053 seats in the House" against 553 sitting).
+    `select p.chamber, coalesce(nullif(p.party, ''), 'I') party, count(*)::int seats from "People" p
+     where p.state = $1 and p.committee_id is null and not coalesce(p.archived, false) and p.role in ('Rep', 'Sen')
+       and exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id and sp.state = $1)
+     group by 1, 2 order by 1, 3 desc`,
     [state]
   )
 }
