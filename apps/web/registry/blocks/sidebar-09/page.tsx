@@ -305,7 +305,8 @@ export default function Page() {
       />
 
       <ResizablePanelGroup orientation="horizontal" className="min-w-0 flex-1">
-        <ResizablePanel defaultSize={34} minSize={24} maxSize={48} className="min-w-0">
+        {/* react-resizable-panels v4 reads bare numbers as pixels. */}
+        <ResizablePanel defaultSize={420} minSize={320} maxSize={640} className="min-w-0">
           <ThreadList
             threads={threads}
             folder={folder}
@@ -319,7 +320,7 @@ export default function Page() {
           />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={66} className="min-w-0">
+        <ResizablePanel className="min-w-0">
           <div className="flex h-full min-h-0 flex-col">
             {composing ? (
               <>
