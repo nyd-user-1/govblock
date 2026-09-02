@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { isUserId } from "@/lib/auth/contract"
 
 import { grantFor, type GoogleService } from "@/lib/agents/connections/google"
 import { publicOrigin } from "@/lib/agents/connections/origin"
@@ -29,7 +30,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   // The claim check is the vault's user id. It arrives from the browser that
   // minted it; we neither store it nor learn anything else about who sent it.
   const userId = String(body.claimCheck ?? "").trim()
-  if (!/^[A-Za-z0-9-]{8,64}$/.test(userId))
+  // A claim check shaped like a user id is refused, per the user-id contract.
+  // A claim check is safe to take on the caller's word only because it is 122
+  // bits of randomness nobody can guess; a `u-` id is a Google `sub`, stable
+  // for a person across every app they sign into and therefore knowable by
+  // people who are not them. Accepting one here would let a caller open — and
+  // later hold — a grant inside somebody else's identity namespace. No grant is
+  // keyed that way on the Google side today, which is exactly why this belongs
+  // in before one is.
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(userId) || isUserId(userId))
     return NextResponse.json({ error: "a claim check is required" }, { status: 400 })
 
   const origin = publicOrigin(request)
