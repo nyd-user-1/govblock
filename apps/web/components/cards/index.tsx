@@ -43,9 +43,11 @@ const STACKS: { id: string; node: React.ReactNode }[][] = [
     { id: "nav", node: <NavigationCard /> },
   ],
   [
+    // Connect leads the last column — beside Committees, above Calendar. It is
+    // an invitation, and an invitation four cards down the page is a footnote.
+    { id: "connect", node: <ConnectCard /> },
     { id: "hearings", node: <CalendarCard /> },
     { id: "stock", node: <StockPerformance /> },
-    { id: "connect", node: <ConnectCard /> },
     { id: "traffic", node: <BarChartCard /> },
     { id: "team", node: <NoTeamMembers /> },
     { id: "api", node: <ApiCard /> },
