@@ -32,6 +32,9 @@ importers:
       '@ai-sdk/react':
         specifier: ^4.0.90
         version: 4.0.90(react@19.2.4)(zod@4.4.3)
+      '@aws-sdk/client-bedrock-agentcore':
+        specifier: ^3.1124.0
+        version: 3.1124.0
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.1124.0
         version: 3.1124.0
@@ -322,6 +325,10 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
+
+  '@aws-sdk/client-bedrock-agentcore@3.1124.0':
+    resolution: {integrity: sha512-WJNTk9JIMUcBCDhEe7Oy9rfC2v5TcoJamkRzlmDjTcqYJb7Zs9SZRajGhIGa9FzaTpuchCq3/Tl+sv9h4Z9WUg==}
+    engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-bedrock-runtime@3.1124.0':
     resolution: {integrity: sha512-yZwrQNto3LKRCZWWd+WyPbB3aHrFt0U5G5PDOlsSeMzLX4UMpAmgzS7YMFkeiFm3UnZ112R5X6g+MbBHyHOUCw==}
@@ -4768,6 +4775,17 @@ snapshots:
       - zod
 
   '@alloc/quick-lru@5.2.0': {}
+
+  '@aws-sdk/client-bedrock-agentcore@3.1124.0':
+    dependencies:
+      '@aws-sdk/core': 3.977.9
+      '@aws-sdk/credential-provider-node': 3.972.82
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.7.2
+      '@smithy/node-http-handler': 4.12.0
+      '@smithy/types': 4.17.2
+      tslib: 2.8.1
 
   '@aws-sdk/client-bedrock-runtime@3.1124.0':
     dependencies:
