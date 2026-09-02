@@ -93,7 +93,11 @@ export function AccountAffordance() {
 
   return (
     <Link
-      href="/auth"
+      // Signed in, /auth redirects to the reader's home — so the affordance
+      // asks for the one thing that page still has to offer. Without the
+      // parameter this link would bounce and a signed-in reader would have no
+      // way to sign out at all.
+      href="/auth?signout=1"
       title={label ? `Signed in as ${label}` : "Account"}
       aria-label={label ? `Account — signed in as ${label}` : "Account"}
       className="flex size-[31px] shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted text-xs font-semibold transition-opacity hover:opacity-80"
