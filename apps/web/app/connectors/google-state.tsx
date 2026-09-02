@@ -58,6 +58,11 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined, f
   }
   if (json.error) throw new Error(json.error)
   if (json.connected) forgetSession(service)
+  // FAILED is the vault's only definitive "this session is dead" — the enum is
+  // exactly IN_PROGRESS | FAILED — so it is the one answer that earns a
+  // discard. Anything else keeps the session, because it may still be the
+  // handle on a consent the reader has finished.
+  else if (json.sessionStatus === "FAILED") forgetSession(service)
   // A pending answer carries no new session: the one being held is the one in
   // flight, so it stays held — the reader may be finishing consent in another
   // tab, and the next check is the one that finds the token.
@@ -81,7 +86,19 @@ async function ask(service: GoogleService) {
     return await askOnce(service, held)
   } catch (error) {
     if (!held) throw error
-    forgetSession(service)
+    // Re-ask without the session, but DO NOT throw the session away.
+    //
+    // This used to call forgetSession() first, and that made a transient
+    // failure permanent: the held session is the only handle we have on a
+    // consent the reader has already finished, so dropping it on any error —
+    // a 502, a blip, anything — loses a completed grant for good, and every
+    // check afterwards opens a fresh session and reads "not connected"
+    // forever. A stale session costs one wasted call per check; a discarded
+    // one costs the grant.
+    //
+    // The stale-session case the original guarded against is still handled,
+    // and better: `forceAuthentication` on the click means a click never
+    // depends on the held session at all, so nothing can be bricked by one.
     return await askOnce(service, undefined)
   }
 }
