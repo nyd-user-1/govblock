@@ -67,21 +67,23 @@ export async function POST(request: Request) {
       `${origin}/api/connectors/callback`,
       String(body.sessionUri ?? "").trim() || undefined
     )
+    const reader = readerTrace(userId)
     trace("save", {
       action,
-      reader: readerTrace(userId),
+      reader,
       carried: Boolean(String(body.sessionUri ?? "").trim()),
       answer: grant.kind,
       status: grant.kind === "pending" ? grant.sessionStatus : undefined,
     })
 
     if (grant.kind === "pending")
-      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus })
+      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus, reader })
     if (grant.kind === "authorize")
       return NextResponse.json({
         connected: false,
         authorizeUrl: grant.url,
         sessionUri: grant.sessionUri,
+        reader,
       })
 
     if (action === "sheet") {
@@ -123,6 +125,6 @@ export async function POST(request: Request) {
     // so, and after tonight it says so somewhere durable too.
     const message = error instanceof Error ? error.message : String(error)
     trace("save.failed", { action, reader: readerTrace(userId), message: message.slice(0, 160) })
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json({ error: message, reader: readerTrace(userId) }, { status: 502 })
   }
 }
