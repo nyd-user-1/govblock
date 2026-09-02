@@ -8,6 +8,7 @@ import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
+import { BillDepthProvider, BillTracker } from "@/components/policy/bill-depth"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
@@ -74,6 +75,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
 
   return (
     <BillCongressProvider billId={bill.bill_id} billNumber={bill.bill_number} state={bill.state}>
+      <BillDepthProvider billId={bill.bill_id} state={bill.state}>
       <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
@@ -100,6 +102,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 ))}
                 <BillStatusExtras />
               </p>
+              <BillTracker />
             </Callout>
 
             <H2>Summary</H2>
@@ -233,6 +236,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
         </div>
         </div>
       </div>
+      </BillDepthProvider>
     </BillCongressProvider>
   )
 }
