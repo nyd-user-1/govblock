@@ -76,7 +76,7 @@ function Card({ connector }: { connector: ConnectorStatus }) {
         <span className="min-w-0 truncate font-medium">{connector.name}</span>
       </div>
       {google ? (
-        <ConnectRow service={google} idleLabel={connector.ridesOn ? "Included in Drive" : undefined} />
+        <ConnectRow service={google} />
       ) : (
         <div className="flex items-center justify-between gap-2">
           <StatusChip state={connector.state} />
