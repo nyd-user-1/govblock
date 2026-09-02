@@ -68,9 +68,6 @@ export async function getWidget(): Promise<Widget> {
   }
 }
 
-export const WIDGET_URL = (theme: "dark" | "light") =>
-  `https://discord.com/widget?id=${GUILD_ID}&theme=${theme}`
-
 export type BotStatus =
   | { connected: true; guildId: string; channelId: string }
   | { connected: false; detail: string }

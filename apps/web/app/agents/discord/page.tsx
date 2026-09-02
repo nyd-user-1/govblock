@@ -64,7 +64,7 @@ function Server({ widget }: { widget: Widget }) {
         </p>
       )}
 
-      <WidgetFrame title={`${widget.name} on Discord`} />
+      <WidgetFrame guildId={widget.id} title={`${widget.name} on Discord`} />
     </div>
   )
 }
