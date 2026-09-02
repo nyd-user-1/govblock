@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft } from "@tabler/icons-react"
 
 import { fmtNumber } from "@/lib/format"
-import { getForm, readableField } from "@/lib/policy/forms-queries"
+import { fieldName, getForm } from "@/lib/policy/forms-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { agencyName, FormSeal } from "@/components/policy/forms-seal"
@@ -56,7 +56,7 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
   const heading = form.title || form.number
   const scope = form.gov === "US" ? "US" : "NY"
 
-  const readable = form.fieldNames.filter(readableField)
+  const readable = form.fieldNames.map(fieldName).filter((name): name is string => !!name)
   const unreadable = form.fieldNames.length - readable.length
 
   const captured = monthYear(form.archived)

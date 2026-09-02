@@ -293,21 +293,27 @@ function safeParse(value: string): unknown {
 }
 
 /**
- * A field name we can show a reader.
+ * One field name, as we can honestly show it — or `null` when we cannot.
  *
- * On an encrypted or compressed PDF the inspector wrote the raw bytes rather
- * than the decoded name, so
- * `["ð4¶:C", "*Pku", "Z³§Ì", …]` is what NYS DMV's `mv-994` carries. Printing
- * that as a schema would be a lie about what we know, and §4 of the brief calls
- * this list the schema the Clerk agent interviews against. The form page counts
- * the unreadable ones and says how many rather than drawing them.
+ * Measured over all 437,910 field names in the corpus: 412,251 are plain ASCII,
+ * 3,957 are readable behind a mis-decoded byte-order mark, and 21,674 are not
+ * readable at all.
+ *
+ * The `þÿ` prefix is a UTF-16 big-endian BOM that the inspector read as
+ * Latin-1; the name behind it is intact, so `þÿaddress_line1[0]` is
+ * `address_line1[0]` and stripping the mark recovers it rather than inventing
+ * it. What is left after that — `ð4¶:C`, `Z³§Ì`, which is what NYS DMV's
+ * `mv-994` carries — is an encrypted or compressed PDF whose field names the
+ * inspector never decoded. Printing those would be a claim about a schema we do
+ * not have, and §4 of the brief calls this list the schema the Clerk agent will
+ * interview against. So the form page counts them and says how many.
  */
-export function readableField(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed || trimmed === "undefined") return false
+export function fieldName(raw: string): string | null {
+  const name = raw.replace(/^(þÿ)+/, "").trim()
+  if (!name || name === "undefined") return null
   // Printable ASCII, and at least one letter or digit in it.
-  if (!/^[\x20-\x7E]+$/.test(trimmed)) return false
-  return /[A-Za-z0-9]/.test(trimmed)
+  if (!/^[\x20-\x7E]+$/.test(name)) return null
+  return /[A-Za-z0-9]/.test(name) ? name : null
 }
 
 /* --------------------------------------------------------- the PDF, from S3 */
