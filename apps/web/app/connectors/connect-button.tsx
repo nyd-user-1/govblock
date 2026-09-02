@@ -38,13 +38,21 @@ export function ConnectRow({
   if (state.kind === "connected")
     return <StatusChip state="connected" label="Connected in this browser" />
 
+  if (state.kind === "unavailable")
+    return <StatusChip state="unavailable" label="Not available yet" title={state.reason} />
+
+  // No "Not connected" chip: the Connect button already says it. The chip slot
+  // carries only a truth the button cannot — a ride-along's "Included in Drive",
+  // or the checking pulse before the vault has answered.
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <StatusChip
-        state={state.kind === "checking" ? "unknown" : "available"}
-        label={state.kind === "checking" ? undefined : idleLabel}
-        className="shrink-0"
-      />
+      {state.kind === "checking" ? (
+        <StatusChip state="unknown" className="shrink-0" />
+      ) : idleLabel ? (
+        <StatusChip state="available" label={idleLabel} className="shrink-0" />
+      ) : (
+        <span />
+      )}
       <Button
         size="sm"
         className="shrink-0"
@@ -58,7 +66,7 @@ export function ConnectRow({
           }
         }}
       >
-        {busy ? "Opening Google…" : "Connect"}
+        {busy ? (service === "slack" ? "Opening Slack…" : "Opening Google…") : "Connect"}
       </Button>
     </div>
   )

@@ -16,11 +16,13 @@ const description =
 export const metadata = { title, description }
 export const dynamic = "force-dynamic"
 
-// The two connectors the server cannot answer for: the grant lives in the vault
-// under this browser's claim check, so only the browser can ask.
+// The connectors the server cannot answer for: the grant lives in the vault
+// under this browser's claim check, so only the browser can ask. Slack rides
+// the same machinery as a third service.
 function googleService(id: string): GoogleService | null {
   if (id === "google-drive" || id === "google-docs" || id === "google-sheets") return "drive"
   if (id === "google-calendar") return "calendar"
+  if (id === "slack") return "slack"
   return null
 }
 

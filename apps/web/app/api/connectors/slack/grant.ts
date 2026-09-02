@@ -62,14 +62,15 @@ export const SLACK_SCOPES = ["chat:write", "chat:write.public", "channels:read"]
  * `redirect_uri_mismatch`, whereas Slack answers 200 with a 4.4 KB JavaScript
  * shell whether the URL is registered or not. So there is nothing to read.
  *
- * It flips to `true` when a real consent completes, and until then the surface
- * says the paste is outstanding rather than offering a button that would strand
- * the reader on a Slack error page.
+ * Flipped on Brendan's go-order: FLAG D's paste was handed to him with the
+ * exact string, and only a real consent can prove it landed — Slack shows its
+ * own error page on an unregistered redirect, which is visible and reportable,
+ * where a dead button here would hide the same fact.
  *
- * The URL to paste, from the provider's own creation response:
+ * The URL pasted, from the provider's own creation response:
  * https://bedrock-agentcore.us-east-1.amazonaws.com/identities/oauth2/callback/c4f72085-8d2b-46ef-aa26-2ebf562b6551
  */
-export const SLACK_REDIRECT_REGISTERED = false
+export const SLACK_REDIRECT_REGISTERED = true
 
 let client: BedrockAgentCoreClient | null = null
 function agentcore() {
@@ -103,13 +104,18 @@ export type SlackGrant =
 export async function slackGrantFor(
   userId: string,
   returnUrl: string,
-  sessionUri?: string
+  sessionUri?: string,
+  force = false
 ): Promise<SlackGrant> {
   const minted = await agentcore().send(
     new GetWorkloadAccessTokenForUserIdCommand({ workloadName: WORKLOAD, userId })
   )
   if (!minted.workloadAccessToken) throw new Error("no workload access token")
 
+  // A click forces a fresh 3LO flow: the vault remembers a reader's in-flight
+  // session server-side, so without this a reader who once walked away from a
+  // consent gets IN_PROGRESS and no url forever — lane X's silent-revert bug,
+  // honoured here before Slack's first click rather than rediscovered.
   const out = await agentcore().send(
     new GetResourceOauth2TokenCommand({
       workloadIdentityToken: minted.workloadAccessToken,
@@ -118,6 +124,7 @@ export async function slackGrantFor(
       oauth2Flow: "USER_FEDERATION",
       resourceOauth2ReturnUrl: returnUrl,
       ...(sessionUri ? { sessionUri } : {}),
+      ...(force ? { forceAuthentication: true } : {}),
     })
   )
   if (out.accessToken) return { kind: "token", accessToken: out.accessToken }

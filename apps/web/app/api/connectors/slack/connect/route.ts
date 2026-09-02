@@ -26,7 +26,7 @@ import { SLACK_REDIRECT_REGISTERED, SLACK_SCOPES, slackGrantFor } from "../grant
 export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
-  let body: { claimCheck?: string; sessionUri?: string }
+  let body: { claimCheck?: string; sessionUri?: string; force?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
     const grant = await slackGrantFor(
       identity.id,
       `${publicOrigin(request)}/api/connectors/callback`,
-      body.sessionUri
+      body.sessionUri,
+      body.force === true
     )
     if (grant.kind === "token") return NextResponse.json({ connected: true })
     if (grant.kind === "authorize")

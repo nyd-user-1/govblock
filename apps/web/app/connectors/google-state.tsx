@@ -19,15 +19,18 @@ import { forgetSession, loadSession, rememberSession } from "@/lib/agents/connec
 // authorization session that nobody walked through. Two services, two calls,
 // shared by the two cards and the two table rows that used to make four.
 
-export type GoogleService = "drive" | "calendar"
+// Slack rides the same machinery: its route answers the identical shape, so the
+// provider treats it as a third service rather than growing a second provider.
+export type GoogleService = "drive" | "calendar" | "slack"
 
 export type GoogleState =
   | { kind: "checking" }
   | { kind: "connected" }
   | { kind: "ready" }
+  | { kind: "unavailable"; reason: string }
   | { kind: "error"; message: string }
 
-const SERVICES: GoogleService[] = ["drive", "calendar"]
+const SERVICES: GoogleService[] = ["drive", "calendar", "slack"]
 
 type Value = {
   state: Record<GoogleService, GoogleState>
@@ -49,6 +52,8 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined, f
     authorizeUrl?: string
     sessionUri?: string
     sessionStatus?: string
+    unavailable?: boolean
+    reason?: string
     error?: string
   }
   if (json.error) throw new Error(json.error)
@@ -61,6 +66,8 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined, f
     connected: Boolean(json.connected),
     authorizeUrl: json.authorizeUrl,
     sessionStatus: json.sessionStatus,
+    unavailable: Boolean(json.unavailable),
+    reason: json.reason,
   }
 }
 
@@ -83,6 +90,7 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<Record<GoogleService, GoogleState>>({
     drive: { kind: "checking" },
     calendar: { kind: "checking" },
+    slack: { kind: "checking" },
   })
 
   const set = React.useCallback(
@@ -108,6 +116,8 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
       ask(service)
         .then((r) => {
           if (!live) return
+          if (r.unavailable)
+            return set(service, { kind: "unavailable", reason: r.reason ?? "Not available yet." })
           set(service, r.connected ? { kind: "connected" } : { kind: "ready" })
           if (!r.connected && justReturned.current)
             window.setTimeout(() => {
@@ -150,6 +160,8 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
       forgetSession(service)
       try {
         const r = await askOnce(service, undefined, true)
+        if (r.unavailable)
+          return set(service, { kind: "unavailable", reason: r.reason ?? "Not available yet." })
         if (r.connected) return set(service, { kind: "connected" })
         if (r.authorizeUrl) {
           window.location.href = r.authorizeUrl
@@ -157,7 +169,7 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
         }
         set(service, {
           kind: "error",
-          message: `Google did not return a consent link${r.sessionStatus ? ` (${r.sessionStatus})` : ""}.`,
+          message: `${service === "slack" ? "Slack" : "Google"} did not return a consent link${r.sessionStatus ? ` (${r.sessionStatus})` : ""}.`,
         })
       } catch (e) {
         set(service, {

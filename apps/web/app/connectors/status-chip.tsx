@@ -11,14 +11,18 @@ import { cn } from "@/lib/utils"
 export function StatusChip({
   state,
   label,
+  title,
   className,
 }: {
   state: ConnectorState | "unknown"
   label?: string
+  /** Hover detail for a state whose one word is not the whole truth. */
+  title?: string
   className?: string
 }) {
   return (
     <span
+      title={title}
       className={cn(
         "flex min-w-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground",
         className
