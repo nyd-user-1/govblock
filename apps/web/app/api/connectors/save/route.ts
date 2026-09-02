@@ -57,6 +57,8 @@ export async function POST(request: Request) {
       `${origin}/api/connectors/callback`,
       String(body.sessionUri ?? "").trim() || undefined
     )
+    if (grant.kind === "pending")
+      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus })
     if (grant.kind === "authorize")
       return NextResponse.json({
         connected: false,

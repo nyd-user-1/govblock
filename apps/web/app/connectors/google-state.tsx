@@ -25,7 +25,6 @@ export type GoogleState =
   | { kind: "checking" }
   | { kind: "connected" }
   | { kind: "ready" }
-  | { kind: "working" }
   | { kind: "error"; message: string }
 
 const SERVICES: GoogleService[] = ["drive", "calendar"]
@@ -54,7 +53,10 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined) {
   }
   if (json.error) throw new Error(json.error)
   if (json.connected) forgetSession(service)
-  else rememberSession(service, json.sessionUri)
+  // A pending answer carries no new session: the one being held is the one in
+  // flight, so it stays held — the reader may be finishing consent in another
+  // tab, and the next check is the one that finds the token.
+  else if (json.sessionUri) rememberSession(service, json.sessionUri)
   return { connected: Boolean(json.connected), authorizeUrl: json.authorizeUrl }
 }
 
@@ -112,7 +114,6 @@ export function GoogleConnections({ children }: { children: React.ReactNode }) {
 
   const connect = React.useCallback(
     async (service: GoogleService) => {
-      set(service, { kind: "working" })
       try {
         const r = await ask(service)
         if (r.connected) return set(service, { kind: "connected" })

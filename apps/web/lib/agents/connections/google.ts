@@ -64,6 +64,13 @@ export type Grant =
    * comes back too, and the caller MUST hand it to the next call — see below.
    */
   | { kind: "authorize"; url: string; sessionUri?: string; sessionStatus?: string }
+  /**
+   * A session was carried in and the reader has not finished walking it. The
+   * vault answers with a bare `sessionStatus` and nothing else — no token, no
+   * url — which is a third state, not an error, and the surface says "not
+   * connected" rather than showing the reader a fault.
+   */
+  | { kind: "pending"; sessionStatus?: string }
 
 /**
  * Ask the vault for this reader's Google token, for one service.
@@ -107,6 +114,11 @@ export async function grantFor(
       sessionUri: out.sessionUri,
       sessionStatus: out.sessionStatus,
     }
+  // Measured, not guessed: carrying an unfinished session back returns exactly
+  // `{"sessionStatus":"IN_PROGRESS"}`. Reading that as a fault was the first
+  // version of this fix, and it would have shown Brendan an error message where
+  // the truth is simply that he has not consented yet.
+  if (out.sessionStatus) return { kind: "pending", sessionStatus: out.sessionStatus }
   throw new Error("the vault returned neither a token nor an authorization url")
 }
 

@@ -44,14 +44,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
       `${origin}/api/connectors/callback`,
       session
     )
-    return grant.kind === "token"
-      ? NextResponse.json({ connected: true })
-      : NextResponse.json({
-          connected: false,
-          authorizeUrl: grant.url,
-          sessionUri: grant.sessionUri,
-          sessionStatus: grant.sessionStatus,
-        })
+    if (grant.kind === "token") return NextResponse.json({ connected: true })
+    if (grant.kind === "pending")
+      return NextResponse.json({ connected: false, sessionStatus: grant.sessionStatus })
+    return NextResponse.json({
+      connected: false,
+      authorizeUrl: grant.url,
+      sessionUri: grant.sessionUri,
+      sessionStatus: grant.sessionStatus,
+    })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
