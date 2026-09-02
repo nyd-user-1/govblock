@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   BookOpen,
   BookUser,
+  ClipboardList,
   FileText,
   Newspaper,
   Scale,
@@ -43,6 +44,7 @@ function hasItems(item: NavItem): item is Extract<NavItem, { items: unknown[] }>
 const ICONS: Record<string, LucideIcon> = {
   BookOpen,
   BookUser,
+  ClipboardList,
   FileText,
   Newspaper,
   Scale,

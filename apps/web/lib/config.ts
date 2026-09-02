@@ -41,6 +41,13 @@ export const siteConfig = {
         { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
         { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
         { href: "/newsroom", label: "News Room", description: "What the legislature did, newest first.", icon: "Newspaper" },
+        // Ninth. Everything above it is the legislative record; this is the
+        // paperwork the government hands back — the forms you fill in to get a
+        // benefit, a grant or a licence. Four columns and nine entries is three
+        // rows, not the two Brendan asked for; flagged rather than solved by
+        // dropping an entry or widening to five columns, because which of those
+        // he wants is his call.
+        { href: "/docs/forms", label: "Forms", description: "Government forms for benefits, grants and programs.", icon: "ClipboardList" },
       ],
     },
     { href: "/newsroom", label: "News Room" },
