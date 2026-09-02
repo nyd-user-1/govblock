@@ -1730,7 +1730,12 @@ export async function getBillActions(billId: number, limit = 250, offset = 0) {
  */
 export async function getBillCommittees(billId: number) {
   const rows = await q<{ system_code: string | null; name: string | null; chamber: string | null; committee_type: string | null; subcommittee_code: string | null; subcommittee_name: string | null; activity: string | null; activity_date: string | null }>(
-    `select system_code, name, chamber, committee_type, subcommittee_code, subcommittee_name, activity, activity_date
+    // Stamped in UTC and rendered Eastern, so it has to leave here saying which
+    // it is. The Data API hands a timestamptz back as "2025-05-22 10:48:46" with
+    // no zone on it, and `new Date` reads that as the reader's own local time —
+    // which put H.R. 1's markup on 05/21 where congress.gov prints 05/20.
+    `select system_code, name, chamber, committee_type, subcommittee_code, subcommittee_name, activity,
+            to_char(activity_date at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as activity_date
        from congress_bill_committees where bill_id = $1
       order by activity_date desc nulls last, name`, [billId]);
   return {
