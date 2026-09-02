@@ -1968,6 +1968,12 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       chamber: string
       district: string
       state: string
+      // Lane U's ask: without these the search results draw a chamber seal
+      // where the directory draws a face. `photo_url` is LegiScan's;
+      // `bioguide_id` is how a row reaches the official portrait
+      // `congress_members` carries for all 554 members of Congress.
+      photo_url: string | null
+      bioguide_id: string | null
     }>(
       // Name *and* aliases, token by token. "holmes" has to find Eleanor Holmes
       // Norton, whose LegiScan name is "Eleanor Norton";
@@ -1982,6 +1988,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       // A row inserted since that script last ran has a null alias and is still
       // found by name, so drift degrades to the old behaviour, not to a hole.
       `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.state,
+              p.photo_url, p.bioguide_id,
               exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id) as active
        from "People" p
        where p.committee_id is null and not coalesce(p.archived, false)
