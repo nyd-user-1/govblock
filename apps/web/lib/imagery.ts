@@ -21,7 +21,13 @@ export function hasSeal(state: string, chamber?: string | null) {
   return `${code}:${chamber ?? ""}` in SEALS || `${code}:` in SEALS
 }
 
-export function portraitFor(member: { photo_url?: string | null }) {
+export function portraitFor(member: { photo_url?: string | null; bioguide_id?: string | null }) {
+  // The bioguide depiction covers the whole federal roster — clerk.house.gov
+  // never had senators, which is why the directory wore seals. congress.gov
+  // serves it by bioguide id at a stable URL (probed 200, image/jpeg).
+  if (member.bioguide_id) {
+    return `https://www.congress.gov/img/member/${member.bioguide_id.toLowerCase()}_200.jpg`
+  }
   return member.photo_url ?? null
 }
 

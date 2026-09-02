@@ -26,7 +26,7 @@ export type Bill = {
   sponsor?: string | null
   sponsor_party?: string | null
 }
-export type Member = { people_id: number; name: string; party: string; role: string; chamber: string; district?: string | null; photo_url?: string | null; leadership_title?: string | null; active?: boolean }
+export type Member = { people_id: number; name: string; party: string; role: string; chamber: string; district?: string | null; photo_url?: string | null; bioguide_id?: string | null; leadership_title?: string | null; active?: boolean }
 export type Committee = { committee_name: string; chamber: string; bills: number }
 
 function Shell({ id, media, title, description, meta, href, action, children }: { id: string; media: React.ReactNode; title: string; description?: string; meta?: string; href: string; action: string; children?: React.ReactNode }) {
