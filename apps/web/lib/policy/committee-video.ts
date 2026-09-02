@@ -30,6 +30,37 @@ export type LatestHearing =
   | { kind: "empty"; channel: string }
   | { kind: "failed"; channel: string; reason: string }
 
+/**
+ * Whether that video is streaming right now.
+ *
+ * This is a second call because it has to be: `playlistItems` does not carry
+ * `liveBroadcastContent` at all — checked against the real payload, the field is
+ * simply absent — while `videos.list` returns it. Without this the LIVE badge
+ * could never fire, which is worse than not having one: dead code promising a
+ * thing it cannot do.
+ *
+ * It costs ONE unit and shares the hourly cache, so a committee page view is 2
+ * units rather than 1, against 10,000 a day. The badge is therefore as fresh as
+ * the hour, which is the v1 ruling exactly; minute-fresh would mean skipping the
+ * cache on this call alone, and that stays priced rather than built.
+ */
+async function isLive(id: string) {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(id)}&key=${KEY}`,
+      { next: { revalidate: 3600 } }
+    )
+    if (!response.ok) return false
+    const json = (await response.json()) as {
+      items?: { snippet?: { liveBroadcastContent?: string } }[]
+    }
+    return json.items?.[0]?.snippet?.liveBroadcastContent === "live"
+  } catch {
+    // A badge we could not confirm is a badge we do not show.
+    return false
+  }
+}
+
 export function hasChannel(code: string) {
   return Boolean(CHANNELS[code.toLowerCase()])
 }
@@ -66,7 +97,7 @@ export async function latestHearing(code: string): Promise<LatestHearing> {
       id,
       title: item.snippet?.title ?? "Hearing",
       publishedAt: item.contentDetails?.videoPublishedAt ?? item.snippet?.publishedAt ?? "",
-      live: item.snippet?.liveBroadcastContent === "live",
+      live: await isLive(id),
       channel: channel.title,
     }
   } catch (error) {
