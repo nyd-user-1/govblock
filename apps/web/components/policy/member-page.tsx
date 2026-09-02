@@ -1,12 +1,9 @@
-import Link from "next/link"
-
 import { stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
-import { ArrowUpRight } from "lucide-react"
 
-import { hasSeal } from "@/lib/imagery"
-import { ChamberSeal, PartyDot } from "@/components/policy/imagery"
+import { PartyDot } from "@/components/policy/imagery"
 import { MemberOffice, MemberOfficialPortrait } from "@/components/policy/member-congress"
+import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
 // member page: every surface that named a member stopped at the name. This is
@@ -55,60 +52,35 @@ export function MemberFeed({
     // corner, and a marker that is a chamber seal rather than an ordinal — and
     // the number was never the point: which chamber a bill is in says more
     // than that it was the fourth one listed.
-    <div className="not-typeset mt-6 mb-8 flex flex-col">
+    //
+    // This list *is* the canon, so it no longer draws the item itself: the
+    // shape moved to record-item.tsx and the other five lists read it from
+    // there. What stays here is what only this page knows — that the entry is a
+    // bill, that the member's own page need not repeat the sponsor, and that a
+    // vote tab says how they voted.
+    <RecordList>
       {bills.map((bill, index) => (
-        <Link
+        <RecordItem
           key={bill.bill_id}
           href={`/docs/bills/${bill.bill_id}`}
-          className="group relative flex gap-4 rounded-lg px-3 py-4 no-underline transition-colors hover:bg-muted/50 md:px-4"
-        >
-          <span className="shrink-0 pt-0.5">
-            {hasSeal(state, bill.body) ? (
-              <ChamberSeal state={state} chamber={bill.body} size={36} />
-            ) : (
-              // The ruled fallback: no seal on file, so the ordinal stays,
-              // matching the numbered circle this list used to draw.
-              <span className="flex size-9 items-center justify-center rounded-full bg-muted text-center font-mono text-sm font-medium text-muted-foreground">
-                {index + 1}
-              </span>
-            )}
-          </span>
-
-          <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
-              {bill.bill_number}
-              {bill.last_action && (
-                <span className="min-w-0 truncate font-normal text-muted-foreground">
-                  {truncate(bill.last_action, 90)}
-                </span>
-              )}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {[
-                bill.last_action_date ? fmtDate(bill.last_action_date) : null,
-                bill.status_desc || "Introduced",
-                bill.committee ? `${bill.committee} Committee` : null,
-                vote ? `Voted ${vote}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-            <span className="text-sm text-foreground">{truncate(bill.title, 240)}</span>
-          </span>
-
-          {/* The row has always linked to the bill; now it looks like it does. */}
-          <ArrowUpRight
-            aria-hidden
-            className="absolute top-3 right-3 size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-          />
-        </Link>
+          avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
+          title={bill.bill_number}
+          lead={bill.last_action}
+          meta={[
+            bill.last_action_date ? fmtDate(bill.last_action_date) : null,
+            bill.status_desc || "Introduced",
+            bill.committee ? `${bill.committee} Committee` : null,
+            vote ? `Voted ${vote}` : null,
+          ]}
+          description={truncate(bill.title, 240)}
+        />
       ))}
       {typeof total === "number" && total > bills.length && (
         <p className="px-3 pt-2 text-sm text-muted-foreground md:px-4">
           Showing the {bills.length} most recent of {fmtNumber(total)}.
         </p>
       )}
-    </div>
+    </RecordList>
   )
 }
 
