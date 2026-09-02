@@ -23,6 +23,7 @@ import {
 } from "@/lib/agents/inbox"
 import { emptyRun, runAgent } from "@/lib/agents/run-client"
 import { cn } from "@/lib/utils"
+import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
@@ -372,6 +373,18 @@ export default function Page() {
                       // and the copy affordance is the one every chat output
                       // has: present on hover, out of the way otherwise.
                       <div className="relative rounded-lg bg-muted/60 p-4">
+                        {/* Save to Drive sits beside Copy because it is the
+                            same kind of act — take this reply somewhere of
+                            your own — and it saves the string the reader is
+                            looking at, so the document cannot differ from the
+                            report on the page. */}
+                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                          {!message.run?.failed && (
+                            <SaveToDrive
+                              name={open.subject || "govblock report"}
+                              markdown={message.body}
+                            />
+                          )}
                         <button
                           type="button"
                           aria-label="Copy this reply"
@@ -380,7 +393,7 @@ export default function Page() {
                             setCopied(message.id)
                             window.setTimeout(() => setCopied(null), 1500)
                           }}
-                          className="absolute top-2 right-2 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
+                          className="rounded-md p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
                         >
                           {copied === message.id ? (
                             <Check className="size-4" />
@@ -388,6 +401,7 @@ export default function Page() {
                             <Copy className="size-4" />
                           )}
                         </button>
+                        </div>
                         <div
                           className={cn(
                             "text-sm whitespace-pre-wrap",

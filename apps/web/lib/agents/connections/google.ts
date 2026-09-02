@@ -146,6 +146,7 @@ export async function addToCalendar({
   description,
   start,
   end,
+  timeZone,
   url,
 }: {
   accessToken: string
@@ -154,10 +155,17 @@ export async function addToCalendar({
   /** RFC3339, or a bare date for an all-day entry. */
   start: string
   end?: string
+  /**
+   * IANA zone for a timed entry whose start carries no offset. Legislative
+   * calendars publish a wall-clock time and no zone, and the reader's own zone
+   * is the wrong one — a Texas hearing is at 8:30 in Austin whoever is looking.
+   */
+  timeZone?: string
   url?: string
 }) {
   const allDay = !start.includes("T")
-  const when = (value: string) => (allDay ? { date: value } : { dateTime: value })
+  const when = (value: string) =>
+    allDay ? { date: value } : { dateTime: value, ...(timeZone ? { timeZone } : {}) }
   const response = await fetch(
     "https://www.googleapis.com/calendar/v3/calendars/primary/events",
     {

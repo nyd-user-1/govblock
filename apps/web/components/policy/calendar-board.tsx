@@ -7,6 +7,8 @@ import { stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, fmtTime, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import type { Hearing } from "@/lib/policy/types"
+import { hearingWhen } from "@/lib/policy/hearing-when"
+import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { ChamberSeal } from "@/components/policy/imagery"
 import {
@@ -28,6 +30,25 @@ import {
 const ALL = "__all__"
 const iso = (offsetDays: number) =>
   new Date(Date.now() + offsetDays * 864e5).toISOString().slice(0, 10)
+
+// What the event says on the reader's own calendar. The committee and the bill
+// are the two things that identify a hearing to someone looking at next
+// Tuesday, so they lead; the bill's title is the body, and the link comes back
+// here.
+export function hearingSummary(hearing: Hearing) {
+  const what = (hearing.description || "").trim() || `${hearing.committee ?? ""} hearing`.trim() || "Hearing"
+  return hearing.bill_number ? `${what} · ${hearing.bill_number}` : what
+}
+
+export function hearingDescription(hearing: Hearing) {
+  return [
+    hearing.title || null,
+    hearing.location ? `Location: ${hearing.location}` : null,
+    hearing.committee ? `Committee: ${hearing.committee}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+}
 
 export function CalendarBoard() {
   const { state, session } = useJurisdiction()
@@ -153,6 +174,13 @@ export function CalendarBoard() {
               {hearing.location ? ` · ${truncate(hearing.location, 28)}` : ""}
             </span>
             <span>{truncate(hearing.title ?? "", 90)}</span>
+            <AddToCalendar
+              className="-ml-1.5 mt-1 self-start"
+              summary={hearingSummary(hearing)}
+              description={hearingDescription(hearing)}
+              when={hearingWhen(hearing.date, hearing.time, state)}
+              url={`/docs/bills/${hearing.bill_id}`}
+            />
           </CardContent>
         </Card>
       ))}

@@ -4,6 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { hearingWhen, instantWhen } from "@/lib/policy/hearing-when"
+import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import { parentCode } from "@/lib/policy/congress"
 import { useCongress, useCongressRecord } from "@/lib/policy/use-congress"
 import { H2, Table } from "@/components/typeset"
@@ -187,6 +189,21 @@ export function CommitteeMeetings() {
                 .filter(Boolean)
                 .join(" · ")}
             </p>
+            {meeting.date && (
+              <p data-not-typeset="" className="mt-2">
+                <AddToCalendar
+                  className="-ml-1.5"
+                  summary={truncate(meeting.title ?? meeting.type ?? "Committee meeting", 160)}
+                  description={[where || null, meeting.meetingStatus ?? null].filter(Boolean).join("\n\n")}
+                  when={
+                    meeting.date.includes("T")
+                      ? instantWhen(meeting.date)
+                      : hearingWhen(meeting.date, null, "US")
+                  }
+                  url={`/docs/committees/${c.code}`}
+                />
+              </p>
+            )}
             {witnesses.length > 0 && (
               <p>
                 Witnesses:{" "}

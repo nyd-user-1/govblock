@@ -52,9 +52,16 @@ export function ConnectRow({ service }: { service: GoogleService }) {
   if (state.kind === "connected")
     return <StatusChip state="connected" label="Connected in this browser" />
 
+  // flex-wrap, not truncate: "Not connected" and Connect want 173.8px of a
+  // 170.7px row, and a chip clipped to "Not connect…" is the same defect as the
+  // name clipped to "Go…", one element over. Wrapping costs a line only on the
+  // cards that need one.
   return (
-    <div className="flex items-center justify-between gap-2">
-      <StatusChip state={state.kind === "checking" ? "unknown" : "available"} />
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <StatusChip
+        state={state.kind === "checking" ? "unknown" : "available"}
+        className="shrink-0"
+      />
       <Button
         size="sm"
         className="shrink-0"

@@ -7,6 +7,8 @@ import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtDate, fmtTime, truncate } from "@/lib/format"
+import { hearingWhen } from "@/lib/policy/hearing-when"
+import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import { CardFrame } from "@/components/card-frame"
 import { cn } from "@govblock/ui/lib/utils"
 import { Badge } from "@govblock/ui/components/badge"
@@ -30,7 +32,7 @@ const stamp = (h: { date: string; time: string | null }) => `${h.date} ${h.time 
 type Hearing = (typeof F.hearings)[number]
 
 export function CalendarCard({ compact = false, committee }: { compact?: boolean; committee?: string }) {
-  const { data } = useScoped<{ rows: Hearing[]; through: string | null }>("hearings-recent", {
+  const { data, state } = useScoped<{ rows: Hearing[]; through: string | null }>("hearings-recent", {
     rows: F.hearings,
     through: null,
   })
@@ -89,16 +91,37 @@ export function CalendarCard({ compact = false, committee }: { compact?: boolean
         )}
         <ItemGroup className={cn(open && "max-h-80 overflow-y-auto")}>
           {shown.map((row, index) => (
-            <Item key={`${row.bill_id}-${index}`} variant="muted" size={compact ? "sm" : "default"} render={<Link href={`/docs/bills/${row.bill_id}`} className="no-underline" />}>
-              <ItemContent className="min-w-0">
-                <ItemTitle className="block w-full min-w-0 truncate">{truncate(row.description, 40)}</ItemTitle>
-                <ItemDescription>
-                  {fmtDate(row.date)}
-                  {row.time ? ` · ${fmtTime(row.time)}` : ""}
-                </ItemDescription>
-              </ItemContent>
-              {row.bill_number && !compact && <Badge variant="secondary">{row.bill_number}</Badge>}
-            </Item>
+            // The whole row is a link, so the calendar button cannot live
+            // inside it — a button nested in an anchor is invalid and the
+            // parser breaks hydration over it. It sits alongside instead, over
+            // the badge's place, appearing on hover and always where there is
+            // no hover to have.
+            <div key={`${row.bill_id}-${index}`} className="group/row relative">
+              <Item variant="muted" size={compact ? "sm" : "default"} render={<Link href={`/docs/bills/${row.bill_id}`} className="no-underline" />}>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="block w-full min-w-0 truncate">{truncate(row.description, 40)}</ItemTitle>
+                  <ItemDescription>
+                    {fmtDate(row.date)}
+                    {row.time ? ` · ${fmtTime(row.time)}` : ""}
+                  </ItemDescription>
+                </ItemContent>
+                {row.bill_number && !compact && (
+                  <Badge variant="secondary" className="transition-opacity group-hover/row:opacity-0">
+                    {row.bill_number}
+                  </Badge>
+                )}
+              </Item>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 [@media(hover:none)]:opacity-100">
+                <AddToCalendar
+                  className="pointer-events-auto bg-background shadow-xs"
+                  label=""
+                  summary={`${row.description}${row.bill_number ? ` · ${row.bill_number}` : ""}`}
+                  description={row.committee ? `Committee: ${row.committee}` : undefined}
+                  when={hearingWhen(row.date, row.time, state)}
+                  url={`/docs/bills/${row.bill_id}`}
+                />
+              </div>
+            </div>
           ))}
           {!upcoming.length && <p className="py-3 text-center text-sm text-muted-foreground">Nothing calendared from {date ? fmtDate(from, false) : "today"}.</p>}
         </ItemGroup>

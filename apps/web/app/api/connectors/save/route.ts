@@ -25,6 +25,7 @@ type Body = {
   description?: string
   start?: string
   end?: string
+  timeZone?: string
   url?: string
 }
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       description: body.description ? String(body.description) : undefined,
       start,
       end: body.end ? String(body.end) : undefined,
+      timeZone: body.timeZone ? String(body.timeZone) : undefined,
       url: body.url ? String(body.url) : undefined,
     })
     return NextResponse.json({ connected: true, ...event })
