@@ -118,3 +118,36 @@ export function RecordSeal({
     </span>
   )
 }
+
+/**
+ * An image avatar that is not a chamber seal: a nominating department's seal,
+ * or the research service's logo. `shape="rect"` is for a wordmark that will
+ * not survive a circle — the CRS logo is a horizontal lockup, and cropping it
+ * round would cut the words off.
+ */
+export function RecordAvatar({
+  src,
+  alt = "",
+  size = 36,
+  shape = "circle",
+}: {
+  src: string
+  alt?: string
+  size?: number
+  shape?: "circle" | "rect"
+}) {
+  const rect = shape === "rect"
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden bg-muted ring-1 ring-border/60 select-none",
+        rect ? "rounded-md" : "rounded-full"
+      )}
+      style={{ width: rect ? Math.round(size * 1.75) : size, height: size }}
+    >
+      {/* Plain <img>: these are committed files of thirty-odd shapes, and the
+          only thing that matters is that none of them is cropped. */}
+      <img src={src} alt={alt} aria-hidden={alt ? undefined : true} loading="lazy" decoding="async" className="m-0 size-full object-contain p-1" />
+    </span>
+  )
+}

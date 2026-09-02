@@ -6,7 +6,12 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useCongress } from "@/lib/policy/use-congress"
 import { congressGovHref } from "@/lib/policy/congress"
+import { agencySeal, CRS_SEAL } from "@/lib/seals"
 import { SearchDirectory } from "@/components/directory-search"
+// `RecordList` is aliased: this file already exports a `RecordList` — the
+// Congressional Record's daily issues — and that is a surface name, not a
+// shape. The canon's list container comes in as `CanonList`.
+import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@/components/policy/record-item"
 import { Table } from "@/components/typeset"
 
 // The four families that are a page in their own right: the Senate's
@@ -112,38 +117,35 @@ export function NominationsList() {
       federal="The confirmation docket belongs to the Senate. It reads under the federal jurisdiction."
     >
       {(shown) => (
-        <Table>
-          <thead>
-            <tr>
-              <th>Nomination</th>
-              <th>Nominee and office</th>
-              <th>Received</th>
-              <th>Latest action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(shown as Nomination[]).map((row) => (
-              <tr key={row.citation}>
-                <td>
-                  <a
-                    href={`https://www.congress.gov/nomination/119th-congress/${row.number}${row.partNumber ? `/${Number(row.partNumber)}` : ""}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {row.citation ?? "—"}
-                  </a>
-                  {row.organization ? <div className="text-muted-foreground">{row.organization}</div> : null}
-                </td>
-                <td>{truncate(row.description ?? "", 220) || "—"}</td>
-                <td>{row.receivedDate ? fmtDate(row.receivedDate) : "—"}</td>
-                <td>
-                  {row.latestAction?.actionDate ? `${fmtDate(row.latestAction.actionDate)} — ` : ""}
-                  {truncate(row.latestAction?.text ?? "", 140) || "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <CanonList className="my-0">
+          {(shown as Nomination[]).map((row) => {
+            const seal = agencySeal(row.organization)
+            return (
+              <RecordItem
+                key={row.citation}
+                external
+                href={`https://www.congress.gov/nomination/119th-congress/${row.number}${row.partNumber ? `/${Number(row.partNumber)}` : ""}`}
+                avatar={
+                  seal ? (
+                    <RecordAvatar src={seal.file} shape={seal.shape} alt="" />
+                  ) : (
+                    // No seal on Commons we can use: the Senate seal, which is
+                    // the chamber the nomination is actually before.
+                    <RecordSeal state="US" chamber="Senate" />
+                  )
+                }
+                title={row.citation ?? "—"}
+                lead={row.latestAction?.text}
+                meta={[
+                  row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
+                  row.organization,
+                  row.receivedDate ? `Received ${fmtDate(row.receivedDate)}` : null,
+                ]}
+                description={truncate(row.description ?? "", 240) || null}
+              />
+            )
+          })}
+        </CanonList>
       )}
     </Shell>
   )
@@ -178,30 +180,29 @@ export function ReportsList() {
       federal="These are the research service's reports for the federal legislature. They read under the federal jurisdiction."
     >
       {(shown) => (
-        <Table>
-          <thead>
-            <tr>
-              <th>Report</th>
-              <th>Title</th>
-              <th>Kind</th>
-              <th>Published</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(shown as CrsReport[]).map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <a href={`https://crsreports.congress.gov/product/details?prodcode=${row.id}`} target="_blank" rel="noopener noreferrer">
-                    {row.id ?? "—"}
-                  </a>
-                </td>
-                <td>{truncate(row.title ?? "", 200) || "—"}</td>
-                <td>{row.contentType ?? "—"}</td>
-                <td>{row.publishDate ? fmtDate(row.publishDate) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <CanonList className="my-0">
+          {(shown as CrsReport[]).map((row) => (
+            <RecordItem
+              key={row.id}
+              external
+              href={`https://crsreports.congress.gov/product/details?prodcode=${row.id}`}
+              // The research service's logo is a horizontal lockup and does not
+              // survive a circle, so it gets the rectangular avatar.
+              avatar={<RecordAvatar src={CRS_SEAL.file} shape={CRS_SEAL.shape} alt="" />}
+              title={row.id ?? "—"}
+              lead={row.contentType}
+              meta={[
+                row.publishDate ? fmtDate(row.publishDate) : null,
+                row.status,
+                row.updateDate && row.updateDate.slice(0, 10) !== (row.publishDate ?? "").slice(0, 10)
+                  ? `Updated ${fmtDate(row.updateDate)}`
+                  : null,
+                row.version ? `Version ${row.version}` : null,
+              ]}
+              description={truncate(row.title ?? "", 240) || null}
+            />
+          ))}
+        </CanonList>
       )}
     </Shell>
   )
@@ -299,37 +300,28 @@ export function LawsList() {
       federal="These are the public laws of the federal legislature. They read under the federal jurisdiction."
     >
       {(shown) => (
-        <Table>
-          <thead>
-            <tr>
-              <th>Law</th>
-              <th>Bill</th>
-              <th>Title</th>
-              <th>Enacted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(shown as Law[]).map((row) => {
-              const law = row.laws?.[0]
-              return (
-                <tr key={`${row.type}-${row.number}`}>
-                  <td>{law?.number ? `${law.type ?? "Public Law"} ${law.number}` : "—"}</td>
-                  <td>
-                    <a
-                      href={congressGovHref("bill", row.type ?? "HR", row.number ?? "", row.congress)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {row.type} {row.number}
-                    </a>
-                  </td>
-                  <td>{truncate(row.title ?? "", 200) || "—"}</td>
-                  <td>{row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : "—"}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </Table>
+        <CanonList className="my-0">
+          {(shown as Law[]).map((row) => {
+            const law = row.laws?.[0]
+            // The chamber it began in, which is what the bill's own type says.
+            const chamber = /^h/i.test(row.type ?? "") ? "House" : "Senate"
+            return (
+              <RecordItem
+                key={`${row.type}-${row.number}`}
+                external
+                href={congressGovHref("bill", row.type ?? "HR", row.number ?? "", row.congress)}
+                avatar={<RecordSeal state="US" chamber={chamber} />}
+                title={law?.number ? `${law.type ?? "Public Law"} ${law.number}` : `${row.type} ${row.number}`}
+                lead={row.latestAction?.text}
+                meta={[
+                  row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
+                  `${row.type} ${row.number}`,
+                ]}
+                description={truncate(row.title ?? "", 240) || null}
+              />
+            )
+          })}
+        </CanonList>
       )}
     </Shell>
   )
