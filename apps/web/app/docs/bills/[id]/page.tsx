@@ -8,7 +8,7 @@ import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillCosponsorDates, BillRelatedBills, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
-import { BillActions, BillCommittees, BillCostEstimates, BillDepthProvider, BillSubjects, BillTracker } from "@/components/policy/bill-depth"
+import { BillActions, BillCommittees, BillCostEstimates, BillDepthProvider, BillNotes, BillSubjects, BillTracker } from "@/components/policy/bill-depth"
 import { Callout, H2, Table } from "@/components/typeset"
 
 // Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
@@ -219,6 +219,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 )
               }
             />
+
+            <BillNotes />
 
             {sources.length > 0 && (
               <>

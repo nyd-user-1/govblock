@@ -544,6 +544,7 @@ function useBillSections(base: readonly string[]) {
     const record = titles.includes("Actions") ? "Actions" : "History"
     if (c?.reports.length) insert(record, "Committee reports")
     if (depth?.cbo.length) insert("Subjects", "Cost estimate")
+    if (depth?.record?.constitutionalAuthorityStatementText) titles.push("Constitutional authority")
     if (c?.amendmentTotal) insert("Votes", "Amendments")
     if (c?.related.length)
       insert(c.amendmentTotal ? "Amendments" : "Votes", "Related bills")

@@ -45,6 +45,7 @@ export type BillRecord = {
   originChamber?: string | null
   introducedDate?: string | null
   constitutionalAuthorityStatementText?: string | null
+  notes?: { text?: string | null; links?: { name?: string | null; url: string }[] }[]
   sponsors?: {
     bioguideId?: string | null
     fullName?: string | null
@@ -606,6 +607,72 @@ export function BillCostEstimates() {
           </li>
         ))}
       </ul>
+    </>
+  )
+}
+
+/* ---- notes and the constitutional authority statement ---------------------- */
+
+/**
+ * The clause of the Constitution the sponsor cites as the power to legislate.
+ *
+ * Required of every House bill since 2011 and published in BILLSTATUS as a
+ * `<pre>` block quoting the Congressional Record; 6,977 of the 119th's 18,514
+ * bills carry one, and H.R. 1 does not, because it was reported as an original
+ * measure rather than introduced.
+ *
+ * Rendered as the block it is, with the markup stripped rather than injected.
+ * Words run together in it — "pursuantto the following" — because they run
+ * together in govinfo's own CDATA, which lost the Record's line breaks before
+ * we ever saw it. Repairing that would mean guessing where the lines were.
+ *
+ * `notes` is congress.gov's own field for a bill-level editorial note. It is
+ * null on every bill sampled and BILLSTATUS has no element for it at all, so
+ * the section simply does not appear rather than standing empty forever.
+ */
+const stripTags = (html: string) =>
+  html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .trim()
+
+export function BillNotes() {
+  const c = use()
+  if (!c?.onCongress) return null
+  const authority = c.record?.constitutionalAuthorityStatementText
+  const notes = c.record?.notes ?? []
+  if (!authority && !notes.length) return null
+  return (
+    <>
+      {authority && (
+        <>
+          <H2>Constitutional authority</H2>
+          <pre className="text-sm whitespace-pre-wrap">{stripTags(authority)}</pre>
+        </>
+      )}
+      {notes.length > 0 && (
+        <>
+          <H2>Notes</H2>
+          <ul>
+            {notes.map((note, index) => (
+              <li key={index}>
+                {note.text ? stripTags(note.text) : null}
+                {note.links?.map((link) => (
+                  <span key={link.url}>
+                    {" "}
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      {link.name ?? link.url}
+                    </a>
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </>
   )
 }
