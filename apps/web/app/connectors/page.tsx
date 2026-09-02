@@ -63,8 +63,8 @@ function Card({ connector }: { connector: ConnectorStatus }) {
           tint={connector.tint}
           live={connector.state === "connected"}
         />
-        <span className="font-medium">{connector.name}</span>
-        <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="min-w-0 truncate font-medium">{connector.name}</span>
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
           <Dot state={connector.state} />
           {STATE_LABEL[connector.state]}
         </span>
