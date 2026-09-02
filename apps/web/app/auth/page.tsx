@@ -33,7 +33,36 @@ async function signOutEverywhere() {
   await signOut({ redirectTo: "/auth" })
 }
 
-export default async function AuthPage() {
+// Auth.js sends its failures back here, because `pages.error` points at this
+// page. Left unread, the `?error=` would return a reader to an unchanged
+// sign-in button with no account and no explanation — the worst of both, and
+// the exact shape of failure this project's creed calls dishonest. So each code
+// gets a sentence, and the sentence says whose problem it is.
+//
+// The one failure that does NOT arrive here is worth naming: while the consent
+// screen is in Testing, Google blocks an address that is not on the test-user
+// list **on Google's own page**, and the reader never comes back to us at all.
+// Nothing this file can render will catch that one.
+const ERRORS: Record<string, string> = {
+  Configuration:
+    "This deployment's sign-in configuration is incomplete or wrong — that is ours to fix, not something you can retry into working.",
+  AccessDenied:
+    "Google would not hand over the sign-in. That is usually consent being declined, or this address not being on the test-user list while the consent screen is still in Testing.",
+  Verification: "That sign-in link has already been used, or it has expired.",
+  OAuthSignin: "We could not start the handoff to Google.",
+  OAuthCallback: "Google answered, but we could not read the answer.",
+  OAuthAccountNotLinked:
+    "That email address has already signed in here by a different route, and linking the two is not built yet.",
+  CredentialsSignin: "Those sign-in details were not accepted.",
+  SessionRequired: "You need to be signed in to see that.",
+}
+
+export default async function AuthPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error } = await searchParams
   // `auth()` can throw when AUTH_SECRET is absent, which is exactly the state
   // this page exists to explain — so it must not be the thing that 500s it.
   // `auth` is overloaded (server component / middleware / route handler), so
@@ -95,6 +124,17 @@ export default async function AuthPage() {
         </div>
       ) : (
         <div className="not-prose flex flex-col gap-4 rounded-xl border p-5">
+          {error ? (
+            <div className="flex flex-col gap-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">Sign-in did not complete</p>
+              <p className="text-sm text-muted-foreground">
+                {ERRORS[error] ?? "Sign-in failed, and Google did not say why in a way we recognise."}{" "}
+                <span className="text-xs">
+                  (<code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>)
+                </span>
+              </p>
+            </div>
+          ) : null}
           {signInConfigured ? (
             <>
               <form action={signInWithGoogle}>
