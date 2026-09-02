@@ -1,13 +1,14 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { SearchDirectory } from "@/components/directory-search"
 import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
-import { FlagChip } from "@/components/policy/imagery"
+import { fmtDate } from "@/lib/format"
+import { ChamberSeal, FlagChip, MemberPortrait } from "@/components/policy/imagery"
+import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { matchPages } from "@/lib/search-pages"
@@ -73,23 +74,18 @@ function Snippet({ text }: { text: string }) {
   )
 }
 
+// The section's bordered box and its `divide-y` are gone: the canon puts a 1 px
+// rule on the item itself, and a box around a list of ruled items draws the same
+// line twice and boxes it as well.
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   if (!count) return null
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col">
       <h2 className="text-sm font-medium text-muted-foreground">
         {title} <span className="tabular-nums">({count})</span>
       </h2>
-      <div className="divide-y divide-border rounded-lg border">{children}</div>
+      <RecordList className="mt-2 mb-2">{children}</RecordList>
     </section>
-  )
-}
-
-function Row({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="flex items-baseline gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-muted/50">
-      {children}
-    </Link>
   )
 }
 
@@ -174,72 +170,75 @@ function SearchResults() {
         <>
           <Section title="Bills" count={bills.length}>
             {bills.map((bill) => (
-              <Row key={bill.bill_id} href={`/docs/bills/${bill.bill_id}?state=${bill.state}`}>
-                <FlagChip state={bill.state} width={20} className="self-center" />
-                <span className="shrink-0 font-medium">{bill.bill_number}</span>
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
-                <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                  {bill.status_desc ?? ""}
-                  {bill.last_action_date ? ` · ${String(bill.last_action_date).slice(0, 10)}` : ""}
-                </span>
-              </Row>
+              <RecordItem
+                key={bill.bill_id}
+                href={`/docs/bills/${bill.bill_id}?state=${bill.state}`}
+                // The flag, not a chamber seal: these results span every
+                // jurisdiction, and which one a row came from is the first thing
+                // a reader needs.
+                avatar={<FlagChip state={bill.state} width={36} />}
+                title={bill.bill_number}
+                lead={bill.title}
+                meta={[
+                  bill.last_action_date ? fmtDate(bill.last_action_date) : null,
+                  bill.status_desc,
+                ]}
+              />
             ))}
           </Section>
           <Section title="Text" count={texts.length}>
             {texts.map((text) => (
-              <Row key={`${text.bill_id}-${text.document_id}`} href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}>
-                <FlagChip state={text.state} width={20} className="self-center" />
-                <span className="shrink-0 font-medium">{text.bill_number}</span>
-                <Snippet text={text.snippet} />
-              </Row>
+              <RecordItem
+                key={`${text.bill_id}-${text.document_id}`}
+                href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}
+                avatar={<FlagChip state={text.state} width={36} />}
+                title={text.bill_number}
+                lead={text.title}
+                meta={[stateName(text.state)]}
+                // The match itself is the description, highlights kept.
+                description={<Snippet text={text.snippet} />}
+              />
             ))}
           </Section>
           <Section title="Members" count={members.length}>
             {members.map((member) => (
-              <Row key={member.people_id} href={memberHref(member.people_id, member.state)}>
-                <FlagChip state={member.state} width={20} className="self-center" />
-                <span className="shrink-0 font-medium">
-                  {member.name}
-                  {member.active ? "" : " (Ret.)"}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {[stateName(member.state), member.party, member.chamber, member.district].filter(Boolean).join(" · ")}
-                </span>
-              </Row>
+              <RecordItem
+                key={member.people_id}
+                href={memberHref(member.people_id, member.state)}
+                avatar={<MemberPortrait name={member.name} state={member.state} chamber={member.chamber} size={36} />}
+                title={`${member.name}${member.active ? "" : " (Ret.)"}`}
+                meta={[stateName(member.state), member.party, member.chamber, member.district]}
+              />
             ))}
           </Section>
           <Section title="Committees" count={committees.length}>
             {committees.map((committee) => (
-              <Row
+              <RecordItem
                 key={`${committee.state}-${committee.committee}`}
                 href={`/docs/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
-              >
-                <FlagChip state={committee.state} width={20} className="self-center" />
-                <span className="shrink-0 font-medium">{committee.committee}</span>
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  {[stateName(committee.state), committee.chamber].filter(Boolean).join(" · ")} ·{" "}
-                  {committee.bills} bills this session
-                </span>
-              </Row>
+                avatar={<ChamberSeal state={committee.state} chamber={committee.chamber} size={36} />}
+                title={committee.committee}
+                meta={[
+                  stateName(committee.state),
+                  committee.chamber,
+                  `${committee.bills} bills this session`,
+                ]}
+              />
             ))}
           </Section>
           <Section title="Topics" count={topics.length}>
             {topics.map((topic) => (
-              <Row
+              <RecordItem
                 key={topic.value}
                 href={`/docs/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
-              >
-                <span className="min-w-0 flex-1 truncate font-medium">{topic.value}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{topic.count} bills</span>
-              </Row>
+                title={topic.value}
+                meta={[`${topic.count} bills`]}
+              />
             ))}
           </Section>
           <Section title="Pages" count={pages.length}>
             {pages.map((page) => (
-              <Row key={page.href} href={page.href}>
-                <span className="shrink-0 font-medium">{page.name}</span>
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">{page.group}</span>
-              </Row>
+              <RecordItem key={page.href} href={page.href} title={page.name} meta={[page.group]} />
             ))}
           </Section>
         </>

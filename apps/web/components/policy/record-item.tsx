@@ -41,7 +41,8 @@ export function RecordItem({
   href: string
   /** congress.gov and crsreports are other people's pages; they open away. */
   external?: boolean
-  avatar: React.ReactNode
+  /** Omitted where the family has no emblem — a topic, a page of this site. */
+  avatar?: React.ReactNode
   /** The bold slot: a bill number, a citation, a public-law number. */
   title: React.ReactNode
   /** Row 1's muted tail — the latest action, one line, truncated. */
@@ -55,7 +56,7 @@ export function RecordItem({
   const line = (meta ?? []).filter(Boolean).join(" · ")
   const body = (
     <>
-      <span className="shrink-0 pt-0.5">{avatar}</span>
+      {avatar && <span className="shrink-0 pt-0.5">{avatar}</span>}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
           {/* The bold slot never wraps: a citation is one token and `PN730-2`
