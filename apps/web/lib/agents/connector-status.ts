@@ -57,24 +57,26 @@ export async function getConnectorStatuses(): Promise<ConnectorStatus[]> {
         detail: "Included in your Google Drive connection — the same drive.file grant, no second consent.",
       }
 
-    // Slack's OAuth client now EXISTS — `govblock-slack` is READY in the token
-    // vault, holding the client secret so the app never has to. What is missing
-    // is one console paste of the vault's callback URL into the Slack app, and
-    // until that lands consent would fail on Slack's own page. So the state is
-    // still "unavailable", but the detail says which piece is missing and whose
-    // it is, rather than repeating a sentence that is no longer true.
+    // Slack is connectable: `govblock-slack` is READY in the token vault, it
+    // holds the client secret so the app never has to, and the callback URL is
+    // registered on the Slack app. Consent is walkable, so "available" is the
+    // true state and a dimmed card would be understating it.
     //
-    // The other half of the truth, kept here deliberately: the grant the vault
-    // can hand back is a BOT token. A post lands in the reader's own workspace,
-    // in a channel they pick, on their own consent — but under govblock's name,
-    // not theirs. Slack nests the user token inside `authed_user` and the vault
+    // The half that stays said, because it is the half a reader would otherwise
+    // discover from a message with the wrong name on it: the grant the vault can
+    // hand back is a BOT token. A post lands in the reader's own workspace, in a
+    // channel they pick, on their own consent — under govblock's name, not
+    // theirs. Slack nests the personal token inside `authed_user` and the vault
     // has no way to reach it.
+    //
+    // This detail renders on /agents and /agents/[slug], not only here, so a
+    // sentence left stale here is stale in three places.
     if (connector.id === "slack")
       return {
         ...connector,
-        state: "unavailable",
+        state: "available",
         detail:
-          "The OAuth client is ready in the token vault; govblock's redirect URL still has to be added to the Slack app, and that one is ours. Posts will arrive under govblock's name rather than yours — Slack keeps the personal token somewhere the vault cannot reach.",
+          "An OAuth grant to your own Slack workspace, held in the token vault rather than by us. Posts arrive under govblock's name rather than yours — Slack keeps the personal token somewhere the vault cannot reach.",
       }
 
     return {
