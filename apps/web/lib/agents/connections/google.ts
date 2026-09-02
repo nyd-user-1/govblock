@@ -94,7 +94,14 @@ export async function grantFor(
   userId: string,
   service: GoogleService,
   returnUrl: string,
-  sessionUri?: string
+  sessionUri?: string,
+  /**
+   * Start a new 3LO flow whatever session is already on file. This is what an
+   * explicit Connect CLICK means: the vault remembers a reader's in-flight
+   * session server-side and will answer about THAT instead of handing back a
+   * url, which leaves a click with nothing to open.
+   */
+  force?: boolean
 ): Promise<Grant> {
   const out = await agentcore().send(
     new GetResourceOauth2TokenCommand({
@@ -103,7 +110,8 @@ export async function grantFor(
       scopes: [SCOPES[service]],
       oauth2Flow: "USER_FEDERATION",
       resourceOauth2ReturnUrl: returnUrl,
-      ...(sessionUri ? { sessionUri } : {}),
+      ...(sessionUri && !force ? { sessionUri } : {}),
+      ...(force ? { forceAuthentication: true } : {}),
     })
   )
   if (out.accessToken) return { kind: "token", accessToken: out.accessToken }

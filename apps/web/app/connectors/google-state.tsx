@@ -36,13 +36,13 @@ type Value = {
 
 const Context = React.createContext<Value | null>(null)
 
-async function askOnce(service: GoogleService, sessionUri: string | undefined) {
+async function askOnce(service: GoogleService, sessionUri: string | undefined, force = false) {
   const response = await fetch(`/api/connectors/${service}/connect`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     // The session this browser already opened, so the vault answers about that
     // one instead of starting another nobody will walk through.
-    body: JSON.stringify({ claimCheck: claimCheck(), sessionUri }),
+    body: JSON.stringify({ claimCheck: claimCheck(), sessionUri, force }),
   })
   const json = (await response.json()) as {
     connected?: boolean
@@ -57,7 +57,11 @@ async function askOnce(service: GoogleService, sessionUri: string | undefined) {
   // flight, so it stays held — the reader may be finishing consent in another
   // tab, and the next check is the one that finds the token.
   else if (json.sessionUri) rememberSession(service, json.sessionUri)
-  return { connected: Boolean(json.connected), authorizeUrl: json.authorizeUrl }
+  return {
+    connected: Boolean(json.connected),
+    authorizeUrl: json.authorizeUrl,
+    sessionStatus: json.sessionStatus,
+  }
 }
 
 // A session outlives nothing and localStorage outlives everything, so a stale

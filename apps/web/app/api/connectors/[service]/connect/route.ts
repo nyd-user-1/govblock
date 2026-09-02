@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
   if (!SERVICES.has(service as GoogleService))
     return NextResponse.json({ error: `unknown service ${service}` }, { status: 404 })
 
-  let body: { claimCheck?: string; sessionUri?: string }
+  let body: { claimCheck?: string; sessionUri?: string; force?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -42,7 +42,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ ser
       userId,
       service as GoogleService,
       `${origin}/api/connectors/callback`,
-      session
+      session,
+      body.force === true
     )
     if (grant.kind === "token") return NextResponse.json({ connected: true })
     if (grant.kind === "pending")
