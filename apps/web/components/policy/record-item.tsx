@@ -58,7 +58,9 @@ export function RecordItem({
       <span className="shrink-0 pt-0.5">{avatar}</span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
-          {title}
+          {/* The bold slot never wraps: a citation is one token and `PN730-2`
+              broken across two lines reads as two different nominations. */}
+          <span className="shrink-0 whitespace-nowrap">{title}</span>
           {lead && <span className="min-w-0 truncate font-normal text-muted-foreground">{truncate(lead, 90)}</span>}
         </span>
         {line && <span className="mt-1 text-xs text-muted-foreground">{line}</span>}

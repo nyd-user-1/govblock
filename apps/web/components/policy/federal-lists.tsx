@@ -305,6 +305,10 @@ export function LawsList() {
             const law = row.laws?.[0]
             // The chamber it began in, which is what the bill's own type says.
             const chamber = /^h/i.test(row.type ?? "") ? "House" : "Senate"
+            // A law's latest action is "Became Public Law No: 119-102." — which
+            // is the bold slot again. Row 1 says it once.
+            const action = row.latestAction?.text
+            const lead = law?.number && action?.includes(law.number) ? null : action
             return (
               <RecordItem
                 key={`${row.type}-${row.number}`}
@@ -312,7 +316,7 @@ export function LawsList() {
                 href={congressGovHref("bill", row.type ?? "HR", row.number ?? "", row.congress)}
                 avatar={<RecordSeal state="US" chamber={chamber} />}
                 title={law?.number ? `${law.type ?? "Public Law"} ${law.number}` : `${row.type} ${row.number}`}
-                lead={row.latestAction?.text}
+                lead={lead}
                 meta={[
                   row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
                   `${row.type} ${row.number}`,
