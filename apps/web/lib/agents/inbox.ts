@@ -294,13 +294,26 @@ export function matches(thread: Thread, query: string) {
   return hay.includes(q)
 }
 
+/** A preview reads as prose, not as the markdown it happens to be written in. */
+function flatten(body: string) {
+  return body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s*\|.*\|\s*$/gm, " ")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1")
+    .replace(/[*_`>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 /** The line under a thread's subject in the list. */
 export function teaser(thread: Thread) {
   if (thread.status === "running") return running(thread)
   const last = thread.messages.at(-1)
   if (!last) return ""
-  if (thread.status === "failed") return last.body.slice(0, 160) || "Failed."
-  return last.body.replace(/\s+/g, " ").trim().slice(0, 160)
+  if (thread.status === "failed") return flatten(last.body).slice(0, 160) || "Failed."
+  return flatten(last.body).slice(0, 160)
 }
 
 /** What a running thread is doing right now, for the pulse. */

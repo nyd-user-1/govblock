@@ -51,10 +51,67 @@ function Inline({ text }: { text: string }) {
 
 const HEADING = /^(#{1,4})\s+(.*)$/
 
+const ROW = /^\s*\|(.+)\|\s*$/
+const DIVIDER = /^\s*\|[\s:|-]+\|\s*$/
+
+function cells(line: string) {
+  return (ROW.exec(line)?.[1] ?? "").split("|").map((cell) => cell.trim())
+}
+
+/** A pipe table, drawn. The agents write them when there really are columns. */
+function Table({ lines }: { lines: string[] }) {
+  const [head, ...body] = lines.filter((line) => !DIVIDER.test(line))
+  return (
+    <span className="my-2 block overflow-x-auto">
+      <table className="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr className="border-b">
+            {cells(head ?? "").map((cell, i) => (
+              <th key={i} className="py-1.5 pr-4 font-medium">
+                <Inline text={cell} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, r) => (
+            <tr key={r} className="border-b border-border/50 last:border-0">
+              {cells(row).map((cell, c) => (
+                <td key={c} className="py-1.5 pr-4 align-top">
+                  <Inline text={cell} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </span>
+  )
+}
+
 export function Prose({ text }: { text: string }) {
+  // Pull whole tables out first: they are the one shape that spans lines, and
+  // a line-at-a-time renderer would draw their pipes.
+  const source = text.split("\n")
+  const blocks: { table?: string[]; from: number }[] = []
+  for (let i = 0; i < source.length; i += 1) {
+    if (!ROW.test(source[i] ?? "")) continue
+    let end = i
+    while (end + 1 < source.length && ROW.test(source[end + 1] ?? "")) end += 1
+    // Two rows and a divider is the least that is meaningfully a table.
+    if (end - i >= 2 && source.slice(i, end + 1).some((line) => DIVIDER.test(line))) {
+      blocks.push({ table: source.slice(i, end + 1), from: i })
+      i = end
+    }
+  }
+  const tableAt = new Map(blocks.map((block) => [block.from, block.table!]))
+  const inTable = new Set(blocks.flatMap((block) => block.table!.map((_, n) => block.from + n)))
+
   return (
     <>
-      {text.split("\n").map((line, i, all) => {
+      {source.map((line, i, all) => {
+        if (tableAt.has(i)) return <Table key={i} lines={tableAt.get(i)!} />
+        if (inTable.has(i)) return null
         const end = i === all.length - 1 ? "" : "\n"
         const heading = HEADING.exec(line)
         if (heading)

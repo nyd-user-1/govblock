@@ -57,7 +57,11 @@ function listRule(
   return new InputRule(match, (state, m, start, end) => {
     const $start = state.doc.resolve(start)
     for (let depth = $start.depth; depth > 0; depth -= 1)
-      if ($start.node(depth).type === schema.nodes.list_item) return null
+      if ($start.node(depth).type === schema.nodes.list_item)
+        // Already in a list: Enter has already made this bullet, so the marker
+        // the reader typed is a duplicate. Swallow it rather than nesting a
+        // list (ProseMirror's default) or leaving an escaped "\-" in the text.
+        return state.tr.delete(start, end)
 
     const tr = state.tr.delete(start, end)
     let wrapped: Transaction | null = null
