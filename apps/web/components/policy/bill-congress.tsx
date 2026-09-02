@@ -290,26 +290,31 @@ function RowBox({ count, children }: { count: number; children: React.ReactNode 
     setHeight(rows[10].getBoundingClientRect().top - box.getBoundingClientRect().top)
   }, [count])
 
-  if (height === null) return <div ref={ref}>{children}</div>
-
+  // The wrapper carries `overflow-y-auto` from the first render, before the
+  // height is known — not only once it is. A scroll container does not collapse
+  // its child's top margin and a plain div does, so measuring in one box model
+  // and applying in the other pushed the content down by the list's own top
+  // margin and cut the tenth row in half.
   return (
     <>
       <div
         ref={ref}
         className="overflow-y-auto overscroll-contain"
-        style={open ? undefined : { maxHeight: height }}
+        style={height !== null && !open ? { maxHeight: height } : undefined}
       >
         {children}
       </div>
-      <p>
-        <button
-          type="button"
-          onClick={() => setOpen((was) => !was)}
-          className="cursor-pointer text-sm font-medium text-foreground underline underline-offset-4"
-        >
-          {open ? "Show fewer" : `Show all ${fmtNumber(count)}`}
-        </button>
-      </p>
+      {height !== null && (
+        <p>
+          <button
+            type="button"
+            onClick={() => setOpen((was) => !was)}
+            className="cursor-pointer text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            {open ? "Show fewer" : `Show all ${fmtNumber(count)}`}
+          </button>
+        </p>
+      )}
     </>
   )
 }
