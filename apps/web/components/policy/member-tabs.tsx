@@ -19,18 +19,20 @@ export function MemberTabs({
   nay: React.ReactNode
 }) {
   // The pills sat tight under the Record heading; twelve pixels is what the
-  // heading needed to stop touching them.
+  // heading needed to stop touching them. The emoji are Brendan's, and they are
+  // emoji rather than icons on purpose — they read at pill size and carry the
+  // three states apart at a glance.
   return (
     <Tabs defaultValue="sponsored" className="not-typeset">
       <TabsList className="mt-3">
         <TabsTrigger value="sponsored">
-          Sponsored <Badge variant="outline">{counts.sponsored}</Badge>
+          <span aria-hidden>😀</span> Sponsored <Badge variant="outline">{counts.sponsored}</Badge>
         </TabsTrigger>
         <TabsTrigger value="aye">
-          AYE <Badge variant="outline">{counts.aye}</Badge>
+          <span aria-hidden>✅</span> AYE <Badge variant="outline">{counts.aye}</Badge>
         </TabsTrigger>
         <TabsTrigger value="nay">
-          NAY <Badge variant="outline">{counts.nay}</Badge>
+          <span aria-hidden>❌</span> NAY <Badge variant="outline">{counts.nay}</Badge>
         </TabsTrigger>
       </TabsList>
       <TabsContent value="sponsored">{sponsored}</TabsContent>
