@@ -59,6 +59,20 @@
         "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
         "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
       ]
+    },
+    {
+      "Sid": "AgentCoreIdentity",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock-agentcore:GetWorkloadAccessTokenForUserId",
+        "bedrock-agentcore:GetResourceOauth2Token"
+      ],
+      "Resource": [
+        "arn:aws:bedrock-agentcore:us-east-1:638175140432:workload-identity-directory/default",
+        "arn:aws:bedrock-agentcore:us-east-1:638175140432:workload-identity-directory/default/workload-identity/govblock",
+        "arn:aws:bedrock-agentcore:us-east-1:638175140432:token-vault/default",
+        "arn:aws:bedrock-agentcore:us-east-1:638175140432:token-vault/default/oauth2credentialprovider/govblock-*"
+      ]
     }
   ]
 }
