@@ -79,12 +79,18 @@ type Title = {
 type Report = { citation?: string; url?: string }
 type Cosponsor = {
   fullName?: string
+  firstName?: string
+  lastName?: string
   bioguideId?: string
   party?: string
   state?: string
   sponsorshipDate?: string
   sponsorshipWithdrawnDate?: string | null
-  isOriginalCosponsor?: boolean
+  // The route answers `"True"` / `"False"` as text where the committed record
+  // has a real boolean, and `"False"` is truthy. Read it through `truth()`.
+  isOriginalCosponsor?: boolean | string
+  /** Lane C's route resolves the bioguide id to our own member id. */
+  people_id?: number
 }
 type LawBill = {
   type?: string
@@ -247,6 +253,11 @@ type SponsorRow = {
 }
 
 const SPONSOR_TYPE: Record<number, string> = { 1: "prime sponsor", 2: "co-sponsor", 3: "joint sponsor" }
+
+// `"False"` is a truthy string, and it is what the route sends. Every cosponsor
+// on a 338-name bill read "Yes" under Original until this existed.
+const truth = (value: boolean | string | null | undefined) =>
+  typeof value === "string" ? /^(true|t|1|yes)$/i.test(value.trim()) : !!value
 // The page's own rule, moved with the block it served: drop the chamber
 // prefix and the zero padding, so "HD-NY-025" reads "NY-25".
 const district = (value: string | null | undefined) =>
@@ -363,13 +374,23 @@ export function BillSponsors({ sponsors, state }: { sponsors: SponsorRow[]; stat
             <tbody>
               {cosponsors.map((row, index) => {
                 const person = row.bioguideId ? byBioguide.get(row.bioguideId.toUpperCase()) : undefined
+                // Three rungs, best first: our own People row (canonical name),
+                // then the id the route resolved for us with congress.gov's
+                // first and last name, then the name as congress.gov writes it,
+                // unlinked. A name we cannot resolve is still a name.
+                const peopleId = person?.people_id ?? row.people_id ?? null
+                const name =
+                  person?.name ||
+                  [row.firstName, row.lastName].filter(Boolean).join(" ") ||
+                  row.fullName ||
+                  "—"
                 const where = [row.party, row.state].filter(Boolean).join("–")
                 return (
                   <tr data-sponsor-row key={`${row.bioguideId}-${index}`}>
                     <td>
-                      {person ? (
-                        <Link href={memberHref(person.people_id, state)} className="no-underline hover:underline">
-                          {person.name}
+                      {peopleId ? (
+                        <Link href={memberHref(peopleId, state)} className="no-underline hover:underline">
+                          {name}
                         </Link>
                       ) : (
                         (row.fullName ?? "—")
@@ -377,7 +398,7 @@ export function BillSponsors({ sponsors, state }: { sponsors: SponsorRow[]; stat
                       {where ? ` (${where})` : ""}
                     </td>
                     <td>{row.sponsorshipDate ? fmtDate(row.sponsorshipDate) : "—"}</td>
-                    <td>{row.isOriginalCosponsor ? "Yes" : "—"}</td>
+                    <td>{truth(row.isOriginalCosponsor) ? "Yes" : "—"}</td>
                     <td>{row.sponsorshipWithdrawnDate ? fmtDate(row.sponsorshipWithdrawnDate) : "—"}</td>
                   </tr>
                 )
