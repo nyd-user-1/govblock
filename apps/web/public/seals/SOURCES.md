@@ -115,3 +115,27 @@ the page says what we have rather than approximating an emblem we do not.
 Two near-misses deliberately **not** used, because they are a different body:
 the U.S. Postal *Inspection* Service seal for the Postal Service, and the Post
 Office Department seal (1837–1970), which the Postal Service replaced in 1971.
+
+## Added 2026-09-02 for the Forms surface (`/docs/forms`)
+
+The forms library's agencies are federal departments, New York State agencies
+and New York City agencies. Where an agency **is** one of the federal
+departments already listed above, it reuses that seal. A bureau does not wear
+its parent's: the Internal Revenue Service is not the Department of the
+Treasury, and Commons has no seal for the New York State agencies at all —
+searched 2026-09-02, and what comes back is scanned annual reports, not
+emblems. Those agencies fall back to the jurisdiction's own seal, which is
+true, and the row names the agency in words beside it.
+
+One file added, because it was a correction and not a gap: the three New York
+City agencies (HRA, HPD, DHS) were wearing New York **State**'s seal, and the
+city is a different government.
+
+| Organization | File | Commons file page | Licence | Shape |
+|---|---|---|---|---|
+| New York City (HRA, HPD, DHS) | `new-york-city.png` | [Seal of New York City.svg](https://commons.wikimedia.org/wiki/File:Seal_of_New_York_City.svg) | Public domain | circle |
+
+Rendered at 144 px wide, as the files above are. Note for whoever harvests
+next: Commons no longer serves arbitrary thumbnail widths — `144px-` returns
+"Use thumbnail sizes listed on https://w.wiki/GHai". 250 px is served; this
+file was fetched at 250 and resized down.

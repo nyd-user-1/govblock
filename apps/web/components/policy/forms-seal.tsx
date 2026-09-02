@@ -30,6 +30,12 @@ const SEALS: Record<string, string> = {
   "US:OPM": "/seals/office-of-personnel-management.png",
   "US:GSA": "/seals/general-services-administration.png",
   "US:SBA": "/seals/small-business-administration.png",
+  // The city's own seal, for the three New York City agencies. Before it was
+  // here they wore New York *State*'s, which is a different government — HRA,
+  // HPD and DHS are the city's, and 690 forms said otherwise.
+  "NYC:HRA": "/seals/new-york-city.png",
+  "NYC:HPD": "/seals/new-york-city.png",
+  "NYC:DHS": "/seals/new-york-city.png",
 }
 
 /** The agencies with no emblem of their own on file, and why. */
@@ -49,9 +55,6 @@ export const FORMS_SEAL_GAPS = [
   "NYS:DMV",
   "NYS:HESC",
   "NYS:OMH",
-  "NYC:HRA",
-  "NYC:HPD",
-  "NYC:DHS",
 ] as const
 
 const NAMES: Record<string, string> = {
