@@ -129,16 +129,18 @@ export default async function AuthPage({
               <p className="text-sm font-medium text-destructive">Sign-in did not complete</p>
               <p className="text-sm text-muted-foreground">
                 {ERRORS[error] ?? "Sign-in failed, and Google did not say why in a way we recognise."}{" "}
-                <span className="text-xs">
-                  (<code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>)
-                </span>
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>
               </p>
             </div>
           ) : null}
           {signInConfigured ? (
             <>
               <form action={signInWithGoogle}>
-                <Button type="submit" size="lg">
+                {/* Outline, not the primary fill. Google's mark is a
+                    four-colour glyph meant for a neutral ground; on our blue it
+                    fights the fill and stops looking like Google's, which is
+                    the one thing a sign-in button has to look like. */}
+                <Button type="submit" variant="outline" size="lg">
                   <GoogleMark />
                   Sign in with Google
                 </Button>
