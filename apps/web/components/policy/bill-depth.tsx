@@ -61,6 +61,8 @@ type Depth = {
   actionTotal: number
   record: BillRecord | null
   committees: BillCommittee[]
+  policyArea: string | null
+  subjects: string[]
 }
 
 const Ctx = React.createContext<Depth | null>(null)
@@ -89,6 +91,14 @@ export function BillDepthProvider({
   )
 
   const committees = useCongress<BillCommittee>("bill-committees", "committees", scope, { bill }, undefined, state)
+  // Subjects come back in the API's own nesting — a policy area beside a list —
+  // so the envelope is read whole rather than as a family of rows.
+  const subjects = useCongressRecord<{ bill?: number; subjects?: { policyArea?: { name?: string } | null; legislativeSubjects?: { name?: string }[] } }>(
+    "bill-subjects",
+    { bill },
+    (answer) => String(answer?.bill ?? "") === bill,
+    state
+  )
 
   const value = React.useMemo<Depth>(
     () => ({
@@ -98,8 +108,10 @@ export function BillDepthProvider({
       actionTotal: actions.count,
       record: record?.record ?? null,
       committees: committees.rows,
+      policyArea: subjects?.subjects?.policyArea?.name ?? null,
+      subjects: (subjects?.subjects?.legislativeSubjects ?? []).map((row) => row.name ?? "").filter(Boolean),
     }),
-    [billId, actions.onCongress, actions.rows, actions.count, record, committees.rows]
+    [billId, actions.onCongress, actions.rows, actions.count, record, committees.rows, subjects]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -458,6 +470,49 @@ export function BillCommittees() {
         </Table>
       ) : (
         <p>No committee activity harvested for this bill yet.</p>
+      )}
+    </>
+  )
+}
+
+/** The policy area CRS assigns, then every legislative subject it carries. */
+export function BillSubjects() {
+  const c = use()
+  const [all, setAll] = React.useState(false)
+  if (!c?.onCongress) return null
+  const area = c.policyArea
+  const subjects = c.subjects ?? []
+  const SHOWN = 40
+  const shown = all ? subjects : subjects.slice(0, SHOWN)
+  return (
+    <>
+      <H2>Subjects</H2>
+      {!area && !subjects.length ? (
+        <p>No subjects harvested for this bill yet.</p>
+      ) : (
+        <>
+          {area && (
+            <p>
+              <strong>Policy area:</strong> {area}
+            </p>
+          )}
+          {subjects.length > 0 && (
+            <>
+              <p>{shown.map((name) => name).join(" · ")}</p>
+              {subjects.length > SHOWN && (
+                <p>
+                  <button
+                    type="button"
+                    className="cursor-pointer text-sm underline underline-offset-4"
+                    onClick={() => setAll((open) => !open)}
+                  >
+                    {all ? "Show fewer" : `Show all ${subjects.length} legislative subjects`}
+                  </button>
+                </p>
+              )}
+            </>
+          )}
+        </>
       )}
     </>
   )
