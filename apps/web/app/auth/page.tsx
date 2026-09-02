@@ -87,7 +87,7 @@ export default async function AuthPage({
       next={{ name: "Agents", url: "/agents" }}
     >
       {signedIn ? (
-        <div className="not-prose flex flex-col gap-4 rounded-xl border p-5">
+        <div className="flex flex-col gap-4 rounded-xl border p-5">
           <div className="flex items-center gap-3">
             {user?.image ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -123,7 +123,7 @@ export default async function AuthPage({
           </p>
         </div>
       ) : (
-        <div className="not-prose flex flex-col gap-4 rounded-xl border p-5">
+        <div className="flex flex-col gap-4 rounded-xl border p-5">
           {error ? (
             <div className="flex flex-col gap-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
               <p className="text-sm font-medium text-destructive">Sign-in did not complete</p>
