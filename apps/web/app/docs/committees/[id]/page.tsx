@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft } from "@tabler/icons-react"
 
 import CODES from "@/lib/data/congress/committee-codes.json"
+import { fmtDate, truncate } from "@/lib/format"
 import { getCommittee } from "@/lib/policy/db-queries"
 import { latestHearing } from "@/lib/policy/committee-video"
 import { DocsCopyPage } from "@/components/docs-copy-page"
@@ -18,7 +19,8 @@ import {
   CommitteeToc,
 } from "@/components/policy/committee-page"
 import { CommitteeVideo } from "@/components/policy/committee-video"
-import { H2, Table } from "@/components/typeset"
+import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
+import { H2 } from "@/components/typeset"
 import { Button } from "@govblock/ui/components/ny4/button"
 
 // One committee, keyed by the system code congress.gov gives it — `hsvr00` is
@@ -115,29 +117,30 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
               <CommitteeAbout bills={referred} />
 
               <H2>Bills</H2>
+              {/* Three columns of table — Bill · Latest action · Status — became
+                  the canon: the same item the member page and /docs/bills draw.
+                  The committee is left off the meta line, because the page is
+                  already this committee saying it. The sponsor stays: it is the
+                  one fact about a bill before a committee that the page has not
+                  said elsewhere. */}
               {record.bills.length ? (
-                <Table>
-                  <thead>
-                    <tr>
-                      <th>Bill</th>
-                      <th>Latest action</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {record.bills.map((bill) => (
-                      <tr key={bill.bill_id}>
-                        <td>
-                          <Link href={`/docs/bills/${bill.bill_id}`} className="no-underline hover:underline">
-                            {bill.bill_number}
-                          </Link>
-                        </td>
-                        <td>{bill.last_action ?? "—"}</td>
-                        <td>{bill.status_desc ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                <RecordList>
+                  {record.bills.map((bill, index) => (
+                    <RecordItem
+                      key={bill.bill_id}
+                      href={`/docs/bills/${bill.bill_id}`}
+                      avatar={<RecordSeal state="US" chamber={bill.body} ordinal={index + 1} />}
+                      title={bill.bill_number}
+                      lead={bill.last_action}
+                      meta={[
+                        bill.last_action_date ? fmtDate(bill.last_action_date) : null,
+                        bill.status_desc || "Introduced",
+                        bill.sponsor,
+                      ]}
+                      description={truncate(bill.title, 240)}
+                    />
+                  ))}
+                </RecordList>
               ) : (
                 <p>No bills before this committee this session.</p>
               )}
