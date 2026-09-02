@@ -44,6 +44,7 @@ export const siteConfig = {
         { href: "/agents/researcher", label: "Researcher", description: "A long sourced report, delivered." },
         { href: "/blocks/intelligence", label: "Agentic Inbox", description: "Send a task, read the report it sends back." },
         { href: "/agents/discord", label: "Discord", description: "Where the finished work goes, and what we can read back." },
+        { href: "/connectors", label: "Connectors", description: "Connect the places you already work." },
       ],
     },
     {

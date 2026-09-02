@@ -41,10 +41,7 @@ export function ConnectCard() {
             <EmptyDescription>{F.connect.description}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            {/* Points at the real thing rather than nothing: Discord is the
-                connection that exists today, and this becomes /connectors when
-                user-level connectors do. */}
-            <Button size="sm" render={<Link href="/agents/discord" />} nativeButton={false}>
+            <Button size="sm" render={<Link href="/connectors" />} nativeButton={false}>
               Connect
             </Button>
           </EmptyContent>
