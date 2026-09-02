@@ -2,11 +2,10 @@ import Link from "next/link"
 
 import { DocsPage } from "@/components/docs-page"
 import { getConnectorStatuses, type ConnectorStatus } from "@/lib/agents/connector-status"
-import { KIND_LABEL } from "@/lib/agents/connectors"
 import { Button } from "@govblock/ui/components/nova/button"
 
 import { ConnectionMark } from "../agents/connection-mark"
-import { ConnectButton, ConnectRow, ConnectStatus } from "./connect-button"
+import { ConnectRow } from "./connect-button"
 import { GoogleConnections, type GoogleService } from "./google-state"
 import { StatusChip } from "./status-chip"
 
@@ -25,12 +24,9 @@ function googleService(id: string): GoogleService | null {
   return null
 }
 
+// The non-Google connectors: Discord has somewhere to go, Slack does not yet.
+// The Google four never reach here — their card is a ConnectRow.
 function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: boolean }) {
-  const google = googleService(connector.id)
-  // A ride-along says which connection it is asking for, because it is not
-  // asking for its own.
-  if (google) return <ConnectButton service={google} label={connector.ridesOn ? "Connect Drive" : undefined} />
-
   if (connector.state === "connected")
     return connector.href ? (
       <Button
@@ -56,19 +52,14 @@ function Action({ connector, quiet }: { connector: ConnectorStatus; quiet?: bool
   return quiet ? null : <span className="text-xs text-muted-foreground">Not yet</span>
 }
 
-// The card: the name owns the top row, the status and the thing to click share
-// the bottom one.
+// The card: logo, name, status, button. Brendan's spec, and nothing else on it.
 //
-// The status used to sit beside the name, and at this width they cannot both
-// have the row: the card is 202.7px, the mark and its gap take 32, "Not
-// available yet" takes 105.7, and what was left rendered "Google Calendar" —
-// which needs 117px — as "Go…". Measured on the deploy after Brendan reported
-// it. Below, the status has the row to itself and nothing truncates.
-//
-// data-not-typeset because a card is not an article: DocsPage puts its children
-// inside `.typeset`, which gives every <p> a 12.5px flow margin on top of the
-// flex gap. (The `not-prose` this page used to carry was Tailwind typography's
-// opt-out and matched nothing here; it is gone, along with nine others.)
+// The description sentences are gone from all six. What they were carrying that
+// nobody else was — that Docs and Sheets are not their own grant — moves into
+// the status chip rather than out of the surface, because the chip is one of
+// the four things a card is allowed to have. A ride-along that is not connected
+// reads "Included in Drive" instead of "Not connected", which is the truer
+// sentence anyway: there is nothing separate to connect.
 function Card({ connector }: { connector: ConnectorStatus }) {
   const google = googleService(connector.id)
   return (
@@ -82,15 +73,8 @@ function Card({ connector }: { connector: ConnectorStatus }) {
         />
         <span className="min-w-0 truncate font-medium">{connector.name}</span>
       </div>
-      <p className="min-h-10 text-sm text-muted-foreground">{connector.summary}</p>
-      {connector.ridesOn && (
-        // Said on the card, not left to be discovered: one grant, one consent.
-        <p className="text-xs text-muted-foreground">
-          Included in your Google Drive connection.
-        </p>
-      )}
       {google ? (
-        <ConnectRow service={google} label={connector.ridesOn ? "Connect Drive" : undefined} />
+        <ConnectRow service={google} idleLabel={connector.ridesOn ? "Included in Drive" : undefined} />
       ) : (
         <div className="flex items-center justify-between gap-2">
           <StatusChip state={connector.state} />
@@ -129,67 +113,6 @@ export default async function ConnectorsPage() {
           ))}
         </div>
 
-        <h2 className="mt-10 text-lg font-semibold tracking-tight">All connectors</h2>
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Connector</th>
-                <th className="hidden px-4 py-2 font-medium sm:table-cell">Type</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 text-right font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {connectors.map((connector) => (
-                <tr key={connector.id} className="border-t align-top">
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-2">
-                      <ConnectionMark
-                        name={connector.name}
-                        logo={connector.logo}
-                        tint={connector.tint}
-                        live={connector.state === "connected"}
-                      />
-                      <span className="flex min-w-0 flex-col">
-                        <span className="font-medium">{connector.name}</span>
-                        <span className="text-xs text-muted-foreground">{connector.detail}</span>
-                      </span>
-                    </span>
-                  </td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {KIND_LABEL[connector.kind]}
-                  </td>
-                  <td className="px-4 py-3">
-                    {googleService(connector.id) ? (
-                      <ConnectStatus service={googleService(connector.id)!} />
-                    ) : (
-                      <StatusChip state={connector.state} />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Action connector={connector} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <h2 className="mt-10 text-lg font-semibold tracking-tight">What &ldquo;yours&rdquo; will mean</h2>
-        <p>
-          govblock is public and has no accounts, so a connection you make will be keyed to a
-          token minted in this browser — the same place the{" "}
-          <Link href="/blocks/intelligence">Agentic Inbox</Link> keeps your threads. That token is
-          a claim check, not a password: it says <em>this browser made that connection</em> and
-          nothing more, it does not prove who you are, and anyone with your browser has it. Clear
-          the site&apos;s storage and the connection is gone with it — which is also how you
-          revoke one from this side.
-        </p>
-        <p>
-          When accounts exist, connections move onto them and stop depending on a browser. Until
-          then this page will not pretend otherwise.
-        </p>
       </DocsPage>
     </GoogleConnections>
   )
