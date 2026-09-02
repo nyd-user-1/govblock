@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, Copy, Reply, RotateCcw, Star, Trash2 } from "lucide-react"
+import { Check, Copy, PenSquare, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import {
@@ -27,23 +27,23 @@ import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
+import { ThreadList, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Button } from "@govblock/ui/components/nova/button"
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@govblock/ui/components/ny4/breadcrumb"
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@govblock/ui/components/ny4/sidebar"
+import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-// The Agentic Inbox — shadcn's sidebar-09 mail block, repurposed.
+// The Agentic Inbox — shadcn's sidebar-09 mail block, repurposed, and since
+// 2026-09-02 laid out the way shadcn's mail example is: the icon rail, then a
+// resizable row of the thread list and the reading pane, the whole thing the
+// height of its frame with each pane scrolling on its own. The reply box is
+// pinned to the bottom of the reading pane with Send at its bottom left and
+// the formatting row beside it, which is where Gmail keeps them.
 //
 // Live chat is what /agents already is. This is its long-form sibling, and it is
 // mail all the way down because half a mail metaphor reads as a broken one: what
@@ -51,22 +51,39 @@ import {
 // reply on the same thread, and stars, drafts and an undoable trash are what a
 // reader already knows how to use.
 //
-// v1 runs the task in this tab. That is the honest shape for a public site with
-// no accounts: threads are kept in this browser, and the surface says so rather
-// than letting anyone assume a server is holding them. What makes it feel
-// delivered anyway is Discord — the agent delivers the finished report into the
-// channel under the same subject line, so it arrives somewhere that outlives the
-// tab.
+// v1 runs the task in this tab. Threads are kept in this browser, and the
+// surface says so rather than letting anyone assume a server is holding them.
+// What makes it feel delivered anyway is Discord — the agent delivers the
+// finished report into the channel under the same subject line, so it arrives
+// somewhere that outlives the tab.
+
+function monogram(name: string) {
+  return name
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 export default function Page() {
   const [threads, setThreads] = React.useState<Thread[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
   const [folder, setFolder] = React.useState<Folder>("inbox")
+  const [tab, setTab] = React.useState<ListTab>("all")
   const [composing, setComposing] = React.useState(false)
   const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [restored, setRestored] = React.useState(false)
-  const [replying, setReplying] = React.useState(false)
   const [replyDraft, setReplyDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [copied, setCopied] = React.useState<string | null>(null)
 
@@ -217,6 +234,17 @@ export default function Page() {
     }))
   }, [open, composing, patch])
 
+  // The reply box addresses the whole thread, Cc and Bcc included — so its
+  // cost line counts them, or it promises one run and bills for three.
+  const openId = open?.id ?? null
+  React.useEffect(() => {
+    if (!open) return
+    setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [], cc: open.cc ?? [], bcc: open.bcc ?? [] })
+    // Only when a different thread opens; a reply that is being typed must not
+    // be wiped by the thread updating underneath it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId])
+
   const startCompose = () => {
     setDraft(EMPTY_DRAFT)
     setDraftId(null)
@@ -252,20 +280,22 @@ export default function Page() {
     setComposing(true)
   }
 
+  // The latest finished reply is what Copy and Save to Drive act on.
+  const latestReply = open
+    ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed)
+    : undefined
+
   return (
-    <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
+    <SidebarProvider
+      className="h-svh min-h-0 overflow-hidden"
+      style={{ "--sidebar-width": "350px" } as React.CSSProperties}
+    >
       <AppSidebar
         threads={threads}
-        selected={selected}
         folder={folder}
         onFolder={(next) => {
           setFolder(next)
           setComposing(false)
-        }}
-        onOpenThread={(id) => {
-          setSelected(id)
-          setComposing(false)
-          setReplying(false)
         }}
         onCompose={startCompose}
         onClear={() => {
@@ -273,252 +303,239 @@ export default function Page() {
           setSelected(null)
         }}
       />
-      <SidebarInset>
-        <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/agents">Agentic Inbox</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {composing ? "New task" : (open?.subject ?? "Inbox")}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
 
-          <div className="ml-auto flex items-center gap-1">
-            {open && !composing && (
+      <ResizablePanelGroup direction="horizontal" className="min-w-0 flex-1">
+        <ResizablePanel defaultSize={34} minSize={24} maxSize={48} className="min-w-0">
+          <ThreadList
+            threads={threads}
+            folder={folder}
+            selected={selected}
+            tab={tab}
+            onTab={setTab}
+            onOpenThread={(id) => {
+              setSelected(id)
+              setComposing(false)
+            }}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={66} className="min-w-0">
+          <div className="flex h-full min-h-0 flex-col">
+            {composing ? (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={open.starred ? "Remove star" : "Star"}
-                  onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}
-                >
-                  <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={open.trashed ? "Restore" : "Move to trash"}
-                  onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}
-                >
-                  {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
-                </Button>
+                <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+                  <span className="text-sm font-medium">New task</span>
+                </div>
+                <div className="flex min-h-0 flex-1 flex-col p-4">
+                  <Compose
+                    draft={draft}
+                    onChange={setDraft}
+                    onSend={(current) => void send(current, draftId ?? undefined)}
+                    onDiscard={() => {
+                      setComposing(false)
+                      setDraft(EMPTY_DRAFT)
+                      setDraftId(null)
+                    }}
+                    onSaveDraft={saveDraft}
+                  />
+                </div>
               </>
-            )}
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          {composing ? (
-            <Compose
-              draft={draft}
-              onChange={setDraft}
-              onSend={(current) => void send(current, draftId ?? undefined)}
-              onDiscard={() => {
-                setComposing(false)
-                setDraft(EMPTY_DRAFT)
-                setDraftId(null)
-              }}
-              onSaveDraft={saveDraft}
-            />
-          ) : open ? (
-            <article className="flex w-full flex-1 flex-col gap-5">
-              <header className="flex flex-col gap-1">
-                <h1 className="text-lg font-semibold tracking-tight">{open.subject}</h1>
-                <p className="text-sm text-muted-foreground">
-                  To {shownRecipients(open).join(", ") || open.agentName} · {when(open.createdAt)}
-                  {open.trashed && " · in trash"}
-                  {open.deliveredTo && ` · delivered to ${open.deliveredTo}`}
-                  {threadCost(open) > 0 &&
-                    ` · ${runners(open).length} run${runners(open).length === 1 ? "" : "s"}, $${threadCost(open).toFixed(3)}`}
-                </p>
-              </header>
-
-              {open.messages.map((message) =>
-                message.from === "you" ? (
-                  <div
-                    key={message.id}
-                    className="rounded-lg border p-4 text-sm whitespace-pre-wrap"
-                  >
-                    <Prose text={message.body} />
-                  </div>
-                ) : (
-                  <section key={message.id} className="group relative flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                        {nameOf(message.from)
-                          .split(/\s+/)
-                          .map((word) => word[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </span>
-                      <span>{nameOf(message.from)}</span>
-                      {message.unread && (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                          Unread
-                        </span>
-                      )}
-                    </div>
-
-                    {message.body && (
-                      // The muted field is the "this came from a model" cue,
-                      // and the copy affordance is the one every chat output
-                      // has: present on hover, out of the way otherwise.
-                      <div className="relative rounded-lg bg-muted/60 p-4">
-                        {/* Save to Drive sits beside Copy because it is the
-                            same kind of act — take this reply somewhere of
-                            your own — and it saves the string the reader is
-                            looking at, so the document cannot differ from the
-                            report on the page. */}
-                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                          {!message.run?.failed && (
-                            <SaveToDrive
-                              name={open.subject || "govblock report"}
-                              markdown={message.body}
-                            />
-                          )}
-                        <button
-                          type="button"
-                          aria-label="Copy this reply"
+            ) : open ? (
+              <>
+                {/* The reading pane's toolbar, as the mail example has it:
+                    the actions on this thread at the left, a new task at the
+                    right. */}
+                <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-2">
+                  <Tip label={open.starred ? "Remove star" : "Star"}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={open.starred ? "Remove star" : "Star"}
+                      onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}
+                    >
+                      <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
+                    </Button>
+                  </Tip>
+                  <Tip label={open.trashed ? "Restore" : "Move to trash"}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={open.trashed ? "Restore" : "Move to trash"}
+                      onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}
+                    >
+                      {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
+                    </Button>
+                  </Tip>
+                  {latestReply && (
+                    <>
+                      <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
+                      <Tip label="Copy the report">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Copy the report"
                           onClick={() => {
-                            void navigator.clipboard?.writeText(message.body)
-                            setCopied(message.id)
+                            void navigator.clipboard?.writeText(latestReply.body)
+                            setCopied(latestReply.id)
                             window.setTimeout(() => setCopied(null), 1500)
                           }}
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
                         >
-                          {copied === message.id ? (
-                            <Check className="size-4" />
-                          ) : (
-                            <Copy className="size-4" />
-                          )}
-                        </button>
-                        </div>
-                        <div
-                          className={cn(
-                            "text-sm whitespace-pre-wrap",
-                            message.run?.failed && "text-destructive"
-                          )}
-                        >
-                          <Prose text={message.body} />
-                        </div>
+                          {copied === latestReply.id ? <Check className="size-4" /> : <Copy className="size-4" />}
+                        </Button>
+                      </Tip>
+                      {/* Save to Drive sits beside Copy because it is the same
+                          kind of act — take this reply somewhere of your own —
+                          and it saves the string the reader is looking at, so
+                          the document cannot differ from the report on the
+                          page. */}
+                      <SaveToDrive name={open.subject || "govblock report"} markdown={latestReply.body} />
+                    </>
+                  )}
+                  <div className="ml-auto flex items-center gap-1">
+                    <Tip label="New task">
+                      <Button variant="ghost" size="sm" aria-label="New task" onClick={startCompose}>
+                        <PenSquare className="size-4" />
+                      </Button>
+                    </Tip>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-start gap-4 p-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                    {monogram(open.agentName)}
+                  </span>
+                  <div className="grid min-w-0 flex-1 gap-1">
+                    <div className="truncate font-semibold">
+                      {open.agentName}
+                      {runners(open).length > 1 && (
+                        <span className="font-normal text-muted-foreground"> +{runners(open).length - 1}</span>
+                      )}
+                    </div>
+                    <div className="line-clamp-1 text-xs">{open.subject}</div>
+                    <div className="line-clamp-1 text-xs">
+                      <span className="font-medium">To:</span> {shownRecipients(open).join(", ") || open.agentName}
+                    </div>
+                  </div>
+                  <div className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
+                    <div>{when(open.createdAt)}</div>
+                    {open.trashed && <div>in trash</div>}
+                    {open.deliveredTo && <div>delivered to {open.deliveredTo}</div>}
+                    {threadCost(open) > 0 && (
+                      <div>
+                        {runners(open).length} run{runners(open).length === 1 ? "" : "s"}, ${threadCost(open).toFixed(3)}
                       </div>
                     )}
-
-                    {(message.run?.steps.length ?? 0) > 0 && (
-                      <details className="rounded-lg border p-3">
-                        <summary className="cursor-pointer text-sm text-muted-foreground">
-                          {message.run!.steps.length} tool call
-                          {message.run!.steps.length === 1 ? "" : "s"}
-                          {message.run!.done ? "" : " so far"}
-                        </summary>
-                        <div className="pt-3">
-                          <RunSteps steps={message.run!.steps} />
-                        </div>
-                      </details>
-                    )}
-
-                    {message.run && <RunMeta run={message.run} />}
-                  </section>
-                )
-              )}
-
-              {open.status === "running" && (
-                // The reading pane's own sign of life. It names the tool in
-                // flight rather than saying "working", so a long gather reads
-                // as progress instead of as a hang.
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span
-                    aria-hidden
-                    className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
-                  />
-                  <span className="animate-pulse">{running(open)}</span>
-                </div>
-              )}
-
-              {open.status === "draft" ? (
-                <div>
-                  <Button size="sm" onClick={() => editDraft(open)}>
-                    Edit draft
-                  </Button>
-                </div>
-              ) : replying ? (
-                // Inline at the bottom of the thread, the way every mail client
-                // does it — a reply is part of the conversation, not a page.
-                <div className="rounded-lg border p-4">
-                  <Compose
-                    inline
-                    draft={replyDraft}
-                    onChange={setReplyDraft}
-                    onSend={(current) => {
-                      const text = current.body
-                      setReplying(false)
-                      setReplyDraft(EMPTY_DRAFT)
-                      void followUp(open, text)
-                    }}
-                    onDiscard={() => {
-                      setReplying(false)
-                      setReplyDraft(EMPTY_DRAFT)
-                    }}
-                  />
-                </div>
-              ) : (
-                open.status !== "running" && (
-                  <div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // The whole thread replies, Cc and Bcc included — so
-                        // the reply's cost line has to count them, or it
-                        // promises one run and bills for three.
-                        setReplyDraft({
-                          ...EMPTY_DRAFT,
-                          to: open.to ?? [],
-                          cc: open.cc ?? [],
-                          bcc: open.bcc ?? [],
-                        })
-                        setReplying(true)
-                      }}
-                    >
-                      <Reply className="size-4" /> Reply
-                    </Button>
                   </div>
-                )
-              )}
-            </article>
-          ) : (
-            <div className="flex w-full max-w-2xl flex-col gap-3">
-              <h1 className="text-lg font-semibold tracking-tight">Agentic Inbox</h1>
-              <p className="text-sm text-muted-foreground">
-                Longer work than a chat. Compose a task to one of the five agents, and its
-                finished report arrives as a reply on the same thread, with the run it did
-                underneath. The Researcher writes a sourced report over the record; the Tracker
-                watches a topic and posts a digest; the other three answer in one message.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This site is public and has no accounts, so threads are kept in this browser and
-                nowhere else — nobody else can see them, and they do not follow you to another
-                device. A task runs while this tab is open. What outlives the tab is the report
-                the agent delivers to Discord, under the same subject line.
-              </p>
-              <div>
+                </div>
+                <Separator />
+
+                <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
+                  {open.messages.map((message) =>
+                    message.from === "you" ? (
+                      <div key={message.id} className="rounded-lg border p-4 text-sm whitespace-pre-wrap">
+                        <Prose text={message.body} />
+                      </div>
+                    ) : (
+                      <section key={message.id} className="group relative flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                            {monogram(nameOf(message.from))}
+                          </span>
+                          <span>{nameOf(message.from)}</span>
+                          {message.unread && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>
+                          )}
+                        </div>
+
+                        {message.body && (
+                          // The muted field is the "this came from a model" cue.
+                          <div className="relative rounded-lg bg-muted/60 p-4">
+                            <div className={cn("text-sm whitespace-pre-wrap", message.run?.failed && "text-destructive")}>
+                              <Prose text={message.body} />
+                            </div>
+                          </div>
+                        )}
+
+                        {(message.run?.steps.length ?? 0) > 0 && (
+                          <details className="rounded-lg border p-3">
+                            <summary className="cursor-pointer text-sm text-muted-foreground">
+                              {message.run!.steps.length} tool call
+                              {message.run!.steps.length === 1 ? "" : "s"}
+                              {message.run!.done ? "" : " so far"}
+                            </summary>
+                            <div className="pt-3">
+                              <RunSteps steps={message.run!.steps} />
+                            </div>
+                          </details>
+                        )}
+
+                        {message.run && <RunMeta run={message.run} />}
+                      </section>
+                    )
+                  )}
+
+                  {open.status === "running" && (
+                    // The reading pane's own sign of life. It names the tool in
+                    // flight rather than saying "working", so a long gather
+                    // reads as progress instead of as a hang.
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-primary" />
+                      <span className="animate-pulse">{running(open)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+                <div className="shrink-0 p-4">
+                  {open.status === "draft" ? (
+                    <Button size="sm" onClick={() => editDraft(open)}>
+                      Edit draft
+                    </Button>
+                  ) : open.status === "running" ? (
+                    <p className="text-xs text-muted-foreground">
+                      Running. The reply lands on this thread; you can write back once it does.
+                    </p>
+                  ) : (
+                    // Pinned to the bottom of the pane, the way every mail
+                    // client does it — a reply is part of the conversation,
+                    // not a page. Send at the bottom left, formatting beside it.
+                    <Compose
+                      inline
+                      placeholder={`Reply ${open.agentName}…`}
+                      draft={replyDraft}
+                      onChange={setReplyDraft}
+                      onSend={(current) => {
+                        const text = current.body
+                        setReplyDraft({ ...current, body: "" })
+                        void followUp(open, text)
+                      }}
+                      onDiscard={() => setReplyDraft((current) => ({ ...current, body: "" }))}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                <h1 className="text-lg font-semibold tracking-tight">Agentic Inbox</h1>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Longer work than a chat. Compose a task to one of the five agents, and its finished
+                  report arrives as a reply on the same thread, with the run it did underneath. The
+                  Researcher writes a sourced report over the record; the Tracker watches a topic and
+                  posts a digest; the other three answer in one message.
+                </p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Threads are kept in this browser and nowhere else, and a task runs while this tab is
+                  open. What outlives the tab is the report the agent delivers to Discord, under the
+                  same subject line.
+                </p>
                 <Button size="sm" onClick={startCompose}>
-                  Compose
+                  <PenSquare className="size-4" /> Compose
                 </Button>
               </div>
-            </div>
-          )}
-        </div>
-      </SidebarInset>
+            )}
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </SidebarProvider>
   )
 }

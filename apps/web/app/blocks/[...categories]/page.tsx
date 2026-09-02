@@ -30,10 +30,12 @@ export default async function BlocksPage({ params }: { params: Promise<{ categor
 
   if (tab && tab.value === FULL_BLEED) {
     return (
-      // Its own wrapper, without the shell's `md:py-12`: the frame is the
-      // screen below the header, so any padding above it pushes the bottom off.
-      <div className="container-wrapper flex-1 section-soft">
-        <div className="container">
+      // `data-slot="inbox"`: the root layout pins the page to the viewport and
+      // hides the footer, so the frame is the screen below the header less this
+      // wrapper's padding — a bordered card that fits, and never a page that
+      // scrolls. The panes inside it do their own scrolling.
+      <div data-slot="inbox" className="container-wrapper flex min-h-0 flex-1 flex-col py-3">
+        <div className="container flex min-h-0 flex-1 flex-col">
           <BlockFrame styleName="new-york-v4" name={tab.block} title={tab.label} />
         </div>
       </div>

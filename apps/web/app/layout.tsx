@@ -42,7 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <TooltipProvider delay={0}>
             <JurisdictionProvider>
             <ScopeReady />
-            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden">
+            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden has-data-[slot=inbox]:h-svh has-data-[slot=inbox]:overflow-hidden">
               <SiteHeader />
               <main data-scope-content className="flex min-h-0 flex-1 flex-col">{children}</main>
               <SiteFooter />

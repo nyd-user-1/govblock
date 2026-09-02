@@ -189,6 +189,7 @@ export function Compose({
   onDiscard,
   onSaveDraft,
   inline = false,
+  placeholder,
 }: {
   draft: Draft
   onChange: (draft: Draft) => void
@@ -197,6 +198,8 @@ export function Compose({
   onSaveDraft?: () => void
   /** A reply at the bottom of a thread: no recipient lines, no subject. */
   inline?: boolean
+  /** What the empty surface says; defaults to the first agent's own line. */
+  placeholder?: string
 }) {
   const [showCc, setShowCc] = React.useState(false)
   const [showBcc, setShowBcc] = React.useState(false)
@@ -208,7 +211,7 @@ export function Compose({
   const editor = useTaskEditor({
     value: draft.body,
     onChange: (body) => onChange({ ...draft, body }),
-    placeholder: inline ? "Reply…" : (first?.placeholder ?? "What should it do?"),
+    placeholder: placeholder ?? (inline ? "Reply…" : (first?.placeholder ?? "What should it do?")),
   })
 
   // n agents is n runs. Say what that costs before it is spent.
@@ -219,7 +222,7 @@ export function Compose({
 
   return (
     <form
-      className="flex w-full flex-1 flex-col gap-3"
+      className="flex min-h-0 w-full flex-1 flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
         if (everyone.length && draft.body.trim()) onSend(draft)
@@ -287,7 +290,10 @@ export function Compose({
           renders the same subset back. */}
       <TaskSurface
         editor={editor}
-        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : ""}
+        // A new task's surface takes the height the pane has, so the bottom
+        // bar sits at the bottom of the frame — Gmail's compose — and a long
+        // brief scrolls inside the surface rather than pushing Send away.
+        className={inline ? "[&_.ProseMirror]:min-h-24 min-h-24" : "min-h-0 flex-1 overflow-y-auto"}
       />
 
       {/* Starters are a way in, not furniture: once there is something to send,
@@ -312,7 +318,7 @@ export function Compose({
           row immediately beside it, and the rest pushed right. Formatting
           belongs down here with the action, not on top of the page someone is
           trying to write on. */}
-      <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+      <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3">
         <Button type="submit" size="sm" disabled={!everyone.length || !draft.body.trim()}>
           Send
         </Button>
