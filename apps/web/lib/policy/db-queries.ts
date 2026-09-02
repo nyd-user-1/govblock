@@ -1502,18 +1502,45 @@ export async function getCommitteeDetail(systemCode: string) {
 export async function getTextVersions(billId: number) {
   // `date` is the stage's own date — when the bill was introduced, reported,
   // engrossed — not when we fetched it. A version list without it cannot be read
-  // as a timeline, which is the only reason to show one.
-  return q<{ document_id: number; version: string; source: string; chars: number; date: string | null; fetched_at: string | null; url: string | null }>(
-    `select t.document_id, t.version, t.source, t.chars,
-            coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) as date,
-            t.fetched_at, d.url
-       from "BillTexts" t
-       left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
-      where t.bill_id = $1
-        -- govinfo-billsum rows are CRS summaries, not text versions; they belong
-        -- to the summaries family and were showing up here as an undated stage.
-        and t.source <> 'govinfo-billsum'
-      order by coalesce(d.date, to_char(t.fetched_at, 'YYYY-MM-DD')) desc nulls last, t.document_id desc`,
+  // as a timeline, which is the only reason to show one. It is also allowed to
+  // be null now: it used to fall back to the night of the backfill, which put
+  // 2026-08-28 on a bill enrolled in July 2025. A missing date beats a wrong
+  // one, and the page already prints a dash for it.
+  //
+  // The list is every version we HOLD and every version congress.gov LISTS,
+  // joined on the same synthetic document id. That is how the Public Law
+  // rendering of an enacted bill — the sixth version congress.gov shows on
+  // H.R. 1 and the fifth we had — appears with its links and an honest blank
+  // where its body would be.
+  return q<{ document_id: number | null; version: string | null; source: string | null; chars: number | null; date: string | null; fetched_at: string | null; url: string | null; formats: { type: string; url: string }[] }>(
+    `with held as (
+       select t.document_id, t.version, t.source, t.chars, d.date, t.fetched_at, d.url
+         from "BillTexts" t
+         left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+        where t.bill_id = $1
+          -- govinfo-billsum rows are CRS summaries, not text versions; they
+          -- belong to the summaries family and were showing up here as an
+          -- undated stage.
+          and t.source <> 'govinfo-billsum'
+     ),
+     listed as (select * from congress_text_formats where bill_id = $1)
+     select coalesce(h.document_id, l.document_id) as document_id,
+            coalesce(h.version, l.version_type) as version,
+            h.source, h.chars,
+            coalesce(h.date, l.version_date) as date,
+            h.fetched_at,
+            coalesce(h.url, l.html_url) as url,
+            coalesce(
+              (select jsonb_agg(f) from jsonb_array_elements(
+                 jsonb_strip_nulls(jsonb_build_array(
+                   case when l.html_url is not null then jsonb_build_object('type', 'Formatted Text', 'url', l.html_url) end,
+                   case when l.pdf_url  is not null then jsonb_build_object('type', 'PDF', 'url', l.pdf_url) end,
+                   case when l.xml_url  is not null then jsonb_build_object('type', 'XML', 'url', l.xml_url) end))) f),
+              '[]'::jsonb) as formats
+       from held h
+       full outer join listed l on l.document_id = h.document_id
+      order by coalesce(h.date, l.version_date, to_char(h.fetched_at, 'YYYY-MM-DD')) desc nulls last,
+               coalesce(h.document_id, l.document_id) desc`,
     [billId],
   );
 }

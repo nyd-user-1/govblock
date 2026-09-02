@@ -37,6 +37,12 @@ type Version = {
   fetched_at?: string | null
   url: string | null
   date?: string | null
+  // The other renderings govinfo publishes of the same version. Derived from
+  // the package id rather than fetched — /pdf/{pkg}.pdf and /html/{pkg}.htm are
+  // uniform across govinfo, checked on 28 packages before it was relied on —
+  // except the XML, which is taken as published because a bill carries /xml and
+  // a public law carries /uslm.
+  formats?: { type: string; url: string }[]
 }
 type Summary = {
   actionDate?: string
@@ -417,6 +423,9 @@ export function BillTitles() {
  * the one selected. The page arrives holding the newest version the site has;
  * choosing another asks for it by document.
  */
+// govinfo's own names for its renderings, shortened to what fits a cell.
+const FORMAT_LABEL: Record<string, string> = { "Formatted Text": "Text", PDF: "PDF", XML: "XML" }
+
 export function BillVersions({
   fallback,
   held,
@@ -444,6 +453,7 @@ export function BillVersions({
             <th>Source</th>
             <th>Length</th>
             <th>Text</th>
+            <th>Formats</th>
           </tr>
         </thead>
         <tbody>
@@ -472,7 +482,7 @@ export function BillVersions({
                     >
                       {document === current ? "Shown below" : "Read"}
                     </button>
-                  ) : version.url ? (
+                  ) : version.source && version.url ? (
                     <a
                       href={version.url}
                       target="_blank"
@@ -481,8 +491,22 @@ export function BillVersions({
                       congress.gov
                     </a>
                   ) : (
-                    "—"
+                    // A version congress.gov lists and we hold no body for. The
+                    // renderings are one column over; what is missing is ours.
+                    <span className="text-muted-foreground">Not held</span>
                   )}
+                </td>
+                <td className="whitespace-nowrap">
+                  {version.formats?.length
+                    ? version.formats.map((format, i) => (
+                        <React.Fragment key={format.url}>
+                          {i > 0 && " · "}
+                          <a href={format.url} target="_blank" rel="noopener noreferrer">
+                            {FORMAT_LABEL[format.type] ?? format.type}
+                          </a>
+                        </React.Fragment>
+                      ))
+                    : "—"}
                 </td>
               </tr>
             )
