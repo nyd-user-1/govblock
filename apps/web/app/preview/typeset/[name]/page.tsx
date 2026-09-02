@@ -73,20 +73,24 @@ export default async function TypesetFixturePage({
   if (name === "article") {
     const version = Number(flat.version ?? 0) || undefined
     const text = await getBillText(bill.bill_id, version)
-    return (
-      <div className="flex w-full flex-col gap-2">
+    if (!text) {
+      return (
         <div className="typeset w-full">
-          <h1>{bill.bill_number}</h1>
-          <p>
-            <em>
-              {text
-                ? `${text.document_desc ?? text.version ?? "Text"} · ${text.chars.toLocaleString()} characters`
-                : "The text of this bill has not been fetched yet."}
-            </em>
-          </p>
+          <p>The text of this bill has not been fetched yet.</p>
         </div>
-        {text && <BillText text={text.text} className="my-2" />}
-      </div>
+      )
+    }
+    // No heading, no character count, no card: the block is the document. What
+    // sits above it is what congress.gov puts above it — "Shown Here:" and the
+    // version with its date — and the bill's number is inside the text itself,
+    // where the GPO set it.
+    return (
+      <BillText
+        text={text.text}
+        version={text.document_desc ?? text.version}
+        date={text.date}
+        className="my-2"
+      />
     )
   }
 

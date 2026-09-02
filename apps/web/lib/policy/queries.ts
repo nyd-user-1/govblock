@@ -113,7 +113,7 @@ export async function getBillText(billId: number, documentId?: number): Promise<
       // the whole text is in the lake if it is ever needed in full.
       const rows = (await sql`
         select t.document_id, t.version, t.chars, t.fetched_at,
-               left(t.text, 800000) as text, d.document_desc
+               left(t.text, 800000) as text, d.document_desc, d.date
         from "BillTexts" t
         left join "Documents" d on d.document_id = t.document_id
         where t.bill_id = ${billId} and t.text is not null
@@ -130,5 +130,5 @@ export async function getBillText(billId: number, documentId?: number): Promise<
   const key = String(documentId ?? meta?.document_id ?? billId)
   const text = TEXTS[key] ?? TEXTS[String(billId)]
   if (!text) return null
-  return { document_id: meta?.document_id ?? billId, version: text.version ?? meta?.version ?? null, chars: text.chars ?? text.text.length, fetched_at: meta?.fetched_at ?? null, text: text.text, document_desc: null }
+  return { document_id: meta?.document_id ?? billId, version: text.version ?? meta?.version ?? null, chars: text.chars ?? text.text.length, fetched_at: meta?.fetched_at ?? null, text: text.text, document_desc: null, date: null }
 }

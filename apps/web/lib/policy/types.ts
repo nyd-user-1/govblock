@@ -88,6 +88,9 @@ export type BillText = {
   fetched_at: string | null
   text: string
   document_desc: string | null
+  /** The document's own date from `Documents`, which is the day the version was
+   *  published — `fetched_at` is the night we pulled it and is not that. */
+  date: string | null
 }
 
 export type Votes = {
