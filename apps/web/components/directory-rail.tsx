@@ -87,6 +87,10 @@ export function DirectoryRail() {
     { key: "reports", href: `/docs/reports${scope}`, label: "Reports", active: pathname.startsWith("/docs/reports") },
     { key: "record", href: `/docs/record${scope}`, label: "Record", active: pathname.startsWith("/docs/record") },
     { key: "laws", href: `/docs/laws${scope}`, label: "Laws", active: pathname.startsWith("/docs/laws") },
+    // Forms is the one entry here that is not the legislative record: the PDFs
+    // the government hands out rather than the bills it passes. It reads under
+    // Congress and under New York, and says so under any other scope.
+    { key: "forms", href: `/docs/forms${scope}`, label: "Forms", active: pathname.startsWith("/docs/forms") },
   ]
   const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
