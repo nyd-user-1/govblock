@@ -78,8 +78,16 @@ export type ThreadStatus = "draft" | "running" | "delivered" | "failed"
 
 export type Thread = {
   id: string
+  /** The first recipient. Kept because most of the surface asks "who is this
+   *  thread with", and for one recipient — the common case — that is the
+   *  answer. `to` is the truth when there are several. */
   agent: string
   agentName: string
+  /** Agent slugs. Every one of them runs the task and replies on the thread. */
+  to: string[]
+  cc: string[]
+  /** Blind: the same run, whose recipient line the thread does not show. */
+  bcc: string[]
   subject: string
   createdAt: number
   updatedAt: number
@@ -120,23 +128,29 @@ function id() {
 }
 
 export function newThread({
-  agent,
-  agentName,
+  to,
+  cc = [],
+  bcc = [],
   subject,
   body,
   status,
 }: {
-  agent: string
-  agentName: string
+  to: string[]
+  cc?: string[]
+  bcc?: string[]
   subject: string
   body: string
   status: ThreadStatus
 }): Thread {
   const at = Date.now()
+  const first = to[0] ?? ""
   return {
     id: id(),
-    agent,
-    agentName,
+    agent: first,
+    agentName: nameOf(first),
+    to,
+    cc,
+    bcc,
     subject: subject.trim() || "(no subject)",
     createdAt: at,
     updatedAt: at,
@@ -145,20 +159,64 @@ export function newThread({
   }
 }
 
-export function reply(thread: Thread, run: RunState, status: ThreadStatus): Thread {
-  const existing = thread.messages.find((message) => message.from !== "you")
+export function nameOf(slug: string) {
+  return AGENTS.find((a) => a.slug === slug)?.name ?? slug
+}
+
+/** Everyone who ran it. Bcc is deliberately absent — that is what bcc means. */
+export function shownRecipients(thread: Thread) {
+  const lines = [...(thread.to ?? []), ...(thread.cc ?? [])]
+  // Threads written before recipients were plural carry only `agent`.
+  return (lines.length ? lines : [thread.agent]).filter(Boolean).map(nameOf)
+}
+
+/** Everyone who ran it, including the blind ones. */
+export function allRecipients(thread: Thread) {
+  const lines = [...(thread.to ?? []), ...(thread.cc ?? []), ...(thread.bcc ?? [])]
+  return (lines.length ? lines : [thread.agent]).filter(Boolean)
+}
+
+/** One thread's whole bill: every recipient's run added up. */
+export function threadCost(thread: Thread) {
+  return thread.messages.reduce((total, message) => total + (message.run?.usd ?? 0), 0)
+}
+
+export function reply(
+  thread: Thread,
+  from: string,
+  run: RunState,
+  status: ThreadStatus
+): Thread {
   const at = Date.now()
-  const body = run.text
-  const message: Message = existing
-    ? { ...existing, at, body, run, unread: existing.unread ?? true }
-    : { id: id(), from: thread.agent, at, body, run, unread: true }
+  const existing = thread.messages.find((message) => message.from === from)
+  const next: Message = existing
+    ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true }
+    : { id: id(), from, at, body: run.text, run, unread: true }
+
+  const messages = existing
+    ? thread.messages.map((message) => (message.from === from ? next : message))
+    : [...thread.messages, next]
+
   return {
     ...thread,
     status,
     updatedAt: at,
     deliveredTo: deliveredTo(run) ?? thread.deliveredTo,
-    messages: [thread.messages[0]!, message],
+    messages,
   }
+}
+
+/**
+ * What a thread's status is once several recipients have run.
+ *
+ * Running while any of them still is; failed only when every one of them
+ * failed, because one agent tripping is not the thread failing.
+ */
+export function settle(thread: Thread): ThreadStatus {
+  const replies = thread.messages.filter((message) => message.from !== "you")
+  if (!replies.length) return thread.status
+  if (replies.length < allRecipients(thread).length) return "running"
+  return replies.every((message) => message.run?.failed) ? "failed" : "delivered"
 }
 
 export function inFolder(thread: Thread, folder: Folder) {
@@ -211,7 +269,8 @@ export function teaser(thread: Thread) {
 
 /** What a running thread is doing right now, for the pulse. */
 export function running(thread: Thread) {
-  const run = thread.messages.at(-1)?.run ?? emptyRun()
+  const live = thread.messages.filter((message) => message.from !== "you" && !message.run?.done)
+  const run = (live.at(-1) ?? thread.messages.at(-1))?.run ?? emptyRun()
   const step = [...run.steps].reverse().find((s) => s.kind === "tool")
   if (step && step.kind === "tool") {
     if (step.summary === undefined) return `Reading — ${step.name}…`

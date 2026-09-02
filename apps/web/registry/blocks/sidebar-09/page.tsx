@@ -1,18 +1,21 @@
 "use client"
 
 import * as React from "react"
-import { RotateCcw, Star, Trash2 } from "lucide-react"
+import { Check, Copy, Reply, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import {
-  addressOf,
-  findAddress,
+  allRecipients,
   isUnread,
   loadThreads,
+  nameOf,
   newThread,
   reply,
   running,
   saveThreads,
+  settle,
+  shownRecipients,
+  threadCost,
   when,
   type Folder,
   type Thread,
@@ -21,7 +24,7 @@ import { emptyRun, runAgent } from "@/lib/agents/run-client"
 import { cn } from "@/lib/utils"
 import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
-import { Compose, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
+import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { Button } from "@govblock/ui/components/nova/button"
 import {
   Breadcrumb,
@@ -53,16 +56,17 @@ import {
 // channel under the same subject line, so it arrives somewhere that outlives the
 // tab.
 
-const EMPTY: Draft = { to: "", subject: "", body: "" }
-
 export default function Page() {
   const [threads, setThreads] = React.useState<Thread[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
   const [folder, setFolder] = React.useState<Folder>("inbox")
   const [composing, setComposing] = React.useState(false)
-  const [draft, setDraft] = React.useState<Draft>(EMPTY)
+  const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [restored, setRestored] = React.useState(false)
+  const [replying, setReplying] = React.useState(false)
+  const [replyDraft, setReplyDraft] = React.useState<Draft>(EMPTY_DRAFT)
+  const [copied, setCopied] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const stored = loadThreads()
@@ -100,45 +104,89 @@ export default function Page() {
   }, [])
 
   const send = React.useCallback(
-    async (agentSlug: string, subject: string, body: string, existingId?: string) => {
-      const definition = findAgent(agentSlug)
-      if (!definition) return
+    async (draft: Draft, existingId?: string) => {
+      const recipients = [...draft.to, ...draft.cc, ...draft.bcc]
+      if (!recipients.length) return
 
       const thread = newThread({
-        agent: definition.slug,
-        agentName: definition.name,
-        subject,
-        body,
+        to: draft.to,
+        cc: draft.cc,
+        bcc: draft.bcc,
+        subject: draft.subject,
+        body: draft.body,
         status: "running",
       })
       // Sending a draft replaces it in place, so the thread keeps its position
       // rather than appearing twice.
-      setThreads((current) => [
-        thread,
-        ...current.filter((entry) => entry.id !== existingId),
-      ])
+      setThreads((current) => [thread, ...current.filter((entry) => entry.id !== existingId)])
       setSelected(thread.id)
       setFolder("sent")
       setComposing(false)
-      setDraft(EMPTY)
+      setDraft(EMPTY_DRAFT)
       setDraftId(null)
 
-      // The reply exists from the first token, unread, so the thread reads as
-      // an arriving message rather than appearing whole at the end.
-      patch(thread.id, (current) => reply(current, emptyRun(), "running"))
-
-      const finished = await runAgent({
-        agent: definition.slug,
-        maxRounds: maxRounds(definition),
-        subject: thread.subject,
-        turns: [{ role: "user", text: body }],
-        onUpdate: (run) => patch(thread.id, (current) => reply(current, run, "running")),
-      })
-
-      patch(thread.id, (current) =>
-        reply(current, finished, finished.failed ? "failed" : "delivered")
+      // Every recipient runs the task — that is what Cc means here, and it is
+      // why the composer says n recipients is n runs before you send. They run
+      // together; each one's reply lands on the thread as it finishes.
+      await Promise.all(
+        recipients.map(async (slug) => {
+          const definition = findAgent(slug)
+          if (!definition) return
+          patch(thread.id, (current) => reply(current, slug, emptyRun(), "running"))
+          const finished = await runAgent({
+            agent: definition.slug,
+            maxRounds: maxRounds(definition),
+            subject: thread.subject,
+            turns: [{ role: "user", text: draft.body }],
+            onUpdate: (run) => patch(thread.id, (current) => reply(current, slug, run, "running")),
+          })
+          patch(thread.id, (current) => {
+            const next = reply(current, slug, finished, "running")
+            return { ...next, status: settle(next) }
+          })
+        })
       )
       setFolder("inbox")
+    },
+    [patch]
+  )
+
+  // A reply on an existing thread: same agents, the whole exchange as context.
+  const followUp = React.useCallback(
+    async (thread: Thread, text: string) => {
+      const at = Date.now()
+      patch(thread.id, (current) => ({
+        ...current,
+        status: "running",
+        updatedAt: at,
+        messages: [
+          ...current.messages,
+          { id: `${at.toString(36)}-you`, from: "you" as const, at, body: text },
+        ],
+      }))
+
+      await Promise.all(
+        allRecipients(thread).map(async (slug) => {
+          const definition = findAgent(slug)
+          if (!definition) return
+          const prior = thread.messages.find((message) => message.from === slug)
+          const finished = await runAgent({
+            agent: definition.slug,
+            maxRounds: maxRounds(definition),
+            subject: thread.subject,
+            turns: [
+              { role: "user", text: thread.messages[0]?.body ?? "" },
+              ...(prior?.body ? [{ role: "assistant" as const, text: prior.body }] : []),
+              { role: "user", text },
+            ],
+            onUpdate: (run) => patch(thread.id, (current) => reply(current, slug, run, "running")),
+          })
+          patch(thread.id, (current) => {
+            const next = reply(current, slug, finished, "running")
+            return { ...next, status: settle(next) }
+          })
+        })
+      )
     },
     [patch]
   )
@@ -157,18 +205,16 @@ export default function Page() {
   }, [open, composing, patch])
 
   const startCompose = () => {
-    setDraft(EMPTY)
+    setDraft(EMPTY_DRAFT)
     setDraftId(null)
     setComposing(true)
   }
 
   const saveDraft = () => {
-    // An address resolves through findAddress, not by splitting the string:
-    // the slug has hyphens ("bill-reader") and the address does not.
-    const address = findAddress(draft.to)
     const thread = newThread({
-      agent: address?.agent ?? draft.to,
-      agentName: address?.name ?? (draft.to || "No recipient"),
+      to: draft.to,
+      cc: draft.cc,
+      bcc: draft.bcc,
       subject: draft.subject,
       body: draft.body,
       status: "draft",
@@ -177,22 +223,21 @@ export default function Page() {
     setComposing(false)
     setFolder("drafts")
     setSelected(thread.id)
-    setDraft(EMPTY)
+    setDraft(EMPTY_DRAFT)
     setDraftId(null)
   }
 
   const editDraft = (thread: Thread) => {
-    const address = findAgent(thread.agent)
     setDraft({
-      to: address ? addressOf(address).email : thread.agent,
+      to: thread.to ?? [],
+      cc: thread.cc ?? [],
+      bcc: thread.bcc ?? [],
       subject: thread.subject === "(no subject)" ? "" : thread.subject,
       body: thread.messages[0]?.body ?? "",
     })
     setDraftId(thread.id)
     setComposing(true)
   }
-
-  const agentMessage = open?.messages.find((message) => message.from !== "you")
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -207,6 +252,7 @@ export default function Page() {
         onOpenThread={(id) => {
           setSelected(id)
           setComposing(false)
+          setReplying(false)
         }}
         onCompose={startCompose}
         onClear={() => {
@@ -261,12 +307,10 @@ export default function Page() {
             <Compose
               draft={draft}
               onChange={setDraft}
-              onSend={(address, current) =>
-                void send(address.agent, current.subject, current.body, draftId ?? undefined)
-              }
+              onSend={(current) => void send(current, draftId ?? undefined)}
               onDiscard={() => {
                 setComposing(false)
-                setDraft(EMPTY)
+                setDraft(EMPTY_DRAFT)
                 setDraftId(null)
               }}
               onSaveDraft={saveDraft}
@@ -276,15 +320,103 @@ export default function Page() {
               <header className="flex flex-col gap-1">
                 <h1 className="text-lg font-semibold tracking-tight">{open.subject}</h1>
                 <p className="text-sm text-muted-foreground">
-                  To {open.agentName} · {when(open.createdAt)}
+                  To {shownRecipients(open).join(", ") || open.agentName} · {when(open.createdAt)}
                   {open.trashed && " · in trash"}
                   {open.deliveredTo && ` · delivered to ${open.deliveredTo}`}
+                  {threadCost(open) > 0 &&
+                    ` · ${allRecipients(open).length} run${allRecipients(open).length === 1 ? "" : "s"}, $${threadCost(open).toFixed(3)}`}
                 </p>
               </header>
 
-              <div className="rounded-lg border p-4 text-sm whitespace-pre-wrap">
-                {open.messages[0]?.body}
-              </div>
+              {open.messages.map((message) =>
+                message.from === "you" ? (
+                  <div
+                    key={message.id}
+                    className="rounded-lg border p-4 text-sm whitespace-pre-wrap"
+                  >
+                    <Prose text={message.body} />
+                  </div>
+                ) : (
+                  <section key={message.id} className="group relative flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                        {nameOf(message.from)
+                          .split(/\s+/)
+                          .map((word) => word[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </span>
+                      <span>{nameOf(message.from)}</span>
+                      {message.unread && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                          Unread
+                        </span>
+                      )}
+                    </div>
+
+                    {message.body && (
+                      // The muted field is the "this came from a model" cue,
+                      // and the copy affordance is the one every chat output
+                      // has: present on hover, out of the way otherwise.
+                      <div className="relative rounded-lg bg-muted/60 p-4">
+                        <button
+                          type="button"
+                          aria-label="Copy this reply"
+                          onClick={() => {
+                            void navigator.clipboard?.writeText(message.body)
+                            setCopied(message.id)
+                            window.setTimeout(() => setCopied(null), 1500)
+                          }}
+                          className="absolute top-2 right-2 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100"
+                        >
+                          {copied === message.id ? (
+                            <Check className="size-4" />
+                          ) : (
+                            <Copy className="size-4" />
+                          )}
+                        </button>
+                        <div
+                          className={cn(
+                            "text-sm whitespace-pre-wrap",
+                            message.run?.failed && "text-destructive"
+                          )}
+                        >
+                          <Prose text={message.body} />
+                        </div>
+                      </div>
+                    )}
+
+                    {(message.run?.steps.length ?? 0) > 0 && (
+                      <details className="rounded-lg border p-3">
+                        <summary className="cursor-pointer text-sm text-muted-foreground">
+                          {message.run!.steps.length} tool call
+                          {message.run!.steps.length === 1 ? "" : "s"}
+                          {message.run!.done ? "" : " so far"}
+                        </summary>
+                        <div className="pt-3">
+                          <RunSteps steps={message.run!.steps} />
+                        </div>
+                      </details>
+                    )}
+
+                    {message.run && <RunMeta run={message.run} />}
+                  </section>
+                )
+              )}
+
+              {open.status === "running" && (
+                // The reading pane's own sign of life. It names the tool in
+                // flight rather than saying "working", so a long gather reads
+                // as progress instead of as a hang.
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
+                  />
+                  <span className="animate-pulse">{running(open)}</span>
+                </div>
+              )}
 
               {open.status === "draft" ? (
                 <div>
@@ -292,64 +424,41 @@ export default function Page() {
                     Edit draft
                   </Button>
                 </div>
+              ) : replying ? (
+                // Inline at the bottom of the thread, the way every mail client
+                // does it — a reply is part of the conversation, not a page.
+                <div className="rounded-lg border p-4">
+                  <Compose
+                    inline
+                    draft={replyDraft}
+                    onChange={setReplyDraft}
+                    onSend={(current) => {
+                      const text = current.body
+                      setReplying(false)
+                      setReplyDraft(EMPTY_DRAFT)
+                      void followUp(open, text)
+                    }}
+                    onDiscard={() => {
+                      setReplying(false)
+                      setReplyDraft(EMPTY_DRAFT)
+                    }}
+                  />
+                </div>
               ) : (
-                <section className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                      {open.agentName
-                        .split(/\s+/)
-                        .map((word) => word[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </span>
-                    <span>{open.agentName}</span>
-                    {agentMessage?.unread && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                        Unread
-                      </span>
-                    )}
-                  </div>
-
-                  {agentMessage?.body && (
-                    <div
-                      className={cn(
-                        "text-sm whitespace-pre-wrap",
-                        open.status === "failed" && "text-destructive"
-                      )}
+                open.status !== "running" && (
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setReplyDraft({ ...EMPTY_DRAFT, to: open.to ?? [] })
+                        setReplying(true)
+                      }}
                     >
-                      <Prose text={agentMessage.body} />
-                    </div>
-                  )}
-
-                  {open.status === "running" && (
-                    // The reading pane's own sign of life. It names the tool in
-                    // flight rather than saying "working", so a long gather
-                    // reads as progress instead of as a hang.
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span
-                        aria-hidden
-                        className="size-2 shrink-0 animate-pulse rounded-full bg-primary"
-                      />
-                      <span className="animate-pulse">{running(open)}</span>
-                    </div>
-                  )}
-
-                  {(agentMessage?.run?.steps.length ?? 0) > 0 && (
-                    <details className="rounded-lg border p-3">
-                      <summary className="cursor-pointer text-sm text-muted-foreground">
-                        {agentMessage!.run!.steps.length} tool call
-                        {agentMessage!.run!.steps.length === 1 ? "" : "s"}
-                        {open.status === "running" ? " so far" : ""}
-                      </summary>
-                      <div className="pt-3">
-                        <RunSteps steps={agentMessage!.run!.steps} />
-                      </div>
-                    </details>
-                  )}
-
-                  {agentMessage?.run && <RunMeta run={agentMessage.run} />}
-                </section>
+                      <Reply className="size-4" /> Reply
+                    </Button>
+                  </div>
+                )
               )}
             </article>
           ) : (

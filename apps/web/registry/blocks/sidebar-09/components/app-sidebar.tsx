@@ -8,6 +8,7 @@ import {
   isUnread,
   matches,
   running,
+  shownRecipients,
   teaser,
   unreadIn,
   when,
@@ -220,8 +221,8 @@ export function AppSidebar({
                         {/* Sent reads "To: <Agent>", the way a Sent folder does
                             — the recipient is the useful name there. */}
                         {folder === "sent" || folder === "drafts"
-                          ? `To: ${thread.agentName}`
-                          : thread.agentName}
+                          ? `To: ${shownRecipients(thread).join(", ")}`
+                          : shownRecipients(thread).join(", ")}
                       </span>
                       {thread.starred && (
                         <Star className="size-3 fill-yellow-400 text-yellow-500" />
