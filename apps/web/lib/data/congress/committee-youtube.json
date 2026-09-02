@@ -1,0 +1,187 @@
+{
+ "_": [
+  "Committee YouTube channels. A CONGRESS-ONLY artefact, and it says so here so",
+  "nobody wonders why New York's 82 committees are absent: official channels",
+  "exist for federal committees and essentially not for state ones. 31 of the 34",
+  "full committees on our record are mapped; subcommittees run no channels and",
+  "are not tried.",
+  "",
+  "Built by one discovery pass (scripts/agents/discover-committee-youtube.py) and",
+  "then decided BY HAND, because the automated pass was wrong four times: a",
+  "YouTube search for a federal committee ranks VERMONT's legislature above it, so",
+  "'Vermont Senate Committee on Finance' came back for Senate Finance and three",
+  "more like it. Handle-guessing was worse \u2014 @HouseTransportation is a moving",
+  "company in Medina and @WaysAndMeans is a person. A search hit is not a",
+  "verification; every entry below was read before it was written.",
+  "",
+  "Three committees are deliberately absent rather than wrong: Senate Agriculture",
+  "and Senate Rules have no channel of their own, and Senate Homeland Security",
+  "resolves to the HOUSE committee's channel, which would be a lie about both.",
+  "",
+  "Many committees run MAJORITY or MINORITY channels rather than one institutional",
+  "one ('House Judiciary GOP', 'Senate Energy Dems'), so the title is kept beside",
+  "the id: what the card shows is that channel's latest hearing, not the",
+  "committee's, and the title is how a reader can tell.",
+  "",
+  "`uploads` is the channel's uploads playlist. Reading it costs ONE quota unit",
+  "against playlistItems.list; the search that found these cost 100 each, which is",
+  "why finding is a build step and showing is not."
+ ],
+ "channels": {
+  "hlig00": {
+   "channelId": "UCFjD5ojAdBaMT7gDJXaN7rg",
+   "uploads": "UUFjD5ojAdBaMT7gDJXaN7rg",
+   "title": "GOP House Intelligence Committee"
+  },
+  "hsag00": {
+   "channelId": "UCWtWf-QUTnJ-UMP5ZNWVB5Q",
+   "uploads": "UUWtWf-QUTnJ-UMP5ZNWVB5Q",
+   "title": "House Committee on Agriculture"
+  },
+  "hsap00": {
+   "channelId": "UCMaSlF09S0fpoRshS2t_7XA",
+   "uploads": "UUMaSlF09S0fpoRshS2t_7XA",
+   "title": "House Appropriations Committee"
+  },
+  "hsas00": {
+   "channelId": "UCD506yORW2voSanqEgLOUIQ",
+   "uploads": "UUD506yORW2voSanqEgLOUIQ",
+   "title": "U.S. House Armed Services Committee"
+  },
+  "hsba00": {
+   "channelId": "UCiGw0gRK-daU7Xv4oDMr9Hg",
+   "uploads": "UUiGw0gRK-daU7Xv4oDMr9Hg",
+   "title": "U.S. House Committee on Financial Services"
+  },
+  "hsbu00": {
+   "channelId": "UCHPaSWprI94UTePSMv0tqnw",
+   "uploads": "UUHPaSWprI94UTePSMv0tqnw",
+   "title": "House Budget Committee GOP"
+  },
+  "hsed00": {
+   "channelId": "UC8Ewe7WqGg01KRNjJCO5cjg",
+   "uploads": "UU8Ewe7WqGg01KRNjJCO5cjg",
+   "title": "House Committee on Education & Workforce"
+  },
+  "hsfa00": {
+   "channelId": "UCXCjgHrMgPEqDvCmPc9BbJA",
+   "uploads": "UUXCjgHrMgPEqDvCmPc9BbJA",
+   "title": "House Foreign Affairs Committee Democrats"
+  },
+  "hsgo00": {
+   "channelId": "UCn8TJ6Tyq2aGvhybME_itDQ",
+   "uploads": "UUn8TJ6Tyq2aGvhybME_itDQ",
+   "title": "GOP Oversight"
+  },
+  "hsha00": {
+   "channelId": "UC8dXTgFnWF8NraBKhF040Qg",
+   "uploads": "UU8dXTgFnWF8NraBKhF040Qg",
+   "title": "Committee on House Administration"
+  },
+  "hshm00": {
+   "channelId": "UChdT2snPVxfp2m8n4VDdMag",
+   "uploads": "UUhdT2snPVxfp2m8n4VDdMag",
+   "title": "Homeland Security Committee Events"
+  },
+  "hsif00": {
+   "channelId": "UC5s1kIfkfWbap31d5ef-VtQ",
+   "uploads": "UU5s1kIfkfWbap31d5ef-VtQ",
+   "title": "House Committee on Energy and Commerce"
+  },
+  "hsii00": {
+   "channelId": "UCY08wEbJ8fztRofQ9eZs0-g",
+   "uploads": "UUY08wEbJ8fztRofQ9eZs0-g",
+   "title": "House Committee on Natural Resources GOP"
+  },
+  "hsju00": {
+   "channelId": "UCdvbanLNRlC0Af1QWeJ9foA",
+   "uploads": "UUdvbanLNRlC0Af1QWeJ9foA",
+   "title": "House Judiciary GOP"
+  },
+  "hspw00": {
+   "channelId": "UChc8bTPtZgTZDDLJ6UWJgxA",
+   "uploads": "UUhc8bTPtZgTZDDLJ6UWJgxA",
+   "title": "House Transportation & Infrastructure Committee"
+  },
+  "hsru00": {
+   "channelId": "UCDNcorctkmOpBfr4sgu6t3w",
+   "uploads": "UUDNcorctkmOpBfr4sgu6t3w",
+   "title": "HouseRules"
+  },
+  "hssm00": {
+   "channelId": "UCoXvuW2IhFawuNyk4yL3EkQ",
+   "uploads": "UUoXvuW2IhFawuNyk4yL3EkQ",
+   "title": "House Committee on Small Business"
+  },
+  "hsso00": {
+   "channelId": "UCxZOzbhWkBPEimMti0NBvQQ",
+   "uploads": "UUxZOzbhWkBPEimMti0NBvQQ",
+   "title": "House Committee on Ethics"
+  },
+  "hssy00": {
+   "channelId": "UCtoUE3dJ-mLUo5dwGs7hXOw",
+   "uploads": "UUtoUE3dJ-mLUo5dwGs7hXOw",
+   "title": "House Science, Space, and Technology Committee"
+  },
+  "hsvr00": {
+   "channelId": "UCvI8xjyh45-XAJbfPcjUdbQ",
+   "uploads": "UUvI8xjyh45-XAJbfPcjUdbQ",
+   "title": "House Committee On Veterans' Affairs"
+  },
+  "hswm00": {
+   "channelId": "UC8FSgDMEzdK7j3lsQ4G4L0A",
+   "uploads": "UU8FSgDMEzdK7j3lsQ4G4L0A",
+   "title": "Ways and Means Committee Republicans"
+  },
+  "slia00": {
+   "channelId": "UCyrk47CduR0_u8fF-YV66Ig",
+   "uploads": "UUyrk47CduR0_u8fF-YV66Ig",
+   "title": "Senate Committee on Indian Affairs"
+  },
+  "slin00": {
+   "channelId": "UCPMZUzj4YFHuSmXNrkKAHeg",
+   "uploads": "UUPMZUzj4YFHuSmXNrkKAHeg",
+   "title": "Select Committee on Intelligence\u2014Republicans"
+  },
+  "ssbk00": {
+   "channelId": "UCdGVNfn42jsovvTUgj6N-dA",
+   "uploads": "UUdGVNfn42jsovvTUgj6N-dA",
+   "title": "Senate Banking Housing and Urban Affairs Committee"
+  },
+  "sscm00": {
+   "channelId": "UC0lKQz7pObyGEYLz-CIUvUw",
+   "uploads": "UU0lKQz7pObyGEYLz-CIUvUw",
+   "title": "CommerceRepublicans"
+  },
+  "sseg00": {
+   "channelId": "UChLTzGO2KEkdBlJ22pOccjA",
+   "uploads": "UUhLTzGO2KEkdBlJ22pOccjA",
+   "title": "Senate Energy Dems"
+  },
+  "ssev00": {
+   "channelId": "UCqMG6uXhoBo_nHcJN9XrLKw",
+   "uploads": "UUqMG6uXhoBo_nHcJN9XrLKw",
+   "title": "Senate Environment & Public Works Committee"
+  },
+  "ssfi00": {
+   "channelId": "UCqy51oGHjollKBBWV4_iRgQ",
+   "uploads": "UUqy51oGHjollKBBWV4_iRgQ",
+   "title": "SenFinanceMajority"
+  },
+  "ssfr00": {
+   "channelId": "UCdhGUydqxKYn-IJWTRf2OAw",
+   "uploads": "UUdhGUydqxKYn-IJWTRf2OAw",
+   "title": "Senate Foreign Relations Committee"
+  },
+  "sshr00": {
+   "channelId": "UCqe90fVUcBwMVDfytYYvqEA",
+   "uploads": "UUqe90fVUcBwMVDfytYYvqEA",
+   "title": "HELPCommitteeGOP"
+  },
+  "sssb00": {
+   "channelId": "UCTBekZNJnHsVcI3neFFBW_w",
+   "uploads": "UUTBekZNJnHsVcI3neFFBW_w",
+   "title": "U.S. Senate Committee on Small Business & Entrepreneurship"
+  }
+ }
+}

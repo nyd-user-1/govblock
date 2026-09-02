@@ -5,6 +5,7 @@ import { IconArrowLeft } from "@tabler/icons-react"
 
 import CODES from "@/lib/data/congress/committee-codes.json"
 import { getCommittee } from "@/lib/policy/db-queries"
+import { latestHearing } from "@/lib/policy/committee-video"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import {
@@ -16,6 +17,7 @@ import {
   CommitteeSubcommittees,
   CommitteeToc,
 } from "@/components/policy/committee-page"
+import { CommitteeVideo } from "@/components/policy/committee-video"
 import { H2, Table } from "@/components/typeset"
 import { Button } from "@govblock/ui/components/ny4/button"
 
@@ -63,7 +65,13 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
   const code = id.toLowerCase()
   const committee = known(code)
   if (!committee) notFound()
-  const record = await getCommittee({ state: "US", session: 2025 }, committee.name)
+  // The page already revalidates hourly, which is exactly the freshness this
+  // card promises — so the lookup rides the page's own cache and a reader never
+  // pays a quota unit for a view.
+  const [record, latest] = await Promise.all([
+    getCommittee({ state: "US", session: 2025 }, committee.name),
+    latestHearing(code),
+  ])
   // `bills` is the 25 most recent; the true total is the status breakdown,
   // which counts every bill referred this session.
   const referred = record.statuses.reduce((total, row) => total + row.bills, 0)
@@ -149,6 +157,7 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
         <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
           <div className="h-(--top-spacing) shrink-0"></div>
           <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
+            <CommitteeVideo latest={latest} />
             <CommitteeToc base={SECTIONS} />
           </div>
           <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
