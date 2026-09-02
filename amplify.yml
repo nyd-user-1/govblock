@@ -31,6 +31,21 @@ applications:
               # Names only — the values are Brendan's Google client and the
               # session secret, and a public build log is not their home.
               echo "sign-in env present: $(grep -c '^AUTH_' .env.production) of 4"
+            # The committee video card's YouTube key, same rule: written only
+            # when Amplify holds it, so an absent key makes the card say the key
+            # is not configured rather than fail a lookup with a blank one.
+            #
+            # This list is the whole runtime environment. Adding a variable in
+            # the Amplify console and not here is a NO-OP at runtime — it
+            # reaches the build and stops. That is how the key sat in the branch
+            # env for a whole deploy while the card kept saying it was missing.
+            - |
+              if [ -n "${YOUTUBE_API_KEY:-}" ]; then
+                printf 'YOUTUBE_API_KEY=%s\n' "$YOUTUBE_API_KEY" >> .env.production
+                echo "youtube key: present"
+              else
+                echo "youtube key: absent"
+              fi
             - pnpm -C ../.. exec turbo build --filter=web
             # Amplify packages <appRoot>/node_modules; prove next resolves there.
             - node -e "console.log('next at', require.resolve('next/package.json'))"
