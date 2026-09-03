@@ -39,7 +39,7 @@ export function NavigationCard() {
 
   const groups = [
     {
-      label: "Directory",
+      label: "Records",
       items: [
         { name: "Bills", href: scoped("/docs/bills"), icon: IconFileText },
         { name: "Committees", href: scoped("/docs/committees"), icon: IconUsersGroup },

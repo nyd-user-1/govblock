@@ -33,7 +33,7 @@ export default async function AgentsPage() {
       title={title}
       description={description}
       slug="/agents"
-      previous={{ name: "Directory", url: "/docs/directory" }}
+      previous={{ name: "Members", url: "/docs/directory" }}
       next={{ name: "Bills", url: "/docs/bills" }}
     >
       <p>

@@ -11,7 +11,7 @@ import { NewsroomScoped } from "@/components/newsroom-scoped"
 // from mv_newsroom_latest and mv_stream_latest, rebuilt every hour; any other
 // jurisdiction is picked up on the client, so the route stays static and the CDN
 // caches each desk separately.
-export const metadata: Metadata = { title: "News Room", description: "What the legislature did, newest first." }
+export const metadata: Metadata = { title: "News", description: "What the legislature did, newest first." }
 export const revalidate = 3600
 
 const DESKS = ["NY", "TX", "CA", "US"]

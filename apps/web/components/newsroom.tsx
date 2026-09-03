@@ -101,7 +101,7 @@ export function NewsroomPage({
             <FlagChip state={state} />
             {stateName(state)} · {session} session
           </span>
-          <h1 className="cn-font-heading text-4xl font-semibold tracking-tight">News Room</h1>
+          <h1 className="cn-font-heading text-4xl font-semibold tracking-tight">News</h1>
           <p className="max-w-2xl text-pretty text-muted-foreground">What the legislature did, newest first. Every headline is the bill it names.</p>
         </header>
 

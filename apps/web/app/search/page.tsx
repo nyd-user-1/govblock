@@ -253,7 +253,7 @@ export default function SearchPage() {
       title="Search"
       description="Bills, bill text, members, committees, topics and pages — across every jurisdiction, with the one you are in first."
       slug="search"
-      previous={{ name: "Directory", url: "/docs/directory" }}
+      previous={{ name: "Members", url: "/docs/directory" }}
       next={{ name: "Bills", url: "/docs/bills" }}
     >
       <React.Suspense fallback={null}>

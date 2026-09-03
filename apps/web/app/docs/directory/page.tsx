@@ -8,7 +8,7 @@ import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { Button } from "@govblock/ui/components/ny4/button"
 
 // The members doc, on the same header as bills and committees.
-const title = "Directory"
+const title = "Members"
 const description = "Every sitting member of the legislature in scope."
 const previous = { name: "Committees", url: "/docs/committees" }
 const next = { name: "Finance", url: "/docs/money" }

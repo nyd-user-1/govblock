@@ -4,7 +4,7 @@ import { DirectoryRail } from "@/components/directory-rail"
 import { Sidebar, SidebarContent } from "@govblock/ui/components/ny4/sidebar"
 
 // Ported from livingston-v3 components/docs-sidebar.tsx, reduced to the
-// directory rail: Directory and Recent Bills. The Sections group and the
+// directory rail: the site's sections, Recent Bills and Committees. The Sections group and the
 // shadcn docs tree are not on a govblock docs page.
 export function DocsSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (

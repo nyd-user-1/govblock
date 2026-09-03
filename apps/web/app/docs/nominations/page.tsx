@@ -17,7 +17,7 @@ export default function NominationsPage() {
       title={title}
       description={description}
       slug="/docs/nominations"
-      previous={{ name: "Directory", url: "/docs/directory" }}
+      previous={{ name: "Members", url: "/docs/directory" }}
       next={{ name: "Reports", url: "/docs/reports" }}
     >
       <NominationsList />

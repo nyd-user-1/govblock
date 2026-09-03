@@ -35,11 +35,11 @@ export const siteConfig = {
       // also the docs rail's Records section — `components/directory-rail.tsx`
       // reads it — so the panel and the rail cannot say different things. They
       // did until 20:00 ET: Members here and Directory there, Record and The
-      // Record, and a Finance the rail had that the panel did not. Every label
-      // is now the page's own title. Row one is what every jurisdiction has;
+      // Record, and a Finance the rail had that the panel did not. One name per
+      // page now: Members and News, by Brendan's word, and the rest by title. Row one is what every jurisdiction has;
       // row two is the federal record, the news, and the paperwork the
       // government hands back.
-      // News Room is here as well as at the top level: it is a record of what
+      // News is here as well as at the top level: it is a record of what
       // happened, and a reader looking for the day's news should find it where
       // the records are. Its sentence is the page's own metadata description,
       // not a second one written for the menu.
@@ -47,17 +47,17 @@ export const siteConfig = {
       items: [
         { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first.", icon: "FileText" },
         { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them.", icon: "Users" },
-        { href: "/docs/directory", label: "Directory", description: "The sitting members, with party and district.", icon: "BookUser" },
+        { href: "/docs/directory", label: "Members", description: "The sitting members, with party and district.", icon: "BookUser" },
         { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
         { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
         { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate.", icon: "UserCheck" },
         { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
         { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
-        { href: "/newsroom", label: "News Room", description: "What the legislature did, newest first.", icon: "Newspaper" },
+        { href: "/newsroom", label: "News", description: "What the legislature did, newest first.", icon: "Newspaper" },
         { href: "/docs/forms", label: "Forms", description: "Government forms for benefits, grants and programs.", icon: "ClipboardList" },
       ],
     },
-    { href: "/newsroom", label: "News Room" },
+    { href: "/newsroom", label: "News" },
     {
       label: "Agents",
       href: "/agents",
