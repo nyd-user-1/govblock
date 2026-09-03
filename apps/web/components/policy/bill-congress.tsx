@@ -665,8 +665,11 @@ export function BillVersions({
                   )}
                 </td>
                 <td className="whitespace-nowrap">
-                  {version.formats?.length
-                    ? version.formats.map((format, i) => (
+                  {/* A LegiScan version has no congress.gov renderings; the
+                      route answered that as three nulls until 2026-09-03 and
+                      the page died on the first of them. Skip empties. */}
+                  {version.formats?.filter(Boolean).length
+                    ? version.formats.filter(Boolean).map((format, i) => (
                         <React.Fragment key={format.url}>
                           {i > 0 && " · "}
                           <a href={format.url} target="_blank" rel="noopener noreferrer">

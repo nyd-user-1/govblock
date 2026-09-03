@@ -1548,7 +1548,8 @@ export async function getTextVersions(billId: number) {
                  jsonb_strip_nulls(jsonb_build_array(
                    case when l.html_url is not null then jsonb_build_object('type', 'Formatted Text', 'url', l.html_url) end,
                    case when l.pdf_url  is not null then jsonb_build_object('type', 'PDF', 'url', l.pdf_url) end,
-                   case when l.xml_url  is not null then jsonb_build_object('type', 'XML', 'url', l.xml_url) end))) f),
+                   case when l.xml_url  is not null then jsonb_build_object('type', 'XML', 'url', l.xml_url) end))) f
+                where jsonb_typeof(f) <> 'null'),
               '[]'::jsonb) as formats
        from held h
        full outer join listed l on l.document_id = h.document_id
