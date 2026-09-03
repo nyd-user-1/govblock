@@ -1,12 +1,15 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ChevronRight } from "lucide-react"
 
 import { hasItems, siteConfig, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { truncate } from "@/lib/format"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/ui/components/ny4/collapsible"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -20,30 +23,22 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 
 // Ported from livingston-v3 components/policy/directory-rail.tsx. Three groups,
-// one item shape: the site's four sections with Records opened to its pages
+// one item shape: the site's four sections with Records folded to its pages
 // (read from the nav, so the rail and the Records panel are one list), Recent
 // Bills (the number; the title is the tooltip), Committees (the name; the full
-// name is the tooltip).
+// name is the tooltip). Every row's hover runs the width of the rail.
 
 const MENU_CLASS =
-  "relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48"
-
-// Rows that carry a description fill the rail so the text ellipsizes inside
-// the hover pill instead of running off its right edge.
-const WIDE_CLASS = MENU_CLASS.replace("w-fit", "w-full max-w-52")
+  "relative h-[30px] w-full max-w-52 overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48"
 
 const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
 
 // The four sections in the order Brendan gave them (2026-09-02, 20:00 ET),
-// each standing for the top-level nav entry named in `nav`. Only Records
-// lists its pages: it is the section every docs page belongs to, so its
-// contents are the table of contents. The other three are one link each.
-const SECTIONS = [
-  { label: "Agents", nav: "Agents" },
-  { label: "News", nav: "News Room" },
-  { label: "Records", nav: "Records" },
-  { label: "Workspace", nav: "Workspace" },
-]
+// each the top-level nav entry of the same name. Only Records lists its pages:
+// it is the section every docs page belongs to, so its contents are the table
+// of contents — folded until asked for (Brendan, 20:30 ET). The other three
+// are one link each.
+const SECTIONS = ["Agents", "News", "Records", "Workspace"]
 
 type RailItem = {
   key: string
@@ -51,15 +46,13 @@ type RailItem = {
   label: React.ReactNode
   tooltip?: string
   active: boolean
-  wide?: boolean
   items?: RailItem[]
 }
 
 function RailButton({ item }: { item: RailItem }) {
   const button = (
-    <SidebarMenuButton asChild isActive={item.active} className={item.wide ? WIDE_CLASS : MENU_CLASS}>
+    <SidebarMenuButton asChild isActive={item.active} className={MENU_CLASS}>
       <Link href={item.href}>
-        <span className="absolute inset-0 flex w-(--sidebar-menu-width) bg-transparent" />
         <span className="min-w-0 truncate">{item.label}</span>
       </Link>
     </SidebarMenuButton>
@@ -75,6 +68,42 @@ function RailButton({ item }: { item: RailItem }) {
   )
 }
 
+function RailNode({ item }: { item: RailItem }) {
+  const [open, setOpen] = React.useState(false)
+  const children = item.items ?? []
+  if (!children.length) {
+    return (
+      <SidebarMenuItem>
+        <RailButton item={item} />
+      </SidebarMenuItem>
+    )
+  }
+  // The section stands for the page while it is folded, or while it is open
+  // with no listed page taking the highlight; open on a bill, Bills has it.
+  const highlight = item.active && !(open && children.some((child) => child.active))
+  return (
+    <Collapsible asChild open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton isActive={highlight} className={MENU_CLASS}>
+            <span className="min-w-0 truncate">{item.label}</span>
+            <ChevronRight aria-hidden className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {children.map((child) => (
+              <SidebarMenuSubItem key={child.key}>
+                <RailButton item={child} />
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  )
+}
+
 function RailGroup({ label, items, className }: { label?: string; items: RailItem[]; className?: string }) {
   return (
     <SidebarGroup className={className}>
@@ -82,18 +111,7 @@ function RailGroup({ label, items, className }: { label?: string; items: RailIte
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.key}>
-              <RailButton item={item} />
-              {item.items && item.items.length > 0 && (
-                <SidebarMenuSub>
-                  {item.items.map((sub) => (
-                    <SidebarMenuSubItem key={sub.key}>
-                      <RailButton item={sub} />
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              )}
-            </SidebarMenuItem>
+            <RailNode key={item.key} item={item} />
           ))}
         </SidebarMenu>
       </SidebarGroupContent>
@@ -111,13 +129,14 @@ export function DirectoryRail() {
   // Docs pages take the jurisdiction on the URL; the rest of the site reads it
   // from the browser.
   const scoped = (href: string) => (href.startsWith("/docs") ? `${href}${scope}` : href)
-  const sections: RailItem[] = SECTIONS.flatMap(({ label, nav }) => {
+
+  const sections: RailItem[] = SECTIONS.flatMap((nav) => {
     const entry = siteConfig.navItems.find((item) => item.label === nav)
     if (!entry) return []
     const pages: NavLink[] = hasItems(entry) ? entry.items : []
     // A page that already stands at the top of this rail as another section
-    // is not listed a second time under Records — News Room sits in the panel
-    // as well as beside it, and here News is the row above. The section's own
+    // is not listed a second time under Records — News sits in the panel as
+    // well as beside it, and here it is the row above. The section's own
     // link (Records opens on Bills) does not count against its list.
     const elsewhere = new Set(siteConfig.navItems.filter((item) => item !== entry).map((item) => item.href))
     const shown = nav === "Records" ? pages.filter((page) => !elsewhere.has(page.href)) : []
@@ -128,18 +147,7 @@ export function DirectoryRail() {
       active: pathname.startsWith(page.href),
     }))
     const inside = pathname === entry.href || pages.some((page) => pathname.startsWith(page.href))
-    return [
-      {
-        key: nav,
-        href: scoped(entry.href),
-        label,
-        // A section lights up when the reader is inside it and none of its
-        // listed pages has taken the highlight: Records yields to Bills,
-        // Agents lights up for any agent.
-        active: inside && !items.some((item) => item.active),
-        items,
-      },
-    ]
+    return [{ key: nav, href: scoped(entry.href), label: nav, active: inside, items }]
   })
   const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
@@ -152,7 +160,6 @@ export function DirectoryRail() {
     ),
     tooltip: bill.title,
     active: pathname === `/docs/bills/${bill.bill_id}`,
-    wide: true,
   }))
   const committees: RailItem[] = [...(committeeData ?? [])]
     .sort((a, b) => a.committee_name.localeCompare(b.committee_name))
@@ -162,7 +169,6 @@ export function DirectoryRail() {
       label: truncate(c.committee_name, 40),
       tooltip: c.committee_name,
       active: false,
-      wide: true,
     }))
 
   return (
