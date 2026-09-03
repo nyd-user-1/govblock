@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
+import { Prose, RunSteps } from "@/app/agents/transcript"
 import { emptyRun, runAgent, type RunState } from "@/lib/agents/run-client"
 import { agent as agentBySlug, maxRounds } from "@/lib/agents/registry"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -135,7 +135,6 @@ export function AssistChat({
                   <Prose text={turn.run.text} />
                 </div>
               )}
-              <RunMeta run={turn.run} />
             </div>
           )
         )}

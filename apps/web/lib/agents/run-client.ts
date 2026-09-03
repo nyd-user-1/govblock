@@ -206,16 +206,3 @@ export async function runAgent({
 }
 
 /** The one-line accounting the panel and the inbox both print. */
-export function runMeta(run: RunState) {
-  const money = run.usd >= 0.01 ? `$${run.usd.toFixed(3)}` : `${(run.usd * 100).toFixed(2)}¢`
-  return [
-    run.model,
-    `${run.rounds} round${run.rounds === 1 ? "" : "s"}`,
-    `${run.inTokens.toLocaleString()} in / ${run.outTokens.toLocaleString()} out` +
-      (run.cached ? ` · ${run.cached.toLocaleString()} cached` : ""),
-    money,
-    `${(run.ms / 1000).toFixed(1)} s`,
-  ]
-    .filter(Boolean)
-    .join(" · ")
-}

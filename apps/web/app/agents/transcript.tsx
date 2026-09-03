@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { runMeta, type RunState, type Step } from "@/lib/agents/run-client"
+import { type RunState, type Step } from "@/lib/agents/run-client"
 
 // How a run is shown: the tool calls it made, the prose it wrote, and what the
 // exchange cost. Shared by the chat panel on /agents and the Agentic Inbox,
@@ -208,7 +208,3 @@ export function RunSteps({ steps }: { steps: Step[] }) {
   )
 }
 
-export function RunMeta({ run }: { run: RunState }) {
-  if (!run.rounds) return null
-  return <div className="text-xs text-muted-foreground tabular-nums">{runMeta(run)}</div>
-}

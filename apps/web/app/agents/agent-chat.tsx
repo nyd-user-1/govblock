@@ -9,7 +9,7 @@ import { maxRounds, type AgentDefinition } from "@/lib/agents/registry"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Textarea } from "@govblock/ui/components/nova/textarea"
 
-import { Prose, RunMeta, RunSteps } from "./transcript"
+import { Prose, RunSteps } from "./transcript"
 
 // The chat panel, ported from components/policy/assist-chat.tsx — the same
 // bubbles, the same textarea, the same Clear/Send row, the same
@@ -110,7 +110,6 @@ export function AgentChat({ agent }: { agent: AgentDefinition }) {
                   <Prose text={turn.run.text} />
                 </div>
               )}
-              <RunMeta run={turn.run} />
             </div>
           )
         )}

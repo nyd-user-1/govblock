@@ -24,7 +24,7 @@ import {
 import { emptyRun, runAgent } from "@/lib/agents/run-client"
 import { cn } from "@/lib/utils"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
-import { Prose, RunMeta, RunSteps } from "@/app/agents/transcript"
+import { Prose, RunSteps } from "@/app/agents/transcript"
 import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ThreadList, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
@@ -469,8 +469,6 @@ export default function Page() {
                             </div>
                           </details>
                         )}
-
-                        {message.run && <RunMeta run={message.run} />}
                       </section>
                     )
                   )}
