@@ -1,5 +1,6 @@
 // Ported from livingston-v3 lib/policy/format.ts — only what the home page uses.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 export function fmtDate(value: string | null | undefined, withYear = true) {
   if (!value) return ""
@@ -17,6 +18,15 @@ export function fmtTime(value: string | null | undefined) {
   const suffix = h >= 12 ? "PM" : "AM"
   const hour = h % 12 === 0 ? 12 : h % 12
   return `${hour}:${String(m ?? 0).padStart(2, "0")} ${suffix}`
+}
+
+/** `September 2, 2026` — the month written out. */
+export function fmtLongDate(value: string | null | undefined) {
+  if (!value) return ""
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return String(value)
+  const [, y, m, d] = match
+  return `${MONTHS_LONG[Number(m) - 1] ?? m} ${Number(d)}, ${y}`
 }
 
 export function fmtNumber(value: number | null | undefined) {

@@ -2,8 +2,8 @@ import { type Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { stateName } from "@/lib/filters"
-import { honorific } from "@/lib/format"
-import { getMember, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
+import { fmtCompact, honorific } from "@/lib/format"
+import { getFec, getMember, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { MemberFeed, MemberHeader } from "@/components/policy/member-page"
@@ -15,7 +15,7 @@ import {
   MemberToc,
   MemberVotes,
 } from "@/components/policy/member-congress"
-import { H2 } from "@/components/typeset"
+import { H2, Table } from "@/components/typeset"
 
 // A member's own page, keyed by `people_id` — globally unique, so the route
 // learns the jurisdiction from the person rather than the other way round.
@@ -49,15 +49,18 @@ async function load(id: string) {
   const state = await getMemberState(peopleId)
   if (!state) return null
   const session = await latestSession(state)
-  const [member, record] = await Promise.all([
+  // FEC totals are a federal record; a state seat files with its own board,
+  // so the section exists only under Congress and says so when it is empty.
+  const [member, record, fec] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 25),
+    state === "US" ? getFec(peopleId) : Promise.resolve(null),
   ])
   if (!member) return null
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record }
+  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -76,7 +79,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   const { id } = await params
   const data = await load(id)
   if (!data) notFound()
-  const { peopleId, state, member, record } = data
+  const { peopleId, state, member, record, fec } = data
+  const sections = fec ? [...SECTIONS, "Finance"] : SECTIONS
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}`.trim()
@@ -142,6 +146,38 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                 }
               />
 
+              {fec && (
+                <>
+                  <H2>Finance</H2>
+                  {fec.totals.length ? (
+                    <Table>
+                      <thead>
+                        <tr>
+                          <th>Cycle</th>
+                          <th>Raised</th>
+                          <th>Spent</th>
+                          <th>On hand</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fec.totals.map((row) => (
+                          <tr key={row.cycle}>
+                            <td>
+                              {row.cycle - 1}–{row.cycle}
+                            </td>
+                            <td>{fmtCompact(row.receipts)}</td>
+                            <td>{fmtCompact(row.disbursements)}</td>
+                            <td>{fmtCompact(row.cash_on_hand_end)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  ) : (
+                    <p>No FEC totals on file for {name}.</p>
+                  )}
+                </>
+              )}
+
               <MemberTerms />
               <MemberVotes />
               <MemberContact phone={phone} bio={bio} />
@@ -158,7 +194,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
         <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
           <div className="h-(--top-spacing) shrink-0"></div>
           <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-            <MemberToc base={SECTIONS} contact={!!(phone || bio)} biography={!!biography} />
+            <MemberToc base={sections} contact={!!(phone || bio)} biography={!!biography} />
           </div>
           <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
             <OpenInV0Cta />

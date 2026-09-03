@@ -8,6 +8,7 @@ import { useCongress } from "@/lib/policy/use-congress"
 import { congressGovHref } from "@/lib/policy/congress"
 import { agencySeal, CRS_SEAL } from "@/lib/seals"
 import { SearchDirectory } from "@/components/directory-search"
+import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 // `RecordList` is aliased: this file already exports a `RecordList` — the
 // Congressional Record's daily issues — and that is a surface name, not a
 // shape. The canon's list container comes in as `CanonList`.
@@ -23,11 +24,7 @@ import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@
 // before the scope resolves, so the shared prerendered shell never flashes one
 // jurisdiction's content at a reader who asked for another.
 
-const PAGE = 50
-
 function Shell({
-  noun,
-  nounPlural,
   placeholder,
   rows,
   count,
@@ -35,8 +32,6 @@ function Shell({
   children,
   federal,
 }: {
-  noun: string
-  nounPlural?: string
   placeholder: string
   rows: unknown[]
   count: number
@@ -46,8 +41,11 @@ function Shell({
 }) {
   const { state, resolved } = useJurisdiction()
   const [query, setQuery] = React.useState("")
+  const [page, setPage] = React.useState(1)
   const matched = React.useMemo(() => filter(query.trim().toLowerCase()), [filter, query])
-  const shown = matched.slice(0, PAGE)
+  const pages = pageCount(matched.length)
+  const current = Math.min(page, pages)
+  const shown = matched.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
 
   if (!resolved) return null
   if (state !== "US") return <p className="py-10 text-sm text-muted-foreground">{federal}</p>
@@ -58,13 +56,14 @@ function Shell({
     <>
       <SearchDirectory
         query={query}
-        registriesCount={matched.length}
-        setQuery={(value) => setQuery(value ?? "")}
-        noun={noun}
-        nounPlural={nounPlural}
+        setQuery={(value) => {
+          setQuery(value ?? "")
+          setPage(1)
+        }}
         placeholder={placeholder}
       />
       <div className="my-8">{children(shown)}</div>
+      <ListPager page={current} pages={pages} onPage={setPage} />
       <p className="text-sm text-muted-foreground">
         Showing {fmtNumber(shown.length)} of {fmtNumber(query ? matched.length : count)}
         {query ? ` matching “${query}”` : ""}.
@@ -107,7 +106,6 @@ export function NominationsList() {
   )
   return (
     <Shell
-      noun="nomination"
       placeholder="Search nominations by nominee, office or citation…"
       rows={rows}
       count={count}
@@ -170,7 +168,6 @@ export function ReportsList() {
   )
   return (
     <Shell
-      noun="report"
       placeholder="Search reports by title, kind or number…"
       rows={rows}
       count={count}
@@ -235,7 +232,6 @@ export function RecordList() {
   )
   return (
     <Shell
-      noun="issue"
       placeholder="Search issues by date or number…"
       rows={rows}
       count={count}
@@ -290,7 +286,6 @@ export function LawsList() {
   )
   return (
     <Shell
-      noun="law"
       placeholder="Search laws by title, citation or bill…"
       rows={rows}
       count={count}

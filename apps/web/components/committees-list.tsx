@@ -49,9 +49,7 @@ export function CommitteesList() {
     <>
       <SearchDirectory
         query={query}
-        registriesCount={committees.length}
         setQuery={(value) => setQuery(value ?? "")}
-        noun="committee"
         // The shell is prerendered once for every reader, so it cannot name a
         // jurisdiction until it knows which one was asked for.
         placeholder={resolved ? `Search ${stateName(state)} committees by name…` : "Search committees by name…"}

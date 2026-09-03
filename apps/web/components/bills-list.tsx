@@ -7,6 +7,7 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtDate, truncate } from "@/lib/format"
 import { SearchDirectory } from "@/components/directory-search"
+import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
 // Ported from livingston-v3 components/bills-list.tsx, and as of 2026-09-02 no
@@ -20,15 +21,23 @@ import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-i
 // can use the width; and the Text button is gone — the bill page this item
 // already links to carries the text timeline.
 //
-// Search filters the rows.
+// Fifty to a page, paged on the server: the route answers `limit` and `offset`
+// and the total, so a jurisdiction's whole session is reachable. Search filters
+// the page in hand.
 
 const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
 
 type Bill = (typeof F.recentBills)[number] & { sponsor?: string | null; last_action?: string | null }
 
 export function BillsList() {
-  const { data, state } = useScoped<{ rows: Bill[] }>("bills", { rows: F.recentBills })
+  const [page, setPage] = React.useState(1)
+  const { data, state } = useScoped<{ rows: Bill[]; total: number }>(
+    "bills",
+    { rows: F.recentBills, total: F.recentBills.length },
+    { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }
+  )
   const [query, setQuery] = React.useState("")
+  React.useEffect(() => setPage(1), [state])
 
   const bills = React.useMemo(() => {
     const rows = data?.rows ?? []
@@ -42,14 +51,14 @@ export function BillsList() {
         (bill.sponsor ?? "").toLowerCase().includes(q)
     )
   }, [data, query])
+  const pages = pageCount(data?.total ?? 0)
+  const current = Math.min(page, pages)
 
   return (
     <>
       <SearchDirectory
         query={query}
-        registriesCount={bills.length}
         setQuery={(value) => setQuery(value ?? "")}
-        noun="bill"
         placeholder={`Search ${stateName(state)} bills by number, title, committee or sponsor…`}
       />
       <RecordList>
@@ -57,7 +66,7 @@ export function BillsList() {
           <RecordItem
             key={bill.bill_id}
             href={`/docs/bills/${bill.bill_id}`}
-            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
+            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={(current - 1) * PAGE_SIZE + index + 1} />}
             title={print(bill.bill_number)}
             lead={bill.last_action}
             meta={[
@@ -76,6 +85,7 @@ export function BillsList() {
           </p>
         )}
       </RecordList>
+      <ListPager page={current} pages={pages} onPage={setPage} />
     </>
   )
 }

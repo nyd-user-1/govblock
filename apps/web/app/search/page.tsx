@@ -151,9 +151,7 @@ function SearchResults() {
       <SearchDirectory
         query={query}
         setQuery={(value) => setQuery(value ?? "")}
-        registriesCount={total}
         placeholder={`Search ${here} and every jurisdiction...`}
-        noun="result"
       />
       {debounced.trim().length < 2 ? (
         <p className="text-sm text-muted-foreground">

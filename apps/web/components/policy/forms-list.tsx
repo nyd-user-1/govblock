@@ -8,6 +8,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { SearchDirectory } from "@/components/directory-search"
 import { FormSeal } from "@/components/policy/forms-seal"
+import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { Button } from "@govblock/ui/components/ny4/button"
 
@@ -20,7 +21,6 @@ import { Button } from "@govblock/ui/components/ny4/button"
 // there is no description column — §0 of the brief, and inventing one is how a
 // library starts lying.
 
-const PAGE = 50
 
 export type FormRow = {
   id: number
@@ -93,7 +93,7 @@ export function FormsList() {
 
   const [query, setQuery] = React.useState("")
   const [term, setTerm] = React.useState("")
-  const [pages, setPages] = React.useState<FormRow[][]>([])
+  const [rows, setRows] = React.useState<FormRow[]>([])
   const [answer, setAnswer] = React.useState<FormsAnswer | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [failed, setFailed] = React.useState<string | null>(null)
@@ -108,12 +108,12 @@ export function FormsList() {
   // Any change of scope, filter or term starts the list again from page 1.
   React.useEffect(() => {
     setPage(1)
-    setPages([])
+    setRows([])
   }, [state, agency, showAll, term])
 
   React.useEffect(() => {
     if (!resolved) return
-    const params = new URLSearchParams({ state, page: String(page), limit: String(PAGE) })
+    const params = new URLSearchParams({ state, page: String(page), limit: String(PAGE_SIZE) })
     if (agency) params.set("agency", agency)
     if (term) params.set("q", term)
     if (showAll) params.set("all", "1")
@@ -127,8 +127,7 @@ export function FormsList() {
         if (cancelled) return
         setAnswer(data)
         setFailed(null)
-        // Page 1 replaces; a later page appends, so "Show more" grows the list.
-        setPages((previous) => (page === 1 ? [data.rows] : [...previous, data.rows]))
+        setRows(data.rows)
       } catch (error) {
         if (cancelled) return
         // There is no committed fixture for this family, and there should not
@@ -142,8 +141,6 @@ export function FormsList() {
       cancelled = true
     }
   }, [resolved, state, agency, term, showAll, page])
-
-  const rows = React.useMemo(() => pages.flat(), [pages])
 
   // Nothing paints before the scope is known: the prerendered HTML is shared by
   // every visitor, so a first paint under the wrong flag is a lie in the markup.
@@ -184,9 +181,7 @@ export function FormsList() {
 
       <SearchDirectory
         query={query}
-        registriesCount={total}
         setQuery={(value) => setQuery(value ?? "")}
-        noun={noun}
         placeholder={`Search ${stateName(state)} ${noun}s by number, title or filename…`}
       />
 
@@ -225,18 +220,12 @@ export function FormsList() {
         </p>
       )}
 
-      <div className="flex items-center gap-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {fmtNumber(rows.length)} of {fmtNumber(total)} {total === 1 ? noun : `${noun}s`}
-          {agency ? ` from ${agency}` : ""}
-          {term ? ` matching “${term}”` : ""}.
-        </p>
-        {rows.length < total && (
-          <Button variant="secondary" size="sm" className="shadow-none" disabled={loading} onClick={() => setPage((n) => n + 1)}>
-            {loading ? "Loading…" : "Show more"}
-          </Button>
-        )}
-      </div>
+      <ListPager page={page} pages={pageCount(total)} onPage={setPage} />
+      <p className="text-sm text-muted-foreground">
+        {fmtNumber(total)} {total === 1 ? noun : `${noun}s`}
+        {agency ? ` from ${agency}` : ""}
+        {term ? ` matching “${term}”` : ""}.
+      </p>
     </>
   )
 }

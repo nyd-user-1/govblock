@@ -7,6 +7,7 @@ import { stateName } from "@/lib/filters"
 import { fmtCompact, fmtNumber } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { SearchDirectory } from "@/components/directory-search"
+import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
 // Finance: the canon item for every candidate account we hold. What we hold
@@ -55,6 +56,7 @@ function seat(row: Row) {
 export function FinanceList() {
   const { state, resolved } = useJurisdiction()
   const [query, setQuery] = React.useState("")
+  const [page, setPage] = React.useState(1)
   const { data } = useSWR<Payload>(
     resolved ? `/api/fec/candidates?state=${state}&cycle=${CYCLE}&limit=${HELD}&sort=receipts&dir=desc` : null
   )
@@ -65,6 +67,9 @@ export function FinanceList() {
 
   if (!resolved || !data) return null
   const held = data.rows.length
+  const pages = pageCount(rows.length)
+  const current = Math.min(page, pages)
+  const shown = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
   return (
     <>
       {!held ? (
@@ -75,13 +80,14 @@ export function FinanceList() {
         <>
           <SearchDirectory
             query={query}
-            registriesCount={rows.length}
-            setQuery={(value) => setQuery(value ?? "")}
-            noun="candidate"
+            setQuery={(value) => {
+              setQuery(value ?? "")
+              setPage(1)
+            }}
             placeholder="Search candidates by name, office, state or party…"
           />
           <RecordList className="my-8">
-            {rows.map((row) => (
+            {shown.map((row) => (
               <RecordItem
                 key={row.cand_id}
                 external
@@ -93,8 +99,9 @@ export function FinanceList() {
               />
             ))}
           </RecordList>
+          <ListPager page={current} pages={pages} onPage={setPage} />
           <p className="text-sm text-muted-foreground">
-            Showing {fmtNumber(rows.length)} of {fmtNumber(held)}
+            Showing {fmtNumber(shown.length)} of {fmtNumber(rows.length)}
             {query ? ` matching “${query}”` : ""}.
           </p>
         </>
