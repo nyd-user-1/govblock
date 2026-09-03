@@ -11,15 +11,18 @@ import { memberHref, partyName, stateName } from "@/lib/filters"
 import { honorific } from "@/lib/format"
 import { portraitFor } from "@/lib/imagery"
 import { SearchDirectory } from "@/components/directory-search"
-import { MemberRecordButton } from "@/components/member-record"
-import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
+import { MemberPortrait } from "@/components/policy/imagery"
+import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button, buttonVariants } from "@govblock/ui/components/nova/button"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemGroup, ItemMedia, ItemSeparator, ItemTitle } from "@govblock/ui/components/nova/item"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@govblock/ui/components/nova/pagination"
 
 // Ported from livingston-v3 components/directory-list.tsx: every sitting
-// member, twenty to a page, searchable by name, district or party.
+// member, twenty to a page, searchable by name, district or party. Each row is
+// the canon item (Brendan, 2026-09-02 20:30 ET): portrait, name, the
+// leadership title beside it, chamber · district · party beneath. The whole
+// row is the link to the member page, which is where the record lives — the
+// Record button that opened an unwired dialog of zeros is gone with it.
 
 const PAGE_SIZE = 20
 type Member = (typeof members)[number]
@@ -87,33 +90,16 @@ export function DirectoryList() {
         }}
         placeholder={resolved ? `Search ${stateName(state)} members by name, district or party…` : "Search members by name, district or party…"}
       />
-      <ItemGroup className="my-8">
-        {shown.map((member, index) => (
-          <React.Fragment key={member.people_id}>
-            <Item className="group/item relative gap-6 px-0">
-              <ItemMedia>
-                <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={40} />
-              </ItemMedia>
-              <ItemContent>
-                <ItemTitle className="flex items-center gap-2">
-                  <PartyDot party={member.party} serving={member.active} />
-                  <Link href={memberHref(member.people_id, state)} className="no-underline hover:underline">
-                    {honorific(member.role, member.chamber)} {member.name}
-                  </Link>
-                </ItemTitle>
-                <ItemDescription className="text-pretty">
-                  {[member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party), member.leadership_title].filter(Boolean).join(" · ")}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions className="relative z-10 hidden self-start sm:flex">
-                <MemberRecordButton name={member.name} subtitle={[member.chamber, partyName(member.party)].filter(Boolean).join(" · ")} session="119th Congress" />
-              </ItemActions>
-              <ItemFooter className="justify-start pl-16 sm:hidden">
-                <MemberRecordButton name={member.name} subtitle={member.chamber ?? undefined} session="119th Congress" />
-              </ItemFooter>
-            </Item>
-            {index < shown.length - 1 && <ItemSeparator className="my-1" />}
-          </React.Fragment>
+      <RecordList className="my-8">
+        {shown.map((member) => (
+          <RecordItem
+            key={member.people_id}
+            href={memberHref(member.people_id, state)}
+            avatar={<MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={36} />}
+            title={`${honorific(member.role, member.chamber)} ${member.name}`.trim()}
+            lead={member.leadership_title}
+            meta={[member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)]}
+          />
         ))}
         {!shown.length && (
           <p className="py-10 text-center text-sm text-muted-foreground">
@@ -121,7 +107,7 @@ export function DirectoryList() {
             {query ? ` matching “${query}”` : ""}.
           </p>
         )}
-      </ItemGroup>
+      </RecordList>
       {totalPages > 1 && (
         <Pagination className="not-typeset">
           <PaginationContent className="not-typeset list-none p-0 [&>li]:m-0 [&>li]:p-0 [&>li]:before:hidden">

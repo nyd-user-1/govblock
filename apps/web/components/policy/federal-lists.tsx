@@ -12,13 +12,11 @@ import { SearchDirectory } from "@/components/directory-search"
 // Congressional Record's daily issues — and that is a surface name, not a
 // shape. The canon's list container comes in as `CanonList`.
 import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@/components/policy/record-item"
-import { Table } from "@/components/typeset"
 
 // The four families that are a page in their own right: the Senate's
 // confirmation docket, the research library, the daily proceedings, and the
-// laws. Each is one read, one search field and one table — the shape
-// /docs/committees and /docs/directory already use, with the columns each
-// family actually has.
+// laws. Each is one read, one search field and one list of the canon item,
+// with the facts each family actually has in its slots.
 //
 // All four are federal, and all four say so under another jurisdiction rather
 // than quietly showing federal rows beneath a state's name. Nothing paints
@@ -222,6 +220,13 @@ type Issue = {
 const digestHref = (volume?: number, issue?: string) =>
   `https://www.congress.gov/congressional-record/volume-${volume}/issue-${Number(issue)}`
 
+// 119th, 1st, 2nd — the Congress and the session as they are written.
+const ordinal = (n: number) => {
+  const v = n % 100
+  const suffix = v >= 11 && v <= 13 ? "th" : (["th", "st", "nd", "rd"][v % 10] ?? "th")
+  return `${n}${suffix}`
+}
+
 export function RecordList() {
   const { rows, count } = useCongress<Issue>("record-issues", "dailyCongressionalRecord", null, { limit: 250 })
   const filter = React.useCallback(
@@ -238,32 +243,25 @@ export function RecordList() {
       federal="The daily proceedings are the federal legislature's. They read under the federal jurisdiction."
     >
       {(shown) => (
-        <Table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Volume</th>
-              <th>Issue</th>
-              <th>Session</th>
-              <th>Digest</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(shown as Issue[]).map((row) => (
-              <tr key={`${row.volumeNumber}-${row.issueNumber}`}>
-                <td>{row.issueDate ? fmtDate(row.issueDate) : "—"}</td>
-                <td>{row.volumeNumber ?? "—"}</td>
-                <td>{row.issueNumber ?? "—"}</td>
-                <td>{row.sessionNumber ?? "—"}</td>
-                <td>
-                  <a href={digestHref(row.volumeNumber, row.issueNumber)} target="_blank" rel="noopener noreferrer">
-                    Daily Digest
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <CanonList className="my-0">
+          {(shown as Issue[]).map((row) => (
+            <RecordItem
+              key={`${row.volumeNumber}-${row.issueNumber}`}
+              external
+              href={digestHref(row.volumeNumber, row.issueNumber)}
+              // Both chambers' proceedings, so the seal of the Congress rather
+              // than either chamber's.
+              avatar={<RecordSeal state="US" />}
+              title={row.issueDate ? fmtDate(row.issueDate) : "—"}
+              lead={row.volumeNumber || row.issueNumber ? `Vol. ${row.volumeNumber ?? "—"}, No. ${row.issueNumber ?? "—"}` : null}
+              meta={[
+                row.congress ? `${ordinal(row.congress)} Congress` : null,
+                row.sessionNumber ? `${ordinal(row.sessionNumber)} Session` : null,
+                "Daily Digest",
+              ]}
+            />
+          ))}
+        </CanonList>
       )}
     </Shell>
   )
