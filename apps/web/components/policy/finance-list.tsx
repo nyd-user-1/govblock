@@ -67,10 +67,6 @@ export function FinanceList() {
   const held = data.rows.length
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        {`The ${fmtNumber(HELD)} largest campaign accounts of the ${CYCLE - 1}–${CYCLE} cycle by receipts, from the FEC's candidate summaries`}
-        {state === "US" ? "." : `, and ${stateName(state)}'s share of them.`}
-      </p>
       {!held ? (
         <p className="py-10 text-sm text-muted-foreground">
           No candidate from {stateName(state)} is among the {fmtNumber(HELD)} largest accounts of the cycle in the extract we hold.
