@@ -11,6 +11,8 @@ import { portraitFor } from "@/lib/imagery"
 import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import type { Bill, BillRow, Member } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { BillChanges } from "@/components/create/bill-changes"
+import { BillHistory } from "@/components/create/bill-history"
 import { MemberRecord } from "@/components/create/member-record"
 import { BillTextPane } from "@/components/policy/bill-text-pane"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
@@ -20,7 +22,9 @@ import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 
 // A record on the stage, with its tabs, the way GitHub gives a file Code and
-// Blame. A bill: Text (the pane), Record (its page), Typeset. A member:
+// Blame. A bill: Text (the pane), Changes (its versions as a commit page),
+// Record (its page), Typeset, and History (the versions as a commit list,
+// reached by the History button rather than a pill, as on GitHub). A member:
 // Record (their page), Bills (what they sponsored), Votes (how they voted).
 // A roll call: the tally and every member's position.
 
@@ -48,6 +52,7 @@ function Tabs({ tabs, active, onTab, trailing }: { tabs: { value: string; label:
 
 const BILL_TABS = [
   { value: "text", label: "Text" },
+  { value: "changes", label: "Changes" },
   { value: "record", label: "Record" },
   { value: "typeset", label: "Typeset" },
 ]
@@ -73,10 +78,18 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
   const { data: member } = usePolicy<Member>(node.kind === "member" ? "member" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined })
   const { data: sponsored } = usePolicy<MemberRecordAnswer>(node.kind === "member" && tab === "bills" ? "record" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined, limit: 100 })
   const { data: rollcall } = usePolicy<RollCallAnswer>(node.kind === "rollcall" ? "rollcall" : null, { state }, { id: node.kind === "rollcall" ? node.id : undefined })
+  // One array per bill, newest first, so the tabs that key effects on it do not re-run every render.
+  const versions = React.useMemo(() => [...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id), [bill?.texts])
 
   if (node.kind === "bill") {
-    const active = BILL_TABS.some((t) => t.value === tab) ? tab : "text"
-    const versions = [...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id)
+    const active = tab === "history" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
+    const historyButton = (
+      <Button variant="outline" size="sm" data-active={active === "history"} className="data-[active=true]:bg-muted" onClick={() => onTab("history")}>
+        History{versions.length ? ` · ${versions.length}` : ""}
+      </Button>
+    )
+    const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
+    const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
     const href = active === "record" ? `/docs/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
     const tabPills = (
       <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
@@ -99,13 +112,16 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
             active={active}
             onTab={onTab}
             trailing={
-              href && (
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={href} target="_blank" rel="noreferrer">
-                    Open in new tab <ExternalLinkIcon className="size-3.5" />
-                  </a>
-                </Button>
-              )
+              <>
+                {href && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={href} target="_blank" rel="noreferrer">
+                      Open in new tab <ExternalLinkIcon className="size-3.5" />
+                    </a>
+                  </Button>
+                )}
+                {historyButton}
+              </>
             }
           />
         )}
@@ -124,6 +140,7 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
                 if (documentId) onDoc(documentId)
               }}
               tabs={tabPills}
+              history={historyButton}
               related={related}
             />
           ) : (
@@ -133,6 +150,16 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
               ))}
             </div>
           )
+        ) : active === "changes" && bill ? (
+          <BillChanges state={state} bill={bill} versions={versions} doc={doc ? Number(doc) : null} onDoc={(id) => onDoc(id)} onOpenText={openText} />
+        ) : active === "history" && bill ? (
+          <BillHistory bill={bill} versions={versions} onOpenText={openText} onOpenChanges={openChanges} />
+        ) : active === "changes" || active === "history" ? (
+          <div className="flex flex-col gap-2 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-3.5 rounded" style={{ width: `${55 + ((i * 37) % 40)}%` }} />
+            ))}
+          </div>
         ) : (
           <iframe key={href} src={href ?? undefined} title={`${bill?.bill_number ?? "Bill"} · ${active}`} className="min-h-0 flex-1 bg-background" />
         )}

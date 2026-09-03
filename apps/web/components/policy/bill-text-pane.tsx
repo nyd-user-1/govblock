@@ -4,15 +4,16 @@ import * as React from "react"
 import dynamic from "next/dynamic"
 import { CheckIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, SearchIcon, XIcon } from "lucide-react"
 
-import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { fmtNumber, truncate } from "@/lib/format"
 import { layoutBillText, printChangeMarks, type BillLayout } from "@/lib/policy/bill-text-layout"
-import { useLocal } from "@/lib/policy/use-local"
+import { FILE_ACTION, useDocPref, type FileAction } from "@/lib/policy/doc-prefs"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { BillText } from "@/components/bill-text"
 import type { CodeViewHandle, Match } from "@/components/policy/code-view"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
+import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's text as a file: the file view GitHub gives a source file, put to a
 // bill. Read (the standard layout) or Code (CodeMirror), a history strip of
@@ -21,11 +22,14 @@ import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 // search in three scopes — this bill, this session, all of govblock.
 //
 // Two rows above the text, the way Brendan laid them out in the browser on
-// 2026-09-03. The first is which version and how to view it: the history
-// chips at the left, Read | Code, Diff, Outline and the file actions at the
-// right. The second is finding and which tab: the search box at the left, and
-// whatever tabs the host hands in at the right. The file's name is the
-// breadcrumb's, so nothing here repeats it.
+// 2026-09-03, then again that afternoon to match GitHub's file page. The
+// first is finding and where else to go: the search box at the left, the
+// file's tabs and the History button at the right — History is the versions
+// as a commit list, one tab over. The second is how to view it: Read | Code,
+// the file's size the way GitHub prints it (lines, loc, KB), then Diff, wrap,
+// Outline and the copy, download and open buttons. The file's name is the
+// breadcrumb's, so nothing here repeats it; the more-actions menu is in the
+// block's header and talks to this pane through `doc-prefs`.
 //
 // The search box is GitHub's: `/` focuses it, and focusing it drops a panel
 // with the scopes as qualifiers — bill:, session:, all: — a Related group the
@@ -75,6 +79,7 @@ export function BillTextPane({
   onChoose,
   onOpenBill,
   tabs,
+  history,
   related,
 }: {
   state: string
@@ -90,14 +95,18 @@ export function BillTextPane({
   onOpenBill?: (billId: number, documentId?: number) => void
   /** The file's tabs, drawn at the right of the search row. */
   tabs?: React.ReactNode
+  /** The History button, drawn after the tabs. */
+  history?: React.ReactNode
   /** What the search panel offers beside the scopes. */
   related?: Related[]
 }) {
   const url = useUrlParams(["text", "diff", "split"] as const)
-  const [modePicked, setMode] = useLocal<"read" | "code">("govblock:documents:mode", "read")
+  const [modePicked, setMode] = useDocPref<"read" | "code">("mode", "read")
   const mode = url.text === "code" || url.text === "read" ? url.text : modePicked
-  const [wrap, setWrap] = useLocal("govblock:documents:wrap", true)
-  const [splitPicked, setSplit] = useLocal<boolean | null>("govblock:documents:split", null)
+  const [wrap, setWrap] = useDocPref("wrap", true)
+  const [fold] = useDocPref("fold", true)
+  const [center] = useDocPref("center", false)
+  const [splitPicked, setSplit] = useDocPref<boolean | null>("split", null)
   const split = splitPicked ?? url.split === "1"
   const [diffPicked, setDiff] = React.useState<boolean | null>(null)
   const diff = diffPicked ?? url.diff === "1"
@@ -136,6 +145,16 @@ export function BillTextPane({
   const { data: doc } = usePolicy<{ text?: string }>(shown ? "text" : null, { state }, { id: bill.bill_id, document: shown?.document_id })
   const { data: prior } = usePolicy<{ text?: string }>(diff && previous ? "text" : null, { state }, { id: bill.bill_id, document: previous?.document_id })
   const text = doc?.text ?? null
+
+  // "256 lines (236 loc) · 13.7 KB", as GitHub sizes a file.
+  const size = React.useMemo(() => {
+    if (!text) return null
+    const lines = text.split("\n")
+    const loc = lines.filter((l) => l.trim()).length
+    const kb = new Blob([text]).size / 1024
+    return `${fmtNumber(lines.length)} lines (${fmtNumber(loc)} loc) · ${kb >= 100 ? Math.round(kb) : kb.toFixed(1)} KB`
+  }, [text])
+
   const readLayout = React.useMemo(() => (mode === "read" && text ? layoutBillText(printChangeMarks(text)) : null), [mode, text])
   const outline = (mode === "code" ? layout : readLayout)?.headings ?? []
 
@@ -171,6 +190,24 @@ export function BillTextPane({
     else document.querySelector(`[data-slot="bill-text"] > div:nth-child(${line + 1})`)?.scrollIntoView({ block: "start", behavior: "smooth" })
   }
 
+  // The header's more-actions menu asks; this pane, which has the text and
+  // the editor, answers.
+  const fileName = shown ? `${bill.bill_number}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt` : ""
+  React.useEffect(() => {
+    const on = (e: Event) => {
+      const action = (e as CustomEvent<FileAction>).detail
+      if (action === "download" && text) download(fileName, text)
+      if (action === "jump") {
+        const answer = window.prompt("Jump to line")
+        const line = Number(answer)
+        if (Number.isFinite(line) && line > 0) goto(line - 1)
+      }
+    }
+    window.addEventListener(FILE_ACTION, on)
+    return () => window.removeEventListener(FILE_ACTION, on)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, fileName, mode])
+
   const openResult = (billId: number, documentId?: number) => {
     if (billId === bill.bill_id && documentId && versions.some((v) => v.document_id === documentId)) onChoose(documentId)
     else if (onOpenBill) onOpenBill(billId, documentId)
@@ -201,62 +238,7 @@ export function BillTextPane({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Row one: which version, and how to view it. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
-        <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-          <span className="mr-1 shrink-0 text-xs text-muted-foreground">History</span>
-          {versions.map((v, index) => (
-            <button key={v.document_id} type="button" data-active={v.document_id === shown.document_id} onClick={() => onChoose(v.document_id)} className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors hover:bg-muted data-[active=true]:bg-foreground data-[active=true]:text-background" title={`${fmtNumber(v.chars)} characters${v.fetched_at ? ` · fetched ${fmtDate(String(v.fetched_at).slice(0, 10))}` : ""}`}>
-              <span className="font-mono opacity-70">{String(versions.length - index).padStart(2, "0")}</span>
-              {v.version ?? "Original"}
-            </button>
-          ))}
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {modeToggle}
-          {mode === "code" && (
-            <>
-              <Button variant={diff ? "default" : "outline"} size="sm" disabled={!previous} title={previous ? `Against ${previous.version ?? "the previous version"}` : "This is the first version on file"} onClick={() => setDiff((d) => !(d ?? url.diff === "1"))}>
-                Diff
-              </Button>
-              {diff && previous && (
-                <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-                  {toggle("unified", !split, () => setSplit(false), "Unified")}
-                  {toggle("split", split, () => setSplit(true), "Split")}
-                </div>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setWrap((w) => !w)} title="Line wrap mode">
-                {wrap ? "Soft wrap" : "No wrap"}
-              </Button>
-            </>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setPanel((p) => (p === "outline" ? null : "outline"))} data-active={panel === "outline"} className="data-[active=true]:bg-muted">
-            Outline{outline.length ? ` · ${outline.length}` : ""}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Copy the text"
-            disabled={!text}
-            onClick={() => {
-              if (!text) return
-              void navigator.clipboard?.writeText(text)
-              setCopied(true)
-              window.setTimeout(() => setCopied(false), 1500)
-            }}
-          >
-            {copied ? <CheckIcon /> : <CopyIcon />}
-          </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Download the text" disabled={!text} onClick={() => text && download(`${bill.bill_number}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt`, text)}>
-            <DownloadIcon />
-          </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Open the bill in a new tab" nativeButton={false} render={<a href={`/docs/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer" />}>
-            <ExternalLinkIcon />
-          </Button>
-        </div>
-      </div>
-
-      {/* Row two: finding, and which tab. */}
+      {/* Row one: finding, and where else to go. */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
         <div className="relative min-w-64 flex-1">
           <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background pr-8 pl-2.5 text-sm focus-within:ring-1 focus-within:ring-ring">
@@ -290,11 +272,18 @@ export function BillTextPane({
               aria-label="Search"
             />
           </div>
-          {query && (
-            <button type="button" aria-label="Clear" onClick={() => setQuery("")} className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <XIcon className="size-3.5" />
-            </button>
-          )}
+          <button
+            type="button"
+            aria-label="Clear the search"
+            onClick={() => {
+              setQuery("")
+              setScope("bill")
+              setPanel((p) => (p === "references" || p === "results" ? null : p))
+            }}
+            className={cn("absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground", !query && scope === "bill" && "opacity-50")}
+          >
+            <XIcon className="size-3.5" />
+          </button>
           {query.trim() && scope === "bill" && !focused && <span className="absolute top-1/2 right-8 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">{fmtNumber(references.length)}</span>}
 
           {focused && (
@@ -348,7 +337,59 @@ export function BillTextPane({
             </div>
           )}
         </div>
-        {tabs && <div className="ml-auto flex shrink-0 items-center">{tabs}</div>}
+        {(tabs || history) && (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {tabs}
+            {history}
+          </div>
+        )}
+      </div>
+
+      {/* Row two: how to view it. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2">
+        {modeToggle}
+        {size && <span className="font-mono text-xs text-primary">{size}</span>}
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {mode === "code" && (
+            <>
+              <Button variant={diff ? "default" : "outline"} size="sm" disabled={!previous} title={previous ? `Against ${previous.version ?? "the previous version"}` : "This is the first version on file"} onClick={() => setDiff((d) => !(d ?? url.diff === "1"))}>
+                Diff
+              </Button>
+              {diff && previous && (
+                <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+                  {toggle("unified", !split, () => setSplit(false), "Unified")}
+                  {toggle("split", split, () => setSplit(true), "Split")}
+                </div>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setWrap((w) => !w)} title="Line wrap mode">
+                {wrap ? "Soft wrap" : "No wrap"}
+              </Button>
+            </>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setPanel((p) => (p === "outline" ? null : "outline"))} data-active={panel === "outline"} className="data-[active=true]:bg-muted">
+            Outline{outline.length ? ` · ${outline.length}` : ""}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Copy the text"
+            disabled={!text}
+            onClick={() => {
+              if (!text) return
+              void navigator.clipboard?.writeText(text)
+              setCopied(true)
+              window.setTimeout(() => setCopied(false), 1500)
+            }}
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label="Download the text" disabled={!text} onClick={() => text && download(`${bill.bill_number}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt`, text)}>
+            <DownloadIcon />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label="Open the bill in a new tab" nativeButton={false} render={<a href={`/docs/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer" />}>
+            <ExternalLinkIcon />
+          </Button>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
@@ -360,7 +401,7 @@ export function BillTextPane({
               ))}
             </div>
           ) : mode === "code" ? (
-            <CodeView ref={code} text={text} original={diff ? (prior?.text ?? null) : null} diff={diff && !!prior?.text} split={split} wrap={wrap} query={scope === "bill" ? query : ""} highlight={highlight} onMatches={onMatches} onLayout={onLayout} />
+            <CodeView ref={code} text={text} original={diff ? (prior?.text ?? null) : null} diff={diff && !!prior?.text} split={split} wrap={wrap} fold={fold} center={center} query={scope === "bill" ? query : ""} highlight={highlight} onMatches={onMatches} onLayout={onLayout} />
           ) : (
             <div className="h-full overflow-y-auto p-4">
               <BillText text={text} version={shown.version} date={bill.last_action_date} highlight={highlight} />

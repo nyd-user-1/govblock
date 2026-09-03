@@ -14,7 +14,10 @@ import { cn } from "@govblock/ui/lib/utils"
 // header is the one thing that never scrolls away, so it wears the shadow the
 // rows pass under and carries the Top button while they do.
 //
-// A folder's path ends in `/`, a file's does not, as on GitHub.
+// A folder's path ends in `/`, a file's does not, as on GitHub. A file's name
+// is long — a bill's number and title — so the crumbs between the state and
+// the file fold to `…`, each still the link it was (Brendan, 2026-09-03:
+// `Alaska / … / … / SB9 — Surrender Of Infants`).
 
 export type Crumb = { label: string; go?: Target }
 
@@ -24,14 +27,15 @@ export function PathBar({ crumbs, folder, onGo, className }: { crumbs: Crumb[]; 
     <div className={cn("flex min-w-0 items-center gap-1 text-sm font-normal", className)}>
       {crumbs.map((c, index) => {
         const last = index === crumbs.length - 1
+        const folded = !folder && index > 0 && !last
         return (
           <React.Fragment key={`${c.label}-${index}`}>
             {index > 0 && <span className="shrink-0 text-muted-foreground">/</span>}
             {last || !c.go ? (
               <span className={cn("truncate font-medium", index === 0 && !last && "text-primary")}>{c.label}</span>
             ) : (
-              <button type="button" onClick={() => onGo(c.go!)} className="shrink-0 text-primary hover:underline">
-                {c.label}
+              <button type="button" onClick={() => onGo(c.go!)} title={folded ? c.label : undefined} className="shrink-0 text-primary hover:underline">
+                {folded ? "…" : c.label}
               </button>
             )}
           </React.Fragment>

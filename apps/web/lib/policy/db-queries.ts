@@ -244,11 +244,18 @@ export type BillRow = {
 
 const BILL_COLUMNS = `b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
   b.committee, b.body, b.url, b.state_link, b.text_chars,
-  sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id`
+  sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id,
+  lt.version latest_version, lt.document_id latest_document_id, lt.fetched_at latest_fetched_at, lt.versions`
 
+// The newest text on file rides on every bill row since 2026-09-03: in the
+// repository view a bill's versions are its commits, and the folder table
+// shows the last one the way GitHub shows a file's last commit.
 const PRIME_SPONSOR = `left join lateral (
   select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
-  where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true`
+  where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
+left join lateral (
+  select t.version, t.document_id, t.fetched_at, count(*) over ()::int versions from "BillTexts" t
+  where t.bill_id = b.bill_id and t.text is not null order by t.document_id desc limit 1) lt on true`
 
 export async function getBills(f: Resolved, limit = 40, offset = 0) {
   const params: unknown[] = []

@@ -14,6 +14,7 @@ import { usePolicy } from "@/lib/policy/use-policy"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { Fab, FabButton } from "@/components/create/fab"
+import { FileActions } from "@/components/create/file-actions"
 import { FileView } from "@/components/create/file-view"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
@@ -78,7 +79,7 @@ function DesignerInner() {
   const { data: member } = usePolicy<Member>(location.member ? "member" : null, { state: scope.state, session: scope.filters.session }, { id: location.member || undefined })
 
   const go = React.useCallback((target: Target) => {
-    const out: Record<string, string | null> = { tab: target.tab ?? null, doc: null }
+    const out: Record<string, string | null> = { tab: target.tab ?? null, doc: target.doc ?? null }
     for (const key of ["at", "committee", "member", "bill", "rollcall", "session"] as const) if (key in target) out[key] = target[key] ?? null
     writeUrlParams(out, { history: "push" })
   }, [])
@@ -228,7 +229,7 @@ function DesignerInner() {
       </BlockShell>
     )
   ) : (
-    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
+    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
         <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (

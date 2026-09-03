@@ -16,6 +16,12 @@ export type BillRow = {
   sponsor: string | null
   sponsor_party: string | null
   sponsor_id: number | null
+  /** The newest text on file — the bill's "last commit" (Brendan, 2026-09-03). */
+  latest_version: string | null
+  latest_document_id: number | null
+  latest_fetched_at: string | null
+  /** How many texts are on file. */
+  versions: number | null
 }
 
 export type Sponsor = {

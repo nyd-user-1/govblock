@@ -150,6 +150,10 @@ export const CodeView = React.forwardRef<
     /** Side by side (the previous version on the left) rather than unified. */
     split?: boolean
     wrap?: boolean
+    /** Fold buttons in the gutter; on by default, a view option. */
+    fold?: boolean
+    /** A measure of about 100 characters, centred, rather than the full width. */
+    center?: boolean
     /** The reader's query, kept in step with the panel; matches come back through onMatches. */
     query?: string
     /** A zero-based line to highlight — the outline's hover or pick. */
@@ -158,12 +162,13 @@ export const CodeView = React.forwardRef<
     onLayout?: (layout: BillLayout) => void
     className?: string
   }
->(function CodeView({ text, original, diff = false, split = false, wrap = false, query = "", highlight = null, onMatches, onLayout, className }, ref) {
+>(function CodeView({ text, original, diff = false, split = false, wrap = false, fold = true, center = false, query = "", highlight = null, onMatches, onLayout, className }, ref) {
   const host = React.useRef<HTMLDivElement>(null)
   const view = React.useRef<EditorView | null>(null)
   const merge = React.useRef<MergeView | null>(null)
   const sideBySide = diff && split && !!original
   const wrapConf = React.useRef(new Compartment())
+  const foldConf = React.useRef(new Compartment())
   const mergeConf = React.useRef(new Compartment())
   const targetConf = React.useRef(new Compartment())
   const layout = React.useMemo(() => layoutBillText(text), [text])
@@ -187,7 +192,7 @@ export const CodeView = React.forwardRef<
       EditorView.editable.of(false),
       lineNumbers(),
       layout.gutter ? docNumbers : [],
-      foldGutter(),
+      foldConf.current.of(fold ? foldGutter() : []),
       sectionFolds(layout),
       history(),
       search({ top: true }),
@@ -249,11 +254,14 @@ export const CodeView = React.forwardRef<
       editor.destroy()
       view.current = null
     }
-  }, [layout, wrap, sideBySide, originalLayout])
+  }, [layout, wrap, fold, sideBySide, originalLayout])
 
   React.useEffect(() => {
     view.current?.dispatch({ effects: wrapConf.current.reconfigure(wrap ? EditorView.lineWrapping : []) })
   }, [wrap])
+  React.useEffect(() => {
+    view.current?.dispatch({ effects: foldConf.current.reconfigure(fold ? foldGutter() : []) })
+  }, [fold])
 
   React.useEffect(() => {
     const editor = view.current
@@ -304,7 +312,7 @@ export const CodeView = React.forwardRef<
     []
   )
 
-  return <div ref={host} className={cn("h-full min-h-0 overflow-hidden", className)} />
+  return <div ref={host} className={cn("h-full min-h-0 overflow-hidden", center && "mx-auto max-w-[120ch]", className)} />
 })
 
 /** The document as the code view sees it, for callers that want the outline without mounting an editor. */

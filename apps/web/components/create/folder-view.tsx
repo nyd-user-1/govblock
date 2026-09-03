@@ -13,6 +13,7 @@ import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/image
 import { EditDetailsDialog, ProjectCard, ProjectGrid, useProjectDetails, type ProjectDetails } from "@/components/project-card"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A folder on the stage, the way GitHub shows one: a table with `..` at the
@@ -24,7 +25,10 @@ import { cn } from "@govblock/ui/lib/utils"
 // GitHub's table has one set of columns because files are all alike. Ours
 // aren't, so each kind of folder has its own (Brendan, 2026-09-03): a roll
 // call is Roll call · Bill · Type · Aye · Nay · Date, a member is Member ·
-// Chamber · District · Party, and so on.
+// Chamber · District · Party, and so on. A bill's second column is its latest
+// version, the way a file's is its last commit: the version's name and the
+// bill's title, the whole title on hover, and a click opens the version's
+// changes rather than the bill.
 //
 // The Cards look draws the large card for a bill, a member or a committee and
 // the small folder card for anything without a face or a seal.
@@ -71,7 +75,47 @@ function splitRollCall(description: string) {
 
 type Column = { key: string; label: string; className?: string; cell: (row: Row) => React.ReactNode }
 
-function columnsFor(node: Node, state: string): Column[] {
+/** "05 Enrolled — Surrender Of Infants…", the bill's last commit line. */
+function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) {
+  if (row.record?.kind !== "bill") return <span className="text-muted-foreground">{truncate(row.description ?? "", 110)}</span>
+  const b = row.record.bill
+  const nth = b.versions ? String(b.versions).padStart(2, "0") : null
+  const label = b.latest_version ? `${nth} ${b.latest_version}` : null
+  const line = (
+    <span className="text-muted-foreground">
+      {label && <span className="mr-2 font-mono text-xs text-foreground/80">{label}</span>}
+      {truncate(b.title, label ? 90 : 110)}
+    </span>
+  )
+  if (!b.latest_document_id) return line
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className="block max-w-full truncate text-left hover:[&>span]:text-primary hover:[&>span]:underline"
+            onClick={(e) => {
+              e.stopPropagation()
+              onGo({ bill: String(b.bill_id), rollcall: null, tab: "changes", doc: String(b.latest_document_id) })
+            }}
+          />
+        }
+      >
+        {line}
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="max-w-md text-pretty">
+        <p className="font-medium">
+          {label} · {b.bill_number}
+        </p>
+        <p>{b.title}</p>
+        {b.description && b.description !== b.title && <p className="mt-1 text-muted-foreground">{b.description}</p>}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Column[] {
   // The name is the row's link, coloured the way GitHub colours a file name:
   // plain until the row is hovered, then link-blue and underlined.
   const name = (row: Row, mono = false): React.ReactNode => (
@@ -91,10 +135,10 @@ function columnsFor(node: Node, state: string): Column[] {
       ]
     case "bills":
     case "committee":
-      if (node.kind === "committee" && node.sub === "members") return columnsFor({ kind: "members" }, state).concat([{ key: "votes", label: "Committee votes", className: right, cell: (r) => muted(fmtNumber(r.count ?? 0)) }])
+      if (node.kind === "committee" && node.sub === "members") return columnsFor({ kind: "members" }, state, onGo).concat([{ key: "votes", label: "Committee votes", className: right, cell: (r) => muted(fmtNumber(r.count ?? 0)) }])
       return [
         { key: "bill", label: "Bill", className: "w-36", cell: (r) => name(r, true) },
-        { key: "title", label: "Title", cell: (r) => muted(truncate(r.record?.kind === "bill" ? r.record.bill.title : (r.description ?? ""), 110)) },
+        { key: "version", label: "Latest version", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
         { key: "status", label: "Status", className: "w-44", cell: (r) => muted(r.record?.kind === "bill" ? (r.record.bill.status_desc ?? "Introduced") : "") },
         { key: "committee", label: "Committee", className: "w-48", cell: (r) => muted(truncate(r.record?.kind === "bill" ? (r.record.bill.committee ?? "—") : "", 30)) },
         { key: "date", label: "Last action", className: `w-32 ${right}`, cell: (r) => muted(r.date ? fmtDate(r.date) : "—") },
@@ -164,7 +208,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
     else onGo({ committee: node.name, at: t === "members" ? "members" : null, member: null, bill: null, rollcall: null })
   }
   const tabLabel = (t: string) => (t === "bills" ? "Bills" : t === "members" ? "Members" : "Calendar")
-  const columns = columnsFor(node, state)
+  const columns = columnsFor(node, state, onGo)
 
   const toggle = (value: string, active: boolean, onClick: () => void, label = value) => (
     <button key={value} type="button" data-active={active} onClick={onClick} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">

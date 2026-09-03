@@ -45,7 +45,7 @@ export type Node =
 export type Location = { at: string; committee: string; member: string; bill: string; rollcall: string }
 
 /** What a click writes: keys to set, `null` to clear, absent to leave alone. */
-export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab", string | null>>
+export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc", string | null>>
 
 export const ROOT_FOLDERS = [
   { key: "bills", label: "Bills", go: { at: "bills" } as Target },
