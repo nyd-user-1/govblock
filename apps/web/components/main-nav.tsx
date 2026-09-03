@@ -7,6 +7,7 @@ import {
   BookOpen,
   BookUser,
   ClipboardList,
+  Coins,
   FileText,
   Newspaper,
   Scale,
@@ -16,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import type { NavItem } from "@/lib/config"
+import { hasItems, type NavItem } from "@/lib/config"
 import { cn } from "@govblock/ui/lib/utils"
 import {
   NavigationMenu,
@@ -34,10 +35,6 @@ import {
 // all. Each panel line carries the sentence that says what the page is for,
 // because the nav is the only place most people will read it.
 
-function hasItems(item: NavItem): item is Extract<NavItem, { items: unknown[] }> {
-  return "items" in item && Array.isArray(item.items)
-}
-
 // The only place a lucide name becomes a component. `lib/config.ts` stays data,
 // and an icon that is not in this map simply does not draw — a panel line
 // without one is the layout every panel had until today.
@@ -45,6 +42,7 @@ const ICONS: Record<string, LucideIcon> = {
   BookOpen,
   BookUser,
   ClipboardList,
+  Coins,
   FileText,
   Newspaper,
   Scale,
@@ -53,13 +51,14 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
 }
 
-// Two columns is the panel this nav has always drawn. Records asked for four
-// across and two down, which is eight entries — so the width follows the count
-// rather than a fixed `w-[26rem]`.
+// Two columns is the panel this nav has always drawn. Records asked for two
+// rows, and its ten entries make that five across — so the width follows the
+// count rather than a fixed `w-[26rem]`.
 const GRID: Record<number, string> = {
   2: "w-[26rem] md:grid-cols-2",
   3: "w-[42rem] md:grid-cols-3",
   4: "w-[54rem] md:grid-cols-4",
+  5: "w-[64rem] md:grid-cols-5",
 }
 
 export function MainNav({

@@ -4,7 +4,11 @@
 export type NavLink = { href: string; label: string; description?: string; icon?: string }
 export type NavItem =
   | NavLink
-  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 }
+  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 | 5 }
+
+export function hasItems(item: NavItem): item is Extract<NavItem, { items: unknown[] }> {
+  return "items" in item && Array.isArray(item.items)
+}
 
 export const siteConfig = {
   name: "govblock",
@@ -26,27 +30,30 @@ export const siteConfig = {
     {
       label: "Records",
       href: "/docs/bills",
-      // Eight entries, four across and two down — Brendan, 08:10 ET. News Room
-      // is here as well as at the top level: it is a record of what happened,
-      // and a reader looking for the day's news should find it where the
-      // records are. Its sentence is the page's own metadata description, not a
-      // second one written for the menu.
-      columns: 4,
+      // Ten entries, five across and two down. Two rows is the requirement
+      // (Brendan, 08:10 ET); the column count follows from it. This list is
+      // also the docs rail's Records section — `components/directory-rail.tsx`
+      // reads it — so the panel and the rail cannot say different things. They
+      // did until 20:00 ET: Members here and Directory there, Record and The
+      // Record, and a Finance the rail had that the panel did not. Every label
+      // is now the page's own title. Row one is what every jurisdiction has;
+      // row two is the federal record, the news, and the paperwork the
+      // government hands back.
+      // News Room is here as well as at the top level: it is a record of what
+      // happened, and a reader looking for the day's news should find it where
+      // the records are. Its sentence is the page's own metadata description,
+      // not a second one written for the menu.
+      columns: 5,
       items: [
         { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first.", icon: "FileText" },
         { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them.", icon: "Users" },
         { href: "/docs/directory", label: "Directory", description: "The sitting members, with party and district.", icon: "BookUser" },
+        { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
         { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
         { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate.", icon: "UserCheck" },
         { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
         { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
         { href: "/newsroom", label: "News Room", description: "What the legislature did, newest first.", icon: "Newspaper" },
-        // Ninth. Everything above it is the legislative record; this is the
-        // paperwork the government hands back — the forms you fill in to get a
-        // benefit, a grant or a licence. Four columns and nine entries is three
-        // rows, not the two Brendan asked for; flagged rather than solved by
-        // dropping an entry or widening to five columns, because which of those
-        // he wants is his call.
         { href: "/docs/forms", label: "Forms", description: "Government forms for benefits, grants and programs.", icon: "ClipboardList" },
       ],
     },
