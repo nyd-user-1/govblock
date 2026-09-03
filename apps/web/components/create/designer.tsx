@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MenuIcon } from "lucide-react"
+import { ArrowUpIcon, MenuIcon } from "lucide-react"
 
 import { isFile, isSpecial, listing, locate, monthName, type Location, type Target } from "@/lib/create/path"
 import { decodePreset, DEFAULT_DESIGN, DESIGN_KEYS, DESIGN_OPTIONS, presetToParams, readDesign, type Design, type Preset } from "@/lib/create/preset"
@@ -15,8 +15,9 @@ import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { Fab, FabButton } from "@/components/create/fab"
 import { FileView } from "@/components/create/file-view"
-import { FolderView, type Crumb, type Look } from "@/components/create/folder-view"
+import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
+import { PathBar, type Crumb } from "@/components/create/path-bar"
 import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
 import { StageSwitcher, type Stage } from "@/components/create/stage-switcher"
@@ -25,7 +26,7 @@ import { BlockShell } from "@/components/policy/block-shell"
 import { FecExplorer } from "@/components/policy/fec-explorer"
 import { FormsList } from "@/components/policy/forms-list"
 import { blockComponents } from "@/registry/blocks"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@govblock/ui/components/nova/breadcrumb"
+import { Button } from "@govblock/ui/components/nova/button"
 import { SidebarContent, SidebarGroup, SidebarGroupLabel } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -178,28 +179,20 @@ function DesignerInner() {
   // `..`: the crumb before the last one.
   const up: Target | null = crumbs.length >= 2 ? (crumbs[crumbs.length - 2].go ?? null) : null
 
-  const header = (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {crumbs.map((c, index) => {
-          const last = index === crumbs.length - 1
-          return (
-            <React.Fragment key={`${c.label}-${index}`}>
-              {index > 0 && <BreadcrumbSeparator className={cn(index === 1 && "hidden md:block")} />}
-              <BreadcrumbItem className={cn(!last && index < crumbs.length - 2 && "hidden md:block")}>
-                {last || !c.go ? (
-                  <BreadcrumbPage className="truncate">{c.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink href="#" onClick={(e) => (e.preventDefault(), go(c.go!))}>
-                    {c.label}
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          )
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
+  // The block's title is the path to where you are — the state short, as a
+  // path segment, not the legislature's full name.
+  const header = <PathBar crumbs={crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
+
+  // Whether the folder's rows have scrolled under the header. Remembered per
+  // location so a new folder starts at the top.
+  const stageKey = `${scope.state}:${scope.session}:${params.at}:${location.committee}:${location.member}:${location.bill}:${location.rollcall}`
+  const scroller = React.useRef<HTMLDivElement>(null)
+  const [scrolledAt, setScrolledAt] = React.useState<string | null>(null)
+  const scrolled = scrolledAt === stageKey
+  const topButton = (
+    <Button variant="ghost" size="sm" onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}>
+      <ArrowUpIcon className="size-3.5" /> Top
+    </Button>
   )
 
   const lookToggle = !isFile(node) && (
@@ -235,16 +228,14 @@ function DesignerInner() {
       </BlockShell>
     )
   ) : (
-    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={lookToggle || undefined} contentClassName="overflow-hidden">
+    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
         <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (
-        <FolderView node={node} scope={scope} look={look} crumbs={crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} up={up} tab={params.tab} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onGo={go} />
+        <FolderView node={node} scope={scope} look={look} scopeKey={crumbs.map((c) => c.label).join("/")} scroller={scroller} onScrolled={(yes) => setScrolledAt(yes ? stageKey : null)} up={up} tab={params.tab} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onGo={go} />
       )}
     </BlockShell>
   )
-
-  const stageKey = `${scope.state}:${scope.session}:${params.at}:${location.committee}:${location.member}:${location.bill}:${location.rollcall}`
 
   return (
     <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]">

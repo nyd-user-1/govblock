@@ -32,6 +32,7 @@ export function BlockShell({
   children,
   sidebarWidth = "calc(var(--spacing) * 64)",
   className,
+  headerClassName,
   contentClassName,
   defaultOpen = true,
 }: {
@@ -44,6 +45,8 @@ export function BlockShell({
   children: React.ReactNode
   sidebarWidth?: string
   className?: string
+  /** For the shadow a header wears while rows pass under it. */
+  headerClassName?: string
   contentClassName?: string
   defaultOpen?: boolean
 }) {
@@ -64,7 +67,7 @@ export function BlockShell({
         {rail}
       </Sidebar>
       <SidebarInset className={cn("m-2 min-h-0 min-w-0 overflow-hidden rounded-xl shadow-sm", open ? "ml-0" : "ml-2")}>
-        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b">
+        <header className={cn("relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-shadow", headerClassName)}>
           <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />

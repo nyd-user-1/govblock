@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpIcon, CheckIcon, CopyIcon, CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
+import { CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
 
 import { type Node, type Target } from "@/lib/create/path"
 import { partyName, stateName } from "@/lib/filters"
@@ -11,15 +11,15 @@ import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use
 import { BillCard, CommitteeCard, MemberCard } from "@/components/create/entity-card"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { EditDetailsDialog, ProjectCard, ProjectGrid, useProjectDetails, type ProjectDetails } from "@/components/project-card"
-import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A folder on the stage, the way GitHub shows one: a table with `..` at the
-// top in a rounded, bordered box, under a path bar that sticks while the rows
-// pass beneath it; or the same rows as cards. Every folder renders through
-// this one component.
+// top in a rounded, bordered box, or the same rows as cards. Every folder
+// renders through this one component. The path bar is the block's header
+// (`path-bar.tsx`); this view only tells the header when the rows have
+// scrolled under it.
 //
 // GitHub's table has one set of columns because files are all alike. Ours
 // aren't, so each kind of folder has its own (Brendan, 2026-09-03): a roll
@@ -30,8 +30,6 @@ import { cn } from "@govblock/ui/lib/utils"
 // the small folder card for anything without a face or a seal.
 
 export type Look = "table" | "cards"
-
-export type Crumb = { label: string; go?: Target }
 
 function RowAvatar({ avatar, size = 28 }: { avatar: AvatarSpec; size?: number }) {
   switch (avatar.kind) {
@@ -74,10 +72,12 @@ function splitRollCall(description: string) {
 type Column = { key: string; label: string; className?: string; cell: (row: Row) => React.ReactNode }
 
 function columnsFor(node: Node, state: string): Column[] {
+  // The name is the row's link, coloured the way GitHub colours a file name:
+  // plain until the row is hovered, then link-blue and underlined.
   const name = (row: Row, mono = false): React.ReactNode => (
     <span className={cn("flex items-center gap-2.5 font-medium", mono && "font-mono text-xs")}>
       {row.avatar.kind === "folder" ? <FolderIcon className="size-4 shrink-0 text-muted-foreground" /> : row.kind === "file" && row.avatar.kind === "seal" ? <FileTextIcon className="size-4 shrink-0 text-muted-foreground" /> : <RowAvatar avatar={row.avatar} size={22} />}
-      <span className="truncate">{row.name}</span>
+      <span className="truncate group-hover/row:text-primary group-hover/row:underline">{row.name}</span>
     </span>
   )
   const muted = (v: React.ReactNode) => <span className="text-muted-foreground">{v}</span>
@@ -140,15 +140,11 @@ function columnsFor(node: Node, state: string): Column[] {
   }
 }
 
-export function FolderView({ node, scope, look, crumbs, up, tab, onTab, onGo }: { node: Node; scope: Scope; look: Look; crumbs: Crumb[]; up: Target | null; tab: string; onTab: (tab: string) => void; onGo: (go: Target) => void }) {
+export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, up, tab, onTab, onGo }: { node: Node; scope: Scope; look: Look; /** Names the folder for its pinned-row and details storage. */ scopeKey: string; scroller: React.RefObject<HTMLDivElement | null>; onScrolled: (scrolled: boolean) => void; up: Target | null; tab: string; onTab: (tab: string) => void; onGo: (go: Target) => void }) {
   const folder = useFolder(node, scope)
   const { state } = scope
-  const scopeKey = crumbs.map((c) => c.label).join("/")
   const { pinned, togglePin, details, setDetails } = useProjectDetails(`tree:${state}:${scopeKey}`)
   const [editing, setEditing] = React.useState<string | null>(null)
-  const scroller = React.useRef<HTMLDivElement>(null)
-  const [scrolled, setScrolled] = React.useState(false)
-  const [copied, setCopied] = React.useState(false)
 
   const rows = React.useMemo(() => {
     const rank = (p: string) => {
@@ -196,43 +192,7 @@ export function FolderView({ node, scope, look, crumbs, up, tab, onTab, onGo }: 
           <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">{tabs.map((t) => toggle(t, activeTab === t, () => pickTab(t), tabLabel(t)))}</div>
         </div>
       )}
-      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}>
-        {look === "table" && (
-          <div className={cn("sticky top-0 z-10 flex items-center gap-1 bg-background px-4 py-2 text-sm", scrolled && "border-b shadow-sm")}>
-            {crumbs.map((c, index) => {
-              const last = index === crumbs.length - 1
-              return (
-                <React.Fragment key={`${c.label}-${index}`}>
-                  {index > 0 && <span className="text-muted-foreground">/</span>}
-                  {last || !c.go ? <span className={cn("font-medium", index === 0 && !last && "text-primary")}>{c.label}</span> : (
-                    <button type="button" onClick={() => onGo(c.go!)} className="text-primary hover:underline">
-                      {c.label}
-                    </button>
-                  )}
-                </React.Fragment>
-              )
-            })}
-            <span className="text-muted-foreground">/</span>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Copy the link"
-              className="ml-1"
-              onClick={() => {
-                void navigator.clipboard?.writeText(window.location.href)
-                setCopied(true)
-                window.setTimeout(() => setCopied(false), 1500)
-              }}
-            >
-              {copied ? <CheckIcon /> : <CopyIcon />}
-            </Button>
-            {scrolled && (
-              <Button variant="ghost" size="sm" className="ml-auto" onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}>
-                <ArrowUpIcon className="size-3.5" /> Top
-              </Button>
-            )}
-          </div>
-        )}
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto" onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}>
         {look === "cards" ? (
           <div className="p-6">
             {up && (
@@ -269,7 +229,7 @@ export function FolderView({ node, scope, look, crumbs, up, tab, onTab, onGo }: 
             )}
           </div>
         ) : (
-          <div className="mx-4 mb-4 overflow-hidden rounded-lg border">
+          <div className="m-4 overflow-hidden rounded-lg border">
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -282,16 +242,16 @@ export function FolderView({ node, scope, look, crumbs, up, tab, onTab, onGo }: 
               </TableHeader>
               <TableBody>
                 {up && (
-                  <TableRow className="cursor-pointer" onClick={() => onGo(up)}>
+                  <TableRow className="group/row cursor-pointer" onClick={() => onGo(up)}>
                     <TableCell colSpan={columns.length} className="text-muted-foreground">
                       <span className="flex items-center gap-2">
-                        <FolderIcon className="size-4" /> ..
+                        <FolderIcon className="size-4" /> <span className="group-hover/row:text-primary group-hover/row:underline">..</span>
                       </span>
                     </TableCell>
                   </TableRow>
                 )}
                 {rows.map((row) => (
-                  <TableRow key={row.key} className="cursor-pointer" onClick={() => onGo(row.go)}>
+                  <TableRow key={row.key} className="group/row cursor-pointer" onClick={() => onGo(row.go)}>
                     {columns.map((c, index) => (
                       <TableCell key={c.key} className={cn("max-w-0", c.className)}>
                         {index === 0 ? (
