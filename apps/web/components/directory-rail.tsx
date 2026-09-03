@@ -111,16 +111,16 @@ export function DirectoryRail() {
   // Docs pages take the jurisdiction on the URL; the rest of the site reads it
   // from the browser.
   const scoped = (href: string) => (href.startsWith("/docs") ? `${href}${scope}` : href)
-  const topLevel = new Set(siteConfig.navItems.map((item) => item.href))
-
   const sections: RailItem[] = SECTIONS.flatMap(({ label, nav }) => {
     const entry = siteConfig.navItems.find((item) => item.label === nav)
     if (!entry) return []
     const pages: NavLink[] = hasItems(entry) ? entry.items : []
-    // A page that already stands at the top of this rail is not listed a
-    // second time under Records — News Room sits in the panel as well as
-    // beside it, and here News is the row above.
-    const shown = nav === "Records" ? pages.filter((page) => !topLevel.has(page.href)) : []
+    // A page that already stands at the top of this rail as another section
+    // is not listed a second time under Records — News Room sits in the panel
+    // as well as beside it, and here News is the row above. The section's own
+    // link (Records opens on Bills) does not count against its list.
+    const elsewhere = new Set(siteConfig.navItems.filter((item) => item !== entry).map((item) => item.href))
+    const shown = nav === "Records" ? pages.filter((page) => !elsewhere.has(page.href)) : []
     const items = shown.map((page) => ({
       key: page.href,
       href: scoped(page.href),
