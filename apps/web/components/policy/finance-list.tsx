@@ -14,8 +14,9 @@ import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-i
 // 2025–2026 cycle by receipts (lib/data/fec-candidates-us.json, answered by
 // lib/policy/snapshot), so the page says exactly that, and a state shows its
 // share of the 400 rather than "its candidates". The bold slot is the
-// candidate, the money rides beside it on row 1 where it can be read, and the
-// meta line says cycle, office, seat, party and standing. Each row opens the
+// candidate, the meta line says cycle, office, seat, party and standing, and
+// the money is the description — the one row that wraps instead of truncating,
+// and the fact the page exists for. Each row opens the
 // candidate's own page at fec.gov.
 
 type Row = {
@@ -67,7 +68,7 @@ export function FinanceList() {
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        The {fmtNumber(HELD)} largest campaign accounts of the {CYCLE - 1}–{CYCLE} cycle by receipts, from the FEC&apos;s candidate summaries
+        {`The ${fmtNumber(HELD)} largest campaign accounts of the ${CYCLE - 1}–${CYCLE} cycle by receipts, from the FEC's candidate summaries`}
         {state === "US" ? "." : `, and ${stateName(state)}'s share of them.`}
       </p>
       {!held ? (
@@ -91,8 +92,8 @@ export function FinanceList() {
                 href={row.fec_url}
                 avatar={<RecordSeal state="US" chamber={row.office === "House" || row.office === "Senate" ? row.office : undefined} />}
                 title={row.name}
-                lead={`Receipts ${fmtCompact(row.receipts)} · Disbursements ${fmtCompact(row.disbursements)} · Cash on hand ${fmtCompact(row.cash_on_hand)}`}
                 meta={[`${CYCLE - 1}–${CYCLE} cycle`, row.office, seat(row), PARTY(row.party), STANDING[row.ici ?? ""]]}
+                description={`${fmtCompact(row.receipts)} raised · ${fmtCompact(row.disbursements)} spent · ${fmtCompact(row.cash_on_hand)} on hand`}
               />
             ))}
           </RecordList>
