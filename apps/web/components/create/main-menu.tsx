@@ -20,6 +20,7 @@ export function MainMenu({
   onReset,
   onOpenPreset,
   onSavePreset,
+  onGo,
 }: {
   mode: Mode
   setMode: (mode: Mode) => void
@@ -27,6 +28,8 @@ export function MainMenu({
   onReset: () => void
   onOpenPreset: () => void
   onSavePreset: () => void
+  /** The three roots beside the jurisdiction: inbox, finance, forms. */
+  onGo: (path: string) => void
 }) {
   const { setTheme, resolvedTheme } = useTheme()
   // The platform is an external fact: read once on the client, "not a Mac"
@@ -79,6 +82,14 @@ export function MainMenu({
             Design
             {mode === "design" && <CheckIcon className="ml-auto size-4" />}
           </PickerItem>
+        </PickerGroup>
+        <PickerSeparator />
+        {/* Not branches of a legislature, so not in the tree: parked here,
+            out of the way, until each has a tree of its own. */}
+        <PickerGroup>
+          <PickerItem onClick={() => onGo("inbox")}>Intelligence</PickerItem>
+          <PickerItem onClick={() => onGo("finance")}>Finance</PickerItem>
+          <PickerItem onClick={() => onGo("forms")}>Forms</PickerItem>
         </PickerGroup>
         <PickerSeparator />
         <PickerGroup>

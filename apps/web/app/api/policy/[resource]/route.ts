@@ -11,7 +11,10 @@ import {
   getBills,
   getBillText,
   getCommittee,
+  getCommitteeBills,
+  getCommitteeRoster,
   getCommittees,
+  getRollCall,
   getHearingDays,
   getHearings,
   getRecentHearings,
@@ -160,6 +163,25 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "bills": {
       const f = await resolve(filters)
       return getBills(f, int(sp.get("limit"), 40), int(sp.get("offset"), 0) || 0)
+    }
+    // The committee joins the tree needed (2026-09-03): a roster derived from
+    // committee votes, and a committee's bills from its referrals.
+    case "roster": {
+      const f = await resolve(filters)
+      const name = sp.get("name") ?? f.committee
+      if (!name) throw new Error("committee name required")
+      return getCommitteeRoster(f, name)
+    }
+    case "committee-bills": {
+      const f = await resolve(filters)
+      const name = sp.get("name") ?? f.committee
+      if (!name) throw new Error("committee name required")
+      return getCommitteeBills(f, name, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    }
+    case "rollcall": {
+      const id = int(sp.get("id"), 0)
+      if (!id) throw new Error("roll call id required")
+      return getRollCall(id)
     }
     case "bill": {
       const f = await resolve(filters)

@@ -6,11 +6,10 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 
-// The floating pill: dark, rounded, bottom of the stage. Two of them on
-// /create — the block switch at the right (01 the cards, 02 to 07 the blocks)
-// and the variant switch at the left (State, Design). Same pill the typeset
-// toolbar and the preview's kind switch already wear, so the stage reads as
-// one instrument.
+// The floating pill: dark, rounded, bottom of the stage. One of them on
+// /create now — the customizer's hamburger at the left. The block switch and
+// the kind switch it used to hold became the tree and the breadcrumb
+// (Brendan, 2026-09-03). Same pill the typeset toolbar wears.
 
 export function Fab({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn("dark z-20 flex items-center gap-1 rounded-xl bg-card/90 p-1 shadow-xl backdrop-blur-xl", className)}>{children}</div>

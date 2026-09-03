@@ -30,7 +30,7 @@ import { Input } from "@govblock/ui/components/nova/input"
 export function Customizer({
   mode,
   setMode,
-  block,
+  at,
   filters,
   setFilters,
   design,
@@ -38,10 +38,12 @@ export function Customizer({
   onShuffle,
   onReset,
   onOpenPreset,
+  onGo,
 }: {
   mode: Mode
   setMode: (mode: Mode) => void
-  block: string
+  /** The path in the jurisdiction tree; it rides the preset. */
+  at: string
   filters: ScopeFilters
   setFilters: (patch: Partial<Record<ScopeKey, string>>) => void
   design: Design
@@ -49,10 +51,11 @@ export function Customizer({
   onShuffle: () => void
   onReset: () => void
   onOpenPreset: (preset: Preset) => void
+  onGo: (path: string) => void
 }) {
   const isMobile = useIsMobile() ?? false
   const anchorRef = React.useRef<HTMLDivElement>(null)
-  const code = React.useMemo(() => encodePreset({ block, filters, design }), [block, filters, design])
+  const code = React.useMemo(() => encodePreset({ at, filters, design }), [at, filters, design])
   const name = presetName(code)
   const [saved, setSaved] = useLocal<Record<string, SavedPreset>>(PRESETS_KEY, {})
   const [copied, setCopied] = React.useState<string | null>(null)
@@ -60,7 +63,7 @@ export function Customizer({
   const [pasted, setPasted] = React.useState("")
   const [label, setLabel] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
-  const command = `pnpm dlx shadcn@latest add @govblock/${block === "cards" ? "card" : block} --preset ${code}`
+  const command = `pnpm dlx shadcn@latest add @govblock/${at.split("/")[0] || "tree"} --preset ${code}`
 
   const copy = (what: string, value: string) => {
     void navigator.clipboard?.writeText(value)
@@ -94,7 +97,7 @@ export function Customizer({
   return (
     <Card ref={anchorRef} className="dark isolate z-10 max-h-full min-h-0 w-full self-start rounded-2xl bg-card/90 backdrop-blur-xl md:w-(--customizer-width)" size="sm">
       <CardHeader className="hidden items-center justify-between gap-2 border-b md:flex">
-        <MainMenu mode={mode} setMode={setMode} onShuffle={onShuffle} onReset={onReset} onOpenPreset={showOpen} onSavePreset={showSave} />
+        <MainMenu mode={mode} setMode={setMode} onShuffle={onShuffle} onReset={onReset} onOpenPreset={showOpen} onSavePreset={showSave} onGo={onGo} />
       </CardHeader>
       <CardContent className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden max-md:px-0 md:overflow-y-auto">
         <FieldGroup className="flex-row gap-2.5 py-px **:data-[slot=field-separator]:-mx-4 **:data-[slot=field-separator]:w-auto max-md:px-3 md:flex-col md:gap-3.25">
@@ -200,7 +203,7 @@ export function Customizer({
             }}
           >
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="A name for it" autoFocus />
-            <p className="text-xs text-muted-foreground">{describePreset({ v: 1, block, filters, design }, stateName)}</p>
+            <p className="text-xs text-muted-foreground">{describePreset({ v: 1, at, filters, design }, stateName)}</p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(null)}>
                 Cancel

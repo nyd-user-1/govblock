@@ -50,6 +50,7 @@ class NumberMarker extends GutterMarker {
 }
 
 const furnitureLine = Decoration.line({ class: "cm-furniture" })
+const targetLine = Decoration.line({ class: "cm-target" })
 const headingLine = Decoration.line({ class: "cm-heading" })
 const insMark = Decoration.mark({ class: "cm-ins" })
 const delMark = Decoration.mark({ class: "cm-del" })
@@ -101,6 +102,8 @@ const theme = EditorView.theme({
   ".cm-activeLineGutter": { backgroundColor: "transparent" },
   ".cm-furniture": { opacity: "0.4" },
   ".cm-heading": { fontWeight: "600" },
+  // The highlighter: the line the outline points at.
+  ".cm-target": { backgroundColor: "color-mix(in oklab, #facc15 45%, transparent)" },
   ".cm-ins": { backgroundColor: "color-mix(in oklab, #16a34a 22%, transparent)", borderRadius: "2px" },
   ".cm-del": { backgroundColor: "color-mix(in oklab, #dc2626 22%, transparent)", textDecoration: "line-through", borderRadius: "2px" },
   ".cm-searchMatch": { backgroundColor: "color-mix(in oklab, var(--primary) 30%, transparent)", outline: "1px solid color-mix(in oklab, var(--primary) 60%, transparent)" },
@@ -149,17 +152,20 @@ export const CodeView = React.forwardRef<
     wrap?: boolean
     /** The reader's query, kept in step with the panel; matches come back through onMatches. */
     query?: string
+    /** A zero-based line to highlight — the outline's hover or pick. */
+    highlight?: number | null
     onMatches?: (matches: Match[], layout: BillLayout) => void
     onLayout?: (layout: BillLayout) => void
     className?: string
   }
->(function CodeView({ text, original, diff = false, split = false, wrap = false, query = "", onMatches, onLayout, className }, ref) {
+>(function CodeView({ text, original, diff = false, split = false, wrap = false, query = "", highlight = null, onMatches, onLayout, className }, ref) {
   const host = React.useRef<HTMLDivElement>(null)
   const view = React.useRef<EditorView | null>(null)
   const merge = React.useRef<MergeView | null>(null)
   const sideBySide = diff && split && !!original
   const wrapConf = React.useRef(new Compartment())
   const mergeConf = React.useRef(new Compartment())
+  const targetConf = React.useRef(new Compartment())
   const layout = React.useMemo(() => layoutBillText(text), [text])
   const originalLayout = React.useMemo(() => (original ? layoutBillText(original) : null), [original])
 
@@ -190,6 +196,7 @@ export const CodeView = React.forwardRef<
       EditorView.decorations.of((v) => lineDecorations(layout, v.state)),
       EditorView.decorations.of((v) => changeDecorations(v.state)),
       wrapConf.current.of(wrap ? EditorView.lineWrapping : []),
+      targetConf.current.of([]),
       theme,
     ]
 
@@ -247,6 +254,21 @@ export const CodeView = React.forwardRef<
   React.useEffect(() => {
     view.current?.dispatch({ effects: wrapConf.current.reconfigure(wrap ? EditorView.lineWrapping : []) })
   }, [wrap])
+
+  React.useEffect(() => {
+    const editor = view.current
+    if (!editor) return
+    const ext =
+      highlight == null || highlight < 0 || highlight >= editor.state.doc.lines
+        ? []
+        : EditorView.decorations.of((v) => {
+            const line = v.state.doc.line(highlight + 1)
+            const b = new RangeSetBuilder<Decoration>()
+            b.add(line.from, line.from, targetLine)
+            return b.finish()
+          })
+    editor.dispatch({ effects: targetConf.current.reconfigure(ext) })
+  }, [highlight])
 
   React.useEffect(() => {
     if (merge.current) return

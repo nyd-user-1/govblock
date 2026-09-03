@@ -511,6 +511,109 @@ export async function getBillVotes(billId: number) {
 }
 
 // ---------------------------------------------------------------------------
+// The committee joins that were missing (Brendan, 2026-09-03)
+
+// A roll call is a committee's when the source says so: the description names
+// a committee ("Senate Health Committee Vote", "Assembly Rules Committee:
+// Favorable", a bare "COMMITTEE"), or it is a tally sheet of one of
+// Connecticut's joint committees, whose chamber is recorded as "J".
+export const COMMITTEE_ROLL_CALL = `(r.description ilike '%committee%' or r.description ilike '%tally sheet%' or r.chamber = 'J')`
+
+/**
+ * A committee's roster, derived: whoever cast a vote on a roll call that names
+ * the committee, this session. Nothing in the source publishes rosters for
+ * most states, but every committee vote records its voters, so the roster is
+ * the set of them. New York's Health committee comes out at 18, Finance at
+ * 22, Rules at 24 — the committees' real sizes.
+ */
+export async function getCommitteeRoster(f: Resolved, name: string) {
+  const rows = await q<{
+    people_id: number
+    name: string
+    party: string
+    role: string
+    chamber: string
+    district: string
+    photo_url: string | null
+    bioguide_id: string | null
+    leadership_title: string | null
+    votes: number
+    last_vote: string | null
+  }>(
+    `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, p.leadership_title,
+            count(distinct r.roll_call_id)::int votes, max(r.date) last_vote
+     from "Roll Call" r
+     join "Bills" b using (bill_id)
+     join "Votes" v using (roll_call_id)
+     join "People" p on p.people_id = v.people_id
+     where b.state = $1 and b.session_id = $2 and r.description ilike $3
+     group by p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, p.leadership_title
+     order by votes desc, p.last_name, p.first_name`,
+    [f.state, f.session, `%${name}%`]
+  )
+  return rows.map((r) => ({ ...r, people_id: n(r.people_id), votes: n(r.votes) }))
+}
+
+/**
+ * A committee's bills: every bill referred to it this session, from
+ * "Referrals" (which records each committee a bill passed through), plus
+ * whatever sits before it now. `Bills.committee` alone forgets what a
+ * committee sent to the floor.
+ */
+export async function getCommitteeBills(f: Resolved, name: string, limit = 50, offset = 0) {
+  const params: unknown[] = [f.state, f.session, name]
+  const where = `b.state = $1 and b.session_id = $2 and (b.committee = $3 or exists (select 1 from "Referrals" rf where rf.bill_id = b.bill_id and rf.name = $3))`
+  const [rows, count] = await Promise.all([
+    q<BillRow>(
+      `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
+       where ${where}
+       order by b.last_action_date desc nulls last, b.bill_id desc
+       limit $${params.push(limit)} offset $${params.push(offset)}`,
+      params
+    ),
+    one<{ total: number }>(`select count(*)::int total from "Bills" b where ${where}`, params.slice(0, 3)),
+  ])
+  return { rows: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })), total: n(count?.total) }
+}
+
+/** One roll call: the tally, the bill it was on, and every member's position. */
+export async function getRollCall(rollCallId: number) {
+  const rollCall = await one<{
+    roll_call_id: number
+    bill_id: number
+    date: string
+    chamber: string
+    description: string
+    yea: number
+    nay: number
+    nv: number
+    absent: number
+    total: number
+    bill_number: string
+    title: string
+    state: string
+    session_id: number
+  }>(
+    `select r.roll_call_id, r.bill_id, r.date, r.chamber, r.description,
+            r.yea::int yea, nullif(r.nay, '')::int nay, nullif(r.nv, '')::int nv, nullif(r.absent, '')::int absent, r.total::int total,
+            b.bill_number, b.title, b.state, b.session_id
+     from "Roll Call" r join "Bills" b using (bill_id) where r.roll_call_id = $1`,
+    [rollCallId]
+  )
+  if (!rollCall) return null
+  const votes = await q<{ vote_desc: string; people_id: number; name: string; party: string; district: string; chamber: string; role: string; photo_url: string | null; bioguide_id: string | null }>(
+    `select v.vote_desc, p.people_id, p.name, p.party, p.district, p.chamber, p.role, p.photo_url, p.bioguide_id
+     from "Votes" v join "People" p using (people_id)
+     where v.roll_call_id = $1 order by p.last_name, p.first_name`,
+    [rollCallId]
+  )
+  return {
+    rollCall: { ...rollCall, roll_call_id: n(rollCall.roll_call_id), bill_id: n(rollCall.bill_id), session_id: n(rollCall.session_id) },
+    votes: votes.map((v) => ({ ...v, people_id: n(v.people_id) })),
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Members
 
 // `active` = sponsored something this session. The People table keeps former

@@ -19,11 +19,10 @@ import { usePolicy } from "@/lib/policy/use-policy"
 // election cycle, for the finance block), `department` (who issues a form:
 // the legislature, the executive, the FEC, or an agency code from the forms
 // table) and `forms` (what the forms list admits: forms alone, every document,
-// or the fillable ones), and `kind` (which card the stage shows: bills,
-// members or committees — the stage's own switch came off on 2026-09-03 and
-// the choice moved into the rail, where it rides the URL and the preset).
+// or the fillable ones). All three belong to the Finance and Forms
+// experiences the customizer's menu opens.
 
-export const SCOPE_EXTRA_KEYS = ["cycle", "department", "forms", "kind"] as const
+export const SCOPE_EXTRA_KEYS = ["cycle", "department", "forms"] as const
 export type ScopeExtraKey = (typeof SCOPE_EXTRA_KEYS)[number]
 export type ScopeFilters = Filters & Partial<Record<ScopeExtraKey, string>>
 

@@ -28,6 +28,7 @@ export function BillText({
   version,
   date,
   className,
+  highlight = null,
 }: {
   text: string
   /** "Introduced in House" — drawn above the text, as congress.gov does. */
@@ -35,6 +36,8 @@ export function BillText({
   /** The document's own date, not the night we fetched it. */
   date?: string | null
   className?: string
+  /** A zero-based line to highlight — the outline's hover or pick. */
+  highlight?: number | null
 }) {
   const shown = [version, stamp(date)].filter(Boolean).join(" ")
   const layout = layoutBillText(printChangeMarks(text))
@@ -51,7 +54,7 @@ export function BillText({
         )}
         <pre data-slot="bill-text" className="m-0 max-w-full overflow-x-auto p-0 font-mono text-[13px] leading-[1.35] whitespace-pre text-foreground">
           {layout.lines.map((line, index) => (
-            <div key={index} data-kind={line.kind} className="flex data-[kind=furniture]:opacity-40 data-[kind=heading]:font-semibold">
+            <div key={index} data-kind={line.kind} data-target={highlight === index || undefined} className="flex data-[kind=furniture]:opacity-40 data-[kind=heading]:font-semibold data-[target]:bg-yellow-300/50">
               {layout.gutter && (
                 <span aria-hidden className="shrink-0 pr-4 text-right text-muted-foreground select-none" style={{ width: `${layout.gutterWidth + 4}ch` }}>
                   {line.n ?? ""}

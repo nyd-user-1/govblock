@@ -107,8 +107,8 @@ export function designDiff(design: Partial<Design>): Partial<Design> {
 
 export type Preset = {
   v: 1
-  /** The stage: `cards`, or a block's tab value. Absent means cards. */
-  block?: string
+  /** The path in the jurisdiction tree. Absent means the root. */
+  at?: string
   /** The rail, `state` and `session` included when chosen. */
   filters: ScopeFilters
   /** Only what differs from the defaults. */
@@ -143,7 +143,7 @@ function fromBase64Url(code: string) {
 /** The code: the whole preset, URL-safe, no server needed to read it back. */
 export function encodePreset(preset: Omit<Preset, "v">): string {
   const body: Preset = { v: 1, filters: compactFilters(preset.filters), design: designDiff(preset.design) }
-  if (preset.block && preset.block !== "cards") body.block = preset.block
+  if (preset.at) body.at = preset.at
   return toBase64Url(JSON.stringify(body))
 }
 
@@ -174,7 +174,7 @@ export function decodePreset(input: string, saved: Record<string, SavedPreset> =
     if (!parsed || parsed.v !== 1 || typeof parsed !== "object") return null
     return {
       v: 1,
-      block: typeof parsed.block === "string" ? parsed.block : undefined,
+      at: typeof parsed.at === "string" ? parsed.at : undefined,
       filters: compactFilters((parsed.filters ?? {}) as ScopeFilters),
       design: designDiff((parsed.design ?? {}) as Partial<Design>),
     }
@@ -187,7 +187,7 @@ export function decodePreset(input: string, saved: Record<string, SavedPreset> =
 export function presetFromParams(params: Record<string, string>): Preset {
   const filters: ScopeFilters = {}
   for (const key of FILTER_ORDER) if (params[key]) filters[key] = params[key]
-  return { v: 1, block: params.block || undefined, filters, design: designDiff(readDesign(params)) }
+  return { v: 1, at: params.at || undefined, filters, design: designDiff(readDesign(params)) }
 }
 
 /** The URL params a preset writes — every key it owns, empty where it is silent, so the old view clears. */
@@ -195,7 +195,7 @@ export function presetToParams(preset: Preset): Record<string, string> {
   const out: Record<string, string> = {}
   for (const key of FILTER_ORDER) out[key] = preset.filters[key] ?? ""
   for (const key of DESIGN_KEYS) out[key] = preset.design[key] ?? ""
-  out.block = preset.block && preset.block !== "cards" ? preset.block : ""
+  out.at = preset.at ?? ""
   return out
 }
 
@@ -221,7 +221,7 @@ export type SavedPreset = { code: string; label: string; at: number }
 /** One line that says what a preset is, for the drawer and the Open dialog. */
 export function describePreset(preset: Preset, stateName: (code: string | undefined) => string) {
   const parts: string[] = []
-  parts.push(preset.block ? cap(preset.block) : "Cards")
+  parts.push(preset.at ? preset.at.split("/").map(decodeURIComponent).join(" › ") : "Root")
   parts.push(stateName(preset.filters.state) || "Any state")
   if (preset.filters.session) parts.push(preset.filters.session)
   for (const key of ["chamber", "committee", "party", "status", "subject", "department"] as const) {

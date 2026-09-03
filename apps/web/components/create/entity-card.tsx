@@ -1,5 +1,6 @@
 "use client"
 
+import type { Target } from "@/lib/create/path"
 import { partyName } from "@/lib/filters"
 import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
 import { portraitFor } from "@/lib/imagery"
@@ -12,10 +13,11 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 // shape every time — media, title, one line of meta, two footer buttons — and
 // the ⋮ menu with everything the home cards carry.
 //
-// Neither button navigates. Brendan, 2026-09-03: "both buttons open in place
-// as a drill down, so to speak, with a back arrow." The first opens the
-// record; the second opens the other view of the same thing — the bill in
-// typeset, the committee's calendar, the member's record of bills and votes.
+// Neither button leaves the page. Each opens a node of the jurisdiction tree:
+// the first the file (or folder) itself, the second the other tab of the same
+// thing — the bill in typeset, the committee's calendar, the member's record
+// of bills and votes. Brendan, 2026-09-03: this card is the cards view, and
+// it came back after a morning as the small folder card.
 
 export type Bill = {
   bill_id: number
@@ -33,7 +35,8 @@ export type Bill = {
 export type Member = { people_id: number; name: string; party: string; role: string; chamber: string; district?: string | null; photo_url?: string | null; bioguide_id?: string | null; leadership_title?: string | null; active?: boolean }
 export type Committee = { committee_name: string; chamber: string; bills: number }
 
-export type Drill = { kind: "bill" | "member" | "committee"; id: string; view: string; label: string }
+/** Where a button goes: the keys to write, and the tab to open on. */
+export type Open = { go: Target; tab?: string }
 
 function Shell({ id, media, title, description, meta, actions, children }: { id: string; media: React.ReactNode; title: string; description?: string; meta?: string; actions: { label: string; onClick: () => void }[]; children?: React.ReactNode }) {
   return (
@@ -63,8 +66,8 @@ function Shell({ id, media, title, description, meta, actions, children }: { id:
   )
 }
 
-export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; onOpen: (drill: Drill) => void }) {
-  const label = bill.bill_number
+export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; onOpen: (open: Open) => void }) {
+  const go: Target = { bill: String(bill.bill_id), rollcall: null }
   return (
     <Shell
       id={`bill-${bill.bill_id}`}
@@ -73,15 +76,16 @@ export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; o
       description={bill.description && bill.description !== bill.title ? truncate(bill.description, 140) : undefined}
       meta={[bill.status_desc || "Introduced", bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.committee, bill.sponsor].filter(Boolean).join(" · ")}
       actions={[
-        { label: "Open Bill", onClick: () => onOpen({ kind: "bill", id: String(bill.bill_id), view: "record", label }) },
-        { label: "Typeset", onClick: () => onOpen({ kind: "bill", id: String(bill.bill_id), view: "typeset", label }) },
+        { label: "Open Bill", onClick: () => onOpen({ go }) },
+        { label: "Typeset", onClick: () => onOpen({ go: { ...go, tab: "typeset" } as Target, tab: "typeset" }) },
       ]}
     />
   )
 }
 
-export function MemberCard({ member, state, onOpen }: { member: Member; state: string; onOpen: (drill: Drill) => void }) {
+export function MemberCard({ member, state, onOpen }: { member: Member; state: string; onOpen: (open: Open) => void }) {
   const label = `${honorific(member.role, member.chamber)} ${member.name}`
+  const go: Target = { member: String(member.people_id), bill: null, rollcall: null }
   return (
     <Shell
       id={`member-${member.people_id}`}
@@ -95,15 +99,15 @@ export function MemberCard({ member, state, onOpen }: { member: Member; state: s
       description={[member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)].filter(Boolean).join(" · ")}
       meta={member.leadership_title ?? undefined}
       actions={[
-        { label: "Open Member", onClick: () => onOpen({ kind: "member", id: String(member.people_id), view: "record", label }) },
-        { label: "Record", onClick: () => onOpen({ kind: "member", id: String(member.people_id), view: "dashboard", label }) },
+        { label: "Open Member", onClick: () => onOpen({ go }) },
+        { label: "Record", onClick: () => onOpen({ go: { ...go, tab: "votes" } as Target, tab: "votes" }) },
       ]}
     />
   )
 }
 
-export function CommitteeCard({ committee, state, onOpen }: { committee: Committee; state: string; onOpen: (drill: Drill) => void }) {
-  const label = committee.committee_name
+export function CommitteeCard({ committee, state, onOpen }: { committee: Committee; state: string; onOpen: (open: Open) => void }) {
+  const go: Target = { committee: committee.committee_name, at: null, member: null, bill: null, rollcall: null }
   return (
     <Shell
       id={`committee-${committee.chamber}-${committee.committee_name}`}
@@ -112,8 +116,8 @@ export function CommitteeCard({ committee, state, onOpen }: { committee: Committ
       description={`${committee.chamber} committee`}
       meta={`${fmtNumber(committee.bills)} bills before it`}
       actions={[
-        { label: "Open Committee", onClick: () => onOpen({ kind: "committee", id: committee.committee_name, view: "record", label }) },
-        { label: "Calendar", onClick: () => onOpen({ kind: "committee", id: committee.committee_name, view: "calendar", label }) },
+        { label: "Open Committee", onClick: () => onOpen({ go }) },
+        { label: "Calendar", onClick: () => onOpen({ go: { ...go, tab: "calendar" } as Target, tab: "calendar" }) },
       ]}
     />
   )

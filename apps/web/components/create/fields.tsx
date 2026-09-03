@@ -5,25 +5,22 @@ import { ArrowHorizontalIcon, ParagraphSpacingIcon, TextSmallcapsIcon } from "@h
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 
 import { DESIGN_LABEL, DESIGN_OPTIONS, type Design, type DesignKey } from "@/lib/create/preset"
-import { partyName, stateName, VOTE_OPTIONS } from "@/lib/filters"
+import { partyName, stateName } from "@/lib/filters"
 import { fmtCompact } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { billFilters, type ScopeFilters, type ScopeKey } from "@/lib/policy/scope"
-import { usePolicy, useSnapshot } from "@/lib/policy/use-policy"
+import { usePolicy } from "@/lib/policy/use-policy"
 import { FilterPicker, type Option } from "@/components/create/filter-picker"
 import { FieldSeparator } from "@govblock/ui/components/nova/field"
 
 // ── State: the legislative rail ────────────────────────────────────────────
 //
-// Each picker narrows the ones below it; changing a jurisdiction clears
-// everything that belonged to the old one. The options come from the same
-// reads /typeset's rail makes, so the two rails agree on what exists.
-//
-// Three pickers are new on 2026-09-03: Topics (LegiScan's subjects), Departments
-// (who issues the thing — the legislature for bills, the executive for
-// nominations, the FEC for filings, an agency for a form) and FEC (the election
-// cycle the finance block reads). Forms admits the forms list's own cut:
-// forms alone, every document, or the fillable ones.
+// The customizer prunes the jurisdiction tree; the rail walks it. So the State
+// variant holds what narrows the set — the jurisdiction, the session, a
+// chamber, a committee, a member, a party, a status, a topic, a bill. Each
+// picker narrows the ones below it. Department, FEC cycle and Forms went with
+// the Finance and Forms experiences, which the menu opens (Brendan,
+// 2026-09-03).
 
 type StateRow = { state: string; bills: number; latest_year: number }
 type SessionRow = { session_id: number; bills: number; title: string }
@@ -31,25 +28,8 @@ type Count = { value: string; count: number }
 type Options = { chambers: Count[]; committees: Count[]; statuses: Count[]; parties: Count[]; subjects: Count[] }
 type MemberRow = { people_id: number; name: string; party: string; chamber: string; district: string; active: boolean }
 type BillRow = { bill_id: number; bill_number: string; title: string }
-type FormsFacets = { facets?: { agency?: Count[] }; empty?: string }
-type FecManifest = { cycles: { cycle: number; rows: number }[] }
 
 export type SetFilters = (patch: Partial<Record<ScopeKey, string>>) => void
-
-// The departments that are not agencies: every bill is the legislature's, every
-// nomination the executive's, every filing the FEC's. An agency code from the
-// forms table joins them below when the scope holds forms.
-export const DEPARTMENTS: Option[] = [
-  { value: "legislature", label: "Legislature", sub: "Bills, laws, reports, the Record" },
-  { value: "executive", label: "Executive", sub: "Nominations" },
-  { value: "fec", label: "FEC", sub: "Campaign finance" },
-]
-
-export const FORMS_OPTIONS: Option[] = [
-  { value: "forms", label: "Forms" },
-  { value: "fillable", label: "Fillable forms" },
-  { value: "all", label: "All documents" },
-]
 
 const shortSession = (title: string) => title.replace(/\s*(Regular|General)\s+Session$/i, "").replace(/\s*Session$/i, "")
 const compact = (value: number | null | undefined) => (value == null ? undefined : fmtCompact(value, false))
@@ -68,8 +48,6 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
   const { data: subjects } = usePolicy<Count[]>("subjects", scope)
   const { data: members, isLoading: membersLoading } = usePolicy<MemberRow[]>("members", { ...scope, chamber: filters.chamber, party: filters.party })
   const { data: bills, isLoading: billsLoading } = usePolicy<{ rows: BillRow[] }>("bills", { ...billFilters(filters), state, session }, { limit: 40 })
-  const { data: formsFacets } = useSnapshot<FormsFacets>(`/api/policy/forms?state=${state}&limit=1${filters.forms === "all" ? "&all=1" : ""}`)
-  const { data: manifest } = useSnapshot<FecManifest>("/api/fec/manifest")
 
   const toOptions = (rows: Count[] | undefined, labelOf?: (value: string) => string): Option[] => (rows ?? []).map((row) => ({ value: row.value, label: labelOf ? labelOf(row.value) : row.value, hint: compact(row.count) }))
   const stateOptions = React.useMemo<Option[]>(() => (states ?? []).map((row) => ({ value: row.state, label: stateName(row.state), hint: compact(row.bills) })), [states])
@@ -82,12 +60,6 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
     [members, filters.member]
   )
   const billOptions = React.useMemo<Option[]>(() => (bills?.rows ?? []).map((b) => ({ value: String(b.bill_id), label: b.bill_number, sub: b.title })), [bills])
-  const departmentOptions = React.useMemo<Option[]>(
-    () => [...DEPARTMENTS, ...(formsFacets?.facets?.agency ?? []).map((row) => ({ value: row.value, label: row.value, hint: compact(row.count), sub: "Forms" }))],
-    [formsFacets]
-  )
-  const cycleOptions = React.useMemo<Option[]>(() => (manifest?.cycles ?? []).map((row) => ({ value: String(row.cycle), label: `${row.cycle - 1}–${row.cycle}`, hint: compact(row.rows) })), [manifest])
-
   const currentMember = members?.find((m) => String(m.people_id) === filters.member)
   const currentBill = bills?.rows.find((b) => String(b.bill_id) === filters.bill)
   const pick = { isMobile, anchorRef }
@@ -102,7 +74,7 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
         options={stateOptions}
         allLabel={null}
         {...pick}
-        onChange={(next) => setFilters({ state: next, session: "", chamber: "", committee: "", member: "", party: "", status: "", subject: "", vote: "", bill: "", department: "" })}
+        onChange={(next) => setFilters({ state: next, session: "", chamber: "", committee: "", member: "", party: "", status: "", subject: "", bill: "" })}
       />
       <FilterPicker
         label="Session"
@@ -123,11 +95,6 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
       <FilterPicker label="Party" param="party" value={filters.party ?? ""} options={toOptions(options?.parties, partyName)} loading={optionsLoading} {...pick} onChange={(next) => setFilters({ party: next, member: "", bill: "" })} />
       <FilterPicker label="Status" param="status" value={filters.status ?? ""} options={toOptions(options?.statuses)} loading={optionsLoading} {...pick} onChange={(next) => setFilters({ status: next, bill: "" })} />
       <FilterPicker label="Topics" param="subject" value={filters.subject ?? ""} options={toOptions(subjects)} loading={!subjects} {...pick} onChange={(next) => setFilters({ subject: next, bill: "" })} />
-      <FilterPicker label="Votes" param="vote" value={filters.vote ?? ""} options={VOTE_OPTIONS.map((v) => ({ value: v.value, label: v.label }))} {...pick} onChange={(next) => setFilters({ vote: next, bill: "" })} />
-      <FieldSeparator className="hidden md:block" />
-      <FilterPicker label="Department" param="department" value={filters.department ?? ""} options={departmentOptions} {...pick} onChange={(next) => setFilters({ department: next })} />
-      <FilterPicker label="FEC" param="cycle" value={filters.cycle ?? ""} display={filters.cycle ? undefined : "Latest cycle"} options={cycleOptions} allLabel="Latest cycle" {...pick} onChange={(next) => setFilters({ cycle: next })} />
-      <FilterPicker label="Forms" param="forms" value={filters.forms ?? ""} display={filters.forms ? undefined : "Forms"} options={FORMS_OPTIONS} allLabel="Forms" {...pick} onChange={(next) => setFilters({ forms: next === "forms" ? "" : next })} />
       <FieldSeparator className="hidden md:block" />
       <FilterPicker label="Bill" param="bill" value={filters.bill ?? ""} display={currentBill?.bill_number ?? (filters.bill ? undefined : "Latest")} options={billOptions} allLabel="Latest" loading={billsLoading} {...pick} onChange={(next) => setFilters({ bill: next })} />
     </>

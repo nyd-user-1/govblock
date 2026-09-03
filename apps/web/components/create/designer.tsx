@@ -3,69 +3,67 @@
 import * as React from "react"
 import { MenuIcon } from "lucide-react"
 
-import { CREATE_SLOTS } from "@/lib/blocks-tabs"
+import { isFile, isSpecial, listing, locate, monthName, type Location, type Target } from "@/lib/create/path"
 import { decodePreset, DEFAULT_DESIGN, DESIGN_KEYS, DESIGN_OPTIONS, presetToParams, readDesign, type Design, type Preset } from "@/lib/create/preset"
-import { SCOPE_KEYS, useScope, type ScopeKey } from "@/lib/policy/scope"
-import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
+import { stateName } from "@/lib/filters"
+import { honorific, truncate } from "@/lib/format"
+import { SCOPE_KEYS, useScope, useSessionTitle, type ScopeKey } from "@/lib/policy/scope"
+import type { Bill, Member } from "@/lib/policy/types"
 import { useLocal } from "@/lib/policy/use-local"
-import { cn } from "@govblock/ui/lib/utils"
+import { usePolicy } from "@/lib/policy/use-policy"
+import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
-import { DrillView } from "@/components/create/drill"
-import type { Drill } from "@/components/create/entity-card"
 import { Fab, FabButton } from "@/components/create/fab"
+import { FileView } from "@/components/create/file-view"
+import { FolderView, type Crumb, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
 import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
-import { CardsStage, type Entity } from "@/components/create/stage"
+import { StageSwitcher, type Stage } from "@/components/create/stage-switcher"
+import { legislatureName, Tree } from "@/components/create/tree"
+import { BlockShell } from "@/components/policy/block-shell"
+import { FecExplorer } from "@/components/policy/fec-explorer"
+import { FormsList } from "@/components/policy/forms-list"
 import { blockComponents } from "@/registry/blocks"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@govblock/ui/components/nova/breadcrumb"
+import { SidebarContent, SidebarGroup, SidebarGroupLabel } from "@govblock/ui/components/ny4/sidebar"
+import { cn } from "@govblock/ui/lib/utils"
 
-// /create — livingston-v3's designer, with the whole site on its stage.
+// /create — a repository browser over a legislature. Brendan, 2026-09-03: the
+// jurisdiction is the organization, the session is the repository, and every
+// bill, member and committee is a branch inside it. The customizer's keys are
+// the URL — state, session, committee, member, bill — plus `at` for the
+// listing and `rollcall` for a roll call, so the rail, the customizer and the
+// address bar are one location, never three.
 //
-// Everything the reader can set is in the URL: the rail's filters (the keys
-// every legislative surface speaks, so the header's switcher and the blocks
-// follow), the design (the keys /typeset's preview reads), the block on the
-// stage (`block=`), and the thing opened in place (`open=bill:123`,
-// `view=typeset`). Refresh keeps the view; the browser's back button is Undo;
-// a link is a preset; `?preset=<code>` unpacks into all of it.
-//
-// The stage is one of seven. 01 is the cards; 02 to 07 are the blocks, each
-// in the dashboard's shell, each reading the rail's scope. A card's button
-// opens its record in place, with a back arrow.
+// /create opens on Congress, current session, every time. Going anywhere
+// else is what the customizer is for.
 
-const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "block", "open", "view", "preset", "mode"] as const
-
-function parseDrill(open: string, view: string): Drill | null {
-  const [kind, ...rest] = open.split(":")
-  const id = rest.join(":")
-  if (!id || (kind !== "bill" && kind !== "member" && kind !== "committee")) return null
-  // Reloaded from the URL, the card's own label is gone; the kind and the id name it.
-  return { kind, id, view: view || "record", label: kind === "committee" ? id : `${kind === "bill" ? "Bill" : "Member"} ${id}` }
-}
+const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode"] as const
 
 function DesignerInner() {
   const params = useUrlParams(URL_KEYS)
   const scope = useScope()
   const { locks } = useLocks()
-  // Which variant the panel opens on. A link can say (`?mode=design`); once
-  // the reader picks, the pick wins and the URL is not rewritten for it. Read
-  // on every render rather than once: the first client render still carries
-  // the server's empty URL, and the real one arrives a render later.
+  const sessionTitle = useSessionTitle(scope.state, scope.session)
   const [picked, setMode] = React.useState<Mode | null>(null)
   const mode: Mode = picked ?? (params.mode === "design" ? "design" : "state")
-  // The customizer pushes on and off the stage the way the sidebar does in
-  // every one of Brendan's projects: its column animates to nothing and the
-  // stage widens into the room. Open by default; the choice is remembered.
   const [panelOpen, setPanelOpen] = useLocal("govblock:create:customizer", true)
-  // Which card the stage shows, from the rail's Cards picker.
-  const entity: Entity = scope.filters.kind === "member" || scope.filters.kind === "committee" ? scope.filters.kind : "bill"
-  const [label, setLabel] = React.useState<string | null>(null)
+  const [lookPicked, setLook] = useLocal<Look>("govblock:create:look", "table")
+  const look: Look = params.look === "cards" || params.look === "table" ? params.look : lookPicked
 
   const design = React.useMemo(() => readDesign(params), [params])
-  const slot = CREATE_SLOTS.find((s) => s.value === params.block) ?? CREATE_SLOTS[0]
-  const drill = React.useMemo(() => {
-    const parsed = parseDrill(params.open, params.view)
-    return parsed && label ? { ...parsed, label } : parsed
-  }, [params.open, params.view, label])
+  const location = React.useMemo<Location>(() => ({ at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [params.at, params.committee, params.member, params.bill, params.rollcall])
+  const node = React.useMemo(() => locate(location), [location])
+
+  // Congress, current session, every time: a bare /create writes the state
+  // in, so the remembered jurisdiction never decides what this page opens on.
+  // Read off the address bar itself — the first client render still carries
+  // the server's empty params, and a stale "" must not overwrite a real state.
+  React.useEffect(() => {
+    const live = new URLSearchParams(window.location.search)
+    if (!live.get("state") && !live.get("preset")) writeUrlParams({ state: "US" })
+  }, [params.state, params.preset])
 
   // `?preset=` unpacks once, into the keys it stands for, and leaves.
   React.useEffect(() => {
@@ -74,18 +72,21 @@ function DesignerInner() {
     writeUrlParams({ ...(preset ? presetToParams(preset) : {}), preset: null })
   }, [params.preset])
 
+  // The names ids stand for, once their records load.
+  const { data: bill } = usePolicy<Bill>(node.kind === "bill" ? "bill" : null, { state: scope.state }, { id: node.kind === "bill" ? node.id : undefined })
+  const { data: member } = usePolicy<Member>(location.member ? "member" : null, { state: scope.state, session: scope.filters.session }, { id: location.member || undefined })
+
+  const go = React.useCallback((target: Target) => {
+    const out: Record<string, string | null> = { tab: target.tab ?? null, doc: null }
+    for (const key of ["at", "committee", "member", "bill", "rollcall", "session"] as const) if (key in target) out[key] = target[key] ?? null
+    writeUrlParams(out, { history: "push" })
+  }, [])
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   const setDesign = React.useCallback((patch: Partial<Design>) => {
     const out: Record<string, string> = {}
     for (const [key, value] of Object.entries(patch)) out[key] = value === DEFAULT_DESIGN[key as keyof Design] ? "" : (value ?? "")
     writeUrlParams(out, { history: "push" })
   }, [])
-  const setBlock = React.useCallback((value: string) => writeUrlParams({ block: value === "cards" ? null : value, open: null, view: null }, { history: "push" }), [])
-  const openDrill = React.useCallback((next: Drill) => {
-    setLabel(next.label)
-    writeUrlParams({ open: `${next.kind}:${next.id}`, view: next.view }, { history: "push" })
-  }, [])
-  const closeDrill = React.useCallback(() => writeUrlParams({ open: null, view: null }, { history: "push" }), [])
 
   const shuffle = React.useCallback(() => {
     const next: Partial<Design> = {}
@@ -97,26 +98,153 @@ function DesignerInner() {
     setDesign(next)
   }, [locks, setDesign])
 
-  // Reset clears what is not locked: the design back to its defaults, the rail
-  // back to the jurisdiction alone.
   const reset = React.useCallback(() => {
     const out: Record<string, string | null> = {}
     for (const key of [...DESIGN_KEYS, ...SCOPE_KEYS]) if (!locks.has(key)) out[key] = null
-    out.open = null
-    out.view = null
+    // Reset lands on Congress unless the state is locked.
+    if (!locks.has("state")) out.state = "US"
+    out.at = null
+    out.rollcall = null
+    out.tab = null
+    out.doc = null
     writeUrlParams(out, { history: "push" })
   }, [locks])
 
-  const openPreset = React.useCallback((preset: Preset) => {
-    const out = presetToParams(preset)
-    for (const key of locks) delete out[key]
-    writeUrlParams({ ...out, open: null, view: null }, { history: "push" })
-  }, [locks])
+  const openPreset = React.useCallback(
+    (preset: Preset) => {
+      const out = presetToParams(preset)
+      for (const key of locks) delete out[key]
+      writeUrlParams({ ...out, tab: null, doc: null }, { history: "push" })
+    },
+    [locks]
+  )
 
-  const Block = slot.block ? blockComponents[slot.block] : null
-  // What is on the stage, named, so the reveal replays when it changes: a new
-  // block, a record opened, the way back to the cards.
-  const stageKey = drill ? `${slot.value}:${drill.kind}:${drill.id}:${drill.view}` : slot.value
+  // ── Where you are, as crumbs ─────────────────────────────────────────────
+
+  const memberLabel = member ? `${honorific(member.role, member.chamber)} ${member.name}` : location.member ? `Member ${location.member}` : ""
+  const billLabel = bill ? `${bill.bill_number} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
+  const crumbs = React.useMemo<Crumb[]>(() => {
+    const out: Crumb[] = [{ label: legislatureName(scope.state), go: listing("sessions") }]
+    if (node.kind === "sessions") return out
+    out.push({ label: sessionTitle || String(scope.session ?? ""), go: listing(null) })
+    const at = params.at.split("/").filter(Boolean).map(decodeURIComponent)
+    if (location.committee) {
+      out.push({ label: "Committees", go: listing("committees") })
+      out.push({ label: location.committee, go: { committee: location.committee, at: null, member: null, bill: null, rollcall: null } })
+      if (node.kind === "member" || (node.kind === "committee" && node.sub === "members")) out.push({ label: "Members", go: { committee: location.committee, at: "members", member: null, bill: null, rollcall: null } })
+      else if (node.kind === "bill" || node.kind === "committee") out.push({ label: "Bills", go: { committee: location.committee, at: null, member: null, bill: null, rollcall: null } })
+      if (node.kind === "member") out.push({ label: memberLabel })
+      if (node.kind === "bill") out.push({ label: billLabel })
+      return out
+    }
+    switch (node.kind) {
+      case "bills":
+        out.push({ label: "Bills" })
+        break
+      case "bill":
+        if (location.member) out.push({ label: "Members", go: listing("members") }, { label: memberLabel, go: { member: location.member, bill: null, rollcall: null, tab: "bills" } }, { label: billLabel })
+        else out.push({ label: "Bills", go: listing("bills") }, { label: billLabel })
+        break
+      case "committees":
+        out.push({ label: "Committees" })
+        break
+      case "members":
+        out.push({ label: "Members" })
+        break
+      case "member":
+        out.push({ label: "Members", go: listing("members") }, { label: memberLabel })
+        break
+      case "votes":
+        out.push({ label: "Votes" })
+        break
+      case "votes-month":
+        out.push({ label: "Votes", go: listing("votes") }, { label: monthName(node.month) })
+        break
+      case "votes-kind":
+        out.push({ label: "Votes", go: listing("votes") }, { label: monthName(node.month), go: listing(`votes/${node.month}`) }, { label: node.vote === "floor" ? "Floor" : "Committee" })
+        break
+      case "rollcall":
+        out.push({ label: "Votes", go: listing("votes") })
+        if (at[1]) out.push({ label: monthName(at[1]), go: listing(`votes/${at[1]}`) })
+        if (at[2]) out.push({ label: at[2] === "floor" ? "Floor" : "Committee", go: listing(`votes/${at[1]}/${at[2]}`) })
+        out.push({ label: "Roll call" })
+        break
+      default:
+        break
+    }
+    return out
+  }, [scope.state, scope.session, sessionTitle, node, location, params.at, memberLabel, billLabel])
+
+  // `..`: the crumb before the last one.
+  const up: Target | null = crumbs.length >= 2 ? (crumbs[crumbs.length - 2].go ?? null) : null
+
+  const header = (
+    <Breadcrumb>
+      <BreadcrumbList>
+        {crumbs.map((c, index) => {
+          const last = index === crumbs.length - 1
+          return (
+            <React.Fragment key={`${c.label}-${index}`}>
+              {index > 0 && <BreadcrumbSeparator className={cn(index === 1 && "hidden md:block")} />}
+              <BreadcrumbItem className={cn(!last && index < crumbs.length - 2 && "hidden md:block")}>
+                {last || !c.go ? (
+                  <BreadcrumbPage className="truncate">{c.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink href="#" onClick={(e) => (e.preventDefault(), go(c.go!))}>
+                    {c.label}
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
+          )
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+
+  const lookToggle = !isFile(node) && (
+    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+      {(["table", "cards"] as Look[]).map((value) => (
+        <button key={value} type="button" data-active={look === value} onClick={() => setLook(value)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
+          {value === "table" ? "Table" : "Cards"}
+        </button>
+      ))}
+    </div>
+  )
+
+  const Inbox = blockComponents["sidebar-09"]
+  const stage = isSpecial(node) ? (
+    node.kind === "inbox" ? (
+      <Inbox />
+    ) : node.kind === "finance" ? (
+      <FecExplorer />
+    ) : (
+      <BlockShell
+        title="Forms"
+        rail={
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Forms · {stateName(scope.state)}</SidebarGroupLabel>
+            </SidebarGroup>
+          </SidebarContent>
+        }
+      >
+        <div className="p-6">
+          <FormsList />
+        </div>
+      </BlockShell>
+    )
+  ) : (
+    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={lookToggle || undefined} contentClassName="overflow-hidden">
+      {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
+        <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
+      ) : (
+        <FolderView node={node} scope={scope} look={look} crumbs={crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} up={up} tab={params.tab} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onGo={go} />
+      )}
+    </BlockShell>
+  )
+
+  const stageKey = `${scope.state}:${scope.session}:${params.at}:${location.committee}:${location.member}:${location.bill}:${location.rollcall}`
 
   return (
     <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]">
@@ -124,43 +252,26 @@ function DesignerInner() {
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col">
-            <RevealFx key={stageKey} translateY={8} className="flex h-full min-h-0 flex-1 flex-col">
-              {drill ? (
-                <DrillView drill={drill} scope={scope} design={design} onBack={closeDrill} onSwitch={(view) => writeUrlParams({ view }, { history: "push" })} />
-              ) : Block ? (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-                  <Block />
-                </div>
-              ) : (
-                <CardsStage scope={scope} entity={entity} onOpen={openDrill} />
-              )}
+            <RevealFx key={stageKey} translateY={8} className="flex h-full min-h-0 flex-1 flex-col bg-background">
+              {stage}
             </RevealFx>
           </div>
 
-          {/* Bottom left: the customizer's hamburger, then which card the
-              stage shows. State and Design live in the customizer's own menu.
-              Brendan, 2026-09-03. */}
           <Fab className="absolute bottom-3 left-3">
-            <FabButton aria-label={panelOpen ? "Hide the customizer" : "Show the customizer"} aria-pressed={panelOpen} onClick={() => setPanelOpen((open) => !open)}>
+            <FabButton aria-label={panelOpen ? "Hide the customizer" : "Show the customizer"} aria-pressed={panelOpen} tip="Customizer" onClick={() => setPanelOpen((open) => !open)}>
               <MenuIcon className="size-4" />
             </FabButton>
-            {(["bill", "member", "committee"] as Entity[]).map((kind) => (
-              <FabButton key={kind} active={entity === kind && !drill && !Block} disabled={!!Block} onClick={() => writeUrlParams({ kind: kind === "bill" ? null : kind, open: null, view: null, block: null }, { history: "push" })}>
-                {kind === "bill" ? "Bills" : kind === "member" ? "Members" : "Committees"}
-              </FabButton>
-            ))}
-          </Fab>
-          <Fab className="absolute right-3 bottom-3">
-            {CREATE_SLOTS.map((s, index) => (
-              <FabButton key={s.value} active={s.value === slot.value && !drill} tip={s.label} onClick={() => setBlock(s.value)}>
-                {String(index + 1).padStart(2, "0")}
-              </FabButton>
-            ))}
+            <StageSwitcher
+              stage={isSpecial(node) ? (node.kind as Stage) : mode}
+              onStage={(next) => {
+                if (next === "state" || next === "design") {
+                  setMode(next)
+                  if (isSpecial(node)) go(listing(null))
+                } else go(listing(next))
+              }}
+            />
           </Fab>
         </div>
-        {/* The push: the column's width goes to nothing and the gap with it, over
-            300ms, and the stage (flex-1) takes the room. The card inside keeps
-            its own width so it is clipped, not squeezed, on the way out. */}
         <div
           aria-hidden={!panelOpen}
           className={cn(
@@ -169,7 +280,7 @@ function DesignerInner() {
           )}
         >
           <div className="flex min-h-0 flex-1 flex-col md:w-(--customizer-width)">
-            <Customizer mode={mode} setMode={setMode} block={slot.value} filters={scope.filters} setFilters={setFilters} design={design} setDesign={setDesign} onShuffle={shuffle} onReset={reset} onOpenPreset={openPreset} />
+            <Customizer mode={mode} setMode={setMode} at={params.at} filters={scope.filters} setFilters={setFilters} design={design} setDesign={setDesign} onShuffle={shuffle} onReset={reset} onOpenPreset={openPreset} onGo={(path) => go(listing(path))} />
           </div>
         </div>
       </div>

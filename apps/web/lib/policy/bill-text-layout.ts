@@ -127,7 +127,9 @@ const PAGE_NUMBER = /^\s*\d{1,4}\s*$/
 
 // ── Recognition: headings ───────────────────────────────────────────────────
 
-const HEADING = /^\s*(?:(SECTION|Section|Sec\.|§|ARTICLE|Article|CHAPTER|Chapter|TITLE|Title|PART|Part|Subdivision|SUBDIVISION)\s*(\d+[A-Za-z]?(?:\.\d+)*)|(WHEREAS|RESOLVED|BE IT ENACTED|BE IT RESOLVED|AN ACT|A BILL)\b)/
+// Alaska marks each section with a star ("* Section 1.", "* Sec. 2."); the
+// marker is allowed ahead of the word so those sections reach the outline.
+const HEADING = /^\s*(?:[*•]\s*)?(?:(SECTION|Section|Sec\.|§|ARTICLE|Article|CHAPTER|Chapter|TITLE|Title|PART|Part|Subdivision|SUBDIVISION)\s*(\d+[A-Za-z]?(?:\.\d+)*)|(WHEREAS|RESOLVED|BE IT ENACTED|BE IT RESOLVED|AN ACT|A BILL)\b)/
 
 export function layoutBillText(raw: string): BillLayout {
   const normalized = normalizeBillText(raw).replace(/\s+$/, "")
