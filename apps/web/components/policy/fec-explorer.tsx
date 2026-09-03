@@ -1,8 +1,11 @@
 "use client"
 
 // Ported from livingston-v3 components/policy/fec-explorer.tsx. The four
-// filters are our Select (v3 used NativeSelect); the data is the 2026-09-01
-// snapshot of /api/fec/* answered by lib/policy/snapshot.
+// filters sit in the block shell's sidebar since 2026-09-03 — Brendan: "Let
+// the dashboard block become the corresponding FEC items" — and take their
+// first values from the rail: its FEC cycle, its party, its chamber as the
+// office. The data is the 2026-09-01 snapshot of /api/fec/* answered by
+// lib/policy/snapshot.
 
 import * as React from "react"
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts"
@@ -10,7 +13,9 @@ import useSWR from "@/lib/policy/swr"
 
 import { stateName } from "@/lib/filters"
 import { fmtCompact, fmtNumber } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { useScope } from "@/lib/policy/scope"
+import { BlockShell } from "@/components/policy/block-shell"
+import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 import { PARTY_BLUE, PARTY_OTHER, PARTY_RED } from "@/lib/imagery"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -27,13 +32,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@govblock/ui/components/nova/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@govblock/ui/components/nova/select"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import {
   Table,
@@ -146,13 +144,29 @@ function Tile({
 
 const PAGE = 25
 
+// The rail speaks LegiScan's party letters and chamber names; the FEC speaks
+// its own. Translate rather than make the reader choose twice.
+const FEC_PARTY: Record<string, string> = { D: "DEM", R: "REP", I: "OTHER", L: "OTHER", G: "OTHER", N: "OTHER" }
+const FEC_OFFICE: Record<string, string> = { House: "House", Assembly: "House", Senate: "Senate" }
+
 export function FecExplorer() {
-  const { state, resolved } = useJurisdiction()
+  const { state, resolved, filters } = useScope()
   const [scopeAll, setScopeAll] = React.useState(false)
   const [cycle, setCycle] = React.useState<number | null>(null)
   const [office, setOffice] = React.useState("")
   const [party, setParty] = React.useState("")
   const [ici, setIci] = React.useState("")
+  // The rail's choices land here whenever they change; the sidebar can still
+  // move off them for a look, and the next rail change brings it back. Applied
+  // while rendering, against the last rail values seen, so no effect fires a
+  // second render.
+  const [seen, setSeen] = React.useState({ cycle: filters.cycle, party: filters.party, chamber: filters.chamber })
+  if (seen.cycle !== filters.cycle || seen.party !== filters.party || seen.chamber !== filters.chamber) {
+    setSeen({ cycle: filters.cycle, party: filters.party, chamber: filters.chamber })
+    if (seen.cycle !== filters.cycle) setCycle(filters.cycle ? Number(filters.cycle) : null)
+    if (seen.party !== filters.party) setParty(filters.party ? (FEC_PARTY[filters.party] ?? "OTHER") : "")
+    if (seen.chamber !== filters.chamber) setOffice(filters.chamber ? (FEC_OFFICE[filters.chamber] ?? "") : "")
+  }
   const [sort, setSort] = React.useState("receipts")
   const [dir, setDir] = React.useState<"asc" | "desc">("desc")
   const [page, setPage] = React.useState(0)
@@ -191,86 +205,79 @@ export function FecExplorer() {
     }
   }
 
-  if (error) {
-    return (
-      <div className="p-8">
-        <p className="text-sm text-muted-foreground">{error.message}</p>
-      </div>
-    )
-  }
+
+  const item = (label: string, active: boolean, onClick: () => void, hint?: string) => (
+    <SidebarMenuItem key={label}>
+      <SidebarMenuButton isActive={active} onClick={onClick} className="justify-between gap-2">
+        <span className="truncate">{label}</span>
+        {hint && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{hint}</span>}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+  const rail = (
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupLabel>Cycle</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {(meta?.cycles ?? manifest?.cycles.map((c) => c.cycle) ?? []).map((year) => item(`${year - 1}–${year}`, year === meta?.cycle, () => setCycle(year)))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Scope</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {item(stateName(state), !scopeAll, () => setScopeAll(false))}
+            {item("All states", scopeAll, () => setScopeAll(true))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Office</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {item("Every office", office === "", () => setOffice(""))}
+            {["House", "Senate", "President"].map((value) => item(value, office === value, () => setOffice(value), meta?.byOffice.find((o) => o.office === value) ? fmtNumber(meta.byOffice.find((o) => o.office === value)!.candidates) : undefined))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Party</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {item("Every party", party === "", () => setParty(""))}
+            {(["DEM", "REP", "OTHER"] as const).map((value) => item(PARTY_LABEL[value], party === value, () => setParty(value), meta?.byParty.find((p) => p.party === value) ? fmtNumber(meta.byParty.find((p) => p.party === value)!.candidates) : undefined))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Incumbency</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {item("Incumbent, challenger or open", ici === "", () => setIci(""))}
+            {(["I", "C", "O"] as const).map((value) => item(ICI_LABEL[value], ici === value, () => setIci(value)))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+  )
 
   return (
+    <BlockShell
+      rail={rail}
+      title={
+        <>
+          <span>Finance — {scopeAll ? "all states" : stateName(scope)}</span>
+          <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+            {meta ? `${meta.cycle - 1}–${meta.cycle}` : "…"}
+          </Badge>
+        </>
+      }
+      actions={<span className="hidden text-xs text-muted-foreground lg:inline">Read from Parquet on S3. No database is in the path.</span>}
+    >
     <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="cn-font-heading text-xl font-semibold">
-          Finance — {scopeAll ? "all states" : stateName(scope)}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Every figure here is read from Parquet on S3. No database is in the
-          path.
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={String(meta?.cycle ?? "")}
-          onValueChange={(value) => setCycle(Number(value))}
-          items={Object.fromEntries((meta?.cycles ?? []).map((year) => [String(year), `${year - 1}–${year}`]))}
-        >
-          <SelectTrigger size="sm" aria-label="Election cycle">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-          {(meta?.cycles ?? []).map((year) => (
-            <SelectItem key={year} value={String(year)}>
-              {year - 1}–{year}
-            </SelectItem>
-          ))}
-        </SelectContent>
-        </Select>
-        <Button
-          size="sm"
-          variant={scopeAll ? "default" : "outline"}
-          onClick={() => setScopeAll((value) => !value)}
-        >
-          {scopeAll ? "All states" : stateName(state)}
-        </Button>
-        <Select value={office} onValueChange={(value) => setOffice(value ?? "")} items={{ "": "Every office", House: "House", Senate: "Senate", President: "President" }}>
-          <SelectTrigger size="sm" aria-label="Office">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="">Every office</SelectItem>
-          <SelectItem value="House">House</SelectItem>
-          <SelectItem value="Senate">Senate</SelectItem>
-          <SelectItem value="President">President</SelectItem>
-        </SelectContent>
-        </Select>
-        <Select value={party} onValueChange={(value) => setParty(value ?? "")} items={{ "": "Every party", DEM: "Democratic", REP: "Republican", OTHER: "Other" }}>
-          <SelectTrigger size="sm" aria-label="Party">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="">Every party</SelectItem>
-          <SelectItem value="DEM">Democratic</SelectItem>
-          <SelectItem value="REP">Republican</SelectItem>
-          <SelectItem value="OTHER">Other</SelectItem>
-        </SelectContent>
-        </Select>
-        <Select value={ici} onValueChange={(value) => setIci(value ?? "")} items={{ "": "Incumbent, challenger or open", I: "Incumbent", C: "Challenger", O: "Open seat" }}>
-          <SelectTrigger size="sm" aria-label="Incumbency">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="">Incumbent, challenger or open</SelectItem>
-          <SelectItem value="I">Incumbent</SelectItem>
-          <SelectItem value="C">Challenger</SelectItem>
-          <SelectItem value="O">Open seat</SelectItem>
-        </SelectContent>
-        </Select>
-      </div>
-
+      {error && <p className="text-sm text-muted-foreground">{error.message}</p>}
       {/* KPI tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
@@ -516,5 +523,6 @@ export function FecExplorer() {
         </CardContent>
       </Card>
     </div>
+    </BlockShell>
   )
 }

@@ -1,28 +1,19 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Command, File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
 import { NavUser } from "@/registry/blocks/sidebar-09/components/nav-user"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@govblock/ui/components/ny4/sidebar"
+import { SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
-// The Agentic Inbox's rail: shadcn's sidebar-09 first sidebar, markup and
-// classNames intact, its contents replaced — Compose above the folders, where
-// mail clients put it, and the folders with their unread counts. The thread
-// list that used to be nested beside it is its own pane now
-// (`thread-list.tsx`), so the list and the reading pane can share a resizable
-// row the way shadcn's mail example does.
+// The Agentic Inbox's rail: Compose above the folders, where mail clients put
+// it, and the folders with their unread counts. Since 2026-09-03 it is the
+// contents of the shared block shell's sidebar (`BlockShell`), the same
+// sidebar every block wears, rather than a sidebar of its own — so the rail
+// has room for the folder names, and the thread list and the reading pane
+// share the inset pane beside it.
 
 const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Inbox", icon: Inbox, folder: "inbox" },
@@ -32,31 +23,14 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 
-export function AppSidebar({
-  threads,
-  folder,
-  onFolder,
-  onCompose,
-  onClear,
-  ...props
-}: React.ComponentProps<typeof Sidebar> & {
-  threads: Thread[]
-  folder: Folder
-  onFolder: (folder: Folder) => void
-  onCompose: () => void
-  onClear: () => void
-}) {
+export function InboxRail({ threads, folder, onFolder, onCompose, onClear }: { threads: Thread[]; folder: Folder; onFolder: (folder: Folder) => void; onCompose: () => void; onClear: () => void }) {
   return (
-    <Sidebar
-      collapsible="none"
-      className="w-[calc(var(--sidebar-width-icon)+1px)]! shrink-0 border-r"
-      {...props}
-    >
+    <>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-              <a href="/agents">
+              <Link href="/agents">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Command className="size-4" />
                 </div>
@@ -64,38 +38,33 @@ export function AppSidebar({
                   <span className="truncate font-medium">govblock</span>
                   <span className="truncate text-xs">Inbox</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="px-1.5 md:px-0">
+          <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip={{ children: "Compose", hidden: false }}
-                  onClick={onCompose}
-                  className="px-2.5 text-primary md:px-2"
-                >
+                <SidebarMenuButton onClick={onCompose} className="text-primary">
                   <PenSquare />
                   <span>Compose</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Folders</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               {FOLDERS.map((item) => {
                 const unread = unreadIn(threads, item.folder)
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={{
-                        children: unread ? `${item.title} (${unread})` : item.title,
-                        hidden: false,
-                      }}
-                      onClick={() => onFolder(item.folder)}
-                      isActive={folder === item.folder}
-                      className="px-2.5 md:px-2"
-                    >
+                    <SidebarMenuButton onClick={() => onFolder(item.folder)} isActive={folder === item.folder} title={unread ? `${item.title} (${unread})` : item.title}>
                       <item.icon />
                       <span>{item.title}</span>
                       {unread > 0 && <span className="ml-auto text-xs tabular-nums">{unread}</span>}
@@ -117,6 +86,6 @@ export function AppSidebar({
           onClear={onClear}
         />
       </SidebarFooter>
-    </Sidebar>
+    </>
   )
 }

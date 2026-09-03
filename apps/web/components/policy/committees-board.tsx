@@ -5,7 +5,7 @@ import Link from "next/link"
 
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { committeeInScope, useScope } from "@/lib/policy/scope"
 import type { Committee } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -34,12 +34,14 @@ import { Badge } from "@govblock/ui/components/nova/badge"
 const ALL = "__all__"
 
 export function CommitteesBoard() {
-  const { state, session } = useJurisdiction()
-  const scope = { state }
+  // The rail's scope: the jurisdiction, and whatever narrows it.
+  const { state, session, filters } = useScope()
+  const scope = { state, session: filters.session }
   const [selected, setSelected] = React.useState(ALL)
   const [search, setSearch] = React.useState("")
 
-  const { data: committees } = usePolicy<Committee[]>("committees", scope)
+  const { data: everyCommittee } = usePolicy<Committee[]>("committees", scope)
+  const committees = React.useMemo(() => everyCommittee?.filter((c) => committeeInScope(c, filters)), [everyCommittee, filters])
   const { pinned, togglePin, details, setDetails } = useProjectDetails(
     `committees:${state}`
   )

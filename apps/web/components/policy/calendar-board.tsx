@@ -5,7 +5,7 @@ import Link from "next/link"
 
 import { stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, fmtTime, truncate } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { useScope } from "@/lib/policy/scope"
 import type { Hearing } from "@/lib/policy/types"
 import { hearingWhen } from "@/lib/policy/hearing-when"
 import { AddToCalendar } from "@/components/connectors/add-to-calendar"
@@ -52,7 +52,9 @@ export function hearingDescription(hearing: Hearing) {
 }
 
 export function CalendarBoard() {
-  const { state, session } = useJurisdiction()
+  // The rail's scope: the jurisdiction, the session, and the committee if one
+  // was chosen — the calendar is a committee's before it is anything else.
+  const { state, session, filters } = useScope()
   const [selected, setSelected] = React.useState(ALL)
   const [search, setSearch] = React.useState("")
 
@@ -61,7 +63,7 @@ export function CalendarBoard() {
   // 52 between sessions, and reports the date it runs through.
   const { data, isLoading } = usePolicy<{ rows: Hearing[]; through: string | null }>(
     "hearings-recent",
-    { state },
+    { state, session: filters.session, committee: filters.committee },
     {
       from: iso(-30),
       to: iso(90),

@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
-import { SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/policy/scope-script"
+import { EMBED_SCRIPT, EMBED_STYLE, SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/policy/scope-script"
 import { ScopeReady } from "@/components/scope-ready"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
@@ -35,6 +35,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             until the client has taken over. */}
         <script dangerouslySetInnerHTML={{ __html: SCOPE_SCRIPT }} />
         <style dangerouslySetInnerHTML={{ __html: SCOPE_STYLE }} />
+        {/* Inside a frame — /create opening a record in place — the document
+            is the page and nothing else: no site header, no footer. */}
+        <script dangerouslySetInnerHTML={{ __html: EMBED_SCRIPT }} />
+        <style dangerouslySetInnerHTML={{ __html: EMBED_STYLE }} />
       </head>
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
         <NuqsAdapter>

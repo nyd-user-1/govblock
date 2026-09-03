@@ -1,30 +1,20 @@
+import { layoutBillText, printChangeMarks } from "@/lib/policy/bill-text-layout"
 import { cn } from "@govblock/ui/lib/utils"
 
-// A bill's text, set the way the Government Publishing Office set it and
-// congress.gov shows it: one `<pre>`, monospace, every space and line break the
-// document's own.
+// A bill's text, the standard way, wherever bill text appears: the bill page,
+// the Documents block, the typeset article, the drill-down.
 //
-// It used to be two things at once — a "preview" that drew only the title page,
-// with our own centring and bold applied line by line on top of the text's, and
-// a "View Code" strip beneath that repeated the whole bill as numbered code
-// lines. Brendan, 2026-09-02: format it as Congress does
-// (https://www.congress.gov/bill/119th-congress/house-bill/10150/text/ih?format=txt),
-// "the only difference being that you can center it".
+// Set the way the Government Publishing Office set it and congress.gov shows
+// it: monospace, every space and line break the document's own, the whole
+// block centred in its container (Brendan, 2026-09-02: format it as Congress
+// does, "the only difference being that you can center it").
 //
-// So: no re-wrapping, no re-indenting, no per-line rules of our own — the
-// document already centres its own headings with spaces, and re-centring them
-// moved them. And no code strip: bill text is not code.
-//
-// The one permitted difference is that the whole block is centred in its
-// container rather than sitting against the left margin.
-
-// LegiScan encodes an amended text's changes as {+added+} and [-deleted-].
-// congress.gov's .txt has no such markers; printing the encoding raw would be
-// verbatim about the transport and wrong about the document. Additions read as
-// text, deletions in brackets, which is how a printed bill shows them.
-const MARKER = /\{\+([\s\S]*?)\+\}|\[-([\s\S]*?)-\]/g
-const printed = (text: string) =>
-  text.replace(/\r/g, "").replace(MARKER, (_, added, deleted) => (added !== undefined ? added : `[${deleted}]`))
+// Since 2026-09-03 the layout runs through `lib/policy/bill-text-layout`
+// first, which is what makes New York, Alabama, Minnesota and Congress read as
+// one thing: the document's own line numbers are lifted into a real gutter,
+// page furniture is dimmed rather than deleted, invisible characters are gone,
+// and an extraction's blank-line-after-every-line artefact is collapsed. The
+// body is never re-wrapped, re-indented or re-centred.
 
 // congress.gov writes the version date American-style in parentheses:
 // "Introduced in House (08/27/2026)".
@@ -47,6 +37,7 @@ export function BillText({
   className?: string
 }) {
   const shown = [version, stamp(date)].filter(Boolean).join(" ")
+  const layout = layoutBillText(printChangeMarks(text))
   return (
     <div className={cn("flex w-full justify-center", className)}>
       <div className="w-fit max-w-full">
@@ -58,11 +49,17 @@ export function BillText({
             <div>{shown}</div>
           </div>
         )}
-        <pre
-          data-slot="bill-text"
-          className="m-0 max-w-full overflow-x-auto p-0 font-mono text-[13px] leading-[1.35] whitespace-pre text-foreground"
-        >
-          {printed(text)}
+        <pre data-slot="bill-text" className="m-0 max-w-full overflow-x-auto p-0 font-mono text-[13px] leading-[1.35] whitespace-pre text-foreground">
+          {layout.lines.map((line, index) => (
+            <div key={index} data-kind={line.kind} className="flex data-[kind=furniture]:opacity-40 data-[kind=heading]:font-semibold">
+              {layout.gutter && (
+                <span aria-hidden className="shrink-0 pr-4 text-right text-muted-foreground select-none" style={{ width: `${layout.gutterWidth + 4}ch` }}>
+                  {line.n ?? ""}
+                </span>
+              )}
+              <span className="min-h-[1.35em]">{line.text}</span>
+            </div>
+          ))}
         </pre>
       </div>
     </div>

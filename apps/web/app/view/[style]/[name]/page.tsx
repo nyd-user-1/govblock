@@ -29,7 +29,10 @@ export default async function BlockPage({ params }: { params: Promise<{ style: s
   }
 
   return (
-    <div data-slot="view" className="bg-background *:data-[slot=card]:has-[[data-slot=chart]]:shadow-none">
+    // The screen, so a block that fills its parent (every block wears the
+    // dashboard's shell now, which sizes itself to what it is given) fills the
+    // viewer's frame instead of collapsing to its content.
+    <div data-slot="view" className="flex h-svh min-h-0 flex-col bg-background *:data-[slot=card]:has-[[data-slot=chart]]:shadow-none">
       <Component />
     </div>
   )

@@ -5,7 +5,7 @@ import Link from "next/link"
 
 import { stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { useScope } from "@/lib/policy/scope"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { useCongressRecord } from "@/lib/policy/use-congress"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -100,11 +100,13 @@ const rollCallKey = (chamber: string, description: string, date: string) => {
 const ALL = "__all__"
 
 export function VotesBoard() {
-  const { state, session } = useJurisdiction()
+  // The rail's scope: the jurisdiction, and whatever narrows it. A roll call
+  // carries a chamber and a bill, so those are the keys that narrow it.
+  const { state, session, filters } = useScope()
   const [selected, setSelected] = React.useState(ALL)
   const [search, setSearch] = React.useState("")
 
-  const { data, isLoading } = usePolicy<VoteRow[]>("rollcalls", { state })
+  const { data, isLoading } = usePolicy<VoteRow[]>("rollcalls", { state, session: filters.session })
 
   // Under Congress the board reads the House Clerk's own roll calls beside
   // LegiScan's, because LegiScan's are almost all Senate. Where both recorded
@@ -183,6 +185,8 @@ export function VotesBoard() {
     )
     const query = search.trim().toLowerCase()
     return all.filter((row) => {
+      if (filters.chamber && row.chamber !== filters.chamber) return false
+      if (filters.bill && String(row.bill_id) !== filters.bill) return false
       if (selected !== ALL && row.chamber !== selected) return false
       if (!query) return true
       return (
@@ -191,7 +195,7 @@ export function VotesBoard() {
         (row.title ?? "").toLowerCase().includes(query)
       )
     })
-  }, [data, floor, superseded, search, selected])
+  }, [data, floor, superseded, search, selected, filters.chamber, filters.bill])
 
   const groups = React.useMemo<RailGroup[]>(() => {
     const all = [...floor, ...(data ?? []).filter((row) => !superseded(row))]

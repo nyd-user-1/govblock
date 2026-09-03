@@ -25,7 +25,8 @@ import { emptyRun, runAgent } from "@/lib/agents/run-client"
 import { cn } from "@/lib/utils"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
-import { AppSidebar } from "@/registry/blocks/sidebar-09/components/app-sidebar"
+import { BlockShell } from "@/components/policy/block-shell"
+import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { ThreadList, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -35,7 +36,6 @@ import {
   ResizablePanelGroup,
 } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
-import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
 // The Agentic Inbox — shadcn's sidebar-09 mail block, repurposed, and since
@@ -286,25 +286,29 @@ export default function Page() {
     : undefined
 
   return (
-    <SidebarProvider
-      className="h-svh min-h-0 overflow-hidden"
-      style={{ "--sidebar-width": "350px" } as React.CSSProperties}
+    // The shared block shell: the folders in its sidebar, the thread list and
+    // the reading pane sharing the inset pane beside it.
+    <BlockShell
+      title="Inbox"
+      sidebarWidth="calc(var(--spacing) * 56)"
+      contentClassName="overflow-hidden"
+      rail={
+        <InboxRail
+          threads={threads}
+          folder={folder}
+          onFolder={(next) => {
+            setFolder(next)
+            setComposing(false)
+          }}
+          onCompose={startCompose}
+          onClear={() => {
+            setThreads([])
+            setSelected(null)
+          }}
+        />
+      }
     >
-      <AppSidebar
-        threads={threads}
-        folder={folder}
-        onFolder={(next) => {
-          setFolder(next)
-          setComposing(false)
-        }}
-        onCompose={startCompose}
-        onClear={() => {
-          setThreads([])
-          setSelected(null)
-        }}
-      />
-
-      <ResizablePanelGroup orientation="horizontal" className="min-w-0 flex-1">
+      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
         {/* react-resizable-panels v4 reads bare numbers as pixels. */}
         <ResizablePanel defaultSize={420} minSize={320} maxSize={640} className="min-w-0">
           <ThreadList
@@ -535,6 +539,6 @@ export default function Page() {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
-    </SidebarProvider>
+    </BlockShell>
   )
 }

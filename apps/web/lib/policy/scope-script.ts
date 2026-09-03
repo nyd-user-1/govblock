@@ -21,3 +21,11 @@ document.documentElement.dataset.scope=(s||"US").toUpperCase()
 }catch(e){document.documentElement.dataset.scope="US"}})()`
 
 export const SCOPE_STYLE = `html[data-scope]:not([data-scope="US"]):not([data-scope-ready]) [data-scope-content]{visibility:hidden}`
+
+// A document inside another's frame is a record opened in place — /create's
+// drill-down, the block viewer, the typeset preview. It marks itself before
+// first paint so the header and footer never flash, and the CSS hides them
+// wherever the mark is. Same shape as the scope script above.
+export const EMBED_SCRIPT = `(function(){try{if(window.self!==window.top)document.documentElement.setAttribute("data-embedded","")}catch(e){}})()`
+
+export const EMBED_STYLE = `html[data-embedded] [data-slot="site-header"],html[data-embedded] [data-slot="site-footer"]{display:none}html[data-embedded]{scroll-padding-top:0}`

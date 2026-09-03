@@ -1,19 +1,14 @@
 import type { Metadata } from "next"
 
-import members from "@/lib/data/members-us.json"
-import * as F from "@/lib/fixtures"
-import { getStateCounts } from "@/lib/policy/states"
-import { getStream } from "@/lib/policy/stream"
 import { Designer } from "@/components/create/designer"
 
-// /create — livingston-v3's designer, with one component: the card, in three
-// versions. Bills come from mv_stream_latest for every jurisdiction; members
-// and committees are Congress's for now.
-export const metadata: Metadata = { title: "New Project", description: "Compose a bill, member or committee card, filtered to a jurisdiction, and take the code." }
-export const revalidate = 3600
+// /create — livingston-v3's designer, with the whole site on its stage: the
+// cards in three versions, and every block, each in the dashboard's shell,
+// each reading the rail's scope. The data arrives in the browser from
+// /api/policy under whatever jurisdiction and filters the rail wrote into the
+// URL, so the page itself is static and shared by everyone.
+export const metadata: Metadata = { title: "New Project", description: "Compose a view — a jurisdiction, a scope, a design, a block — save it as a preset, and take the code." }
 
-export default async function CreatePage() {
-  const [{ groups }, states] = await Promise.all([getStream({ limit: 40 }), getStateCounts()])
-  const bills = groups.flatMap((g) => g.bills.map((b) => ({ ...b, state: g.state })))
-  return <Designer bills={bills} members={members} committees={F.committeesAll} states={states} />
+export default function CreatePage() {
+  return <Designer />
 }

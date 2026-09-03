@@ -889,9 +889,13 @@ export async function getRecentTexts(f: Resolved, limit = 60) {
     body: string | null
     status_desc: string | null
     last_action_date: string | null
+    committee: string | null
   }>(
+    // `committee` rides along since 2026-09-03: the Documents block files its
+    // tree under the committee a bill sits before, the way a repository files
+    // under folders.
     `select t.document_id, t.version, t.chars, t.fetched_at,
-            b.bill_id, b.bill_number, b.title, b.body, b.status_desc, b.last_action_date
+            b.bill_id, b.bill_number, b.title, b.body, b.status_desc, b.last_action_date, b.committee
      from "BillTexts" t join "Bills" b using (bill_id)
      where b.state = $1 and b.session_id = $2 and t.text is not null
      order by t.fetched_at desc nulls last, t.document_id desc

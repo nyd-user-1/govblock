@@ -15,3 +15,14 @@ export const BLOCK_TABS: BlocksTab[] = [
   { value: "dashboard", label: "Dashboard", block: "dashboard-01" },
   { value: "intelligence", label: "Intelligence", block: "sidebar-09" },
 ]
+
+// What /create's block switch offers, in the order of its pill: 01 is the
+// cards (the designer's own stage), then the blocks. Calendar is not one of
+// them — Brendan, 2026-09-03: "skip calendar, it's the wrong one" — it opens
+// from a committee card instead.
+export type CreateSlot = { value: string; label: string; block: string | null }
+
+export const CREATE_SLOTS: CreateSlot[] = [
+  { value: "cards", label: "Cards", block: null },
+  ...BLOCK_TABS.filter((tab) => tab.value !== "calendar").map((tab) => ({ value: tab.value, label: tab.label, block: tab.block })),
+]
