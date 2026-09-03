@@ -75,7 +75,7 @@ name where it helps someone scan; do not bold a sentence.
 export const AGENTS: AgentDefinition[] = [
   {
     slug: "bill-reader",
-    name: "Bill Reader",
+    name: "Clerk",
     speciality: "Reads one bill's whole record and explains it, citing the rows it read.",
     reads:
       "A bill's description and status, its sponsors with party and district, its full legislative history, committee referrals, roll calls, subjects, and the text as filed.",
@@ -90,7 +90,7 @@ export const AGENTS: AgentDefinition[] = [
     ],
     system: `${GROUND}
 
-You are the Bill Reader. One bill at a time, read properly.
+You are the Clerk. One bill at a time, read properly.
 
 Given a bill number, call get_bill with that number and its jurisdiction. Given a
 description, call search_bills first, then get_bill on the best match — and say
@@ -109,7 +109,7 @@ question — offer it rather than guessing what the bill requires.`,
 
   {
     slug: "jurisdiction-guide",
-    name: "Jurisdiction Guide",
+    name: "Parliamentarian",
     speciality: "Who represents, which committee holds it, where a bill sits — across all 52.",
     reads:
       "The sitting rosters of every jurisdiction, their committees and the bills before them, and which jurisdictions the record covers at all.",
@@ -132,7 +132,7 @@ question — offer it rather than guessing what the bill requires.`,
     ],
     system: `${GROUND}
 
-You are the Jurisdiction Guide. Your subject is the shape of a legislature, not
+You are the Parliamentarian. Your subject is the shape of a legislature, not
 the content of a bill.
 
 Start with list_jurisdictions whenever there is any doubt a jurisdiction is
@@ -150,7 +150,7 @@ merge their rows into one list.`,
 
   {
     slug: "money-follower",
-    name: "Money Follower",
+    name: "Treasurer",
     speciality: "Sponsors, committees and the money the record actually holds — gaps named.",
     reads:
       "Members' sponsorship and voting records, who sponsors most, committee membership, and — for Congress — the federal lobbying filings that name a bill and members' FEC totals by cycle with their largest reported contributions.",
@@ -176,7 +176,7 @@ merge their rows into one list.`,
     ],
     system: `${GROUND}
 
-You are the Money Follower. You trace bill → sponsors → committees → filings,
+You are the Treasurer. You trace bill → sponsors → committees → filings,
 and you are relentless about what the record does not hold.
 
 The chain: get_bill gives you sponsors with people_id; get_member_record gives
@@ -210,7 +210,7 @@ each other and let the reader draw the line.`,
 
   {
     slug: "tracker",
-    name: "Tracker",
+    name: "Whip",
     speciality: "The agentic one: give it a topic and a jurisdiction and it goes and does the work.",
     reads:
       "The search index, then each bill it finds in full — description, status, sponsors and the last actions taken.",
@@ -231,7 +231,7 @@ each other and let the reader draw the line.`,
     ],
     system: `${GROUND}
 
-You are the Tracker. You do not answer questions; you carry out a watch and
+You are the Whip. You do not answer questions; you carry out a watch and
 report what you did.
 
 The run, in order:
@@ -261,7 +261,7 @@ agent exists not to do.`,
 
   {
     slug: "researcher",
-    name: "Researcher",
+    name: "Librarian",
     speciality: "The long one: a sourced report over the whole record, delivered rather than chatted.",
     reads:
       "Whatever the question needs — the search index across jurisdictions, whole bill records and their text, members and their sponsorship and votes, committees, and for Congress the lobbying filings and FEC totals.",
@@ -300,7 +300,7 @@ agent exists not to do.`,
     ],
     system: `${GROUND}
 
-You are the Researcher. You are not in a conversation — you are writing one
+You are the Librarian. You are not in a conversation — you are writing one
 report, once, and it has to stand on its own.
 
 Work in this order and say what you are doing at each turn, briefly:

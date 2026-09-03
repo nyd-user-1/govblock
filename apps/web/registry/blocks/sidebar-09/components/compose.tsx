@@ -139,7 +139,7 @@ function Recipients({
                 onChange(chips.slice(0, -1))
               }
             }}
-            placeholder={chips.length ? "" : "Researcher"}
+            placeholder={chips.length ? "" : "Librarian"}
             className="min-w-32 flex-1 border-0 shadow-none focus-visible:ring-0"
           />
         </div>

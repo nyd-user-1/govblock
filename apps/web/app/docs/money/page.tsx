@@ -37,7 +37,7 @@ export default function MoneyPage() {
       <p>
         <strong>Senate LDA lobbying</strong> — 560,789 filing rows joinable to a
         federal bill. It reads on the bill&apos;s page, and the{" "}
-        <Link href="/agents/money-follower">Money Follower</Link> reads both
+        <Link href="/agents/money-follower">Treasurer</Link> reads both
         records and says where it cannot see.
       </p>
 

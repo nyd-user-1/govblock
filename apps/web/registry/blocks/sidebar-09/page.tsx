@@ -515,11 +515,11 @@ export default function Page() {
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-                <h1 className="text-lg font-semibold tracking-tight">Agentic Inbox</h1>
+                <h1 className="text-lg font-semibold tracking-tight">Inbox</h1>
                 <p className="max-w-md text-sm text-muted-foreground">
                   Longer work than a chat. Compose a task to one of the five agents, and its finished
                   report arrives as a reply on the same thread, with the run it did underneath. The
-                  Researcher writes a sourced report over the record; the Tracker watches a topic and
+                  Librarian writes a sourced report over the record; the Whip watches a topic and
                   posts a digest; the other three answer in one message.
                 </p>
                 <p className="max-w-md text-sm text-muted-foreground">

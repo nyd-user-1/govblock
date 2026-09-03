@@ -62,12 +62,14 @@ export const siteConfig = {
       label: "Agents",
       href: "/agents",
       items: [
-        { href: "/agents/bill-reader", label: "Bill Reader", description: "One bill's whole record, explained and cited." },
-        { href: "/agents/jurisdiction-guide", label: "Jurisdiction Guide", description: "Who represents, which committee, where a bill sits." },
-        { href: "/agents/money-follower", label: "Money Follower", description: "Sponsors, filings and FEC totals, with the gaps named." },
-        { href: "/agents/tracker", label: "Tracker", description: "Watches a topic and posts the digest." },
-        { href: "/agents/researcher", label: "Researcher", description: "A long sourced report, delivered." },
-        { href: "/blocks/intelligence", label: "Agentic Inbox", description: "Send a task, read the report it sends back." },
+        // The offices of a legislature, each named for the duty the agent does
+        // (Brendan, 2026-09-03), and under each the problem it solves.
+        { href: "/agents/bill-reader", label: "Clerk", description: "A bill you need to understand before the meeting.", icon: "Stamp" },
+        { href: "/agents/jurisdiction-guide", label: "Parliamentarian", description: "Whose district, which committee, and where the bill is stuck.", icon: "Gavel" },
+        { href: "/agents/money-follower", label: "Treasurer", description: "Who paid, who filed, and what the record leaves out.", icon: "Receipt" },
+        { href: "/agents/tracker", label: "Whip", description: "A topic you cannot watch every day.", icon: "Radar" },
+        { href: "/agents/researcher", label: "Librarian", description: "A question that needs a report, not an answer.", icon: "Library" },
+        { href: "/blocks/intelligence", label: "Inbox", description: "Work you hand off and read when it is done.", icon: "Inbox" },
       ],
     },
     {

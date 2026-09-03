@@ -90,7 +90,7 @@ export const CONNECTORS: Connector[] = [
     tint: "#5865F2",
     kind: "platform",
     popular: true,
-    summary: "Where the Tracker posts its digests and the Researcher delivers its reports.",
+    summary: "Where the Whip posts its digests and the Librarian delivers its reports.",
     href: "/agents/discord",
   },
 ]

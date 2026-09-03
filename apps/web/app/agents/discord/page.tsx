@@ -77,11 +77,11 @@ export default async function DiscordPage() {
       title={title}
       description={description}
       slug="/agents/discord"
-      previous={{ name: "Researcher", url: "/agents/researcher" }}
+      previous={{ name: "Librarian", url: "/agents/researcher" }}
       next={{ name: "Agents", url: "/agents" }}
     >
       <p>
-        The Tracker posts its digests and the Researcher delivers its reports into a Discord
+        The Whip posts its digests and the Librarian delivers its reports into a Discord
         channel, which is what makes a finished run outlive the tab it ran in. This page is the
         other direction: what the server looks like from here, and what this site can read back
         out of it.
@@ -127,7 +127,7 @@ export default async function DiscordPage() {
             this list stays empty rather than standing in the runs kept in your own browser:
             those are already on the{" "}
             <Link href="/blocks/intelligence" className="underline underline-offset-4">
-              Agentic Inbox
+              Inbox
             </Link>{" "}
             under a heading that tells the truth about where they live.
           </p>
