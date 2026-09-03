@@ -253,11 +253,24 @@ const PRIME_SPONSOR = `left join lateral (
 export async function getBills(f: Resolved, limit = 40, offset = 0) {
   const params: unknown[] = []
   const where = billWhere(f, params)
+  // Congress moves on congress.gov days before it moves on LegiScan: the
+  // nightly dp-congress sync writes congress_bills every day, and the LegiScan
+  // feed sat at Aug 27 while the House acted on Sep 1. Under Congress the
+  // latest action is the mirror's where it has one, so "newest first" is true
+  // on the day it is read — Brendan, 2026-09-02: "I've been looking at the
+  // same 12 bills for 3 days". Both dates read as text so the coalesce holds
+  // whatever type each table gives them.
+  const congress = f.state === "US"
+  const newest = congress ? "coalesce(c.latest_action_date::text, b.last_action_date::text)" : "b.last_action_date"
+  const columns = congress
+    ? BILL_COLUMNS.replace("b.last_action, b.last_action_date", `coalesce(c.latest_action, b.last_action) last_action, ${newest} last_action_date`)
+    : BILL_COLUMNS
+  const join = congress ? "left join congress_bills c on c.bill_id = b.bill_id" : ""
   const [rows, count] = await Promise.all([
     q<BillRow>(
-      `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
+      `select ${columns} from "Bills" b ${join} ${PRIME_SPONSOR}
        where ${where}
-       order by b.last_action_date desc nulls last, b.bill_id desc
+       order by ${newest} desc nulls last, b.bill_id desc
        limit $${params.push(limit)} offset $${params.push(offset)}`,
       params
     ),

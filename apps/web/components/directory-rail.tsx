@@ -8,7 +8,8 @@ import { ChevronRight } from "lucide-react"
 import { hasItems, siteConfig, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { truncate } from "@/lib/format"
+import { honorific, truncate } from "@/lib/format"
+import { cn } from "@govblock/ui/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/ui/components/ny4/collapsible"
 import {
   SidebarGroup,
@@ -25,13 +26,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // Ported from livingston-v3 components/policy/directory-rail.tsx. Three groups,
 // one item shape: the site's four sections with Records folded to its pages
 // (read from the nav, so the rail and the Records panel are one list), Recent
-// Bills (the number; the title is the tooltip), Committees (the name; the full
-// name is the tooltip). Every row's hover runs the width of the rail.
+// Bills (the number, the sponsor beneath; the title is the tooltip),
+// Committees (the name; the full name is the tooltip). Every row's hover runs
+// the width of the rail.
 
 const MENU_CLASS =
   "relative h-[30px] w-full max-w-52 overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48"
 
-const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
+// `HB 10163`: the prefix and the number with a space between, leading zeros
+// dropped, in the rail's own face rather than mono (Brendan, 23:10 ET).
+const print = (number: string) => number.replace(/^([A-Z]+)0*(\d+)$/, "$1 $2")
+
+type RailBill = (typeof F.recentBills)[number] & { sponsor?: string | null; sponsor_party?: string | null; body?: string | null }
+
+// `Rep. Morelle (D)`: the honorific the chamber gives, the surname, the party.
+// Suffixes are not surnames.
+function byline(bill: RailBill) {
+  if (!bill.sponsor) return null
+  const parts = bill.sponsor.trim().split(/\s+/).filter((part) => !/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(part))
+  const surname = parts[parts.length - 1] ?? bill.sponsor
+  const title = honorific(bill.body === "Senate" ? "Sen" : "Rep", bill.body)
+  return `${title} ${surname}${bill.sponsor_party ? ` (${bill.sponsor_party})` : ""}`.trim()
+}
 
 // The four sections in the order Brendan gave them (2026-09-02, 20:00 ET),
 // each the top-level nav entry of the same name. Only Records lists its pages:
@@ -44,6 +60,8 @@ type RailItem = {
   key: string
   href: string
   label: React.ReactNode
+  /** A second, smaller line under the label; the row grows to hold it. */
+  detail?: React.ReactNode
   tooltip?: string
   active: boolean
   items?: RailItem[]
@@ -51,9 +69,10 @@ type RailItem = {
 
 function RailButton({ item }: { item: RailItem }) {
   const button = (
-    <SidebarMenuButton asChild isActive={item.active} className={MENU_CLASS}>
+    <SidebarMenuButton asChild isActive={item.active} className={cn(MENU_CLASS, item.detail && "h-auto flex-col items-start gap-0 py-1.5")}>
       <Link href={item.href}>
-        <span className="min-w-0 truncate">{item.label}</span>
+        <span className="min-w-0 max-w-full truncate">{item.label}</span>
+        {item.detail && <span className="mt-1 min-w-0 max-w-full truncate text-xs font-normal text-muted-foreground">{item.detail}</span>}
       </Link>
     </SidebarMenuButton>
   )
@@ -149,15 +168,11 @@ export function DirectoryRail() {
     const inside = pathname === entry.href || pages.some((page) => pathname.startsWith(page.href))
     return [{ key: nav, href: scoped(entry.href), label: nav, active: inside, items }]
   })
-  const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
+  const bills: RailItem[] = ((billData?.rows ?? []) as RailBill[]).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
     href: `/docs/bills/${bill.bill_id}`,
-    label: (
-      <>
-        <span className="font-mono text-[0.75rem]">{print(bill.bill_number)}</span>{" "}
-        <span className="font-normal text-muted-foreground">{truncate(bill.title, 40)}</span>
-      </>
-    ),
+    label: print(bill.bill_number),
+    detail: byline(bill),
     tooltip: bill.title,
     active: pathname === `/docs/bills/${bill.bill_id}`,
   }))
