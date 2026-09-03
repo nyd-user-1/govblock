@@ -243,11 +243,6 @@ export function BillTracker() {
           </li>
         ))}
       </ol>
-      {current && (
-        <p className="mt-3 text-sm text-muted-foreground">
-          This bill has the status <strong className="text-foreground">{current.title}</strong>.
-        </p>
-      )}
     </div>
   )
 }
@@ -392,10 +387,6 @@ export function BillActions({
 
   return (
     <>
-      <p className="text-sm text-muted-foreground">
-        {rows.length} action{rows.length === 1 ? "" : "s"}
-        {c.actionTotal ? `, ${c.actionTotal} of them carrying congress.gov's stage and codes` : ""}.
-      </p>
       <Table>
         <thead>
           <tr>
