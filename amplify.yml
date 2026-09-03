@@ -5,11 +5,26 @@ applications:
       phases:
         preBuild:
           commands:
+            # Aurora Serverless v2 pauses at 0 ACU after five idle minutes, and a
+            # build's first minute of prerenders against a paused cluster hangs
+            # and then 500s (job 193, 2026-09-03). Knock first, so the resume
+            # overlaps the install; then, before building, wait until it answers.
+            - |
+              aws rds-data execute-statement --resource-arn "$POLICY_CLUSTER_ARN" --secret-arn "$POLICY_SECRET_ARN" \
+                --database "${POLICY_DATABASE:-policy}" --sql "select 1" > /dev/null 2>&1 || echo "database: waking"
             - corepack enable
             - corepack prepare pnpm@10.33.4 --activate
             # The workspace root owns the lockfile; -C keeps the shell in appRoot,
             # which is where Amplify expects to find .next afterwards.
             - pnpm -C ../.. install --frozen-lockfile
+            - |
+              for i in $(seq 1 36); do
+                if aws rds-data execute-statement --resource-arn "$POLICY_CLUSTER_ARN" --secret-arn "$POLICY_SECRET_ARN" \
+                     --database "${POLICY_DATABASE:-policy}" --sql "select count(*) from \"Committees\"" > /dev/null 2>&1; then
+                  echo "database: awake after $((i*5))s"; break
+                fi
+                sleep 5
+              done
         build:
           commands:
             # Amplify gives these to the build, and Next 16 (Turbopack) does not

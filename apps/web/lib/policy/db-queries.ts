@@ -244,18 +244,34 @@ export type BillRow = {
 
 const BILL_COLUMNS = `b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
   b.committee, b.body, b.url, b.state_link, b.text_chars,
-  sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id,
-  lt.version latest_version, lt.document_id latest_document_id, lt.fetched_at latest_fetched_at, lt.versions`
+  sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id`
 
-// The newest text on file rides on every bill row since 2026-09-03: in the
-// repository view a bill's versions are its commits, and the folder table
-// shows the last one the way GitHub shows a file's last commit.
 const PRIME_SPONSOR = `left join lateral (
   select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
-  where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
-left join lateral (
-  select t.version, t.document_id, t.fetched_at, count(*) over ()::int versions from "BillTexts" t
-  where t.bill_id = b.bill_id and t.text is not null order by t.document_id desc limit 1) lt on true`
+  where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true`
+
+// The newest text on file rides on a page of bills since 2026-09-03: in the
+// repository view a bill's versions are its commits, and the folder table
+// shows the last one the way GitHub shows a file's last commit. One query for
+// the page, after the page is known — a lateral join per row took the
+// Amplify build past the Data API's limit the first time it was tried
+// (job 193, 2026-09-03), so nothing here runs per bill.
+async function withLatestTexts<T extends { bill_id: number }>(rows: T[]): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; versions: number | null })[]> {
+  const ids = rows.map((r) => r.bill_id)
+  const empty = { latest_version: null, latest_document_id: null, latest_fetched_at: null, versions: null }
+  if (!ids.length) return rows.map((r) => ({ ...r, ...empty }))
+  const latest = await q<{ bill_id: number; version: string | null; document_id: number; fetched_at: string | null; versions: number }>(
+    `select distinct on (bill_id) bill_id, version, document_id, fetched_at, count(*) over (partition by bill_id)::int versions
+     from "BillTexts" where bill_id = any($1::bigint[]) and text is not null
+     order by bill_id, document_id desc`,
+    [ids]
+  )
+  const by = new Map(latest.map((t) => [n(t.bill_id), t]))
+  return rows.map((r) => {
+    const t = by.get(r.bill_id)
+    return t ? { ...r, latest_version: t.version, latest_document_id: n(t.document_id), latest_fetched_at: t.fetched_at, versions: n(t.versions) } : { ...r, ...empty }
+  })
+}
 
 export async function getBills(f: Resolved, limit = 40, offset = 0) {
   const params: unknown[] = []
@@ -287,7 +303,7 @@ export async function getBills(f: Resolved, limit = 40, offset = 0) {
     ),
   ])
   return {
-    rows: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })),
+    rows: await withLatestTexts(rows.map((r) => ({ ...r, bill_id: n(r.bill_id) }))),
     total: n(count?.total),
   }
 }
@@ -580,7 +596,7 @@ export async function getCommitteeBills(f: Resolved, name: string, limit = 50, o
     ),
     one<{ total: number }>(`select count(*)::int total from "Bills" b where ${where}`, params.slice(0, 3)),
   ])
-  return { rows: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })), total: n(count?.total) }
+  return { rows: await withLatestTexts(rows.map((r) => ({ ...r, bill_id: n(r.bill_id) }))), total: n(count?.total) }
 }
 
 /** One roll call: the tally, the bill it was on, and every member's position. */
