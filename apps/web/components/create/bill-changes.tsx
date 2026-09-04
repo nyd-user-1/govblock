@@ -7,6 +7,7 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import { useDocPref } from "@/lib/policy/doc-prefs"
 import { versionId } from "@/lib/policy/forks"
+import { claimCheck } from "@/lib/agents/claim-check"
 import { handleFor } from "@/lib/policy/handle"
 import { lineDiff } from "@/lib/policy/line-diff"
 import type { Bill } from "@/lib/policy/types"
@@ -82,7 +83,19 @@ function useComments(key: string) {
     },
     [key, comments]
   )
-  return { comments, add }
+  const remove = React.useCallback(
+    (id: string) => {
+      const next = comments.filter((c) => c.id !== id)
+      try {
+        window.localStorage.setItem(key, JSON.stringify(next))
+      } catch {
+        // Private mode: nothing was kept anyway.
+      }
+      window.dispatchEvent(new Event(COMMENTS_EVENT))
+    },
+    [key, comments]
+  )
+  return { comments, add, remove }
 }
 
 export function DiffBar({ added, deleted, className }: Stats & { className?: string }) {
@@ -159,8 +172,8 @@ function useIdleStats(pairs: { id: number; before: string | null; after: string 
 }
 
 function VersionDiff({ state, billId, documentId, before, after, split, query, compact, hideComments, ignoreWhitespace, reflow }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string; compact: boolean; hideComments: boolean; ignoreWhitespace: boolean; reflow: boolean }) {
-  const { comments, add } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
-  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} reflow={reflow} />
+  const { comments, add, remove } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
+  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} onDeleteComment={remove} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} reflow={reflow} />
 }
 
 /** The official version a commit changes: its document parent, or the nearest official ancestor through commit parents. */
@@ -186,6 +199,8 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
   // break in new places. Off, the diff is line by line, as GitHub's is.
   const [reflow, setReflow] = useDocPref("reflow", true)
   const { toggleSidebar } = useSidebar()
+  const [me, setMe] = React.useState<string | null>(null)
+  React.useEffect(() => setMe(claimCheck()), [])
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
   const scroller = React.useRef<HTMLDivElement>(null)
@@ -291,7 +306,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
           <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
             {v.commit ? (
               <>
-                <span className="font-mono text-primary">{v.commit.owner ? handleFor(v.commit.owner) : v.commit.author}</span> · {truncate(bill.title, 80)}
+                <span className="font-mono text-primary">{v.commit.owner ? handleFor(v.commit.owner, me) : v.commit.author}</span> · {truncate(bill.title, 80)}
               </>
             ) : (
               `${bill.session_title ?? ""}${bill.session_title ? " · " : ""}${truncate(bill.title, 80)}`
@@ -337,7 +352,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
           </div>
         </div>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
+          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner, me) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
           <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
             <FileTextIcon className="size-3.5" /> Browse text
           </Button>

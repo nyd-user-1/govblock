@@ -13,6 +13,13 @@ import { layoutBillText } from "@/lib/policy/bill-text-layout"
 
 export type Mark = { from: number; to: number }
 
+// CodeMirror's diff is Myers's: its cost grows with the square of the change.
+// A gut-and-amend (California's SB492: 28,000 words replaced) would hold the
+// tab for minutes, so every diff gets a budget and past it CodeMirror falls
+// back to a coarse answer — a big block changed — rather than a frozen page
+// (Brendan, 2026-09-04: "the commit page is still crashing").
+const BUDGET = { timeout: 1500 }
+
 export type Block =
   /** `bCount` is set when the sides have the same words on a different number of lines (reflow mode). */
   | { kind: "equal"; a: number; b: number; count: number; bCount?: number }
@@ -81,7 +88,7 @@ function touched(side: Side, from: number, to: number, other: string): Range {
 /** Character marks between a deleted line and the line that replaced it — none when they barely resemble each other, as GitHub leaves such pairs plain. */
 function marksFor(a: string, b: string): [Mark[], Mark[]] {
   if (!a.trim() || !b.trim()) return [[], []]
-  const changes = presentableDiff(a, b)
+  const changes = presentableDiff(a, b, BUDGET)
   const delMarks: Mark[] = []
   const addMarks: Mark[] = []
   let changed = 0
@@ -117,7 +124,7 @@ export function lineDiff(before: string, after: string, options: { ignoreWhitesp
 
   type Touch = { a0: number; a1: number; b0: number; b1: number }
   const merged: Touch[] = []
-  for (const c of diff(before, after)) {
+  for (const c of diff(before, after, BUDGET)) {
     const [a0, a1] = touched(A, c.fromA, c.toA, after.slice(c.fromB, c.toB))
     const [b0, b1] = touched(B, c.fromB, c.toB, before.slice(c.fromA, c.toA))
     if (a1 < a0 && b1 < b0) continue

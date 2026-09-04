@@ -200,6 +200,7 @@ export function DiffView({
   anchor = "diff",
   comments = [],
   onComment,
+  onDeleteComment,
   compact = false,
   hideComments = false,
   ignoreWhitespace = false,
@@ -216,6 +217,8 @@ export function DiffView({
   comments?: DiffComment[]
   /** Absent, the + and the comment items do not appear. */
   onComment?: (ref: LineRef, body: string) => void
+  /** Removes a posted comment; the × on its card. */
+  onDeleteComment?: (id: string) => void
   /** GitHub's gear: compact line height, comments minimised, whitespace hidden. */
   compact?: boolean
   hideComments?: boolean
@@ -402,6 +405,11 @@ export function DiffView({
                   <span className="size-5 rounded-full bg-[var(--gh-diff-accent)]" aria-hidden />
                   <span className="font-medium text-[var(--gh-diff-fg)]">{c.author}</span> commented on line {c.side}
                   {c.line + 1}
+                  {onDeleteComment && (
+                    <button type="button" aria-label="Delete this comment" title="Delete" onClick={() => onDeleteComment(c.id)} className="ml-auto rounded px-1.5 text-base leading-none text-[var(--gh-diff-muted)] hover:bg-[var(--gh-diff-border)] hover:text-[var(--gh-diff-fg)]">
+                      ×
+                    </button>
+                  )}
                 </div>
                 <div className="px-3 py-2 whitespace-pre-wrap">{c.body}</div>
               </div>

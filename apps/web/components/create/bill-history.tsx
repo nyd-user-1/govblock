@@ -7,6 +7,7 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import type { Bill } from "@/lib/policy/types"
 import { versionId } from "@/lib/policy/forks"
+import { claimCheck } from "@/lib/agents/claim-check"
 import { handleFor } from "@/lib/policy/handle"
 import { ago, Timeline, type TimelineRow } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
@@ -50,6 +51,8 @@ function Tip({ label, children }: { label: string; children: React.ReactElement 
 
 export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bill: Bill; versions: TextVersion[]; onOpenText: (documentId: number) => void; onOpenChanges: (documentId: number) => void }) {
   const [which, setWhich] = React.useState<"versions" | "actions">("versions")
+  const [me, setMe] = React.useState<string | null>(null)
+  React.useEffect(() => setMe(claimCheck()), [])
   const actions = React.useMemo(() => [...(bill.history ?? [])].sort((a, b) => (b.date < a.date ? -1 : b.date > a.date ? 1 : Number(b.sequence) - Number(a.sequence))), [bill.history])
 
   const toggle = (value: "versions" | "actions", label: string) => (
@@ -72,7 +75,7 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
       ),
       meta: v.commit ? (
         <span>
-          <span className="font-medium text-foreground">{v.commit.owner ? handleFor(v.commit.owner) : v.commit.author}</span> committed {ago(v.fetched_at)} · {fmtNumber(v.chars)} characters
+          <span className="font-medium text-foreground">{v.commit.owner ? handleFor(v.commit.owner, me) : v.commit.author}</span> committed {ago(v.fetched_at)} · {fmtNumber(v.chars)} characters
         </span>
       ) : (
         <span>
