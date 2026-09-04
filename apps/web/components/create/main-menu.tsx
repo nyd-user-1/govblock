@@ -5,6 +5,7 @@ import { CheckIcon, MenuIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Picker, PickerContent, PickerGroup, PickerItem, PickerSeparator, PickerShortcut, PickerTrigger } from "@/components/create/picker"
+import { STAGE_GROUPS, STAGE_ICON, STAGE_LABEL, type Stage } from "@/components/create/stage-switcher"
 
 // The panel's header: which variant you are in, and the tool's menu. Ported
 // from livingston-v3's MainMenu. Undo and Redo walk the browser's own history
@@ -14,22 +15,20 @@ import { Picker, PickerContent, PickerGroup, PickerItem, PickerSeparator, Picker
 export type Mode = "state" | "design"
 
 export function MainMenu({
-  mode,
-  setMode,
+  stage,
+  onStage,
   onShuffle,
   onReset,
   onOpenPreset,
   onSavePreset,
-  onGo,
 }: {
-  mode: Mode
-  setMode: (mode: Mode) => void
+  /** What the stage shows — the same list, with the same icons, as the FAB's switcher. */
+  stage: Stage
+  onStage: (stage: Stage) => void
   onShuffle: () => void
   onReset: () => void
   onOpenPreset: () => void
   onSavePreset: () => void
-  /** The three roots beside the jurisdiction: inbox, finance, forms. */
-  onGo: (path: string) => void
 }) {
   const { setTheme, resolvedTheme } = useTheme()
   // The platform is an external fact: read once on the client, "not a Mac"
@@ -69,28 +68,27 @@ export function MainMenu({
   return (
     <Picker>
       <PickerTrigger className="flex items-center justify-between gap-2 rounded-lg px-1.75 ring-1 ring-foreground/10 focus-visible:ring-1">
-        <span className="font-medium">{mode === "design" ? "Design" : "State"}</span>
+        <span className="font-medium">{stage === "design" ? "Design" : "Data"}</span>
         <MenuIcon className="size-5" />
       </PickerTrigger>
       <PickerContent side="right" align="start" alignOffset={-8}>
-        <PickerGroup>
-          <PickerItem onClick={() => setMode("state")}>
-            State
-            {mode === "state" && <CheckIcon className="ml-auto size-4" />}
-          </PickerItem>
-          <PickerItem onClick={() => setMode("design")}>
-            Design
-            {mode === "design" && <CheckIcon className="ml-auto size-4" />}
-          </PickerItem>
-        </PickerGroup>
-        <PickerSeparator />
-        {/* Not branches of a legislature, so not in the tree: parked here,
-            out of the way, until each has a tree of its own. */}
-        <PickerGroup>
-          <PickerItem onClick={() => onGo("inbox")}>Intelligence</PickerItem>
-          <PickerItem onClick={() => onGo("finance")}>Finance</PickerItem>
-          <PickerItem onClick={() => onGo("forms")}>Forms</PickerItem>
-        </PickerGroup>
+        {STAGE_GROUPS.map((group, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <PickerSeparator />}
+            <PickerGroup>
+              {group.map((value) => {
+                const Icon = STAGE_ICON[value]
+                return (
+                  <PickerItem key={value} onClick={() => onStage(value)}>
+                    <Icon className="size-4 text-muted-foreground" />
+                    {STAGE_LABEL[value]}
+                    {stage === value && <CheckIcon className="ml-auto size-4" />}
+                  </PickerItem>
+                )
+              })}
+            </PickerGroup>
+          </React.Fragment>
+        ))}
         <PickerSeparator />
         <PickerGroup>
           <PickerItem onClick={onOpenPreset}>

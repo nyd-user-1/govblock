@@ -9,6 +9,7 @@ import type { ScopeFilters, ScopeKey } from "@/lib/policy/scope"
 import { useLocal } from "@/lib/policy/use-local"
 import { DesignFields, LegislativeFields } from "@/components/create/fields"
 import { MainMenu, type Mode } from "@/components/create/main-menu"
+import type { Stage } from "@/components/create/stage-switcher"
 import { useIsMobile } from "@govblock/ui/hooks/use-mobile"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
@@ -29,7 +30,6 @@ import { Input } from "@govblock/ui/components/nova/input"
 
 export function Customizer({
   mode,
-  setMode,
   at,
   filters,
   setFilters,
@@ -38,7 +38,8 @@ export function Customizer({
   onShuffle,
   onReset,
   onOpenPreset,
-  onGo,
+  stage,
+  onStage,
 }: {
   mode: Mode
   setMode: (mode: Mode) => void
@@ -51,7 +52,9 @@ export function Customizer({
   onShuffle: () => void
   onReset: () => void
   onOpenPreset: (preset: Preset) => void
-  onGo: (path: string) => void
+  /** What the stage shows, and the switch — shared with the FAB. */
+  stage: Stage
+  onStage: (stage: Stage) => void
 }) {
   const isMobile = useIsMobile() ?? false
   const anchorRef = React.useRef<HTMLDivElement>(null)
@@ -97,7 +100,7 @@ export function Customizer({
   return (
     <Card ref={anchorRef} className="dark isolate z-10 max-h-full min-h-0 w-full self-start rounded-2xl bg-card/90 backdrop-blur-xl md:w-(--customizer-width)" size="sm">
       <CardHeader className="hidden items-center justify-between gap-2 border-b md:flex">
-        <MainMenu mode={mode} setMode={setMode} onShuffle={onShuffle} onReset={onReset} onOpenPreset={showOpen} onSavePreset={showSave} onGo={onGo} />
+        <MainMenu stage={stage} onStage={onStage} onShuffle={onShuffle} onReset={onReset} onOpenPreset={showOpen} onSavePreset={showSave} />
       </CardHeader>
       <CardContent className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden max-md:px-0 md:overflow-y-auto">
         <FieldGroup className="flex-row gap-2.5 py-px **:data-[slot=field-separator]:-mx-4 **:data-[slot=field-separator]:w-auto max-md:px-3 md:flex-col md:gap-3.25">

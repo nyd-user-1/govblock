@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { ArchiveIcon, CheckIcon, ChevronsUpDown, FileTextIcon, InboxIcon, LayoutDashboardIcon, LayoutGridIcon, PaletteIcon, SlidersHorizontalIcon } from "lucide-react"
 
 import type { Mode } from "@/components/create/main-menu"
@@ -18,8 +19,16 @@ import { cn } from "@govblock/ui/lib/utils"
 
 export type Stage = Mode | "canvas" | "inbox" | "finance" | "forms" | "documents"
 
-const LABEL: Record<Stage, string> = { state: "State", design: "Design", canvas: "Canvas", inbox: "Agentic Inbox", finance: "Dashboard", forms: "Forms", documents: "Documents" }
-const ICON: Record<Stage, typeof InboxIcon> = { state: SlidersHorizontalIcon, design: PaletteIcon, canvas: LayoutGridIcon, inbox: InboxIcon, finance: LayoutDashboardIcon, forms: FileTextIcon, documents: ArchiveIcon }
+// Brendan, 2026-09-04: "Canvas, Data, Design" — the three ways of looking at
+// the jurisdiction come first, in that order, then the roots beside it.
+export const STAGE_LABEL: Record<Stage, string> = { canvas: "Canvas", state: "Data", design: "Design", inbox: "Agentic Inbox", finance: "Dashboard", forms: "Forms", documents: "Documents" }
+export const STAGE_ICON: Record<Stage, typeof InboxIcon> = { canvas: LayoutGridIcon, state: SlidersHorizontalIcon, design: PaletteIcon, inbox: InboxIcon, finance: LayoutDashboardIcon, forms: FileTextIcon, documents: ArchiveIcon }
+export const STAGE_GROUPS: Stage[][] = [
+  ["canvas", "state", "design"],
+  ["inbox", "finance", "forms", "documents"],
+]
+const LABEL = STAGE_LABEL
+const ICON = STAGE_ICON
 
 export function StageSwitcher({ stage, onStage, className }: { stage: Stage; onStage: (stage: Stage) => void; className?: string }) {
   const item = (value: Stage) => {
@@ -41,18 +50,12 @@ export function StageSwitcher({ stage, onStage, className }: { stage: Stage; onS
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="min-w-48 rounded-lg">
-        <DropdownMenuGroup>
-          {item("state")}
-          {item("design")}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          {item("canvas")}
-          {item("inbox")}
-          {item("finance")}
-          {item("forms")}
-          {item("documents")}
-        </DropdownMenuGroup>
+        {STAGE_GROUPS.map((group, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuGroup>{group.map(item)}</DropdownMenuGroup>
+          </React.Fragment>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   )

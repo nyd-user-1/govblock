@@ -51,8 +51,10 @@ function DesignerInner() {
   const [picked, setMode] = React.useState<Mode | null>(null)
   const mode: Mode = picked ?? (params.mode === "design" ? "design" : "state")
   const [panelOpen, setPanelOpen] = useLocal("govblock:create:customizer", true)
-  const [lookPicked, setLook] = useLocal<Look>("govblock:create:look", "table")
-  const look: Look = params.look === "cards" || params.look === "table" ? params.look : lookPicked
+  // The look lives in the URL alone (Brendan, 2026-09-04: Canvas set the
+  // cards look and a `look=table` left in the address bar overruled it).
+  const look: Look = params.look === "cards" ? "cards" : "table"
+  const setLook = React.useCallback((next: Look) => writeUrlParams({ look: next === "cards" ? "cards" : null }, { history: "replace" }), [])
 
   const design = React.useMemo(() => readDesign(params), [params])
   const location = React.useMemo<Location>(() => ({ at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [params.at, params.committee, params.member, params.bill, params.rollcall])
@@ -222,6 +224,29 @@ function DesignerInner() {
     </div>
   )
 
+  // What the stage shows, and how to switch it — one answer for the FAB's
+  // switcher and the customizer's menu.
+  const stageNow: Stage = isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode
+  const pickStage = React.useCallback(
+    (next: Stage) => {
+      if (next === "state" || next === "design") {
+        setMode(next)
+        if (isSpecial(node)) writeUrlParams({ ...listing(null), look: null }, { history: "push" })
+        else setLook("table")
+      } else if (next === "canvas") {
+        // The large cards: the tree's records as cards. From the root or a
+        // special view, Bills is where they are.
+        if (isSpecial(node) || node.kind === "root") writeUrlParams({ ...listing("bills"), look: "cards", all: null }, { history: "push" })
+        else setLook("cards")
+      } else if (next === "documents") {
+        writeUrlParams({ ...listing("forms"), all: "1" }, { history: "push" })
+      } else if (next === "forms") {
+        writeUrlParams({ ...listing("forms"), all: null }, { history: "push" })
+      } else go(listing(next))
+    },
+    [node, setMode, setLook, go]
+  )
+
   const Inbox = blockComponents["sidebar-09"]
   const stage = isSpecial(node) ? (
     node.kind === "inbox" ? (
@@ -271,25 +296,7 @@ function DesignerInner() {
             <FabButton aria-label={panelOpen ? "Hide the customizer" : "Show the customizer"} aria-pressed={panelOpen} tip="Customizer" onClick={() => setPanelOpen((open) => !open)}>
               <MenuIcon className="size-4" />
             </FabButton>
-            <StageSwitcher
-              stage={isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode}
-              onStage={(next) => {
-                if (next === "state" || next === "design") {
-                  setMode(next)
-                  setLook("table")
-                  if (isSpecial(node)) go(listing(null))
-                } else if (next === "canvas") {
-                  // The large cards: the tree's records as cards. From the
-                  // root or a special view, Bills is where they are.
-                  setLook("cards")
-                  if (isSpecial(node) || node.kind === "root") go(listing("bills"))
-                } else if (next === "documents") {
-                  writeUrlParams({ ...listing("forms"), all: "1" }, { history: "push" })
-                } else if (next === "forms") {
-                  writeUrlParams({ ...listing("forms"), all: null }, { history: "push" })
-                } else go(listing(next))
-              }}
-            />
+            <StageSwitcher stage={stageNow} onStage={pickStage} />
           </Fab>
         </div>
         <div
@@ -300,7 +307,7 @@ function DesignerInner() {
           )}
         >
           <div className="flex min-h-0 flex-1 flex-col md:w-(--customizer-width)">
-            <Customizer mode={mode} setMode={setMode} at={params.at} filters={scope.filters} setFilters={setFilters} design={design} setDesign={setDesign} onShuffle={shuffle} onReset={reset} onOpenPreset={openPreset} onGo={(path) => go(listing(path))} />
+            <Customizer mode={mode} setMode={setMode} at={params.at} filters={scope.filters} setFilters={setFilters} design={design} setDesign={setDesign} onShuffle={shuffle} onReset={reset} onOpenPreset={openPreset} stage={stageNow} onStage={pickStage} />
           </div>
         </div>
       </div>
