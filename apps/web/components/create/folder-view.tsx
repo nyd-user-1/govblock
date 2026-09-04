@@ -92,7 +92,6 @@ function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) 
   return (
     <button
       type="button"
-      title={b.title}
       className="block max-w-full truncate text-left hover:[&>span]:text-primary hover:[&>span]:underline"
       onClick={(e) => {
         e.stopPropagation()
