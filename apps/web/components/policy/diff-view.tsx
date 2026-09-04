@@ -188,6 +188,9 @@ export function DiffView({
   anchor = "diff",
   comments = [],
   onComment,
+  compact = false,
+  hideComments = false,
+  ignoreWhitespace = false,
   className,
 }: {
   before: string
@@ -200,11 +203,17 @@ export function DiffView({
   comments?: DiffComment[]
   /** Absent, the + and the comment items do not appear. */
   onComment?: (ref: LineRef, body: string) => void
+  /** GitHub's gear: compact line height, comments minimised, whitespace hidden. */
+  compact?: boolean
+  hideComments?: boolean
+  ignoreWhitespace?: boolean
   className?: string
 }) {
-  const d = React.useMemo(() => lineDiff(before, after), [before, after])
+  const d = React.useMemo(() => lineDiff(before, after, { ignoreWhitespace }), [before, after, ignoreWhitespace])
   const [reveal, setReveal] = React.useState<Record<number, { top: number; bottom: number }>>({})
   const [composing, setComposing] = React.useState<LineRef | null>(null)
+  // The row the reader clicked: GitHub's blue ring, and its + stays up.
+  const [selected, setSelected] = React.useState<string | null>(null)
   const table = React.useRef<HTMLTableElement>(null)
   const list = React.useMemo(() => rows(d, layout, reveal), [d, layout, reveal])
 
@@ -256,6 +265,10 @@ export function DiffView({
         className={cn("gh-text group/line", tone === "add" && "bg-[var(--gh-diff-add-line)]", tone === "del" && "bg-[var(--gh-diff-del-line)]", tone === "empty" && "bg-[var(--gh-diff-empty)]", layout === "split" && side === "left" && "border-r border-[var(--gh-diff-border)]")}
         data-line-anchor={at ? `${anchor}${at.side}${at.line + 1}` : undefined}
         id={at ? `${anchor}${at.side}${at.line + 1}` : undefined}
+        onClick={(e) => {
+          if (!at || (e.target as HTMLElement).closest("button")) return
+          setSelected((s) => (s === gapKey ? null : gapKey))
+        }}
       >
         {row && (
           <code className={cn("gh-line", tone === "add" && "addition", tone === "del" && "deletion")}>
@@ -337,9 +350,10 @@ export function DiffView({
   }
 
   const composer = (at: LineRef) => (
-    <tr key={`c-${at.side}${at.line}`} className="gh-comment-row">
-      <td colSpan={cols} className="p-0">
+    <tr key={`c-${at.side}${at.line}`} className="gh-comment-row" data-tone={at.side === "L" ? "del" : "add"}>
+      <td colSpan={cols} className={cn("p-0", at.side === "L" ? "bg-[var(--gh-diff-del-line)]" : "bg-[var(--gh-diff-add-line)]")}>
         <CommentBox
+          width={layout === "split" ? 582 : 730}
           at={at}
           onCancel={() => setComposing(null)}
           onSubmit={(body) => {
@@ -353,10 +367,20 @@ export function DiffView({
   const shown = (at: LineRef) => {
     const list = byLine.get(`${at.side}${at.line}`)
     if (!list?.length) return null
+    if (hideComments) {
+      return (
+        <tr key={`s-${at.side}${at.line}`} className="gh-comment-row">
+          <td colSpan={cols} className="px-4 py-1 text-xs text-[var(--gh-diff-muted)]">
+            {list.length} comment{list.length === 1 ? "" : "s"} on line {at.side}
+            {at.line + 1}, minimised
+          </td>
+        </tr>
+      )
+    }
     return (
       <tr key={`s-${at.side}${at.line}`} className="gh-comment-row">
         <td colSpan={cols} className="p-0">
-          <div className="mx-4 my-2 flex flex-col gap-2">
+          <div className="mx-4 my-2 flex flex-col gap-2" style={{ maxWidth: layout === "split" ? 582 : 730 }}>
             {list.map((c) => (
               <div key={c.id} className="rounded-md border border-[var(--gh-diff-border)] bg-[var(--gh-diff-bg)] text-sm">
                 <div className="flex items-center gap-2 rounded-t-md border-b border-[var(--gh-diff-border)] bg-[var(--gh-diff-empty)] px-3 py-2 text-xs text-[var(--gh-diff-muted)]">
@@ -374,7 +398,7 @@ export function DiffView({
   }
 
   return (
-    <div className={cn("gh-diff overflow-x-auto bg-[var(--gh-diff-bg)] text-[var(--gh-diff-fg)]", className)}>
+    <div className={cn("gh-diff overflow-x-auto bg-[var(--gh-diff-bg)] text-[var(--gh-diff-fg)]", compact && "gh-compact", className)}>
       <table ref={table} className="gh-table" role="grid" aria-label="Changes">
         {layout === "split" ? (
           <colgroup>
@@ -428,7 +452,7 @@ export function DiffView({
               const rt = row.tone === "ctx" ? "ctx" : row.right ? "add" : "empty"
               return (
                 <React.Fragment key={`p-${i}`}>
-                  <tr className="gh-row">
+                  <tr className="gh-row" data-selected={(l && selected === `L${l.line}`) || (r && selected === `R${r.line}`) || undefined}>
                     {num(row.a, lt, "L")}
                     {cell(row.left, lt, l, "left", "l")}
                     {num(row.b, rt, "R")}
@@ -443,7 +467,7 @@ export function DiffView({
             const at: LineRef = row.tone === "del" ? { side: "L", line: row.a! } : { side: "R", line: row.b! }
             return (
               <React.Fragment key={`l-${i}`}>
-                <tr className="gh-row">
+                <tr className="gh-row" data-selected={selected === `${at.side}${at.line}` || undefined}>
                   {num(row.a, row.tone, "L")}
                   {num(row.b, row.tone, "R")}
                   {cell({ text: row.text, marks: row.marks }, row.tone, at, "right", "t")}
@@ -462,7 +486,7 @@ export function DiffView({
 
 // ── the comment box ─────────────────────────────────────────────────────────
 
-function CommentBox({ at, onCancel, onSubmit }: { at: LineRef; onCancel: () => void; onSubmit: (body: string) => void }) {
+function CommentBox({ at, width, onCancel, onSubmit }: { at: LineRef; width: number; onCancel: () => void; onSubmit: (body: string) => void }) {
   const [tab, setTab] = React.useState<"write" | "preview">("write")
   const [body, setBody] = React.useState("")
   const area = React.useRef<HTMLTextAreaElement>(null)
@@ -470,7 +494,7 @@ function CommentBox({ at, onCancel, onSubmit }: { at: LineRef; onCancel: () => v
     area.current?.focus()
   }, [])
   return (
-    <div className="mx-4 my-2 rounded-md border border-[var(--gh-diff-border)] bg-[var(--gh-diff-bg)] text-sm">
+    <div className="mx-4 my-2 rounded-md border border-[var(--gh-diff-border)] bg-[var(--gh-diff-bg)] text-sm" style={{ maxWidth: width }}>
       <div className="flex items-center gap-2 px-3 pt-3 pb-2 font-semibold">
         <span className="size-5 rounded-full bg-[var(--gh-diff-accent)]" aria-hidden />
         Add a comment on line {at.side}

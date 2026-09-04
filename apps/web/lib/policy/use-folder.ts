@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useMyForks, type Fork } from "@/lib/policy/forks"
 
 import { committeeOf, monthName, monthOf, type Node, type Target, voteKind } from "@/lib/create/path"
 import { partyName, type Filters } from "@/lib/filters"
@@ -49,6 +50,7 @@ export type Row = {
     | { kind: "committee"; committee: Committee }
     | { kind: "session"; session: SessionRow; current: boolean }
     | { kind: "rollcall"; rollcall: RollCallRow }
+    | { kind: "fork"; fork: Fork }
 }
 
 export type Folder = {
@@ -194,6 +196,8 @@ const latest = (dates: (string | null | undefined)[]) => dates.filter(Boolean).s
 // ── The hook ───────────────────────────────────────────────────────────────
 
 export function useFolder(node: Node, scope: Scope): Folder {
+  // The reader's forks, across jurisdictions: only fetched for that folder.
+  const { forks, loading: forksLoading } = useMyForks(node.kind === "forks" ? undefined : -1)
   const { state, filters, resolved } = scope
   const session = filters.session
   const k = node.kind
@@ -257,6 +261,24 @@ export function useFolder(node: Node, scope: Scope): Folder {
         ]
         return { rows, total: rows.length, loading: false, done: true, more: noop }
       }
+      case "forks":
+        return {
+          rows: forks.map((f) => ({
+            key: `forks/${f.id}`,
+            name: f.bill_number ?? `Bill ${f.bill_id}`,
+            kind: "file" as const,
+            go: { bill: String(f.bill_id), fork: String(f.id), state: f.state, session: f.session_id ? String(f.session_id) : null, at: null, committee: null, member: null, rollcall: null },
+            description: `${f.title ?? ""}`,
+            date: f.created_at,
+            count: f.commits,
+            avatar: { kind: "seal" as const, state: f.state, chamber: null },
+            record: { kind: "fork" as const, fork: f },
+          })),
+          total: forks.length,
+          loading: forksLoading,
+          done: true,
+          more: () => {},
+        }
       case "bills":
         return { rows: bills.rows.filter((b) => billInScope(b, { ...filters, committee: undefined, member: undefined })).map((b) => billRow(b, state)), total: bills.total, loading: bills.loading, done: bills.done, more: bills.more }
       case "committee":
@@ -291,5 +313,5 @@ export function useFolder(node: Node, scope: Scope): Folder {
       default:
         return { rows: NONE, total: null, loading: false, done: true, more: noop }
     }
-  }, [k, node, state, session, filters, sessions, members, sitting, membersLoading, committees, inCommittees, committeesLoading, rollcalls, inVotes, votesLoading, bills, roster, inRoster, rosterLoading])
+  }, [k, node, state, session, filters, sessions, members, sitting, membersLoading, committees, inCommittees, committeesLoading, rollcalls, inVotes, votesLoading, bills, roster, inRoster, rosterLoading, forks, forksLoading])
 }

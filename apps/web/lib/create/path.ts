@@ -20,6 +20,8 @@
 //   at=votes/2026-05               a month: Floor · Committee
 //   at=votes/2026-05/floor         that month's floor roll calls
 //   rollcall=1707303               one roll call: the tally and every position
+//   at=forks                       the reader's forks of bills, across jurisdictions
+//   bill=…&fork=12                 a bill seen through the reader's fork: its commits on top
 //
 // Three roots sit beside the legislature and are reached from the customizer's
 // menu: inbox, finance, forms.
@@ -27,6 +29,7 @@
 export type Node =
   | { kind: "sessions" }
   | { kind: "root" }
+  | { kind: "forks" }
   | { kind: "bills" }
   | { kind: "bill"; id: number }
   | { kind: "committees" }
@@ -45,13 +48,14 @@ export type Node =
 export type Location = { at: string; committee: string; member: string; bill: string; rollcall: string }
 
 /** What a click writes: keys to set, `null` to clear, absent to leave alone. */
-export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc", string | null>>
+export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc" | "fork" | "state", string | null>>
 
 export const ROOT_FOLDERS = [
   { key: "bills", label: "Bills", go: { at: "bills" } as Target },
   { key: "committees", label: "Committees", go: { at: "committees" } as Target },
   { key: "members", label: "Members", go: { at: "members" } as Target },
   { key: "votes", label: "Votes", go: { at: "votes" } as Target },
+  { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
 ] as const
 
 const SPECIAL = new Set(["inbox", "finance", "forms"])
@@ -67,6 +71,8 @@ export function locate(loc: Location): Node {
   switch (head) {
     case "sessions":
       return { kind: "sessions" }
+    case "forks":
+      return { kind: "forks" }
     case "bills":
       return { kind: "bills" }
     case "committees":

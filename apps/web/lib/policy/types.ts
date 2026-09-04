@@ -80,6 +80,8 @@ export type Bill = BillRow & {
     chars: number
     fetched_at: string | null
     source: string | null
+    /** The document's own date, where the source gave one. */
+    date: string | null
   }[]
   hearings: {
     date: string

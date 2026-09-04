@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ExternalLinkIcon } from "lucide-react"
+import { ExternalLinkIcon, GitForkIcon, HistoryIcon } from "lucide-react"
 
 import type { Node, Target } from "@/lib/create/path"
 import { designDiff, type Design } from "@/lib/create/preset"
@@ -11,10 +11,13 @@ import { portraitFor } from "@/lib/imagery"
 import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import type { Bill, BillRow, Member } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
-import { commitVersion, useCommits } from "@/lib/policy/commits"
+import { dateOfRecord } from "@/lib/policy/date-of-record"
+import { commitVersion, createCommit, useFork, useForkCommits, versionId } from "@/lib/policy/forks"
 import { BillChanges } from "@/components/create/bill-changes"
 import { BillEdit } from "@/components/create/bill-edit"
 import { BillHistory } from "@/components/create/bill-history"
+import { ForkPrompt } from "@/components/create/fork-prompt"
+import { ago } from "@/components/create/timeline"
 import { MemberRecord } from "@/components/create/member-record"
 import { BillTextPane, type TextVersion } from "@/components/policy/bill-text-pane"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
@@ -71,7 +74,7 @@ type RollCallAnswer = {
 
 type MemberRecordAnswer = { sponsored: (BillRow & { role: number })[]; counts: { sponsored: number } }
 
-export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void }) {
+export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void }) {
   const { state, session } = scope
   const sessionTitle = useSessionTitle(state, session)
   const sessionParam = scope.filters.session ? session : undefined
@@ -81,9 +84,12 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
   const { data: sponsored } = usePolicy<MemberRecordAnswer>(node.kind === "member" && tab === "bills" ? "record" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined, limit: 100 })
   const { data: rollcall } = usePolicy<RollCallAnswer>(node.kind === "rollcall" ? "rollcall" : null, { state }, { id: node.kind === "rollcall" ? node.id : undefined })
   // One array per bill, newest first, so the tabs that key effects on it do
-  // not re-run every render. The reader's own commits sit in it as versions,
-  // newest first, ahead of the legislature's.
-  const { commits, add: addCommit } = useCommits(state, node.kind === "bill" ? node.id : null)
+  // not re-run every render. Seen through a fork, the fork's commits sit in
+  // it as versions ahead of the legislature's; the legislature's own list is
+  // never touched (Brendan, 2026-09-03: "so it's a fork?").
+  const forkId = node.kind === "bill" && fork ? Number(fork) : null
+  const { fork: forkRow } = useFork(forkId)
+  const { commits } = useForkCommits(forkId)
   const versions = React.useMemo<TextVersion[]>(() => [...commits.map(commitVersion), ...[...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id)], [bill?.texts, commits])
   // The version being edited, and its text.
   const editing = node.kind === "bill" && tab === "edit"
@@ -91,11 +97,26 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
   const { data: editDoc } = usePolicy<{ text?: string }>(editBase && !editBase.commit ? "text" : null, { state }, { id: node.kind === "bill" ? node.id : undefined, document: editBase?.document_id })
 
   if (node.kind === "bill") {
-    const active = tab === "history" || tab === "edit" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
+    const active = tab === "history" || tab === "edit" || tab === "fork" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
+    // GitHub's latest-commit line: the id, when, and the History button.
+    const latest = versions[0]
+    const latestDate = latest && bill ? dateOfRecord(latest, bill) : null
     const historyButton = (
-      <Button variant="outline" size="sm" data-active={active === "history"} className="data-[active=true]:bg-muted" onClick={() => onTab("history")}>
-        History{versions.length ? ` · ${versions.length}` : ""}
-      </Button>
+      <span className="flex items-center gap-2">
+        {forkRow && (
+          <span className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={`Your fork of ${bill?.bill_number ?? "this bill"}`}>
+            <GitForkIcon className="size-3.5" /> your fork
+          </span>
+        )}
+        {latest && (
+          <span className="font-mono text-xs text-muted-foreground">
+            {versionId(latest)} · {ago(latestDate) || "date unknown"}
+          </span>
+        )}
+        <Button variant="ghost" size="sm" data-active={active === "history"} className="font-semibold data-[active=true]:bg-muted" onClick={() => onTab("history")}>
+          <HistoryIcon className="size-4" /> History
+        </Button>
+      </span>
     )
     const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
     const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
@@ -106,7 +127,7 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
     ]
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        {active !== "text" && active !== "edit" && (
+        {active !== "text" && active !== "edit" && active !== "fork" && (
           // No tab pills (Brendan, 2026-09-03: "we have duplicates of it"):
           // the file's name in the path bar returns to the text, the ⋯ menu
           // opens any view, and History has its button.
@@ -139,7 +160,7 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
               }}
               history={historyButton}
               related={related}
-              onEdit={() => onGo({ bill: String(node.id), tab: "edit", doc: doc || null })}
+              onEdit={() => onGo({ bill: String(node.id), tab: forkId ? "edit" : "fork", doc: doc || null })}
             />
           ) : (
             <div className="flex flex-col gap-2 p-4">
@@ -148,15 +169,19 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
               ))}
             </div>
           )
-        ) : active === "edit" && bill && editBase ? (
+        ) : active === "fork" && bill ? (
+          <ForkPrompt bill={bill} state={state} session={session} onForked={(id) => onGo({ bill: String(node.id), fork: String(id), tab: "edit", doc: doc || null })} />
+        ) : active === "edit" && bill && !forkId ? (
+          <ForkPrompt bill={bill} state={state} session={session} onForked={(id) => onGo({ bill: String(node.id), fork: String(id), tab: "edit", doc: doc || null })} />
+        ) : active === "edit" && bill && editBase && forkId ? (
           <BillEdit
             bill={bill}
             base={editBase}
             baseText={editBase.commit?.text ?? editDoc?.text ?? null}
             onCancel={() => onGo({ bill: String(node.id), tab: null, doc: doc || null })}
-            onCommit={({ message, description, text }) => {
-              const made = addCommit({ parent: editBase.document_id, message, description, text })
-              onGo({ bill: String(node.id), tab: null, doc: made ? String(made.id) : null })
+            onCommit={async ({ message, description, text }) => {
+              const made = await createCommit({ fork_id: forkId, parent_document_id: editBase.commit ? null : editBase.document_id, parent_commit_id: editBase.commit?.id ?? null, message, description, text })
+              onGo({ bill: String(node.id), tab: null, doc: made ? String(-made.id) : null })
             }}
           />
         ) : active === "changes" && bill ? (

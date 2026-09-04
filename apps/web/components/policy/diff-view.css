@@ -165,3 +165,33 @@
 .gh-diff .gh-plus:hover {
   transform: scale(1.1);
 }
+
+/* The row the reader selected: GitHub's 2px accent ring around the row. */
+.gh-diff .gh-row[data-selected] td {
+  box-shadow: inset 0 2px 0 var(--gh-diff-accent), inset 0 -2px 0 var(--gh-diff-accent);
+}
+.gh-diff .gh-row[data-selected] td:first-child {
+  box-shadow: inset 2px 2px 0 var(--gh-diff-accent), inset 0 -2px 0 var(--gh-diff-accent), inset 2px 0 0 var(--gh-diff-accent);
+}
+.gh-diff .gh-row[data-selected] td:last-child {
+  box-shadow: inset -2px 2px 0 var(--gh-diff-accent), inset 0 -2px 0 var(--gh-diff-accent), inset -2px 0 0 var(--gh-diff-accent);
+}
+.gh-diff .gh-row[data-selected] .gh-plus,
+.gh-diff .gh-row[data-selected] .gh-caret {
+  display: grid;
+}
+/* Compact line height: GitHub's 20px rows. */
+.gh-diff.gh-compact .gh-num,
+.gh-diff.gh-compact .gh-line,
+.gh-diff.gh-compact .gh-inner,
+.gh-diff.gh-compact .gh-hunk,
+.gh-diff.gh-compact .gh-hunk-text,
+.gh-diff.gh-compact .gh-marker {
+  line-height: 20px;
+  min-height: 20px;
+}
+.gh-diff.gh-compact .gh-num,
+.gh-diff.gh-compact .gh-hunk,
+.gh-diff.gh-compact .gh-expander button {
+  height: 20px;
+}

@@ -416,9 +416,13 @@ export async function getBill(billId: number) {
       chars: number
       fetched_at: string | null
       source: string | null
+      date: string | null
     }>(
-      `select document_id, version, chars, fetched_at, source from "BillTexts"
-         where bill_id = $1 and text is not null order by document_id desc`,
+      // The document's own date, where LegiScan gave one; read through
+      // to_jsonb so a copy of the database without the column still answers.
+      `select t.document_id, t.version, t.chars, t.fetched_at, t.source, (to_jsonb(d) ->> 'date') as date
+         from "BillTexts" t left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
+         where t.bill_id = $1 and t.text is not null order by t.document_id desc`,
       [billId]
     ),
     q<{

@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, FileTextIcon, SearchIcon } from "lucide-react"
+import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
 
-import { fmtNumber, truncate } from "@/lib/format"
+import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { dateOfRecord } from "@/lib/policy/date-of-record"
 import { useDocPref } from "@/lib/policy/doc-prefs"
+import { versionId } from "@/lib/policy/forks"
 import { lineDiff } from "@/lib/policy/line-diff"
 import type { Bill } from "@/lib/policy/types"
 import { ago } from "@/components/create/timeline"
@@ -12,6 +14,9 @@ import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { DiffView, type DiffComment, type LineRef } from "@/components/policy/diff-view"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
+import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { useSidebar } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's Changes tab: GitHub's commit page, with the versions as the files
@@ -120,15 +125,19 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
   return React.useMemo<Record<number, string>>(() => ({ ...texts, ...Object.fromEntries(versions.filter((v) => v.commit).map((v) => [v.document_id, v.commit!.text])) }), [texts, versions])
 }
 
-function VersionDiff({ state, billId, documentId, before, after, split, query }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string }) {
+function VersionDiff({ state, billId, documentId, before, after, split, query, compact, hideComments, ignoreWhitespace }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string; compact: boolean; hideComments: boolean; ignoreWhitespace: boolean }) {
   const { comments, add } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
-  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} />
+  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
 }
 
 export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: { state: string; bill: Bill; /** Newest first. */ versions: TextVersion[]; doc: number | null; onDoc: (documentId: number) => void; onOpenText: (documentId: number) => void }) {
   const texts = useTexts(state, bill.bill_id, versions)
   const [splitPicked, setSplit] = useDocPref<boolean | null>("split", null)
   const split = splitPicked ?? false
+  const [hideComments, setHideComments] = useDocPref("minimize-comments", false)
+  const [ignoreWhitespace, setIgnoreWhitespace] = useDocPref("hide-whitespace", false)
+  const [compact, setCompact] = useDocPref("compact", false)
+  const { toggleSidebar } = useSidebar()
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
   const scroller = React.useRef<HTMLDivElement>(null)
@@ -166,9 +175,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
           <h2 className="text-xl font-semibold">
             Version <span className="rounded bg-muted px-1.5 font-mono text-base">{nth(picked)}</span>
           </h2>
-          <span className="text-sm text-muted-foreground">
-            {picked.commit ? `${picked.commit.author} committed ${ago(picked.fetched_at)}` : `${bill.body ?? "The legislature"} · fetched ${ago(picked.fetched_at) || "on an unknown date"}`}
-          </span>
+          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(dateOfRecord(picked, bill)) || "Date of record unknown"}</span>
           <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
             <FileTextIcon className="size-3.5" /> Browse text
           </Button>
@@ -182,12 +189,13 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             <span>
               {previousOf(picked) ? (
                 <>
-                  1 parent <span className="font-mono text-primary">{previousOf(picked)!.document_id}</span> ·{" "}
+                  1 parent <span className="font-mono text-primary">{versionId(previousOf(picked)!)}</span> ·{" "}
                 </>
               ) : (
                 "first version · "
               )}
-              document <span className="font-mono text-primary">{picked.document_id}</span>
+              {picked.commit ? "" : "document "}
+              <span className="font-mono text-primary">{versionId(picked)}</span>
             </span>
             <span className="ml-auto flex items-center gap-3">
               <span className="font-medium text-foreground">
@@ -199,8 +207,11 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         </div>
       </div>
 
-      {/* Toolbar: Top while scrolled, search within the diffs, unified or split. */}
+      {/* GitHub's toolbar: the rail toggle, Top while scrolled, search within the text, and the gear. */}
       <div className="sticky top-0 z-10 mx-auto flex w-full max-w-6xl items-center gap-2 bg-background px-6 py-3">
+        <Button variant="outline" size="icon-sm" aria-label="Toggle the tree" onClick={toggleSidebar}>
+          <PanelLeftIcon />
+        </Button>
         {scrolled && (
           <Button variant="ghost" size="sm" onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}>
             <ArrowUpIcon className="size-3.5" /> Top
@@ -210,13 +221,33 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
           <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search within the text" className="min-w-0 flex-1 bg-transparent outline-none" aria-label="Search within the text" />
         </div>
-        <div className="ml-auto flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-          {(["unified", "split"] as const).map((v) => (
-            <button key={v} type="button" data-active={split === (v === "split")} onClick={() => setSplit(v === "split")} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
-              {v === "unified" ? "Unified" : "Split"}
-            </button>
-          ))}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Ny4Button variant="outline" size="icon" className="size-8" aria-label="Diff settings">
+              <SettingsIcon />
+            </Ny4Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" sideOffset={6} className="min-w-56 rounded-lg">
+            <DropdownMenuLabel className="text-muted-foreground">Layout</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem checked={!split} onCheckedChange={() => setSplit(false)}>
+              Unified
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem checked={split} onCheckedChange={() => setSplit(true)}>
+              Split
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem checked={hideComments} onCheckedChange={(v) => setHideComments(!!v)}>
+              Minimize comments
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem checked={ignoreWhitespace} onCheckedChange={(v) => setIgnoreWhitespace(!!v)}>
+              Hide whitespace
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem checked={compact} onCheckedChange={(v) => setCompact(!!v)}>
+              Compact line height
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* One section per version, newest first. */}
@@ -272,7 +303,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
                       ))}
                     </div>
                   ) : (
-                    <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={prev ? before : ""} after={text} split={split} query={query} />
+                    <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={prev ? before : ""} after={text} split={split} query={query} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
                   )}
                 </div>
               )}

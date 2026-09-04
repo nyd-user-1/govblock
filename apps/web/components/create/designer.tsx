@@ -5,7 +5,7 @@ import { ArrowUpIcon, MenuIcon } from "lucide-react"
 
 import { isFile, isSpecial, listing, locate, monthName, type Location, type Target } from "@/lib/create/path"
 import { decodePreset, DEFAULT_DESIGN, DESIGN_KEYS, DESIGN_OPTIONS, presetToParams, readDesign, type Design, type Preset } from "@/lib/create/preset"
-import { stateName } from "@/lib/filters"
+import { STATE_NAMES, stateName } from "@/lib/filters"
 import { honorific, truncate } from "@/lib/format"
 import { SCOPE_KEYS, useScope, useSessionTitle, type ScopeKey } from "@/lib/policy/scope"
 import type { Bill, Member } from "@/lib/policy/types"
@@ -41,7 +41,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // /create opens on Congress, current session, every time. Going anywhere
 // else is what the customizer is for.
 
-const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode"] as const
+const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork"] as const
 
 function DesignerInner() {
   const params = useUrlParams(URL_KEYS)
@@ -80,7 +80,9 @@ function DesignerInner() {
 
   const go = React.useCallback((target: Target) => {
     const out: Record<string, string | null> = { tab: target.tab ?? null, doc: target.doc ?? null }
-    for (const key of ["at", "committee", "member", "bill", "rollcall", "session"] as const) if (key in target) out[key] = target[key] ?? null
+    for (const key of ["at", "committee", "member", "bill", "rollcall", "session", "state", "fork"] as const) if (key in target) out[key] = target[key] ?? null
+    // Leaving a bill leaves its fork behind; moving within it keeps it.
+    if ("bill" in target && !target.bill && !("fork" in target)) out.fork = null
     writeUrlParams(out, { history: "push" })
   }, [])
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
@@ -159,6 +161,9 @@ function DesignerInner() {
       case "votes":
         out.push({ label: "Votes" })
         break
+      case "forks":
+        out.push({ label: "Your forks" })
+        break
       case "votes-month":
         out.push({ label: "Votes", go: listing("votes") }, { label: monthName(node.month) })
         break
@@ -176,6 +181,15 @@ function DesignerInner() {
     }
     return out
   }, [scope.state, scope.session, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel])
+
+  // `?at=alaska` names a state, not a listing (Brendan, 2026-09-03: a typed
+  // URL that says Alaska should show Alaska). Rewrite it to `state=AK`.
+  React.useEffect(() => {
+    const at = params.at.trim().toLowerCase()
+    if (!at || /^(sessions|bills|committees|members|votes|forks|inbox|finance|forms)(\/|$)/.test(at)) return
+    const code = Object.entries(STATE_NAMES).find(([c, name]) => c.toLowerCase() === at || name.toLowerCase() === at)?.[0]
+    if (code) writeUrlParams({ state: code, at: null, session: null }, { history: "replace" })
+  }, [params.at])
 
   // `..`: the crumb before the last one.
   const up: Target | null = crumbs.length >= 2 ? (crumbs[crumbs.length - 2].go ?? null) : null
@@ -229,9 +243,9 @@ function DesignerInner() {
       </BlockShell>
     )
   ) : (
-    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
+    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
-        <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
+        <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} fork={params.fork} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (
         <FolderView node={node} scope={scope} look={look} scopeKey={crumbs.map((c) => c.label).join("/")} scroller={scroller} onScrolled={(yes) => setScrolledAt(yes ? stageKey : null)} up={up} tab={params.tab} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onGo={go} />
       )}

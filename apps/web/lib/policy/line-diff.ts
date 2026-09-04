@@ -91,7 +91,22 @@ function marksFor(a: string, b: string): [Mark[], Mark[]] {
   return [delMarks, addMarks]
 }
 
-export function lineDiff(before: string, after: string): LineDiff {
+/** Each line with its runs of spaces and tabs collapsed — the shape of the text with whitespace hidden. */
+const squeeze = (text: string) => text.split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).join("\n")
+
+export function lineDiff(before: string, after: string, options: { ignoreWhitespace?: boolean } = {}): LineDiff {
+  if (options.ignoreWhitespace) {
+    // Diff the squeezed texts (same line count), then show the real lines.
+    const d = lineDiff(squeeze(before), squeeze(after))
+    const aLines = before ? before.split("\n") : []
+    const bLines = after ? after.split("\n") : []
+    return {
+      ...d,
+      aLines,
+      bLines,
+      blocks: d.blocks.map((b) => (b.kind === "equal" ? b : { ...b, del: aLines.slice(b.a, b.a + b.del.length), add: bLines.slice(b.b, b.b + b.add.length), delMarks: b.del.map(() => []), addMarks: b.add.map(() => []) })),
+    }
+  }
   // An empty text has no lines, not one empty line.
   const A: Side = { text: before, starts: lineStarts(before), lines: before ? before.split("\n") : [] }
   const B: Side = { text: after, starts: lineStarts(after), lines: after ? after.split("\n") : [] }

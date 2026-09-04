@@ -19,7 +19,8 @@ import { cn } from "@govblock/ui/lib/utils"
 // or Tabs, the indent size, No wrap or Soft wrap — at its right. Preview is
 // the split diff of the draft against the version being edited, drawn by
 // the same measured diff as Changes. Commit changes… opens GitHub's dialog:
-// a message, an extended description, and the commit goes to main.
+// a message, an extended description, and the commit goes to the reader's
+// fork — never to the legislature's own versions.
 
 const CodeEditor = dynamic(() => import("@/components/policy/code-editor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -63,7 +64,7 @@ export function BillEdit({
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
         <span className="rounded-md border bg-muted/40 px-3 py-1.5 font-mono text-sm">{bill.bill_number}</span>
         <span className="text-sm text-muted-foreground">in</span>
-        <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">main</span>
+        <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">your fork</span>
         <span className="ml-2 truncate text-sm text-muted-foreground">
           editing {base.version ?? "Original"}
           {"commit" in base && base.commit ? ` (your commit)` : ""}
@@ -126,7 +127,7 @@ export function BillEdit({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Commit changes</DialogTitle>
-            <DialogDescription>Your change to {bill.bill_number} becomes a commit on main, beside the legislature&apos;s own versions.</DialogDescription>
+            <DialogDescription>Your change becomes a commit in your fork of {bill.bill_number}. The legislature&apos;s versions are never altered.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
@@ -139,7 +140,7 @@ export function BillEdit({
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="radio" checked readOnly className="accent-[#1f883d]" />
-              Commit directly to the <span className="rounded bg-primary/10 px-1.5 font-mono text-xs text-primary">main</span> branch
+              Commit directly to <span className="rounded bg-primary/10 px-1.5 font-mono text-xs text-primary">your fork</span>
             </label>
           </div>
           <DialogFooter>

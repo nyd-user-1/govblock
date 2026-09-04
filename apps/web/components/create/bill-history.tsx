@@ -3,8 +3,10 @@
 import * as React from "react"
 import { CheckIcon, CodeIcon, CopyIcon, FileTextIcon } from "lucide-react"
 
-import { fmtNumber, truncate } from "@/lib/format"
+import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { dateOfRecord } from "@/lib/policy/date-of-record"
 import type { Bill } from "@/lib/policy/types"
+import { versionId } from "@/lib/policy/forks"
 import { ago, Timeline, type TimelineRow } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -14,8 +16,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // as the commits — and, on the same rail, the bill's actions, which are its
 // status history. The switch at the top picks which (Brendan, 2026-09-03).
 //
-// A version has no date of its own in LegiScan's Documents table, so its day
-// is the night the text was fetched and the row says so.
+// A version's day is its date of record — the document's own date where the
+// source gave one, else the action on the bill's record that produced it
+// (`date-of-record.ts`). Never the night the text was fetched.
 
 function CopyId({ id }: { id: number }) {
   const [copied, setCopied] = React.useState(false)
@@ -56,9 +59,10 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
 
   const versionRows: TimelineRow[] = versions.map((v, index) => {
     const nth = String(versions.length - index).padStart(2, "0")
+    const date = dateOfRecord(v, bill)
     return {
       key: `v-${v.document_id}`,
-      date: v.fetched_at,
+      date,
       title: (
         <span>
           <span className="mr-2 font-mono text-xs text-muted-foreground">{nth}</span>
@@ -71,16 +75,14 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
         </span>
       ) : (
         <span>
-          {bill.body ?? ""}
-          {bill.body ? " · " : ""}
-          {fmtNumber(v.chars)} characters · fetched {ago(v.fetched_at) || "on an unknown date"}
+          {date ? fmtDate(date) : "Date of record unknown"} · {fmtNumber(v.chars)} characters
         </span>
       ),
       onClick: () => onOpenChanges(v.document_id),
       actions: (
         <>
-          <span className="mr-1 font-mono text-xs text-muted-foreground tabular-nums">{v.document_id}</span>
-          <CopyId id={v.document_id} />
+          <span className="mr-1 font-mono text-xs text-muted-foreground tabular-nums">{versionId(v)}</span>
+          <CopyId id={v.commit ? v.commit.id : v.document_id} />
           <Tip label="Browse the text at this version">
             <Button variant="ghost" size="icon-sm" aria-label="Browse the text at this version" onClick={() => onOpenText(v.document_id)}>
               <FileTextIcon />
@@ -117,7 +119,7 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
         </div>
       </div>
       {which === "versions" ? (
-        <Timeline rows={versionRows} noun="Versions fetched" end={versions.length ? "End of the versions on file for this bill" : "No text on file for this bill yet"} />
+        <Timeline rows={versionRows} noun="Versions" end={versions.length ? "End of the versions on file for this bill" : "No text on file for this bill yet"} />
       ) : (
         <Timeline rows={actionRows} noun="Actions" end={actions.length ? "End of the record for this bill" : "No actions recorded for this bill yet"} />
       )}

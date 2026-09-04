@@ -43,7 +43,7 @@ const CodeView = dynamic(() => import("@/components/policy/code-view").then((m) 
   loading: () => <Skeleton className="m-4 h-64 rounded-xl" />,
 })
 
-export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null; /** Set when the version is a reader's commit, kept in this browser. */ commit?: { message: string; description: string; author: string; text: string } }
+export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null; /** The document's own date, where the source gave one. */ date?: string | null; /** Set when the version is a commit in a fork. */ commit?: { id: number; message: string; description: string; author: string; text: string } }
 
 export type PaneBill = { bill_id: number; bill_number: string; title: string; status_desc?: string | null; last_action_date?: string | null; committee?: string | null }
 

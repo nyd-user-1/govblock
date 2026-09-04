@@ -125,6 +125,13 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
         { key: "commit", label: "Commit", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
         { key: "date", label: "Last activity", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
       ]
+    case "forks":
+      return [
+        { key: "bill", label: "Bill", className: "w-36", cell: (r) => name(r, true) },
+        { key: "title", label: "Forked from", cell: (r) => muted(r.record?.kind === "fork" ? `${stateName(r.record.fork.state)}${r.record.fork.session_id ? ` · ${r.record.fork.session_id}` : ""} — ${truncate(r.record.fork.title ?? "", 90)}` : "") },
+        { key: "commits", label: "Commits", className: `w-24 ${right}`, cell: (r) => muted(fmtNumber(r.count ?? 0)) },
+        { key: "date", label: "Forked", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
+      ]
     case "committees":
       return [
         { key: "name", label: "Committee", cell: (r) => name(r) },
