@@ -13,7 +13,6 @@ import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/image
 import { EditDetailsDialog, ProjectCard, ProjectGrid, useProjectDetails, type ProjectDetails } from "@/components/project-card"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A folder on the stage, the way GitHub shows one: a table with `..` at the
@@ -75,7 +74,9 @@ function splitRollCall(description: string) {
 
 type Column = { key: string; label: string; className?: string; cell: (row: Row) => React.ReactNode }
 
-/** "05 Enrolled — Surrender Of Infants…", the bill's last commit line. */
+/** "05 Enrolled — Surrender Of Infants…", the bill's last commit line. No
+ *  tooltip: California's descriptions are the whole act (Brendan,
+ *  2026-09-03, "get rid of the tool tip"); the title is the row's own. */
 function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) {
   if (row.record?.kind !== "bill") return <span className="text-muted-foreground">{truncate(row.description ?? "", 110)}</span>
   const b = row.record.bill
@@ -89,29 +90,17 @@ function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) 
   )
   if (!b.latest_document_id) return line
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <button
-            type="button"
-            className="block max-w-full truncate text-left hover:[&>span]:text-primary hover:[&>span]:underline"
-            onClick={(e) => {
-              e.stopPropagation()
-              onGo({ bill: String(b.bill_id), rollcall: null, tab: "changes", doc: String(b.latest_document_id) })
-            }}
-          />
-        }
-      >
-        {line}
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="max-w-md text-pretty">
-        <p className="font-medium">
-          {label} · {b.bill_number}
-        </p>
-        <p>{b.title}</p>
-        {b.description && b.description !== b.title && <p className="mt-1 text-muted-foreground">{b.description}</p>}
-      </TooltipContent>
-    </Tooltip>
+    <button
+      type="button"
+      title={b.title}
+      className="block max-w-full truncate text-left hover:[&>span]:text-primary hover:[&>span]:underline"
+      onClick={(e) => {
+        e.stopPropagation()
+        onGo({ bill: String(b.bill_id), rollcall: null, tab: "changes", doc: String(b.latest_document_id) })
+      }}
+    >
+      {line}
+    </button>
   )
 }
 
