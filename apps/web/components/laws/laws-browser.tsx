@@ -7,6 +7,7 @@ import type { LawDoc, LawHit, LawNode, LawSummary } from "@/app/api/laws/route"
 import { fmtNumber } from "@/lib/format"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { useSnapshot } from "@/lib/policy/use-policy"
+import { LawText } from "@/components/laws/law-text"
 import { BlockShell } from "@/components/policy/block-shell"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
@@ -159,8 +160,8 @@ export function LawsBrowser() {
   return (
     <BlockShell rail={rail} title={crumbs} contentClassName="overflow-hidden">
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Finding: this law, or every law. */}
-        <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
+        {/* Finding, on the organisation page: every law. A law's own pane carries its own box. */}
+        <div className={cn("flex shrink-0 items-center gap-2 border-b px-4 py-2", law && current && !params.q?.trim() && "hidden")}>
           <div className="relative min-w-64 flex-1">
             <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background pr-8 pl-2.5 text-sm focus-within:ring-1 focus-within:ring-ring">
               <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -201,7 +202,7 @@ export function LawsBrowser() {
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className={cn("min-h-0 flex-1", law && current && !params.q?.trim() ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
           {params.q?.trim() ? (
             // Results, GitHub's code-search way: the section, then the lines that matched.
             <div className="mx-auto w-full max-w-4xl px-6 py-4">
@@ -222,6 +223,9 @@ export function LawsBrowser() {
                 {results && !results.hits.length && <p className="py-8 text-center text-sm text-muted-foreground">Nothing in the law matches “{params.q}”.</p>}
               </div>
             </div>
+          ) : law && current ? (
+            // The law itself, one document, top to bottom.
+            <LawText law={law} lawName={current.law_name} doc={doc} onDoc={(id) => writeUrlParams({ doc: id }, { history: "replace" })} />
           ) : !law ? (
             // The organisation page: every law, as a table.
             <div className="m-4 overflow-hidden rounded-lg border">

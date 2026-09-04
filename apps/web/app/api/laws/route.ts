@@ -12,6 +12,9 @@ import { one, q } from "@/lib/policy/db"
 //   ?law=GBS                         the law's tree, without text
 //   ?law=GBS&doc=A44-B               one node, with text, and its children
 //   ?q=frontier+model[&law=GBS]      full-text search, ranked, with snippets
+//   ?law=GBS&text=1[&after=<seq>]    the law's nodes in order with their text, a page
+//                                    at a time (the Data API caps a response at 1 MB);
+//                                    `next` is the sequence to ask for after
 
 const CACHE = "public, s-maxage=3600, stale-while-revalidate=86400"
 
@@ -53,6 +56,20 @@ export async function GET(request: Request) {
     }
     const law = sp.get("law")
     if (!law) return NextResponse.json({ error: "law, q or list required" }, { status: 400 })
+    if (sp.get("text")) {
+      const after = Number(sp.get("after") ?? -1)
+      // Up to 200 nodes, cut where their text passes 700 KB; always at least one.
+      const nodes = await q<LawNode & { text: string | null }>(
+        `select ${NODE}, text from (
+           select ${NODE}, text, sum(length(coalesce(text, ''))) over (order by sequence_no) - length(coalesce(text, '')) run
+             from "Laws" where state = $1 and law_id = $2 and sequence_no > $3 order by sequence_no limit 200
+         ) page where run < 700000 order by sequence_no`,
+        [state, law, after]
+      )
+      const last = nodes[nodes.length - 1]
+      const more = last ? await one<{ n: number }>(`select count(*)::int n from "Laws" where state = $1 and law_id = $2 and sequence_no > $3`, [state, law, last.sequence_no]) : null
+      return NextResponse.json({ nodes, next: more && more.n > 0 && last ? last.sequence_no : null }, { headers: { "cache-control": CACHE } })
+    }
     const doc = sp.get("doc")
     if (doc) {
       const node = await one<LawDoc>(`select law_id, law_name, ${NODE}, text from "Laws" where state = $1 and law_id = $2 and location_id = $3`, [state, law, doc])
