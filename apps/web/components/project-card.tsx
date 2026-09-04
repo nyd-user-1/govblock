@@ -61,6 +61,7 @@ export type ProjectCardMenu = {
 
 export function ProjectCard({
   href,
+  onOpen,
   media,
   title,
   meta,
@@ -70,6 +71,8 @@ export function ProjectCard({
   className,
 }: {
   href: string
+  /** Opens the card in place of following `href` — /create's folders live in the URL's keys, not in paths. */
+  onOpen?: () => void
   media?: React.ReactNode
   title: string
   /** The one line under the title. In the reference this is all there is. */
@@ -94,6 +97,11 @@ export function ProjectCard({
         href={href}
         title={title}
         className="absolute inset-0 z-0 rounded-xl no-underline"
+        onClick={(e) => {
+          if (!onOpen) return
+          e.preventDefault()
+          onOpen()
+        }}
       >
         <span className="sr-only">{title}</span>
       </Link>

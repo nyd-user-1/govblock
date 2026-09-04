@@ -249,6 +249,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                   <ProjectCard
                     key={row.key}
                     href="#"
+                    onOpen={() => onGo(row.go)}
                     title={detail.label || row.name}
                     note={detail.note}
                     media={<RowAvatar avatar={row.avatar} />}

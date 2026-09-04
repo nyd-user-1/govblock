@@ -41,7 +41,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // /create opens on Congress, current session, every time. Going anywhere
 // else is what the customizer is for.
 
-const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork"] as const
+const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork", "all"] as const
 
 function DesignerInner() {
   const params = useUrlParams(URL_KEYS)
@@ -83,6 +83,8 @@ function DesignerInner() {
     for (const key of ["at", "committee", "member", "bill", "rollcall", "session", "state", "fork"] as const) if (key in target) out[key] = target[key] ?? null
     // Leaving a bill leaves its fork behind; moving within it keeps it.
     if ("bill" in target && !target.bill && !("fork" in target)) out.fork = null
+    // Leaving Documents leaves its "all" behind.
+    if ("at" in target && target.at !== "forms") out.all = null
     writeUrlParams(out, { history: "push" })
   }, [])
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
@@ -268,11 +270,21 @@ function DesignerInner() {
               <MenuIcon className="size-4" />
             </FabButton>
             <StageSwitcher
-              stage={isSpecial(node) ? (node.kind as Stage) : mode}
+              stage={isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode}
               onStage={(next) => {
                 if (next === "state" || next === "design") {
                   setMode(next)
+                  setLook("table")
                   if (isSpecial(node)) go(listing(null))
+                } else if (next === "canvas") {
+                  // The large cards: the tree's records as cards. From the
+                  // root or a special view, Bills is where they are.
+                  setLook("cards")
+                  if (isSpecial(node) || node.kind === "root") go(listing("bills"))
+                } else if (next === "documents") {
+                  writeUrlParams({ ...listing("forms"), all: "1" }, { history: "push" })
+                } else if (next === "forms") {
+                  writeUrlParams({ ...listing("forms"), all: null }, { history: "push" })
                 } else go(listing(next))
               }}
             />
