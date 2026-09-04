@@ -230,11 +230,13 @@ function DesignerInner() {
       <FecExplorer />
     ) : (
       <BlockShell
-        title="Forms"
+        title={params.all === "1" ? "Documents" : "Forms"}
         rail={
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Forms · {stateName(scope.state)}</SidebarGroupLabel>
+              <SidebarGroupLabel>
+                {params.all === "1" ? "Documents" : "Forms"} · {stateName(scope.state)}
+              </SidebarGroupLabel>
             </SidebarGroup>
           </SidebarContent>
         }
