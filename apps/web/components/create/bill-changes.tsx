@@ -1,15 +1,15 @@
 "use client"
 
 import * as React from "react"
-import dynamic from "next/dynamic"
-import { diff } from "@codemirror/merge"
 import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, FileTextIcon, SearchIcon } from "lucide-react"
 
 import { fmtNumber, truncate } from "@/lib/format"
 import { useDocPref } from "@/lib/policy/doc-prefs"
+import { lineDiff } from "@/lib/policy/line-diff"
 import type { Bill } from "@/lib/policy/types"
 import { ago } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
+import { DiffView, type DiffComment, type LineRef } from "@/components/policy/diff-view"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { cn } from "@govblock/ui/lib/utils"
@@ -23,26 +23,61 @@ import { cn } from "@govblock/ui/lib/utils"
 // shows a new file.
 //
 // Every text is fetched, because the bar on a closed section needs the count;
-// the editor inside a section is built only when it is opened.
-
-const CodeView = dynamic(() => import("@/components/policy/code-view").then((m) => m.CodeView), {
-  ssr: false,
-  loading: () => <Skeleton className="m-4 h-64 rounded-xl" />,
-})
+// the diff inside a section is built only when it is opened. The diff is
+// GitHub's, measured (`diff-view.tsx`); comments on lines live in this
+// browser for now (Brendan, 2026-09-03: "it only needs to survive with the
+// browser session").
 
 type Stats = { added: number; deleted: number }
 
-/** Lines added and deleted between two texts, by CodeMirror's own diff. */
+/** Lines added and deleted between two texts, the same count the diff draws. */
 function stats(before: string, after: string): Stats {
-  let added = 0
-  let deleted = 0
-  for (const c of diff(before, after)) {
-    const ins = after.slice(c.fromB, c.toB)
-    const del = before.slice(c.fromA, c.toA)
-    if (ins) added += ins.split("\n").length
-    if (del) deleted += del.split("\n").length
-  }
-  return { added, deleted }
+  const d = lineDiff(before, after)
+  return { added: d.added, deleted: d.deleted }
+}
+
+const COMMENTS_EVENT = "govblock:comments"
+
+function useComments(key: string) {
+  const subscribe = React.useCallback((notify: () => void) => {
+    window.addEventListener(COMMENTS_EVENT, notify)
+    window.addEventListener("storage", notify)
+    return () => {
+      window.removeEventListener(COMMENTS_EVENT, notify)
+      window.removeEventListener("storage", notify)
+    }
+  }, [])
+  const raw = React.useSyncExternalStore(
+    subscribe,
+    () => {
+      try {
+        return window.localStorage.getItem(key) ?? "[]"
+      } catch {
+        return "[]"
+      }
+    },
+    () => "[]"
+  )
+  const comments = React.useMemo(() => {
+    try {
+      return JSON.parse(raw) as DiffComment[]
+    } catch {
+      return []
+    }
+  }, [raw])
+  const add = React.useCallback(
+    (at: LineRef, body: string) => {
+      const next = [...comments, { id: `${Date.now()}`, side: at.side, line: at.line, body, author: "you", at: new Date().toISOString() }]
+      try {
+        window.localStorage.setItem(key, JSON.stringify(next))
+      } catch {
+        // Private mode: the comment lives for this render only.
+      }
+      window.dispatchEvent(new Event(COMMENTS_EVENT))
+    },
+    [key, comments]
+  )
+  return { comments, add }
 }
 
 export function DiffBar({ added, deleted, className }: Stats & { className?: string }) {
@@ -85,12 +120,15 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
   return texts
 }
 
+function VersionDiff({ state, billId, documentId, before, after, split, query }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string }) {
+  const { comments, add } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
+  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} />
+}
+
 export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: { state: string; bill: Bill; /** Newest first. */ versions: TextVersion[]; doc: number | null; onDoc: (documentId: number) => void; onOpenText: (documentId: number) => void }) {
   const texts = useTexts(state, bill.bill_id, versions)
   const [splitPicked, setSplit] = useDocPref<boolean | null>("split", null)
   const split = splitPicked ?? false
-  const [wrap] = useDocPref("wrap", true)
-  const [fold] = useDocPref("fold", true)
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
   const scroller = React.useRef<HTMLDivElement>(null)
@@ -228,7 +266,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
                 </span>
               </div>
               {open && (
-                <div className="h-[70vh] border-t">
+                <div className="border-t">
                   {text == null || before == null ? (
                     <div className="flex flex-col gap-2 p-4">
                       {Array.from({ length: 10 }).map((_, i) => (
@@ -236,7 +274,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
                       ))}
                     </div>
                   ) : (
-                    <CodeView text={text} original={prev ? before : null} diff={!!prev && !!before} split={split} wrap={wrap} fold={fold} query={query} onMatches={undefined} />
+                    <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={prev ? before : ""} after={text} split={split} query={query} />
                   )}
                 </div>
               )}

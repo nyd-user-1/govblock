@@ -1,0 +1,167 @@
+/* GitHub's diff, measured from github.com on 2026-09-03: Primer's diffBlob
+   palette (light and dark) and the table's own measurements. Imported by
+   diff-view.tsx. */
+
+.gh-diff {
+  --gh-diff-add-line: #dafbe1;
+  --gh-diff-add-num: #aceebb;
+  --gh-diff-add-word: #aceebb;
+  --gh-diff-del-line: #ffebe9;
+  --gh-diff-del-num: #ffcecb;
+  --gh-diff-del-word: #ffcecb;
+  --gh-diff-hunk-line: #ddf4ff;
+  --gh-diff-hunk-num: #b6e3ff;
+  --gh-diff-hunk-num-hover: #0969da;
+  --gh-diff-hunk-fg-hover: #fff;
+  --gh-diff-expander: #59636e;
+  --gh-diff-empty: #f6f8fa;
+  --gh-diff-bg: #fff;
+  --gh-diff-fg: #1f2328;
+  --gh-diff-muted: #59636e;
+  --gh-diff-border: #d1d9e0;
+  --gh-diff-accent: #0969da;
+  --gh-diff-on-accent: #fff;
+  --gh-diff-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+.dark .gh-diff {
+  --gh-diff-add-line: #2ea04326;
+  --gh-diff-add-num: #3fb9504d;
+  --gh-diff-add-word: #2ea04366;
+  --gh-diff-del-line: #f851491a;
+  --gh-diff-del-num: #f851494d;
+  --gh-diff-del-word: #f8514966;
+  --gh-diff-hunk-line: #388bfd1a;
+  --gh-diff-hunk-num: #0c2d6b;
+  --gh-diff-hunk-num-hover: #1f6feb;
+  --gh-diff-hunk-fg-hover: #fff;
+  --gh-diff-expander: #9198a1;
+  --gh-diff-empty: #151b23;
+  --gh-diff-bg: #0d1117;
+  --gh-diff-fg: #f0f6fc;
+  --gh-diff-muted: #9198a1;
+  --gh-diff-border: #3d444d;
+  --gh-diff-accent: #1f6feb;
+  --gh-diff-on-accent: #fff;
+}
+
+/* The diff table itself: GitHub's measurements (apps/web/components/policy/diff-view.tsx). */
+.gh-diff .gh-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 21px;
+  tab-size: 4;
+}
+.gh-diff td {
+  vertical-align: top;
+  padding: 0;
+}
+.gh-diff .gh-num {
+  width: 40px;
+  min-width: 40px;
+  height: 24px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--gh-diff-fg);
+  user-select: none;
+  font-family: var(--gh-diff-mono);
+}
+.gh-diff .gh-text {
+  position: relative;
+  padding-right: 24px;
+  min-height: 24px;
+}
+.gh-diff .gh-line {
+  display: block;
+  font-family: var(--gh-diff-mono);
+  font-size: 12px;
+  line-height: 24px;
+}
+.gh-diff .gh-marker {
+  float: left;
+  width: 15px;
+  padding-right: 8px;
+  user-select: none;
+  text-align: center;
+}
+.gh-diff .gh-inner {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 24px;
+  padding-left: 23px;
+}
+.gh-diff .gh-marker + .gh-inner {
+  padding-left: 0;
+  margin-left: 23px;
+}
+.gh-diff .gh-x {
+  border-radius: 3px;
+}
+.gh-diff .gh-hunk {
+  height: 24px;
+  line-height: 24px;
+}
+.gh-diff .gh-hunk-text {
+  display: block;
+  padding: 0 24px;
+  font-family: var(--gh-diff-mono);
+  font-size: 12px;
+  line-height: 24px;
+  white-space: pre;
+}
+.gh-diff .gh-expander {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  justify-content: center;
+}
+.gh-diff .gh-expander button {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  height: 24px;
+  color: var(--gh-diff-expander);
+}
+.gh-diff .gh-expander button:hover {
+  background: var(--gh-diff-hunk-num-hover);
+  color: var(--gh-diff-hunk-fg-hover);
+}
+.gh-diff .gh-plus {
+  position: absolute;
+  top: 1px;
+  left: -10px;
+  z-index: 1;
+  display: none;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--gh-diff-accent);
+  color: var(--gh-diff-on-accent);
+  box-shadow: 0 1px 0 rgba(31, 35, 40, 0.1);
+}
+.gh-diff .gh-caret {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  display: none;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--gh-diff-border);
+  background: var(--gh-diff-bg);
+  color: var(--gh-diff-muted);
+}
+.gh-diff .gh-row:hover .gh-plus,
+.gh-diff .gh-row:hover .gh-caret,
+.gh-diff .gh-plus:focus-visible,
+.gh-diff .gh-caret:focus-visible,
+.gh-diff .gh-caret[aria-expanded="true"] {
+  display: grid;
+}
+.gh-diff .gh-plus:hover {
+  transform: scale(1.1);
+}
