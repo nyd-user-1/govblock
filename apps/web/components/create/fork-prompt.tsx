@@ -19,7 +19,7 @@ export function ForkPrompt({ bill, state, session, onForked }: { bill: Bill; sta
     <div className="flex min-h-0 flex-1 flex-col items-center justify-start gap-3 px-6 pt-20 text-center">
       <GitForkIcon className="size-8 text-muted-foreground" />
       <h2 className="text-2xl font-semibold">You need to fork this bill to propose changes.</h2>
-      <p className="max-w-2xl text-muted-foreground">Sorry, you&apos;re not able to edit {bill.bill_number} directly. The legislature&apos;s versions stay as they are on the record. Fork it and propose your changes from there instead.</p>
+      <p className="max-w-2xl text-muted-foreground">Sorry, you&apos;re not able to edit the {bill.bill_number} doc directly—you need to fork it and propose your changes from there instead.</p>
       <Button
         disabled={busy}
         className="mt-2 bg-[#1f883d] text-white hover:bg-[#1a7f37]"
@@ -35,7 +35,7 @@ export function ForkPrompt({ bill, state, session, onForked }: { bill: Bill; sta
         {busy ? "Forking…" : "Fork this bill"}
       </Button>
       {failed && <p className="text-sm text-destructive">The fork could not be made. Try again in a moment.</p>}
-      <p className="text-sm text-primary">A fork is your own copy: the bill&apos;s versions as the base, your commits on top.</p>
+      <p className="text-sm text-primary">Learn more about forks</p>
     </div>
   )
 }
