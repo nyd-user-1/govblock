@@ -11,6 +11,7 @@
 
 import "server-only"
 import { cleanBillText } from "@/lib/policy/texts"
+import { actionOfRecord } from "@/lib/policy/date-of-record"
 
 import { n, one, q } from "@/lib/policy/db"
 import { DEFAULT_STATE, type Filters } from "@/lib/filters"
@@ -257,20 +258,33 @@ const PRIME_SPONSOR = `left join lateral (
 // the page, after the page is known — a lateral join per row took the
 // Amplify build past the Data API's limit the first time it was tried
 // (job 193, 2026-09-03), so nothing here runs per bill.
-async function withLatestTexts<T extends { bill_id: number }>(rows: T[]): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; versions: number | null })[]> {
+async function withLatestTexts<T extends { bill_id: number; status_date?: string | null; last_action_date: string | null; last_action: string | null }>(rows: T[]): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; latest_action: string | null; latest_date: string | null; versions: number | null })[]> {
   const ids = rows.map((r) => r.bill_id)
-  const empty = { latest_version: null, latest_document_id: null, latest_fetched_at: null, versions: null }
+  const empty = { latest_version: null, latest_document_id: null, latest_fetched_at: null, latest_action: null, latest_date: null, versions: null }
   if (!ids.length) return rows.map((r) => ({ ...r, ...empty }))
-  const latest = await q<{ bill_id: number; version: string | null; document_id: number; fetched_at: string | null; versions: number }>(
-    `select distinct on (bill_id) bill_id, version, document_id, fetched_at, count(*) over (partition by bill_id)::int versions
-     from "BillTexts" where bill_id = any($1::bigint[]) and text is not null
-     order by bill_id, document_id desc`,
-    [ids]
-  )
+  const [latest, history] = await Promise.all([
+    q<{ bill_id: number; version: string | null; document_id: number; fetched_at: string | null; versions: number }>(
+      `select distinct on (bill_id) bill_id, version, document_id, fetched_at, count(*) over (partition by bill_id)::int versions
+       from "BillTexts" where bill_id = any($1::bigint[]) and text is not null
+       order by bill_id, document_id desc`,
+      [ids]
+    ),
+    // The bills' records, so the latest version gets the action that produced
+    // it as its commit message (Brendan, 2026-09-04: the commit column must
+    // describe the change, not the bill).
+    q<{ bill_id: number; date: string; action: string; sequence: number }>(`select bill_id, date, action, sequence from "History Table" where bill_id = any($1::bigint[]) order by bill_id, date, sequence`, [ids]),
+  ])
   const by = new Map(latest.map((t) => [n(t.bill_id), t]))
+  const record = new Map<number, { date: string; action: string; sequence: number }[]>()
+  for (const h of history) {
+    const id = n(h.bill_id)
+    record.set(id, [...(record.get(id) ?? []), h])
+  }
   return rows.map((r) => {
     const t = by.get(r.bill_id)
-    return t ? { ...r, latest_version: t.version, latest_document_id: n(t.document_id), latest_fetched_at: t.fetched_at, versions: n(t.versions) } : { ...r, ...empty }
+    if (!t) return { ...r, ...empty }
+    const of = actionOfRecord({ version: t.version }, { history: record.get(r.bill_id) ?? [], status_date: r.status_date ?? null, last_action_date: r.last_action_date })
+    return { ...r, latest_version: t.version, latest_document_id: n(t.document_id), latest_fetched_at: t.fetched_at, latest_action: of.action ?? r.last_action, latest_date: of.date, versions: n(t.versions) }
   })
 }
 

@@ -75,13 +75,16 @@ function splitRollCall(description: string) {
 
 type Column = { key: string; label: string; className?: string; cell: (row: Row) => React.ReactNode }
 
-/** The bill's title, as its last commit line: a click opens the latest
- *  version's changes. No version label and no tooltip (Brendan, 2026-09-03:
- *  California's version names and descriptions are too long to sit here). */
+/** The bill's last commit line: the action on the record that produced its
+ *  latest version — "READ THE SECOND TIME AND AMENDED" — the way a file's
+ *  last commit message describes the change, not the file. A click opens
+ *  that version's changes. The bill's title stays in the name column's
+ *  title attribute; there is no tooltip (Brendan, 2026-09-03 and 04). */
 function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) {
   if (row.record?.kind !== "bill") return <span className="text-muted-foreground">{truncate(row.description ?? "", 110)}</span>
   const b = row.record.bill
-  const line = <span className="text-muted-foreground">{truncate(b.title, 110)}</span>
+  const message = b.latest_action?.trim() || b.last_action?.trim() || b.title
+  const line = <span className="text-muted-foreground">{truncate(message.charAt(0) + message.slice(1).toLowerCase() === message ? message : message.length > 12 && message === message.toUpperCase() ? message.charAt(0) + message.slice(1).toLowerCase() : message, 90)}</span>
   if (!b.latest_document_id) return line
   return (
     <button
@@ -120,8 +123,11 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
       if (node.kind === "committee" && node.sub === "members") return columnsFor({ kind: "members" }, state, onGo).concat([{ key: "votes", label: "Committee votes", className: right, cell: (r) => muted(fmtNumber(r.count ?? 0)) }])
       // GitHub's three columns, and its names: a bill, its latest commit, and
       // when it last moved — "5 days ago", not a date (Brendan, 2026-09-03).
+      // The commit sits at the right, by the time, as GitHub's does, and it
+      // is the action that produced the latest version — what changed — not
+      // the bill's description (Brendan, 2026-09-04).
       return [
-        { key: "bill", label: "Bill", className: "w-36", cell: (r) => name(r, true) },
+        { key: "bill", label: "Bill", className: "w-[38%]", cell: (r) => name(r, true) },
         { key: "commit", label: "Commit", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
         { key: "date", label: "Last activity", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
       ]

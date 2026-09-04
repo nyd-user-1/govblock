@@ -15,6 +15,19 @@ const COMMIT = `id, fork_id, parent_document_id, parent_commit_id, message, desc
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams
   const fork = Number(sp.get("fork"))
+  const bill = Number(sp.get("bill"))
+  if (bill) {
+    // Every fork's commits on a bill, with whose fork each is: forks are
+    // public, and a bill's timeline shows what everyone proposed (Brendan,
+    // 2026-09-04: "no one will ever see the forks made by other people and
+    // here we want that to happen").
+    const commits = await q<CommitRow & { owner: string }>(
+      `select c.id, c.fork_id, c.parent_document_id, c.parent_commit_id, c.message, c.description, c.text, c.author, c.created_at, f.owner
+         from "Commits" c join "Forks" f on f.id = c.fork_id where f.bill_id = $1 order by c.id desc`,
+      [bill]
+    )
+    return NextResponse.json({ commits: commits.map((c) => ({ ...normalise(c), owner: c.owner })) })
+  }
   if (!fork) return NextResponse.json({ commits: [] })
   const commits = await q<CommitRow>(`select ${COMMIT} from "Commits" where fork_id = $1 order by id desc`, [fork])
   return NextResponse.json({ commits: commits.map(normalise) })

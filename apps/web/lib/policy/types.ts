@@ -21,6 +21,9 @@ export type BillRow = {
   latest_version?: string | null
   latest_document_id?: number | null
   latest_fetched_at?: string | null
+  /** The action on the record that produced the latest version — its commit message — and that action's date. */
+  latest_action?: string | null
+  latest_date?: string | null
   /** How many texts are on file. */
   versions?: number | null
 }

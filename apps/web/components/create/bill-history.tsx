@@ -7,6 +7,7 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import type { Bill } from "@/lib/policy/types"
 import { versionId } from "@/lib/policy/forks"
+import { handleFor } from "@/lib/policy/handle"
 import { ago, Timeline, type TimelineRow } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -71,7 +72,7 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
       ),
       meta: v.commit ? (
         <span>
-          <span className="font-medium text-foreground">{v.commit.author}</span> committed {ago(v.fetched_at)} · {fmtNumber(v.chars)} characters
+          <span className="font-medium text-foreground">{v.commit.owner ? handleFor(v.commit.owner) : v.commit.author}</span> committed {ago(v.fetched_at)} · {fmtNumber(v.chars)} characters
         </span>
       ) : (
         <span>

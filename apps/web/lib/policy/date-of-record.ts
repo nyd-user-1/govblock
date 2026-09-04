@@ -19,6 +19,19 @@ const CUES: [RegExp, RegExp][] = [
   [/reprint|print/i, /reprint|print/i],
 ]
 
+/** The action on the bill's record that produced a version — its commit message — and that action's date. */
+export function actionOfRecord(version: Dated, bill: Recorded): { date: string | null; action: string | null } {
+  const history = [...(bill.history ?? [])].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : Number(a.sequence) - Number(b.sequence)))
+  const name = version.version ?? ""
+  for (const [cue, action] of CUES) {
+    if (!cue.test(name)) continue
+    if (cue.source.startsWith("introduc")) return { date: history[0]?.date ?? bill.status_date ?? bill.last_action_date ?? null, action: history[0]?.action ?? null }
+    const hit = history.find((h) => action.test(h.action))
+    if (hit) return { date: hit.date, action: hit.action }
+  }
+  return { date: bill.status_date ?? bill.last_action_date ?? history[0]?.date ?? null, action: null }
+}
+
 export function dateOfRecord(version: Dated, bill: Recorded): string | null {
   if (version.commit) return version.date ?? version.fetched_at ?? null
   if (version.date) return version.date

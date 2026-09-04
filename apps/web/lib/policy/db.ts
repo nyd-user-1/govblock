@@ -186,16 +186,29 @@ export async function q<T = Record<string, unknown>>(text: string, params: unkno
   if (!client) throw new Error("no policy database configured")
 
   const statement = toNamedParameters(text)
-  const response = await client.send(
-    new ExecuteStatementCommand({
-      resourceArn,
-      secretArn,
-      database,
-      sql: statement.text,
-      parameters: params.map((value, i) => parameter(`p${i}`, value)),
-      includeResultMetadata: true,
-    })
-  )
+  const command = new ExecuteStatementCommand({
+    resourceArn,
+    secretArn,
+    database,
+    sql: statement.text,
+    parameters: params.map((value, i) => parameter(`p${i}`, value)),
+    includeResultMetadata: true,
+  })
+  // Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers
+  // the first statements with DatabaseResumingException while it wakes
+  // (~20 s). Wait it out rather than 503 the first visitor (2026-09-04).
+  let response
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await client.send(command)
+      break
+    } catch (error) {
+      const name = (error as { name?: string })?.name ?? ""
+      const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
+      if (!resuming || attempt >= 12) throw error
+      await new Promise((r) => setTimeout(r, 2500))
+    }
+  }
   const columns = response.columnMetadata ?? []
   return (response.records ?? []).map((record) => {
     const row: Record<string, unknown> = {}

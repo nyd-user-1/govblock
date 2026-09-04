@@ -13,7 +13,7 @@ import { claimCheck } from "@/lib/agents/claim-check"
 
 export type Fork = { id: number; owner: string; state: string; session_id: number | null; bill_id: number; bill_number: string | null; title: string | null; created_at: string; commits: number }
 
-export type Commit = { id: number; fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text: string; author: string; created_at: string }
+export type Commit = { id: number; fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text: string; author: string; created_at: string; /** The fork's owner, when the commit came from the bill-wide list. */ owner?: string }
 
 const EVENT = "govblock:forks"
 const changed = () => window.dispatchEvent(new Event(EVENT))
@@ -63,6 +63,12 @@ export function useFork(forkId: number | null) {
   return { fork: data.forks[0] ?? null, loading }
 }
 
+/** Every fork's commits on a bill — forks are public, and a bill's timeline shows what everyone proposed. */
+export function useBillCommits(billId: number | null) {
+  const { data, loading } = useJson(billId ? `/api/policy/commits?bill=${billId}` : null, NO_COMMITS)
+  return { commits: data.commits, loading }
+}
+
 export function useForkCommits(forkId: number | null) {
   const { data, loading } = useJson(forkId ? `/api/policy/commits?fork=${forkId}` : null, NO_COMMITS)
   return { commits: data.commits, loading }
@@ -86,7 +92,7 @@ export async function createCommit(input: { fork_id: number; parent_document_id:
 
 /** A commit in the shape the pane, Changes and History read: a version with a negative id, so it never collides with LegiScan's. */
 export function commitVersion(c: Commit) {
-  return { document_id: -c.id, version: c.message, chars: c.text.length, fetched_at: c.created_at, date: c.created_at, commit: { message: c.message, description: c.description, author: c.author, text: c.text, id: c.id } }
+  return { document_id: -c.id, version: c.message, chars: c.text.length, fetched_at: c.created_at, date: c.created_at, commit: { message: c.message, description: c.description, author: c.author, text: c.text, id: c.id, fork_id: c.fork_id, owner: c.owner ?? null, parent_document_id: c.parent_document_id, parent_commit_id: c.parent_commit_id } }
 }
 
 export const isCommitId = (id: number) => id < 0

@@ -43,7 +43,7 @@ const CodeView = dynamic(() => import("@/components/policy/code-view").then((m) 
   loading: () => <Skeleton className="m-4 h-64 rounded-xl" />,
 })
 
-export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null; /** The document's own date, where the source gave one. */ date?: string | null; /** Set when the version is a commit in a fork. */ commit?: { id: number; message: string; description: string; author: string; text: string } }
+export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null; /** The document's own date, where the source gave one. */ date?: string | null; /** Set when the version is a commit in a fork. */ commit?: { id: number; message: string; description: string; author: string; text: string; fork_id?: number; owner?: string | null; parent_document_id?: number | null; parent_commit_id?: number | null } }
 
 export type PaneBill = { bill_id: number; bill_number: string; title: string; status_desc?: string | null; last_action_date?: string | null; committee?: string | null }
 
@@ -285,8 +285,8 @@ export function BillTextPane({
               {related && related.length > 0 && (
                 <div className="border-t py-1">
                   <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">Related</div>
-                  {related.map((r) => (
-                    <button key={`${r.label}-${r.action}`} type="button" onClick={r.onClick} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted">
+                  {related.map((r, i) => (
+                    <button key={`${r.label}-${r.action}-${i}`} type="button" onClick={r.onClick} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted">
                       <span className="truncate font-mono">{r.label}</span>
                       <span className="ml-auto shrink-0 text-xs text-muted-foreground">{r.action}</span>
                     </button>

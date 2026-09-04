@@ -1,17 +1,19 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
+import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleUserRoundIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
 
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import { useDocPref } from "@/lib/policy/doc-prefs"
 import { versionId } from "@/lib/policy/forks"
+import { handleFor } from "@/lib/policy/handle"
 import { lineDiff } from "@/lib/policy/line-diff"
 import type { Bill } from "@/lib/policy/types"
 import { ago } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { DiffView, type DiffComment, type LineRef } from "@/components/policy/diff-view"
+import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
@@ -20,26 +22,24 @@ import { useSidebar } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's Changes tab: GitHub's commit page, with the versions as the files
-// changed (Brendan, 2026-09-03). The card at the top is the version that was
-// clicked — its name, the bill's title, when, and +added −deleted with the
-// five-block bar. Under it every version is a collapsible section, newest
-// first, each a diff against the version before it; the clicked one is open.
-// The first version has nothing before it, so it is shown whole, as GitHub
-// shows a new file.
+// changed. Laid out the way Brendan set it in the browser on 2026-09-04
+// (ironic-version-1.html): the card first — the version's message as its
+// title with the `Version 02` chip beside it, the description under it, and
+// a footer of parent · document | N versions · +added −deleted — then the
+// date of record and Browse text under the card, then GitHub's toolbar,
+// then every version as a collapsible section, newest first, each a diff
+// against the version before it.
 //
-// Every text is fetched, because the bar on a closed section needs the count;
-// the diff inside a section is built only when it is opened. The diff is
-// GitHub's, measured (`diff-view.tsx`); comments on lines live in this
-// browser for now (Brendan, 2026-09-03: "it only needs to survive with the
-// browser session").
+// Two kinds of section. An official version wears the jurisdiction's flag.
+// A version someone proposed in a fork sits indented under the official
+// version it changes, with an avatar and the author's handle, so the
+// boundary between the record and what people made of it is always
+// visible; the gear can hide the proposed ones for a clean look at the
+// official diffs. Every text is fetched, because the bar on a closed section
+// needs the count; the counts are computed one at a time when the browser
+// is idle, and the diff inside a section is built only when it is opened.
 
 type Stats = { added: number; deleted: number }
-
-/** Lines added and deleted between two texts, the same count the diff draws. */
-function stats(before: string, after: string): Stats {
-  const d = lineDiff(before, after)
-  return { added: d.added, deleted: d.deleted }
-}
 
 const COMMENTS_EVENT = "govblock:comments"
 
@@ -125,9 +125,45 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
   return React.useMemo<Record<number, string>>(() => ({ ...texts, ...Object.fromEntries(versions.filter((v) => v.commit).map((v) => [v.document_id, v.commit!.text])) }), [texts, versions])
 }
 
+/** Line counts per version, computed one at a time while the browser is idle — a million-character act diffs in the background, not on the click. */
+function useIdleStats(pairs: { id: number; before: string | null; after: string | null }[]) {
+  const [stats, setStats] = React.useState<Record<number, Stats>>({})
+  const done = React.useRef(new Set<number>())
+  React.useEffect(() => {
+    const todo = pairs.filter((p) => p.before !== null && p.after !== null && !done.current.has(p.id))
+    if (!todo.length) return
+    let cancelled = false
+    const idle: (cb: () => void) => void = typeof window.requestIdleCallback === "function" ? (cb) => void window.requestIdleCallback(cb, { timeout: 500 }) : (cb) => void window.setTimeout(cb, 16)
+    const step = (i: number) => {
+      if (cancelled || i >= todo.length) return
+      const p = todo[i]
+      const d = lineDiff(p.before!, p.after!)
+      done.current.add(p.id)
+      setStats((s) => ({ ...s, [p.id]: { added: d.added, deleted: d.deleted } }))
+      idle(() => step(i + 1))
+    }
+    idle(() => step(0))
+    return () => {
+      cancelled = true
+    }
+  }, [pairs])
+  return stats
+}
+
 function VersionDiff({ state, billId, documentId, before, after, split, query, compact, hideComments, ignoreWhitespace }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string; compact: boolean; hideComments: boolean; ignoreWhitespace: boolean }) {
   const { comments, add } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
   return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
+}
+
+/** The official version a commit changes: its document parent, or the nearest official ancestor through commit parents. */
+function officialParentOf(v: TextVersion, versions: TextVersion[]): number | null {
+  let cur: TextVersion | undefined = v
+  for (let i = 0; i < 50 && cur?.commit; i++) {
+    if (cur.commit.parent_document_id) return cur.commit.parent_document_id
+    const pid: number | null | undefined = cur.commit.parent_commit_id
+    cur = pid ? versions.find((x) => x.commit?.id === pid) : undefined
+  }
+  return null
 }
 
 export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: { state: string; bill: Bill; /** Newest first. */ versions: TextVersion[]; doc: number | null; onDoc: (documentId: number) => void; onOpenText: (documentId: number) => void }) {
@@ -137,73 +173,163 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
   const [hideComments, setHideComments] = useDocPref("minimize-comments", false)
   const [ignoreWhitespace, setIgnoreWhitespace] = useDocPref("hide-whitespace", false)
   const [compact, setCompact] = useDocPref("compact", false)
+  const [hideProposed, setHideProposed] = useDocPref("hide-proposed", false)
   const { toggleSidebar } = useSidebar()
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
   const scroller = React.useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = React.useState(false)
 
-  const picked = versions.find((v) => v.document_id === doc) ?? versions[0]
-  // Open: the picked version, and whatever the reader has opened since.
+  const official = React.useMemo(() => versions.filter((v) => !v.commit), [versions])
+  const proposed = React.useMemo(() => versions.filter((v) => v.commit), [versions])
+  const picked = versions.find((v) => v.document_id === doc) ?? official[0] ?? versions[0]
   const [openPicked, setOpen] = React.useState<Record<number, boolean>>({})
   const isOpen = (id: number) => openPicked[id] ?? id === picked?.document_id
 
-  const previousOf = (v: TextVersion) => versions[versions.findIndex((x) => x.document_id === v.document_id) + 1]
-  const statsOf = React.useMemo(() => {
-    const out: Record<number, Stats | null> = {}
-    for (const v of versions) {
-      const after = texts[v.document_id]
-      const prev = previousOf(v)
-      const before = prev ? texts[prev.document_id] : ""
-      out[v.document_id] = after == null || before == null ? null : prev ? stats(before, after) : { added: after ? after.split("\n").length : 0, deleted: 0 }
-    }
-    return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [texts, versions])
+  // What each version is diffed against: an official version against the
+  // official one before it; a proposed version against its own parent.
+  const baseOf = React.useCallback(
+    (v: TextVersion): TextVersion | undefined => {
+      if (v.commit) {
+        if (v.commit.parent_commit_id) return versions.find((x) => x.commit?.id === v.commit!.parent_commit_id)
+        if (v.commit.parent_document_id) return versions.find((x) => x.document_id === v.commit!.parent_document_id)
+        return undefined
+      }
+      return official[official.findIndex((x) => x.document_id === v.document_id) + 1]
+    },
+    [versions, official]
+  )
 
-  const nth = (v: TextVersion) => String(versions.length - versions.findIndex((x) => x.document_id === v.document_id)).padStart(2, "0")
-  const label = (v: TextVersion) => `${(v.version ?? "original").toLowerCase()} ${nth(v)}`
+  const pairs = React.useMemo(
+    () =>
+      versions.map((v) => {
+        const base = baseOf(v)
+        const after = texts[v.document_id] ?? null
+        const before = base ? (texts[base.document_id] ?? null) : ""
+        return { id: v.document_id, before, after }
+      }),
+    [versions, texts, baseOf]
+  )
+  const statsOf = useIdleStats(pairs)
+
+  const nth = (v: TextVersion) => String(official.length - official.findIndex((x) => x.document_id === v.document_id)).padStart(2, "0")
+  const label = (v: TextVersion) => (v.commit ? v.commit.message.toLowerCase() : `${(v.version ?? "original").toLowerCase()} ${nth(v)}`)
 
   if (!picked) return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {bill.bill_number} yet.</p>
   const pickedStats = statsOf[picked.document_id]
+  const pickedBase = baseOf(picked)
+  const pickedDate = picked.commit ? null : dateOfRecord(picked, bill)
+
+  const section = (v: TextVersion, nested: boolean) => {
+    const open = isOpen(v.document_id)
+    const base = baseOf(v)
+    const text = texts[v.document_id]
+    const before = base ? texts[base.document_id] : ""
+    const s = statsOf[v.document_id]
+    return (
+      <section key={v.document_id} data-open={open} className={cn("overflow-hidden rounded-lg border", nested && "ml-12")}>
+        <div className="flex items-center gap-2 bg-muted/40 px-3 py-2">
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => {
+              setOpen((o) => ({ ...o, [v.document_id]: !open }))
+              if (!open) onDoc(v.document_id)
+            }}
+            className="flex min-w-0 items-center gap-2 text-sm hover:underline"
+          >
+            {v.commit ? <CircleUserRoundIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden /> : <FlagChip state={state} />}
+            {open ? <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" /> : <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />}
+            <span className="truncate font-mono">{label(v)}</span>
+          </button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Copy this version's text"
+            disabled={!text}
+            onClick={() => {
+              if (!text) return
+              void navigator.clipboard?.writeText(text)
+              setCopied(v.document_id)
+              window.setTimeout(() => setCopied(null), 1500)
+            }}
+          >
+            {copied === v.document_id ? <CheckIcon /> : <CopyIcon />}
+          </Button>
+          <span className="ml-auto flex items-center gap-2">
+            {s ? <DiffBar {...s} /> : <Skeleton className="h-3 w-24" />}
+            <Button variant="ghost" size="icon-sm" aria-label="Browse the text at this version" onClick={() => onOpenText(v.document_id)}>
+              <FileTextIcon />
+            </Button>
+          </span>
+        </div>
+        {open && (
+          <div className="border-t">
+            {text == null || before == null ? (
+              <div className="flex flex-col gap-2 p-4">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3.5 rounded" style={{ width: `${55 + ((i * 37) % 40)}%` }} />
+                ))}
+              </div>
+            ) : (
+              <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={base ? before : ""} after={text} split={split} query={query} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
+            )}
+          </div>
+        )}
+        {!open && (
+          <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
+            {v.commit ? (
+              <>
+                <span className="font-mono text-primary">{v.commit.owner ? handleFor(v.commit.owner) : v.commit.author}</span> · {truncate(bill.title, 80)}
+              </>
+            ) : (
+              `${bill.session_title ?? ""}${bill.session_title ? " · " : ""}${truncate(bill.title, 80)}`
+            )}
+          </div>
+        )}
+      </section>
+    )
+  }
 
   return (
     <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}>
-      {/* The version's card, as a commit's header. */}
+      {/* The version's card, as a commit's header, Brendan's way. */}
       <div className="mx-auto w-full max-w-6xl px-6 pt-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-xl font-semibold">
-            Version <span className="rounded bg-muted px-1.5 font-mono text-base">{nth(picked)}</span>
-          </h2>
-          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(dateOfRecord(picked, bill)) || "Date of record unknown"}</span>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
-            <FileTextIcon className="size-3.5" /> Browse text
-          </Button>
-        </div>
-        <div className="mt-3 rounded-lg border">
+        <div className="mb-3 rounded-lg border">
           <div className="px-4 py-3">
-            <div className="font-mono text-sm">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${bill.bill_number} — ${bill.title}`}</div>
+            <h2 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold">
+              <span className="min-w-0">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${bill.bill_number} — ${bill.title}`}</span>
+              <span className="rounded bg-muted px-1.5 font-mono text-base font-medium">{picked.commit ? `commit ${picked.commit.id}` : `Version ${nth(picked)}`}</span>
+            </h2>
             {picked.commit ? picked.commit.description && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{picked.commit.description}</p> : bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-2 text-xs text-muted-foreground">
             <span>
-              {previousOf(picked) ? (
+              {pickedBase ? (
                 <>
-                  1 parent <span className="font-mono text-primary">{versionId(previousOf(picked)!)}</span> ·{" "}
+                  1 parent <span className="font-mono text-primary">{versionId(pickedBase)}</span> · {picked.commit ? "" : "document "}
+                  <span className="font-mono text-primary">{versionId(picked)}</span>
                 </>
               ) : (
-                "first version · "
+                <>
+                  Initial document <span className="font-mono text-primary">{versionId(picked)}</span>
+                </>
               )}
-              {picked.commit ? "" : "document "}
-              <span className="font-mono text-primary">{versionId(picked)}</span>
             </span>
             <span className="ml-auto flex items-center gap-3">
               <span className="font-medium text-foreground">
-                {versions.length} version{versions.length === 1 ? "" : "s"}
+                {official.length} version{official.length === 1 ? "" : "s"}
+                {proposed.length ? ` · ${proposed.length} proposed` : ""}
               </span>
               {pickedStats && <DiffBar {...pickedStats} />}
             </span>
           </div>
+        </div>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
+          <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
+            <FileTextIcon className="size-3.5" /> Browse text
+          </Button>
         </div>
       </div>
 
@@ -227,7 +353,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
               <SettingsIcon />
             </Ny4Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={6} className="min-w-56 rounded-lg">
+          <DropdownMenuContent align="start" sideOffset={6} className="min-w-60 rounded-lg">
             <DropdownMenuLabel className="text-muted-foreground">Layout</DropdownMenuLabel>
             <DropdownMenuCheckboxItem checked={!split} onCheckedChange={() => setSplit(false)}>
               Unified
@@ -238,6 +364,9 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem checked={hideComments} onCheckedChange={(v) => setHideComments(!!v)}>
               Minimize comments
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem checked={hideProposed} onCheckedChange={(v) => setHideProposed(!!v)}>
+              Hide proposed versions
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem checked={ignoreWhitespace} onCheckedChange={(v) => setIgnoreWhitespace(!!v)}>
@@ -250,71 +379,15 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         </DropdownMenu>
       </div>
 
-      {/* One section per version, newest first. */}
+      {/* One section per official version, newest first; under each, what people proposed on it. */}
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 pb-6">
-        {versions.map((v) => {
-          const open = isOpen(v.document_id)
-          const prev = previousOf(v)
-          const text = texts[v.document_id]
-          const before = prev ? texts[prev.document_id] : ""
-          const s = statsOf[v.document_id]
-          return (
-            <section key={v.document_id} data-open={open} className="overflow-hidden rounded-lg border">
-              <div className="flex items-center gap-2 bg-muted/40 px-3 py-2">
-                <button
-                  type="button"
-                  aria-expanded={open}
-                  onClick={() => {
-                    setOpen((o) => ({ ...o, [v.document_id]: !open }))
-                    if (!open) onDoc(v.document_id)
-                  }}
-                  className="flex min-w-0 items-center gap-2 text-sm hover:underline"
-                >
-                  {open ? <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" /> : <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />}
-                  <span className="font-mono">{label(v)}</span>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Copy this version's text"
-                  disabled={!text}
-                  onClick={() => {
-                    if (!text) return
-                    void navigator.clipboard?.writeText(text)
-                    setCopied(v.document_id)
-                    window.setTimeout(() => setCopied(null), 1500)
-                  }}
-                >
-                  {copied === v.document_id ? <CheckIcon /> : <CopyIcon />}
-                </Button>
-                <span className="ml-auto flex items-center gap-2">
-                  {s ? <DiffBar {...s} /> : <Skeleton className="h-3 w-24" />}
-                  <Button variant="ghost" size="icon-sm" aria-label="Browse the text at this version" onClick={() => onOpenText(v.document_id)}>
-                    <FileTextIcon />
-                  </Button>
-                </span>
-              </div>
-              {open && (
-                <div className="border-t">
-                  {text == null || before == null ? (
-                    <div className="flex flex-col gap-2 p-4">
-                      {Array.from({ length: 10 }).map((_, i) => (
-                        <Skeleton key={i} className="h-3.5 rounded" style={{ width: `${55 + ((i * 37) % 40)}%` }} />
-                      ))}
-                    </div>
-                  ) : (
-                    <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={prev ? before : ""} after={text} split={split} query={query} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
-                  )}
-                </div>
-              )}
-              {!open && s && (
-                <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-                  {prev ? `Against ${prev.version ?? "the version before"} ${nth(prev)}` : "The first version on file"} · {truncate(bill.title, 80)}
-                </div>
-              )}
-            </section>
-          )
-        })}
+        {official.map((v) => (
+          <React.Fragment key={v.document_id}>
+            {section(v, false)}
+            {!hideProposed && proposed.filter((p) => officialParentOf(p, versions) === v.document_id).map((p) => section(p, true))}
+          </React.Fragment>
+        ))}
+        {!hideProposed && proposed.filter((p) => officialParentOf(p, versions) === null).map((p) => section(p, true))}
       </div>
       <p className="sr-only">{doc ? `Showing version ${doc}` : ""}</p>
     </div>

@@ -12,7 +12,7 @@ import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import type { Bill, BillRow, Member } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
-import { commitVersion, createCommit, useFork, useForkCommits, versionId } from "@/lib/policy/forks"
+import { commitVersion, createCommit, useBillCommits, useFork, useForkCommits, versionId } from "@/lib/policy/forks"
 import { BillChanges } from "@/components/create/bill-changes"
 import { BillEdit } from "@/components/create/bill-edit"
 import { BillHistory } from "@/components/create/bill-history"
@@ -89,7 +89,11 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
   // never touched (Brendan, 2026-09-03: "so it's a fork?").
   const forkId = node.kind === "bill" && fork ? Number(fork) : null
   const { fork: forkRow } = useFork(forkId)
-  const { commits } = useForkCommits(forkId)
+  const { commits: forkCommits } = useForkCommits(forkId)
+  // Without a fork, the bill's timeline shows every fork's commits, under
+  // the official version each one changes (Brendan, 2026-09-04).
+  const { commits: billCommits } = useBillCommits(node.kind === "bill" && !forkId ? node.id : null)
+  const commits = forkId ? forkCommits : billCommits
   const versions = React.useMemo<TextVersion[]>(() => [...commits.map(commitVersion), ...[...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id)], [bill?.texts, commits])
   // The version being edited, and its text.
   const editing = node.kind === "bill" && tab === "edit"
