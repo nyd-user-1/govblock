@@ -6,7 +6,6 @@ import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleUserRo
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import { useDocPref } from "@/lib/policy/doc-prefs"
-import { versionId } from "@/lib/policy/forks"
 import { claimCheck } from "@/lib/agents/claim-check"
 import { handleFor } from "@/lib/policy/handle"
 import { lineDiff } from "@/lib/policy/line-diff"
@@ -24,12 +23,12 @@ import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's Changes tab: GitHub's commit page, with the versions as the files
 // changed. Laid out the way Brendan set it in the browser on 2026-09-04
-// (ironic-version-1.html): the card first — the version's message as its
-// title with the `Version 02` chip beside it, the description under it, and
-// a footer of parent · document | N versions · +added −deleted — then the
-// date of record and Browse text under the card, then GitHub's toolbar,
-// then every version as a collapsible section, newest first, each a diff
-// against the version before it.
+// (ironic-version-1.html, and his edit of 2026-09-04 02:00): the card first
+// — the version's message as its title with the `Version 02` chip beside
+// it, the description under it, and a footer of the date of record | N
+// versions · +added −deleted — then GitHub's toolbar with Browse text at
+// its right end, then every version as a collapsible section, newest
+// first, each a diff against the version before it.
 //
 // Two kinds of section. An official version wears the jurisdiction's flag.
 // A version someone proposed in a fork sits indented under the official
@@ -243,7 +242,6 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
 
   if (!picked) return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {bill.bill_number} yet.</p>
   const pickedStats = statsOf[picked.document_id]
-  const pickedBase = baseOf(picked)
   const pickedDate = picked.commit ? null : dateOfRecord(picked, bill)
 
   const section = (v: TextVersion, nested: boolean) => {
@@ -330,18 +328,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             {picked.commit ? picked.commit.description && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{picked.commit.description}</p> : bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-2 text-xs text-muted-foreground">
-            <span>
-              {pickedBase ? (
-                <>
-                  1 parent <span className="font-mono text-primary">{versionId(pickedBase)}</span> · {picked.commit ? "" : "document "}
-                  <span className="font-mono text-primary">{versionId(picked)}</span>
-                </>
-              ) : (
-                <>
-                  Initial document <span className="font-mono text-primary">{versionId(picked)}</span>
-                </>
-              )}
-            </span>
+            <span>{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner, me) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
             <span className="ml-auto flex items-center gap-3">
               <span className="font-medium text-foreground">
                 {official.length} version{official.length === 1 ? "" : "s"}
@@ -350,12 +337,6 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
               {pickedStats && <DiffBar {...pickedStats} />}
             </span>
           </div>
-        </div>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-sm text-muted-foreground">{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner, me) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
-            <FileTextIcon className="size-3.5" /> Browse text
-          </Button>
         </div>
       </div>
 
@@ -406,6 +387,9 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
+          <FileTextIcon className="size-3.5" /> Browse text
+        </Button>
       </div>
 
       {/* One section per official version, newest first; under each, what people proposed on it. */}
