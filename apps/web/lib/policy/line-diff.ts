@@ -40,12 +40,14 @@ type Range = [number, number]
 
 /**
  * The lines a character range [from, to) touches on one side, inclusive;
- * `[x, x - 1]` when it touches none. A range that sits between lines — an
- * insertion at a line start, a "\n…" added at a line's end, "…\n" ending at
- * a line start — touches nothing there, so whole-line changes read as whole
- * lines rather than as edits to their neighbours.
+ * `[x, x - 1]` when it touches none. `other` is the text the other side has
+ * in the same change. A range that sits between lines touches nothing on
+ * this side — an insertion at a line start whose text ends in a newline, or
+ * "\n…" appended after a line — so whole-line changes read as whole lines
+ * rather than as edits to their neighbours. Text put at a line's start that
+ * does not end in a newline joins that line, and touches it.
  */
-function touched(side: Side, from: number, to: number, otherNewlineOnly: boolean): Range {
+function touched(side: Side, from: number, to: number, other: string): Range {
   const { text, starts } = side
   if (to > from) {
     let f = from
@@ -59,16 +61,19 @@ function touched(side: Side, from: number, to: number, otherNewlineOnly: boolean
     return [lineAt(starts, from), lineAt(starts, Math.min(to, Math.max(0, text.length - 1)))]
   }
   // Empty on this side: an insertion point.
-  if (otherNewlineOnly) {
+  if (/^\n+$/.test(other)) {
     const line = lineAt(starts, Math.min(from, Math.max(0, text.length - 1)))
     return [line, line]
   }
-  if (from >= text.length && !text.endsWith("\n")) return [side.lines.length, side.lines.length - 1]
+  if (from >= text.length && !text.endsWith("\n")) {
+    // At the end of the last line: "\n…" goes after it, anything else joins it.
+    return other.startsWith("\n") ? [side.lines.length, side.lines.length - 1] : [side.lines.length - 1, side.lines.length - 1]
+  }
   const line = lineAt(starts, from)
-  return starts[line] === from ? [line, line - 1] : [line, line]
+  if (starts[line] !== from) return [line, line]
+  // At a line start: a whole line (or lines) goes before it; a fragment joins it.
+  return other.endsWith("\n") ? [line, line - 1] : [line, line]
 }
-
-const newlineOnly = (text: string, from: number, to: number) => to > from && /^\n+$/.test(text.slice(from, to))
 
 /** Character marks between a deleted line and the line that replaced it — none when they barely resemble each other, as GitHub leaves such pairs plain. */
 function marksFor(a: string, b: string): [Mark[], Mark[]] {
@@ -94,8 +99,8 @@ export function lineDiff(before: string, after: string): LineDiff {
   type Touch = { a0: number; a1: number; b0: number; b1: number }
   const merged: Touch[] = []
   for (const c of diff(before, after)) {
-    const [a0, a1] = touched(A, c.fromA, c.toA, newlineOnly(after, c.fromB, c.toB))
-    const [b0, b1] = touched(B, c.fromB, c.toB, newlineOnly(before, c.fromA, c.toA))
+    const [a0, a1] = touched(A, c.fromA, c.toA, after.slice(c.fromB, c.toB))
+    const [b0, b1] = touched(B, c.fromB, c.toB, before.slice(c.fromA, c.toA))
     if (a1 < a0 && b1 < b0) continue
     const last = merged[merged.length - 1]
     // Two changes on the same or adjacent lines are one block.

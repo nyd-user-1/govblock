@@ -109,7 +109,7 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
   }, [])
   React.useEffect(() => {
     for (const v of versions) {
-      if (asked.current.has(v.document_id)) continue
+      if (v.commit || asked.current.has(v.document_id)) continue
       asked.current.add(v.document_id)
       void fetch(`/api/policy/text?state=${state}&id=${billId}&document=${v.document_id}`)
         .then((r) => (r.ok ? (r.json() as Promise<{ text?: string }>) : null))
@@ -117,7 +117,7 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
         .catch(() => mounted.current && setTexts((t) => ({ ...t, [v.document_id]: "" })))
     }
   }, [state, billId, versions])
-  return texts
+  return React.useMemo<Record<number, string>>(() => ({ ...texts, ...Object.fromEntries(versions.filter((v) => v.commit).map((v) => [v.document_id, v.commit!.text])) }), [texts, versions])
 }
 
 function VersionDiff({ state, billId, documentId, before, after, split, query }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string }) {
@@ -167,7 +167,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             Version <span className="rounded bg-muted px-1.5 font-mono text-base">{nth(picked)}</span>
           </h2>
           <span className="text-sm text-muted-foreground">
-            {bill.body ?? "The legislature"} · fetched {ago(picked.fetched_at) || "on an unknown date"}
+            {picked.commit ? `${picked.commit.author} committed ${ago(picked.fetched_at)}` : `${bill.body ?? "The legislature"} · fetched ${ago(picked.fetched_at) || "on an unknown date"}`}
           </span>
           <Button variant="outline" size="sm" className="ml-auto" onClick={() => onOpenText(picked.document_id)}>
             <FileTextIcon className="size-3.5" /> Browse text
@@ -175,10 +175,8 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         </div>
         <div className="mt-3 rounded-lg border">
           <div className="px-4 py-3">
-            <div className="font-mono text-sm">
-              {picked.version ?? "Original"}: {bill.bill_number} — {bill.title}
-            </div>
-            {bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
+            <div className="font-mono text-sm">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${bill.bill_number} — ${bill.title}`}</div>
+            {picked.commit ? picked.commit.description && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{picked.commit.description}</p> : bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-2 text-xs text-muted-foreground">
             <span>

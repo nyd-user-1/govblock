@@ -318,3 +318,5 @@ export const CodeView = React.forwardRef<
 /** The document as the code view sees it, for callers that want the outline without mounting an editor. */
 export { layoutBillText }
 export type { DecorationSet }
+
+export { theme as codeTheme }

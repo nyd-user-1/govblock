@@ -43,7 +43,7 @@ const CodeView = dynamic(() => import("@/components/policy/code-view").then((m) 
   loading: () => <Skeleton className="m-4 h-64 rounded-xl" />,
 })
 
-export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null }
+export type TextVersion = { document_id: number; version: string | null; chars: number; fetched_at: string | null; /** Set when the version is a reader's commit, kept in this browser. */ commit?: { message: string; description: string; author: string; text: string } }
 
 export type PaneBill = { bill_id: number; bill_number: string; title: string; status_desc?: string | null; last_action_date?: string | null; committee?: string | null }
 
@@ -135,9 +135,9 @@ export function BillTextPane({
 
   const shown = versions.find((v) => v.document_id === current) ?? versions[0]
 
-  const { data: doc } = usePolicy<{ text?: string }>(shown ? "text" : null, { state }, { id: bill.bill_id, document: shown?.document_id })
-  const text = doc?.text ?? null
-  const rawHref = shown ? `/api/policy/text?state=${state}&id=${bill.bill_id}&document=${shown.document_id}&format=raw` : "#"
+  const { data: doc } = usePolicy<{ text?: string }>(shown && !shown.commit ? "text" : null, { state }, { id: bill.bill_id, document: shown?.document_id })
+  const text = shown?.commit?.text ?? doc?.text ?? null
+  const rawHref = shown && !shown.commit ? `/api/policy/text?state=${state}&id=${bill.bill_id}&document=${shown.document_id}&format=raw` : "#"
 
   // "256 lines (236 loc) · 13.7 KB", as GitHub sizes a file.
   const size = React.useMemo(() => {

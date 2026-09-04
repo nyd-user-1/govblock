@@ -62,10 +62,14 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
       title: (
         <span>
           <span className="mr-2 font-mono text-xs text-muted-foreground">{nth}</span>
-          {v.version ?? "Original"} — {truncate(bill.title, 110)}
+          {v.commit ? v.commit.message : `${v.version ?? "Original"} — ${truncate(bill.title, 110)}`}
         </span>
       ),
-      meta: (
+      meta: v.commit ? (
+        <span>
+          <span className="font-medium text-foreground">{v.commit.author}</span> committed {ago(v.fetched_at)} · {fmtNumber(v.chars)} characters
+        </span>
+      ) : (
         <span>
           {bill.body ?? ""}
           {bill.body ? " · " : ""}

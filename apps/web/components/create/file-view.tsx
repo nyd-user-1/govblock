@@ -11,10 +11,12 @@ import { portraitFor } from "@/lib/imagery"
 import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import type { Bill, BillRow, Member } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { commitVersion, useCommits } from "@/lib/policy/commits"
 import { BillChanges } from "@/components/create/bill-changes"
+import { BillEdit } from "@/components/create/bill-edit"
 import { BillHistory } from "@/components/create/bill-history"
 import { MemberRecord } from "@/components/create/member-record"
-import { BillTextPane } from "@/components/policy/bill-text-pane"
+import { BillTextPane, type TextVersion } from "@/components/policy/bill-text-pane"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { Badge } from "@govblock/ui/components/nova/badge"
@@ -78,11 +80,18 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
   const { data: member } = usePolicy<Member>(node.kind === "member" ? "member" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined })
   const { data: sponsored } = usePolicy<MemberRecordAnswer>(node.kind === "member" && tab === "bills" ? "record" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined, limit: 100 })
   const { data: rollcall } = usePolicy<RollCallAnswer>(node.kind === "rollcall" ? "rollcall" : null, { state }, { id: node.kind === "rollcall" ? node.id : undefined })
-  // One array per bill, newest first, so the tabs that key effects on it do not re-run every render.
-  const versions = React.useMemo(() => [...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id), [bill?.texts])
+  // One array per bill, newest first, so the tabs that key effects on it do
+  // not re-run every render. The reader's own commits sit in it as versions,
+  // newest first, ahead of the legislature's.
+  const { commits, add: addCommit } = useCommits(state, node.kind === "bill" ? node.id : null)
+  const versions = React.useMemo<TextVersion[]>(() => [...commits.map(commitVersion), ...[...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id)], [bill?.texts, commits])
+  // The version being edited, and its text.
+  const editing = node.kind === "bill" && tab === "edit"
+  const editBase = editing ? (versions.find((v) => v.document_id === Number(doc)) ?? versions[0]) : undefined
+  const { data: editDoc } = usePolicy<{ text?: string }>(editBase && !editBase.commit ? "text" : null, { state }, { id: node.kind === "bill" ? node.id : undefined, document: editBase?.document_id })
 
   if (node.kind === "bill") {
-    const active = tab === "history" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
+    const active = tab === "history" || tab === "edit" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
     const historyButton = (
       <Button variant="outline" size="sm" data-active={active === "history"} className="data-[active=true]:bg-muted" onClick={() => onTab("history")}>
         History{versions.length ? ` · ${versions.length}` : ""}
@@ -97,7 +106,7 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
     ]
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        {active !== "text" && (
+        {active !== "text" && active !== "edit" && (
           // No tab pills (Brendan, 2026-09-03: "we have duplicates of it"):
           // the file's name in the path bar returns to the text, the ⋯ menu
           // opens any view, and History has its button.
@@ -130,6 +139,7 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
               }}
               history={historyButton}
               related={related}
+              onEdit={() => onGo({ bill: String(node.id), tab: "edit", doc: doc || null })}
             />
           ) : (
             <div className="flex flex-col gap-2 p-4">
@@ -138,6 +148,17 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
               ))}
             </div>
           )
+        ) : active === "edit" && bill && editBase ? (
+          <BillEdit
+            bill={bill}
+            base={editBase}
+            baseText={editBase.commit?.text ?? editDoc?.text ?? null}
+            onCancel={() => onGo({ bill: String(node.id), tab: null, doc: doc || null })}
+            onCommit={({ message, description, text }) => {
+              const made = addCommit({ parent: editBase.document_id, message, description, text })
+              onGo({ bill: String(node.id), tab: null, doc: made ? String(made.id) : null })
+            }}
+          />
         ) : active === "changes" && bill ? (
           <BillChanges state={state} bill={bill} versions={versions} doc={doc ? Number(doc) : null} onDoc={(id) => onDoc(id)} onOpenText={openText} />
         ) : active === "history" && bill ? (
