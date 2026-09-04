@@ -9,14 +9,17 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 
 // GitHub's "More file actions" menu, put to a bill (Brendan, 2026-09-03).
-// Raw text to download, jump to a line, copy the path or the permalink, ask
-// an agent about it, and the view options the pane reads through the shared
-// preferences. There is no Delete: a bill is the legislature's file.
+// The bill's views (the tab pills went that evening — "we have duplicates of
+// it"), raw text to download, jump to a line, copy the path or the permalink,
+// ask an agent about it, and the view options the pane reads through the
+// shared preferences. There is no Delete: a bill is the legislature's file.
 //
 // Download and Jump to line need the text and the editor, which live in the
 // pane, so they are asked for by event and the pane answers.
 
-export function FileActions({ path, state, billId }: { path: string; state: string; billId: number }) {
+export type BillView = "text" | "changes" | "history" | "record" | "typeset"
+
+export function FileActions({ path, state, billId, view, onOpen }: { path: string; state: string; billId: number; /** Which of the bill's views is showing. */ view: BillView; onOpen: (view: BillView) => void }) {
   const [fold, setFold] = useDocPref("fold", true)
   const [wrap, setWrap] = useDocPref("wrap", true)
   const [center, setCenter] = useDocPref("center", false)
@@ -67,6 +70,23 @@ export function FileActions({ path, state, billId }: { path: string; state: stri
         <TooltipContent side="bottom">More file actions</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" sideOffset={6} className="min-w-64 rounded-lg">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-muted-foreground">Open</DropdownMenuLabel>
+          {(
+            [
+              ["text", "Text"],
+              ["changes", "Changes"],
+              ["history", "History"],
+              ["record", "Record"],
+              ["typeset", "Typeset"],
+            ] as [BillView, string][]
+          ).map(([value, label]) => (
+            <DropdownMenuCheckboxItem key={value} checked={view === value} onCheckedChange={() => onOpen(value)}>
+              {label}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-muted-foreground">Raw text</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => fileAction("download")}>

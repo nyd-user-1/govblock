@@ -10,6 +10,7 @@
 // bigint (so left(text, $1) needs $1::int).
 
 import "server-only"
+import { cleanBillText } from "@/lib/policy/texts"
 
 import { n, one, q } from "@/lib/policy/db"
 import { DEFAULT_STATE, type Filters } from "@/lib/filters"
@@ -448,21 +449,6 @@ export async function getBill(billId: number) {
     texts: texts.map((t) => ({ ...t, document_id: n(t.document_id) })),
     hearings,
   }
-}
-
-// Assembly texts arrive as a scrape of the whole assembly.state.ny.us page
-// (nav, votes …) ahead of an "<bill> Text:" marker, and end with "Go to top".
-// Same rule as scripts/build-policy-content.mts — keep the bill only.
-export function cleanBillText(raw: string) {
-  let text = String(raw ?? "").replace(/\r/g, "")
-  const marker = text.match(/^\s*[A-Z]\d+[A-Z]? Text:[ \t]*$/m)
-  if (marker?.index !== undefined) {
-    text = text.slice(marker.index + marker[0].length)
-  }
-  return text
-    .replace(/^\s*Go to top\s*$/gm, "")
-    .replace(/^\n+/, "")
-    .replace(/\s+$/, "")
 }
 
 export async function getBillText(billId: number, documentId?: number) {

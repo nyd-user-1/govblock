@@ -14,7 +14,7 @@ import { usePolicy } from "@/lib/policy/use-policy"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { Fab, FabButton } from "@/components/create/fab"
-import { FileActions } from "@/components/create/file-actions"
+import { FileActions, type BillView } from "@/components/create/file-actions"
 import { FileView } from "@/components/create/file-view"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
@@ -136,7 +136,7 @@ function DesignerInner() {
       if (node.kind === "member" || (node.kind === "committee" && node.sub === "members")) out.push({ label: "Members", go: { committee: location.committee, at: "members", member: null, bill: null, rollcall: null } })
       else if (node.kind === "bill" || node.kind === "committee") out.push({ label: "Bills", go: { committee: location.committee, at: null, member: null, bill: null, rollcall: null } })
       if (node.kind === "member") out.push({ label: memberLabel })
-      if (node.kind === "bill") out.push({ label: billLabel })
+      if (node.kind === "bill") out.push({ label: billLabel, go: params.tab ? { bill: location.bill, tab: null } : undefined })
       return out
     }
     switch (node.kind) {
@@ -144,8 +144,8 @@ function DesignerInner() {
         out.push({ label: "Bills" })
         break
       case "bill":
-        if (location.member) out.push({ label: "Members", go: listing("members") }, { label: memberLabel, go: { member: location.member, bill: null, rollcall: null, tab: "bills" } }, { label: billLabel })
-        else out.push({ label: "Bills", go: listing("bills") }, { label: billLabel })
+        if (location.member) out.push({ label: "Members", go: listing("members") }, { label: memberLabel, go: { member: location.member, bill: null, rollcall: null, tab: "bills" } }, { label: billLabel, go: params.tab ? { bill: location.bill, tab: null } : undefined })
+        else out.push({ label: "Bills", go: listing("bills") }, { label: billLabel, go: params.tab ? { bill: location.bill, tab: null } : undefined })
         break
       case "committees":
         out.push({ label: "Committees" })
@@ -175,7 +175,7 @@ function DesignerInner() {
         break
     }
     return out
-  }, [scope.state, scope.session, sessionTitle, node, location, params.at, memberLabel, billLabel])
+  }, [scope.state, scope.session, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel])
 
   // `..`: the crumb before the last one.
   const up: Target | null = crumbs.length >= 2 ? (crumbs[crumbs.length - 2].go ?? null) : null
@@ -229,7 +229,7 @@ function DesignerInner() {
       </BlockShell>
     )
   ) : (
-    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
+    <BlockShell rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
         <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (

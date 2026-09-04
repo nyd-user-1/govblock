@@ -31,7 +31,11 @@ export function PathBar({ crumbs, folder, onGo, className }: { crumbs: Crumb[]; 
         return (
           <React.Fragment key={`${c.label}-${index}`}>
             {index > 0 && <span className="shrink-0 text-muted-foreground">/</span>}
-            {last || !c.go ? (
+            {last && c.go ? (
+              <button type="button" onClick={() => onGo(c.go!)} className="truncate font-medium hover:underline">
+                {c.label}
+              </button>
+            ) : last || !c.go ? (
               <span className={cn("truncate font-medium", index === 0 && !last && "text-primary")}>{c.label}</span>
             ) : (
               <button type="button" onClick={() => onGo(c.go!)} title={folded ? c.label : undefined} className="shrink-0 text-primary hover:underline">

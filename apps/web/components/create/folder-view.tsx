@@ -9,6 +9,7 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
 import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use-folder"
 import { BillCard, CommitteeCard, MemberCard } from "@/components/create/entity-card"
+import { ago } from "@/components/create/timeline"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { EditDetailsDialog, ProjectCard, ProjectGrid, useProjectDetails, type ProjectDetails } from "@/components/project-card"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
@@ -117,12 +118,12 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
     case "bills":
     case "committee":
       if (node.kind === "committee" && node.sub === "members") return columnsFor({ kind: "members" }, state, onGo).concat([{ key: "votes", label: "Committee votes", className: right, cell: (r) => muted(fmtNumber(r.count ?? 0)) }])
+      // GitHub's three columns, and its names: a bill, its latest commit, and
+      // when it last moved — "5 days ago", not a date (Brendan, 2026-09-03).
       return [
         { key: "bill", label: "Bill", className: "w-36", cell: (r) => name(r, true) },
-        { key: "version", label: "Latest version", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
-        { key: "status", label: "Status", className: "w-44", cell: (r) => muted(r.record?.kind === "bill" ? (r.record.bill.status_desc ?? "Introduced") : "") },
-        { key: "committee", label: "Committee", className: "w-48", cell: (r) => muted(truncate(r.record?.kind === "bill" ? (r.record.bill.committee ?? "—") : "", 30)) },
-        { key: "date", label: "Last action", className: `w-32 ${right}`, cell: (r) => muted(r.date ? fmtDate(r.date) : "—") },
+        { key: "commit", label: "Commit", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
+        { key: "date", label: "Last activity", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
       ]
     case "committees":
       return [

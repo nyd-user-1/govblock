@@ -91,15 +91,6 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
     const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
     const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
     const href = active === "record" ? `/docs/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
-    const tabPills = (
-      <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-        {BILL_TABS.map((t) => (
-          <button key={t.value} type="button" data-active={active === t.value} onClick={() => onTab(t.value)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
-            {t.label}
-          </button>
-        ))}
-      </div>
-    )
     const related = [
       ...(bill?.sameAs ?? []).map((s) => ({ label: s.sast_bill_number, action: `View ${s.sast_type?.toLowerCase().includes("same") ? "companion bill" : s.sast_type || "related bill"}`, onClick: () => onGo({ bill: String(s.sast_bill_id) }) })),
       ...versions.filter((v) => /amend|engross|enroll|substitute|comm sub/i.test(v.version ?? "")).map((v) => ({ label: bill?.bill_number ?? "", action: `View ${v.version}`, onClick: () => onDoc(v.document_id) })),
@@ -107,23 +98,21 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {active !== "text" && (
-          <Tabs
-            tabs={BILL_TABS}
-            active={active}
-            onTab={onTab}
-            trailing={
-              <>
-                {href && (
-                  <Button variant="ghost" size="sm" asChild>
-                    <a href={href} target="_blank" rel="noreferrer">
-                      Open in new tab <ExternalLinkIcon className="size-3.5" />
-                    </a>
-                  </Button>
-                )}
-                {historyButton}
-              </>
-            }
-          />
+          // No tab pills (Brendan, 2026-09-03: "we have duplicates of it"):
+          // the file's name in the path bar returns to the text, the ⋯ menu
+          // opens any view, and History has its button.
+          <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
+            <div className="ml-auto flex items-center gap-2">
+              {href && (
+                <Button variant="ghost" size="sm" asChild>
+                  <a href={href} target="_blank" rel="noreferrer">
+                    Open in new tab <ExternalLinkIcon className="size-3.5" />
+                  </a>
+                </Button>
+              )}
+              {historyButton}
+            </div>
+          </div>
         )}
         {active === "text" ? (
           bill ? (
@@ -139,7 +128,6 @@ export function FileView({ node, scope, design, tab, doc, onTab, onDoc, onGo }: 
                 onGo({ bill: String(billId) })
                 if (documentId) onDoc(documentId)
               }}
-              tabs={tabPills}
               history={historyButton}
               related={related}
             />

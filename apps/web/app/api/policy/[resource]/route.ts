@@ -209,7 +209,10 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const id = int(sp.get("id") ?? f.bill ?? null, 0)
       if (!id) throw new Error("bill id required")
-      return getBillText(id, int(sp.get("document"), 0) || undefined)
+      const doc = await getBillText(id, int(sp.get("document"), 0) || undefined)
+      // `format=raw` is GitHub's Raw button: the text itself, as text.
+      if (sp.get("format") === "raw") return new Response(doc?.text ?? "", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": CACHE } })
+      return doc
     }
     case "bill-texts": {
       // The changelog prints a code block per bill, so one request rather than
@@ -406,6 +409,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
   const sp = new URL(request.url).searchParams
   try {
     const data = await dispatch(resource, sp)
+    if (data instanceof Response) return data
     if (data === undefined) {
       return NextResponse.json({ error: `unknown resource ${resource}` }, { status: 404 })
     }
