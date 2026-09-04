@@ -74,20 +74,13 @@ function splitRollCall(description: string) {
 
 type Column = { key: string; label: string; className?: string; cell: (row: Row) => React.ReactNode }
 
-/** "05 Enrolled — Surrender Of Infants…", the bill's last commit line. No
- *  tooltip: California's descriptions are the whole act (Brendan,
- *  2026-09-03, "get rid of the tool tip"); the title is the row's own. */
+/** The bill's title, as its last commit line: a click opens the latest
+ *  version's changes. No version label and no tooltip (Brendan, 2026-09-03:
+ *  California's version names and descriptions are too long to sit here). */
 function LatestVersion({ row, onGo }: { row: Row; onGo: (go: Target) => void }) {
   if (row.record?.kind !== "bill") return <span className="text-muted-foreground">{truncate(row.description ?? "", 110)}</span>
   const b = row.record.bill
-  const nth = b.versions ? String(b.versions).padStart(2, "0") : null
-  const label = b.latest_version ? `${nth} ${b.latest_version}` : null
-  const line = (
-    <span className="text-muted-foreground">
-      {label && <span className="mr-2 font-mono text-xs text-foreground/80">{label}</span>}
-      {truncate(b.title, label ? 90 : 110)}
-    </span>
-  )
+  const line = <span className="text-muted-foreground">{truncate(b.title, 110)}</span>
   if (!b.latest_document_id) return line
   return (
     <button
