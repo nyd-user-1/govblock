@@ -127,7 +127,7 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
       // is the action that produced the latest version — what changed — not
       // the bill's description (Brendan, 2026-09-04).
       return [
-        { key: "bill", label: "Bill", className: "w-[38%]", cell: (r) => name(r, true) },
+        { key: "bill", label: "Bill", className: "w-[41%]", cell: (r) => name(r, true) },
         { key: "commit", label: "Commit", cell: (r) => <LatestVersion row={r} onGo={onGo} /> },
         { key: "date", label: "Last activity", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
       ]

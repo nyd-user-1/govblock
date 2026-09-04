@@ -1,5 +1,7 @@
 import { diff, presentableDiff } from "@codemirror/merge"
 
+import { layoutBillText } from "@/lib/policy/bill-text-layout"
+
 // A diff between two texts as lines, the shape GitHub draws: equal runs,
 // change blocks of deleted and added lines, and for each pair of lines that
 // replaced one another, the characters that differ. CodeMirror's own diff
@@ -12,7 +14,8 @@ import { diff, presentableDiff } from "@codemirror/merge"
 export type Mark = { from: number; to: number }
 
 export type Block =
-  | { kind: "equal"; a: number; b: number; count: number }
+  /** `bCount` is set when the sides have the same words on a different number of lines (reflow mode). */
+  | { kind: "equal"; a: number; b: number; count: number; bCount?: number }
   | { kind: "change"; a: number; b: number; del: string[]; add: string[]; delMarks: Mark[][]; addMarks: Mark[][] }
 
 export type LineDiff = { blocks: Block[]; added: number; deleted: number; aLines: string[]; bLines: string[] }
@@ -94,7 +97,8 @@ function marksFor(a: string, b: string): [Mark[], Mark[]] {
 /** Each line with its runs of spaces and tabs collapsed — the shape of the text with whitespace hidden. */
 const squeeze = (text: string) => text.split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).join("\n")
 
-export function lineDiff(before: string, after: string, options: { ignoreWhitespace?: boolean } = {}): LineDiff {
+export function lineDiff(before: string, after: string, options: { ignoreWhitespace?: boolean; reflow?: boolean } = {}): LineDiff {
+  if (options.reflow) return reflowDiff(before, after)
   if (options.ignoreWhitespace) {
     // Diff the squeezed texts (same line count), then show the real lines.
     const d = lineDiff(squeeze(before), squeeze(after))
@@ -163,4 +167,158 @@ export function lineDiff(before: string, after: string, options: { ignoreWhitesp
   // Whatever the line accounting could not pair is still shown, as a change.
   if (a < A.lines.length || b < B.lines.length) change(A.lines.slice(a), B.lines.slice(b))
   return { blocks, added, deleted, aLines: A.lines, bLines: B.lines }
+}
+
+// ── reflow mode ─────────────────────────────────────────────────────────────
+//
+// Bill texts are re-set between versions: a comm sub is a fresh PDF, its
+// lines break in new places, its page furniture and its own line numbers
+// move. Measured on 2026-09-04 across ten states: Florida's H5003 showed
+// 1,463 changed lines for 825 changed words, Colorado's HB1429 4,833 lines
+// for 1,113 words. So in reflow mode the diff is computed on words — the
+// document's own line numbers and page furniture left out — and a line is
+// changed only when a word on it changed. Lines that merely re-wrapped are
+// context, and the two sides may show the same words on different numbers
+// of lines (`bCount`).
+
+type Token = { line: number; from: number; to: number }
+
+function tokenize(text: string): { lines: string[]; tokens: Token[]; words: string[] } {
+  const lines = text ? text.split("\n") : []
+  const layout = layoutBillText(text)
+  const tokens: Token[] = []
+  const words: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const meta = layout.lines[i]
+    if (meta?.kind === "furniture") continue
+    const raw = lines[i]
+    const re = /\S+/g
+    let m: RegExpExecArray | null
+    let first = true
+    while ((m = re.exec(raw))) {
+      // The document's own line number, lifted into the gutter, is not a word.
+      if (first && meta?.n && m[0] === String(meta.n)) {
+        first = false
+        continue
+      }
+      first = false
+      tokens.push({ line: i, from: m.index, to: m.index + m[0].length })
+      words.push(m[0])
+    }
+  }
+  return { lines, tokens, words }
+}
+
+function reflowDiff(before: string, after: string): LineDiff {
+  const A = tokenize(before)
+  const B = tokenize(after)
+  // The diff over words: each word a line of its own.
+  const byWord = lineDiff(A.words.join("\n"), B.words.join("\n"))
+
+  // Which token block each token belongs to, and whether it changed.
+  const aBlock = new Array<number>(A.tokens.length)
+  const bBlock = new Array<number>(B.tokens.length)
+  const aChanged = new Array<boolean>(A.tokens.length).fill(false)
+  const bChanged = new Array<boolean>(B.tokens.length).fill(false)
+  byWord.blocks.forEach((blk, k) => {
+    if (blk.kind === "equal") {
+      for (let i = 0; i < blk.count; i++) {
+        aBlock[blk.a + i] = k
+        bBlock[blk.b + i] = k
+      }
+    } else {
+      for (let i = 0; i < blk.del.length; i++) {
+        aBlock[blk.a + i] = k
+        aChanged[blk.a + i] = true
+      }
+      for (let i = 0; i < blk.add.length; i++) {
+        bBlock[blk.b + i] = k
+        bChanged[blk.b + i] = true
+      }
+    }
+  })
+
+  // Each line: changed if any of its words changed; assigned to the block of
+  // its first changed word, else of its first word; a line without words
+  // rides with the line before it.
+  type LineInfo = { changed: boolean; block: number; marks: Mark[] }
+  const assign = (side: typeof A, blocks: number[], changed: boolean[]): LineInfo[] => {
+    const info: LineInfo[] = side.lines.map(() => ({ changed: false, block: -1, marks: [] }))
+    side.tokens.forEach((t, i) => {
+      const li = info[t.line]
+      if (changed[i]) {
+        if (!li.changed) {
+          li.changed = true
+          li.block = blocks[i]
+          li.marks = []
+        }
+        li.marks.push({ from: t.from, to: t.to })
+      } else if (li.block < 0) li.block = blocks[i]
+    })
+    let last = 0
+    for (let i = 0; i < info.length; i++) {
+      if (info[i].block < 0) info[i].block = last
+      else last = info[i].block
+    }
+    return info
+  }
+  const ai = assign(A, aBlock, aChanged)
+  const bi = assign(B, bBlock, bChanged)
+
+  // Walk the word blocks in order, taking each side's lines in turn.
+  const blocks: Block[] = []
+  let a = 0
+  let b = 0
+  let added = 0
+  let deleted = 0
+  const take = (info: LineInfo[], from: number, k: number, changed: boolean) => {
+    let i = from
+    while (i < info.length && info[i].block <= k && info[i].changed === changed) i++
+    // Lines ahead of the block that already belong to it, unchanged, come along too.
+    return i
+  }
+  const flush = (aTo: number, bTo: number, changed: boolean) => {
+    if (aTo === a && bTo === b) return
+    if (!changed) {
+      blocks.push({ kind: "equal", a, b, count: aTo - a, bCount: bTo - b })
+    } else {
+      const del = A.lines.slice(a, aTo)
+      const add = B.lines.slice(b, bTo)
+      blocks.push({ kind: "change", a, b, del, add, delMarks: ai.slice(a, aTo).map((l) => l.marks), addMarks: bi.slice(b, bTo).map((l) => l.marks) })
+      added += add.length
+      deleted += del.length
+    }
+    a = aTo
+    b = bTo
+  }
+  for (let k = 0; k < byWord.blocks.length; k++) {
+    const changed = byWord.blocks[k].kind === "change"
+    // First the lines of this block that are of its kind, then any of the
+    // other kind that the assignment put here (a partly changed line in an
+    // equal block, a blank line in a change block).
+    flush(take(ai, a, k, changed), take(bi, b, k, changed), changed)
+    flush(take(ai, a, k, !changed), take(bi, b, k, !changed), !changed)
+  }
+  flush(A.lines.length, B.lines.length, false)
+  // Merge neighbouring blocks of the same kind.
+  const merged: Block[] = []
+  for (const blk of blocks) {
+    const last = merged[merged.length - 1]
+    if (last && last.kind === blk.kind) {
+      if (last.kind === "equal" && blk.kind === "equal") {
+        last.count += blk.count
+        last.bCount = (last.bCount ?? last.count) + (blk.bCount ?? blk.count)
+        continue
+      }
+      if (last.kind === "change" && blk.kind === "change") {
+        last.del.push(...blk.del)
+        last.add.push(...blk.add)
+        last.delMarks.push(...blk.delMarks)
+        last.addMarks.push(...blk.addMarks)
+        continue
+      }
+    }
+    merged.push(blk)
+  }
+  return { blocks: merged, added, deleted, aLines: A.lines, bLines: B.lines }
 }

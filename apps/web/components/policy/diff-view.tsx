@@ -102,10 +102,15 @@ function rows(d: LineDiff, layout: Layout, reveal: Record<number, { top: number;
   const out: Row[] = []
   const blocks = d.blocks
   const lineRow = (a: number | null, b: number | null, tone: "add" | "del" | "ctx", text: string, marks?: Mark[]): Row => ({ kind: "line", a, b, tone, text, marks })
-  const ctx = (a: number, b: number, count: number) => {
-    for (let i = 0; i < count; i++) {
-      if (layout === "split") out.push({ kind: "pair", a: a + i, b: b + i, left: { text: d.aLines[a + i] }, right: { text: d.bLines[b + i] }, tone: "ctx" })
-      else out.push(lineRow(a + i, b + i, "ctx", d.aLines[a + i]))
+  // Context: the same words on both sides. In reflow mode the sides may hold
+  // them on different numbers of lines; the extra lines pair with nothing.
+  const ctx = (a: number, b: number, count: number, bCount = count) => {
+    const n = Math.max(count, bCount)
+    for (let i = 0; i < n; i++) {
+      const hasA = i < count
+      const hasB = i < bCount
+      if (layout === "split") out.push({ kind: "pair", a: hasA ? a + i : null, b: hasB ? b + i : null, left: hasA ? { text: d.aLines[a + i] } : null, right: hasB ? { text: d.bLines[b + i] } : null, tone: "ctx" })
+      else out.push(lineRow(hasA ? a + i : null, hasB ? b + i : null, "ctx", hasB ? d.bLines[b + i] : d.aLines[a + i]))
     }
   }
   // A change block's hunk header counts its context; computed per hunk below.
@@ -117,37 +122,44 @@ function rows(d: LineDiff, layout: Layout, reveal: Record<number, { top: number;
       const prev = i > 0 && changeAt(i - 1)
       const next = changeAt(i + 1)
       const r = reveal[i] ?? { top: 0, bottom: 0 }
-      // Context that stays open beside the changes.
+      const bCount = block.bCount ?? block.count
+      // Context that stays open beside the changes. With different line
+      // counts per side, the fold is measured on the longer side.
       const keepTop = prev ? CONTEXT : 0
       const keepBottom = next ? CONTEXT : 0
-      const top = Math.min(block.count, keepTop + r.top)
-      const bottom = Math.min(block.count - top, keepBottom + r.bottom)
-      const hidden = block.count - top - bottom
-      ctx(block.a, block.b, top)
+      const longest = Math.max(block.count, bCount)
+      const top = Math.min(longest, keepTop + r.top)
+      const bottom = Math.min(longest - top, keepBottom + r.bottom)
+      const hidden = longest - top - bottom
+      const aTop = Math.min(block.count, top)
+      const bTop = Math.min(bCount, top)
+      const aBottom = Math.min(block.count - aTop, bottom)
+      const bBottom = Math.min(bCount - bTop, bottom)
+      ctx(block.a, block.b, aTop, bTop)
       if (hidden > 0) {
         // The header names the hunk that follows: from the first shown line
         // after the fold to the end of the next change and its context.
-        const aFrom = block.a + top + hidden
-        const bFrom = block.b + top + hidden
-        let aCount = bottom
-        let bCount = bottom
+        const aFrom = block.a + block.count - aBottom
+        const bFrom = block.b + bCount - bBottom
+        let aCount = aBottom
+        let bCountHunk = bBottom
         for (let j = i + 1; j < blocks.length; j++) {
           const nb = blocks[j]
           if (nb.kind === "change") {
             aCount += nb.del.length
-            bCount += nb.add.length
+            bCountHunk += nb.add.length
           } else {
             const nr = reveal[j] ?? { top: 0, bottom: 0 }
-            const keep = Math.min(nb.count, (changeAt(j - 1) ? CONTEXT : 0) + nr.top)
-            aCount += keep
-            bCount += keep
-            if (nb.count > keep) break
+            const keep = (changeAt(j - 1) ? CONTEXT : 0) + nr.top
+            aCount += Math.min(nb.count, keep)
+            bCountHunk += Math.min(nb.bCount ?? nb.count, keep)
+            if (Math.max(nb.count, nb.bCount ?? nb.count) > keep) break
           }
         }
-        out.push({ kind: "hunk", gap: i, header: next || bottom ? header(aFrom, aCount, bFrom, bCount) : "", up: hidden > STEP, down: hidden > STEP, all: hidden <= STEP, above: top, below: bottom })
+        out.push({ kind: "hunk", gap: i, header: next || bottom ? header(aFrom, aCount, bFrom, bCountHunk) : "", up: hidden > STEP, down: hidden > STEP, all: hidden <= STEP, above: top, below: bottom })
         hunkOpen = true
       }
-      ctx(block.a + top + hidden, block.b + top + hidden, bottom)
+      ctx(block.a + block.count - aBottom, block.b + bCount - bBottom, aBottom, bBottom)
       continue
     }
     if (!hunkOpen && i === 0) {
@@ -156,9 +168,9 @@ function rows(d: LineDiff, layout: Layout, reveal: Record<number, { top: number;
       let bCount = block.add.length
       const nb = blocks[1]
       if (nb?.kind === "equal") {
-        const keep = Math.min(nb.count, CONTEXT + (reveal[1]?.top ?? 0))
-        aCount += keep
-        bCount += keep
+        const keep = CONTEXT + (reveal[1]?.top ?? 0)
+        aCount += Math.min(nb.count, keep)
+        bCount += Math.min(nb.bCount ?? nb.count, keep)
       }
       out.push({ kind: "hunk", gap: -1, header: header(block.a, aCount, block.b, bCount), up: false, down: false, all: false, above: 0, below: 0 })
       hunkOpen = true
@@ -191,6 +203,7 @@ export function DiffView({
   compact = false,
   hideComments = false,
   ignoreWhitespace = false,
+  reflow = false,
   className,
 }: {
   before: string
@@ -207,9 +220,11 @@ export function DiffView({
   compact?: boolean
   hideComments?: boolean
   ignoreWhitespace?: boolean
+  /** Diff by words: a line that only re-wrapped is context, not a change. */
+  reflow?: boolean
   className?: string
 }) {
-  const d = React.useMemo(() => lineDiff(before, after, { ignoreWhitespace }), [before, after, ignoreWhitespace])
+  const d = React.useMemo(() => lineDiff(before, after, { ignoreWhitespace, reflow }), [before, after, ignoreWhitespace, reflow])
   const [reveal, setReveal] = React.useState<Record<number, { top: number; bottom: number }>>({})
   const [composing, setComposing] = React.useState<LineRef | null>(null)
   // The row the reader clicked: GitHub's blue ring, and its + stays up.

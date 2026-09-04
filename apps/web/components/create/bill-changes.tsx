@@ -126,10 +126,18 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
 }
 
 /** Line counts per version, computed one at a time while the browser is idle — a million-character act diffs in the background, not on the click. */
-function useIdleStats(pairs: { id: number; before: string | null; after: string | null }[]) {
+function useIdleStats(pairs: { id: number; before: string | null; after: string | null; reflow: boolean }[]) {
   const [stats, setStats] = React.useState<Record<number, Stats>>({})
   const done = React.useRef(new Set<number>())
+  const mode = React.useRef<boolean | null>(null)
   React.useEffect(() => {
+    // Counts are per mode: switching reflow recounts everything.
+    const reflowNow = pairs[0]?.reflow ?? false
+    if (mode.current !== reflowNow) {
+      mode.current = reflowNow
+      done.current.clear()
+      setStats({})
+    }
     const todo = pairs.filter((p) => p.before !== null && p.after !== null && !done.current.has(p.id))
     if (!todo.length) return
     let cancelled = false
@@ -137,7 +145,7 @@ function useIdleStats(pairs: { id: number; before: string | null; after: string 
     const step = (i: number) => {
       if (cancelled || i >= todo.length) return
       const p = todo[i]
-      const d = lineDiff(p.before!, p.after!)
+      const d = lineDiff(p.before!, p.after!, { reflow: p.reflow })
       done.current.add(p.id)
       setStats((s) => ({ ...s, [p.id]: { added: d.added, deleted: d.deleted } }))
       idle(() => step(i + 1))
@@ -150,9 +158,9 @@ function useIdleStats(pairs: { id: number; before: string | null; after: string 
   return stats
 }
 
-function VersionDiff({ state, billId, documentId, before, after, split, query, compact, hideComments, ignoreWhitespace }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string; compact: boolean; hideComments: boolean; ignoreWhitespace: boolean }) {
+function VersionDiff({ state, billId, documentId, before, after, split, query, compact, hideComments, ignoreWhitespace, reflow }: { state: string; billId: number; documentId: number; before: string; after: string; split: boolean; query: string; compact: boolean; hideComments: boolean; ignoreWhitespace: boolean; reflow: boolean }) {
   const { comments, add } = useComments(`govblock:comments:${state}:${billId}:${documentId}`)
-  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
+  return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} reflow={reflow} />
 }
 
 /** The official version a commit changes: its document parent, or the nearest official ancestor through commit parents. */
@@ -174,6 +182,9 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
   const [ignoreWhitespace, setIgnoreWhitespace] = useDocPref("hide-whitespace", false)
   const [compact, setCompact] = useDocPref("compact", false)
   const [hideProposed, setHideProposed] = useDocPref("hide-proposed", false)
+  // On by default: a version is a fresh setting of the text, and its lines
+  // break in new places. Off, the diff is line by line, as GitHub's is.
+  const [reflow, setReflow] = useDocPref("reflow", true)
   const { toggleSidebar } = useSidebar()
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
@@ -206,9 +217,9 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         const base = baseOf(v)
         const after = texts[v.document_id] ?? null
         const before = base ? (texts[base.document_id] ?? null) : ""
-        return { id: v.document_id, before, after }
+        return { id: v.document_id, before, after, reflow }
       }),
-    [versions, texts, baseOf]
+    [versions, texts, baseOf, reflow]
   )
   const statsOf = useIdleStats(pairs)
 
@@ -272,7 +283,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
                 ))}
               </div>
             ) : (
-              <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={base ? before : ""} after={text} split={split} query={query} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} />
+              <VersionDiff state={state} billId={bill.bill_id} documentId={v.document_id} before={base ? before : ""} after={text} split={split} query={query} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} reflow={reflow} />
             )}
           </div>
         )}
@@ -369,6 +380,9 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
               Hide proposed versions
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem checked={reflow} onCheckedChange={(v) => setReflow(!!v)}>
+              Ignore line wrapping
+            </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem checked={ignoreWhitespace} onCheckedChange={(v) => setIgnoreWhitespace(!!v)}>
               Hide whitespace
             </DropdownMenuCheckboxItem>
