@@ -141,7 +141,8 @@ export function MemberOfficialPortrait({
 /** Terms served, and the parties served under. */
 export function MemberTerms() {
   const { detail } = use()
-  const served = terms(detail)
+  // Newest first, the way the record reads everywhere else on the page.
+  const served = [...terms(detail)].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0))
   const parties = detail?.member?.partyHistory ?? []
   if (!served.length && !parties.length) return null
   const span = (start?: number, end?: number | null) => `${start ?? "—"}–${end ?? "present"}`
