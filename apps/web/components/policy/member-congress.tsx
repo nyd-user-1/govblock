@@ -296,7 +296,7 @@ export function MemberVotes() {
                 <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
                   <td className="whitespace-nowrap">{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
                   <td className="whitespace-nowrap tabular-nums">{vote.rollCallNumber ?? "—"}</td>
-                  <td className="max-w-64">
+                  <td>
                     {/* The bill on its own page when we hold it, at congress.gov
                         when we don't, and the question itself when the roll call
                         named no bill — the Speaker's election, a quorum call. */}
@@ -310,11 +310,6 @@ export function MemberVotes() {
                       </a>
                     ) : (
                       <span className="whitespace-nowrap">{number ?? vote.voteQuestion ?? "—"}</span>
-                    )}
-                    {number && vote.title && (
-                      <span className="block truncate text-xs text-muted-foreground" title={vote.title}>
-                        {vote.title}
-                      </span>
                     )}
                   </td>
                   <td>{vote.voteCast ?? "—"}</td>
