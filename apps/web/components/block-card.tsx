@@ -54,13 +54,11 @@ export function CommitteeBlock() {
   return <Block id="committee-block" title="Committee Block" description="Bills organized by committee" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
 }
 
-/** The whole rail: the two blocks, then the callout (Brendan, 2026-09-04: "put the callout at the bottom"). */
+/**
+ * The whole rail: the callout, as shadcn's docs rail is. The Member Block and
+ * Committee Block above came off it on 2026-09-05 (Brendan: "just remove the
+ * member block and the committee block... but don't delete them").
+ */
 export function PublicRail() {
-  return (
-    <>
-      <MemberBlock />
-      <CommitteeBlock />
-      <OpenInV0Cta />
-    </>
-  )
+  return <OpenInV0Cta />
 }

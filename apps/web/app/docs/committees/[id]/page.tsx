@@ -163,7 +163,7 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
             <CommitteeVideo latest={latest} />
             <CommitteeToc base={SECTIONS} />
           </div>
-          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto scrollbar-none px-6 xl:flex">
+          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
             <PublicRail />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import type { DirectoryOffice, DirectoryStaffer } from "@/lib/policy/db-queries"
-import { H2, Table } from "@/components/typeset"
+import { H3, Table } from "@/components/typeset"
 
 // The member's own offices and the people in them, from the House Telephone
 // Directory (directory.house.gov). Server-rendered with the page: the
@@ -27,7 +27,7 @@ export function MemberOffices({ offices }: { offices: DirectoryOffice[] }) {
   if (!offices.length) return null
   return (
     <>
-      <H2>Offices</H2>
+      <H3>Offices</H3>
       <Table>
         <thead>
           <tr>
@@ -59,7 +59,7 @@ export function MemberStaff({ staff, offices }: { staff: DirectoryStaffer[]; off
   const label = new Map(offices.map((o) => [o.id, officeLabel(o)]))
   return (
     <>
-      <H2>Staff</H2>
+      <H3>Staff</H3>
       <Table>
         <thead>
           <tr>

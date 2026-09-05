@@ -10,7 +10,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 export function OpenInV0Cta({ className }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("group relative flex shrink-0 flex-col gap-2 rounded-2xl bg-surface p-6 text-sm text-surface-foreground", className)}>
+    <div className={cn("group relative flex flex-col gap-2 rounded-2xl bg-surface p-6 text-sm text-surface-foreground", className)}>
       <div className="text-base leading-tight font-semibold text-balance">Build with GovBlocks</div>
       <Link href="/create" className="flex flex-col rounded-md p-2 text-left no-underline hover:bg-muted">
         <span className="font-medium">Data Block</span>

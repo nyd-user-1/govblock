@@ -378,10 +378,13 @@ export function MemberToc({
     if (terms(detail).length) titles.push("Terms")
     if (votes.length) titles.push("Roll calls")
     if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) titles.push("Contact")
-    if (offices) titles.push("Offices")
-    if (staff) titles.push("Staff")
+    // Offices and Staff sit under Contact, as shadcn's docs nest a command's
+    // sub-commands: depth 3, indented in the rail.
+    const under = new Set<string>()
+    if (offices) { titles.push("Offices"); under.add("Offices") }
+    if (staff) { titles.push("Staff"); under.add("Staff") }
     if (biography) titles.push("Biography")
-    return titles.map((title) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth: 2 }))
+    return titles.map((title) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth: under.has(title) ? 3 : 2 }))
   }, [base, contact, offices, staff, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }

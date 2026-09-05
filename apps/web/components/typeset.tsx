@@ -36,6 +36,15 @@ export function H2({ children, id, ...props }: React.ComponentProps<"h2">) {
   )
 }
 
+export function H3({ children, id, ...props }: React.ComponentProps<"h3">) {
+  const hid = id ?? headingId(children)
+  return (
+    <h3 id={hid} {...props}>
+      <HeadingAnchor id={hid}>{children}</HeadingAnchor>
+    </h3>
+  )
+}
+
 export function Table(props: React.ComponentProps<"table">) {
   return (
     <div className="typeset-scroll scroll-fade-x scrollbar-none *:[table]:w-full">

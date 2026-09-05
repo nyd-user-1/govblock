@@ -257,7 +257,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
               biography={!!biography}
             />
           </div>
-          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto scrollbar-none px-6 xl:flex">
+          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
             <PublicRail />
           </div>
         </div>
