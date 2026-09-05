@@ -180,3 +180,14 @@ export function committeeKey(chamber: string | null | undefined, name: string | 
  * belongs to, whichever of its rooms it was held in.
  */
 export const parentCode = (code: string | null | undefined) => String(code ?? "").toLowerCase().slice(0, 4)
+
+/**
+ * The Congress a session year belongs to, by name: 2025 is the 119th. LegiScan
+ * titles Congress's sessions "2025-2026 Regular Session", which is not what
+ * anyone calls it. The first Congress sat in 1789 and each sits for two years.
+ */
+export function congressName(year: number) {
+  const n = Math.floor((year - 1789) / 2) + 1
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th"
+  return `${n}${suffix} Congress`
+}

@@ -30,6 +30,7 @@
     "@internationalized/date": "^3.12.3",
     "@neondatabase/serverless": "^1.1.0",
     "@tabler/icons-react": "^3.46.0",
+    "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-placeholder": "^3.31.0",
     "@tiptap/pm": "^3.31.0",
     "@tiptap/react": "^3.31.0",

@@ -1,12 +1,15 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 
-import { fmtDate } from "@/lib/format"
+import { Copy } from "lucide-react"
+
+import { fmtCompact, fmtNumber } from "@/lib/format"
+
 import { Button } from "@govblock/ui/components/nova/button"
+import { cn } from "@govblock/ui/lib/utils"
+import { FinanceTable, type FinanceRow, RollCallTable, type RollCallRow } from "@/components/policy/roll-call-table"
 import { usePolicy } from "@/lib/policy/use-policy"
-import { day } from "@/lib/policy/congress"
 import { MemberPortrait } from "@/components/policy/imagery"
 import { H2, H3, Table } from "@/components/typeset"
 import { DocsTableOfContents } from "@/components/docs-toc"
@@ -73,14 +76,15 @@ const asVote = (row: RawVote): Vote => ({
   title: pick(row, "title") as string | null | undefined,
 })
 
-type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean; peopleId: number; state: string }
-const Ctx = React.createContext<Value>({ detail: null, votes: [], onCongress: false, peopleId: 0, state: "US" })
+type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean; peopleId: number; state: string; who: string }
+const Ctx = React.createContext<Value>({ detail: null, votes: [], onCongress: false, peopleId: 0, state: "US", who: "" })
 const use = () => React.useContext(Ctx)
 
 export function MemberCongressProvider({
   peopleId,
   bioguide,
   state,
+  who,
   children,
 }: {
   peopleId: number
@@ -88,6 +92,8 @@ export function MemberCongressProvider({
   /** The member's own jurisdiction — the path names one person, and they sit
       in one legislature whoever is reading about them. */
   state: string
+  /** "Rep. Alma Adams": how every section's lead names them. */
+  who: string
   children: React.ReactNode
 }) {
   const on = state === "US" && !!bioguide
@@ -107,8 +113,9 @@ export function MemberCongressProvider({
       onCongress: on,
       peopleId,
       state,
+      who,
     }),
-    [detail.data, votes.data, on, peopleId, state]
+    [detail.data, votes.data, on, peopleId, state, who]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -144,12 +151,22 @@ export function MemberOfficialPortrait({
 /** Terms served, newest first. The party line that followed is gone (Brendan, 2026-09-05). */
 export function MemberTerms() {
   const { detail } = use()
+  const { who } = use()
   const served = [...terms(detail)].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0))
   if (!served.length) return null
   const span = (start?: number, end?: number | null) => `${start ?? "—"}–${end ?? "present"}`
+  const current = served[0]
+  const inChamber = served.filter((t) => t.chamber === current.chamber)
+  const first = inChamber[inChamber.length - 1]?.startYear
+  const chamber = /senate/i.test(current.chamber ?? "") ? "U.S. Senate" : "U.S. House"
   return (
     <>
+      <hr />
       <H2>Terms</H2>
+      <p>
+        {who} has served <code>{inChamber.length}</code> {inChamber.length === 1 ? "term" : "terms"} in the {chamber}
+        {first ? <>, the first beginning in <code>{first}</code></> : null}.
+      </p>
       <ul>
         {served.map((term, index) => (
           <li key={`${term.chamber}-${term.startYear}-${index}`}>
@@ -213,160 +230,162 @@ export function nextElection(cls: string | null | undefined, now = new Date().ge
   return year
 }
 
-/** The office, the telephone and the member's own site. */
-export function MemberContact({ phone, bio, senate }: { phone: string | null; bio: string | null; senate?: SenateLines | null }) {
-  const { detail } = use()
-  const address = detail?.member?.addressInformation
+/**
+ * The Contact section's own lines: what senate.gov adds for a senator. The
+ * office, telephone, site and biography came out on 2026-09-05 — the Office
+ * Block beneath carries the offices — and the heading stays whenever a
+ * sub-section follows it.
+ */
+export function MemberContact({
+  senate,
+  sub = false,
+  places = [],
+}: {
+  senate?: SenateLines | null
+  sub?: boolean
+  /** Where the offices are — "Washington D.C.", "Charlotte, NC" — for the lead. */
+  places?: string[]
+}) {
+  const { detail, who } = use()
   const website = detail?.member?.officialWebsiteUrl ?? senate?.website
-  // congress.gov writes a senator's city and zip into officeAddress itself and
-  // a representative's beside it; append the parts the street line lacks.
-  const street = address?.officeAddress?.trim() ?? ""
-  const tail = [address?.city, address?.district, address?.zipCode].filter((part) => part && !street.includes(String(part)))
-  const office = [street, ...tail].filter(Boolean).join(", ") || senate?.address || ""
-  const number = address?.phoneNumber ?? senate?.phone ?? phone
   const election = nextElection(senate?.class)
-  if (!office && !number && !website && !bio && !senate) return null
+  const short = who.replace(/^(\S+\.?)\s+.*\s(\S+)$/, "$1 $2")
+  const lead =
+    places.length > 1 ? (
+      <p>
+        {short} has offices located in:{" "}
+        {places.map((place, i) => (
+          <React.Fragment key={place}>
+            {i > 0 ? (i === places.length - 1 ? " and " : ", ") : ""}
+            <code>{place}</code>
+          </React.Fragment>
+        ))}
+        .
+      </p>
+    ) : places.length === 1 ? (
+      <p>
+        {short} has an office located in <code>{places[0]}</code>.
+      </p>
+    ) : senate?.class ? (
+      <p>
+        {who} serves in Senate <code>{senate.class}</code>
+        {election ? <> and next stands for election in <code>{election}</code></> : null}.
+      </p>
+    ) : null
+  const lines = [
+    senate?.contact_form && senate.contact_form !== website ? (
+      <li key="form">
+        <a href={senate.contact_form} target="_blank" rel="noopener noreferrer">
+          Contact form
+        </a>
+      </li>
+    ) : null,
+    senate?.leadership_position ? <li key="lead">{senate.leadership_position}</li> : null,
+    senate?.class ? (
+      <li key="class">
+        Senate {senate.class}
+        {election ? ` · next election ${election}` : ""}
+      </li>
+    ) : null,
+  ].filter(Boolean)
+  if (!lines.length && !sub) return null
   return (
     <>
+      <hr />
       <H2>Contact</H2>
-      <ul>
-        {office && <li>{office}</li>}
-        {number && <li>{number}</li>}
-        {website && (
-          <li>
-            <a href={website} target="_blank" rel="noopener noreferrer">
-              {website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-            </a>
-          </li>
-        )}
-        {senate?.contact_form && senate.contact_form !== website && (
-          <li>
-            <a href={senate.contact_form} target="_blank" rel="noopener noreferrer">
-              Contact form
-            </a>
-          </li>
-        )}
-        {bio && (
-          <li>
-            <a href={bio} target="_blank" rel="noopener noreferrer">
-              Official biography
-            </a>
-          </li>
-        )}
-        {senate?.leadership_position && <li>{senate.leadership_position}</li>}
-        {senate?.class && (
-          <li>
-            Senate {senate.class}
-            {election ? ` · next election ${election}` : ""}
-          </li>
-        )}
-      </ul>
+      {lead}
+      {lines.length > 0 && <ul>{lines}</ul>}
     </>
+  )
+}
+
+
+
+/**
+ * The Copy button from the strip Brendan reworked on the shadcn page
+ * (2026-09-05), on its own at the right now that each table has a section:
+ * it puts the table on the clipboard as text.
+ */
+export function CopyTable({ label, text }: { label: string; text: () => string }) {
+  const [copied, setCopied] = React.useState(false)
+  async function copy() {
+    await navigator.clipboard.writeText(text())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <div className="not-typeset mb-4 inline-flex w-full items-center gap-6">
+      <div className="ml-auto shrink-0 text-muted-foreground opacity-80">
+        <Button variant="secondary" size="sm" className={cn("shadow-none")} onClick={copy}>
+          <Copy />
+          {copied ? "Copied" : label}
+        </Button>
+      </div>
+    </div>
   )
 }
 
 /** How they voted on the House floor, roll call by roll call, newest first. */
-const PAGE = 10
-
-export function MemberVotes() {
-  const { votes, onCongress, peopleId, state } = use()
-  // Ten at a time, as the Bills and Votes lists above (Brendan, 2026-09-05).
-  // The provider loads the first five hundred; past those, the next ten come
-  // from the route with an offset.
-  const [extra, setExtra] = React.useState<Vote[]>([])
-  const [visible, setVisible] = React.useState(PAGE)
-  const [busy, setBusy] = React.useState(false)
-  const [exhausted, setExhausted] = React.useState(false)
-  const all = React.useMemo(
-    () => [...votes, ...extra].sort((a, b) => day(b.startDate).localeCompare(day(a.startDate))),
-    [votes, extra]
-  )
-  if (!onCongress || !all.length) return null
-  const more = !exhausted && !busy && (visible < all.length || votes.length >= 500)
-
-  async function seeMore() {
-    if (visible + PAGE <= all.length) {
-      setVisible((v) => v + PAGE)
-      return
-    }
-    setBusy(true)
-    try {
-      const res = await fetch(`/api/policy/member-votes?state=${encodeURIComponent(state)}&member=${peopleId}&limit=${PAGE}&offset=${all.length}`)
-      const data = (await res.json()) as { memberVotes?: RawVote[] }
-      const next = (data.memberVotes ?? []).map(asVote)
-      if (next.length < PAGE) setExhausted(true)
-      setExtra((prev) => [...prev, ...next])
-      setVisible((v) => v + PAGE)
-    } catch {
-      setExhausted(true)
-    } finally {
-      setBusy(false)
-    }
-  }
-
+export function MemberVotes({ menu }: { menu?: React.ReactNode }) {
+  const { votes, onCongress, who } = use()
+  if (!onCongress || !votes.length) return null
+  const rows = votes.map(asRow)
+  const named = rows.filter((r) => r.bill).length
   return (
     <>
       <H3>Roll Call</H3>
-      <Table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Roll call</th>
-            <th>Bill</th>
-            <th>Position</th>
-            <th className="pr-10">Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {all.slice(0, visible).map((vote) => {
-            const number = vote.legislationNumber ? `${vote.legislationType ?? ""} ${vote.legislationNumber}`.trim() : null
-            return (
-              <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
-                <td className="whitespace-nowrap">{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
-                <td className="whitespace-nowrap tabular-nums">{vote.rollCallNumber ?? "—"}</td>
-                <td>
-                  {/* The bill on its own page when we hold it, at congress.gov
-                      when we don't, and the question itself when the roll call
-                      named no bill — the Speaker's election, a quorum call. */}
-                  {number && vote.billId ? (
-                    <Link href={`/docs/bills/${vote.billId}`} className="whitespace-nowrap">
-                      {number}
-                    </Link>
-                  ) : number && vote.legislationUrl ? (
-                    <a href={vote.legislationUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
-                      {number}
-                    </a>
-                  ) : (
-                    <span className={number ? "whitespace-nowrap" : undefined}>{number ?? vote.voteQuestion ?? "—"}</span>
-                  )}
-                </td>
-                <td>{vote.voteCast ?? "—"}</td>
-                <td className="pr-10">{vote.result?.replace(/^Agreed to$/, "Agreed") ?? "—"}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </Table>
-      {(more || busy) && (
-        <p className="not-typeset mt-3">
-          <Button variant="outline" size="sm" onClick={seeMore} disabled={busy}>
-            {busy ? "Loading…" : "See more"}
-          </Button>
-        </p>
-      )}
+      <p>
+        {who} has <code>{fmtNumber(rows.length)}</code> recorded positions on House roll calls this Congress, <code>{fmtNumber(named)}</code> of them on
+        a named bill.
+      </p>
+      <RollCallTable rows={rows} menu={menu} />
     </>
   )
 }
 
+/** Their FEC totals by cycle, a section of its own (Brendan, 2026-09-05: "make them two separate tables"). */
+export function MemberFinance({ totals }: { totals: FinanceRow[] }) {
+  const { who } = use()
+  if (!totals.length) return null
+  const latest = totals[0]
+  return (
+    <>
+      <H3>Finance</H3>
+      <p>
+        {who} has raised <code>{fmtCompact(latest.receipts)}</code>, spent <code>{fmtCompact(latest.disbursements)}</code>, and holds{" "}
+        <code>{fmtCompact(latest.cash_on_hand_end)}</code> on hand.
+      </p>
+      <FinanceTable rows={totals} />
+    </>
+  )
+}
+
+const asRow = (vote: Vote): RollCallRow => ({
+  id: String(vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`),
+  date: vote.startDate ?? null,
+  roll: vote.rollCallNumber != null ? String(vote.rollCallNumber) : null,
+  bill: vote.legislationNumber ? `${vote.legislationType ?? ""} ${vote.legislationNumber}`.trim() : null,
+  billId: vote.billId ?? null,
+  billUrl: vote.legislationUrl ?? null,
+  question: vote.voteQuestion ?? null,
+  position: vote.voteCast ?? null,
+  result: vote.result?.replace(/^Agreed to$/, "Agreed") ?? null,
+})
+
 /** The rail's contents, naming only the sections this member has. */
 export function MemberToc({
+  record,
   finance,
+  committees = false,
   contact,
   offices = false,
   staff = false,
   biography,
 }: {
+  /** The record section's heading: the session's name. */
+  record: string
   finance: boolean
+  committees?: boolean
   contact: boolean
   offices?: boolean
   staff?: boolean
@@ -377,16 +396,16 @@ export function MemberToc({
     // Sections at depth 2, their parts at depth 3, as shadcn's docs nest a
     // command's sub-commands. Record holds Bills, Roll Call and Votes; Contact
     // holds Offices and Staff (Brendan, 2026-09-05).
-    const items: [string, 2 | 3][] = [["Record", 2], ["Bills", 3]]
+    const items: [string, 2 | 3, string?][] = [["Introduction", 2], [record, 2, "record"], ["Bills", 3]]
+    if (committees) items.push(["Committees", 3])
+    if (finance) items.push(["Finance", 3])
     if (votes.length) items.push(["Roll Call", 3])
     items.push(["Votes", 3])
-    if (finance) items.push(["Finance", 2])
-    if (terms(detail).length) items.push(["Terms", 2])
-    if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) items.push(["Contact", 2])
-    if (offices) items.push(["Offices", 3])
+    if (contact || offices || staff) items.push(["Contact", 2])
+    if (offices) items.push(["Office", 3])
     if (staff) items.push(["Staff", 3])
     if (biography) items.push(["Biography", 2])
-    return items.map(([title, depth]) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
-  }, [finance, contact, offices, staff, biography, detail, votes])
+    return items.map(([title, depth, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
+  }, [record, finance, committees, contact, offices, staff, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }

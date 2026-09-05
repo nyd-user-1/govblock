@@ -4,14 +4,17 @@ import * as React from "react"
 
 import { fmtDate } from "@/lib/format"
 import { Button } from "@govblock/ui/components/nova/button"
+import { PageSizeMenu } from "@/components/policy/page-size-menu"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
 // The changelog's shape, which is the right one for this: what they put their
 // name to and how they voted, newest first, each entry the bill.
 //
-// Ten at a time. The page renders the first ten on the server; See more shows
-// the next ten from what the page already holds, and when that runs out asks
-// the record route for the next ten of this one list (Brendan, 2026-09-05).
+// Paged, as the data tables are: five a page, the page size from the footer's
+// menu, Previous and Next beside it (Brendan, 2026-09-05: "instead of see
+// more use the prev / next as the standard per block"). The page renders the
+// first page on the server; a later page comes from what the page already
+// holds, or from the record route by offset.
 
 export type RecordBill = {
   bill_id: number
@@ -27,7 +30,8 @@ export type RecordBill = {
 
 export type RecordKind = "prime" | "cosponsor" | "aye" | "nay"
 
-const PAGE = 10
+/** "HR1491" → "HR 1491", as the rail prints a bill number. */
+const print = (number: string) => number.replace(/^([A-Z]+)0*(\d+)$/, "$1 $2")
 
 export function MemberFeed({
   bills,
@@ -36,88 +40,98 @@ export function MemberFeed({
   total,
   state,
   peopleId,
+  session,
   kind,
+  pageSize: initialSize = 5,
 }: {
   bills: RecordBill[]
   empty: string
   vote?: "Aye" | "Nay"
-  /** The whole record; the feed reveals it ten at a time. */
+  /** The whole record; the feed pages through it. */
   total: number
   /** The member's jurisdiction, which is the bills' jurisdiction too. */
   state: string
   peopleId: number
+  /** The session the list is of, so a later page asks for the same one. */
+  session: number
   kind: RecordKind
+  /** How many a page holds at first. */
+  pageSize?: number
 }) {
+  // `items` is always a prefix of the record: pages are fetched by offset
+  // from its end, so any page up to its length can be cut from it.
   const [items, setItems] = React.useState(bills)
-  const [visible, setVisible] = React.useState(PAGE)
+  const [pageSize, setPageSize] = React.useState(initialSize)
+  const [page, setPage] = React.useState(0)
   const [busy, setBusy] = React.useState(false)
-  const [exhausted, setExhausted] = React.useState(false)
+  const pages = Math.max(1, Math.ceil(total / pageSize))
 
-  const more = !exhausted && visible < total && !busy
-
-  async function seeMore() {
-    if (visible + PAGE <= items.length || items.length >= total) {
-      setVisible((v) => v + PAGE)
-      return
-    }
+  async function ensure(upTo: number) {
+    const need = Math.min(upTo, total)
+    if (items.length >= need) return
     setBusy(true)
     try {
-      const url = `/api/policy/record?state=${encodeURIComponent(state)}&id=${peopleId}&limit=${PAGE}&offset=${items.length}`
+      const url = `/api/policy/record?state=${encodeURIComponent(state)}&session=${session}&id=${peopleId}&limit=${need - items.length}&offset=${items.length}`
       const res = await fetch(url)
       const data = (await res.json()) as Partial<Record<RecordKind, RecordBill[]>>
       const next = data[kind] ?? []
-      if (!next.length) setExhausted(true)
       setItems((prev) => {
         const seen = new Set(prev.map((b) => b.bill_id))
         return [...prev, ...next.filter((b) => !seen.has(b.bill_id))]
       })
-      setVisible((v) => v + PAGE)
-    } catch {
-      setExhausted(true)
     } finally {
       setBusy(false)
     }
   }
 
+  async function go(to: number) {
+    const target = Math.max(0, Math.min(to, pages - 1))
+    await ensure((target + 1) * pageSize)
+    setPage(target)
+  }
+
+  async function resize(n: number) {
+    setPageSize(n)
+    setPage(0)
+    await ensure(n)
+  }
+
   if (!items.length) {
     return <p className="py-10 text-sm text-muted-foreground">{empty}</p>
   }
+  const shown = items.slice(page * pageSize, (page + 1) * pageSize)
   return (
-    // Explicit rows rather than the .steps counter. Each entry needed three
-    // things the counter cannot give it — a hover state, an arrow in its own
-    // corner, and a marker that is a chamber seal rather than an ordinal — and
-    // the number was never the point: which chamber a bill is in says more
-    // than that it was the fourth one listed.
-    //
-    // This list *is* the canon, so it no longer draws the item itself: the
-    // shape moved to record-item.tsx and the other five lists read it from
-    // there. What stays here is what only this page knows — that the entry is a
-    // bill, that the member's own page need not repeat the sponsor, and that a
-    // vote tab says how they voted.
-    <RecordList>
-      {items.slice(0, visible).map((bill, index) => (
-        <RecordItem
-          key={bill.bill_id}
-          href={`/docs/bills/${bill.bill_id}`}
-          avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
-          title={bill.bill_number}
-          lead={bill.last_action}
-          meta={[
-            bill.last_action_date ? fmtDate(bill.last_action_date) : null,
-            bill.status_desc || "Introduced",
-            bill.committee ? `${bill.committee} Committee` : null,
-            vote ? `Voted ${vote}` : null,
-          ]}
-          description={<span className="line-clamp-2">{bill.title}</span>}
-        />
-      ))}
-      {(more || busy) && (
-        <div className="px-3 pt-3 md:px-4">
-          <Button variant="outline" size="sm" onClick={seeMore} disabled={busy}>
-            {busy ? "Loading…" : "See more"}
+    <>
+      <RecordList>
+        {shown.map((bill, index) => (
+          <RecordItem
+            key={bill.bill_id}
+            stacked
+            href={`/docs/bills/${bill.bill_id}`}
+            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={page * pageSize + index + 1} />}
+            title={print(bill.bill_number)}
+            meta={[
+              bill.last_action_date ? fmtDate(bill.last_action_date) : null,
+              bill.status_desc || "Introduced",
+              vote ? `Voted ${vote}` : null,
+            ]}
+            description={bill.title}
+          />
+        ))}
+      </RecordList>
+      <div className="flex items-center justify-end space-x-2 pt-4">
+        <div className="flex-1">
+          <PageSizeMenu size={pageSize} total={total} onChange={resize} />
+        </div>
+        <div className="space-x-2">
+          <Button variant="outline" size="sm" onClick={() => go(page - 1)} disabled={busy || page === 0}>
+            Previous
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => go(page + 1)} disabled={busy || page >= pages - 1}>
+            Next
           </Button>
         </div>
-      )}
-    </RecordList>
+      </div>
+    </>
   )
 }

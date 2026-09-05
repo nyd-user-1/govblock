@@ -39,8 +39,11 @@ export function RecordItem({
   meta,
   description,
   className,
+  stacked = false,
 }: {
   href: string
+  /** Number, then the title on one line, then the meta — the member page's rows (Brendan, 2026-09-05). */
+  stacked?: boolean
   /** congress.gov and crsreports are other people's pages; they open away. */
   external?: boolean
   /** Omitted where the family has no emblem — a topic, a page of this site. */
@@ -68,8 +71,17 @@ export function RecordItem({
           <span className="shrink-0 whitespace-nowrap">{title}</span>
           {lead && <span className="min-w-0 truncate font-normal text-muted-foreground">{truncate(lead, 90)}</span>}
         </span>
-        {line && <span className="mt-1 text-xs text-muted-foreground">{line}</span>}
-        {description && <span className="mt-2 text-sm text-foreground">{description}</span>}
+        {stacked ? (
+          <>
+            {description && <span className="mt-2 truncate text-base text-foreground">{description}</span>}
+            {line && <span className="mt-1 text-sm text-muted-foreground">{line}</span>}
+          </>
+        ) : (
+          <>
+            {line && <span className="mt-1 text-xs text-muted-foreground">{line}</span>}
+            {description && <span className="mt-2 text-sm text-foreground">{description}</span>}
+          </>
+        )}
       </span>
       {/* The whole item has always been the link; this is what says so. */}
       <ArrowUpRight

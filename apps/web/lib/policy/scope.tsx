@@ -6,6 +6,9 @@ import { FILTER_KEYS, readFilters, type Filters } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { congressName } from "@/lib/policy/congress"
+
+export { congressName }
 
 // The scope a block reads, as one object: the jurisdiction (state + session,
 // from the hook that already resolves them) and every filter the /create rail
@@ -67,16 +70,6 @@ export function useSessionTitle(state: string, session: number | null) {
   return title || (session ? String(session) : "")
 }
 
-/**
- * The Congress a session year belongs to, by name: 2025 is the 119th. LegiScan
- * titles Congress's sessions "2025-2026 Regular Session", which is not what
- * anyone calls it. The first Congress sat in 1789 and each sits for two years.
- */
-export function congressName(year: number) {
-  const n = Math.floor((year - 1789) / 2) + 1
-  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th"
-  return `${n}${suffix} Congress`
-}
 
 /** The filters a bills read takes: the rail's, less the bill itself and the rail's own three keys. */
 export function billFilters(f: ScopeFilters): Filters {

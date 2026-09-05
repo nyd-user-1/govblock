@@ -11,25 +11,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@govblock/ui/component
 // pair of tabs and is mounted once under each heading.
 export function MemberTabs({
   tabs,
+  menu,
 }: {
+  /** What sits at the row's right end, inline with the tabs: the Sessions menu. */
+  menu?: React.ReactNode
   tabs: [
     { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
     { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
   ]
 }) {
-  // The pills sat tight under the heading; twelve pixels is what the heading
-  // needed to stop touching them. The emoji are Brendan's, and they are emoji
-  // rather than icons on purpose — they read at pill size and carry the states
-  // apart at a glance.
+  // The emoji are Brendan's, and they are emoji rather than icons on purpose
+  // — they read at pill size and carry the states apart at a glance. The
+  // Sessions menu rides the same row, at its right end (Brendan, 2026-09-05).
   return (
     <Tabs defaultValue={tabs[0].value} className="not-typeset">
-      <TabsList className="mt-3">
-        {tabs.map((t) => (
-          <TabsTrigger key={t.value} value={t.value}>
-            <span aria-hidden>{t.emoji}</span> {t.label} <Badge variant="outline">{t.count}</Badge>
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      <div className="flex items-center">
+        <TabsList>
+          {tabs.map((t) => (
+            <TabsTrigger key={t.value} value={t.value}>
+              <span aria-hidden>{t.emoji}</span> {t.label} <Badge variant="outline">{t.count}</Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {menu}
+      </div>
       {tabs.map((t) => (
         <TabsContent key={t.value} value={t.value}>
           {t.content}

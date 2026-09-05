@@ -1,4 +1,5 @@
 import { cn } from "@govblock/ui/lib/utils"
+import { HeadingAnchor } from "@/components/heading-anchor"
 
 // The prose pieces the docs pages use from livingston-v3's mdx-components:
 // a heading that carries its own anchor, and a table that scrolls sideways.
@@ -15,22 +16,12 @@ export function headingId(children: React.ReactNode) {
   return id || undefined
 }
 
-function HeadingAnchor({ id, children }: { id?: string; children: React.ReactNode }) {
-  if (!id) return children
-  return (
-    <a className="group no-underline" href={`#${id}`}>
-      <span className="underline-offset-4 group-hover:underline">{children}</span>
-      <span aria-hidden="true" className="ml-2 text-muted-foreground opacity-0 group-hover:opacity-100">
-        #
-      </span>
-    </a>
-  )
-}
-
-export function H2({ children, id, ...props }: React.ComponentProps<"h2">) {
+// text-2xl: the page's name is text-3xl and its sections sit one step under
+// it, as shadcn's docs headings do (Brendan, 2026-09-05).
+export function H2({ children, id, className, ...props }: React.ComponentProps<"h2">) {
   const hid = id ?? headingId(children)
   return (
-    <h2 id={hid} {...props}>
+    <h2 id={hid} className={cn("text-2xl", className)} {...props}>
       <HeadingAnchor id={hid}>{children}</HeadingAnchor>
     </h2>
   )

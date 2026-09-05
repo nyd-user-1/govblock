@@ -2478,3 +2478,99 @@ export async function getMemberDirectory(peopleId: number): Promise<MemberDirect
     staff,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Committee assignments — congress_committee_members, loaded by
+// scripts/directory/committees.mjs from the unitedstates project, since
+// neither congress.gov endpoint carries them.
+
+export type MemberCommittee = {
+  system_code: string
+  name: string
+  chamber: string | null
+  parent_system_code: string | null
+  parent_name: string | null
+  rank: number | null
+  title: string | null
+}
+
+/** A member's committees and subcommittees, full committees first, each in rank order. */
+export async function getMemberCommittees(bioguideId: string) {
+  return q<MemberCommittee>(
+    `select m.system_code, m.name, m.chamber, m.parent_system_code, p.name as parent_name, m.rank, m.title
+       from congress_committee_members m
+       left join congress_committee_members p on p.system_code = m.parent_system_code and p.bioguide_id = m.bioguide_id
+      where m.bioguide_id = $1
+      order by (m.parent_system_code is not null), coalesce(m.parent_system_code, m.system_code), m.parent_system_code nulls first, m.name`,
+    [String(bioguideId).toUpperCase()],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// A member's career on file: every session we hold for their legislature.
+// Brendan, 2026-09-05: "can we aggregate this over a member's career?"
+
+export type MemberCareer = {
+  prime: number
+  cosponsor: number
+  aye: number
+  nay: number
+  /** The first session they appear in, and the first session we hold at all. */
+  first_session: number | null
+  floor_session: number | null
+  /** Every session they appear in, newest first. */
+  sessions: number[]
+}
+
+export async function getMemberCareer(peopleId: number, state: string): Promise<MemberCareer> {
+  const row = await one<Record<string, unknown>>(
+    `select
+       (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2 and s.sponsor_type_id = 1)::int as prime,
+       (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2 and s.sponsor_type_id <> 1)::int as cosponsor,
+       (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+         join "Bills" b on b.bill_id = r.bill_id
+         where v.people_id = $1 and b.state = $2 and v.vote_desc = 'Yea')::int as aye,
+       (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
+         join "Bills" b on b.bill_id = r.bill_id
+         where v.people_id = $1 and b.state = $2 and v.vote_desc = 'Nay')::int as nay,
+       (select min(b.session_id) from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2)::int as first_session,
+       (select min(session_id) from "Bills" where state = $2)::int as floor_session,
+       (select coalesce(array_agg(distinct b.session_id order by b.session_id desc), '{}')
+          from "Sponsors" s join "Bills" b using (bill_id)
+         where s.people_id = $1 and b.state = $2) as sessions`,
+    [peopleId, state],
+  );
+  const sessions = Array.isArray(row?.sessions) ? (row.sessions as unknown[]).map((v) => n(v)) : [];
+  return {
+    prime: n(row?.prime),
+    cosponsor: n(row?.cosponsor),
+    aye: n(row?.aye),
+    nay: n(row?.nay),
+    first_session: row?.first_session == null ? null : n(row.first_session),
+    floor_session: row?.floor_session == null ? null : n(row.floor_session),
+    sessions,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The member before and after this one in the directory's order — sitting
+// members of the session, by last name then first — for the pager at the foot
+// of a member's page (Brendan, 2026-09-05).
+
+export async function getMemberNeighbours(f: Resolved, peopleId: number) {
+  const rows = await q<{ people_id: number; name: string; role: string | null; chamber: string | null }>(
+    `select p.people_id, p.name, p.role, p.chamber
+       from "People" p
+       join "SessionPeople" sp on sp.people_id = p.people_id and sp.state = $1 and sp.year = $2
+      order by p.last_name, p.first_name`,
+    [f.state, f.session],
+  );
+  const at = rows.findIndex((r) => n(r.people_id) === peopleId);
+  if (at < 0) return { previous: null, next: null };
+  const pick = (i: number) => (rows[i] ? { ...rows[i], people_id: n(rows[i].people_id) } : null);
+  // The list wraps, so the last member's Next is the first.
+  return { previous: pick((at - 1 + rows.length) % rows.length), next: pick((at + 1) % rows.length) };
+}
