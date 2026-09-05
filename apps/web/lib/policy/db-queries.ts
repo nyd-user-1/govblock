@@ -845,13 +845,14 @@ export async function getPartySeats(state: string) {
 export async function getMemberRecord(
   f: Resolved,
   peopleId: number,
-  limit = 50
+  limit = 50,
+  offset = 0
 ) {
   const scope = [peopleId, f.state, f.session]
-  const recent = (inner: string) =>
-    `select * from (${inner}) t
-     order by t.last_action_date desc nulls last, t.bill_id desc
-     limit ${Number(limit) || 50}`
+  // Each list is a window of `limit` rows from `offset`, per side, so "See
+  // more" on the member page can ask for the next ten of one list.
+  const lo = Math.max(0, Number(offset) || 0)
+  const hi = lo + (Number(limit) || 50)
 
   const [counts, sponsored, votes] = await Promise.all([
     one<{ sponsored: number; prime: number; cosponsor: number; aye: number; nay: number }>(
@@ -884,7 +885,7 @@ export async function getMemberRecord(
            where s.people_id = $1 and b.state = $2 and b.session_id = $3
            order by b.bill_id, s.sponsor_type_id
          ) t
-       ) ranked where rn <= ${Number(limit) || 50}
+       ) ranked where rn > ${lo} and rn <= ${hi}
        order by last_action_date desc nulls last, bill_id desc`,
       scope
     ),
@@ -910,7 +911,7 @@ export async function getMemberRecord(
              and v.vote_desc in ('Yea', 'Nay')
            order by b.bill_id, v.vote_desc, r.date desc
          ) t
-       ) ranked where rn <= ${Number(limit) || 50}
+       ) ranked where rn > ${lo} and rn <= ${hi}
        order by last_action_date desc nulls last, bill_id desc`,
       scope
     ),

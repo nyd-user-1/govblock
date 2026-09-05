@@ -1,9 +1,8 @@
 import { stateName } from "@/lib/filters"
-import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
+import { honorific } from "@/lib/format"
 
 import { PartyDot } from "@/components/policy/imagery"
 import { MemberOffice, MemberOfficialPortrait } from "@/components/policy/member-congress"
-import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
 // member page: every surface that named a member stopped at the name. This is
@@ -14,75 +13,6 @@ import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-i
 // person, so a shared link, a crawler and a reader with slow JS all see who it
 // is. The portrait and the tabs are the client pieces.
 
-type RecordBill = {
-  bill_id: number
-  bill_number: string
-  title: string
-  status_desc?: string | null
-  last_action?: string | null
-  last_action_date?: string | null
-  committee?: string | null
-  /** The bill's chamber, which decides which seal marks its entry. */
-  body?: string | null
-}
-
-// The changelog's shape, which is the right one for this: what they put their
-// name to and how they voted, newest first, each entry the bill.
-export function MemberFeed({
-  bills,
-  empty,
-  vote,
-  total,
-  state,
-}: {
-  bills: RecordBill[]
-  empty: string
-  vote?: "Aye" | "Nay"
-  /** The whole record; the feed shows the most recent page of it. */
-  total?: number
-  /** The member's jurisdiction, which is the bills' jurisdiction too. */
-  state: string
-}) {
-  if (!bills.length) {
-    return <p className="py-10 text-sm text-muted-foreground">{empty}</p>
-  }
-  return (
-    // Explicit rows rather than the .steps counter. Each entry needed three
-    // things the counter cannot give it — a hover state, an arrow in its own
-    // corner, and a marker that is a chamber seal rather than an ordinal — and
-    // the number was never the point: which chamber a bill is in says more
-    // than that it was the fourth one listed.
-    //
-    // This list *is* the canon, so it no longer draws the item itself: the
-    // shape moved to record-item.tsx and the other five lists read it from
-    // there. What stays here is what only this page knows — that the entry is a
-    // bill, that the member's own page need not repeat the sponsor, and that a
-    // vote tab says how they voted.
-    <RecordList>
-      {bills.map((bill, index) => (
-        <RecordItem
-          key={bill.bill_id}
-          href={`/docs/bills/${bill.bill_id}`}
-          avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
-          title={bill.bill_number}
-          lead={bill.last_action}
-          meta={[
-            bill.last_action_date ? fmtDate(bill.last_action_date) : null,
-            bill.status_desc || "Introduced",
-            bill.committee ? `${bill.committee} Committee` : null,
-            vote ? `Voted ${vote}` : null,
-          ]}
-          description={truncate(bill.title, 240)}
-        />
-      ))}
-      {typeof total === "number" && total > bills.length && (
-        <p className="px-3 pt-2 text-sm text-muted-foreground md:px-4">
-          Showing the {bills.length} most recent of {fmtNumber(total)}.
-        </p>
-      )}
-    </RecordList>
-  )
-}
 
 export function MemberHeader({
   peopleId,

@@ -145,7 +145,7 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const id = int(sp.get("id") ?? f.member ?? null, 0)
       if (!id) throw new Error("member id required")
-      return getMemberRecord(f, id, int(sp.get("limit"), 50))
+      return getMemberRecord(f, id, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     }
     case "sponsors":
       return getTopSponsors(await resolve(filters), int(sp.get("limit"), 8))

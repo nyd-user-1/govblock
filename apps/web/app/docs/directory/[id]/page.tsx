@@ -6,7 +6,8 @@ import { fmtCompact, honorific } from "@/lib/format"
 import { getFec, getMember, getMemberDirectory, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
-import { MemberFeed, MemberHeader } from "@/components/policy/member-page"
+import { MemberFeed } from "@/components/policy/member-feed"
+import { MemberHeader } from "@/components/policy/member-page"
 import { MemberOffices, MemberStaff } from "@/components/policy/member-directory"
 import { MemberTabs } from "@/components/policy/member-tabs"
 import {
@@ -57,7 +58,7 @@ async function load(id: string) {
   // senator. A state seat has neither.
   const [member, record, fec, directory] = await Promise.all([
     getMember(peopleId, session),
-    getMemberRecord({ state, session }, peopleId, 25),
+    getMemberRecord({ state, session }, peopleId, 20),
     state === "US" ? getFec(peopleId) : Promise.resolve(null),
     state === "US" ? getMemberDirectory(peopleId) : Promise.resolve(null),
   ])
@@ -133,6 +134,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                         bills={record.prime}
                         total={record.counts.prime}
                         state={state}
+                        peopleId={peopleId}
+                        kind="prime"
                         empty={`${name} has sponsored nothing this session.`}
                       />
                     ),
@@ -147,6 +150,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                         bills={record.cosponsor}
                         total={record.counts.cosponsor}
                         state={state}
+                        peopleId={peopleId}
+                        kind="cosponsor"
                         empty={`${name} has co-sponsored nothing this session.`}
                       />
                     ),
@@ -168,6 +173,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                         total={record.counts.aye}
                         vote="Aye"
                         state={state}
+                        peopleId={peopleId}
+                        kind="aye"
                         empty="No recorded aye votes this session."
                       />
                     ),
@@ -183,6 +190,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                         total={record.counts.nay}
                         vote="Nay"
                         state={state}
+                        peopleId={peopleId}
+                        kind="nay"
                         empty="No recorded nay votes this session."
                       />
                     ),
