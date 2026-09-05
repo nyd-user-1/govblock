@@ -20,7 +20,7 @@ export function OpenInV0Cta({ className }: React.ComponentProps<"div">) {
         <span className="font-medium">Design Block</span>
         <span className="text-xs text-muted-foreground">Portable, reusable design components for building</span>
       </Link>
-      <Button variant="outline" size="sm" className="mt-2 w-fit" nativeButton={false} render={<Link href="/auth" />}>
+      <Button variant="outline" size="sm" className="mt-2 w-fit" nativeButton={false} render={<Link href="/auth?next=/create" />}>
         Sign In
       </Button>
     </div>

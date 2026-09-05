@@ -54,13 +54,13 @@ export function CommitteeBlock() {
   return <Block id="committee-block" title="Committee Block" description="Bills organized by committee" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
 }
 
-/** The whole rail: the callout and the two blocks. */
+/** The whole rail: the two blocks, then the callout (Brendan, 2026-09-04: "put the callout at the bottom"). */
 export function PublicRail() {
   return (
     <>
-      <OpenInV0Cta />
       <MemberBlock />
       <CommitteeBlock />
+      <OpenInV0Cta />
     </>
   )
 }
