@@ -4,6 +4,7 @@ import { BILLS } from "@/lib/data"
 import { getBill, getBillText } from "@/lib/policy/queries"
 import { BillText } from "@/components/bill-text"
 import { DocsCopyPage } from "@/components/docs-copy-page"
+import { CommitteeBlock, MemberBlock } from "@/components/block-card"
 import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillRelatedBills, BillSponsors, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
 import { BillActions, BillCommittees, BillCostEstimates, BillDepthProvider, BillNotes, BillSubjects, BillTracker } from "@/components/policy/bill-depth"
@@ -232,8 +233,10 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
         <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
           <BillToc base={bill.state === "US" ? CONGRESS_SECTIONS : SECTIONS} />
         </div>
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
           <OpenInV0Cta />
+          <MemberBlock state={bill.state} session={bill.session_id} />
+          <CommitteeBlock state={bill.state} session={bill.session_id} />
         </div>
         </div>
       </div>

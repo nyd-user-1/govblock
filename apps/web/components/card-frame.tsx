@@ -77,9 +77,9 @@ export function ComponentActions({ className, children }: { className?: string; 
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">
           <ChooseSession />
-          <DropdownMenuItem>Edit Component</DropdownMenuItem>
-          <DropdownMenuItem>Choose Component</DropdownMenuItem>
-          <DropdownMenuItem>Save Component</DropdownMenuItem>
+          <DropdownMenuItem>Edit Block</DropdownMenuItem>
+          <DropdownMenuItem>Choose Block</DropdownMenuItem>
+          <DropdownMenuItem>Save Block</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Full Screen</DropdownMenuItem>
           <DropdownMenuItem>Download data (CSV)</DropdownMenuItem>
