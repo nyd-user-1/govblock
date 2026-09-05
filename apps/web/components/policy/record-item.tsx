@@ -62,7 +62,10 @@ export function RecordItem({
   const body = (
     // The hover pill, 4 px inside the link top and bottom so its rounded
     // corners never sit on the divider.
-    <span className="relative flex gap-4 rounded-lg px-3 py-3 transition-colors group-hover:bg-muted/50 md:px-4">
+    // `group/row`, named: the preview frame the member page wraps a list in
+    // is a `group` of its own, and an unnamed group-hover here lit every row
+    // when the frame was hovered.
+    <span className="relative flex gap-4 rounded-lg px-3 py-3 transition-colors group-hover/row:bg-muted/50 md:px-4">
       {avatar && <span className="shrink-0 pt-0.5">{avatar}</span>}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
@@ -86,11 +89,11 @@ export function RecordItem({
       {/* The whole item has always been the link; this is what says so. */}
       <ArrowUpRight
         aria-hidden
-        className="absolute top-3 right-3 size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+        className="absolute top-3 right-3 size-4 text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100"
       />
     </span>
   )
-  const classes = cn("group block py-1 no-underline", className)
+  const classes = cn("group/row block py-1 no-underline", className)
   if (external) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>

@@ -102,7 +102,7 @@ export function MemberFeed({
   const shown = items.slice(page * pageSize, (page + 1) * pageSize)
   return (
     <>
-      <RecordList>
+      <RecordList className="my-0">
         {shown.map((bill, index) => (
           <RecordItem
             key={bill.bill_id}
