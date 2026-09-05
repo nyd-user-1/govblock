@@ -102,11 +102,12 @@ export function MemberFeed({
   const shown = items.slice(page * pageSize, (page + 1) * pageSize)
   return (
     <>
-      <RecordList className="my-0">
+      <RecordList className="my-0 divide-y-0">
         {shown.map((bill, index) => (
           <RecordItem
             key={bill.bill_id}
             stacked
+            hover="rail"
             href={`/docs/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={page * pageSize + index + 1} />}
             title={print(bill.bill_number)}

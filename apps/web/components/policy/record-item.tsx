@@ -40,10 +40,13 @@ export function RecordItem({
   description,
   className,
   stacked = false,
+  hover = "soft",
 }: {
   href: string
   /** Number, then the title on one line, then the meta — the member page's rows (Brendan, 2026-09-05). */
   stacked?: boolean
+  /** The hover pill: the faint one, or the rail's solid accent ("model the hover like the recent bills hover"). */
+  hover?: "soft" | "rail"
   /** congress.gov and crsreports are other people's pages; they open away. */
   external?: boolean
   /** Omitted where the family has no emblem — a topic, a page of this site. */
@@ -65,7 +68,12 @@ export function RecordItem({
     // `group/row`, named: the preview frame the member page wraps a list in
     // is a `group` of its own, and an unnamed group-hover here lit every row
     // when the frame was hovered.
-    <span className="relative flex gap-4 rounded-lg px-3 py-3 transition-colors group-hover/row:bg-muted/50 md:px-4">
+    <span
+      className={cn(
+        "relative flex gap-4 rounded-lg px-3 py-3 transition-colors md:px-4",
+        hover === "rail" ? "group-hover/row:bg-sidebar-accent group-hover/row:text-sidebar-accent-foreground" : "group-hover/row:bg-muted/50"
+      )}
+    >
       {avatar && <span className="shrink-0 pt-0.5">{avatar}</span>}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
