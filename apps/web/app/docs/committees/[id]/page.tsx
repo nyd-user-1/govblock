@@ -8,7 +8,7 @@ import { fmtDate, truncate } from "@/lib/format"
 import { getCommittee } from "@/lib/policy/db-queries"
 import { latestHearing } from "@/lib/policy/committee-video"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { PublicRail } from "@/components/block-card"
 import {
   CommitteeAbout,
   CommitteeHearings,
@@ -163,8 +163,8 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
             <CommitteeVideo latest={latest} />
             <CommitteeToc base={SECTIONS} />
           </div>
-          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-            <OpenInV0Cta />
+          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+            <PublicRail />
           </div>
         </div>
       </div>

@@ -1,52 +1,43 @@
-"use client"
-
 import Link from "next/link"
 
-import { fmtNumber } from "@/lib/format"
-import type { Committee, MemberRow } from "@/lib/policy/types"
-import { usePolicy } from "@/lib/policy/use-policy"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
+import { OpenInV0Cta } from "@/components/open-in-v0-cta"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
-// A block, as it sits in the rail of a public page (Brendan, 2026-09-04):
-// the card chrome with the ⋮ block menu, and the jurisdiction's two chambers
-// with their counts — members for the Member Block, committees for the
-// Committee Block — each a link into the records. The same card a signed-in
-// reader can take to /create. Members are the sitting ones, as the tree's
-// Members folder counts them.
+// The right rail of every public page, as Brendan set it in the browser on
+// 2026-09-04: the Build with GovBlocks callout, then two blocks as they
+// would sit in /create — Member Block and Committee Block — each with the
+// ⋮ block menu and the two chambers of Congress. Static on purpose: "the
+// blocks do not need to be wired to anything live right now."
 
-function chambers<T extends { chamber?: string | null }>(rows: T[] | undefined) {
-  const count = (name: string) => (rows ?? []).filter((r) => (r.chamber ?? "").toLowerCase() === name.toLowerCase()).length
-  return [
-    { name: "House", n: count("House") + count("Assembly") },
-    { name: "Senate", n: count("Senate") },
-  ]
-}
+const CHAMBERS = [
+  { name: "House", n: "449" },
+  { name: "Senate", n: "104" },
+]
 
-export function MemberBlock({ state, session }: { state: string; session?: number | null }) {
-  const { data } = usePolicy<MemberRow[]>("members", { state, session: session ? String(session) : undefined })
+function Block({ id, title, description, href }: { id: string; title: string; description: string; href: (chamber: string) => string }) {
   return (
-    <CardFrame id="member-block" className="shrink-0">
+    <CardFrame id={id} className="shrink-0">
       <CardHeader>
-        <CardTitle>Member Block</CardTitle>
-        <CardDescription>Bills organized by Member</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {chambers(data?.filter((m) => m.active)).map((c) => (
-            <Item key={c.name} variant="outline" size="sm" render={<Link href={`/docs/directory?state=${state}&chamber=${c.name}`} />}>
+          {CHAMBERS.map((c) => (
+            <Item key={c.name} variant="outline" size="sm" render={<Link href={href(c.name)} />}>
               <ItemMedia>
-                <ChamberSeal state={state} chamber={c.name} size={28} />
+                <ChamberSeal state="US" chamber={c.name} size={28} />
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>{c.name}</ItemTitle>
               </ItemContent>
-              <span className="text-sm font-semibold tabular-nums">{data ? fmtNumber(c.n) : "…"}</span>
+              <span className="text-sm font-semibold tabular-nums">{c.n}</span>
             </Item>
           ))}
         </ItemGroup>
@@ -55,32 +46,21 @@ export function MemberBlock({ state, session }: { state: string; session?: numbe
   )
 }
 
-export function CommitteeBlock({ state, session }: { state: string; session?: number | null }) {
-  const { data } = usePolicy<Committee[]>("committees", { state, session: session ? String(session) : undefined })
+export function MemberBlock() {
+  return <Block id="member-block" title="Member Block" description="Bills organized by Member" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
+}
+
+export function CommitteeBlock() {
+  return <Block id="committee-block" title="Committee Block" description="Bills organized by committee" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
+}
+
+/** The whole rail: the callout and the two blocks. */
+export function PublicRail() {
   return (
-    <CardFrame id="committee-block" className="shrink-0">
-      <CardHeader>
-        <CardTitle>Committee Block</CardTitle>
-        <CardDescription>Bills organized by committee</CardDescription>
-        <CardAction>
-          <ComponentActions />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <ItemGroup>
-          {chambers(data).map((c) => (
-            <Item key={c.name} variant="outline" size="sm" render={<Link href={`/docs/committees?state=${state}&chamber=${c.name}`} />}>
-              <ItemMedia>
-                <ChamberSeal state={state} chamber={c.name} size={28} />
-              </ItemMedia>
-              <ItemContent>
-                <ItemTitle>{c.name}</ItemTitle>
-              </ItemContent>
-              <span className="text-sm font-semibold tabular-nums">{data ? fmtNumber(c.n) : "…"}</span>
-            </Item>
-          ))}
-        </ItemGroup>
-      </CardContent>
-    </CardFrame>
+    <>
+      <OpenInV0Cta />
+      <MemberBlock />
+      <CommitteeBlock />
+    </>
   )
 }

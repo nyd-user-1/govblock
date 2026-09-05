@@ -10,7 +10,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { scopeStates, type StreamBill, type StreamGroup } from "@/lib/policy/stream"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { CodeFigure, printedWithChanges } from "@/components/code-block"
-import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { PublicRail } from "@/components/block-card"
 import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
 
@@ -137,8 +137,8 @@ export function ChangelogV2Body({
             ))}
           </div>
         </div>
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <OpenInV0Cta />
+        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+          <PublicRail />
         </div>
       </div>
     </div>

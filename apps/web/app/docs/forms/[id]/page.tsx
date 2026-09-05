@@ -5,7 +5,7 @@ import { IconArrowLeft } from "@tabler/icons-react"
 import { fmtNumber } from "@/lib/format"
 import { fieldName, getForm } from "@/lib/policy/forms-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { PublicRail } from "@/components/block-card"
 import { agencyName, FormSeal } from "@/components/policy/forms-seal"
 import { FormsDoc } from "@/components/policy/forms-doc"
 import { H2, Table } from "@/components/typeset"
@@ -180,8 +180,8 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
       </div>
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <OpenInV0Cta />
+        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+          <PublicRail />
         </div>
       </div>
     </div>

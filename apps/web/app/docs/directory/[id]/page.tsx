@@ -5,7 +5,7 @@ import { stateName } from "@/lib/filters"
 import { fmtCompact, honorific } from "@/lib/format"
 import { getFec, getMember, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { OpenInV0Cta } from "@/components/open-in-v0-cta"
+import { PublicRail } from "@/components/block-card"
 import { MemberFeed, MemberHeader } from "@/components/policy/member-page"
 import { MemberTabs } from "@/components/policy/member-tabs"
 import {
@@ -196,8 +196,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
           <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
             <MemberToc base={sections} contact={!!(phone || bio)} biography={!!biography} />
           </div>
-          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-            <OpenInV0Cta />
+          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+            <PublicRail />
           </div>
         </div>
       </div>
