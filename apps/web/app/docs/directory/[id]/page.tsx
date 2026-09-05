@@ -3,10 +3,11 @@ import { notFound } from "next/navigation"
 
 import { stateName } from "@/lib/filters"
 import { fmtCompact, honorific } from "@/lib/format"
-import { getFec, getMember, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
+import { getFec, getMember, getMemberDirectory, getMemberRecord, getMemberState, latestSession } from "@/lib/policy/db-queries"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
 import { MemberFeed, MemberHeader } from "@/components/policy/member-page"
+import { MemberOffices, MemberStaff } from "@/components/policy/member-directory"
 import { MemberTabs } from "@/components/policy/member-tabs"
 import {
   MemberCongressProvider,
@@ -51,16 +52,20 @@ async function load(id: string) {
   const session = await latestSession(state)
   // FEC totals are a federal record; a state seat files with its own board,
   // so the section exists only under Congress and says so when it is empty.
-  const [member, record, fec] = await Promise.all([
+  // The directories are federal too: the House Telephone Directory for a
+  // representative's offices and staff, senate.gov's contact record for a
+  // senator. A state seat has neither.
+  const [member, record, fec, directory] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 25),
     state === "US" ? getFec(peopleId) : Promise.resolve(null),
+    state === "US" ? getMemberDirectory(peopleId) : Promise.resolve(null),
   ])
   if (!member) return null
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec }
+  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec, directory }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -79,7 +84,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   const { id } = await params
   const data = await load(id)
   if (!data) notFound()
-  const { peopleId, state, member, record, fec } = data
+  const { peopleId, state, member, record, fec, directory } = data
   const sections = fec ? [...SECTIONS, "Finance"] : SECTIONS
 
   const name = String(member.name ?? "")
@@ -180,7 +185,9 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
 
               <MemberTerms />
               <MemberVotes />
-              <MemberContact phone={phone} bio={bio} />
+              <MemberContact phone={phone} bio={bio} senate={directory?.senate ?? null} />
+              {directory && <MemberOffices offices={directory.offices} />}
+              {directory && <MemberStaff staff={directory.staff} offices={directory.offices} />}
 
               {biography && (
                 <>
@@ -194,7 +201,13 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
         <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
           <div className="h-(--top-spacing) shrink-0"></div>
           <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-            <MemberToc base={sections} contact={!!(phone || bio)} biography={!!biography} />
+            <MemberToc
+              base={sections}
+              contact={!!(phone || bio || directory?.senate)}
+              offices={!!directory?.offices.length}
+              staff={!!directory?.staff.length}
+              biography={!!biography}
+            />
           </div>
           <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
             <PublicRail />

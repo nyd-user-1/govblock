@@ -52,6 +52,7 @@ import {
   getCongressHearings,
   getLaws,
   getMemberDetail,
+  getMemberDirectory,
   getMembersWithPortraits,
   getNominations,
   getRelatedBills,
@@ -393,6 +394,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       if (peopleId && !id) return { member: null, people_id: peopleId, detail: "no bioguide on file for that member" }
       if (!id) return { members: await getMembersWithPortraits(int(sp.get("limit"), 600)) }
       return getMemberDetail(id)
+    }
+    case "member-directory": {
+      // A House member's offices and staff from the House Telephone Directory,
+      // or a senator's contact record from senate.gov. Keyed by our people_id.
+      const peopleId = int(sp.get("member"), 0)
+      if (!peopleId) throw new Error("member required")
+      return (await getMemberDirectory(peopleId)) ?? { chamber: null, senate: null, offices: [], staff: [] }
     }
     case "committee-detail": {
       const code = sp.get("systemCode") ?? sp.get("code")

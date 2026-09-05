@@ -2308,3 +2308,142 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
     })),
   }
 }
+
+// ---------------------------------------------------------------------------
+// The congressional directories — who answers the phone.
+//
+// The House Telephone Directory (directory.house.gov) lists every House
+// staffer with a title and a phone, and every office a member keeps, in
+// Washington and in the district. The Senate publishes no staff directory; its
+// senators_cfm.xml gives each senator's office, phone, contact form, class and
+// leadership post. Both are loaded by scripts/directory/load.mjs into
+// house_offices, house_staff and senate_contact. Brendan, 2026-09-05: "add
+// this to the member page".
+
+export type DirectoryOffice = {
+  id: string
+  name: string
+  kind: string | null
+  street: string | null
+  locality: string | null
+  region: string | null
+  postal: string | null
+  /** The office's own line, read off its staff: the number most of them share. */
+  phone: string | null
+  staff: number
+}
+
+export type DirectoryStaffer = {
+  id: string
+  name: string
+  title: string | null
+  type: string | null
+  phone: string | null
+  office_id: string | null
+  office: string | null
+}
+
+export type SenateContact = {
+  bioguide_id: string
+  address: string | null
+  phone: string | null
+  contact_form: string | null
+  website: string | null
+  class: string | null
+  leadership_position: string | null
+}
+
+export type MemberDirectory = {
+  chamber: "House" | "Senate"
+  senate: SenateContact | null
+  offices: DirectoryOffice[]
+  staff: DirectoryStaffer[]
+}
+
+/**
+ * `HD-NC-12` → `NC12`; the at-large `HD-AK` → `AK00`, the directory's own key.
+ * American Samoa is `AQ` there, because `AS00` is the Armed Services committee.
+ */
+export function houseOfficeId(district: string | null | undefined) {
+  const m = String(district ?? "").match(/^HD-([A-Z]{2})(?:-0*(\d+))?$/)
+  if (!m) return null
+  const st = m[1] === "AS" ? "AQ" : m[1]
+  return `${st}${String(m[2] ?? 0).padStart(2, "0")}`
+}
+
+/**
+ * "García, Jesús G. \"Chuy\"" → "garcia": the part before the comma, letters
+ * only, accents dropped. A few seats carry no name in the directory, only the
+ * district code in parentheses; that reads as blank, not as a name.
+ */
+const surname = (s: string | null | undefined) =>
+  String(s ?? "")
+    .replace(/\([A-Z]{2}\d{2}\)/g, "")
+    .split(",")[0]
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "")
+
+const sameSurname = (a: string, b: string) => !!a && !!b && (a.includes(b) || b.includes(a))
+
+/** A sitting member's offices and staff, or a senator's contact record. */
+export async function getMemberDirectory(peopleId: number): Promise<MemberDirectory | null> {
+  const person = await one<{ state: string; chamber: string; district: string | null; last_name: string; bioguide_id: string | null }>(
+    `select state, chamber, district, last_name, bioguide_id from "People" where people_id = $1`, [peopleId],
+  );
+  if (!person || person.state !== "US") return null;
+
+  if (person.chamber === "Senate") {
+    if (!person.bioguide_id) return null;
+    const senate = await one<SenateContact>(
+      `select bioguide_id, address, phone, contact_form, website, class, leadership_position from senate_contact where bioguide_id = $1`,
+      [person.bioguide_id],
+    );
+    return senate ? { chamber: "Senate", senate, offices: [], staff: [] } : null;
+  }
+
+  const byDistrict = houseOfficeId(person.district);
+  if (!byDistrict) return null;
+  // The directory keys a seat by its district; the person keys it by name. The
+  // district is taken when its office carries the person's name, or no name at
+  // all. When it names someone else, the map has moved under one of the two
+  // records (Alabama's and Georgia's did in 2024), so the seat is looked up by
+  // name within the state instead. Showing another member's staff would be
+  // worse than showing none.
+  const seatName = await one<{ id: string; name: string }>(`select id, name from house_offices where id = $1 and kind = 'Member'`, [byDistrict]);
+  let officeId: string | null = null;
+  if (seatName && (!surname(seatName.name) || sameSurname(surname(seatName.name), surname(person.last_name)))) officeId = seatName.id;
+  else {
+    const candidates = await q<{ id: string; name: string }>(
+      `select id, name from house_offices where kind = 'Member' and id like $1 order by id`, [`${byDistrict.slice(0, 2)}%`],
+    );
+    officeId = candidates.find((c) => sameSurname(surname(c.name), surname(person.last_name)))?.id ?? null;
+  }
+  if (!officeId) return null;
+
+  const offices = await q<Omit<DirectoryOffice, "phone" | "staff"> & { phone: string | null; staff: number | string }>(
+    `select o.id, o.name, o.kind, o.street, o.locality, o.region, o.postal,
+            (select s.telephone from house_staff s where s.office_id = o.id and s.telephone is not null
+              group by s.telephone order by count(*) desc, s.telephone limit 1) as phone,
+            (select count(*) from house_staff s where s.office_id = o.id) as staff
+       from house_offices o
+      where o.id = $1 or o.parent_id = $1
+      order by case when o.id = $1 then 0 else 1 end, o.name`,
+    [officeId],
+  );
+
+  const staff = await q<DirectoryStaffer>(
+    `select s.id, s.name, s.job_title as title, s.staffer_type as type, s.telephone as phone, s.office_id, o.name as office
+       from house_staff s left join house_offices o on o.id = s.office_id
+      where s.office_id = $1 or s.office_id in (select id from house_offices where parent_id = $1)
+      order by case when s.office_id = $1 then 0 else 1 end, o.name, s.name`,
+    [officeId],
+  );
+  return {
+    chamber: "House",
+    senate: null,
+    offices: offices.map((o) => ({ ...o, staff: n(o.staff) })),
+    staff,
+  };
+}

@@ -190,14 +190,41 @@ export function MemberOffice() {
   )
 }
 
+/** What senate.gov says about a senator that congress.gov does not. */
+export type SenateLines = {
+  address: string | null
+  phone: string | null
+  contact_form: string | null
+  website: string | null
+  class: string | null
+  leadership_position: string | null
+}
+
+// Senate classes stand for election on a six-year cycle: Class II in 2026,
+// Class III in 2028, Class I in 2030, and so on.
+const CLASS_BASE: Record<string, number> = { I: 2024, II: 2020, III: 2022 }
+export function nextElection(cls: string | null | undefined, now = new Date().getFullYear()) {
+  const key = String(cls ?? "").replace(/^class\s+/i, "").toUpperCase()
+  const base = CLASS_BASE[key]
+  if (!base) return null
+  let year = base
+  while (year < now) year += 6
+  return year
+}
+
 /** The office, the telephone and the member's own site. */
-export function MemberContact({ phone, bio }: { phone: string | null; bio: string | null }) {
+export function MemberContact({ phone, bio, senate }: { phone: string | null; bio: string | null; senate?: SenateLines | null }) {
   const { detail } = use()
   const address = detail?.member?.addressInformation
-  const website = detail?.member?.officialWebsiteUrl
-  const office = [address?.officeAddress, address?.city, address?.district, address?.zipCode].filter(Boolean).join(", ")
-  const number = address?.phoneNumber ?? phone
-  if (!office && !number && !website && !bio) return null
+  const website = detail?.member?.officialWebsiteUrl ?? senate?.website
+  // congress.gov writes a senator's city and zip into officeAddress itself and
+  // a representative's beside it; append the parts the street line lacks.
+  const street = address?.officeAddress?.trim() ?? ""
+  const tail = [address?.city, address?.district, address?.zipCode].filter((part) => part && !street.includes(String(part)))
+  const office = [street, ...tail].filter(Boolean).join(", ") || senate?.address || ""
+  const number = address?.phoneNumber ?? senate?.phone ?? phone
+  const election = nextElection(senate?.class)
+  if (!office && !number && !website && !bio && !senate) return null
   return (
     <>
       <H2>Contact</H2>
@@ -211,11 +238,25 @@ export function MemberContact({ phone, bio }: { phone: string | null; bio: strin
             </a>
           </li>
         )}
+        {senate?.contact_form && senate.contact_form !== website && (
+          <li>
+            <a href={senate.contact_form} target="_blank" rel="noopener noreferrer">
+              Contact form
+            </a>
+          </li>
+        )}
         {bio && (
           <li>
             <a href={bio} target="_blank" rel="noopener noreferrer">
               Official biography
             </a>
+          </li>
+        )}
+        {senate?.leadership_position && <li>{senate.leadership_position}</li>}
+        {senate?.class && (
+          <li>
+            Senate {senate.class}
+            {election ? ` · next election ${election}` : ""}
           </li>
         )}
       </ul>
@@ -273,10 +314,14 @@ export function MemberVotes() {
 export function MemberToc({
   base,
   contact,
+  offices = false,
+  staff = false,
   biography,
 }: {
   base: readonly string[]
   contact: boolean
+  offices?: boolean
+  staff?: boolean
   biography: boolean
 }) {
   const { detail, votes } = use()
@@ -285,8 +330,10 @@ export function MemberToc({
     if (terms(detail).length || (detail?.member?.partyHistory ?? []).length) titles.push("Terms")
     if (votes.length) titles.push("Votes")
     if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) titles.push("Contact")
+    if (offices) titles.push("Offices")
+    if (staff) titles.push("Staff")
     if (biography) titles.push("Biography")
     return titles.map((title) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth: 2 }))
-  }, [base, contact, biography, detail, votes])
+  }, [base, contact, offices, staff, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }
