@@ -206,7 +206,7 @@ function DesignerInner() {
 
   // The block's title is the path to where you are — the state short, as a
   // path segment, not the legislature's full name.
-  const header = <PathBar crumbs={crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
+  const header = <PathBar crumbs={node.kind === "datasets" ? crumbs : crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
 
   // Whether the folder's rows have scrolled under the header. Remembered per
   // location so a new folder starts at the top.
