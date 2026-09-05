@@ -138,13 +138,11 @@ export function MemberOfficialPortrait({
   return <MemberPortrait name={name} photoUrl={official ?? fallback} state={state} chamber={chamber} size={size} />
 }
 
-/** Terms served, and the parties served under. */
+/** Terms served, newest first. The party line that followed is gone (Brendan, 2026-09-05). */
 export function MemberTerms() {
   const { detail } = use()
-  // Newest first, the way the record reads everywhere else on the page.
   const served = [...terms(detail)].sort((a, b) => (b.startYear ?? 0) - (a.startYear ?? 0))
-  const parties = detail?.member?.partyHistory ?? []
-  if (!served.length && !parties.length) return null
+  if (!served.length) return null
   const span = (start?: number, end?: number | null) => `${start ?? "—"}–${end ?? "present"}`
   return (
     <>
@@ -157,13 +155,6 @@ export function MemberTerms() {
           </li>
         ))}
       </ul>
-      {parties.length > 0 && (
-        <p>
-          {parties
-            .map((party) => `${party.partyName ?? party.partyAbbreviation ?? "—"} ${span(party.startYear, party.endYear)}`)
-            .join(" · ")}
-        </p>
-      )}
     </>
   )
 }
@@ -344,7 +335,7 @@ export function MemberToc({
   const { detail, votes } = use()
   const toc = React.useMemo(() => {
     const titles = [...base]
-    if (terms(detail).length || (detail?.member?.partyHistory ?? []).length) titles.push("Terms")
+    if (terms(detail).length) titles.push("Terms")
     if (votes.length) titles.push("Roll calls")
     if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) titles.push("Contact")
     if (offices) titles.push("Offices")
