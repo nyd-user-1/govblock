@@ -309,7 +309,7 @@ export function MemberVotes() {
                         {number}
                       </a>
                     ) : (
-                      <span className="whitespace-nowrap">{number ?? vote.voteQuestion ?? "—"}</span>
+                      <span className={number ? "whitespace-nowrap" : undefined}>{number ?? vote.voteQuestion ?? "—"}</span>
                     )}
                   </td>
                   <td>{vote.voteCast ?? "—"}</td>
