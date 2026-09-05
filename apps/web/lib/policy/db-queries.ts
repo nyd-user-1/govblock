@@ -1820,13 +1820,24 @@ export async function getMemberVotes({ vote, member, limit = 500 }: { vote?: str
     return { vote, count: rows.length, memberVotes: rows };
   }
   if (member) {
+    // The roll call names its bill the congress.gov way (HR 1501); our Bills
+    // row spells it LegiScan's (HB1501). The join walks that spelling so the
+    // page can link the bill to its own page rather than out to congress.gov,
+    // and a roll call with no bill — the Speaker's election, a quorum call —
+    // keeps its question. Congress 119 sat from 2025: session_id is that year.
     const rows = await q(
       `select p.vote_identifier, p.vote_cast, v.roll_call_number, v.legislation_type, v.legislation_number,
-              v.result, v.start_date
+              v.result, v.start_date, v.vote_question, v.payload->>'legislationUrl' as legislation_url,
+              b.bill_id, b.title
          from congress_house_vote_positions p
          join congress_house_votes v on v.key = p.vote_identifier
+         left join "Bills" b on b.state = 'US' and b.session_id = 1789 + (v.congress - 1) * 2
+          and b.bill_number = case v.legislation_type
+                when 'HR' then 'HB' when 'S' then 'SB' when 'HJRES' then 'HJR' when 'SJRES' then 'SJR'
+                when 'HCONRES' then 'HCR' when 'SCONRES' then 'SCR' when 'HRES' then 'HR' when 'SRES' then 'SR'
+                else v.legislation_type end || v.legislation_number
         where p.people_id = $1 order by v.start_date desc limit $2`, [member, limit]);
-    return { member, count: rows.length, memberVotes: rows };
+    return { member, count: rows.length, memberVotes: rows.map((r) => ({ ...r, bill_id: r.bill_id == null ? null : n(r.bill_id) })) };
   }
   return { count: 0, memberVotes: [] };
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 
 import { fmtDate, fmtNumber } from "@/lib/format"
 import { usePolicy } from "@/lib/policy/use-policy"
@@ -43,6 +44,9 @@ type Vote = {
   voteQuestion?: string
   result?: string
   voteCast?: string
+  /** Our own row for the bill, when the roll call names one we hold. */
+  billId?: number | null
+  title?: string | null
 }
 
 // The same roll call, spelled two ways: the API's own camelCase where the
@@ -64,6 +68,8 @@ const asVote = (row: RawVote): Vote => ({
   voteQuestion: pick(row, "voteQuestion", "vote_question") as string | undefined,
   result: pick(row, "result") as string | undefined,
   voteCast: pick(row, "voteCast", "vote_cast") as string | undefined,
+  billId: pick(row, "billId", "bill_id") as number | null | undefined,
+  title: pick(row, "title") as string | null | undefined,
 })
 
 type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean }
@@ -276,31 +282,46 @@ export function MemberVotes() {
           <tr>
             <th>Date</th>
             <th>Roll call</th>
-            <th>Question</th>
+            <th>Bill</th>
             <th>Position</th>
-            <th>Result</th>
+            <th className="pr-10">Result</th>
           </tr>
         </thead>
         <tbody>
           {[...votes]
             .sort((a, b) => day(b.startDate).localeCompare(day(a.startDate)))
-            .map((vote) => (
-              <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
-                <td>{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
-                <td>
-                  {vote.legislationUrl ? (
-                    <a href={vote.legislationUrl} target="_blank" rel="noopener noreferrer">
-                      {vote.legislationType} {vote.legislationNumber}
-                    </a>
-                  ) : (
-                    `Roll ${vote.rollCallNumber ?? "—"}`
-                  )}
-                </td>
-                <td>{vote.voteQuestion ?? "—"}</td>
-                <td>{vote.voteCast ?? "—"}</td>
-                <td>{vote.result ?? "—"}</td>
-              </tr>
-            ))}
+            .map((vote) => {
+              const number = vote.legislationNumber ? `${vote.legislationType ?? ""} ${vote.legislationNumber}`.trim() : null
+              return (
+                <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
+                  <td className="whitespace-nowrap">{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
+                  <td className="whitespace-nowrap tabular-nums">{vote.rollCallNumber ?? "—"}</td>
+                  <td className="max-w-64">
+                    {/* The bill on its own page when we hold it, at congress.gov
+                        when we don't, and the question itself when the roll call
+                        named no bill — the Speaker's election, a quorum call. */}
+                    {number && vote.billId ? (
+                      <Link href={`/docs/bills/${vote.billId}`} className="whitespace-nowrap">
+                        {number}
+                      </Link>
+                    ) : number && vote.legislationUrl ? (
+                      <a href={vote.legislationUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
+                        {number}
+                      </a>
+                    ) : (
+                      <span className="whitespace-nowrap">{number ?? vote.voteQuestion ?? "—"}</span>
+                    )}
+                    {number && vote.title && (
+                      <span className="block truncate text-xs text-muted-foreground" title={vote.title}>
+                        {vote.title}
+                      </span>
+                    )}
+                  </td>
+                  <td>{vote.voteCast ?? "—"}</td>
+                  <td className="pr-10">{vote.result ?? "—"}</td>
+                </tr>
+              )
+            })}
         </tbody>
       </Table>
       <p>
