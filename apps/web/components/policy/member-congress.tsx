@@ -313,7 +313,7 @@ export function MemberVotes() {
                     )}
                   </td>
                   <td>{vote.voteCast ?? "—"}</td>
-                  <td className="pr-10">{vote.result ?? "—"}</td>
+                  <td className="pr-10">{vote.result?.replace(/^Agreed to$/, "Agreed") ?? "—"}</td>
                 </tr>
               )
             })}
