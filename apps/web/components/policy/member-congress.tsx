@@ -264,13 +264,13 @@ export function MemberContact({ phone, bio, senate }: { phone: string | null; bi
   )
 }
 
-/** How they voted on the House floor, newest first. */
+/** How they voted on the House floor, roll call by roll call, newest first. */
 export function MemberVotes() {
   const { votes, onCongress } = use()
   if (!onCongress || !votes.length) return null
   return (
     <>
-      <H2>Votes</H2>
+      <H2>Roll calls</H2>
       <Table>
         <thead>
           <tr>
@@ -328,7 +328,7 @@ export function MemberToc({
   const toc = React.useMemo(() => {
     const titles = [...base]
     if (terms(detail).length || (detail?.member?.partyHistory ?? []).length) titles.push("Terms")
-    if (votes.length) titles.push("Votes")
+    if (votes.length) titles.push("Roll calls")
     if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) titles.push("Contact")
     if (offices) titles.push("Offices")
     if (staff) titles.push("Staff")

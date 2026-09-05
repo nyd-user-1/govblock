@@ -232,7 +232,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
         <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
           <BillToc base={bill.state === "US" ? CONGRESS_SECTIONS : SECTIONS} />
         </div>
-        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto scrollbar-none px-6 xl:flex">
           <PublicRail />
         </div>
         </div>

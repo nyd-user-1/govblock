@@ -28,7 +28,7 @@ import { H2, Table } from "@/components/typeset"
 // a crawler and a reader with slow JS all see who it is. The portrait, the
 // terms and the floor votes arrive from congress.gov after that.
 
-const SECTIONS = ["Record"]
+const SECTIONS = ["Bills", "Votes"]
 
 // "Congress House" is not a thing anyone says, and it is the one place this
 // page would print the jurisdiction into a shell every reader shares.
@@ -100,7 +100,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   ]
     .filter(Boolean)
     .join(" · ")
-  const markdown = [`# ${title}`, "", description, "", `${record.counts.sponsored} sponsored · ${record.counts.aye} aye · ${record.counts.nay} nay`].join("\n")
+  const markdown = [`# ${title}`, "", description, "", `${record.counts.prime} prime · ${record.counts.cosponsor} co-sponsored · ${record.counts.aye} aye · ${record.counts.nay} nay`].join("\n")
 
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state}>
@@ -120,35 +120,74 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
               }
             />
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              <H2>Record</H2>
+              <H2>Bills</H2>
               <MemberTabs
-                counts={record.counts}
-                sponsored={
-                  <MemberFeed
-                    bills={record.sponsored}
-                    total={record.counts.sponsored}
-                    state={state}
-                    empty={`${name} has sponsored nothing this session.`}
-                  />
-                }
-                aye={
-                  <MemberFeed
-                    bills={record.aye}
-                    total={record.counts.aye}
-                    vote="Aye"
-                    state={state}
-                    empty="No recorded aye votes this session."
-                  />
-                }
-                nay={
-                  <MemberFeed
-                    bills={record.nay}
-                    total={record.counts.nay}
-                    vote="Nay"
-                    state={state}
-                    empty="No recorded nay votes this session."
-                  />
-                }
+                tabs={[
+                  {
+                    value: "prime",
+                    label: "Prime Sponsor",
+                    emoji: "😀",
+                    count: record.counts.prime,
+                    content: (
+                      <MemberFeed
+                        bills={record.prime}
+                        total={record.counts.prime}
+                        state={state}
+                        empty={`${name} has sponsored nothing this session.`}
+                      />
+                    ),
+                  },
+                  {
+                    value: "cosponsor",
+                    label: "Co-Sponsor",
+                    emoji: "🤝",
+                    count: record.counts.cosponsor,
+                    content: (
+                      <MemberFeed
+                        bills={record.cosponsor}
+                        total={record.counts.cosponsor}
+                        state={state}
+                        empty={`${name} has co-sponsored nothing this session.`}
+                      />
+                    ),
+                  },
+                ]}
+              />
+
+              <H2>Votes</H2>
+              <MemberTabs
+                tabs={[
+                  {
+                    value: "aye",
+                    label: "Aye",
+                    emoji: "✅",
+                    count: record.counts.aye,
+                    content: (
+                      <MemberFeed
+                        bills={record.aye}
+                        total={record.counts.aye}
+                        vote="Aye"
+                        state={state}
+                        empty="No recorded aye votes this session."
+                      />
+                    ),
+                  },
+                  {
+                    value: "nay",
+                    label: "Nay",
+                    emoji: "❌",
+                    count: record.counts.nay,
+                    content: (
+                      <MemberFeed
+                        bills={record.nay}
+                        total={record.counts.nay}
+                        vote="Nay"
+                        state={state}
+                        empty="No recorded nay votes this session."
+                      />
+                    ),
+                  },
+                ]}
               />
 
               {fec && (
@@ -209,7 +248,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
               biography={!!biography}
             />
           </div>
-          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+          <div className="hidden flex-1 flex-col gap-6 overflow-y-auto scrollbar-none px-6 xl:flex">
             <PublicRail />
           </div>
         </div>

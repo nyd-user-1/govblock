@@ -854,10 +854,14 @@ export async function getMemberRecord(
      limit ${Number(limit) || 50}`
 
   const [counts, sponsored, votes] = await Promise.all([
-    one<{ sponsored: number; aye: number; nay: number }>(
+    one<{ sponsored: number; prime: number; cosponsor: number; aye: number; nay: number }>(
       `select
          (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
            where s.people_id = $1 and b.state = $2 and b.session_id = $3)::int as sponsored,
+         (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3 and s.sponsor_type_id = 1)::int as prime,
+         (select count(distinct s.bill_id) from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3 and s.sponsor_type_id <> 1)::int as cosponsor,
          (select count(distinct r.bill_id) from "Votes" v join "Roll Call" r using (roll_call_id)
            join "Bills" b on b.bill_id = r.bill_id
            where v.people_id = $1 and b.state = $2 and b.session_id = $3 and v.vote_desc = 'Yea')::int as aye,
@@ -867,12 +871,21 @@ export async function getMemberRecord(
       scope
     ),
     q<BillRow & { role: number }>(
-      recent(`select distinct on (b.bill_id)
-              b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
-              b.committee, b.body, b.url, b.state_link, s.sponsor_type_id as role
-       from "Sponsors" s join "Bills" b using (bill_id)
-       where s.people_id = $1 and b.state = $2 and b.session_id = $3
-       order by b.bill_id, s.sponsor_type_id`),
+      // Prime (sponsor_type_id 1) and co-sponsored apart, up to `limit` each,
+      // the way the votes below keep `limit` Yea and `limit` Nay.
+      `select * from (
+         select t.*, row_number() over (partition by (t.role = 1)
+                  order by t.last_action_date desc nulls last, t.bill_id desc) as rn
+         from (
+           select distinct on (b.bill_id)
+                  b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date,
+                  b.committee, b.body, b.url, b.state_link, s.sponsor_type_id as role
+           from "Sponsors" s join "Bills" b using (bill_id)
+           where s.people_id = $1 and b.state = $2 and b.session_id = $3
+           order by b.bill_id, s.sponsor_type_id
+         ) t
+       ) ranked where rn <= ${Number(limit) || 50}
+       order by last_action_date desc nulls last, bill_id desc`,
       scope
     ),
     q<BillRow & { vote_desc: string; vote_date: string }>(
@@ -907,13 +920,19 @@ export async function getMemberRecord(
     rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
   const aye = clean(votes.filter((v) => v.vote_desc === "Yea")).slice(0, limit)
   const nay = clean(votes.filter((v) => v.vote_desc === "Nay")).slice(0, limit)
+  const prime = clean(sponsored.filter((b) => n(b.role) === 1)).slice(0, limit)
+  const cosponsor = clean(sponsored.filter((b) => n(b.role) !== 1)).slice(0, limit)
 
   return {
     sponsored: clean(sponsored),
+    prime,
+    cosponsor,
     aye,
     nay,
     counts: {
       sponsored: n(counts?.sponsored),
+      prime: n(counts?.prime),
+      cosponsor: n(counts?.cosponsor),
       aye: n(counts?.aye),
       nay: n(counts?.nay),
     },

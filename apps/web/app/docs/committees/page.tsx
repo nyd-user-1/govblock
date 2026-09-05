@@ -68,7 +68,7 @@ export default function CommitteesPage() {
       </div>
       <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
         <div className="h-(--top-spacing) shrink-0"></div>
-        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto scrollbar-none px-6 xl:flex">
           <CalendarCard compact />
           <PublicRail />
         </div>

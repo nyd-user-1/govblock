@@ -5,39 +5,36 @@ import * as React from "react"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@govblock/ui/components/nova/tabs"
 
-// Ported from livingston-v3 components/policy/member-tabs.tsx: three tabs over
-// content the server already rendered, passed in as children.
+// Two tabs over content the server already rendered, passed in as children.
+// Brendan, 2026-09-05: the member's record is two blocks, not one — Bills
+// (Prime Sponsor · Co-Sponsor) and Votes (Aye · Nay) — so the block takes its
+// pair of tabs and is mounted once under each heading.
 export function MemberTabs({
-  counts,
-  sponsored,
-  aye,
-  nay,
+  tabs,
 }: {
-  counts: { sponsored: number; aye: number; nay: number }
-  sponsored: React.ReactNode
-  aye: React.ReactNode
-  nay: React.ReactNode
+  tabs: [
+    { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
+    { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
+  ]
 }) {
-  // The pills sat tight under the Record heading; twelve pixels is what the
-  // heading needed to stop touching them. The emoji are Brendan's, and they are
-  // emoji rather than icons on purpose — they read at pill size and carry the
-  // three states apart at a glance.
+  // The pills sat tight under the heading; twelve pixels is what the heading
+  // needed to stop touching them. The emoji are Brendan's, and they are emoji
+  // rather than icons on purpose — they read at pill size and carry the states
+  // apart at a glance.
   return (
-    <Tabs defaultValue="sponsored" className="not-typeset">
+    <Tabs defaultValue={tabs[0].value} className="not-typeset">
       <TabsList className="mt-3">
-        <TabsTrigger value="sponsored">
-          <span aria-hidden>😀</span> Sponsored <Badge variant="outline">{counts.sponsored}</Badge>
-        </TabsTrigger>
-        <TabsTrigger value="aye">
-          <span aria-hidden>✅</span> AYE <Badge variant="outline">{counts.aye}</Badge>
-        </TabsTrigger>
-        <TabsTrigger value="nay">
-          <span aria-hidden>❌</span> NAY <Badge variant="outline">{counts.nay}</Badge>
-        </TabsTrigger>
+        {tabs.map((t) => (
+          <TabsTrigger key={t.value} value={t.value}>
+            <span aria-hidden>{t.emoji}</span> {t.label} <Badge variant="outline">{t.count}</Badge>
+          </TabsTrigger>
+        ))}
       </TabsList>
-      <TabsContent value="sponsored">{sponsored}</TabsContent>
-      <TabsContent value="aye">{aye}</TabsContent>
-      <TabsContent value="nay">{nay}</TabsContent>
+      {tabs.map((t) => (
+        <TabsContent key={t.value} value={t.value}>
+          {t.content}
+        </TabsContent>
+      ))}
     </Tabs>
   )
 }
