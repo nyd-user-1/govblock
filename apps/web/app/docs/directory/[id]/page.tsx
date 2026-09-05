@@ -44,14 +44,11 @@ import { H2, H3 } from "@/components/typeset"
 const chamberName = (state: string, chamber: string) =>
   state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`
 
-// One entry per member, half an hour each. The three exports have to appear
-// together: `revalidate` alone on a dynamic segment does nothing.
-export const revalidate = 1800
-export const dynamicParams = true
-
-export function generateStaticParams() {
-  return []
-}
+// Rendered per request: the Sessions menu writes `?session=`, and a page that
+// reads a search param cannot also be cached and pre-generated — in
+// production the route failed before rendering when it tried (2026-09-05,
+// every member page a 500). The auth page reads its params the same way.
+export const dynamic = "force-dynamic"
 
 async function load(id: string, wanted?: string) {
   const peopleId = Number(id)
