@@ -17,7 +17,7 @@ import {
   MemberToc,
   MemberVotes,
 } from "@/components/policy/member-congress"
-import { H2, Table } from "@/components/typeset"
+import { H2, H3, Table } from "@/components/typeset"
 
 // A member's own page, keyed by `people_id` — globally unique, so the route
 // learns the jurisdiction from the person rather than the other way round.
@@ -29,7 +29,6 @@ import { H2, Table } from "@/components/typeset"
 // a crawler and a reader with slow JS all see who it is. The portrait, the
 // terms and the floor votes arrive from congress.gov after that.
 
-const SECTIONS = ["Bills", "Votes"]
 
 // "Congress House" is not a thing anyone says, and it is the one place this
 // page would print the jurisdiction into a shell every reader shares.
@@ -86,7 +85,6 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
   const data = await load(id)
   if (!data) notFound()
   const { peopleId, state, member, record, fec, directory } = data
-  const sections = fec ? [...SECTIONS, "Finance"] : SECTIONS
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}`.trim()
@@ -121,7 +119,8 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
               }
             />
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              <H2>Bills</H2>
+              <H2>Record</H2>
+              <H3>Bills</H3>
               <MemberTabs
                 tabs={[
                   {
@@ -159,7 +158,9 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
                 ]}
               />
 
-              <H2>Votes</H2>
+              <MemberVotes />
+
+              <H3>Votes</H3>
               <MemberTabs
                 tabs={[
                   {
@@ -232,7 +233,6 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
               )}
 
               <MemberTerms />
-              <MemberVotes />
               <MemberContact phone={phone} bio={bio} senate={directory?.senate ?? null} />
               {directory && <MemberOffices offices={directory.offices} />}
               {directory && <MemberStaff staff={directory.staff} offices={directory.offices} />}
@@ -250,7 +250,7 @@ export default async function MemberRoute({ params }: { params: Promise<{ id: st
           <div className="h-(--top-spacing) shrink-0"></div>
           <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
             <MemberToc
-              base={sections}
+              finance={!!fec}
               contact={!!(phone || bio || directory?.senate)}
               offices={!!directory?.offices.length}
               staff={!!directory?.staff.length}

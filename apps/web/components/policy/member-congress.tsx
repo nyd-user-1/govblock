@@ -8,7 +8,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { day } from "@/lib/policy/congress"
 import { MemberPortrait } from "@/components/policy/imagery"
-import { H2, Table } from "@/components/typeset"
+import { H2, H3, Table } from "@/components/typeset"
 import { DocsTableOfContents } from "@/components/docs-toc"
 
 // What congress.gov holds about a member, on the member's own page: the
@@ -306,7 +306,7 @@ export function MemberVotes() {
 
   return (
     <>
-      <H2>Roll calls</H2>
+      <H3>Roll Call</H3>
       <Table>
         <thead>
           <tr>
@@ -360,13 +360,13 @@ export function MemberVotes() {
 
 /** The rail's contents, naming only the sections this member has. */
 export function MemberToc({
-  base,
+  finance,
   contact,
   offices = false,
   staff = false,
   biography,
 }: {
-  base: readonly string[]
+  finance: boolean
   contact: boolean
   offices?: boolean
   staff?: boolean
@@ -374,17 +374,19 @@ export function MemberToc({
 }) {
   const { detail, votes } = use()
   const toc = React.useMemo(() => {
-    const titles = [...base]
-    if (terms(detail).length) titles.push("Terms")
-    if (votes.length) titles.push("Roll calls")
-    if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) titles.push("Contact")
-    // Offices and Staff sit under Contact, as shadcn's docs nest a command's
-    // sub-commands: depth 3, indented in the rail.
-    const under = new Set<string>()
-    if (offices) { titles.push("Offices"); under.add("Offices") }
-    if (staff) { titles.push("Staff"); under.add("Staff") }
-    if (biography) titles.push("Biography")
-    return titles.map((title) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth: under.has(title) ? 3 : 2 }))
-  }, [base, contact, offices, staff, biography, detail, votes])
+    // Sections at depth 2, their parts at depth 3, as shadcn's docs nest a
+    // command's sub-commands. Record holds Bills, Roll Call and Votes; Contact
+    // holds Offices and Staff (Brendan, 2026-09-05).
+    const items: [string, 2 | 3][] = [["Record", 2], ["Bills", 3]]
+    if (votes.length) items.push(["Roll Call", 3])
+    items.push(["Votes", 3])
+    if (finance) items.push(["Finance", 2])
+    if (terms(detail).length) items.push(["Terms", 2])
+    if (contact || detail?.member?.addressInformation || detail?.member?.officialWebsiteUrl) items.push(["Contact", 2])
+    if (offices) items.push(["Offices", 3])
+    if (staff) items.push(["Staff", 3])
+    if (biography) items.push(["Biography", 2])
+    return items.map(([title, depth]) => ({ title, url: `#${title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
+  }, [finance, contact, offices, staff, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }
