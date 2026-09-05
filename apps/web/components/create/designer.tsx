@@ -15,6 +15,7 @@ import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { Fab, FabButton } from "@/components/create/fab"
 import { FileActions, type BillView } from "@/components/create/file-actions"
+import { DatasetGrid } from "@/components/create/datasets"
 import { FileView } from "@/components/create/file-view"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
@@ -62,15 +63,15 @@ function DesignerInner() {
 
   // Congress, current session, every time: a bare /create writes the state
   // in, so the remembered jurisdiction never decides what this page opens on.
-  // And it opens on Canvas — the session's bills as the large cards (Brendan,
-  // 2026-09-04: "The default /create load page should now be canvas") — so a
-  // bare /create is `?state=US&at=bills&look=cards`. Read off the address bar
+  // And it opens on the datasets (Brendan, 2026-09-05, create.html): the
+  // cards that entitle a reader to a dataset, open or locked — so a bare
+  // /create is `?state=US&at=datasets`. Read off the address bar
   // itself — the first client render still carries the server's empty params,
   // and a stale "" must not overwrite a real state.
   React.useEffect(() => {
     const live = new URLSearchParams(window.location.search)
     if (live.get("preset")) return
-    if (!live.get("state")) writeUrlParams({ state: "US", at: live.get("at") ?? "bills", look: live.get("look") ?? "cards" }, { history: "replace" })
+    if (!live.get("state")) writeUrlParams({ state: "US", at: live.get("at") ?? "datasets" }, { history: "replace" })
   }, [params.state, params.preset])
 
   // `?preset=` unpacks once, into the keys it stands for, and leaves.
@@ -136,6 +137,7 @@ function DesignerInner() {
   const memberLabel = member ? `${honorific(member.role, member.chamber)} ${member.name}` : location.member ? `Member ${location.member}` : ""
   const billLabel = bill ? `${bill.bill_number} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
   const crumbs = React.useMemo<Crumb[]>(() => {
+    if (node.kind === "datasets") return [{ label: "Create" }]
     const out: Crumb[] = [{ label: legislatureName(scope.state), go: listing("sessions") }]
     if (node.kind === "sessions") return out
     out.push({ label: sessionTitle || String(scope.session ?? ""), go: listing(null) })
@@ -230,7 +232,7 @@ function DesignerInner() {
 
   // What the stage shows, and how to switch it — one answer for the FAB's
   // switcher and the customizer's menu.
-  const stageNow: Stage = isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode
+  const stageNow: Stage = node.kind === "datasets" ? "canvas" : isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode
   const pickStage = React.useCallback(
     (next: Stage) => {
       if (next === "state" || next === "design") {
@@ -252,7 +254,11 @@ function DesignerInner() {
   )
 
   const Inbox = blockComponents["sidebar-09"]
-  const stage = isSpecial(node) ? (
+  const stage = node.kind === "datasets" ? (
+    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} contentClassName="overflow-y-auto">
+      <DatasetGrid onGo={(target) => writeUrlParams({ ...listing(target.at ?? "bills"), state: target.state ?? null, session: target.session ?? null, chamber: target.chamber ?? null, look: "cards" }, { history: "push" })} />
+    </BlockShell>
+  ) : isSpecial(node) ? (
     node.kind === "inbox" ? (
       <Inbox />
     ) : node.kind === "finance" ? (

@@ -20,6 +20,7 @@
 //   at=votes/2026-05               a month: Floor · Committee
 //   at=votes/2026-05/floor         that month's floor roll calls
 //   rollcall=1707303               one roll call: the tally and every position
+//   at=datasets                    what /create opens on: the datasets as cards, open or locked
 //   at=forks                       the reader's forks of bills, across jurisdictions
 //   bill=…&fork=12                 a bill seen through the reader's fork: its commits on top
 //
@@ -27,6 +28,7 @@
 // menu: inbox, finance, forms.
 
 export type Node =
+  | { kind: "datasets" }
   | { kind: "sessions" }
   | { kind: "root" }
   | { kind: "forks" }
@@ -58,11 +60,11 @@ export const ROOT_FOLDERS = [
   { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
 ] as const
 
-const SPECIAL = new Set(["inbox", "finance", "forms"])
+const SPECIAL = new Set(["inbox", "finance", "forms", "datasets"])
 
 /** The node the URL names. A record beats a listing: a bill is a bill wherever it was reached from. */
 export function locate(loc: Location): Node {
-  if (SPECIAL.has(loc.at)) return { kind: loc.at as "inbox" | "finance" | "forms" }
+  if (SPECIAL.has(loc.at)) return { kind: loc.at as "inbox" | "finance" | "forms" | "datasets" }
   if (loc.bill && /^\d+$/.test(loc.bill)) return { kind: "bill", id: Number(loc.bill) }
   if (loc.rollcall && /^\d+$/.test(loc.rollcall)) return { kind: "rollcall", id: Number(loc.rollcall) }
   if (loc.member && /^\d+$/.test(loc.member)) return { kind: "member", id: Number(loc.member) }
