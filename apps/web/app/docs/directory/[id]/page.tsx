@@ -151,7 +151,33 @@ export default async function MemberRoute({ params, searchParams }: Props) {
               state={state}
               member={member}
               action={
-                <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
+                <div className="docs-nav flex items-center gap-2">
+                  <div className="hidden sm:block">
+                    <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
+                  </div>
+                  {/* The arrows the index pages carry beside Copy Page, walking to
+                      the previous and next sitting member (Brendan, 2026-09-05). */}
+                  {(neighbours.previous || neighbours.next) && (
+                    <div className="ml-auto flex gap-2">
+                      {neighbours.previous && (
+                        <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                          <Link href={`/docs/directory/${neighbours.previous.people_id}?state=${state}`}>
+                            <IconArrowLeft />
+                            <span className="sr-only">Previous</span>
+                          </Link>
+                        </Button>
+                      )}
+                      {neighbours.next && (
+                        <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                          <Link href={`/docs/directory/${neighbours.next.people_id}?state=${state}`}>
+                            <span className="sr-only">Next</span>
+                            <IconArrowRight />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               }
             />
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">

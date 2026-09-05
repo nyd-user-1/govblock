@@ -1008,11 +1008,19 @@ export async function getCommittee(f: Resolved, name: string) {
       bill_number: string
       title: string
     }>(
-      `select c.date, c.time, c.description, b.bill_id, b.bill_number, b.title
-       from "Calendar" c join "Bills" b using (bill_id)
-       where b.state = $1 and c.description ilike $2 and c.date <= ${DATE_CAP}
+      // Calendar carries no state, so the old form found every calendar row in
+      // every legislature that named the committee, then probed Bills once per
+      // row to keep this state's — the committee page's slow query (2.2 s
+      // cold). Scoping to the session's bills first lets the planner hash that
+      // set once and drop the other states in memory. Brendan, 2026-09-05.
+      `with scope as (
+         select bill_id, bill_number, title from "Bills" where state = $1 and session_id = $2
+       )
+       select c.date, c.time, c.description, s.bill_id, s.bill_number, s.title
+       from "Calendar" c join scope s using (bill_id)
+       where c.description ilike $3 and c.date <= ${DATE_CAP}
        order by c.date desc, c.time limit 60`,
-      [f.state, `%${name} Committee%`]
+      [f.state, f.session, `%${name} Committee%`]
     ),
   ])
   return {
