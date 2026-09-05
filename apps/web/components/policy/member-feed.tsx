@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { fmtDate, truncate } from "@/lib/format"
+import { fmtDate } from "@/lib/format"
 import { Button } from "@govblock/ui/components/nova/button"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
 
@@ -108,7 +108,7 @@ export function MemberFeed({
             bill.committee ? `${bill.committee} Committee` : null,
             vote ? `Voted ${vote}` : null,
           ]}
-          description={truncate(bill.title, 240)}
+          description={<span className="line-clamp-2">{bill.title}</span>}
         />
       ))}
       {(more || busy) && (

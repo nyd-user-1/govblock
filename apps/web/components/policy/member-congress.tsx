@@ -3,7 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 
-import { fmtDate, fmtNumber } from "@/lib/format"
+import { fmtDate } from "@/lib/format"
+import { Button } from "@govblock/ui/components/nova/button"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { day } from "@/lib/policy/congress"
 import { MemberPortrait } from "@/components/policy/imagery"
@@ -72,8 +73,8 @@ const asVote = (row: RawVote): Vote => ({
   title: pick(row, "title") as string | null | undefined,
 })
 
-type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean }
-const Ctx = React.createContext<Value>({ detail: null, votes: [], onCongress: false })
+type Value = { detail: Detail | null; votes: Vote[]; onCongress: boolean; peopleId: number; state: string }
+const Ctx = React.createContext<Value>({ detail: null, votes: [], onCongress: false, peopleId: 0, state: "US" })
 const use = () => React.useContext(Ctx)
 
 export function MemberCongressProvider({
@@ -104,8 +105,10 @@ export function MemberCongressProvider({
       detail: detail.data ?? null,
       votes: (votes.data?.memberVotes ?? votes.data?.votes ?? []).map(asVote),
       onCongress: on,
+      peopleId,
+      state,
     }),
-    [detail.data, votes.data, on]
+    [detail.data, votes.data, on, peopleId, state]
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -263,9 +266,44 @@ export function MemberContact({ phone, bio, senate }: { phone: string | null; bi
 }
 
 /** How they voted on the House floor, roll call by roll call, newest first. */
+const PAGE = 10
+
 export function MemberVotes() {
-  const { votes, onCongress } = use()
-  if (!onCongress || !votes.length) return null
+  const { votes, onCongress, peopleId, state } = use()
+  // Ten at a time, as the Bills and Votes lists above (Brendan, 2026-09-05).
+  // The provider loads the first five hundred; past those, the next ten come
+  // from the route with an offset.
+  const [extra, setExtra] = React.useState<Vote[]>([])
+  const [visible, setVisible] = React.useState(PAGE)
+  const [busy, setBusy] = React.useState(false)
+  const [exhausted, setExhausted] = React.useState(false)
+  const all = React.useMemo(
+    () => [...votes, ...extra].sort((a, b) => day(b.startDate).localeCompare(day(a.startDate))),
+    [votes, extra]
+  )
+  if (!onCongress || !all.length) return null
+  const more = !exhausted && !busy && (visible < all.length || votes.length >= 500)
+
+  async function seeMore() {
+    if (visible + PAGE <= all.length) {
+      setVisible((v) => v + PAGE)
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/policy/member-votes?state=${encodeURIComponent(state)}&member=${peopleId}&limit=${PAGE}&offset=${all.length}`)
+      const data = (await res.json()) as { memberVotes?: RawVote[] }
+      const next = (data.memberVotes ?? []).map(asVote)
+      if (next.length < PAGE) setExhausted(true)
+      setExtra((prev) => [...prev, ...next])
+      setVisible((v) => v + PAGE)
+    } catch {
+      setExhausted(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <H2>Roll calls</H2>
@@ -280,40 +318,42 @@ export function MemberVotes() {
           </tr>
         </thead>
         <tbody>
-          {[...votes]
-            .sort((a, b) => day(b.startDate).localeCompare(day(a.startDate)))
-            .map((vote) => {
-              const number = vote.legislationNumber ? `${vote.legislationType ?? ""} ${vote.legislationNumber}`.trim() : null
-              return (
-                <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
-                  <td className="whitespace-nowrap">{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
-                  <td className="whitespace-nowrap tabular-nums">{vote.rollCallNumber ?? "—"}</td>
-                  <td>
-                    {/* The bill on its own page when we hold it, at congress.gov
-                        when we don't, and the question itself when the roll call
-                        named no bill — the Speaker's election, a quorum call. */}
-                    {number && vote.billId ? (
-                      <Link href={`/docs/bills/${vote.billId}`} className="whitespace-nowrap">
-                        {number}
-                      </Link>
-                    ) : number && vote.legislationUrl ? (
-                      <a href={vote.legislationUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
-                        {number}
-                      </a>
-                    ) : (
-                      <span className={number ? "whitespace-nowrap" : undefined}>{number ?? vote.voteQuestion ?? "—"}</span>
-                    )}
-                  </td>
-                  <td>{vote.voteCast ?? "—"}</td>
-                  <td className="pr-10">{vote.result?.replace(/^Agreed to$/, "Agreed") ?? "—"}</td>
-                </tr>
-              )
-            })}
+          {all.slice(0, visible).map((vote) => {
+            const number = vote.legislationNumber ? `${vote.legislationType ?? ""} ${vote.legislationNumber}`.trim() : null
+            return (
+              <tr key={vote.identifier ?? `${vote.sessionNumber}-${vote.rollCallNumber}`}>
+                <td className="whitespace-nowrap">{vote.startDate ? fmtDate(vote.startDate) : "—"}</td>
+                <td className="whitespace-nowrap tabular-nums">{vote.rollCallNumber ?? "—"}</td>
+                <td>
+                  {/* The bill on its own page when we hold it, at congress.gov
+                      when we don't, and the question itself when the roll call
+                      named no bill — the Speaker's election, a quorum call. */}
+                  {number && vote.billId ? (
+                    <Link href={`/docs/bills/${vote.billId}`} className="whitespace-nowrap">
+                      {number}
+                    </Link>
+                  ) : number && vote.legislationUrl ? (
+                    <a href={vote.legislationUrl} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap">
+                      {number}
+                    </a>
+                  ) : (
+                    <span className={number ? "whitespace-nowrap" : undefined}>{number ?? vote.voteQuestion ?? "—"}</span>
+                  )}
+                </td>
+                <td>{vote.voteCast ?? "—"}</td>
+                <td className="pr-10">{vote.result?.replace(/^Agreed to$/, "Agreed") ?? "—"}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </Table>
-      <p>
-        {fmtNumber(votes.length)} recorded {votes.length === 1 ? "position" : "positions"} on the roll calls on file.
-      </p>
+      {(more || busy) && (
+        <p className="not-typeset mt-3">
+          <Button variant="outline" size="sm" onClick={seeMore} disabled={busy}>
+            {busy ? "Loading…" : "See more"}
+          </Button>
+        </p>
+      )}
     </>
   )
 }

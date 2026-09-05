@@ -1813,7 +1813,7 @@ export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
  * page asks and `"Roll Call"` has never been able to answer, because LegiScan
  * records the tally and not who was in it.
  */
-export async function getMemberVotes({ vote, member, limit = 500 }: { vote?: string; member?: number; limit?: number }) {
+export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: { vote?: string; member?: number; limit?: number; offset?: number }) {
   if (vote) {
     const rows = await q(
       `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
@@ -1837,7 +1837,7 @@ export async function getMemberVotes({ vote, member, limit = 500 }: { vote?: str
                 when 'HR' then 'HB' when 'S' then 'SB' when 'HJRES' then 'HJR' when 'SJRES' then 'SJR'
                 when 'HCONRES' then 'HCR' when 'SCONRES' then 'SCR' when 'HRES' then 'HR' when 'SRES' then 'SR'
                 else v.legislation_type end || v.legislation_number
-        where p.people_id = $1 order by v.start_date desc limit $2`, [member, limit]);
+        where p.people_id = $1 order by v.start_date desc limit $2 offset $3`, [member, limit, Math.max(0, Number(offset) || 0)]);
     return { member, count: rows.length, memberVotes: rows.map((r) => ({ ...r, bill_id: r.bill_id == null ? null : n(r.bill_id) })) };
   }
   return { count: 0, memberVotes: [] };

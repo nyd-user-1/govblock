@@ -60,9 +60,6 @@ export function MemberStaff({ staff, offices }: { staff: DirectoryStaffer[]; off
   return (
     <>
       <H2>Staff</H2>
-      <p>
-        {staff.length} on the House Telephone Directory.
-      </p>
       <Table>
         <thead>
           <tr>

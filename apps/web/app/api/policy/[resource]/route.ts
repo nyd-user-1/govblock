@@ -365,7 +365,7 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "house-votes":
       return getHouseVotes(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "member-votes":
-      return getMemberVotes({ vote: sp.get("vote") ?? undefined, member: int(sp.get("member"), 0) || undefined, limit: int(sp.get("limit"), 500) })
+      return getMemberVotes({ vote: sp.get("vote") ?? undefined, member: int(sp.get("member"), 0) || undefined, limit: int(sp.get("limit"), 500), offset: int(sp.get("offset"), 0) || 0 })
     case "crs-reports":
       return getCrsReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     case "record-issues":
