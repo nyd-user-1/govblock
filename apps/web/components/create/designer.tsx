@@ -62,11 +62,15 @@ function DesignerInner() {
 
   // Congress, current session, every time: a bare /create writes the state
   // in, so the remembered jurisdiction never decides what this page opens on.
-  // Read off the address bar itself — the first client render still carries
-  // the server's empty params, and a stale "" must not overwrite a real state.
+  // And it opens on Canvas — the session's bills as the large cards (Brendan,
+  // 2026-09-04: "The default /create load page should now be canvas") — so a
+  // bare /create is `?state=US&at=bills&look=cards`. Read off the address bar
+  // itself — the first client render still carries the server's empty params,
+  // and a stale "" must not overwrite a real state.
   React.useEffect(() => {
     const live = new URLSearchParams(window.location.search)
-    if (!live.get("state") && !live.get("preset")) writeUrlParams({ state: "US" })
+    if (live.get("preset")) return
+    if (!live.get("state")) writeUrlParams({ state: "US", at: live.get("at") ?? "bills", look: live.get("look") ?? "cards" }, { history: "replace" })
   }, [params.state, params.preset])
 
   // `?preset=` unpacks once, into the keys it stands for, and leaves.
