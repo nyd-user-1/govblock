@@ -396,7 +396,7 @@ export function MemberToc({
     // Sections at depth 2, their parts at depth 3, as shadcn's docs nest a
     // command's sub-commands. Record holds Bills, Roll Call and Votes; Contact
     // holds Offices and Staff (Brendan, 2026-09-05).
-    const items: [string, 2 | 3, string?][] = [["Introduction", 2], [record, 2, "record"], ["Bills", 3]]
+    const items: [string, 2 | 3, string?][] = [["Summary", 2], ["Record", 2], ["Bills", 3]]
     if (committees) items.push(["Committees", 3])
     if (finance) items.push(["Finance", 3])
     if (votes.length) items.push(["Roll Call", 3])

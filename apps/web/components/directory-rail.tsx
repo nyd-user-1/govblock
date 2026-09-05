@@ -8,7 +8,7 @@ import { ChevronRight } from "lucide-react"
 import { hasItems, siteConfig, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtLongDate, truncate } from "@/lib/format"
+import { fmtBill, fmtLongDate, truncate } from "@/lib/format"
 import { cn } from "@govblock/ui/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/ui/components/ny4/collapsible"
 import {
@@ -36,7 +36,6 @@ const MENU_CLASS =
 
 // `HB 10163`: the prefix and the number with a space between, leading zeros
 // dropped, in the rail's own face rather than mono (Brendan, 23:10 ET).
-const print = (number: string) => number.replace(/^([A-Z]+)0*(\d+)$/, "$1 $2")
 
 
 // The four sections in the order Brendan gave them (2026-09-02, 20:00 ET),
@@ -161,7 +160,7 @@ export function DirectoryRail() {
   const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
     key: String(bill.bill_id),
     href: `/docs/bills/${bill.bill_id}`,
-    label: print(bill.bill_number),
+    label: fmtBill(bill.bill_number),
     // The day it last moved, written out (Brendan, 2026-09-03).
     detail: bill.last_action_date ? fmtLongDate(bill.last_action_date) : null,
     tooltip: bill.title,

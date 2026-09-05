@@ -25,9 +25,9 @@ export function PageSizeMenu({ size, total, onChange }: { size: number; total: n
       >
         Show {fmtNumber(Math.min(size, total))} of {fmtNumber(total)} {total === 1 ? "row" : "rows"}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-44">
+      <DropdownMenuContent align="start" className="w-max min-w-44">
         {PAGE_SIZES.map((n) => (
-          <DropdownMenuCheckboxItem key={n} checked={n === size} onCheckedChange={() => onChange(n)}>
+          <DropdownMenuCheckboxItem key={n} className="whitespace-nowrap" checked={n === size} onCheckedChange={() => onChange(n)}>
             Show {n}
           </DropdownMenuCheckboxItem>
         ))}

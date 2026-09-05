@@ -3,8 +3,7 @@ import { committeeKey } from "@/lib/policy/congress"
 import type { MemberCommittee } from "@/lib/policy/db-queries"
 import { fmtNumber } from "@/lib/format"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { PreviewFrame } from "@/components/preview-frame"
-import { ProjectCard, ProjectGrid } from "@/components/project-card"
+import { CardBlock } from "@/components/policy/card-block"
 import { H3 } from "@/components/typeset"
 
 // A member's committees on the card /docs/committees uses — seal, name, bill
@@ -58,24 +57,20 @@ export function MemberCommittees({
         ) : null}
         .
       </p>
-      <PreviewFrame>
-        {menu && <div className="flex items-center pb-4">{menu}</div>}
-        <ProjectGrid>
-          {committees.map((c) => {
-            const bills = billsBefore(c, byKey)
-            const role = c.title?.replace(/^Chairman$|^Chairwoman$/, "Chair") ?? "Member"
-            return (
-              <ProjectCard
-                key={c.system_code}
-                href={`/docs/committees/${c.system_code}`}
-                title={shortName(c)}
-                media={<ChamberSeal state="US" chamber={chamberOf(c)} size={28} />}
-                meta={bills != null ? `${fmtNumber(bills)} Bills` : role}
-              />
-            )
-          })}
-        </ProjectGrid>
-      </PreviewFrame>
+      <CardBlock
+        menu={menu}
+        cards={committees.map((c) => {
+          const bills = billsBefore(c, byKey)
+          const role = c.title?.replace(/^Chairman$|^Chairwoman$/, "Chair") ?? "Member"
+          return {
+            key: c.system_code,
+            href: `/docs/committees/${c.system_code}`,
+            title: shortName(c),
+            media: <ChamberSeal state="US" chamber={chamberOf(c)} size={28} />,
+            meta: bills != null ? `${fmtNumber(bills)} Bills` : role,
+          }
+        })}
+      />
     </>
   )
 }

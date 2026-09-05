@@ -36,10 +36,10 @@ export function SessionsMenu({ sessions, current }: { sessions: SessionOption[];
           </Button>
         }
       />
-      {/* w-44, as every menu on this page: wide enough that an item never wraps. */}
-      <DropdownMenuContent align="end" className="w-44">
+      {/* At least w-44, and as wide as its widest item: an item never wraps (Brendan, 2026-09-05). */}
+      <DropdownMenuContent align="end" className="w-max min-w-44">
         {sessions.map((s) => (
-          <DropdownMenuCheckboxItem key={s.value} checked={s.value === current} onCheckedChange={() => choose(s.value)}>
+          <DropdownMenuCheckboxItem key={s.value} className="whitespace-nowrap" checked={s.value === current} onCheckedChange={() => choose(s.value)}>
             {s.label}
           </DropdownMenuCheckboxItem>
         ))}

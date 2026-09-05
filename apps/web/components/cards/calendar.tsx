@@ -6,7 +6,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtDate, fmtTime, truncate } from "@/lib/format"
+import { fmtBill, fmtDate, fmtTime, truncate } from "@/lib/format"
 import { hearingWhen } from "@/lib/policy/hearing-when"
 import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import { CardFrame } from "@/components/card-frame"
@@ -107,7 +107,7 @@ export function CalendarCard({ compact = false, committee }: { compact?: boolean
                 </ItemContent>
                 {row.bill_number && !compact && (
                   <Badge variant="secondary" className="transition-opacity group-hover/row:opacity-0">
-                    {row.bill_number}
+                    {fmtBill(row.bill_number)}
                   </Badge>
                 )}
               </Item>
@@ -115,7 +115,7 @@ export function CalendarCard({ compact = false, committee }: { compact?: boolean
                 <AddToCalendar
                   className="pointer-events-auto bg-background shadow-xs"
                   label=""
-                  summary={`${row.description}${row.bill_number ? ` · ${row.bill_number}` : ""}`}
+                  summary={`${row.description}${row.bill_number ? ` · ${fmtBill(row.bill_number)}` : ""}`}
                   description={row.committee ? `Committee: ${row.committee}` : undefined}
                   when={hearingWhen(row.date, row.time, state)}
                   url={`/docs/bills/${row.bill_id}`}

@@ -12,15 +12,16 @@ import {
   Gavel,
   Inbox,
   Library,
+  type LucideIcon,
   Newspaper,
   Radar,
   Receipt,
   Scale,
   ScrollText,
   Stamp,
+  Tags,
   UserCheck,
   Users,
-  type LucideIcon,
 } from "lucide-react"
 
 import { hasItems, type NavItem } from "@/lib/config"
@@ -59,18 +60,20 @@ const ICONS: Record<string, LucideIcon> = {
   Scale,
   ScrollText,
   Stamp,
+  Tags,
   UserCheck,
   Users,
 }
 
 // Two columns is the panel this nav has always drawn. Records asked for two
-// rows, and its ten entries make that five across — so the width follows the
-// count rather than a fixed `w-[26rem]`.
+// rows, and its eleven entries make that six across — so the width follows
+// the count rather than a fixed `w-[26rem]`.
 const GRID: Record<number, string> = {
   2: "w-[26rem] md:grid-cols-2",
   3: "w-[42rem] md:grid-cols-3",
   4: "w-[54rem] md:grid-cols-4",
   5: "w-[64rem] md:grid-cols-5",
+  6: "w-[76rem] md:grid-cols-6",
 }
 
 export function MainNav({

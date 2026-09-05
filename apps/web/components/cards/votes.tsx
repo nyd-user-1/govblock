@@ -5,7 +5,7 @@ import Link from "next/link"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtDate, fmtNumber } from "@/lib/format"
+import { fmtBill, fmtDate, fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { ChamberPills } from "@/components/chamber-pills"
@@ -49,7 +49,7 @@ export function VotesCard() {
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>{row.bill_number}</ItemTitle>
+                <ItemTitle>{fmtBill(row.bill_number)}</ItemTitle>
                 <ItemDescription>
                   {fmtDate(row.date, false)} · {row.chamber}
                 </ItemDescription>

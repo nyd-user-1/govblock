@@ -5,7 +5,7 @@ import * as React from "react"
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
-import { fmtDate, truncate } from "@/lib/format"
+import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
@@ -25,7 +25,6 @@ import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-i
 // and the total, so a jurisdiction's whole session is reachable. Search filters
 // the page in hand.
 
-const print = (number: string) => number.replace(/^([A-Z]+)0+/, "$1")
 
 type Bill = (typeof F.recentBills)[number] & { sponsor?: string | null; last_action?: string | null }
 
@@ -67,7 +66,7 @@ export function BillsList() {
             key={bill.bill_id}
             href={`/docs/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={(current - 1) * PAGE_SIZE + index + 1} />}
-            title={print(bill.bill_number)}
+            title={fmtBill(bill.bill_number)}
             lead={bill.last_action}
             meta={[
               bill.last_action_date ? fmtDate(bill.last_action_date) : null,

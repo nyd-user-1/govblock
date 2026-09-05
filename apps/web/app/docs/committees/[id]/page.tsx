@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft } from "@tabler/icons-react"
 
 import CODES from "@/lib/data/congress/committee-codes.json"
-import { fmtDate, truncate } from "@/lib/format"
+import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { getCommittee } from "@/lib/policy/db-queries"
 import { latestHearing } from "@/lib/policy/committee-video"
 import { DocsCopyPage } from "@/components/docs-copy-page"
@@ -130,7 +130,7 @@ export default async function CommitteeRoute({ params }: { params: Promise<{ id:
                       key={bill.bill_id}
                       href={`/docs/bills/${bill.bill_id}`}
                       avatar={<RecordSeal state="US" chamber={bill.body} ordinal={index + 1} />}
-                      title={bill.bill_number}
+                      title={fmtBill(bill.bill_number)}
                       lead={bill.last_action}
                       meta={[
                         bill.last_action_date ? fmtDate(bill.last_action_date) : null,

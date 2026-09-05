@@ -5,7 +5,7 @@ import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
-import { fmtDate, truncate } from "@/lib/format"
+import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { scopeStates, type StreamBill, type StreamGroup } from "@/lib/policy/stream"
 import { usePolicy } from "@/lib/policy/use-policy"
@@ -72,7 +72,7 @@ export function ChangelogBody({ initial, initialState }: { initial: Entry[]; ini
               <article key={`${bill.state}-${bill.bill_id}`} id={`${bill.state}-${bill.bill_number}`} className="mb-12 scroll-mt-24 border-b pb-12">
                 <h2 className="font-heading text-xl font-semibold tracking-tight">
                   <Link href={workspaceHref(bill)} className="no-underline hover:underline">
-                    {fmtDate(bill.last_action_date)} - {stateName(bill.state)} {bill.bill_number}
+                    {fmtDate(bill.last_action_date)} - {stateName(bill.state)} {fmtBill(bill.bill_number)}
                   </Link>
                 </h2>
                 <div className="typeset mt-6 *:first:mt-0">
@@ -116,7 +116,7 @@ export function ChangelogBody({ initial, initialState }: { initial: Entry[]; ini
                         {fmtDate(bill.last_action_date)} · {stateName(bill.state)}
                       </span>
                       <span className="text-sm font-medium">
-                        {bill.bill_number} · {truncate(bill.title, 70)}
+                        {fmtBill(bill.bill_number)} · {truncate(bill.title, 70)}
                       </span>
                     </Link>
                   ))}
@@ -133,7 +133,7 @@ export function ChangelogBody({ initial, initialState }: { initial: Entry[]; ini
             <p className="sticky top-0 h-6 bg-background text-xs font-medium text-muted-foreground">On This Page</p>
             {latestPages.map((bill) => (
               <a key={`${bill.state}-${bill.bill_id}`} href={`#${bill.state}-${bill.bill_number}`} className="text-[0.8rem] text-muted-foreground no-underline transition-colors hover:text-foreground">
-                {stateName(bill.state)} {bill.bill_number}
+                {stateName(bill.state)} {fmtBill(bill.bill_number)}
               </a>
             ))}
             {olderPages.length > 0 && (

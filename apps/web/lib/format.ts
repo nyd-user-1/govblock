@@ -49,3 +49,8 @@ export function fmtCompact(value: number | null | undefined, currency = true) {
   const formatted = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value ?? 0))
   return currency ? `$${formatted}` : formatted
 }
+
+/** `HB6500` → `HB 6500`: the prefix and the number with a space between, leading zeros dropped, as the rail prints a bill number. */
+export function fmtBill(number: string | null | undefined) {
+  return String(number ?? "").replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
+}

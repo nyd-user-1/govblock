@@ -31,6 +31,7 @@ import {
   getStates,
   getStream,
   getSubjects,
+  getSubjectTerms,
   bioguideOf,
   getCommunications,
   getCosponsors,
@@ -163,7 +164,17 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     }
     case "bills": {
       const f = await resolve(filters)
-      return getBills(f, int(sp.get("limit"), 40), int(sp.get("offset"), 0) || 0)
+      // `sort=number-desc` is congress.gov's document-number order; the
+      // default is the newest action first, as every list on the site reads.
+      const sort = sp.get("sort")
+      return getBills(f, int(sp.get("limit"), 40), int(sp.get("offset"), 0) || 0, sort === "number-desc" || sort === "number-asc" ? sort : "newest")
+    }
+    // Every subject term of the jurisdiction with its bill count: CRS's policy
+    // areas and legislative subjects under Congress, LegiScan's elsewhere.
+    // `subjects` keeps its old answer, the top eighty by count.
+    case "subject-terms": {
+      const f = await resolve(filters)
+      return getSubjectTerms(f)
     }
     // The committee joins the tree needed (2026-09-03): a roster derived from
     // committee votes, and a committee's bills from its referrals.

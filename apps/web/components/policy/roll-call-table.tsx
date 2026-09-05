@@ -102,9 +102,10 @@ const rollCallColumns: ColumnDef<RollCallRow>[] = [
               </Button>
             }
           />
-          {/* w-44, as the demo on ui.shadcn.com sets it: wide enough that an
-              item never wraps. A label lives inside a group in Base UI. */}
-          <DropdownMenuContent align="end" className="w-44">
+          {/* At least the demo's w-44, and as wide as its widest item, so an
+              item never wraps (Brendan, 2026-09-05). A label lives inside a
+              group in Base UI. */}
+          <DropdownMenuContent align="end" className="w-max min-w-44">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => navigator.clipboard.writeText(r.bill ?? r.question ?? "")} disabled={!r.bill && !r.question}>
@@ -180,7 +181,7 @@ const financeColumns: ColumnDef<FinanceRow>[] = [
               </Button>
             }
           />
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-max min-w-44">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => navigator.clipboard.writeText(financeText([r]).split("\n")[1])}>

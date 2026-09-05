@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { SearchDirectory } from "@/components/directory-search"
 import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
-import { fmtDate } from "@/lib/format"
+import { fmtBill, fmtDate, truncate } from "@/lib/format"
+import { isFiltered, readFilters, SearchFilters, type SearchFilterState, writeFilters } from "@/components/search-filters"
 import { ChamberSeal, FlagChip, MemberPortrait } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -28,7 +29,10 @@ type SearchPayload = {
     bill_number: string
     title: string
     status_desc: string | null
+    last_action: string | null
     last_action_date: string | null
+    body: string | null
+    committee: string | null
     state: string
   }[]
   members: {
@@ -89,7 +93,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
   )
 }
 
-function SearchResults() {
+function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFacets: (facets: Facets) => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { state, session, resolved } = useJurisdiction()
@@ -119,18 +123,18 @@ function SearchResults() {
   }, [query, router])
 
   const active = resolved && debounced.trim().length >= 2
-  const filters = { state, session: session ? String(session) : undefined }
+  const scope = { state, session: session ? String(session) : undefined }
   // all=1 and text=1 are what separate this page from the ⌘K menu on the same
   // route: only /search searches every jurisdiction's bills and committees, and
   // only /search pays for the pass over "BillTexts". Every row below renders its
   // own jurisdiction, which is what earns the flag.
-  const { data, isLoading } = usePolicy<SearchPayload>(active ? "search" : null, filters, {
+  const { data, isLoading } = usePolicy<SearchPayload>(active ? "search" : null, scope, {
     q: debounced.trim(),
     limit: 20,
     all: 1,
     text: 1,
   })
-  const { data: subjects } = usePolicy<{ value: string; count: number }[]>(resolved ? "subjects" : null, filters)
+  const { data: subjects } = usePolicy<{ value: string; count: number }[]>(resolved ? "subjects" : null, scope)
 
   const topics = React.useMemo(() => {
     const t = debounced.trim().toLowerCase()
@@ -139,12 +143,39 @@ function SearchResults() {
   }, [subjects, debounced])
 
   const pages = matchPages(debounced)
-  const bills = data?.bills ?? []
-  const members = data?.members ?? []
-  const committees = data?.committees ?? []
-  const texts = data?.texts ?? []
-  const total = bills.length + members.length + committees.length + texts.length + topics.length + pages.length
+  const raw = { bills: data?.bills ?? [], members: data?.members ?? [], committees: data?.committees ?? [], texts: data?.texts ?? [] }
+
+  // The rail's panel reads what the page has, before any filter: how many
+  // rows each section holds, and which chambers and statuses the bills carry.
+  React.useEffect(() => {
+    const tally = (values: (string | null | undefined)[]) => {
+      const map = new Map<string, number>()
+      for (const v of values) if (v) map.set(v, (map.get(v) ?? 0) + 1)
+      return [...map.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+    }
+    onFacets({
+      counts: { bills: raw.bills.length, texts: raw.texts.length, members: raw.members.length, committees: raw.committees.length, topics: topics.length, pages: pages.length },
+      chambers: tally(raw.bills.map((b) => b.body)),
+      statuses: tally(raw.bills.map((b) => b.status_desc)),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, topics.length, pages.length])
+
+  // The filters, applied: the jurisdiction in scope alone, one chamber, some
+  // statuses, and only the sections ticked.
   const here = stateName(state) || "this jurisdiction"
+  const inScope = <T extends { state: string }>(rows: T[]) => (filters.scope === "here" ? rows.filter((r) => r.state === state) : rows)
+  const shown = (key: string) => filters.show.length === 0 || filters.show.includes(key)
+  const bills = shown("bills")
+    ? inScope(raw.bills).filter((b) => (!filters.chamber || b.body === filters.chamber) && (!filters.status.length || filters.status.includes(b.status_desc ?? "")))
+    : []
+  const texts = shown("texts") ? inScope(raw.texts) : []
+  const members = shown("members") ? inScope(raw.members) : []
+  const committees = shown("committees") ? inScope(raw.committees) : []
+  const shownTopics = shown("topics") ? topics : []
+  const shownPages = shown("pages") ? pages : []
+  const total = bills.length + members.length + committees.length + texts.length + shownTopics.length + shownPages.length
+  const held = raw.bills.length + raw.members.length + raw.committees.length + raw.texts.length + topics.length + pages.length
 
   return (
     <div className="flex flex-col gap-6" data-scope-content>
@@ -160,6 +191,10 @@ function SearchResults() {
         </p>
       ) : isLoading && !data ? (
         <p className="text-sm text-muted-foreground">Searching every jurisdiction...</p>
+      ) : total === 0 && held > 0 && isFiltered(filters) ? (
+        <p className="text-sm text-muted-foreground">
+          The filters hide everything found for &ldquo;{debounced.trim()}&rdquo;. Clear them in the rail.
+        </p>
       ) : total === 0 ? (
         <p className="text-sm text-muted-foreground">
           Nothing in any jurisdiction for &ldquo;{debounced.trim()}&rdquo;.
@@ -175,12 +210,14 @@ function SearchResults() {
                 // jurisdiction, and which one a row came from is the first thing
                 // a reader needs.
                 avatar={<FlagChip state={bill.state} width={36} />}
-                title={bill.bill_number}
-                lead={bill.title}
+                title={fmtBill(bill.bill_number)}
+                lead={bill.last_action}
                 meta={[
                   bill.last_action_date ? fmtDate(bill.last_action_date) : null,
                   bill.status_desc,
+                  bill.committee ? `${bill.committee} Committee` : null,
                 ]}
+                description={truncate(bill.title, 240)}
               />
             ))}
           </Section>
@@ -190,7 +227,7 @@ function SearchResults() {
                 key={`${text.bill_id}-${text.document_id}`}
                 href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}
                 avatar={<FlagChip state={text.state} width={36} />}
-                title={text.bill_number}
+                title={fmtBill(text.bill_number)}
                 lead={text.title}
                 meta={[stateName(text.state)]}
                 // The match itself is the description, highlights kept.
@@ -224,8 +261,8 @@ function SearchResults() {
               />
             ))}
           </Section>
-          <Section title="Topics" count={topics.length}>
-            {topics.map((topic) => (
+          <Section title="Topics" count={shownTopics.length}>
+            {shownTopics.map((topic) => (
               <RecordItem
                 key={topic.value}
                 href={`/docs/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
@@ -234,8 +271,8 @@ function SearchResults() {
               />
             ))}
           </Section>
-          <Section title="Pages" count={pages.length}>
-            {pages.map((page) => (
+          <Section title="Pages" count={shownPages.length}>
+            {shownPages.map((page) => (
               <RecordItem key={page.href} href={page.href} title={page.name} meta={[page.group]} />
             ))}
           </Section>
@@ -245,7 +282,19 @@ function SearchResults() {
   )
 }
 
-export default function SearchPage() {
+type Facets = { counts: Record<string, number>; chambers: { value: string; count: number }[]; statuses: { value: string; count: number }[] }
+
+/** The filters ride in the URL beside the query, so a filtered search is a link. */
+function SearchShell() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { state } = useJurisdiction()
+  const filters = React.useMemo(() => readFilters(new URLSearchParams(searchParams)), [searchParams])
+  const [facets, setFacets] = React.useState<Facets>({ counts: {}, chambers: [], statuses: [] })
+  const setFilters = (next: SearchFilterState) => {
+    const params = writeFilters(new URLSearchParams(searchParams), next)
+    router.replace(`/search${params.size ? `?${params}` : ""}`, { scroll: false })
+  }
   return (
     <DocsPage
       title="Search"
@@ -253,10 +302,17 @@ export default function SearchPage() {
       slug="search"
       previous={{ name: "Members", url: "/docs/directory" }}
       next={{ name: "Bills", url: "/docs/bills" }}
+      rail={<SearchFilters filters={filters} onChange={setFilters} here={state} counts={facets.counts} chambers={facets.chambers} statuses={facets.statuses} />}
     >
-      <React.Suspense fallback={null}>
-        <SearchResults />
-      </React.Suspense>
+      <SearchResults filters={filters} onFacets={setFacets} />
     </DocsPage>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <SearchShell />
+    </React.Suspense>
   )
 }

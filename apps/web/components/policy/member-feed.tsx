@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { fmtDate } from "@/lib/format"
+import { fmtBill, fmtDate } from "@/lib/format"
 import { Button } from "@govblock/ui/components/nova/button"
 import { PageSizeMenu } from "@/components/policy/page-size-menu"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
@@ -30,8 +30,6 @@ export type RecordBill = {
 
 export type RecordKind = "prime" | "cosponsor" | "aye" | "nay"
 
-/** "HR1491" → "HR 1491", as the rail prints a bill number. */
-const print = (number: string) => number.replace(/^([A-Z]+)0*(\d+)$/, "$1 $2")
 
 export function MemberFeed({
   bills,
@@ -110,7 +108,7 @@ export function MemberFeed({
             hover="rail"
             href={`/docs/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={page * pageSize + index + 1} />}
-            title={print(bill.bill_number)}
+            title={fmtBill(bill.bill_number)}
             meta={[
               bill.last_action_date ? fmtDate(bill.last_action_date) : null,
               bill.status_desc || "Introduced",

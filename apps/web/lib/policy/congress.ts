@@ -118,6 +118,25 @@ export function summaryParagraphs(html: string | null | undefined): string[] {
     .filter(Boolean)
 }
 
+/**
+ * A CRS summary as the blocks it is written in — a bold line, a paragraph, a
+ * list item — so the page can set it the way congress.gov does, bullets and
+ * all, without rendering the stored markup itself.
+ */
+export type SummaryBlock = { kind: "strong" | "p" | "li"; text: string }
+export function summaryBlocks(html: string | null | undefined): SummaryBlock[] {
+  const decode = (text: string) => text.replace(TAG, "").replace(/&[a-z#0-9]+;/gi, (entity) => ENTITY[entity.toLowerCase()] ?? entity).replace(/\s+/g, " ").trim()
+  const out: SummaryBlock[] = []
+  for (const raw of String(html ?? "").replace(/<br\s*\/?>/gi, "\n").split(/<\/(?:p|div|li|h\d)>|\n/i)) {
+    const li = /<li[\s>]/i.test(raw)
+    const inner = raw.replace(/<(?:ul|ol|p|div|li|h\d)[^>]*>/gi, "").trim()
+    const strong = /^<strong>[\s\S]*<\/strong>$/i.test(inner)
+    const text = decode(inner)
+    if (text) out.push({ kind: li ? "li" : strong ? "strong" : "p", text })
+  }
+  return out
+}
+
 /** `2025-05-20T04:00:00Z` and `2025-05-20` are the same day. */
 export const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
 

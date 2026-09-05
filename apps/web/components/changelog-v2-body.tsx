@@ -5,7 +5,7 @@ import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
-import { fmtDate, truncate } from "@/lib/format"
+import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { scopeStates, type StreamBill, type StreamGroup } from "@/lib/policy/stream"
 import { usePolicy } from "@/lib/policy/use-policy"
@@ -99,7 +99,7 @@ export function ChangelogV2Body({
                     <h3 id={`${bill.state}-${bill.bill_number}`} className="scroll-mt-24 md:relative">
                       <FlagChip state={bill.state} width={36} className="mr-2 inline-block align-middle md:absolute md:mt-[2px] md:ml-[-56px]" />
                       <Link href={`/typeset?state=${bill.state}&session=${bill.session}&bill=${bill.bill_id}`} className="no-underline hover:underline">
-                        {stateName(bill.state)} {bill.bill_number}
+                        {stateName(bill.state)} {fmtBill(bill.bill_number)}
                       </Link>
                       {bill.last_action ? ` — ${truncate(bill.last_action, 90)}` : ""}
                     </h3>
@@ -132,7 +132,7 @@ export function ChangelogV2Body({
             <p className="sticky top-0 h-6 bg-background text-xs font-medium text-muted-foreground">On This Page</p>
             {entries.map((bill) => (
               <a key={`${bill.state}-${bill.bill_id}`} href={`#${bill.state}-${bill.bill_number}`} className="text-[0.8rem] text-muted-foreground no-underline transition-colors hover:text-foreground">
-                {stateName(bill.state)} {bill.bill_number}
+                {stateName(bill.state)} {fmtBill(bill.bill_number)}
               </a>
             ))}
           </div>

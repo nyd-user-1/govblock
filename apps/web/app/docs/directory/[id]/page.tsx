@@ -138,7 +138,6 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state} who={title}>
-      <BackToTop />
       <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="h-(--top-spacing) shrink-0" />
@@ -181,11 +180,14 @@ export default async function MemberRoute({ params, searchParams }: Props) {
               }
             />
             <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              <H2>Introduction</H2>
-              <MemberIntroduction member={member} state={state} career={career} terms={terms} />
+              {/* h1 the name, h2 Summary and Record, h3 the parts — the
+                  standard on every detail page (Brendan, 2026-09-05). The
+                  Summary sentence is this session's. */}
+              <H2>Summary</H2>
+              <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} />
 
               <hr />
-              <H2 id="record">{sessionName}</H2>
+              <H2>Record</H2>
               <p>
                 {title} is the prime sponsor of <code>{fmtNumber(record.counts.prime)}</code> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of{" "}
                 <code>{fmtNumber(record.counts.cosponsor)}</code> this session.
@@ -328,6 +330,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                 )}
               </div>
             )}
+            <BackToTop />
           </div>
         </div>
         <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">

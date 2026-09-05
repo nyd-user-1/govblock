@@ -12,7 +12,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 const title = "Committees"
 const description = "The standing committees of the jurisdiction in scope, each with the bills before it."
 const previous = { name: "Bills", url: "/docs/bills" }
-const next = { name: "Members", url: "/docs/directory" }
+const next = { name: "Subjects", url: "/docs/subjects" }
 
 export const metadata = { title, description }
 

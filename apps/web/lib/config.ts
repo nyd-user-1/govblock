@@ -4,7 +4,7 @@
 export type NavLink = { href: string; label: string; description?: string; icon?: string }
 export type NavItem =
   | NavLink
-  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 | 5 }
+  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 | 5 | 6 }
 
 export function hasItems(item: NavItem): item is Extract<NavItem, { items: unknown[] }> {
   return "items" in item && Array.isArray(item.items)
@@ -30,8 +30,9 @@ export const siteConfig = {
     {
       label: "Records",
       href: "/docs/bills",
-      // Ten entries, five across and two down. Two rows is the requirement
-      // (Brendan, 08:10 ET); the column count follows from it. This list is
+      // Eleven entries, six across and two down. Two rows is the requirement
+      // (Brendan, 08:10 ET); the column count follows from it, and Subjects
+      // made it six on 2026-09-05. This list is
       // also the docs rail's Records section — `components/directory-rail.tsx`
       // reads it — so the panel and the rail cannot say different things. They
       // did until 20:00 ET: Members here and Directory there, Record and The
@@ -43,10 +44,11 @@ export const siteConfig = {
       // happened, and a reader looking for the day's news should find it where
       // the records are. Its sentence is the page's own metadata description,
       // not a second one written for the menu.
-      columns: 5,
+      columns: 6,
       items: [
         { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first.", icon: "FileText" },
         { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them.", icon: "Users" },
+        { href: "/docs/subjects", label: "Subjects", description: "How a bill is filed, and every bill under each term.", icon: "Tags" },
         { href: "/docs/directory", label: "Members", description: "The sitting members, with party and district.", icon: "BookUser" },
         { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
         { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },

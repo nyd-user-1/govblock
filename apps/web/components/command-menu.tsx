@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@govblock/ui/components/nova/dialog"
 import { Button } from "@govblock/ui/components/ny4/button"
+import { fmtBill } from "@/lib/format"
 
 // The search trigger from livingston-v3 components/command-menu.tsx, with the
 // dialog behind it finally wired: ⌘K or a click opens a command menu that
@@ -160,7 +161,7 @@ export function CommandMenu() {
                       onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
                     >
                       <FlagChip state={bill.state ?? state} width={20} />
-                      <span className="shrink-0 font-medium">{bill.bill_number}</span>
+                      <span className="shrink-0 font-medium">{fmtBill(bill.bill_number)}</span>
                       <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
                     </CommandItem>
                   ))}

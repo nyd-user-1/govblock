@@ -7,7 +7,7 @@ import { CardFrame } from "@/components/card-frame"
 import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from "@govblock/ui/components/avatar"
 import { Button } from "@govblock/ui/components/button"
 import { CardContent } from "@govblock/ui/components/card"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@govblock/ui/components/empty"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia } from "@govblock/ui/components/empty"
 
 // Connect — shadcn's "No Team Members" empty state, pointed at the places a
 // team already works: Slack, Discord, Google Drive.
@@ -37,7 +37,7 @@ export function ConnectCard() {
                 ))}
               </AvatarGroup>
             </EmptyMedia>
-            <EmptyTitle>{F.connect.title}</EmptyTitle>
+            {/* No title: the marks and the sentence say it (Brendan, 2026-09-05). */}
             <EmptyDescription>{F.connect.description}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>

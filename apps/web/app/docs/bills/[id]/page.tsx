@@ -1,29 +1,76 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { BILLS } from "@/lib/data"
 import { getBill, getBillText } from "@/lib/policy/queries"
-import { BillText } from "@/components/bill-text"
+import {
+  getAmendments,
+  getBillActions,
+  getBillCommittees,
+  getBillNeighbours,
+  getBillRecord,
+  getBillSubjects,
+  getCboEstimates,
+  getCommittees,
+  getCommitteeReports,
+  getCosponsors,
+  getSessionsWithTitles,
+  getLaws,
+  getPolicyAreas,
+  getRelatedBills,
+  getSummaries,
+  getTextVersions,
+  getTitles,
+} from "@/lib/policy/db-queries"
+import { fmtBill } from "@/lib/format"
+import { congressName } from "@/lib/policy/congress"
+import { stateName } from "@/lib/filters"
+import { BackToTop } from "@/components/back-to-top"
+import { ChamberSeal } from "@/components/policy/imagery"
+import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { Button } from "@govblock/ui/components/ny4/button"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
-import { BillAmendments, BillCommitteeReports, BillCongressProvider, BillRelatedBills, BillSponsors, BillStatusExtras, BillSummaries, BillTitles, BillToc, BillVersions } from "@/components/policy/bill-congress"
-import { BillActions, BillCommittees, BillCostEstimates, BillDepthProvider, BillNotes, BillSubjects, BillTracker } from "@/components/policy/bill-depth"
-import { Callout, H2, Table } from "@/components/typeset"
+import { PreviewFrame } from "@/components/preview-frame"
+import {
+  BillAmendmentsBlock,
+  BillCongressProvider,
+  type BillFacts,
+  BillRecordLead,
+  BillRelatedBlock,
+  BillReportsBlock,
+  BillSponsorsBlock,
+  BillSummaries,
+  BillSummaryLead,
+  BillTextBlock,
+  BillTitlesBlock,
+  BillToc,
+  BillVotesBlock,
+  type CongressInitial,
+} from "@/components/policy/bill-congress"
+import {
+  BillActionsBlock,
+  BillCommitteesBlock,
+  BillCostEstimates,
+  BillDepthProvider,
+  BillNotes,
+  BillSubjects,
+  BillTracker,
+  type DepthInitial,
+} from "@/components/policy/bill-depth"
+import { H2, H3 } from "@/components/typeset"
 
-// Ported from livingston-v3 app/(app)/docs/bills/[id]/page.tsx: a bill's own
-// page — status, Summary, Sponsors, History, Votes, Text, Source.
+// A bill's own page, on the member page's design (2026-09-05): the session's
+// heading over the sentence, the text, the Tracker and the CRS Summary; the
+// rule; the session again as the record — Sponsors, Committees, Reports,
+// Actions, Votes, Amendments, Related bills, Titles, Cost estimate — then
+// Classification, and the constitutional authority statement last. One derived sentence under every heading; every
+// list, table and grid in the same frame.
 //
 // Every bill in the policy database has a page. The twelve committed under
 // lib/data are prerendered at build time and stand in if the database is
 // unreachable; the rest render on demand and are then cached.
-
-// The sections a bill always has. What congress.gov adds — committee reports,
-// amendments, related bills, titles — joins the contents only where the bill
-// has rows for it, so the rail names what is on the page and nothing else.
-const SECTIONS = ["Summary", "Sponsors", "History", "Votes", "Text"]
-// On a Congress bill the same section is called what congress.gov calls it, and
-// carries what congress.gov carries: the stage, the acting committee and the
-// roll call, on our own rows.
-const CONGRESS_SECTIONS = ["Summary", "Sponsors", "Actions", "Committees", "Subjects", "Votes", "Text"]
 
 const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
 const host = (href: string) => {
@@ -39,204 +86,261 @@ const host = (href: string) => {
 // frozen at build time: HB10160's introduced text landed in Aurora and the page
 // still said "No text on file yet", because nothing asked it again. The rest of
 // the app already revalidates hourly.
+//
+// No search params are read here, on purpose: the Versions menu switches in
+// the browser, so the page stays cached (the member page paid for `?session=`
+// with per-request rendering).
 export const revalidate = 3600
 
 export function generateStaticParams() {
   return Object.keys(BILLS).map((id) => ({ id }))
 }
 
+// The session's name: "119th Congress", or the state's own title with the
+// word "Session" taken off, as the member page names it.
+const sessionName = (state: string, session: number, title: string | null) =>
+  state === "US" ? congressName(session) : (title ?? "").replace(/\s*(Regular|General)\s+Session$/i, "").replace(/\s*Session$/i, "").trim() || String(session)
+
+/**
+ * What congress.gov holds about a federal bill, fetched on the server so the
+ * blocks render with the page rather than popping in. Each family fails on its
+ * own: a build with no database gets nulls, and the browser reads those
+ * families as it always did.
+ */
+async function loadCongress(billId: number): Promise<{ congress: CongressInitial; depth: DepthInitial }> {
+  const safe = async <T,>(read: () => Promise<T>): Promise<T | null> => {
+    try {
+      return await read()
+    } catch (error) {
+      console.error("bill: congress.gov family unavailable", error)
+      return null
+    }
+  }
+  const [versions, summaries, amendments, related, titles, reports, cosponsors, laws, actions, record, committees, subjects, cbo, policyAreas] = await Promise.all([
+    safe(() => getTextVersions(billId)),
+    safe(() => getSummaries(billId)),
+    safe(() => getAmendments(100, 0, billId)),
+    safe(() => getRelatedBills(billId)),
+    safe(() => getTitles(billId)),
+    safe(() => getCommitteeReports(50, 0, billId)),
+    safe(() => getCosponsors(billId)),
+    safe(() => getLaws(250, 0, billId)),
+    safe(() => getBillActions(billId, 500)),
+    safe(() => getBillRecord(billId)),
+    safe(() => getBillCommittees(billId)),
+    safe(() => getBillSubjects(billId)),
+    safe(() => getCboEstimates(billId)),
+    safe(() => getPolicyAreas()),
+  ])
+  return {
+    congress: {
+      versions: (versions as CongressInitial["versions"]) ?? null,
+      summaries: (summaries?.summaries as CongressInitial["summaries"]) ?? null,
+      amendments: amendments ? { count: amendments.count, amendments: amendments.amendments as NonNullable<CongressInitial["amendments"]>["amendments"] } : null,
+      related: (related?.relatedBills as CongressInitial["related"]) ?? null,
+      titles: (titles?.titles as CongressInitial["titles"]) ?? null,
+      reports: (reports?.reports as CongressInitial["reports"]) ?? null,
+      cosponsors: (cosponsors?.cosponsors as CongressInitial["cosponsors"]) ?? null,
+      laws: (laws?.bills as CongressInitial["laws"]) ?? null,
+    },
+    depth: {
+      actions: actions ? { count: actions.count, actions: actions.actions as NonNullable<DepthInitial["actions"]>["actions"] } : null,
+      record: (record?.record as DepthInitial["record"]) ?? null,
+      committees: (committees?.committees as DepthInitial["committees"]) ?? null,
+      subjects: (subjects?.subjects as DepthInitial["subjects"]) ?? null,
+      cbo: (cbo?.cboCostEstimates as DepthInitial["cbo"]) ?? null,
+      policyAreas: policyAreas ?? null,
+    },
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const bill = await getBill(Number(id))
   if (!bill) return { title: "Bill" }
-  return { title: bill.bill_number, description: bill.description || bill.title }
+  return { title: fmtBill(bill.bill_number), description: bill.description || bill.title }
 }
 
 export default async function BillRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const bill = await getBill(Number(id))
   if (!bill) notFound()
-  const held = await getBillText(Number(id))
-  const text = held?.text
+  const federal = bill.state === "US"
+  const [held, { congress, depth }, neighbours, committeeCounts, sessions] = await Promise.all([
+    getBillText(Number(id)),
+    federal ? loadCongress(bill.bill_id) : Promise.resolve<{ congress: CongressInitial; depth: DepthInitial }>({ congress: {}, depth: {} }),
+    getBillNeighbours(bill.bill_id).catch(() => ({ previous: null, next: null })),
+    getCommittees({ state: bill.state, session: bill.session_id }).catch(() => []),
+    // A New York row carries no session title of its own; the session list does.
+    !federal && !bill.session_title ? getSessionsWithTitles(bill.state).catch(() => []) : Promise.resolve([]),
+  ])
+  const text = held?.text ?? null
+  const number = fmtBill(bill.bill_number)
   const summary = bill.description || bill.title
+  const sessionTitle = bill.session_title ?? sessions.find((r) => Number(r.session_id) === bill.session_id)?.title ?? null
+  const session = sessionName(bill.state, bill.session_id, sessionTitle)
+  // The chamber: the row's, else the sponsor's, else the number's own letter —
+  // a New York row carries none, and A 11709 is an Assembly bill.
+  const chamber = bill.body ?? bill.sponsors[0]?.chamber ?? ({ A: "Assembly", S: "Senate", H: "House" } as Record<string, string>)[bill.bill_number.slice(0, 1)] ?? null
 
-  const statusParts: string[] = []
-  if (bill.last_action_date || bill.last_action) statusParts.push(`last action ${day(bill.last_action_date)}: ${bill.last_action ?? ""}`.trim())
-  if (bill.committee) statusParts.push(bill.committee)
+  const sources: { label: string; href: string }[] = []
+  if (bill.state_link) sources.push({ label: host(bill.state_link), href: bill.state_link })
+  if (bill.url) sources.push({ label: host(bill.url), href: bill.url })
 
-  const sources: { prefix: string; label: string; href: string }[] = []
-  if (bill.state_link) sources.push({ prefix: "Source: ", label: host(bill.state_link), href: bill.state_link })
-  if (bill.url) sources.push({ prefix: sources.length ? "" : "Source: ", label: host(bill.url), href: bill.url })
+  const facts: BillFacts = {
+    number,
+    // The title always rides in the sentence now that the head carries only
+    // the facts; the sentence phrases it by its shape.
+    title: bill.title ?? "",
+    chamber,
+    status: bill.status_desc ?? null,
+    lastAction: bill.last_action ?? null,
+    lastActionDate: bill.last_action_date ? day(bill.last_action_date) : null,
+    committee: bill.committee ?? null,
+    introduced: bill.history[0]?.date ? day(bill.history[0].date) : null,
+    sponsors: bill.sponsors,
+    rollCalls: bill.rollCalls.length,
+  }
 
-  const markdown = [`# ${bill.bill_number}`, "", summary, "", `**${bill.status_desc ?? "—"}**${statusParts.map((p) => ` · ${p}`).join("")}`, "", "## Summary", "", summary].join("\n")
+  const markdown = [`# ${number}`, "", summary, "", `**${bill.status_desc ?? "—"}**${bill.last_action_date ? ` · last action ${day(bill.last_action_date)}: ${bill.last_action ?? ""}` : ""}`, "", "## Introduction", "", summary].join("\n")
+  const arrow = "extend-touch-target size-8 shadow-none md:size-7"
 
   return (
-    <BillCongressProvider billId={bill.bill_id} billNumber={bill.bill_number} state={bill.state}>
-      <BillDepthProvider billId={bill.bill_id} state={bill.state}>
-      <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between md:items-start">
-                <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight sm:text-3xl">{bill.bill_number}</h1>
-                <div className="docs-nav flex items-center gap-2">
-                  <div className="hidden sm:block">
+    <BillCongressProvider billId={bill.bill_id} billNumber={bill.bill_number} state={bill.state} initial={congress}>
+      <BillDepthProvider billId={bill.bill_id} state={bill.state} initial={depth}>
+        <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="h-(--top-spacing) shrink-0" />
+            <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+              <RecordHeader
+                media={<ChamberSeal state={bill.state} chamber={chamber} size={RECORD_MEDIA} />}
+                title={number}
+                meta={[chamber ? (federal ? `U.S. ${chamber}` : `${stateName(bill.state)} ${chamber}`) : null, bill.status_desc ?? null]}
+                action={
+                  <>
                     <DocsCopyPage page={markdown} url={`https://govblock.app/docs/bills/${bill.bill_id}`} />
-                  </div>
-                </div>
+                    {/* The neighbouring bills in the session, as shadcn's docs
+                        header pages to the next document. */}
+                    {neighbours.previous ? (
+                      <Button variant="secondary" size="icon" className={arrow} asChild>
+                        <Link href={`/docs/bills/${neighbours.previous.bill_id}`} title={fmtBill(neighbours.previous.bill_number)}>
+                          <IconArrowLeft />
+                          <span className="sr-only">Previous bill</span>
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" size="icon" className={arrow} disabled>
+                        <IconArrowLeft />
+                      </Button>
+                    )}
+                    {neighbours.next ? (
+                      <Button variant="secondary" size="icon" className={arrow} asChild>
+                        <Link href={`/docs/bills/${neighbours.next.bill_id}`} title={fmtBill(neighbours.next.bill_number)}>
+                          <IconArrowRight />
+                          <span className="sr-only">Next bill</span>
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" size="icon" className={arrow} disabled>
+                        <IconArrowRight />
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+              <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
+                {/* h1 the number, h2 Summary and Record, h3 the parts — Brendan,
+                    2026-09-05: "note the progression, h1, h2, h3". Summary is
+                    the one sentence; Record opens on Text. */}
+                <H2>Summary</H2>
+                <BillSummaryLead facts={facts} />
+
+                <hr />
+                <H2>Record</H2>
+                <H3>Text</H3>
+                <BillRecordLead facts={facts} />
+                <BillTextBlock
+                  bill={number}
+                  billNumber={bill.bill_number}
+                  state={bill.state}
+                  chamber={chamber}
+                  held={held?.document_id ?? null}
+                  text={text}
+                  texts={bill.texts}
+                  source={sources[0] ?? null}
+                />
+                {federal && (
+                  <>
+                    <H3>Tracker</H3>
+                    <p>The tracker indicates the progress of this legislation as it moves through the legislative process.</p>
+                    <PreviewFrame>
+                      <BillTracker framed />
+                    </PreviewFrame>
+                  </>
+                )}
+                <BillSummaries fallback={<p>{summary}</p>} chamber={chamber} />
+
+                <BillSponsorsBlock sponsors={bill.sponsors} state={bill.state} bill={number} />
+                <BillCommitteesBlock bill={number} state={bill.state} referrals={bill.referrals} counts={committeeCounts} />
+                <BillReportsBlock bill={number} />
+                <BillActionsBlock history={bill.history} rollCalls={bill.rollCalls} bill={number} />
+                <BillVotesBlock rollCalls={bill.rollCalls} bill={number} billNumber={bill.bill_number} state={bill.state} />
+                <BillAmendmentsBlock bill={number} />
+                <BillRelatedBlock bill={number} />
+                <BillTitlesBlock bill={number} />
+                <BillCostEstimates bill={number} />
+
+                <BillSubjects bill={number} chamber={chamber} state={bill.state} />
+                <BillNotes bill={number} />
+
+                {sources.length > 0 && (
+                  <>
+                    <hr />
+                    <p>
+                      Source:{" "}
+                      {sources.map((link, index) => (
+                        <span key={link.href}>
+                          {index > 0 && " · "}
+                          <a href={link.href} target="_blank" rel="noopener noreferrer">
+                            {link.label}
+                          </a>
+                        </span>
+                      ))}
+                    </p>
+                  </>
+                )}
               </div>
-              <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{summary}</p>
+              {(neighbours.previous || neighbours.next) && (
+                <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
+                  {neighbours.previous && (
+                    <Button variant="secondary" size="sm" className="shadow-none" asChild>
+                      <Link href={`/docs/bills/${neighbours.previous.bill_id}`}>
+                        <IconArrowLeft /> {fmtBill(neighbours.previous.bill_number)}
+                      </Link>
+                    </Button>
+                  )}
+                  {neighbours.next && (
+                    <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
+                      <Link href={`/docs/bills/${neighbours.next.bill_id}`}>
+                        {fmtBill(neighbours.next.bill_number)} <IconArrowRight />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              )}
+              <BackToTop />
             </div>
           </div>
-          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-            <Callout className="bg-muted">
-              <p>
-                <strong>{bill.status_desc ?? "—"}</strong>
-                {statusParts.map((part) => (
-                  <span key={part}> · {part}</span>
-                ))}
-                <BillStatusExtras />
-              </p>
-              <BillTracker />
-            </Callout>
-
-            <H2>Summary</H2>
-            <BillSummaries fallback={<p>{summary}</p>} />
-
-            <H2>Sponsors</H2>
-            {/* One listing. It used to be LegiScan's bullets — cut off at
-                twenty and ending "…and 64 more co-sponsors" — with
-                congress.gov's table of those same 64 people directly beneath.
-                `BillSponsors` picks the source that knows the most and shows it
-                once; the cut-off goes with it, because the box scrolls. */}
-            <BillSponsors sponsors={bill.sponsors} state={bill.state} />
-
-            <H2>{bill.state === "US" ? "Actions" : "History"}</H2>
-            <BillActions
-              history={bill.history}
-              rollCalls={bill.rollCalls}
-              fallback={
-                bill.history.length ? (
-                  <Table>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Chamber</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bill.history.map((row, index) => (
-                        <tr key={`${row.date}-${row.sequence}-${index}`}>
-                          <td>{day(row.date)}</td>
-                          <td>{row.chamber}</td>
-                          <td>{row.action}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                ) : (
-                  <p>No history recorded yet.</p>
-                )
-              }
-            />
-
-            <BillCommitteeReports />
-            <BillCommittees />
-            <BillSubjects />
-            <BillCostEstimates />
-
-            <H2>Votes</H2>
-            {bill.rollCalls.length ? (
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Vote</th>
-                    <th>Yea</th>
-                    <th>Nay</th>
-                    <th>NV</th>
-                    <th>Absent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.rollCalls.map((row: { roll_call_id: number; date: string; description: string; yea?: number; nay?: number; nv?: number; absent?: number }) => (
-                    <tr key={row.roll_call_id}>
-                      <td>{day(row.date)}</td>
-                      <td>{row.description}</td>
-                      <td>{row.yea ?? 0}</td>
-                      <td>{row.nay ?? 0}</td>
-                      <td>{row.nv ?? 0}</td>
-                      <td>{row.absent ?? 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            ) : (
-              <p>No roll call recorded yet.</p>
-            )}
-
-            <BillAmendments />
-            <BillRelatedBills />
-            <BillTitles />
-
-            <H2>Text</H2>
-            <BillVersions
-              held={held?.document_id ?? null}
-              fallback={
-                text ? (
-                  <BillText text={text} />
-                ) : (
-                  <p>
-                    No text on file yet
-                    {sources[0] ? (
-                      <>
-                        {" "}
-                        — read it at{" "}
-                        <a href={sources[0].href} target="_blank" rel="noopener noreferrer">
-                          {sources[0].label}
-                        </a>
-                      </>
-                    ) : null}
-                    .
-                  </p>
-                )
-              }
-            />
-
-            <BillNotes />
-
-            {sources.length > 0 && (
-              <>
-                <hr />
-                <p>
-                  {sources.map((link, index) => (
-                    <span key={link.href}>
-                      {index > 0 && " · "}
-                      {link.prefix}
-                      <a href={link.href} target="_blank" rel="noopener noreferrer">
-                        {link.label}
-                      </a>
-                    </span>
-                  ))}
-                </p>
-              </>
-            )}
+          <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+            <div className="h-(--top-spacing) shrink-0"></div>
+            <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
+              <BillToc session={session} committees={bill.referrals.length > 0} />
+            </div>
+            <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+              <PublicRail />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-        <div className="h-(--top-spacing) shrink-0"></div>
-        <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-          <BillToc base={bill.state === "US" ? CONGRESS_SECTIONS : SECTIONS} />
-        </div>
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <PublicRail />
-        </div>
-        </div>
-      </div>
       </BillDepthProvider>
     </BillCongressProvider>
   )

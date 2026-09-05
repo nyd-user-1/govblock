@@ -4,6 +4,7 @@ import { honorific } from "@/lib/format"
 
 import { PartyDot } from "@/components/policy/imagery"
 import { MemberOfficialPortrait } from "@/components/policy/member-congress"
+import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
 // member page: every surface that named a member stopped at the name. This is
@@ -54,16 +55,15 @@ function termsServed(terms: { chamber?: string; startYear?: number }[], chamber:
 export function MemberIntroduction({
   member,
   state,
-  career,
+  counts,
   terms,
 }: {
   member: Record<string, unknown>
   state: string
-  /** Totals across every session we hold, with where our record begins. */
-  career: { prime: number; cosponsor: number; aye: number; nay: number; first_session: number | null; floor_session: number | null }
+  /** This session's record: the sentence sits under the session's heading and speaks for it (Brendan, 2026-09-05). */
+  counts: { prime: number; cosponsor: number; aye: number; nay: number }
   terms: { chamber?: string; startYear?: number }[]
 }) {
-  const counts = career
   const name = String(member.name ?? "")
   const chamber = String(member.chamber ?? "")
   const title = honorific(String(member.role ?? ""), chamber)
@@ -73,19 +73,10 @@ export function MemberIntroduction({
   const tenure = served
     ? `has represented ${seat(state, chamber, member.district ? String(member.district) : null)} for ${inWords(served)} ${served === 1 ? "term" : "terms"}`
     : `represents ${seat(state, chamber, member.district ? String(member.district) : null)}`
-  // "In that time" is honest only when the whole tenure is on file. Our record
-  // of Congress begins with the 111th (2009); a member who arrived before it
-  // gets "Since 2009", and a state seat, with no terms to count, gets the
-  // first session they appear in.
-  const firstTerm = terms.reduce<number | null>((min, t) => (t.startYear != null && (min == null || t.startYear < min) ? t.startYear : min), null)
-  const floor = career.floor_session
-  const whole = served != null && firstTerm != null && floor != null && firstTerm >= floor
-  const since = whole ? null : (served != null ? floor : career.first_session) ?? floor
-  const span = whole ? "In that time" : since ? `Since ${since}` : "On the record"
   return (
     <p>
       {title} {name}
-      {party} {tenure}. {span}, {title} {surname} has sponsored {fmtNumber(counts.prime)} {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
+      {party} {tenure}. This session, {title} {surname} has sponsored {fmtNumber(counts.prime)} {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
       {fmtNumber(counts.cosponsor)} {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes {fmtNumber(counts.aye)} {counts.aye === 1 ? "time" : "times"}, and No{" "}
       {fmtNumber(counts.nay)} {counts.nay === 1 ? "time" : "times"}.
     </p>
@@ -112,46 +103,32 @@ export function MemberHeader({
   const district = member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null
 
   return (
-    <header className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-start sm:gap-6">
-      <MemberOfficialPortrait
-        name={name}
-        fallback={member.photo_url ? String(member.photo_url) : null}
-        state={state}
-        chamber={chamber}
-        size={80}
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {honorific(role, chamber)} {name}
-        </h1>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          {leadership && (
-            <>
-              <span className="font-medium text-foreground">{leadership}</span>
-              <span>•</span>
-            </>
-          )}
-          {district && (
-            <>
-              <span>{district}</span>
-              <span>•</span>
-            </>
-          )}
-          <span className="inline-flex items-center gap-1.5">
+    <>
+      <RecordHeader
+        media={
+          <MemberOfficialPortrait
+            name={name}
+            fallback={member.photo_url ? String(member.photo_url) : null}
+            state={state}
+            chamber={chamber}
+            size={RECORD_MEDIA}
+          />
+        }
+        title={`${honorific(role, chamber)} ${name}`}
+        meta={[
+          leadership ? <span className="font-medium text-foreground">{leadership}</span> : null,
+          district,
+          <>
             <PartyDot party={party} />({party ?? "—"})
-          </span>
-          <span>•</span>
-          {/* "Congress House" is not a thing anyone says. Every other
-              jurisdiction reads "New York Assembly"; the federal one reads
-              "U.S. House". */}
-          <span>{state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`}</span>
-        </p>
-        {/* The counts used to live here and are now on the Record pills, which
-            is where someone looking for them goes. The office takes the space:
-            it is the one thing about a member this page knew and never said. */}
-      </div>
-      {action && <div className="docs-nav hidden shrink-0 sm:block">{action}</div>}
+          </>,
+          // "Congress House" is not a thing anyone says. Every other
+          // jurisdiction reads "New York Assembly"; the federal one reads
+          // "U.S. House".
+          state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`,
+        ]}
+        action={action}
+      />
       <span className="sr-only">{peopleId}</span>
-    </header>
+    </>
   )
 }
