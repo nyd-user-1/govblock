@@ -14,7 +14,8 @@ import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui
 // the card chrome with the ⋮ block menu, and the jurisdiction's two chambers
 // with their counts — members for the Member Block, committees for the
 // Committee Block — each a link into the records. The same card a signed-in
-// reader can take to /create.
+// reader can take to /create. Members are the sitting ones, as the tree's
+// Members folder counts them.
 
 function chambers<T extends { chamber?: string | null }>(rows: T[] | undefined) {
   const count = (name: string) => (rows ?? []).filter((r) => (r.chamber ?? "").toLowerCase() === name.toLowerCase()).length
@@ -37,7 +38,7 @@ export function MemberBlock({ state, session }: { state: string; session?: numbe
       </CardHeader>
       <CardContent>
         <ItemGroup>
-          {chambers(data).map((c) => (
+          {chambers(data?.filter((m) => m.active)).map((c) => (
             <Item key={c.name} variant="outline" size="sm" render={<Link href={`/docs/directory?state=${state}&chamber=${c.name}`} />}>
               <ItemMedia>
                 <ChamberSeal state={state} chamber={c.name} size={28} />
