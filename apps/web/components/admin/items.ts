@@ -1,4 +1,5 @@
 import {
+  ActivityIcon,
   CalendarIcon,
   ChartAreaIcon,
   CoinsIcon,
@@ -12,7 +13,6 @@ import {
   Settings2Icon,
   ShieldUserIcon,
   ShoppingCartIcon,
-  SparklesIcon,
   SquareStackIcon,
   TableIcon,
   TrendingUpIcon,
@@ -42,7 +42,8 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Log", icon: FileTextIcon, page: "logs" },
   { label: "Customer", icon: UserCheckIcon, page: "customers" },
   { label: "Order", icon: ShoppingCartIcon, page: "orders" },
-  { label: "AI Tokens", icon: SparklesIcon, page: "ai", tag: "trend" },
+  // paceui's AI Tokens, as the site's traffic: Cloudflare and Amplify, live.
+  { label: "Traffic", icon: ActivityIcon, page: "traffic", tag: "trend" },
   { label: "Education", icon: GraduationCapIcon, page: "education", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
   { label: "Database", icon: DatabaseIcon, page: "database", tag: "trend" },

@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { AiPage } from "./ai"
+import { TrafficPage } from "./traffic"
 import { AuthPage } from "./auth"
 import { CalendarPage } from "./calendar"
 import { ChatPage } from "./chat"
@@ -35,6 +36,9 @@ export function AdminPage({ page }: { page: string }) {
       return <CustomersPage />
     case "orders":
       return <OrdersPage />
+    case "traffic":
+      return <TrafficPage />
+    // The template's AI Tokens page keeps its sample figures, reachable by its old address.
     case "ai":
       return <AiPage />
     case "education":
