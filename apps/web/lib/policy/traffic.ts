@@ -1,5 +1,7 @@
 import "server-only"
 
+import { CloudWatchClient, GetMetricDataCommand } from "@aws-sdk/client-cloudwatch"
+
 import { n, one, q } from "@/lib/policy/db"
 
 // The site's traffic, as the Admin experience's Traffic page reads it
@@ -101,6 +103,27 @@ export async function refreshIfStale(hours = 6) {
           }
         }
       }
+    }
+    // Amplify's last three days, the same way the script takes them.
+    try {
+      const cw = new CloudWatchClient({ region: process.env.AWS_REGION || "us-east-1" })
+      const start = daysAgo(3); start.setUTCHours(0, 0, 0, 0)
+      for (const [appId, appName] of [["d2a69zdzqun8m7", "govblock"], ["d19scfayvy6e0b", "paulrubell"], ["d2bart0mempmp5", "solar"]]) {
+        const metric = (id: string, name: string, stat: string) => ({ Id: id, MetricStat: { Metric: { Namespace: "AWS/AmplifyHosting", MetricName: name, Dimensions: [{ Name: "App", Value: appId }] }, Period: 86400, Stat: stat }, ReturnData: true })
+        const out = await cw.send(new GetMetricDataCommand({ StartTime: start, EndTime: new Date(), ScanBy: "TimestampAscending", MetricDataQueries: [metric("requests", "Requests", "Sum"), metric("e4", "4xxErrors", "Sum"), metric("e5", "5xxErrors", "Sum"), metric("down", "BytesDownloaded", "Sum"), metric("up", "BytesUploaded", "Sum"), metric("lat", "Latency", "Average")] }))
+        const series = Object.fromEntries((out.MetricDataResults ?? []).map((r) => [r.Id, new Map((r.Timestamps ?? []).map((t, i) => [day(new Date(t)), r.Values?.[i] ?? null]))])) as Record<string, Map<string, number | null>>
+        for (const d of series.requests?.keys() ?? []) {
+          await q(
+            `insert into amplify_daily (date, app_id, app_name, requests, errors_4xx, errors_5xx, bytes_downloaded, bytes_uploaded, latency_ms, fetched_at)
+             values ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, now())
+             on conflict (date, app_id) do update set app_name = excluded.app_name, requests = excluded.requests, errors_4xx = excluded.errors_4xx, errors_5xx = excluded.errors_5xx,
+               bytes_downloaded = excluded.bytes_downloaded, bytes_uploaded = excluded.bytes_uploaded, latency_ms = excluded.latency_ms, fetched_at = now()`,
+            [d, appId, appName, Math.round(series.requests?.get(d) ?? 0), Math.round(series.e4?.get(d) ?? 0), Math.round(series.e5?.get(d) ?? 0), Math.round(series.down?.get(d) ?? 0), Math.round(series.up?.get(d) ?? 0), series.lat?.get(d) ?? null],
+          )
+        }
+      }
+    } catch (error) {
+      console.error("amplify refresh failed", error instanceof Error ? error.message : error)
     }
     await q(`insert into cloudflare_pull_state (key, last_run, note) values ('zone', now(), 'refreshed from the page') on conflict (key) do update set last_run = now(), note = excluded.note`)
     return { refreshed: true, reason: "stale" }
