@@ -26,7 +26,7 @@ export function CommitteesCard() {
         ? [...data]
             .filter((c) => !chamber || c.chamber === chamber)
             .sort((a, b) => b.bills - a.bills)
-            .slice(0, 6)
+            .slice(0, 3)
             .map((c) => ({ label: c.committee_name, bills: c.bills, chamber: c.chamber }))
         : congress
           ? F.committees.filter((c) => !chamber || c.chamber === chamber).map((c) => ({ label: c.label, bills: c.bills, chamber: c.chamber }))

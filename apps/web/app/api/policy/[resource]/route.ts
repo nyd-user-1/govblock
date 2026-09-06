@@ -32,6 +32,8 @@ import {
   getStream,
   getSubjects,
   getSubjectTerms,
+  getAdoptedBySession,
+  getProvenance,
   bioguideOf,
   getCommunications,
   getCosponsors,
@@ -151,7 +153,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "sponsors":
       return getTopSponsors(await resolve(filters), int(sp.get("limit"), 8))
     case "seats":
-      return getPartySeats(state)
+      return getPartySeats(await resolve(filters))
+    // Bills adopted per session, every session the jurisdiction has.
+    case "adopted":
+      return getAdoptedBySession(state)
+    // The whole record and how it fills: for the Admin experience's Database page.
+    case "provenance":
+      return getProvenance()
     case "tallies":
       return getTallies(state)
     case "committees":

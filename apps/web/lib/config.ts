@@ -82,6 +82,8 @@ export const siteConfig = {
         { href: "/charts/area", label: "Charts", description: "The chart kit, on real rows." },
         { href: "/typeset", label: "Typeset", description: "Set a bill as a document and take the code." },
         { href: "/create", label: "Create", description: "Build a view and export it." },
+        { href: "/docs/api", label: "API", description: "Every number on the site, as JSON, one route per family." },
+        { href: "/docs/datasets", label: "Datasets", description: "A session at a time, as a file." },
         { href: "/calendar", label: "Calendar", description: "Hearings and sessions by day." },
         { href: "/changelog", label: "Changelog", description: "What shipped, and when." },
       ],

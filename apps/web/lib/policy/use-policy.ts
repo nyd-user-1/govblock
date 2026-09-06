@@ -32,7 +32,19 @@ export function useSnapshot<T>(key: string | null) {
     let cancelled = false
     void (async () => {
       try {
-        const response = await fetch(key)
+        // Aurora pauses after five idle minutes and the first calls after it
+        // fail while it resumes, which took the home page's counts down to the
+        // committed snapshot or to nothing until a reload (Brendan,
+        // 2026-09-05, "the widget counts are not wired"). Three more tries,
+        // spaced for the twenty seconds a resume takes.
+        const waits = [3000, 8000, 15000]
+        let response = await fetch(key)
+        for (const wait of waits) {
+          if (response.ok || cancelled) break
+          await new Promise((resolve) => setTimeout(resolve, wait))
+          if (cancelled) return
+          response = await fetch(key)
+        }
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
         const data = (await response.json()) as T
         if (!cancelled) setState({ key, data })

@@ -1,7 +1,6 @@
 import { ApiCard } from "./api"
 import { BillsCard } from "./bills"
 import { CalendarCard } from "./calendar"
-import { ChambersCard } from "./chambers"
 import { CommitteesCard } from "./committees"
 import { ConnectCard } from "./connect"
 import { LobbyingCard } from "./lobbying"
@@ -11,7 +10,7 @@ import { NavigationCard } from "./navigation"
 import { NotificationSettings } from "./notifications"
 import { PartyCard } from "./party"
 import { SessionsCard } from "./sessions"
-import { StockPerformance } from "./stock-performance"
+import { AdoptedBillsCard } from "./adopted"
 import { NoTeamMembers } from "./team"
 import { TopicsCard } from "./topics"
 import { BarChartCard } from "./traffic"
@@ -24,6 +23,10 @@ import { VotesCard } from "./votes"
 // its stacks happen to be balanced; every stack here runs past the cap and the
 // fade hides where it is cut. The drag-to-rearrange layer is not ported.
 const STACKS: { id: string; node: React.ReactNode }[][] = [
+  // The order Brendan set in the browser and saved as home-page.html
+  // (2026-09-05): Chambers is off the page, Connect leads the second column,
+  // Traffic sits under Committees, and the last column runs Adopted Bills,
+  // Calendar, Members, API, Team.
   [
     { id: "bills-status", node: <BillsCard /> },
     { id: "votes", node: <VotesCard /> },
@@ -31,26 +34,23 @@ const STACKS: { id: string; node: React.ReactNode }[][] = [
     { id: "lobbying", node: <LobbyingCard /> },
   ],
   [
-    { id: "chambers", node: <ChambersCard /> },
+    { id: "connect", node: <ConnectCard /> },
     { id: "party", node: <PartyCard /> },
     { id: "sessions", node: <SessionsCard /> },
     { id: "model-bills", node: <ModelBillsCard /> },
   ],
   [
     { id: "committees", node: <CommitteesCard /> },
-    { id: "members", node: <MembersCard /> },
+    { id: "traffic", node: <BarChartCard /> },
     { id: "notifications", node: <NotificationSettings /> },
     { id: "nav", node: <NavigationCard /> },
   ],
   [
-    // Connect leads the last column — beside Committees, above Calendar. It is
-    // an invitation, and an invitation four cards down the page is a footnote.
-    { id: "connect", node: <ConnectCard /> },
+    { id: "stock", node: <AdoptedBillsCard /> },
     { id: "hearings", node: <CalendarCard /> },
-    { id: "stock", node: <StockPerformance /> },
-    { id: "traffic", node: <BarChartCard /> },
-    { id: "team", node: <NoTeamMembers /> },
+    { id: "members", node: <MembersCard /> },
     { id: "api", node: <ApiCard /> },
+    { id: "team", node: <NoTeamMembers /> },
   ],
 ]
 

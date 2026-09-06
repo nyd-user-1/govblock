@@ -677,7 +677,8 @@ export async function getMembers(f: Resolved) {
   // Former members are kept, after the roster: they sponsored the bills the
   // rest of the app links to, and a grey dot is a better answer than a dead
   // name. `active` is now exactly "on this session's roster".
-  const params: unknown[] = [f.state, f.session]
+  const params: unknown[] = [f.state]
+  const sitting = await sittingClause(f, params)
   let filters = ""
   if (f.chamber) filters += ` and p.chamber = $${params.push(f.chamber)}`
   if (f.party)
@@ -698,10 +699,8 @@ export async function getMembers(f: Resolved) {
   }>(
     `select p.people_id, p.name, p.first_name, p.last_name, p.party, p.role,
             p.chamber, p.district, p.photo_url, p.leadership_title, p.bioguide_id,
-            (sp.people_id is not null) as active
+            (${sitting}) as active
      from "People" p
-     left join "SessionPeople" sp
-       on sp.people_id = p.people_id and sp.state = $1 and sp.year = $2
      where p.state = $1
        and p.committee_id is null
        and not coalesce(p.archived, false)
@@ -832,16 +831,35 @@ export async function getTallies(state: string) {
   ).then((rows) => rows.map((r) => ({ ...r, people_id: n(r.people_id) })))
 }
 
-export async function getPartySeats(state: string) {
+/**
+ * Who sat in a session: the "SessionPeople" roster where LegiScan filed one
+ * for that year, else everyone who sponsored a bill in it. The roster exists
+ * for the current session alone, so the Party and Members cards read the
+ * 119th's seats under the 118th until this (Brendan, 2026-09-05: "party and
+ * members do not" follow the session).
+ */
+async function sittingClause(f: Resolved, params: unknown[], p = "p") {
+  const rostered = await one<{ n: number }>(
+    `select count(*)::int as n from "SessionPeople" where state = $1 and year = $2`, [f.state, f.session]);
+  const s = params.push(f.state)
+  const y = params.push(f.session)
+  return n(rostered?.n) > 0
+    ? `exists (select 1 from "SessionPeople" sp where sp.people_id = ${p}.people_id and sp.state = $${s} and sp.year = $${y})`
+    : `exists (select 1 from "Sponsors" sx join "Bills" bx using (bill_id) where sx.people_id = ${p}.people_id and bx.state = $${s} and bx.session_id = $${y})`
+}
+
+export async function getPartySeats(f: Resolved) {
+  const params: unknown[] = []
+  const sitting = await sittingClause(f, params)
   return q<{ chamber: string; party: string; seats: number }>(
     // Seats are the sitting roster, not everyone the record has ever known:
-    // without the "SessionPeople" join this counted former members and the 511
+    // without the session join this counted former members and the 511
     // committee rows as seats ("1,053 seats in the House" against 553 sitting).
     `select p.chamber, coalesce(nullif(p.party, ''), 'I') party, count(*)::int seats from "People" p
-     where p.state = $1 and p.committee_id is null and not coalesce(p.archived, false) and p.role in ('Rep', 'Sen')
-       and exists (select 1 from "SessionPeople" sp where sp.people_id = p.people_id and sp.state = $1)
+     where p.state = $${params.push(f.state)} and p.committee_id is null and not coalesce(p.archived, false) and p.role in ('Rep', 'Sen')
+       and ${sitting}
      group by 1, 2 order by 1, 3 desc`,
-    [state]
+    params
   )
 }
 
@@ -2702,4 +2720,145 @@ export async function getSubjectSummary(f: Resolved, subject: string) {
     committees: committees.map((r) => ({ ...r, bills: n(r.bills) })),
     chambers: chambers.map((r) => ({ ...r, bills: n(r.bills) })),
   };
+}
+
+
+/**
+ * The bills adopted in every session of a jurisdiction, for the home page's
+ * Adopted Bills chart (Brendan, 2026-09-05: "can you make this real?").
+ * Adopted is LegiScan's Passed status, and the words the other pipelines use
+ * for the same thing — Signed by Governor, Adopted, Chaptered, Enacted.
+ */
+export async function getAdoptedBySession(state: string) {
+  const rows = await q<{ session_id: number; adopted: number; bills: number }>(
+    `select session_id,
+            count(*) filter (where status = 4 or status_desc in ('Passed', 'Signed by Governor', 'Adopted', 'Chaptered', 'Enacted', 'Became Law'))::int as adopted,
+            count(*)::int as bills
+       from "Bills" where state = $1 group by 1 order by 1`,
+    [state]);
+  return rows.map((r) => ({ session_id: n(r.session_id), adopted: n(r.adopted), bills: n(r.bills) }));
+}
+
+/**
+ * How many rows each dataset family holds, per session, for a jurisdiction's
+ * datasets page: one grouped query a family, so the page can print the size
+ * of a file before anyone downloads it (Brendan, 2026-09-05).
+ */
+export async function getDatasetCounts(state: string) {
+  const bySession = (rows: { session_id: number; n: number }[]) => new Map(rows.map((r) => [n(r.session_id), n(r.n)]));
+  const [bills, sponsors, members, committees, rollcalls, votes, history] = await Promise.all([
+    q<{ session_id: number; n: number }>(`select session_id, count(*)::int as n from "Bills" where state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Sponsors" s join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(distinct s.people_id)::int as n from "Sponsors" s join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select session_id, count(distinct committee)::int as n from "Bills" where state = $1 and coalesce(committee, '') <> '' group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, sum(coalesce(r.total::int, 0))::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+    q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "History Table" h join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
+  ]);
+  return { bills: bySession(bills), sponsors: bySession(sponsors), members: bySession(members), committees: bySession(committees), rollcalls: bySession(rollcalls), votes: bySession(votes), history: bySession(history) };
+}
+
+/**
+ * What the record is made of and how it fills, for the Admin experience's
+ * Database page (Brendan, 2026-09-05: "perhaps this is what you use to show
+ * me our provenance and nightly run rate"). The ledgers Aurora itself keeps
+ * answer the run rate: the dataset table's imported_at is the LegiScan
+ * loads, BillTexts' fetched_at is the text walk and the text delta, and
+ * congress_sync_state is the congress.gov pipeline's last word. The totals
+ * are the whole record, every jurisdiction, so the page reads the same under
+ * any scope.
+ */
+export async function getProvenance() {
+  const day = (col: string) => `to_char(${col}, 'YYYY-MM-DD')`
+  const [totals, texts, datasets, feeds, fresh, coverage] = await Promise.all([
+    one<{ bills: number; sessions: number; states: number; rollcalls: number; people: number; committees: number; texts: number }>(
+      `select (select count(*)::int from "Bills") as bills,
+              (select count(*)::int from "LegiscanDatasets" where bills > 0) as sessions,
+              (select count(distinct state)::int from "LegiscanDatasets") as states,
+              (select count(*)::int from "Roll Call") as rollcalls,
+              (select count(*)::int from "People" where committee_id is null and not coalesce(archived, false)) as people,
+              (select count(distinct committee)::int from "Bills" where coalesce(committee, '') <> '') as committees,
+              (select count(*)::int from "BillTexts") as texts`
+    ),
+    q<{ day: string; texts: number }>(
+      `select ${day("fetched_at")} as day, count(*)::int as texts
+         from "BillTexts" where fetched_at >= now() - interval '30 days' group by 1 order by 1`
+    ),
+    q<{ day: string; datasets: number; bills: number }>(
+      `select ${day("imported_at")} as day, count(*)::int as datasets, sum(bills)::int as bills
+         from "LegiscanDatasets" where imported_at >= now() - interval '30 days' group by 1 order by 1`
+    ),
+    one<{
+      legiscan_at: string | null
+      legiscan_delta_at: string | null
+      texts_at: string | null
+      texts_week: number
+      congress_at: string | null
+      congress_note: string | null
+      lobbying_at: string | null
+      fec_at: string | null
+      house_at: string | null
+      senate_at: string | null
+      laws_at: string | null
+      model_at: string | null
+    }>(
+      `select (select max(imported_at)::text from "LegiscanDatasets") as legiscan_at,
+              (select max(imported_at)::text from "LegiscanDatasets" where state in ('US', 'NY', 'NJ')) as legiscan_delta_at,
+              (select max(fetched_at)::text from "BillTexts") as texts_at,
+              (select count(*)::int from "BillTexts" where fetched_at >= now() - interval '7 days') as texts_week,
+              (select max(last_run)::text from congress_sync_state) as congress_at,
+              (select note from congress_sync_state order by last_run desc limit 1) as congress_note,
+              (select max(updated_at)::text from "LobbyingSync") as lobbying_at,
+              (select max(fetched_at)::text from "FecTotals") as fec_at,
+              (select max(fetched_at)::text from house_staff) as house_at,
+              (select max(fetched_at)::text from senate_contact) as senate_at,
+              (select max(fetched_at)::text from "Laws") as laws_at,
+              (select max(fetched_at)::text from "ModelBills") as model_at`
+    ),
+    q<{ state: string; last_action: string; bills: number; recent: number }>(
+      `select state, max(last_action_date) as last_action, count(*)::int as bills,
+              count(*) filter (where last_action_date >= to_char(now() - interval '7 days', 'YYYY-MM-DD'))::int as recent
+         from "Bills" where session_id >= 2025 group by 1 order by 1`
+    ),
+    one<{ with_text: number; of: number }>(
+      `select count(*) filter (where coalesce(text_chars, 0) > 0)::int as with_text, count(*)::int as of
+         from "Bills" where session_id >= 2025`
+    ),
+  ])
+  const days = new Map<string, { day: string; texts: number; datasets: number; bills: number }>()
+  for (const t of texts) days.set(t.day, { day: t.day, texts: n(t.texts), datasets: 0, bills: 0 })
+  for (const d of datasets) {
+    const row = days.get(d.day) ?? { day: d.day, texts: 0, datasets: 0, bills: 0 }
+    row.datasets = n(d.datasets)
+    row.bills = n(d.bills)
+    days.set(d.day, row)
+  }
+  return {
+    totals: {
+      bills: n(totals?.bills),
+      sessions: n(totals?.sessions),
+      states: n(totals?.states),
+      rollcalls: n(totals?.rollcalls),
+      people: n(totals?.people),
+      committees: n(totals?.committees),
+      texts: n(totals?.texts),
+    },
+    daily: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)),
+    feeds: {
+      legiscan_at: feeds?.legiscan_at ?? null,
+      legiscan_delta_at: feeds?.legiscan_delta_at ?? null,
+      texts_at: feeds?.texts_at ?? null,
+      texts_week: n(feeds?.texts_week),
+      congress_at: feeds?.congress_at ?? null,
+      congress_note: feeds?.congress_note ?? null,
+      lobbying_at: feeds?.lobbying_at ?? null,
+      fec_at: feeds?.fec_at ?? null,
+      house_at: feeds?.house_at ?? null,
+      senate_at: feeds?.senate_at ?? null,
+      laws_at: feeds?.laws_at ?? null,
+      model_at: feeds?.model_at ?? null,
+    },
+    fresh: fresh.map((f) => ({ state: f.state, last_action: f.last_action, bills: n(f.bills), recent: n(f.recent) })),
+    coverage: { with_text: n(coverage?.with_text), of: n(coverage?.of) },
+  }
 }

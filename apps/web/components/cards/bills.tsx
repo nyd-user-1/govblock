@@ -35,8 +35,8 @@ export function BillsCard() {
   return (
     <CardFrame id="bills-status">
       <CardHeader>
-        <CardTitle>Bills</CardTitle>
-        <CardDescription>{fmtNumber(total)} bills this session</CardDescription>
+        <CardTitle>Total Bills</CardTitle>
+        <CardDescription>{fmtNumber(total)} per session</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>

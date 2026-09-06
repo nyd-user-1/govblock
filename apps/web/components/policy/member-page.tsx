@@ -3,6 +3,7 @@ import { fmtNumber } from "@/lib/format"
 import { honorific } from "@/lib/format"
 
 import { PartyDot } from "@/components/policy/imagery"
+import { Figure } from "@/components/policy/pending-session"
 import { MemberOfficialPortrait } from "@/components/policy/member-congress"
 import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 
@@ -76,9 +77,9 @@ export function MemberIntroduction({
   return (
     <p>
       {title} {name}
-      {party} {tenure}. This session, {title} {surname} has sponsored {fmtNumber(counts.prime)} {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
-      {fmtNumber(counts.cosponsor)} {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes {fmtNumber(counts.aye)} {counts.aye === 1 ? "time" : "times"}, and No{" "}
-      {fmtNumber(counts.nay)} {counts.nay === 1 ? "time" : "times"}.
+      {party} {tenure}. This session, {title} {surname} has sponsored <Figure>{fmtNumber(counts.prime)}</Figure> {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
+      <Figure>{fmtNumber(counts.cosponsor)}</Figure> {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes <Figure>{fmtNumber(counts.aye)}</Figure> {counts.aye === 1 ? "time" : "times"}, and No{" "}
+      <Figure>{fmtNumber(counts.nay)}</Figure> {counts.nay === 1 ? "time" : "times"}.
     </p>
   )
 }

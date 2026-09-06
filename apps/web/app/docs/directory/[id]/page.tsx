@@ -18,6 +18,7 @@ import { MemberOffices, MemberStaff } from "@/components/policy/member-directory
 import { officePlaces } from "@/lib/policy/office-places"
 import { MemberTabs } from "@/components/policy/member-tabs"
 import { PreviewFrame } from "@/components/preview-frame"
+import { Figure, PendingSessionProvider } from "@/components/policy/pending-session"
 import { SessionsMenu } from "@/components/policy/sessions-menu"
 import {
   MemberCongressProvider,
@@ -138,6 +139,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state} who={title}>
+      <PendingSessionProvider>
       <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="h-(--top-spacing) shrink-0" />
@@ -189,8 +191,8 @@ export default async function MemberRoute({ params, searchParams }: Props) {
               <hr />
               <H2>Record</H2>
               <p>
-                {title} is the prime sponsor of <code>{fmtNumber(record.counts.prime)}</code> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of{" "}
-                <code>{fmtNumber(record.counts.cosponsor)}</code> this session.
+                {title} is the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of{" "}
+                <Figure>{fmtNumber(record.counts.cosponsor)}</Figure> this session.
               </p>
               <H3>Bills</H3>
               <PreviewFrame>
@@ -244,7 +246,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
               <H3>Votes</H3>
               <p>
-                {title} has voted Yes on <code>{fmtNumber(record.counts.aye)}</code> bills and No on <code>{fmtNumber(record.counts.nay)}</code> this session.
+                {title} has voted Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> this session.
               </p>
               <PreviewFrame>
                 <MemberTabs
@@ -351,6 +353,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
           </div>
         </div>
       </div>
+      </PendingSessionProvider>
     </MemberCongressProvider>
   )
 }

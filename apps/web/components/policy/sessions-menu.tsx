@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
+import { usePendingSession } from "@/components/policy/pending-session"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -22,10 +23,13 @@ export function SessionsMenu({ sessions, current }: { sessions: SessionOption[];
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
+  const { start } = usePendingSession()
   function choose(value: number) {
     const next = new URLSearchParams(params.toString())
     next.set("session", String(value))
-    router.push(`${pathname}?${next.toString()}`)
+    // Inside a transition, so every Figure on the page pulses until the new
+    // session's page lands.
+    start(() => router.push(`${pathname}?${next.toString()}`))
   }
   return (
     <DropdownMenu>
