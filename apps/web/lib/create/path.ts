@@ -23,9 +23,10 @@
 //   at=datasets                    what /create opens on: the datasets as cards, open or locked
 //   at=forks                       the reader's forks of bills, across jurisdictions
 //   bill=…&fork=12                 a bill seen through the reader's fork: its commits on top
+//   at=admin, at=admin/logs, …    the Admin experience: paceui's dashboard, a page per rail entry
 //
-// Three roots sit beside the legislature and are reached from the customizer's
-// menu: inbox, finance, forms.
+// Four roots sit beside the legislature and are reached from the customizer's
+// menu: inbox, finance, forms, admin.
 
 export type Node =
   | { kind: "datasets" }
@@ -45,6 +46,7 @@ export type Node =
   | { kind: "inbox" }
   | { kind: "finance" }
   | { kind: "forms" }
+  | { kind: "admin"; page: string }
 
 /** The URL keys a location is made of. */
 export type Location = { at: string; committee: string; member: string; bill: string; rollcall: string }
@@ -65,6 +67,8 @@ const SPECIAL = new Set(["inbox", "finance", "forms", "datasets"])
 /** The node the URL names. A record beats a listing: a bill is a bill wherever it was reached from. */
 export function locate(loc: Location): Node {
   if (SPECIAL.has(loc.at)) return { kind: loc.at as "inbox" | "finance" | "forms" | "datasets" }
+  // The Admin experience: `at=admin` is its Sales page, `at=admin/<page>` the rest.
+  if (loc.at === "admin" || loc.at.startsWith("admin/")) return { kind: "admin", page: loc.at.slice(6) }
   if (loc.bill && /^\d+$/.test(loc.bill)) return { kind: "bill", id: Number(loc.bill) }
   if (loc.rollcall && /^\d+$/.test(loc.rollcall)) return { kind: "rollcall", id: Number(loc.rollcall) }
   if (loc.member && /^\d+$/.test(loc.member)) return { kind: "member", id: Number(loc.member) }
@@ -96,7 +100,7 @@ export function isFile(node: Node) {
 }
 
 export function isSpecial(node: Node) {
-  return node.kind === "inbox" || node.kind === "finance" || node.kind === "forms"
+  return node.kind === "inbox" || node.kind === "finance" || node.kind === "forms" || node.kind === "admin"
 }
 
 /** The target that leaves every record behind and lands on a listing. */
@@ -119,6 +123,8 @@ export function keyOf(node: Node): string {
       return `votes/${node.month}/${node.vote}`
     case "rollcall":
       return `rollcalls/${node.id}`
+    case "admin":
+      return node.page ? `admin/${node.page}` : "admin"
     case "root":
       return ""
     default:

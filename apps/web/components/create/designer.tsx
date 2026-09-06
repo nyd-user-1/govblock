@@ -24,6 +24,7 @@ import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
 import { StageSwitcher, type Stage } from "@/components/create/stage-switcher"
 import { legislatureName, Tree } from "@/components/create/tree"
+import { AdminStage } from "@/components/admin/admin-stage"
 import { BlockShell } from "@/components/policy/block-shell"
 import { FecExplorer } from "@/components/policy/fec-explorer"
 import { FormsList } from "@/components/policy/forms-list"
@@ -196,7 +197,7 @@ function DesignerInner() {
   // URL that says Alaska should show Alaska). Rewrite it to `state=AK`.
   React.useEffect(() => {
     const at = params.at.trim().toLowerCase()
-    if (!at || /^(sessions|bills|committees|members|votes|forks|inbox|finance|forms)(\/|$)/.test(at)) return
+    if (!at || /^(sessions|bills|committees|members|votes|forks|inbox|finance|forms|admin)(\/|$)/.test(at)) return
     const code = Object.entries(STATE_NAMES).find(([c, name]) => c.toLowerCase() === at || name.toLowerCase() === at)?.[0]
     if (code) writeUrlParams({ state: code, at: null, session: null }, { history: "replace" })
   }, [params.at])
@@ -263,6 +264,8 @@ function DesignerInner() {
       <Inbox />
     ) : node.kind === "finance" ? (
       <FecExplorer />
+    ) : node.kind === "admin" ? (
+      <AdminStage page={node.page} onGo={(page) => writeUrlParams({ ...listing(page ? `admin/${page}` : "admin") }, { history: "push" })} />
     ) : (
       <BlockShell
         title={params.all === "1" ? "Documents" : "Forms"}

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArchiveIcon, CheckIcon, ChevronsUpDown, FileTextIcon, InboxIcon, LayoutDashboardIcon, LayoutGridIcon, PaletteIcon, SlidersHorizontalIcon } from "lucide-react"
+import { ArchiveIcon, CheckIcon, ChevronsUpDown, FileTextIcon, InboxIcon, LayoutDashboardIcon, LayoutGridIcon, PaletteIcon, Settings2Icon, SlidersHorizontalIcon } from "lucide-react"
 
 import type { Mode } from "@/components/create/main-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
@@ -13,19 +13,21 @@ import { cn } from "@govblock/ui/lib/utils"
 // component"). State and Design are the customizer's two variants over the
 // jurisdiction tree; Canvas is the tree's records as the large cards
 // (Brendan, 2026-09-04: there was no affordance to reach them); the Agentic
-// Inbox, the Dashboard, Forms and Documents are the roots beside it —
+// Inbox, the Dashboard, Admin, Forms and Documents are the roots beside it —
 // Documents being the whole harvest, forms and documents together, that
-// Forms cuts down to the 9,957 it can name.
+// Forms cuts down to the 9,957 it can name. Admin is the second dashboard
+// experience (Brendan, 2026-09-05): paceui's Ultimate Dashboard rebuilt in
+// our chrome, its whole rail, with the record's numbers where the shape fits.
 
-export type Stage = Mode | "canvas" | "inbox" | "finance" | "forms" | "documents"
+export type Stage = Mode | "canvas" | "inbox" | "finance" | "admin" | "forms" | "documents"
 
 // Brendan, 2026-09-04: "Canvas, Data, Design" — the three ways of looking at
 // the jurisdiction come first, in that order, then the roots beside it.
-export const STAGE_LABEL: Record<Stage, string> = { canvas: "Canvas", state: "Data", design: "Design", inbox: "Agentic Inbox", finance: "Dashboard", forms: "Forms", documents: "Documents" }
-export const STAGE_ICON: Record<Stage, typeof InboxIcon> = { canvas: LayoutGridIcon, state: SlidersHorizontalIcon, design: PaletteIcon, inbox: InboxIcon, finance: LayoutDashboardIcon, forms: FileTextIcon, documents: ArchiveIcon }
+export const STAGE_LABEL: Record<Stage, string> = { canvas: "Canvas", state: "Data", design: "Design", inbox: "Agentic Inbox", finance: "Dashboard", admin: "Admin", forms: "Forms", documents: "Documents" }
+export const STAGE_ICON: Record<Stage, typeof InboxIcon> = { canvas: LayoutGridIcon, state: SlidersHorizontalIcon, design: PaletteIcon, inbox: InboxIcon, finance: LayoutDashboardIcon, admin: Settings2Icon, forms: FileTextIcon, documents: ArchiveIcon }
 export const STAGE_GROUPS: Stage[][] = [
   ["canvas", "state", "design"],
-  ["inbox", "finance", "forms", "documents"],
+  ["inbox", "finance", "admin", "forms", "documents"],
 ]
 const LABEL = STAGE_LABEL
 const ICON = STAGE_ICON
