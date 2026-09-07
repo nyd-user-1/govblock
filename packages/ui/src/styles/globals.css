@@ -87,11 +87,14 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
+    /* Brendan, 2026-09-07: "the dark mode black bg is too black" — #151515
+       for the page, the card a step above it, the chips a step above that.
+       The palette before this is kept whole in apps/web/styles/original-dark-mode.css. */
+    --background: oklch(0.2 0 0);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
+    --card: oklch(0.235 0 0);
     --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
+    --popover: oklch(0.235 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.424 0.199 265.638);
     --primary-foreground: oklch(0.97 0.014 254.604);
@@ -110,7 +113,7 @@
     --chart-3: oklch(0.577 0.245 27.325);
     --chart-4: oklch(0.505 0.213 27.518);
     --chart-5: oklch(0.444 0.177 26.899);
-    --sidebar: oklch(0.205 0 0);
+    --sidebar: oklch(0.2 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.623 0.214 259.815);
     --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
@@ -150,7 +153,7 @@
 }
 
 .dark {
-  --surface: oklch(0.2 0 0);
+  --surface: oklch(0.269 0 0);
   --surface-foreground: var(--foreground);
   --selection: oklch(0.922 0 0);
   --selection-foreground: oklch(0.205 0 0);
