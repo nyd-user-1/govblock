@@ -330,6 +330,160 @@ export async function getBillByNumber(state: string, session: number, number: st
   return one<{ bill_id: number }>(`select bill_id from "Bills" where state = $1 and session_id = $2 and bill_number = $3 order by special limit 1`, [state, session, number])
 }
 
+/* ---- Congress is cited the way congress.gov writes it ---------------------
+ * LegiScan numbers every jurisdiction in one universal scheme: HB is a house
+ * bill, HR a house resolution, SB and SR likewise. Congress is written the
+ * other way round — H.R. 155 is the Let America Vote Act and H.Res. 155 is a
+ * Ukraine measure — so a reader who types the citation congress.gov prints,
+ * and every news story quotes, was handed a different document under the
+ * number they asked for (found 2026-09-07).
+ *
+ * The fix routes a US number through `congress_bills`, which files a bill
+ * under congress.gov's own type and number and carries our bill_id beside it.
+ * That is the better of the two fixes the defect allowed: congress.gov leads
+ * the LegiScan mirror by about 120 House bills, and the same row already
+ * carries the current title, sponsor and latest action that the rest of this
+ * lane's tools read. LegiScan stays the record for the 50 states and for the
+ * congresses before the 119th, which is all `congress_bills` holds.
+ *
+ * Punctuation is what disambiguates, so the parse happens before it is
+ * stripped: `H.R.` and `H.Res.` differ by two characters and one bill. A bare
+ * `HR155` with no punctuation at all is read as congress.gov reads it — a
+ * house bill — because that is what a person typing it means.
+ * ------------------------------------------------------------------------- */
+
+// congress.gov's bill type <- our bill_number prefix, the same table the sync
+// and api/bill-text.ts carry, so the three agree on what a bill is called.
+const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" }
+
+/** Every spelling a citation arrives in -> congress.gov's own type. */
+const CITATION_TYPE: Record<string, string> = {
+  HR: "HR", HRES: "HRES", HJRES: "HJRES", HCONRES: "HCONRES",
+  S: "S", SRES: "SRES", SJRES: "SJRES", SCONRES: "SCONRES",
+  // LegiScan's spellings, so a number copied out of a search result still lands.
+  HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES",
+}
+
+/** congress.gov's type -> the prefix "Bills" spells it with. */
+const LEGISCAN_PREFIX_BY_TYPE: Record<string, string> = { HR: "HB", HRES: "HR", S: "SB", SRES: "SR", HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR" }
+
+/** How congress.gov prints it: H.R. 155, H.Res. 155, S.J.Res. 12. */
+const CITATION_LABEL: Record<string, string> = {
+  HR: "H.R.", HRES: "H.Res.", HJRES: "H.J.Res.", HCONRES: "H.Con.Res.",
+  S: "S.", SRES: "S.Res.", SJRES: "S.J.Res.", SCONRES: "S.Con.Res.",
+}
+
+export function citationOf(type: string | null, number: string | null) {
+  const label = CITATION_LABEL[String(type ?? "").toUpperCase()]
+  return label && number ? `${label} ${number}` : null
+}
+
+/** A typed citation -> the type and number congress.gov files it under. */
+export function congressCitation(raw: string) {
+  const match = String(raw ?? "").toUpperCase().replace(/\s+/g, "").match(/^([A-Z.]+?)\.?(\d+)$/)
+  if (!match) return null
+  const type = CITATION_TYPE[match[1].replace(/\./g, "")]
+  return type ? { type, number: String(Number(match[2])) } : null
+}
+
+/** The congress a LegiScan session_id sits in: 2025 -> the 119th. */
+export function congressOf(session: number) {
+  return Math.floor((n(session) - 1789) / 2) + 1
+}
+
+/**
+ * One US bill by the number a reader typed, in the order that gets it right:
+ * congress.gov's own filing first, then LegiScan's spelling of the same
+ * citation for the congresses the mirror is all we hold, then the bare string
+ * for anything else.
+ *
+ * `bill_id` may be null — congress.gov holds ~137 bills the LegiScan mirror
+ * has not picked up, and they are the newest ones, which is exactly what
+ * someone asks about. The caller answers those from `congress_bills` alone.
+ */
+export async function getUsBill(session: number, raw: string) {
+  const cite = congressCitation(raw)
+  if (cite) {
+    const row = await one<{ key: string; bill_id: number | null; bill_number: string }>(
+      `select key, bill_id, bill_number from congress_bills where congress = $1 and bill_type = $2 and number = $3`,
+      [congressOf(session), cite.type, cite.number]
+    )
+    if (row) return { key: row.key, bill_id: row.bill_id == null ? null : n(row.bill_id), citation: citationOf(cite.type, cite.number) }
+    const legiscan = await getBillByNumber("US", session, `${LEGISCAN_PREFIX_BY_TYPE[cite.type] ?? cite.type}${cite.number}`)
+    if (legiscan) return { key: null, bill_id: n(legiscan.bill_id), citation: citationOf(cite.type, cite.number) }
+  }
+  const bare = await getBillByNumber("US", session, String(raw ?? "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase())
+  return bare ? { key: null, bill_id: n(bare.bill_id), citation: null } : null
+}
+
+/**
+ * The bill congress.gov has and the mirror does not, in the shape getBill
+ * answers in — so a reader asking for last week's bill gets last week's bill
+ * with a line saying what is missing, rather than "no such number".
+ */
+export async function getCongressOnlyBill(key: string) {
+  const row = await one<{
+    bill_number: string
+    bill_type: string
+    number: string
+    display_title: string | null
+    popular_title: string | null
+    origin_chamber: string | null
+    introduced_date: string | null
+    policy_area: string | null
+    latest_action: string | null
+    latest_action_date: string | null
+    sponsor_name: string | null
+    sponsor_party: string | null
+    sponsor_state: string | null
+    sponsor_district: string | null
+    sponsor_people_id: number | null
+    congress: number
+  }>(
+    `select bill_number, bill_type, number, display_title, popular_title, origin_chamber, introduced_date,
+            policy_area, latest_action, latest_action_date, sponsor_name, sponsor_party, sponsor_state,
+            sponsor_district, sponsor_people_id, congress
+       from congress_bills where key = $1`,
+    [key]
+  )
+  if (!row) return null
+  const actions = await q<{ action_date: string | null; text: string | null; action_type: string | null }>(
+    `select action_date, text, action_type from congress_bill_actions where bill_number = $1 and congress = $2
+      order by action_date desc nulls last, sequence desc limit 25`,
+    [row.bill_number, row.congress]
+  )
+  return {
+    bill_id: null,
+    bill_number: row.bill_number,
+    citation: citationOf(row.bill_type, row.number),
+    state: "US",
+    session_id: 1789 + (n(row.congress) - 1) * 2,
+    title: row.display_title,
+    description: row.popular_title ?? row.display_title,
+    status_desc: null,
+    last_action: row.latest_action,
+    last_action_date: row.latest_action_date,
+    introduced_date: row.introduced_date,
+    body: row.origin_chamber,
+    policy_area: row.policy_area,
+    url: `https://www.congress.gov/bill/${row.congress}th-congress/${row.bill_type === "HR" ? "house-bill" : row.bill_type === "S" ? "senate-bill" : row.bill_type.toLowerCase()}/${row.number}`,
+    sponsors: row.sponsor_name
+      ? [{ name: row.sponsor_name, party: row.sponsor_party, district: row.sponsor_district, people_id: row.sponsor_people_id == null ? null : n(row.sponsor_people_id), type: 1 }]
+      : [],
+    history: actions.map((a) => ({ date: a.action_date, action: a.text, chamber: a.action_type })),
+    rollCalls: [],
+    referrals: [],
+    progress: [],
+    sameAs: [],
+    documents: [],
+    subjects: [],
+    texts: [],
+    hearings: [],
+    source: "congress.gov",
+    note: "congress.gov holds this bill; the LegiScan mirror has not picked it up yet, so there is no text, roll call or subject list here — only the record above.",
+  }
+}
+
 export async function getBill(billId: number) {
   const bill = await one<
     BillRow & {
@@ -346,7 +500,7 @@ export async function getBill(billId: number) {
     [billId]
   )
   if (!bill) return null
-  const [sponsors, history, rollCalls, referrals, progress, sameAs, documents, subjects, texts, hearings] = await Promise.all([
+  const [sponsors, history, rollCalls, referrals, progress, sameAs, documents, subjects, texts, hearings, congress] = await Promise.all([
     q<{
       people_id: number
       name: string
@@ -416,10 +570,34 @@ export async function getBill(billId: number) {
       description: string
       location: string
     }>(`select date, time, type, description, location from "Calendar" where bill_id = $1 and date <= ${DATE_CAP} order by date desc, seq`, [billId]),
+    // Congress's own row for the same bill. It carries the citation people
+    // write and read — H.R. 155, not LegiScan's HB155 — and an action that is
+    // days ahead of the mirror's, which is the same reason getBills coalesces
+    // it on the bills board.
+    bill.state === "US"
+      ? one<{ bill_type: string; number: string; latest_action: string | null; latest_action_date: string | null; introduced_date: string | null; policy_area: string | null; popular_title: string | null }>(
+          `select bill_type, number, latest_action, latest_action_date, introduced_date, policy_area, popular_title
+             from congress_bills where bill_id = $1`,
+          [billId]
+        )
+      : Promise.resolve(null),
   ])
   return {
     ...bill,
     bill_id: n(bill.bill_id),
+    // The congresses before the 119th have no congress_bills row, so the
+    // citation comes off the mirror's own prefix there rather than being null.
+    citation:
+      bill.state === "US"
+        ? congress
+          ? citationOf(congress.bill_type, congress.number)
+          : citationOf(CONGRESS_TYPE_BY_PREFIX[String(bill.bill_number).replace(/[0-9].*$/, "")] ?? "", String(bill.bill_number).replace(/^[A-Z]+/, ""))
+        : null,
+    popular_title: congress?.popular_title ?? null,
+    policy_area: congress?.policy_area ?? null,
+    introduced_date: congress?.introduced_date ?? null,
+    last_action: congress?.latest_action ?? bill.last_action,
+    last_action_date: congress?.latest_action_date ?? bill.last_action_date,
     sponsors: sponsors.map((s) => ({ ...s, people_id: n(s.people_id) })),
     history,
     rollCalls: rollCalls.map((r) => ({
@@ -1572,10 +1750,6 @@ export async function getCommitteeReports(limit = 50, offset = 0, billId?: numbe
   }
   return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) }
 }
-
-// congress.gov's bill type <- our bill_number prefix, the same table the sync
-// and api/bill-text.ts carry, so the three agree on what a bill is called.
-const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" }
 
 /** A law IS a bill, so this one can be scoped without any new linkage. */
 export async function getLaws(limit = 250, offset = 0, billId?: number) {

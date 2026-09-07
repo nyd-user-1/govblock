@@ -120,7 +120,7 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       bill_number: {
         type: "string",
         description:
-          "As the record writes it, with no spaces or punctuation: 'A07380', 'S05226', 'HB10171', 'HR1496'. Requires a jurisdiction. If you are not certain of the number, use search_bills instead.",
+          "For Congress, the citation as congress.gov writes it: 'H.R. 155' is a House bill, 'H.Res. 155' a House resolution, and 'S. 155', 'S.Res. 155', 'H.J.Res. 12', 'S.Con.Res. 4' likewise — the punctuation is what tells them apart, so keep it. For a state, the number as that legislature writes it: 'A07380', 'S05226'. Requires a jurisdiction. If you are not certain of the number, use search_bills instead.",
       },
       jurisdiction: JURISDICTION,
     },
@@ -135,9 +135,11 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       // number you asked for. Caught on the deploy. A wrong record answered
       // confidently is the worst failure this surface has, so a number that
       // came back different from the number asked for is a miss, said out loud.
+      // Congress answers under two spellings — the mirror's HB155 and
+      // congress.gov's H.R. 155 — and either is the number that was asked for.
       const asked = plain(input.number)
       const got = plain(b.bill_number)
-      if (asked && got && asked !== got) {
+      if (asked && got && asked !== got && asked !== plain(b.citation)) {
         return {
           error: `No bill numbered ${input.number} in ${(input.jurisdiction || "US").toUpperCase()}. The record answered with ${b.bill_number}, which is a different bill. Use search_bills to find the right one, and tell the reader you could not find the number they gave.`,
         }

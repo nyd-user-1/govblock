@@ -43,6 +43,7 @@ import {
   getProvenance,
   bioguideOf,
   getCommunications,
+  getCongressOnlyBill,
   getCosponsors,
   getCrsReports,
   getFec,
@@ -72,6 +73,7 @@ import {
   getTextVersions,
   getTopSponsors,
   getTreaties,
+  getUsBill,
   latestHearingDate,
   NY_ONLY,
   resolve,
@@ -299,10 +301,24 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       let id = int(sp.get("id") ?? f.bill ?? null, 0)
       const number = sp.get("number")
       if (!id && number) {
-        // Numbers are stored bare and upper — "HB10171", "A07380" — so "hr 1"
-        // and "H.R. 1" normalise before the lookup.
-        const bare = number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
-        id = Number((await getBillByNumber(f.state, f.session, bare))?.bill_id ?? 0)
+        if (f.state === "US") {
+          // Congress is cited the way congress.gov writes it, and the two
+          // schemes collide: "H.R. 155" stripped of its punctuation is
+          // LegiScan's HR155, a different bill. getUsBill reads the citation
+          // before the punctuation is gone — see the block above it in
+          // db-queries.
+          const found = await getUsBill(f.session, number)
+          if (!found) throw new Error(`No bill numbered "${number}" in ${stateName(f.state)} ${f.session}.`)
+          // congress.gov holds it and the mirror does not yet: answer from
+          // congress.gov rather than deny a bill that exists.
+          if (!found.bill_id && found.key) return getCongressOnlyBill(found.key)
+          id = found.bill_id ?? 0
+        } else {
+          // Numbers are stored bare and upper — "A07380" — so "a 7380" and
+          // "A. 7380" normalise before the lookup.
+          const bare = number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+          id = Number((await getBillByNumber(f.state, f.session, bare))?.bill_id ?? 0)
+        }
         // A supplied number that matches nothing is a miss, never the newest
         // bill: the fallthrough below is only correct when no identifier was
         // given at all. (Found live by the agents lane: HR 1 answered HB10171
