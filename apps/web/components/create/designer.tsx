@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { ArrowUpIcon } from "lucide-react"
 
@@ -16,7 +17,6 @@ import { usePolicy } from "@/lib/policy/use-policy"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { FileActions, type BillView } from "@/components/create/file-actions"
-import { FileView } from "@/components/create/file-view"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
 import { PathBar, type Crumb } from "@/components/create/path-bar"
@@ -24,16 +24,12 @@ import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
 import { type Stage } from "@/components/create/stage-switcher"
 import { legislatureName, Tree } from "@/components/create/tree"
-import { AdminStage } from "@/components/admin/admin-stage"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { chambersOf } from "@/lib/workspace/datasets"
 import { applyTarget, buildWorkspacePath, roomPath, WORKSPACE_DATA, type Room } from "@/lib/workspace/path"
 import { DatasetGrid, DatasetRail } from "@/components/workspace/dataset-grid"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
-import { FecExplorer } from "@/components/policy/fec-explorer"
-import { FormsList } from "@/components/policy/forms-list"
-import { blockComponents } from "@/registry/blocks"
 import { Button } from "@govblock/ui/components/nova/button"
 import { SidebarContent, SidebarGroup, SidebarGroupLabel } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
@@ -47,6 +43,16 @@ import { cn } from "@govblock/ui/lib/utils"
 //
 // /create opens on Congress, current session, every time. Going anywhere
 // else is what the customizer is for.
+
+// The stages a page may never show are loaded when it does (Brendan,
+// 2026-09-07: the dev server must stay under 2–3 GB). A bills listing no
+// longer compiles the admin dashboards, the inbox, the finance explorer, the
+// forms, or the file view on its way in.
+const AdminStage = dynamic(() => import("@/components/admin/admin-stage").then((m) => m.AdminStage), { ssr: false })
+const FecExplorer = dynamic(() => import("@/components/policy/fec-explorer").then((m) => m.FecExplorer), { ssr: false })
+const FormsList = dynamic(() => import("@/components/policy/forms-list").then((m) => m.FormsList), { ssr: false })
+const Inbox = dynamic(() => import("@/registry/blocks/sidebar-09/page"), { ssr: false })
+const FileView = dynamic(() => import("@/components/create/file-view").then((m) => m.FileView), { ssr: false })
 
 const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork", "all"] as const
 
@@ -351,7 +357,6 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
     [node, setMode, setLook, go, workspace, router, scope.state, scope.session, scope.filters.chamber, room]
   )
 
-  const Inbox = blockComponents["sidebar-09"]
   const stage = route?.datasets ? (
     <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto">
       <DatasetGrid look={datasetsLook} />
