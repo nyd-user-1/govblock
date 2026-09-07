@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillTexts } from "@/lib/policy/texts"
+import { getCommitteeBillsByStatus, getCommitteeCommunicationRows, getCommitteeNominationRows, getCommitteeRail, getHearingIndex, getMemberRail, getMemberVoteRecord } from "@/lib/policy/committee-queries"
+import { resolveCommittee } from "@/lib/policy/committee-resolve"
+import { departmentsOf, findDepartment } from "@/lib/data/departments"
+import { getBillsByParty, getMetric, type MetricKey } from "@/lib/policy/metrics"
+import { getDepartmentBillCounts, getDepartmentBills, getDepartmentForms, getDepartmentNominations } from "@/lib/policy/department-queries"
 import {
   getActivity,
   getAmendments,
@@ -19,6 +24,8 @@ import {
   getHearings,
   getRecentHearings,
   getMember,
+  getMemberState,
+  latestSession,
   getMemberRecord,
   getMembers,
   getNewsroom,
@@ -82,6 +89,9 @@ export const dynamic = "force-dynamic"
 // ~52 Aurora reads per half hour rather than one per visitor.
 const CACHE = "public, s-maxage=1800, stale-while-revalidate=86400"
 
+// The departments index counts 117 name patterns against the session's bills; once an hour is plenty.
+const departmentCountCache = new Map<string, { at: number; value: unknown }>()
+
 function int(value: string | null, fallback: number) {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
@@ -122,8 +132,7 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       // renders them from their own state, so they need no gate.
       const text = sp.get("text") === "1"
       const all = sp.get("all") === "1"
-      if (term.length < 2)
-        return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [], texts: [] }
+      if (term.length < 2) return { q: term, state: f.state, session: f.session, bills: [], members: [], committees: [], texts: [] }
       return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20), { text, all })
     }
     case "states":
@@ -196,7 +205,89 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const name = sp.get("name") ?? f.committee
       if (!name) throw new Error("committee name required")
+      // The committee page's tabs page one status at a time.
+      const status = sp.get("status")
+      if (status) return getCommitteeBillsByStatus(f, name, status, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
       return getCommitteeBills(f, name, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    }
+    case "hearing-index":
+      return getHearingIndex(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, sp.get("chamber") ?? undefined)
+    case "metric": {
+      // A home page tile: one count by day over a window, with the window before it.
+      const f = await resolve(filters)
+      const key = sp.get("metric") as MetricKey | null
+      if (!key) throw new Error("metric required")
+      const days = Math.min(Math.max(int(sp.get("days"), 30), 1), 366)
+      const answer = await getMetric(f, key, days)
+      if (!answer) throw new Error(`no such metric: ${key}`)
+      return answer
+    }
+    case "bills-by-party": {
+      const f = await resolve(filters)
+      return { rows: await getBillsByParty(f, Math.min(Math.max(int(sp.get("months"), 6), 1), 24)) }
+    }
+    case "departments": {
+      // The index's bill counts: how many of the session's bills name each department. An hour's cache per jurisdiction.
+      const f = await resolve(filters)
+      const cached = departmentCountCache.get(`${f.state}:${f.session}`)
+      if (cached && Date.now() - cached.at < 3_600_000) return cached.value
+      const counts = Object.fromEntries(await getDepartmentBillCounts(f, departmentsOf(f.state)))
+      const value = { state: f.state, session: f.session, counts }
+      departmentCountCache.set(`${f.state}:${f.session}`, { at: Date.now(), value })
+      return value
+    }
+    case "department-bills": {
+      const f = await resolve(filters)
+      const department = findDepartment(sp.get("slug") ?? "")
+      if (!department) throw new Error("no such department")
+      return getDepartmentBills({ state: department.state, session: f.state === department.state ? f.session : await latestSession(department.state) }, department, int(sp.get("limit"), 25), int(sp.get("offset"), 0) || 0)
+    }
+    case "department-nominations": {
+      const department = findDepartment(sp.get("slug") ?? "")
+      if (!department) throw new Error("no such department")
+      return getDepartmentNominations(department, int(sp.get("limit"), 25), int(sp.get("offset"), 0) || 0)
+    }
+    case "department-forms": {
+      const department = findDepartment(sp.get("slug") ?? "")
+      if (!department || !department.forms.length) throw new Error("no such department")
+      return getDepartmentForms(department, int(sp.get("limit"), 25), int(sp.get("offset"), 0) || 0)
+    }
+    case "vote-record": {
+      // A member's every recorded position, for the PDF (Brendan, 2026-09-06).
+      const member = int(sp.get("member"), 0)
+      if (!member) throw new Error("member required")
+      const memberState = await getMemberState(member)
+      if (!memberState) throw new Error("no such member")
+      return { member, state: memberState, rows: await getMemberVoteRecord(member, memberState) }
+    }
+    case "rail": {
+      // What the left rail shows beside a committee or a member: their own
+      // bills above the jurisdiction's recent ones (Brendan, 2026-09-06).
+      const committeeId = sp.get("committee")
+      const member = int(sp.get("member"), 0)
+      if (committeeId) {
+        const committee = await resolveCommittee(committeeId)
+        if (!committee) throw new Error("no such committee")
+        const session = int(sp.get("session"), 0) || (await latestSession(committee.state))
+        return { label: committee.legiscanName, state: committee.state, session, ...(await getCommitteeRail({ state: committee.state, session }, committee.legiscanName)) }
+      }
+      if (member) {
+        const memberState = await getMemberState(member)
+        if (!memberState) throw new Error("no such member")
+        const session = int(sp.get("session"), 0) || (await latestSession(memberState))
+        return { state: memberState, session, ...(await getMemberRail({ state: memberState, session }, member)) }
+      }
+      throw new Error("committee or member required")
+    }
+    case "committee-nominations": {
+      const code = sp.get("committee") ?? sp.get("code")
+      if (!code) throw new Error("committee code required")
+      return getCommitteeNominationRows(code, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    }
+    case "committee-communications": {
+      const code = sp.get("committee") ?? sp.get("code")
+      if (!code) throw new Error("committee code required")
+      return getCommitteeCommunicationRows(code, int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     }
     case "rollcall": {
       const id = int(sp.get("id"), 0)
@@ -259,24 +350,11 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     }
     case "hearings": {
       const f = await resolve(filters)
-      return getHearings(
-        f.state,
-        f.session,
-        sp.get("from") ?? today(-30),
-        sp.get("to") ?? today(60),
-        sp.get("committee") ?? f.committee,
-        int(sp.get("limit"), 3000)
-      )
+      return getHearings(f.state, f.session, sp.get("from") ?? today(-30), sp.get("to") ?? today(60), sp.get("committee") ?? f.committee, int(sp.get("limit"), 3000))
     }
     case "hearings-recent": {
       const f = await resolve(filters)
-      return getRecentHearings(
-        f.state,
-        f.session,
-        sp.get("from") ?? today(-30),
-        sp.get("to") ?? today(60),
-        int(sp.get("limit"), 200)
-      )
+      return getRecentHearings(f.state, f.session, sp.get("from") ?? today(-30), sp.get("to") ?? today(60), int(sp.get("limit"), 200))
     }
     case "hearing-days": {
       const f = await resolve(filters)

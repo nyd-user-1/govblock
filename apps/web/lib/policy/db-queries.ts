@@ -69,10 +69,7 @@ export async function getSessions(state: string) {
 
 // Session titles change once a year; memoised per function instance so a warm
 // lambda serves them free, and only ever paid for by a surface that shows one.
-const sessionTitleCache = new Map<
-  string,
-  { value: Map<number, string>; at: number }
->()
+const sessionTitleCache = new Map<string, { value: Map<number, string>; at: number }>()
 
 export async function getSessionTitles(state: string) {
   const cached = sessionTitleCache.get(state)
@@ -125,21 +122,14 @@ export async function latestSession(state: string) {
 
 export async function resolve(filters: Filters): Promise<Resolved> {
   const state = filters.state || DEFAULT_STATE
-  const session = filters.session
-    ? Number(filters.session)
-    : await latestSession(state)
+  const session = filters.session ? Number(filters.session) : await latestSession(state)
   return { ...filters, state, session }
 }
 
 // The filter → SQL translation, shared by every bills query. `params` is
 // mutated; `$n` placeholders index into it. `withSession = false` spans the
 // state's sessions (the component charts' session grain).
-export function billWhere(
-  f: Resolved,
-  params: unknown[],
-  b = "b",
-  withSession = true
-) {
+export function billWhere(f: Resolved, params: unknown[], b = "b", withSession = true) {
   const where = [`${b}.state = $${params.push(f.state)}`]
   if (withSession) where.push(`${b}.session_id = $${params.push(f.session)}`)
   if (f.chamber) where.push(`${b}.body = $${params.push(f.chamber)}`)
@@ -162,9 +152,7 @@ export function billWhere(
                where v.people_id = $${params.push(Number(f.member))} and v.vote_desc = $${params.push(f.vote)})`
     )
   } else if (f.member) {
-    where.push(
-      `exists (select 1 from "Sponsors" s where s.bill_id = ${b}.bill_id and s.people_id = $${params.push(Number(f.member))})`
-    )
+    where.push(`exists (select 1 from "Sponsors" s where s.bill_id = ${b}.bill_id and s.people_id = $${params.push(Number(f.member))})`)
   }
   if (f.subject) {
     // LegiScan's subject for every jurisdiction; under Congress the CRS term
@@ -195,31 +183,37 @@ export async function getSubjects(f: Resolved) {
 }
 
 export async function getOptions(f: Resolved) {
-  const [chambers, committees, statuses, parties, sessions] = await Promise.all(
-    [
-      q<{ value: string; count: number }>(
-        `select body value, count(*)::int count from "Bills"
+  const [chambers, committees, statuses, parties, sessions] = await Promise.all([
+    q<{ value: string; count: number }>(
+      `select body value, count(*)::int count from "Bills"
          where state = $1 and session_id = $2 and coalesce(body, '') <> '' group by 1 order by 2 desc`,
-        [f.state, f.session]
-      ),
-      q<{ value: string; count: number }>(
-        `select committee value, count(*)::int count from "Bills"
+      [f.state, f.session]
+    ),
+    q<{ value: string; count: number }>(
+      `select committee value, count(*)::int count from "Bills"
          where state = $1 and session_id = $2 and coalesce(committee, '') <> '' group by 1 order by 1`,
-        [f.state, f.session]
-      ),
-      q<{ value: string; count: number }>(
-        `select status_desc value, count(*)::int count from "Bills"
-         where state = $1 and session_id = $2 and coalesce(status_desc, '') <> '' group by 1 order by 2 desc`,
-        [f.state, f.session]
-      ),
-      q<{ value: string; count: number }>(
-        `select coalesce(nullif(party, ''), 'I') value, count(*)::int count from "People"
+      [f.state, f.session]
+    ),
+    // The statuses narrow to a chamber when one is asked for — the Total
+    // Bills card's pills (Brendan, 2026-09-07).
+    f.chamber
+      ? q<{ value: string; count: number }>(
+          `select status_desc value, count(*)::int count from "Bills"
+             where state = $1 and session_id = $2 and body = $3 and coalesce(status_desc, '') <> '' group by 1 order by 2 desc`,
+          [f.state, f.session, f.chamber]
+        )
+      : q<{ value: string; count: number }>(
+          `select status_desc value, count(*)::int count from "Bills"
+             where state = $1 and session_id = $2 and coalesce(status_desc, '') <> '' group by 1 order by 2 desc`,
+          [f.state, f.session]
+        ),
+    q<{ value: string; count: number }>(
+      `select coalesce(nullif(party, ''), 'I') value, count(*)::int count from "People"
          where state = $1 and not coalesce(archived, false) group by 1 order by 2 desc`,
-        [f.state]
-      ),
-      getSessions(f.state),
-    ]
-  )
+      [f.state]
+    ),
+    getSessions(f.state),
+  ])
   return {
     chambers,
     committees,
@@ -251,11 +245,11 @@ export type BillRow = {
   sponsor_id: number | null
 }
 
-const BILL_COLUMNS = `b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
+export const BILL_COLUMNS = `b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
   b.committee, b.body, b.url, b.state_link, b.text_chars,
   sp.name sponsor, sp.party sponsor_party, sp.people_id sponsor_id`
 
-const PRIME_SPONSOR = `left join lateral (
+export const PRIME_SPONSOR = `left join lateral (
   select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
   where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true`
 
@@ -265,7 +259,9 @@ const PRIME_SPONSOR = `left join lateral (
 // the page, after the page is known — a lateral join per row took the
 // Amplify build past the Data API's limit the first time it was tried
 // (job 193, 2026-09-03), so nothing here runs per bill.
-async function withLatestTexts<T extends { bill_id: number; status_date?: string | null; last_action_date: string | null; last_action: string | null }>(rows: T[]): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; latest_action: string | null; latest_date: string | null; versions: number | null })[]> {
+export async function withLatestTexts<T extends { bill_id: number; status_date?: string | null; last_action_date: string | null; last_action: string | null }>(
+  rows: T[]
+): Promise<(T & { latest_version: string | null; latest_document_id: number | null; latest_fetched_at: string | null; latest_action: string | null; latest_date: string | null; versions: number | null })[]> {
   const ids = rows.map((r) => r.bill_id)
   const empty = { latest_version: null, latest_document_id: null, latest_fetched_at: null, latest_action: null, latest_date: null, versions: null }
   if (!ids.length) return rows.map((r) => ({ ...r, ...empty }))
@@ -309,16 +305,11 @@ export async function getBills(f: Resolved, limit = 40, offset = 0, sort: BillSo
   // whatever type each table gives them.
   const congress = f.state === "US"
   const newest = congress ? "coalesce(c.latest_action_date::text, b.last_action_date::text)" : "b.last_action_date"
-  const columns = congress
-    ? BILL_COLUMNS.replace("b.last_action, b.last_action_date", `coalesce(c.latest_action, b.last_action) last_action, ${newest} last_action_date`)
-    : BILL_COLUMNS
+  const columns = congress ? BILL_COLUMNS.replace("b.last_action, b.last_action_date", `coalesce(c.latest_action, b.last_action) last_action, ${newest} last_action_date`) : BILL_COLUMNS
   const join = congress ? "left join congress_bills c on c.bill_id = b.bill_id" : ""
   // congress.gov's "document number" sort: the type, then the number within
   // it, so H.R. 10 sits beside H.R. 9 and not beside H.R. 1000.
-  const order =
-    sort === "newest"
-      ? `${newest} desc nulls last, b.bill_id desc`
-      : `substring(b.bill_number from '^[A-Z]+'), substring(b.bill_number from '[0-9]+')::int ${sort === "number-desc" ? "desc" : "asc"}, b.bill_number`
+  const order = sort === "newest" ? `${newest} desc nulls last, b.bill_id desc` : `substring(b.bill_number from '^[A-Z]+'), substring(b.bill_number from '[0-9]+')::int ${sort === "number-desc" ? "desc" : "asc"}, b.bill_number`
   const [rows, count] = await Promise.all([
     q<BillRow>(
       `select ${columns} from "Bills" b ${join} ${PRIME_SPONSOR}
@@ -327,10 +318,7 @@ export async function getBills(f: Resolved, limit = 40, offset = 0, sort: BillSo
        limit $${params.push(limit)} offset $${params.push(offset)}`,
       params
     ),
-    one<{ total: number }>(
-      `select count(*)::int total from "Bills" b where ${where}`,
-      params.slice(0, -2)
-    ),
+    one<{ total: number }>(`select count(*)::int total from "Bills" b where ${where}`, params.slice(0, -2)),
   ])
   return {
     rows: await withLatestTexts(rows.map((r) => ({ ...r, bill_id: n(r.bill_id) }))),
@@ -338,15 +326,8 @@ export async function getBills(f: Resolved, limit = 40, offset = 0, sort: BillSo
   }
 }
 
-export async function getBillByNumber(
-  state: string,
-  session: number,
-  number: string
-) {
-  return one<{ bill_id: number }>(
-    `select bill_id from "Bills" where state = $1 and session_id = $2 and bill_number = $3 order by special limit 1`,
-    [state, session, number]
-  )
+export async function getBillByNumber(state: string, session: number, number: string) {
+  return one<{ bill_id: number }>(`select bill_id from "Bills" where state = $1 and session_id = $2 and bill_number = $3 order by special limit 1`, [state, session, number])
 }
 
 export async function getBill(billId: number) {
@@ -365,18 +346,7 @@ export async function getBill(billId: number) {
     [billId]
   )
   if (!bill) return null
-  const [
-    sponsors,
-    history,
-    rollCalls,
-    referrals,
-    progress,
-    sameAs,
-    documents,
-    subjects,
-    texts,
-    hearings,
-  ] = await Promise.all([
+  const [sponsors, history, rollCalls, referrals, progress, sameAs, documents, subjects, texts, hearings] = await Promise.all([
     q<{
       people_id: number
       name: string
@@ -391,10 +361,7 @@ export async function getBill(billId: number) {
          from "Sponsors" s join "People" p using (people_id) where s.bill_id = $1 order by s.sponsor_type_id, s.position`,
       [billId]
     ),
-    q<{ date: string; chamber: string; action: string; sequence: number }>(
-      `select date, chamber, action, sequence from "History Table" where bill_id = $1 order by date, sequence`,
-      [billId]
-    ),
+    q<{ date: string; chamber: string; action: string; sequence: number }>(`select date, chamber, action, sequence from "History Table" where bill_id = $1 order by date, sequence`, [billId]),
     q<{
       roll_call_id: number
       date: string
@@ -411,18 +378,9 @@ export async function getBill(billId: number) {
          from "Roll Call" where bill_id = $1 order by date`,
       [billId]
     ),
-    q<{ date: string; chamber: string; name: string }>(
-      `select date, chamber, name from "Referrals" where bill_id = $1 order by seq`,
-      [billId]
-    ),
-    q<{ date: string; event: string }>(
-      `select date, event from "Progress" where bill_id = $1 order by seq`,
-      [billId]
-    ),
-    q<{ sast_type: string; sast_bill_id: number; sast_bill_number: string }>(
-      `select sast_type, sast_bill_id, sast_bill_number from "SameAs" where bill_id = $1 order by sast_type_id`,
-      [billId]
-    ),
+    q<{ date: string; chamber: string; name: string }>(`select date, chamber, name from "Referrals" where bill_id = $1 order by seq`, [billId]),
+    q<{ date: string; event: string }>(`select date, event from "Progress" where bill_id = $1 order by seq`, [billId]),
+    q<{ sast_type: string; sast_bill_id: number; sast_bill_number: string }>(`select sast_type, sast_bill_id, sast_bill_number from "SameAs" where bill_id = $1 order by sast_type_id`, [billId]),
     q<{
       document_id: number
       document_type: string
@@ -435,10 +393,7 @@ export async function getBill(billId: number) {
          from "Documents" where bill_id = $1 order by document_type, document_id`,
       [billId]
     ),
-    q<{ subject: string }>(
-      `select subject from "Subjects" where bill_id = $1 order by subject`,
-      [billId]
-    ),
+    q<{ subject: string }>(`select subject from "Subjects" where bill_id = $1 order by subject`, [billId]),
     q<{
       document_id: number
       version: string | null
@@ -460,10 +415,7 @@ export async function getBill(billId: number) {
       type: string
       description: string
       location: string
-    }>(
-      `select date, time, type, description, location from "Calendar" where bill_id = $1 and date <= ${DATE_CAP} order by date desc, seq`,
-      [billId]
-    ),
+    }>(`select date, time, type, description, location from "Calendar" where bill_id = $1 and date <= ${DATE_CAP} order by date desc, seq`, [billId]),
   ])
   return {
     ...bill,
@@ -486,9 +438,7 @@ export async function getBill(billId: number) {
 
 export async function getBillText(billId: number, documentId?: number) {
   const params: unknown[] = [billId]
-  const doc = documentId
-    ? `and t.document_id = $${params.push(documentId)}`
-    : ""
+  const doc = documentId ? `and t.document_id = $${params.push(documentId)}` : ""
   const row = await one<{
     document_id: number
     version: string | null
@@ -681,8 +631,7 @@ export async function getMembers(f: Resolved) {
   const sitting = await sittingClause(f, params)
   let filters = ""
   if (f.chamber) filters += ` and p.chamber = $${params.push(f.chamber)}`
-  if (f.party)
-    filters += ` and coalesce(nullif(p.party, ''), 'I') = $${params.push(f.party)}`
+  if (f.party) filters += ` and coalesce(nullif(p.party, ''), 'I') = $${params.push(f.party)}`
 
   const rows = await q<{
     people_id: number
@@ -727,17 +676,12 @@ export async function getSeatCount(f: Resolved) {
 // `people_id` alone (they are globally unique), so it has to learn the state
 // before it can resolve a session.
 export async function getMemberState(peopleId: number) {
-  const row = await one<{ state: string }>(
-    `select state from "People" where people_id = $1`,
-    [peopleId]
-  )
+  const row = await one<{ state: string }>(`select state from "People" where people_id = $1`, [peopleId])
   return row?.state ?? null
 }
 
 export async function getMember(peopleId: number, session: number) {
-  const person = await one<
-    Record<string, unknown> & { people_id: number; name: string; state: string }
-  >(
+  const person = await one<Record<string, unknown> & { people_id: number; name: string; state: string }>(
     `select people_id, name, first_name, last_name, party, role, chamber, district, bio_long, photo_url, email,
             phone_capitol, phone_district, address, leadership_title, state, legiscan_legislation_url, nys_bio_url, bio_url,
             votesmart_id, opensecrets_id, ballotpedia, bioguide_id, fec_candidate_ids, committee_ids
@@ -754,10 +698,7 @@ export async function getMember(peopleId: number, session: number) {
     ),
     // Career tallies from the precomputed table (the live count over a
     // member's 30k votes takes seconds on this compute).
-    one<{ yea: number; nay: number; updated_at: string }>(
-      `select yea_count::int as yea, no_count::int as nay, updated_at from member_vote_tallies where people_id = $1`,
-      [peopleId]
-    ),
+    one<{ yea: number; nay: number; updated_at: string }>(`select yea_count::int as yea, no_count::int as nay, updated_at from member_vote_tallies where people_id = $1`, [peopleId]),
     q<BillRow & { type: number }>(
       `select ${BILL_COLUMNS}, s.sponsor_type_id type from "Sponsors" s join "Bills" b using (bill_id) ${PRIME_SPONSOR}
        where s.people_id = $1 and b.session_id = $2 order by b.last_action_date desc nulls last limit 12`,
@@ -781,9 +722,7 @@ export async function getMember(peopleId: number, session: number) {
     people_id: n(person.people_id),
     prime: n(counts?.prime),
     cosponsor: n(counts?.cosponsor),
-    votes: votes
-      ? { yea: n(votes.yea), nay: n(votes.nay), updated_at: votes.updated_at }
-      : null,
+    votes: votes ? { yea: n(votes.yea), nay: n(votes.nay), updated_at: votes.updated_at } : null,
     bills: bills.map((b) => ({ ...b, bill_id: n(b.bill_id) })),
     fec,
   }
@@ -807,9 +746,7 @@ export async function getTopSponsors(f: Resolved, limit = 8) {
      from "Sponsors" s join "Bills" b using (bill_id) join "People" p using (people_id)
      where b.state = $1 and b.session_id = $2 and s.sponsor_type_id = 1 ${f.chamber ? "and b.body = $4" : ""}
      group by 1, 2, 3, 4, 5, 6, 7, 8 order by 9 desc limit $3`,
-    f.chamber
-      ? [f.state, f.session, limit, f.chamber]
-      : [f.state, f.session, limit]
+    f.chamber ? [f.state, f.session, limit, f.chamber] : [f.state, f.session, limit]
   ).then((rows) => rows.map((r) => ({ ...r, people_id: n(r.people_id) })))
 }
 
@@ -840,8 +777,7 @@ export async function getTallies(state: string) {
  * members do not" follow the session).
  */
 async function sittingClause(f: Resolved, params: unknown[], p = "p") {
-  const rostered = await one<{ n: number }>(
-    `select count(*)::int as n from "SessionPeople" where state = $1 and year = $2`, [f.state, f.session]);
+  const rostered = await one<{ n: number }>(`select count(*)::int as n from "SessionPeople" where state = $1 and year = $2`, [f.state, f.session])
   const s = params.push(f.state)
   const y = params.push(f.session)
   return n(rostered?.n) > 0
@@ -876,12 +812,7 @@ export async function getPartySeats(f: Resolved) {
 // 4,273 bills and 2.2 MB of JSON; rendering that into one page produced a
 // 2.9 MB response and a 500. The counts come from their own cheap aggregate,
 // so the page can say "the latest 50 of 2,844" honestly.
-export async function getMemberRecord(
-  f: Resolved,
-  peopleId: number,
-  limit = 50,
-  offset = 0
-) {
+export async function getMemberRecord(f: Resolved, peopleId: number, limit = 50, offset = 0) {
   const scope = [peopleId, f.state, f.session]
   // Each list is a window of `limit` rows from `offset`, per side, so "See
   // more" on the member page can ask for the next ten of one list.
@@ -951,8 +882,7 @@ export async function getMemberRecord(
     ),
   ])
 
-  const clean = <T extends { bill_id: number }>(rows: T[]) =>
-    rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
+  const clean = <T extends { bill_id: number }>(rows: T[]) => rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
   const aye = clean(votes.filter((v) => v.vote_desc === "Yea")).slice(0, limit)
   const nay = clean(votes.filter((v) => v.vote_desc === "Nay")).slice(0, limit)
   const prime = clean(sponsored.filter((b) => n(b.role) === 1)).slice(0, limit)
@@ -1105,30 +1035,19 @@ export async function getRecentTexts(f: Resolved, limit = 60) {
 // ---------------------------------------------------------------------------
 // Hearings (the committee calendars)
 
-const HEARING_RE =
-  /^(Senate|Assembly|House|Joint)\s+(.+?)\s+Committee(?:\s+Hearing)?$/i
+const HEARING_RE = /^(Senate|Assembly|House|Joint)\s+(.+?)\s+Committee(?:\s+Hearing)?$/i
 
 export function parseHearing(description: string) {
   const match = description?.match(HEARING_RE)
-  if (!match)
-    return { chamber: null as string | null, committee: description ?? "" }
+  if (!match) return { chamber: null as string | null, committee: description ?? "" }
   return { chamber: match[1], committee: match[2] }
 }
 
 // Hearings are scoped to a session so the planner hashes the (small) bill set
 // instead of probing Bills for every calendar row in the date window.
-export async function getHearings(
-  state: string,
-  session: number,
-  from: string,
-  to: string,
-  committee?: string,
-  limit = 3000
-) {
+export async function getHearings(state: string, session: number, from: string, to: string, committee?: string, limit = 3000) {
   const params: unknown[] = [from, to, state, session]
-  const filter = committee
-    ? `and c.description ilike $${params.push(`%${committee} Committee%`)}`
-    : ""
+  const filter = committee ? `and c.description ilike $${params.push(`%${committee} Committee%`)}` : ""
   const rows = await q<{
     date: string
     time: string
@@ -1155,12 +1074,7 @@ export async function getHearings(
   }))
 }
 
-export async function getHearingDays(
-  state: string,
-  session: number,
-  from: string,
-  to: string
-) {
+export async function getHearingDays(state: string, session: number, from: string, to: string) {
   return q<{ date: string; hearings: number; committees: number }>(
     `select c.date, count(*)::int as hearings, count(distinct c.description)::int as committees
      from "Calendar" c join "Bills" b using (bill_id)
@@ -1176,14 +1090,39 @@ export async function getHearingDays(
 // before the jurisdiction's last hearing and say which date that runs through,
 // so it reads as most recent rather than as upcoming. /calendar keeps its own
 // URL date: an empty September is the truth for September.
-export async function getRecentHearings(
-  state: string,
-  session: number,
-  from: string,
-  to: string,
-  limit = 200
-) {
+export async function getRecentHearings(state: string, session: number, from: string, to: string, limit = 200) {
   const rows = await getHearings(state, session, from, to, undefined, limit)
+  // Congress's own calendar as well: every committee meeting congress.gov
+  // lists with a date, back through the Congress, each opening its meeting
+  // page (Brendan, 2026-09-07: "wire this to many years").
+  if (state === "US") {
+    const meetings = await q<{ event_id: string; date: string | null; title: string | null; type: string | null; committee: string | null; chamber: string | null }>(
+      `select m.event_id, to_char((m.meeting_date::timestamptz) at time zone 'America/New_York', 'YYYY-MM-DD HH24:MI') as date, m.title,
+              m.payload->>'type' as type, m.payload->'committees'->0->>'name' as committee, m.chamber
+         from congress_committee_meetings m
+        where m.meeting_date is not null and left(m.meeting_date, 10) >= $1 and left(m.meeting_date, 10) <= $2
+        order by m.meeting_date desc limit $3`,
+      [from, to, limit]
+    ).catch(() => [])
+    const extra = meetings.map((m) => {
+      const [date, time] = String(m.date ?? "").split(" ")
+      return {
+        date,
+        time: time && time !== "00:00" ? time : null,
+        type: m.type ?? "Meeting",
+        description: m.title ?? m.type ?? "Meeting",
+        location: null,
+        bill_id: null,
+        bill_number: null,
+        title: m.title ?? "",
+        committee: m.committee,
+        body: m.chamber,
+        href: `/docs/meetings/${m.event_id}`,
+      }
+    })
+    const merged = [...rows.map((r) => ({ ...r, href: null as string | null })), ...extra].sort((a, b) => `${b.date} ${b.time ?? ""}`.localeCompare(`${a.date} ${a.time ?? ""}`))
+    if (merged.length) return { rows: merged, through: null as string | null }
+  }
   if (rows.length) return { rows, through: null as string | null }
 
   const latest = await latestHearingDate(state, session)
@@ -1273,62 +1212,35 @@ export async function getNewsroom(f: Resolved, days = 14) {
        where s.bill_id = m.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
      order by m.last_action_date desc, m.bill_id desc limit $${params.length + 1}`
 
-  const [enacted, passed, committee, introduced, rollCalls, hearings] =
-    await Promise.all([
-      // Signed, vetoed or delivered — the things that finish.
-      q<BillRow>(
-        withSince(`and b.status_desc ~* '(signed|veto|chaptered|enacted)'`),
-        [...params, 6]
-      ),
-      q<BillRow>(
-        withSince(
-          `and b.status_desc ~* '(passed|delivered|adopted)' and b.last_action_date >= '${since}'`
-        ),
-        [...params, 8]
-      ),
-      q<BillRow>(
-        withSince(
-          `and coalesce(b.committee, '') <> '' and b.last_action_date >= '${since}'`
-        ),
-        [...params, 8]
-      ),
-      q<BillRow>(
-        withSince(
-          `and b.status_desc ~* 'introduc' and b.last_action_date >= '${since}'`
-        ),
-        [...params, 8]
-      ),
-      q<{
-        roll_call_id: number
-        date: string
-        chamber: string
-        description: string
-        yea: number
-        nay: number
-        bill_id: number
-        bill_number: string
-        title: string
-      }>(
-        `select r.roll_call_id, r.date, r.chamber, r.description,
+  const [enacted, passed, committee, introduced, rollCalls, hearings] = await Promise.all([
+    // Signed, vetoed or delivered — the things that finish.
+    q<BillRow>(withSince(`and b.status_desc ~* '(signed|veto|chaptered|enacted)'`), [...params, 6]),
+    q<BillRow>(withSince(`and b.status_desc ~* '(passed|delivered|adopted)' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<BillRow>(withSince(`and coalesce(b.committee, '') <> '' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<BillRow>(withSince(`and b.status_desc ~* 'introduc' and b.last_action_date >= '${since}'`), [...params, 8]),
+    q<{
+      roll_call_id: number
+      date: string
+      chamber: string
+      description: string
+      yea: number
+      nay: number
+      bill_id: number
+      bill_number: string
+      title: string
+    }>(
+      `select r.roll_call_id, r.date, r.chamber, r.description,
                 r.yea::int as yea, coalesce(nullif(r.nay, '')::int, 0) as nay,
                 b.bill_id, b.bill_number, b.title
          from "Roll Call" r join "Bills" b using (bill_id)
          where b.state = $1 and b.session_id = $2 and r.date <= ${DATE_CAP}
          order by r.date desc, r.roll_call_id desc limit 6`,
-        [f.state, f.session]
-      ),
-      getHearings(
-        f.state,
-        f.session,
-        new Date().toISOString().slice(0, 10),
-        new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10),
-        undefined,
-        200
-      ),
-    ])
+      [f.state, f.session]
+    ),
+    getHearings(f.state, f.session, new Date().toISOString().slice(0, 10), new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), undefined, 200),
+  ])
 
-  const clean = (rows: BillRow[]) =>
-    rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
+  const clean = (rows: BillRow[]) => rows.map((row) => ({ ...row, bill_id: n(row.bill_id) }))
 
   return {
     lead: clean(enacted)[0] ?? clean(passed)[0] ?? null,
@@ -1429,8 +1341,7 @@ export const NY_ONLY = [
   "school-funding",
 ] as const
 
-const MONEY = (col: string) =>
-  `nullif(regexp_replace(${col}, '[^0-9.]', '', 'g'), '')::numeric`
+const MONEY = (col: string) => `nullif(regexp_replace(${col}, '[^0-9.]', '', 'g'), '')::numeric`
 
 export async function getDiscretionary() {
   const years = await q<{ year: number; grants: number; total: number }>(
@@ -1494,16 +1405,11 @@ export async function getCapital(limit = 8) {
 }
 
 export async function getCounties() {
-  return q<{ county: string; districts: number }>(
-    `select "County" county, count(*)::int districts from school_funding where coalesce("County", '') <> '' group by 1 order by 1`
-  )
+  return q<{ county: string; districts: number }>(`select "County" county, count(*)::int districts from school_funding where coalesce("County", '') <> '' group by 1 order by 1`)
 }
 
 export async function getSchoolFunding(county: string) {
-  return q<{ district: string; categories: unknown }>(
-    `select "District" district, categories from school_funding where "County" = $1 order by 1`,
-    [county]
-  )
+  return q<{ district: string; categories: unknown }>(`select "District" district, categories from school_funding where "County" = $1 order by 1`, [county])
 }
 
 export async function getLobbying(billId: number) {
@@ -1578,35 +1484,58 @@ export async function getFec(peopleId: number) {
  * ------------------------------------------------------------------------- */
 
 export const US_ONLY = [
-  "amendments", "summaries", "committee-reports", "laws", "member-detail",
-  "committee-detail", "committee-meetings", "hearings", "nominations",
-  "crs-reports", "record-issues", "house-votes", "treaties",
-  "summaries", "titles", "related-bills", "cosponsors", "member-votes", "communications",
+  "amendments",
+  "summaries",
+  "committee-reports",
+  "laws",
+  "member-detail",
+  "committee-detail",
+  "committee-meetings",
+  "hearings",
+  "nominations",
+  "crs-reports",
+  "record-issues",
+  "house-votes",
+  "treaties",
+  "summaries",
+  "titles",
+  "related-bills",
+  "cosponsors",
+  "member-votes",
+  "communications",
   // The depth congress.gov shows and we did not. Two of these wanted names that
   // were already taken and mean something else for all 52 jurisdictions:
   // `subjects` is the jurisdiction's subject list behind the bills board's
   // filter, and `sponsors` is its top-sponsor table. Renaming either quietly to
   // mean one bill's would have broken a board — the same trap `hearings` set for
   // lane C, and the same answer.
-  "actions", "bill-record", "bill-committees", "bill-subjects", "bill-sponsors", "cbo-estimates",
+  "actions",
+  "bill-record",
+  "bill-committees",
+  "bill-subjects",
+  "bill-sponsors",
+  "cbo-estimates",
   // Federal money. "LobbyingBills" joins 560,789 rows and every one of them to a
   // US bill; "FecTotals" holds 5,517 rows across 726 members, all US. Measured
   // 2026-09-01 before either was exposed on the route.
-  "lobbying", "fec",
-] as const;
+  "lobbying",
+  "fec",
+  // The committee page's paged families (2026-09-06).
+  "committee-nominations",
+  "committee-communications",
+  "hearing-index",
+  "department-nominations",
+] as const
 
 /** The payload as the API returned it, newest first, for a whole family. */
 async function congressFamily(table: string, limit: number, offset: number, where = "", params: unknown[] = []) {
-  const rows = await q<{ payload: unknown }>(
-    `select payload from ${table} ${where} order by update_date desc nulls last, key limit $${params.length + 1} offset $${params.length + 2}`,
-    [...params, limit, offset],
-  );
-  return rows.map((r) => r.payload);
+  const rows = await q<{ payload: unknown }>(`select payload from ${table} ${where} order by update_date desc nulls last, key limit $${params.length + 1} offset $${params.length + 2}`, [...params, limit, offset])
+  return rows.map((r) => r.payload)
 }
 
 async function congressCount(table: string, where = "", params: unknown[] = []) {
-  const row = await one<{ n: number }>(`select count(*)::int as n from ${table} ${where}`, params);
-  return n(row?.n);
+  const row = await one<{ n: number }>(`select count(*)::int as n from ${table} ${where}`, params)
+  return n(row?.n)
 }
 
 /**
@@ -1622,84 +1551,88 @@ export async function getAmendments(limit = 50, offset = 0, billId?: number) {
   if (billId) {
     const rows = await q<{ payload: unknown }>(
       `select payload from congress_amendments where amended_bill_id = $1
-        order by update_date desc nulls last, key limit $2 offset $3`, [billId, limit, offset]);
-    const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId]);
-    return { bill: billId, count: n(total?.n), amendments: rows.map((r) => r.payload) };
+        order by update_date desc nulls last, key limit $2 offset $3`,
+      [billId, limit, offset]
+    )
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId])
+    return { bill: billId, count: n(total?.n), amendments: rows.map((r) => r.payload) }
   }
-  return { count: await congressCount("congress_amendments"), amendments: await congressFamily("congress_amendments", limit, offset) };
+  return { count: await congressCount("congress_amendments"), amendments: await congressFamily("congress_amendments", limit, offset) }
 }
 
 export async function getCommitteeReports(limit = 50, offset = 0, billId?: number) {
   if (billId) {
     const rows = await q<{ payload: unknown }>(
       `select payload from congress_committee_reports where bill_id = $1
-        order by update_date desc nulls last, key limit $2 offset $3`, [billId, limit, offset]);
-    const total = await one<{ n: number }>(`select count(*)::int as n from congress_committee_reports where bill_id = $1`, [billId]);
-    return { bill: billId, count: n(total?.n), reports: rows.map((r) => r.payload) };
+        order by update_date desc nulls last, key limit $2 offset $3`,
+      [billId, limit, offset]
+    )
+    const total = await one<{ n: number }>(`select count(*)::int as n from congress_committee_reports where bill_id = $1`, [billId])
+    return { bill: billId, count: n(total?.n), reports: rows.map((r) => r.payload) }
   }
-  return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) };
+  return { count: await congressCount("congress_committee_reports"), reports: await congressFamily("congress_committee_reports", limit, offset) }
 }
 
 // congress.gov's bill type <- our bill_number prefix, the same table the sync
 // and api/bill-text.ts carry, so the three agree on what a bill is called.
-const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" };
+const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" }
 
 /** A law IS a bill, so this one can be scoped without any new linkage. */
 export async function getLaws(limit = 250, offset = 0, billId?: number) {
   if (billId) {
-    const bill = await one<{ bill_number: string; session_id: number }>(
-      `select bill_number, session_id from "Bills" where bill_id = $1 and state = 'US'`, [billId]);
-    if (!bill) return { bill: billId, count: 0, bills: [] };
-    const prefix = String(bill.bill_number).replace(/[0-9].*$/, "").toUpperCase();
-    const key = `${Math.floor((n(bill.session_id) - 1789) / 2) + 1}-${CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix}-${String(bill.bill_number).replace(/^[A-Z]+/, "")}`;
-    const rows = await q<{ payload: unknown }>(`select payload from congress_laws where key = $1`, [key]);
-    return { bill: billId, count: rows.length, bills: rows.map((r) => r.payload) };
+    const bill = await one<{ bill_number: string; session_id: number }>(`select bill_number, session_id from "Bills" where bill_id = $1 and state = 'US'`, [billId])
+    if (!bill) return { bill: billId, count: 0, bills: [] }
+    const prefix = String(bill.bill_number)
+      .replace(/[0-9].*$/, "")
+      .toUpperCase()
+    const key = `${Math.floor((n(bill.session_id) - 1789) / 2) + 1}-${CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix}-${String(bill.bill_number).replace(/^[A-Z]+/, "")}`
+    const rows = await q<{ payload: unknown }>(`select payload from congress_laws where key = $1`, [key])
+    return { bill: billId, count: rows.length, bills: rows.map((r) => r.payload) }
   }
-  return { count: await congressCount("congress_laws"), bills: await congressFamily("congress_laws", limit, offset) };
+  return { count: await congressCount("congress_laws"), bills: await congressFamily("congress_laws", limit, offset) }
 }
 
 export async function getNominations(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_nominations"), nominations: await congressFamily("congress_nominations", limit, offset) };
+  return { count: await congressCount("congress_nominations"), nominations: await congressFamily("congress_nominations", limit, offset) }
 }
 
 export async function getCommitteeMeetings(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_committee_meetings"), committeeMeetings: await congressFamily("congress_committee_meetings", limit, offset) };
+  return { count: await congressCount("congress_committee_meetings"), committeeMeetings: await congressFamily("congress_committee_meetings", limit, offset) }
 }
 
 export async function getCongressHearings(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_hearings"), hearings: await congressFamily("congress_hearings", limit, offset) };
+  return { count: await congressCount("congress_hearings"), hearings: await congressFamily("congress_hearings", limit, offset) }
 }
 
 export async function getTreaties(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_treaties"), treaties: await congressFamily("congress_treaties", limit, offset) };
+  return { count: await congressCount("congress_treaties"), treaties: await congressFamily("congress_treaties", limit, offset) }
 }
 
 /** One member, by bioguide id — the record that carries the official portrait. */
 /** Our people_id -> the bioguide the congress.gov tables are keyed on. */
 export async function bioguideOf(peopleId: number) {
-  const row = await one<{ bioguide_id: string | null }>(`select bioguide_id from "People" where people_id = $1`, [peopleId]);
-  return row?.bioguide_id ?? null;
+  const row = await one<{ bioguide_id: string | null }>(`select bioguide_id from "People" where people_id = $1`, [peopleId])
+  return row?.bioguide_id ?? null
 }
 
 export async function getMemberDetail(bioguideId: string) {
-  const row = await one<{ payload: unknown; portrait_url: string | null }>(
-    `select payload, portrait_url from congress_members where key = $1`, [String(bioguideId).toUpperCase()],
-  );
-  return row ? { member: row.payload, portraitUrl: row.portrait_url } : null;
+  const row = await one<{ payload: unknown; portrait_url: string | null }>(`select payload, portrait_url from congress_members where key = $1`, [String(bioguideId).toUpperCase()])
+  return row ? { member: row.payload, portraitUrl: row.portrait_url } : null
 }
 
 /** Every sitting member with a portrait, for a roster that wants faces. */
 export async function getMembersWithPortraits(limit = 600) {
   return q<{ bioguide_id: string; name: string; party: string; state: string; district: string | null; portrait_url: string | null }>(
     `select bioguide_id, name, party, state, district, portrait_url
-       from congress_members where portrait_url is not null order by name limit $1`, [limit],
-  );
+       from congress_members where portrait_url is not null order by name limit $1`,
+    [limit]
+  )
 }
 
 /** One committee, by systemCode. */
 export async function getCommitteeDetail(systemCode: string) {
-  const row = await one<{ payload: unknown }>(`select payload from congress_committees where key = $1`, [String(systemCode).toLowerCase()]);
-  return row?.payload ?? null;
+  const row = await one<{ payload: unknown }>(`select payload from congress_committees where key = $1`, [String(systemCode).toLowerCase()])
+  return row?.payload ?? null
 }
 
 /**
@@ -1751,23 +1684,21 @@ export async function getTextVersions(billId: number) {
        full outer join listed l on l.document_id = h.document_id
       order by coalesce(h.date, l.version_date, to_char(h.fetched_at, 'YYYY-MM-DD')) desc nulls last,
                coalesce(h.document_id, l.document_id) desc`,
-    [billId],
-  );
+    [billId]
+  )
 }
 
 /* ---- BILLSTATUS families (summaries, titles, related bills) --------------- */
 
 /** Every CRS summary the bill has carried, oldest first — the sequence is the point. */
 export async function getSummaries(billId: number) {
-  const rows = await q<{ payload: unknown }>(
-    `select payload from congress_summaries where bill_id = $1 order by action_date, version_code`, [billId]);
-  return { bill: billId, count: rows.length, summaries: rows.map((r) => r.payload) };
+  const rows = await q<{ payload: unknown }>(`select payload from congress_summaries where bill_id = $1 order by action_date, version_code`, [billId])
+  return { bill: billId, count: rows.length, summaries: rows.map((r) => r.payload) }
 }
 
 export async function getTitles(billId: number) {
-  const rows = await q<{ payload: unknown }>(
-    `select payload from congress_titles where bill_id = $1 order by key`, [billId]);
-  return { bill: billId, count: rows.length, titles: rows.map((r) => r.payload) };
+  const rows = await q<{ payload: unknown }>(`select payload from congress_titles where bill_id = $1 order by key`, [billId])
+  return { bill: billId, count: rows.length, titles: rows.map((r) => r.payload) }
 }
 
 /**
@@ -1789,9 +1720,9 @@ export async function getRelatedBills(billId: number) {
        from congress_related_bills where related_bill_id = $1
         and bill_number not in (select related_bill_number from congress_related_bills where bill_id = $1)
      order by related_bill_number`,
-    [billId],
-  );
-  return { bill: billId, count: rows.length, relatedBills: rows };
+    [billId]
+  )
+  return { bill: billId, count: rows.length, relatedBills: rows }
 }
 
 /* ---- votes, cosponsors, and the reference families ----------------------- */
@@ -1805,8 +1736,10 @@ export async function getRelatedBills(billId: number) {
 export async function getCosponsors(billId: number) {
   const rows = await q<{ payload: Record<string, unknown>; people_id: number | null }>(
     `select payload, people_id from congress_cosponsors where bill_id = $1
-      order by sponsorship_date nulls last, full_name`, [billId]);
-  return { bill: billId, count: rows.length, cosponsors: rows.map((r) => ({ ...r.payload, people_id: r.people_id })) };
+      order by sponsorship_date nulls last, full_name`,
+    [billId]
+  )
+  return { bill: billId, count: rows.length, cosponsors: rows.map((r) => ({ ...r.payload, people_id: r.people_id })) }
 }
 
 /**
@@ -1822,33 +1755,45 @@ export async function getCosponsors(billId: number) {
  * of the 647 have neither: two quorum calls, and the election of the Speaker,
  * where 434 members cast a candidate's name.
  */
-const TALLY_COLUMNS = `yea, nay, present, not_voting, positions, casts`;
-type TallyRow = { yea: number | null; nay: number | null; present: number | null; not_voting: number | null; positions: number | null; casts: unknown };
+const TALLY_COLUMNS = `yea, nay, present, not_voting, positions, casts`
+type TallyRow = { yea: number | null; nay: number | null; present: number | null; not_voting: number | null; positions: number | null; casts: unknown }
 const withTally = (row: { payload: unknown } & TallyRow) => ({
   ...(row.payload as Record<string, unknown>),
-  tally: row.yea == null ? null : {
-    yea: n(row.yea), nay: n(row.nay), present: n(row.present),
-    notVoting: n(row.not_voting), total: n(row.positions), casts: row.casts ?? {},
-  },
-});
+  tally:
+    row.yea == null
+      ? null
+      : {
+          yea: n(row.yea),
+          nay: n(row.nay),
+          present: n(row.present),
+          notVoting: n(row.not_voting),
+          total: n(row.positions),
+          casts: row.casts ?? {},
+        },
+})
 
 /** House roll calls. With `bill=`, only the ones on that bill's legislation. */
 export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
   if (billId) {
-    const bill = await one<{ bill_number: string }>(`select bill_number from "Bills" where bill_id = $1 and state = 'US'`, [billId]);
-    if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] };
-    const prefix = String(bill.bill_number).replace(/[0-9].*$/, "").toUpperCase();
-    const number = String(bill.bill_number).replace(/^[A-Z]+/, "");
+    const bill = await one<{ bill_number: string }>(`select bill_number from "Bills" where bill_id = $1 and state = 'US'`, [billId])
+    if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] }
+    const prefix = String(bill.bill_number)
+      .replace(/[0-9].*$/, "")
+      .toUpperCase()
+    const number = String(bill.bill_number).replace(/^[A-Z]+/, "")
     const rows = await q<{ payload: unknown } & TallyRow>(
       `select payload, ${TALLY_COLUMNS} from congress_house_votes
         where legislation_type = $1 and legislation_number = $2 order by start_date desc`,
-      [CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix, number]);
-    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) };
+      [CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix, number]
+    )
+    return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) }
   }
   const rows = await q<{ payload: unknown } & TallyRow>(
     `select payload, ${TALLY_COLUMNS} from congress_house_votes
-      order by update_date desc nulls last, key limit $1 offset $2`, [limit, offset]);
-  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: rows.map(withTally) };
+      order by update_date desc nulls last, key limit $1 offset $2`,
+    [limit, offset]
+  )
+  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: rows.map(withTally) }
 }
 
 /**
@@ -1861,8 +1806,10 @@ export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: 
   if (vote) {
     const rows = await q(
       `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
-         from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`, [vote]);
-    return { vote, count: rows.length, memberVotes: rows };
+         from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`,
+      [vote]
+    )
+    return { vote, count: rows.length, memberVotes: rows }
   }
   if (member) {
     // The roll call names its bill the congress.gov way (HR 1501); our Bills
@@ -1881,10 +1828,12 @@ export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: 
                 when 'HR' then 'HB' when 'S' then 'SB' when 'HJRES' then 'HJR' when 'SJRES' then 'SJR'
                 when 'HCONRES' then 'HCR' when 'SCONRES' then 'SCR' when 'HRES' then 'HR' when 'SRES' then 'SR'
                 else v.legislation_type end || v.legislation_number
-        where p.people_id = $1 order by v.start_date desc limit $2 offset $3`, [member, limit, Math.max(0, Number(offset) || 0)]);
-    return { member, count: rows.length, memberVotes: rows.map((r) => ({ ...r, bill_id: r.bill_id == null ? null : n(r.bill_id) })) };
+        where p.people_id = $1 order by v.start_date desc limit $2 offset $3`,
+      [member, limit, Math.max(0, Number(offset) || 0)]
+    )
+    return { member, count: rows.length, memberVotes: rows.map((r) => ({ ...r, bill_id: r.bill_id == null ? null : n(r.bill_id) })) }
   }
-  return { count: 0, memberVotes: [] };
+  return { count: 0, memberVotes: [] }
 }
 
 /* ---- the bill at congress.gov depth ---------------------------------------
@@ -1897,19 +1846,27 @@ export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: 
  * ------------------------------------------------------------------------- */
 
 type ActionRow = {
-  action_date: string | null; action_time: string | null; text: string | null;
-  action_type: string | null; action_code: string | null;
-  source_system: string | null; source_code: string | null;
-  committee_codes: string | null; committee_names: string | null;
-  roll_number: string | null; roll_chamber: string | null; roll_url: string | null;
-  roll_session: string | null; roll_date: string | null;
-};
+  action_date: string | null
+  action_time: string | null
+  text: string | null
+  action_type: string | null
+  action_code: string | null
+  source_system: string | null
+  source_code: string | null
+  committee_codes: string | null
+  committee_names: string | null
+  roll_number: string | null
+  roll_chamber: string | null
+  roll_url: string | null
+  roll_session: string | null
+  roll_date: string | null
+}
 
 const pairs = (codes: string | null, names: string | null) => {
-  const c = (codes ?? "").split(",").filter(Boolean);
-  const nm = (names ?? "").split("; ").filter(Boolean);
-  return c.map((systemCode, i) => ({ systemCode, name: nm[i] ?? null }));
-};
+  const c = (codes ?? "").split(",").filter(Boolean)
+  const nm = (names ?? "").split("; ").filter(Boolean)
+  return c.map((systemCode, i) => ({ systemCode, name: nm[i] ?? null }))
+}
 
 const asAction = (r: ActionRow) => ({
   actionDate: r.action_date,
@@ -1921,10 +1878,8 @@ const asAction = (r: ActionRow) => ({
   actionCode: r.action_code,
   sourceSystem: r.source_system ? { code: r.source_code, name: r.source_system } : null,
   committees: pairs(r.committee_codes, r.committee_names),
-  recordedVotes: r.roll_number
-    ? [{ rollNumber: r.roll_number, chamber: r.roll_chamber, url: r.roll_url, sessionNumber: r.roll_session, date: r.roll_date }]
-    : [],
-});
+  recordedVotes: r.roll_number ? [{ rollNumber: r.roll_number, chamber: r.roll_chamber, url: r.roll_url, sessionNumber: r.roll_session, date: r.roll_date }] : [],
+})
 
 /**
  * A bill's own actions, oldest last — congress.gov's default order.
@@ -1939,8 +1894,10 @@ export async function getBillActions(billId: number, limit = 250, offset = 0) {
             committee_codes, committee_names, roll_number, roll_chamber, roll_url, roll_session, roll_date
        from congress_bill_actions where bill_id = $1
       order by action_date desc nulls last, action_time desc nulls last, sequence
-      limit $2 offset $3`, [billId, limit, offset]);
-  return { bill: billId, count: await congressCount("congress_bill_actions", "where bill_id = $1", [billId]), actions: rows.map(asAction) };
+      limit $2 offset $3`,
+    [billId, limit, offset]
+  )
+  return { bill: billId, count: await congressCount("congress_bill_actions", "where bill_id = $1", [billId]), actions: rows.map(asAction) }
 }
 
 /**
@@ -1952,7 +1909,16 @@ export async function getBillActions(billId: number, limit = 250, offset = 0) {
  * committee's name.
  */
 export async function getBillCommittees(billId: number) {
-  const rows = await q<{ system_code: string | null; name: string | null; chamber: string | null; committee_type: string | null; subcommittee_code: string | null; subcommittee_name: string | null; activity: string | null; activity_date: string | null }>(
+  const rows = await q<{
+    system_code: string | null
+    name: string | null
+    chamber: string | null
+    committee_type: string | null
+    subcommittee_code: string | null
+    subcommittee_name: string | null
+    activity: string | null
+    activity_date: string | null
+  }>(
     // Stamped in UTC and rendered Eastern, so it has to leave here saying which
     // it is. The Data API hands a timestamptz back as "2025-05-22 10:48:46" with
     // no zone on it, and `new Date` reads that as the reader's own local time —
@@ -1960,7 +1926,9 @@ export async function getBillCommittees(billId: number) {
     `select system_code, name, chamber, committee_type, subcommittee_code, subcommittee_name, activity,
             to_char(activity_date at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as activity_date
        from congress_bill_committees where bill_id = $1
-      order by activity_date desc nulls last, name`, [billId]);
+      order by activity_date desc nulls last, name`,
+    [billId]
+  )
   return {
     bill: billId,
     count: rows.length,
@@ -1973,20 +1941,19 @@ export async function getBillCommittees(billId: number) {
       activity: r.activity,
       date: r.activity_date,
     })),
-  };
+  }
 }
 
 /** The policy area and the legislative subjects, in the API's own nesting. */
 export async function getBillSubjects(billId: number) {
-  const rows = await q<{ name: string; is_policy_area: boolean }>(
-    `select name, is_policy_area from congress_bill_subjects where bill_id = $1 order by is_policy_area desc, name`, [billId]);
-  const area = rows.find((r) => r.is_policy_area);
-  const legislative = rows.filter((r) => !r.is_policy_area);
+  const rows = await q<{ name: string; is_policy_area: boolean }>(`select name, is_policy_area from congress_bill_subjects where bill_id = $1 order by is_policy_area desc, name`, [billId])
+  const area = rows.find((r) => r.is_policy_area)
+  const legislative = rows.filter((r) => !r.is_policy_area)
   return {
     bill: billId,
     count: legislative.length,
     subjects: { policyArea: area ? { name: area.name } : null, legislativeSubjects: legislative.map((r) => ({ name: r.name })) },
-  };
+  }
 }
 
 /**
@@ -1997,8 +1964,10 @@ export async function getBillSubjects(billId: number) {
  */
 export async function getCboEstimates(billId: number) {
   const rows = await q<{ pub_date: string | null; title: string | null; url: string; description: string | null }>(
-    `select pub_date, title, url, description from congress_cbo_estimates where bill_id = $1 order by pub_date desc nulls last`, [billId]);
-  return { bill: billId, count: rows.length, cboCostEstimates: rows.map((r) => ({ pubDate: r.pub_date, title: r.title, url: r.url, description: r.description })) };
+    `select pub_date, title, url, description from congress_cbo_estimates where bill_id = $1 order by pub_date desc nulls last`,
+    [billId]
+  )
+  return { bill: billId, count: rows.length, cboCostEstimates: rows.map((r) => ({ pubDate: r.pub_date, title: r.title, url: r.url, description: r.description })) }
 }
 
 /**
@@ -2010,8 +1979,10 @@ export async function getCboEstimates(billId: number) {
  */
 export async function getBillRecord(billId: number) {
   const row = await one<{ payload: Record<string, unknown>; display_title: string | null; popular_title: string | null; sponsor_people_id: number | null }>(
-    `select payload, display_title, popular_title, sponsor_people_id from congress_bills where bill_id = $1`, [billId]);
-  if (!row) return { bill: billId, record: null };
+    `select payload, display_title, popular_title, sponsor_people_id from congress_bills where bill_id = $1`,
+    [billId]
+  )
+  if (!row) return { bill: billId, record: null }
   return {
     bill: billId,
     record: {
@@ -2022,37 +1993,36 @@ export async function getBillRecord(billId: number) {
       // a second round trip through the bioguide.
       sponsorPeopleId: row.sponsor_people_id ?? null,
     },
-  };
+  }
 }
 
 export async function getBillSponsors(billId: number) {
-  const answer = await getBillRecord(billId);
-  const record = answer.record as { sponsors?: unknown[]; sponsorPeopleId?: number | null } | null;
-  const sponsors = (record?.sponsors ?? []) as Record<string, unknown>[];
+  const answer = await getBillRecord(billId)
+  const record = answer.record as { sponsors?: unknown[]; sponsorPeopleId?: number | null } | null
+  const sponsors = (record?.sponsors ?? []) as Record<string, unknown>[]
   return {
     bill: billId,
     count: sponsors.length,
     sponsors: sponsors.map((sp, i) => (i === 0 ? { ...sp, peopleId: record?.sponsorPeopleId ?? null } : sp)),
-  };
+  }
 }
 
 export async function getCrsReports(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_crs_reports"), CRSReports: await congressFamily("congress_crs_reports", limit, offset) };
+  return { count: await congressCount("congress_crs_reports"), CRSReports: await congressFamily("congress_crs_reports", limit, offset) }
 }
 
 export async function getRecordIssues(limit = 50, offset = 0) {
-  return { count: await congressCount("congress_record_daily"), dailyCongressionalRecord: await congressFamily("congress_record_daily", limit, offset) };
+  return { count: await congressCount("congress_record_daily"), dailyCongressionalRecord: await congressFamily("congress_record_daily", limit, offset) }
 }
 
 export async function getCommunications(limit = 50, offset = 0, chamber?: string) {
-  const where = chamber ? `where chamber = $1` : "";
-  const params = chamber ? [chamber] : [];
+  const where = chamber ? `where chamber = $1` : ""
+  const params = chamber ? [chamber] : []
   return {
     count: await congressCount("congress_communications", where, params),
     communications: await congressFamily("congress_communications", limit, offset, where, params),
-  };
+  }
 }
-
 
 // ---------------------------------------------------------------------------
 // Search: bills, members, committees and bill text, across every jurisdiction,
@@ -2137,7 +2107,11 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
   // Four words is more than any name here needs and keeps the parameter list
   // bounded; a one-word query is the old behaviour exactly.
-  const nameTokens = term.split(/\s+/).filter(Boolean).slice(0, 4).map((word) => `%${word}%`)
+  const nameTokens = term
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((word) => `%${word}%`)
 
   const [bills, members, committees, texts] = await Promise.all([
     q<{
@@ -2470,38 +2444,31 @@ const sameSurname = (a: string, b: string) => !!a && !!b && (a.includes(b) || b.
 
 /** A sitting member's offices and staff, or a senator's contact record. */
 export async function getMemberDirectory(peopleId: number): Promise<MemberDirectory | null> {
-  const person = await one<{ state: string; chamber: string; district: string | null; last_name: string; bioguide_id: string | null }>(
-    `select state, chamber, district, last_name, bioguide_id from "People" where people_id = $1`, [peopleId],
-  );
-  if (!person || person.state !== "US") return null;
+  const person = await one<{ state: string; chamber: string; district: string | null; last_name: string; bioguide_id: string | null }>(`select state, chamber, district, last_name, bioguide_id from "People" where people_id = $1`, [peopleId])
+  if (!person || person.state !== "US") return null
 
   if (person.chamber === "Senate") {
-    if (!person.bioguide_id) return null;
-    const senate = await one<SenateContact>(
-      `select bioguide_id, address, phone, contact_form, website, class, leadership_position from senate_contact where bioguide_id = $1`,
-      [person.bioguide_id],
-    );
-    return senate ? { chamber: "Senate", senate, offices: [], staff: [] } : null;
+    if (!person.bioguide_id) return null
+    const senate = await one<SenateContact>(`select bioguide_id, address, phone, contact_form, website, class, leadership_position from senate_contact where bioguide_id = $1`, [person.bioguide_id])
+    return senate ? { chamber: "Senate", senate, offices: [], staff: [] } : null
   }
 
-  const byDistrict = houseOfficeId(person.district);
-  if (!byDistrict) return null;
+  const byDistrict = houseOfficeId(person.district)
+  if (!byDistrict) return null
   // The directory keys a seat by its district; the person keys it by name. The
   // district is taken when its office carries the person's name, or no name at
   // all. When it names someone else, the map has moved under one of the two
   // records (Alabama's and Georgia's did in 2024), so the seat is looked up by
   // name within the state instead. Showing another member's staff would be
   // worse than showing none.
-  const seatName = await one<{ id: string; name: string }>(`select id, name from house_offices where id = $1 and kind = 'Member'`, [byDistrict]);
-  let officeId: string | null = null;
-  if (seatName && (!surname(seatName.name) || sameSurname(surname(seatName.name), surname(person.last_name)))) officeId = seatName.id;
+  const seatName = await one<{ id: string; name: string }>(`select id, name from house_offices where id = $1 and kind = 'Member'`, [byDistrict])
+  let officeId: string | null = null
+  if (seatName && (!surname(seatName.name) || sameSurname(surname(seatName.name), surname(person.last_name)))) officeId = seatName.id
   else {
-    const candidates = await q<{ id: string; name: string }>(
-      `select id, name from house_offices where kind = 'Member' and id like $1 order by id`, [`${byDistrict.slice(0, 2)}%`],
-    );
-    officeId = candidates.find((c) => sameSurname(surname(c.name), surname(person.last_name)))?.id ?? null;
+    const candidates = await q<{ id: string; name: string }>(`select id, name from house_offices where kind = 'Member' and id like $1 order by id`, [`${byDistrict.slice(0, 2)}%`])
+    officeId = candidates.find((c) => sameSurname(surname(c.name), surname(person.last_name)))?.id ?? null
   }
-  if (!officeId) return null;
+  if (!officeId) return null
 
   const offices = await q<Omit<DirectoryOffice, "phone" | "staff"> & { phone: string | null; staff: number | string }>(
     `select o.id, o.name, o.kind, o.street, o.locality, o.region, o.postal,
@@ -2511,22 +2478,22 @@ export async function getMemberDirectory(peopleId: number): Promise<MemberDirect
        from house_offices o
       where o.id = $1 or o.parent_id = $1
       order by case when o.id = $1 then 0 else 1 end, o.name`,
-    [officeId],
-  );
+    [officeId]
+  )
 
   const staff = await q<DirectoryStaffer>(
     `select s.id, s.name, s.job_title as title, s.staffer_type as type, s.telephone as phone, s.office_id, o.name as office
        from house_staff s left join house_offices o on o.id = s.office_id
       where s.office_id = $1 or s.office_id in (select id from house_offices where parent_id = $1)
       order by case when s.office_id = $1 then 0 else 1 end, o.name, s.name`,
-    [officeId],
-  );
+    [officeId]
+  )
   return {
     chamber: "House",
     senate: null,
     offices: offices.map((o) => ({ ...o, staff: n(o.staff) })),
     staff,
-  };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2552,8 +2519,8 @@ export async function getMemberCommittees(bioguideId: string) {
        left join congress_committee_members p on p.system_code = m.parent_system_code and p.bioguide_id = m.bioguide_id
       where m.bioguide_id = $1
       order by (m.parent_system_code is not null), coalesce(m.parent_system_code, m.system_code), m.parent_system_code nulls first, m.name`,
-    [String(bioguideId).toUpperCase()],
-  );
+    [String(bioguideId).toUpperCase()]
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -2591,9 +2558,9 @@ export async function getMemberCareer(peopleId: number, state: string): Promise<
        (select coalesce(array_agg(distinct b.session_id order by b.session_id desc), '{}')
           from "Sponsors" s join "Bills" b using (bill_id)
          where s.people_id = $1 and b.state = $2) as sessions`,
-    [peopleId, state],
-  );
-  const sessions = Array.isArray(row?.sessions) ? (row.sessions as unknown[]).map((v) => n(v)) : [];
+    [peopleId, state]
+  )
+  const sessions = Array.isArray(row?.sessions) ? (row.sessions as unknown[]).map((v) => n(v)) : []
   return {
     prime: n(row?.prime),
     cosponsor: n(row?.cosponsor),
@@ -2602,7 +2569,7 @@ export async function getMemberCareer(peopleId: number, state: string): Promise<
     first_session: row?.first_session == null ? null : n(row.first_session),
     floor_session: row?.floor_session == null ? null : n(row.floor_session),
     sessions,
-  };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2616,13 +2583,13 @@ export async function getMemberNeighbours(f: Resolved, peopleId: number) {
        from "People" p
        join "SessionPeople" sp on sp.people_id = p.people_id and sp.state = $1 and sp.year = $2
       order by p.last_name, p.first_name`,
-    [f.state, f.session],
-  );
-  const at = rows.findIndex((r) => n(r.people_id) === peopleId);
-  if (at < 0) return { previous: null, next: null };
-  const pick = (i: number) => (rows[i] ? { ...rows[i], people_id: n(rows[i].people_id) } : null);
+    [f.state, f.session]
+  )
+  const at = rows.findIndex((r) => n(r.people_id) === peopleId)
+  if (at < 0) return { previous: null, next: null }
+  const pick = (i: number) => (rows[i] ? { ...rows[i], people_id: n(rows[i].people_id) } : null)
   // The list wraps, so the last member's Next is the first.
-  return { previous: pick((at - 1 + rows.length) % rows.length), next: pick((at + 1) % rows.length) };
+  return { previous: pick((at - 1 + rows.length) % rows.length), next: pick((at + 1) % rows.length) }
 }
 
 /**
@@ -2633,11 +2600,10 @@ export async function getMemberNeighbours(f: Resolved, peopleId: number) {
  * (2026-09-05). The ends do not wrap: a first bill has no previous.
  */
 export async function getBillNeighbours(billId: number) {
-  const me = await one<{ state: string; session_id: number; bill_number: string }>(
-    `select state, session_id, bill_number from "Bills" where bill_id = $1`, [billId]);
-  if (!me) return { previous: null, next: null };
-  const prefix = String(me.bill_number).replace(/[0-9].*$/, "");
-  const number = Number((String(me.bill_number).match(/[0-9]+/) ?? ["0"])[0]);
+  const me = await one<{ state: string; session_id: number; bill_number: string }>(`select state, session_id, bill_number from "Bills" where bill_id = $1`, [billId])
+  if (!me) return { previous: null, next: null }
+  const prefix = String(me.bill_number).replace(/[0-9].*$/, "")
+  const number = Number((String(me.bill_number).match(/[0-9]+/) ?? ["0"])[0])
   const pick = async (dir: "<" | ">") => {
     const row = await one<{ bill_id: number; bill_number: string; title: string }>(
       `select bill_id, bill_number, title
@@ -2646,11 +2612,12 @@ export async function getBillNeighbours(billId: number) {
           and (substring(bill_number from '[0-9]+')::int, bill_number) ${dir} ($4, $5)
         order by substring(bill_number from '[0-9]+')::int ${dir === "<" ? "desc" : "asc"}, bill_number ${dir === "<" ? "desc" : "asc"}
         limit 1`,
-      [me.state, n(me.session_id), prefix, number, me.bill_number]);
-    return row ? { ...row, bill_id: n(row.bill_id) } : null;
-  };
-  const [previous, next] = await Promise.all([pick("<"), pick(">")]);
-  return { previous, next };
+      [me.state, n(me.session_id), prefix, number, me.bill_number]
+    )
+    return row ? { ...row, bill_id: n(row.bill_id) } : null
+  }
+  const [previous, next] = await Promise.all([pick("<"), pick(">")])
+  return { previous, next }
 }
 
 /**
@@ -2660,11 +2627,9 @@ export async function getBillNeighbours(billId: number) {
  * thirty-odd names and changes about once a decade.
  */
 export async function getPolicyAreas() {
-  const rows = await q<{ name: string }>(
-    `select name from congress_bill_subjects where is_policy_area group by name order by name`);
-  return rows.map((r) => r.name);
+  const rows = await q<{ name: string }>(`select name from congress_bill_subjects where is_policy_area group by name order by name`)
+  return rows.map((r) => r.name)
 }
-
 
 /* ---- subjects ------------------------------------------------------------- */
 
@@ -2677,26 +2642,28 @@ export type SubjectTerm = { name: string; bills: number }
  * LegiScan's, which some sources (New York) leave empty.
  */
 export async function getSubjectTerms(f: Resolved): Promise<{ policyAreas: SubjectTerm[]; subjects: SubjectTerm[]; bills: number }> {
-  const total = one<{ n: number }>(`select count(*)::int as n from "Bills" where state = $1 and session_id = $2`, [f.state, f.session]);
+  const total = one<{ n: number }>(`select count(*)::int as n from "Bills" where state = $1 and session_id = $2`, [f.state, f.session])
   if (f.state === "US") {
     const rows = await q<{ name: string; is_policy_area: boolean; bills: number }>(
       `select cs.name, cs.is_policy_area, count(*)::int bills
          from congress_bill_subjects cs join "Bills" b using (bill_id)
         where b.state = $1 and b.session_id = $2
         group by cs.name, cs.is_policy_area order by cs.name`,
-      [f.state, f.session]);
+      [f.state, f.session]
+    )
     return {
       policyAreas: rows.filter((r) => r.is_policy_area).map((r) => ({ name: r.name, bills: n(r.bills) })),
       subjects: rows.filter((r) => !r.is_policy_area).map((r) => ({ name: r.name, bills: n(r.bills) })),
       bills: n((await total)?.n),
-    };
+    }
   }
   const rows = await q<{ name: string; bills: number }>(
     `select sj.subject name, count(*)::int bills
        from "Subjects" sj join "Bills" b using (bill_id)
       where b.state = $1 and b.session_id = $2 group by 1 order by 1`,
-    [f.state, f.session]);
-  return { policyAreas: [], subjects: rows.map((r) => ({ name: r.name, bills: n(r.bills) })), bills: n((await total)?.n) };
+    [f.state, f.session]
+  )
+  return { policyAreas: [], subjects: rows.map((r) => ({ name: r.name, bills: n(r.bills) })), bills: n((await total)?.n) }
 }
 
 /**
@@ -2704,25 +2671,21 @@ export async function getSubjectTerms(f: Resolved): Promise<{ policyAreas: Subje
  * committees hold the most of them — the subject page's introduction.
  */
 export async function getSubjectSummary(f: Resolved, subject: string) {
-  const params: unknown[] = [];
-  const where = billWhere({ ...f, subject }, params);
+  const params: unknown[] = []
+  const where = billWhere({ ...f, subject }, params)
   const [count, statuses, committees, chambers] = await Promise.all([
     one<{ n: number }>(`select count(*)::int as n from "Bills" b where ${where}`, params),
-    q<{ status: string; bills: number }>(
-      `select coalesce(nullif(b.status_desc, ''), 'Introduced') status, count(*)::int bills from "Bills" b where ${where} group by 1 order by 2 desc`, params),
-    q<{ committee: string; bills: number }>(
-      `select b.committee, count(*)::int bills from "Bills" b where ${where} and coalesce(b.committee, '') <> '' group by 1 order by 2 desc, 1 limit 3`, params),
-    q<{ chamber: string; bills: number }>(
-      `select b.body chamber, count(*)::int bills from "Bills" b where ${where} and coalesce(b.body, '') <> '' group by 1 order by 2 desc`, params),
-  ]);
+    q<{ status: string; bills: number }>(`select coalesce(nullif(b.status_desc, ''), 'Introduced') status, count(*)::int bills from "Bills" b where ${where} group by 1 order by 2 desc`, params),
+    q<{ committee: string; bills: number }>(`select b.committee, count(*)::int bills from "Bills" b where ${where} and coalesce(b.committee, '') <> '' group by 1 order by 2 desc, 1 limit 3`, params),
+    q<{ chamber: string; bills: number }>(`select b.body chamber, count(*)::int bills from "Bills" b where ${where} and coalesce(b.body, '') <> '' group by 1 order by 2 desc`, params),
+  ])
   return {
     bills: n(count?.n),
     statuses: statuses.map((r) => ({ ...r, bills: n(r.bills) })),
     committees: committees.map((r) => ({ ...r, bills: n(r.bills) })),
     chambers: chambers.map((r) => ({ ...r, bills: n(r.bills) })),
-  };
+  }
 }
-
 
 /**
  * The bills adopted in every session of a jurisdiction, for the home page's
@@ -2736,8 +2699,9 @@ export async function getAdoptedBySession(state: string) {
             count(*) filter (where status = 4 or status_desc in ('Passed', 'Signed by Governor', 'Adopted', 'Chaptered', 'Enacted', 'Became Law'))::int as adopted,
             count(*)::int as bills
        from "Bills" where state = $1 group by 1 order by 1`,
-    [state]);
-  return rows.map((r) => ({ session_id: n(r.session_id), adopted: n(r.adopted), bills: n(r.bills) }));
+    [state]
+  )
+  return rows.map((r) => ({ session_id: n(r.session_id), adopted: n(r.adopted), bills: n(r.bills) }))
 }
 
 /**
@@ -2746,7 +2710,7 @@ export async function getAdoptedBySession(state: string) {
  * of a file before anyone downloads it (Brendan, 2026-09-05).
  */
 export async function getDatasetCounts(state: string) {
-  const bySession = (rows: { session_id: number; n: number }[]) => new Map(rows.map((r) => [n(r.session_id), n(r.n)]));
+  const bySession = (rows: { session_id: number; n: number }[]) => new Map(rows.map((r) => [n(r.session_id), n(r.n)]))
   const [bills, sponsors, members, committees, rollcalls, votes, history] = await Promise.all([
     q<{ session_id: number; n: number }>(`select session_id, count(*)::int as n from "Bills" where state = $1 group by 1`, [state]),
     q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Sponsors" s join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
@@ -2755,8 +2719,8 @@ export async function getDatasetCounts(state: string) {
     q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
     q<{ session_id: number; n: number }>(`select b.session_id, sum(coalesce(r.total::int, 0))::int as n from "Roll Call" r join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
     q<{ session_id: number; n: number }>(`select b.session_id, count(*)::int as n from "History Table" h join "Bills" b using (bill_id) where b.state = $1 group by 1`, [state]),
-  ]);
-  return { bills: bySession(bills), sponsors: bySession(sponsors), members: bySession(members), committees: bySession(committees), rollcalls: bySession(rollcalls), votes: bySession(votes), history: bySession(history) };
+  ])
+  return { bills: bySession(bills), sponsors: bySession(sponsors), members: bySession(members), committees: bySession(committees), rollcalls: bySession(rollcalls), votes: bySession(votes), history: bySession(history) }
 }
 
 /**
