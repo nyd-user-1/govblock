@@ -17,7 +17,7 @@ export default function HomePage() {
         <div className="h-(--top-spacing) shrink-0" />
         <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-1 flex-col gap-10 px-4 py-6 text-foreground md:px-6 lg:py-8">
           <div className="flex flex-col items-center gap-8 pt-6">
-            <h1 className="text-4xl font-semibold tracking-tight">Building today?</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Building today?</h1>
             <HomeSearch />
           </div>
           <HomeColumns />

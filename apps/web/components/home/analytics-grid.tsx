@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, ChevronDown, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { CalendarDays, ChevronDown, MoreHorizontal, Plus, RefreshCw, Trash2, X } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts"
 
 import { fmtDate, fmtNumber } from "@/lib/format"
@@ -12,14 +12,16 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/chart"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components/nova/popover"
 
 // Cloudflare's account-home analytics, adapted (Brendan, 2026-09-07): a
 // four-column grid of tiles, each one metric over a window — the number,
 // the change against the window before, the days as a line. A tile's corner
 // drags it to two columns wide and back, as hq's grid resizes (pointer
-// events, no library); its menu refreshes or removes it; the + adds a
-// metric; the empty slots in the last row are + too. The layout and the
-// window live in the browser.
+// events, no library); its menu refreshes or removes it; the + opens
+// Cloudflare's "Add metric" panel (Brendan, 2026-09-07), the metrics not yet
+// on the grid one to a row; the empty slots in the last row are + too. The
+// layout and the window live in the browser.
 
 const COLUMNS = 4
 const KEY = "govblock:home-tiles"
@@ -240,6 +242,45 @@ export function MetricCard({ metric, days = 30 }: { metric: MetricKey; days?: nu
 
 export const METRIC_CARDS = METRICS
 
+/** Cloudflare's "Add metric": a titled panel off the +, closed by its X or by a choice. */
+function AddMetric({ trigger, align, unused, onAdd }: { trigger: React.ReactElement; align: "start" | "end"; unused: typeof METRICS; onAdd: (metric: MetricKey) => void }) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={trigger} />
+      <PopoverContent align={align} className="w-64 gap-0 rounded-xl p-0">
+        <div className="flex items-center justify-between py-1.5 pr-1.5 pl-3">
+          <span className="text-xs font-medium text-muted-foreground">Add metric</span>
+          <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" aria-label="Close" onClick={() => setOpen(false)}>
+            <X />
+          </Button>
+        </div>
+        <ul className="m-0 min-h-56 list-none divide-y border-t p-0">
+          {unused.length ? (
+            unused.map((m) => (
+              <li key={m.key} className="m-0 p-0">
+                <button
+                  type="button"
+                  title={m.description}
+                  className="flex w-full items-center px-3 py-2.5 text-left text-sm whitespace-nowrap transition-colors hover:bg-muted"
+                  onClick={() => {
+                    onAdd(m.key)
+                    setOpen(false)
+                  }}
+                >
+                  {m.label}
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground">Every metric is on the grid</li>
+          )}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 /** Cloudflare's empty tile: a faint wave with "No data" over it. */
 function NoData() {
   return (
@@ -287,24 +328,6 @@ export function AnalyticsGrid() {
   const blanks = used === 0 ? 0 : COLUMNS - used
   const range = RANGES.find((r) => r.days === days) ?? RANGES[1]
 
-  const addMenu = (trigger: React.ReactElement) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={trigger} />
-      <DropdownMenuContent align="end" className="w-max min-w-44">
-        {unused.length ? (
-          unused.map((m) => (
-            <DropdownMenuItem key={m.key} className="whitespace-nowrap" onClick={() => add(m.key)}>
-              {m.label}
-              <span className="ml-auto pl-4 text-xs text-muted-foreground">{m.description}</span>
-            </DropdownMenuItem>
-          ))
-        ) : (
-          <DropdownMenuItem disabled>Every metric is on the grid</DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-
   return (
     <section id="analytics" className="scroll-mt-24">
       <div className="mb-4 flex items-center gap-2">
@@ -328,11 +351,16 @@ export function AnalyticsGrid() {
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          {addMenu(
-            <Button variant="ghost" size="icon" aria-label="Add a tile">
-              <Plus />
-            </Button>
-          )}
+          <AddMetric
+            align="end"
+            unused={unused}
+            onAdd={add}
+            trigger={
+              <Button variant="ghost" size="icon" aria-label="Add a tile">
+                <Plus />
+              </Button>
+            }
+          />
           <Button variant="ghost" size="icon" aria-label="Refresh" onClick={() => setNonce((n) => n + 1)}>
             <RefreshCw />
           </Button>
@@ -345,13 +373,17 @@ export function AnalyticsGrid() {
           ))}
         {ready &&
           Array.from({ length: blanks }, (_, i) => (
-            <React.Fragment key={`blank-${i}`}>
-              {addMenu(
+            <AddMetric
+              key={`blank-${i}`}
+              align="start"
+              unused={unused}
+              onAdd={add}
+              trigger={
                 <button type="button" aria-label="Add a tile" className="flex h-full w-full items-center justify-center rounded-lg border border-dashed text-muted-foreground/60 transition-colors hover:bg-muted/40 hover:text-foreground">
                   <Plus className="size-6" />
                 </button>
-              )}
-            </React.Fragment>
+              }
+            />
           ))}
       </div>
     </section>

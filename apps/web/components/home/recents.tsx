@@ -60,6 +60,11 @@ function write(list: Recent[]) {
   }
 }
 
+/** Empties the list, from the home column's menu. */
+export function clearRecents() {
+  write([])
+}
+
 /** Mounted once in the shell: notes the page as it opens, after the title has settled. */
 export function RecentsRecorder() {
   const pathname = usePathname()

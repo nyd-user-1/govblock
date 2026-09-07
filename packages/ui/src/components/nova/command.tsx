@@ -180,10 +180,17 @@ function CommandShortcut({
   )
 }
 
+/**
+ * The bare cmdk input, for a search box drawn as something other than the
+ * menu's own field — the account home's bar, which the results drop from.
+ */
+const CommandRawInput = CommandPrimitive.Input
+
 export {
   Command,
   CommandDialog,
   CommandInput,
+  CommandRawInput,
   CommandList,
   CommandEmpty,
   CommandGroup,
