@@ -77,6 +77,16 @@ const rowOf = (h: Hearing & { href?: string | null; type?: string | null }): Row
   action: h.date < key(new Date()) ? "open" : "calendar",
 })
 
+/**
+ * A record that shouts its own kind and names nothing else — the congress.gov
+ * rows whose whole description is `HEARING` — is not a title in capitals; it
+ * is the kind of meeting, written the way a title is written.
+ */
+const spoken = (value: string) => {
+  const text = value.trim()
+  return /^[A-Z][A-Z ]{2,23}$/.test(text) ? text.charAt(0) + text.slice(1).toLowerCase() : text
+}
+
 /** The same word twice — a meeting whose topic is only its own committee's name — is one line, not two. */
 const sameThing = (a: string, b: string) => a.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ") === b.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ")
 
@@ -88,8 +98,8 @@ const sameThing = (a: string, b: string) => a.trim().toLowerCase().replace(/[^a-
  * and stands alone.
  */
 function HearingRow({ row, compact, state }: { row: Row; compact: boolean; state: string }) {
-  const title = row.committee ?? row.description
-  const topic = row.committee && !sameThing(row.committee, row.description) ? row.description : null
+  const title = spoken(row.committee ?? row.description)
+  const topic = row.committee && !sameThing(row.committee, row.description) ? spoken(row.description) : null
   return (
     // The whole row is a link, so the calendar button cannot live inside it —
     // a button nested in an anchor is invalid and the parser breaks hydration
@@ -97,7 +107,7 @@ function HearingRow({ row, compact, state }: { row: Row; compact: boolean; state
     // hover and always where there is no hover to have.
     <div className="group/row relative">
       <Item variant="muted" size={compact ? "sm" : "default"} render={row.external ? <a href={row.href} target="_blank" rel="noopener noreferrer" className="no-underline" /> : <Link href={row.href} className="no-underline" />}>
-        <ItemContent className="min-w-0">
+        <ItemContent className={cn("min-w-0", !compact && "pr-9")}>
           <ItemTitle className="line-clamp-2 block w-full min-w-0">{title}</ItemTitle>
           {topic && <ItemDescription className="line-clamp-2 text-foreground/80">{topic}</ItemDescription>}
           <ItemDescription className="line-clamp-1">
@@ -111,7 +121,9 @@ function HearingRow({ row, compact, state }: { row: Row; compact: boolean; state
           </Badge>
         )}
       </Item>
-      <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 [@media(hover:none)]:opacity-100">
+      {/* In the rail there is no width to spare and the button sat over the
+          words (Brendan, 2026-09-07); the row is a link either way. */}
+      <div className={cn("pointer-events-none absolute inset-y-0 right-2 flex items-center opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 [@media(hover:none)]:opacity-100", compact && "hidden")}>
         {row.action === "open" ? (
           // A meeting already held cannot be added to a calendar; the hover
           // opens its record instead (Brendan, 2026-09-06: "make these for
@@ -134,10 +146,35 @@ function HearingRow({ row, compact, state }: { row: Row; compact: boolean; state
   )
 }
 
+/**
+ * True while the box has something below the fold, remeasured as it scrolls
+ * and as it resizes. The card fades its bottom edge on this and nothing else:
+ * a fade over the last row when the last row is the last row would be a
+ * promise of more that is not there.
+ */
+function useMoreBelow(rows: number) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [more, setMore] = React.useState(false)
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8)
+    measure()
+    el.addEventListener("scroll", measure, { passive: true })
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener("scroll", measure)
+      observer.disconnect()
+    }
+  }, [rows])
+  return [ref, more] as const
+}
+
 /** The rows, in a group that scrolls: the card holds three and the rest is a scroll away. */
 function HearingRows({ rows, compact, state, className, empty }: { rows: Row[]; compact: boolean; state: string; className?: string; empty: React.ReactNode }) {
   return (
-    <ItemGroup className={cn("overflow-y-auto overscroll-contain pr-1", className)}>
+    <ItemGroup className={className}>
       {rows.map((row, index) => (
         <HearingRow key={`${row.id}-${index}`} row={row} compact={compact} state={state} />
       ))}
@@ -229,14 +266,30 @@ export function CalendarCard({
     />
   )
   const nothing = <p className="py-3 text-center text-sm text-muted-foreground">Nothing calendared from {date ? fmtDate(from, false) : "today"}.</p>
+  const [scroller, moreBelow] = useMoreBelow(upcoming.length)
   const sittings = `${upcoming.length} ${upcoming.length === 1 ? "sitting" : "sittings"}`
 
   return (
     <Frame>
       <CardContent className={cn("flex flex-col gap-4", bare && "px-0")}>
-        {monthGrid(false)}
-        {through && <p className="-mt-1 text-xs text-muted-foreground">Most recent sitting · through {fmtDate(through, false)}</p>}
-        <HearingRows rows={upcoming.slice(0, ROWS_IN_CARD)} compact={compact} state={state} className={compact ? "max-h-72" : "max-h-96"} empty={nothing} />
+        {/* One scroll box, no bar down its side: the month holds the top and
+            the sittings run up behind it (Brendan, 2026-09-07), so the list is
+            as long as it is and the card stays the height it was. The last
+            row fades rather than being cut in half at the edge. */}
+        <div
+          ref={scroller}
+          className={cn(
+            "no-scrollbar overflow-y-auto overscroll-contain",
+            compact ? "max-h-[30rem]" : "max-h-[34rem]",
+            moreBelow && "[mask-image:linear-gradient(to_bottom,#000_calc(100%-1.5rem),transparent)]"
+          )}
+        >
+          <div className={cn("sticky top-0 z-10 pb-4", bare ? "bg-background" : "bg-card")}>
+            {monthGrid(false)}
+            {through && <p className="mt-2 text-xs text-muted-foreground">Most recent sitting · through {fmtDate(through, false)}</p>}
+          </div>
+          <HearingRows rows={upcoming.slice(0, ROWS_IN_CARD)} compact={compact} state={state} empty={nothing} />
+        </div>
         {/* The chevron at the left throws the calendar open over the viewport;
             the circle arrow at the right goes to the calendar page, as every
             card's foot has it (Brendan, 2026-09-07). */}
@@ -273,7 +326,7 @@ export function CalendarCard({
               {monthGrid(true)}
               {through && <p className="mt-2 text-xs text-muted-foreground">Most recent sitting · through {fmtDate(through, false)}</p>}
             </div>
-            <HearingRows rows={upcoming.slice(0, ROWS_EXPANDED)} compact={false} state={state} className="min-h-0" empty={nothing} />
+            <HearingRows rows={upcoming.slice(0, ROWS_EXPANDED)} compact={false} state={state} className="min-h-0 overflow-y-auto overscroll-contain pr-1" empty={nothing} />
           </div>
         </DialogContent>
       </Dialog>
