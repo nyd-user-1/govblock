@@ -105,7 +105,8 @@ export function DashboardMenu() {
     <div className="flex flex-col gap-8">
       {groups.map((group) => (
         <section key={group.label} className="flex flex-col gap-3">
-          <h2 className="px-1 text-xs font-semibold tracking-wide text-foreground/60 uppercase">{group.label}</h2>
+          {/* The dashboards need no heading over them (Brendan, 2026-09-07); the other sections keep theirs. */}
+          {group.label !== "Dashboards" && <h2 className="px-1 text-xs font-semibold tracking-wide text-foreground/60 uppercase">{group.label}</h2>}
           {group.label === "Dashboards" ? (
             <DashboardCards entries={group.entries} search={search} />
           ) : (
