@@ -26,6 +26,8 @@ import { BlockShell } from "@/components/policy/block-shell"
 
 const PARENTS: Record<string, { label: string; page: string }[]> = {
   "apps/users/create": [{ label: "Members", page: "apps/users" }],
+  // The committee page is titled by its committee, under Committee.
+  committee: [{ label: "Committee", page: "committee" }],
 }
 
 export function AdminStage({ page, onGo }: { page: string; onGo: (page: string) => void }) {
@@ -33,13 +35,7 @@ export function AdminStage({ page, onGo }: { page: string; onGo: (page: string) 
   const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
   return (
     <AdminNavProvider value={nav}>
-      <BlockShell
-        rail={<AdminRail />}
-        sidebarWidth="250px"
-        separatorClassName="mx-1"
-        title={<AdminCrumb title={adminTitle(page)} links={links} />}
-        actions={<AdminTopbar />}
-      >
+      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
         <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">
           <AdminPage page={page} />
         </div>

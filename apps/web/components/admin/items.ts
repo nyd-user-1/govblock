@@ -5,6 +5,7 @@ import {
   CoinsIcon,
   DatabaseIcon,
   FileTextIcon,
+  GavelIcon,
   GraduationCapIcon,
   LayoutGridIcon,
   type LucideIcon,
@@ -46,6 +47,8 @@ export const ADMIN_MENU: MenuItem[] = [
   // paceui's AI Tokens, as the site's traffic: Cloudflare and Amplify, live.
   { label: "Traffic", icon: ActivityIcon, page: "traffic", tag: "trend" },
   { label: "Education", icon: GraduationCapIcon, page: "education", tag: "trend" },
+  // The Education page reshaped as a committee's dashboard (Brendan, 2026-09-07).
+  { label: "Committee", icon: GavelIcon, page: "committee", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
   { label: "Database", icon: DatabaseIcon, page: "database", tag: "trend" },
   { label: "Skeleton", icon: LayoutGridIcon, page: "skeleton", tag: "coming-soon" },

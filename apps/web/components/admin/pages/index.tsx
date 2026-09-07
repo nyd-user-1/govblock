@@ -7,6 +7,7 @@ import { TrafficPage } from "./traffic"
 import { AuthPage } from "./auth"
 import { CalendarPage } from "./calendar"
 import { ChatPage } from "./chat"
+import { CommitteePage } from "./committee"
 import { ComponentsPage } from "./components"
 import { CryptoPage } from "./crypto"
 import { CustomersPage } from "./customers"
@@ -38,6 +39,8 @@ const TITLES: Record<string, string> = {
   traffic: "Traffic Observability",
   ai: "Cost & Usage Observability",
   education: "Education Management",
+  // The Labor committee, from Brendan's capture of 2026-09-07; the crumb reads Admin › Committee › Labor.
+  committee: "Labor",
   crypto: "Crypto Wallet",
   database: "Data Pipeline",
   skeleton: "Dashboard Skeleton",
@@ -79,6 +82,8 @@ export function AdminPage({ page }: { page: string }) {
       return <AiPage />
     case "education":
       return <EducationPage />
+    case "committee":
+      return <CommitteePage />
     case "crypto":
       return <CryptoPage />
     case "database":
