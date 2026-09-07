@@ -36,17 +36,19 @@ export function AdminStage({
   onGo,
   title,
   content,
+  railOpen = true,
 }: {
   page: string
   onGo: (page: string) => void
   /** The crumb's last word, where the stage shows something other than a page (the workspace's dashboards menu, 2026-09-07). */ title?: string
   /** What the stage shows in place of the page. */ content?: React.ReactNode
+  /** Whether the rail starts open; the workspace opens it closed (Brendan, 2026-09-07). */ railOpen?: boolean
 }) {
   const nav = React.useMemo(() => ({ page, go: onGo }), [page, onGo])
   const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
   return (
     <AdminNavProvider value={nav}>
-      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={title ?? adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
+      <BlockShell defaultOpen={railOpen} rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={title ?? adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
         <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">{content ?? <AdminPage page={page} />}</div>
       </BlockShell>
     </AdminNavProvider>

@@ -24,7 +24,8 @@ import { cn } from "@govblock/ui/lib/utils"
 // bare route is the menu of every dashboard; each page is its own route,
 // so the rail navigates the router rather than an `at=` parameter. The
 // customizer is the jurisdiction and the filters the pages read, as the
-// Data variant of /create's, and opens closed.
+// Data variant of /create's, and opens closed. So does the rail (Brendan,
+// 2026-09-07: "I want the page to load with the sidebar defaulted closed").
 
 function DashboardCustomizer({ filters, setFilters }: { filters: ReturnType<typeof useScope>["filters"]; setFilters: (patch: Partial<Record<ScopeKey, string>>) => void }) {
   return (
@@ -53,7 +54,7 @@ function DashboardWorkspaceInner({ page }: { page?: string }) {
 
   const stage = (
     <ShellFooterProvider footer={<WorkspaceFooter mode="dashboards" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>
-      <AdminStage page={stagePage} onGo={go} title={page == null ? "Dashboards" : undefined} content={page == null ? <DashboardMenu /> : undefined} />
+      <AdminStage page={stagePage} onGo={go} railOpen={false} title={page == null ? "Dashboards" : undefined} content={page == null ? <DashboardMenu /> : undefined} />
     </ShellFooterProvider>
   )
 
