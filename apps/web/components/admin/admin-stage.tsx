@@ -22,7 +22,8 @@ import { BlockShell } from "@/components/policy/block-shell"
 // title is the header's breadcrumb, "Admin › Data Pipeline", on every page;
 // the rule after the sidebar trigger runs tight; the first block sits flush
 // under the header; the footer is the header's twin; and the customizer
-// leaves the screen (that part lives in the designer).
+// leaves the screen (that part lives in the designer). 2026-09-07: the
+// footer is the shell's, below the card, not a row inside it.
 
 const PARENTS: Record<string, { label: string; page: string }[]> = {
   "apps/users/create": [{ label: "Members", page: "apps/users" }],
@@ -35,11 +36,10 @@ export function AdminStage({ page, onGo }: { page: string; onGo: (page: string) 
   const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
   return (
     <AdminNavProvider value={nav}>
-      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
+      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={adminTitle(page)} links={links} />} actions={<AdminTopbar />} footer={<AdminFooter />}>
         <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">
           <AdminPage page={page} />
         </div>
-        <AdminFooter />
       </BlockShell>
     </AdminNavProvider>
   )
