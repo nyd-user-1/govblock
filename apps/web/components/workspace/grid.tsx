@@ -197,6 +197,16 @@ function GridCard({
     window.addEventListener("pointerup", up)
   }
 
+  // The card itself is the first button (Brendan, 2026-09-07): a click
+  // anywhere that is not a button, a menu or the corner opens the record.
+  const primary = item.actions[0]
+  const openable = !primary.disabled && !!primary.onClick && !rearranging
+  const onCardClick = (e: React.MouseEvent) => {
+    if (!openable) return
+    if ((e.target as HTMLElement).closest("button, a, input, [role=menuitem], [role=menu]")) return
+    primary.onClick?.()
+  }
+
   const button = (action: GridAction, index: number) =>
     action.render ?? (
       <Button key={action.label} variant={index === 0 ? "default" : "outline"} className="min-w-0 flex-1 rounded-2xl" disabled={action.disabled} title={action.title} onClick={action.onClick}>
@@ -218,12 +228,14 @@ function GridCard({
       onDragOver={(e) => rearranging && e.preventDefault()}
       onDrop={(e) => e.preventDefault()}
       onDragEnd={onDragEnd}
+      onClick={onCardClick}
       style={paint ? ({ "--primary": paint.primary, "--primary-foreground": paint.foreground } as React.CSSProperties) : undefined}
       className={cn(
         // A 1px border on hover (Brendan, 2026-09-07); transparent otherwise so nothing shifts.
         "relative h-full min-h-0 overflow-hidden border border-transparent transition-colors hover:border-foreground/50",
         COLS[size.cols],
         ROWS[size.rows],
+        openable && "cursor-pointer",
         rearranging && "cursor-grab select-none active:cursor-grabbing",
         dragging && "opacity-40",
         resizing && "ring-2 ring-ring/40"
