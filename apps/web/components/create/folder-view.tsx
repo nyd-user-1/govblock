@@ -5,7 +5,7 @@ import { CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
 
 import { type Node, type Target } from "@/lib/create/path"
 import { partyName, stateName } from "@/lib/filters"
-import { fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
 import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use-folder"
 import { useUrlParams } from "@/lib/policy/url-state"
@@ -256,16 +256,22 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                 if (row.record?.kind === "bill") {
                   const b = row.record.bill
                   const go: Target = { bill: String(b.bill_id), rollcall: null, number: b.bill_number }
+                  // Brendan's markup (2026-09-07): "HB 4795" · the title · "Rep. Foxx (R) · Sep 3, 2026 · Engrossed", the sponsor's party as the dot, no buttons.
+                  const sponsor = b.sponsor ? `${honorific(b.body === "Senate" ? "Sen" : "Rep", b.body)} ${b.sponsor.trim().split(/\s+/).pop()}${b.sponsor_party ? ` (${b.sponsor_party})` : ""}`.trim() : null
                   return {
                     key: row.key,
+                    badge: b.sponsor_party ? <PartyDot party={b.sponsor_party} className="size-3" /> : undefined,
                     media: <ChamberSeal state={state} chamber={b.body} size={96} />,
-                    title: `${b.bill_number} · ${truncate(b.title, 90)}`,
-                    description: b.description && b.description !== b.title ? truncate(b.description, 140) : null,
-                    meta: [b.status_desc || "Introduced", b.last_action_date ? fmtDate(b.last_action_date) : null, b.committee, b.sponsor].filter(Boolean).join(" · "),
-                    actions: [
-                      { label: "Open Bill", onClick: () => onGo(go) },
-                      { label: "Typeset", onClick: () => onGo({ ...go, tab: "typeset" }) },
-                    ],
+                    title: b.bill_number.replace(/^([A-Za-z]+)\s*(\d)/, "$1 $2"),
+                    description: truncate(b.title, 140),
+                    meta: [sponsor, b.last_action_date ? fmtDate(b.last_action_date) : null, b.status_desc || "Introduced"].filter(Boolean).join(" · "),
+                    onOpen: () => onGo(go),
+                    menu: (
+                      <>
+                        <DropdownMenuItem onClick={() => onGo(go)}>Open Bill</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onGo({ ...go, tab: "typeset" })}>Typeset</DropdownMenuItem>
+                      </>
+                    ),
                   }
                 }
                 if (row.record?.kind === "member") {

@@ -48,8 +48,10 @@ export type GridItem = {
   title: string
   description?: string | null
   meta?: string | null
-  /** The two footer buttons. */
-  actions: [GridAction, GridAction]
+  /** The two footer buttons; a card without them is opened by clicking it. */
+  actions?: [GridAction, GridAction]
+  /** What a click on the card does when it has no buttons. */
+  onOpen?: () => void
   /** The record's own menu entries, above the layout verbs. Mounted only while the menu is open. */
   menu?: React.ReactNode
   /** A colour the record itself chooses, when the reader has not. */
@@ -199,12 +201,13 @@ function GridCard({
 
   // The card itself is the first button (Brendan, 2026-09-07): a click
   // anywhere that is not a button, a menu or the corner opens the record.
-  const primary = item.actions[0]
-  const openable = !primary.disabled && !!primary.onClick && !rearranging
+  const primary = item.actions?.[0]
+  const open = item.onOpen ?? (primary && !primary.disabled ? primary.onClick : undefined)
+  const openable = !!open && !rearranging
   const onCardClick = (e: React.MouseEvent) => {
     if (!openable) return
     if ((e.target as HTMLElement).closest("button, a, input, [role=menuitem], [role=menu]")) return
-    primary.onClick?.()
+    open?.()
   }
 
   const button = (action: GridAction, index: number) =>
@@ -262,7 +265,7 @@ function GridCard({
           {item.meta && <p className="text-xs text-muted-foreground">{item.meta}</p>}
         </div>
       </CardContent>
-      <CardFooter className="flex items-center gap-2">{item.actions.map(button)}</CardFooter>
+      {item.actions && <CardFooter className="flex items-center gap-2">{item.actions.map(button)}</CardFooter>}
       {/* The corner: drag it right to widen the card, down to make it taller, back to shrink it. */}
       <button type="button" aria-label="Drag to resize" title="Drag to resize" onPointerDown={onHandle} className="absolute right-1 bottom-1 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground">
         <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
