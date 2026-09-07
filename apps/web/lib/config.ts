@@ -2,9 +2,7 @@
 // `icon` is a lucide name; `components/main-nav.tsx` holds the one map from
 // name to component, so this file stays data and never imports a component.
 export type NavLink = { href: string; label: string; description?: string; icon?: string }
-export type NavItem =
-  | NavLink
-  | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 | 5 | 6 }
+export type NavItem = NavLink | { label: string; href: string; items: NavLink[]; columns?: 2 | 3 | 4 | 5 | 6 }
 
 export function hasItems(item: NavItem): item is Extract<NavItem, { items: unknown[] }> {
   return "items" in item && Array.isArray(item.items)
@@ -13,11 +11,10 @@ export function hasItems(item: NavItem): item is Extract<NavItem, { items: unkno
 export const siteConfig = {
   name: "govblock",
   url: "https://govblock.app",
-  description:
-    "One view over all 50 states and Congress. Open Source. Open Code. Open Data.",
+  description: "One view over all 50 states and Congress. Open Source. Open Code. Open Data.",
   links: {
-    twitter: "https://twitter.com/shadcn",
-    github: "https://github.com/shadcn-ui/ui",
+    twitter: "https://twitter.com/nysgpt",
+    github: "https://github.com/nyd-user-1/govblock",
   },
   // Five top-level entries, three of them panels. The old list was eleven flat
   // links with Committees and Directory sitting beside the Docs they belong
@@ -30,33 +27,30 @@ export const siteConfig = {
     {
       label: "Records",
       href: "/docs/bills",
-      // Eleven entries, six across and two down. Two rows is the requirement
-      // (Brendan, 08:10 ET); the column count follows from it, and Subjects
-      // made it six on 2026-09-05. This list is
-      // also the docs rail's Records section — `components/directory-rail.tsx`
-      // reads it — so the panel and the rail cannot say different things. They
-      // did until 20:00 ET: Members here and Directory there, Record and The
-      // Record, and a Finance the rail had that the panel did not. One name per
-      // page now: Members and News, by Brendan's word, and the rest by title. Row one is what every jurisdiction has;
-      // row two is the federal record, the news, and the paperwork the
-      // government hands back.
-      // News is here as well as at the top level: it is a record of what
-      // happened, and a reader looking for the day's news should find it where
-      // the records are. Its sentence is the page's own metadata description,
-      // not a second one written for the menu.
-      columns: 6,
+      // Thirteen entries, four across and four down (Brendan, 2026-09-06:
+      // "3-4 cols with 3+ rows"). Row one is what every jurisdiction has, row
+      // two what the legislature produces, row three the paperwork and the
+      // money, and the news last. This list is also the docs rail's Records
+      // section — `components/directory-rail.tsx` reads it — so the panel and
+      // the rail cannot say different things. One name per page: Members and
+      // News, by Brendan's word, and the rest by title. News is here as well
+      // as at the top level: it is a record of what happened, and a reader
+      // looking for the day's news should find it where the records are.
+      columns: 4,
       items: [
         { href: "/docs/bills", label: "Bills", description: "Every bill in all 52 jurisdictions, newest first.", icon: "FileText" },
         { href: "/docs/committees", label: "Committees", description: "Who sits where, and what is before them.", icon: "Users" },
-        { href: "/docs/subjects", label: "Subjects", description: "How a bill is filed, and every bill under each term.", icon: "Tags" },
         { href: "/docs/directory", label: "Members", description: "The sitting members, with party and district.", icon: "BookUser" },
-        { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
-        { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
+        { href: "/docs/departments", label: "Departments", description: "What each department does, spends, and is asked to do.", icon: "Landmark" },
+        { href: "/docs/hearings", label: "Hearings", description: "Every hearing of the Congress, with its transcript.", icon: "Mic" },
         { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate.", icon: "UserCheck" },
+        { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
+        { href: "/docs/subjects", label: "Subjects", description: "How a bill is filed, and every bill under each term.", icon: "Tags" },
         { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
         { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
-        { href: "/newsroom", label: "News", description: "What the legislature did, newest first.", icon: "Newspaper" },
+        { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
         { href: "/docs/forms", label: "Forms", description: "Government forms for benefits, grants and programs.", icon: "ClipboardList" },
+        { href: "/newsroom", label: "News", description: "What the legislature did, newest first.", icon: "Newspaper" },
       ],
     },
     { href: "/newsroom", label: "News" },

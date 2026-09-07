@@ -3,38 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import {
-  BookOpen,
-  BookUser,
-  ClipboardList,
-  Coins,
-  FileText,
-  Gavel,
-  Inbox,
-  Library,
-  type LucideIcon,
-  Newspaper,
-  Radar,
-  Receipt,
-  Scale,
-  ScrollText,
-  Stamp,
-  Tags,
-  UserCheck,
-  Users,
-} from "lucide-react"
+import { BookOpen, BookUser, ClipboardList, Coins, FileText, Gavel, Inbox, Landmark, Library, type LucideIcon, Mic, Newspaper, Radar, Receipt, Scale, ScrollText, Stamp, Tags, UserCheck, Users } from "lucide-react"
 
 import { hasItems, type NavItem } from "@/lib/config"
 import { cn } from "@govblock/ui/lib/utils"
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@govblock/ui/components/ny4/navigation-menu"
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@govblock/ui/components/ny4/navigation-menu"
 
 // Five top-level entries, three of them panels. Ported from livingston-v3's
 // flat nav and regrouped: Committees and Directory used to sit beside the Docs
@@ -53,7 +26,9 @@ const ICONS: Record<string, LucideIcon> = {
   FileText,
   Gavel,
   Inbox,
+  Landmark,
   Library,
+  Mic,
   Newspaper,
   Radar,
   Receipt,
@@ -65,9 +40,9 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
 }
 
-// Two columns is the panel this nav has always drawn. Records asked for two
-// rows, and its eleven entries make that six across — so the width follows
-// the count rather than a fixed `w-[26rem]`.
+// Two columns is the panel this nav has always drawn. Records runs four
+// across and four down (Brendan, 2026-09-06) — so the width follows the
+// column count rather than a fixed `w-[26rem]`.
 const GRID: Record<number, string> = {
   2: "w-[26rem] md:grid-cols-2",
   3: "w-[42rem] md:grid-cols-3",
@@ -76,11 +51,7 @@ const GRID: Record<number, string> = {
   6: "w-[76rem] md:grid-cols-6",
 }
 
-export function MainNav({
-  items,
-  className,
-  ...props
-}: React.ComponentProps<"nav"> & { items: readonly NavItem[] }) {
+export function MainNav({ items, className, ...props }: React.ComponentProps<"nav"> & { items: readonly NavItem[] }) {
   const pathname = usePathname()
 
   return (
@@ -90,11 +61,7 @@ export function MainNav({
           {items.map((item) =>
             hasItems(item) ? (
               <NavigationMenuItem key={item.label}>
-                <NavigationMenuTrigger
-                  data-active={item.items.some((entry) => pathname === entry.href) || undefined}
-                >
-                  {item.label}
-                </NavigationMenuTrigger>
+                <NavigationMenuTrigger data-active={item.items.some((entry) => pathname === entry.href) || undefined}>{item.label}</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className={cn("grid gap-1 p-2", GRID[item.columns ?? 2] ?? GRID[2])}>
                     {item.items.map((entry) => {
@@ -108,11 +75,7 @@ export function MainNav({
                                   under the icon — shadcn's feature grids. */}
                               <span className="flex min-w-0 flex-col gap-1">
                                 <span className="font-medium">{entry.label}</span>
-                                {entry.description && (
-                                  <span className="text-xs leading-snug text-muted-foreground">
-                                    {entry.description}
-                                  </span>
-                                )}
+                                {entry.description && <span className="text-xs leading-snug text-muted-foreground">{entry.description}</span>}
                               </span>
                             </Link>
                           </NavigationMenuLink>
@@ -124,11 +87,7 @@ export function MainNav({
               </NavigationMenuItem>
             ) : (
               <NavigationMenuItem key={item.href}>
-                <NavigationMenuLink
-                  asChild
-                  data-active={pathname === item.href || undefined}
-                  className={cn(navigationMenuTriggerStyle(), "flex-row")}
-                >
+                <NavigationMenuLink asChild data-active={pathname === item.href || undefined} className={cn(navigationMenuTriggerStyle(), "flex-row")}>
                   <Link href={item.href}>{item.label}</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -139,4 +98,3 @@ export function MainNav({
     </nav>
   )
 }
-

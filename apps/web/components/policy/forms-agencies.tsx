@@ -9,7 +9,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { agencyName, FormSeal } from "@/components/policy/forms-seal"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
 // Agencies — who hands the form out, and how many of theirs we hold. The
@@ -56,9 +56,10 @@ export function FormsAgenciesCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <CardFrame id="forms-agencies" size={compact ? "sm" : "default"}>
+      {/* The title and the menu alone: the rows say what the card is for
+          (Brendan, 2026-09-06). */}
       <CardHeader>
         <CardTitle>Agencies</CardTitle>
-        <CardDescription>Who hands the form out</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>
@@ -74,19 +75,23 @@ export function FormsAgenciesCard({ compact = false }: { compact?: boolean }) {
             if (!chosen) params.set("agency", row.value)
             if (all === "1") params.set("all", "1")
             return (
+              // One line a row: the seal, the agency's short name, the count
+              // at the right, in a pill (Brendan's image, 2026-09-06). The
+              // full name is the tooltip.
               <Item
                 key={row.value}
                 variant="muted"
                 size={compact ? "sm" : "default"}
                 data-active={chosen || undefined}
-                className="data-[active=true]:bg-accent"
+                title={agencyName(govOf(state, row.value), row.value)}
+                className="rounded-full data-[active=true]:bg-accent"
                 render={<Link href={`/docs/forms?${params}`} className="no-underline" />}
               >
                 <ItemMedia>
                   <FormSeal gov={govOf(state, row.value)} agency={row.value} size={compact ? 28 : 36} />
                 </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>{agencyName(govOf(state, row.value), row.value)}</ItemTitle>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="truncate">{shortName(row.value)}</ItemTitle>
                 </ItemContent>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtNumber(row.count)}</span>
               </Item>
@@ -98,6 +103,11 @@ export function FormsAgenciesCard({ compact = false }: { compact?: boolean }) {
     </CardFrame>
   )
 }
+
+// The agency as the row prints it: the code the Forms table files under, with
+// the few that read better spelled out (Brendan's image, 2026-09-06).
+const SHORT: Record<string, string> = { ED: "Education", USCIS: "CIS", "USDA-FNS": "FNS" }
+const shortName = (agency: string) => SHORT[agency] ?? agency
 
 // New York's forms come from two govs and the card lists them together, so the
 // three city agencies are named as the city's. Everything else under NY is the
