@@ -4,7 +4,7 @@ import * as React from "react"
 import { EllipsisVerticalIcon, GripVerticalIcon } from "lucide-react"
 
 import { useLocal } from "@/lib/policy/use-local"
-import { arrange, COLORS, DEFAULT_SIZE, readLayout, reorder, sameSize, SIZE_CHOICES, type Color, type Layout, type Size } from "@/lib/workspace/datasets"
+import { arrange, COLORS, DEFAULT_SIZE, readLayout, reorder, sameSize, SIZE_CHOICES, type Color, type Columns, type Layout, type Size } from "@/lib/workspace/datasets"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Button as MenuButton } from "@govblock/ui/components/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
@@ -64,9 +64,11 @@ function CardActions({
   item,
   size,
   color,
+  columns,
   rearranging,
   onSize,
   onColor,
+  onColumns,
   onRearranging,
   onResetLayout,
   onDelete,
@@ -74,9 +76,11 @@ function CardActions({
   item: GridItem
   size: Size
   color?: Color
+  columns: Columns
   rearranging: boolean
   onSize: (size: Size) => void
   onColor: (color: Color | null) => void
+  onColumns: (columns: Columns) => void
   onRearranging: (on: boolean) => void
   onResetLayout: () => void
   onDelete: () => void
@@ -92,6 +96,19 @@ function CardActions({
         {item.menu}
         {item.menu && <DropdownMenuSeparator />}
         <DropdownMenuItem onClick={() => onRearranging(!rearranging)}>{rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-max min-w-44">
+            <DropdownMenuRadioGroup value={String(columns)} onValueChange={(value) => onColumns(Number(value) as Columns)}>
+              <DropdownMenuRadioItem value="4" className="whitespace-nowrap">
+                4 columns
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="8" className="whitespace-nowrap">
+                8 columns
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Size</DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-max min-w-44">
@@ -145,6 +162,8 @@ function GridCard({
   item,
   size,
   color,
+  columns,
+  onColumns,
   rearranging,
   dragging,
   metrics,
@@ -160,6 +179,8 @@ function GridCard({
   item: GridItem
   size: Size
   color?: Color
+  columns: Columns
+  onColumns: (columns: Columns) => void
   rearranging: boolean
   dragging: boolean
   metrics: () => Metrics
@@ -174,6 +195,9 @@ function GridCard({
 }) {
   const [resizing, setResizing] = React.useState(false)
   const paint = COLORS.find((c) => c.value === (color ?? item.color))
+  // On the eight-column grid a one-column card is half the size: the media
+  // shrinks, the title tightens, the lines below it go.
+  const compact = columns === 8 && size.cols === 1
 
   // The corner drag: the pointer's travel, against a column and a row, decides the size.
   const onHandle = (event: React.PointerEvent) => {
@@ -254,15 +278,17 @@ function GridCard({
               <GripVerticalIcon className="size-4" />
             </span>
           )}
-          <CardActions item={item} size={size} color={color} rearranging={rearranging} onSize={onSize} onColor={onColor} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
+          <CardActions item={item} size={size} color={color} columns={columns} rearranging={rearranging} onSize={onSize} onColor={onColor} onColumns={onColumns} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
         </CardAction>
       </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 text-center">
-        <div className="flex items-center justify-center rounded-2xl bg-muted/60 p-4">{item.media}</div>
+      <CardContent className={cn("flex min-h-0 flex-1 flex-col items-center justify-center text-center", compact ? "gap-2" : "gap-4")}>
+        <div className={cn("flex items-center justify-center rounded-2xl bg-muted/60", compact ? "p-2" : "p-4")} style={compact ? ({ zoom: 0.6 } as React.CSSProperties) : undefined}>
+          {item.media}
+        </div>
         <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="cn-font-heading text-lg font-medium text-balance">{item.title}</div>
-          {item.description && <CardDescription className="text-pretty">{item.description}</CardDescription>}
-          {item.meta && <p className="text-xs text-muted-foreground">{item.meta}</p>}
+          <div className={cn("cn-font-heading font-medium text-balance", compact ? "text-sm" : "text-lg")}>{item.title}</div>
+          {!compact && item.description && <CardDescription className="text-pretty">{item.description}</CardDescription>}
+          {!compact && item.meta && <p className="text-xs text-muted-foreground">{item.meta}</p>}
         </div>
       </CardContent>
       {item.actions && <CardFooter className="flex items-center gap-2">{item.actions.map(button)}</CardFooter>}
@@ -284,6 +310,7 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
   const [dragging, setDragging] = React.useState<string | null>(null)
 
   const cards = React.useMemo(() => (keepOrder ? arrange({ ...layout, order: [] }, items) : arrange(layout, items)), [layout, items, keepOrder])
+  const columns: Columns = layout.columns === 8 ? 8 : 4
 
   // Read at the moment of a drag, so a window that changed width since mount still measures true.
   const metrics = React.useCallback((): Metrics => {
@@ -297,6 +324,7 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
 
   const patch = (change: (current: Layout) => Partial<Layout>) => setLayout((raw) => ({ ...readLayout(raw), ...change(readLayout(raw)) }))
   const setSize = (key: string, size: Size) => patch((c) => ({ sizes: { ...c.sizes, [key]: size } }))
+  const setColumns = (columns: Columns) => patch(() => ({ columns }))
   const setColor = (key: string, color: Color | null) =>
     patch((c) => {
       const colors = { ...c.colors }
@@ -306,7 +334,7 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
     })
   const remove = (key: string) => patch((c) => ({ hidden: [...c.hidden.filter((k) => k !== key), key] }))
   const resetLayout = () => {
-    patch(() => ({ order: [], sizes: {}, hidden: [], colors: {} }))
+    patch(() => ({ order: [], sizes: {}, hidden: [], colors: {}, columns: 4 }))
     setRearranging(false)
   }
   const moveBefore = (key: string, before: string) => patch((c) => ({ order: reorder(arrange(c, items), key, before) }))
@@ -322,13 +350,15 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
         </div>
       )}
       {children}
-      <div ref={grid} data-slot="workspace-grid" className="grid auto-rows-[22rem] grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div ref={grid} data-slot="workspace-grid" data-columns={columns} className={cn("grid grid-cols-1 gap-6", columns === 8 ? "auto-rows-[11rem] md:grid-cols-4 xl:grid-cols-8" : "auto-rows-[22rem] md:grid-cols-2 xl:grid-cols-4")}>
         {cards.map((item) => (
           <GridCard
             key={item.key}
             item={item}
             size={layout.sizes[item.key] ?? DEFAULT_SIZE}
             color={layout.colors[item.key]}
+            columns={columns}
+            onColumns={setColumns}
             rearranging={rearranging}
             dragging={dragging === item.key}
             metrics={metrics}

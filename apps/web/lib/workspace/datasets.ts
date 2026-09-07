@@ -129,12 +129,16 @@ export const COLORS: { value: Color; label: string; primary: string; foreground:
   { value: "yellow", label: "Yellow", primary: "oklch(0.795 0.184 86.047)", foreground: "oklch(0.205 0 0)", swatch: "bg-yellow-500" },
 ]
 
+/** The grid's columns (Brendan, 2026-09-07): four, the default, or eight, where a card is half the size. */
+export type Columns = 4 | 8
+
 export type Layout = {
   order: string[]
   sizes: Record<string, Size>
   hidden: string[]
   sessions: Record<string, number>
   colors: Record<string, Color>
+  columns?: Columns
 }
 
 export const EMPTY_LAYOUT: Layout = { order: [], sizes: {}, hidden: [], sessions: {}, colors: {} }

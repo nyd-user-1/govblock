@@ -5,9 +5,12 @@ import { CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
 
 import { type Node, type Target } from "@/lib/create/path"
 import { partyName, stateName } from "@/lib/filters"
-import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
+import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
 import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use-folder"
+import type { MemberRow } from "@/lib/policy/types"
+import { usePolicy } from "@/lib/policy/use-policy"
+import { portraitFor } from "@/lib/imagery"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { readSort, sortRows } from "@/lib/workspace/sort"
 import { ago } from "@/components/create/timeline"
@@ -191,6 +194,11 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
 
   const { sort: sortParam } = useUrlParams(["sort"] as const)
   const sort = readSort(sortParam)
+  // The sponsors' portraits for the bill cards (Brendan, 2026-09-07): the
+  // session's members, once, by id.
+  const listsBills = node.kind === "bills" || node.kind === "root" || (node.kind === "committee" && node.sub === "bills")
+  const { data: sessionMembers } = usePolicy<MemberRow[]>(scope.resolved && listsBills ? "members" : null, { state, session: scope.filters.session })
+  const memberById = React.useMemo(() => new Map((sessionMembers ?? []).map((m) => [m.people_id, m])), [sessionMembers])
   const rows = React.useMemo(() => {
     const rank = (p: string) => {
       const index = pinned.indexOf(p)
@@ -256,15 +264,20 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                 if (row.record?.kind === "bill") {
                   const b = row.record.bill
                   const go: Target = { bill: String(b.bill_id), rollcall: null, number: b.bill_number }
-                  // Brendan's markup (2026-09-07): "HB 4795" · the title · "Rep. Foxx (R) · Sep 3, 2026 · Engrossed", the sponsor's party as the dot, no buttons.
-                  const sponsor = b.sponsor ? `${honorific(b.body === "Senate" ? "Sen" : "Rep", b.body)} ${b.sponsor.trim().split(/\s+/).pop()}${b.sponsor_party ? ` (${b.sponsor_party})` : ""}`.trim() : null
+                  // Brendan's markup (2026-09-07): "HB 4795" · the title · "Sep 3, 2026 · Engrossed"; the sponsor is the portrait with the party dot at the top left, not a name.
+                  const sponsor = b.sponsor_id ? memberById.get(b.sponsor_id) : undefined
                   return {
                     key: row.key,
-                    badge: b.sponsor_party ? <PartyDot party={b.sponsor_party} className="size-3" /> : undefined,
+                    badge: b.sponsor ? (
+                      <span className="relative shrink-0" title={b.sponsor}>
+                        <MemberPortrait name={b.sponsor} photoUrl={sponsor ? portraitFor(sponsor) : null} state={state} chamber={b.body ?? undefined} size={28} />
+                        <PartyDot party={b.sponsor_party ?? sponsor?.party} serving={sponsor?.active ?? true} className="absolute -right-0.5 -bottom-0.5 size-2.5 ring-2 ring-card" />
+                      </span>
+                    ) : undefined,
                     media: <ChamberSeal state={state} chamber={b.body} size={96} />,
                     title: b.bill_number.replace(/^([A-Za-z]+)\s*(\d)/, "$1 $2"),
                     description: truncate(b.title, 140),
-                    meta: [sponsor, b.last_action_date ? fmtDate(b.last_action_date) : null, b.status_desc || "Introduced"].filter(Boolean).join(" · "),
+                    meta: [b.last_action_date ? fmtDate(b.last_action_date) : null, b.status_desc || "Introduced"].filter(Boolean).join(" · "),
                     onOpen: () => onGo(go),
                     menu: (
                       <>
