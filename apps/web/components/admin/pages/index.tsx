@@ -15,8 +15,10 @@ import { DatabasePage } from "./database"
 import { EducationPage } from "./education"
 import { EmailPage } from "./email"
 import { LogsPage } from "./logs"
+import { MEMBER, MemberPage } from "./member"
 import { MenuPage } from "./menu"
 import { OrdersPage } from "./orders"
+import { RollCallPage } from "./roll-call"
 import { SalesPage } from "./sales"
 import { SettingsPage } from "./settings"
 import { SkeletonPage } from "./skeleton"
@@ -34,7 +36,10 @@ const TITLES: Record<string, string> = {
   "": "Session Performance",
   sales: "Session Performance",
   logs: "Activity Log",
+  "roll-call": "Roll Call",
   customers: "Member Analytics",
+  // Titled by the member; the crumb reads Admin › Member › the senator.
+  member: MEMBER,
   orders: "Bill Performance",
   traffic: "Traffic Observability",
   ai: "Cost & Usage Observability",
@@ -71,8 +76,12 @@ export function AdminPage({ page }: { page: string }) {
       return <SalesPage />
     case "logs":
       return <LogsPage />
+    case "roll-call":
+      return <RollCallPage />
     case "customers":
       return <CustomersPage />
+    case "member":
+      return <MemberPage />
     case "orders":
       return <OrdersPage />
     case "traffic":

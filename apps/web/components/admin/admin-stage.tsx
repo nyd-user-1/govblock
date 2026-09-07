@@ -29,6 +29,8 @@ const PARENTS: Record<string, { label: string; page: string }[]> = {
   "apps/users/create": [{ label: "Members", page: "apps/users" }],
   // The committee page is titled by its committee, under Committee.
   committee: [{ label: "Committee", page: "committee" }],
+  // The member page is titled by its member, under Member.
+  member: [{ label: "Member", page: "member" }],
 }
 
 export function AdminStage({

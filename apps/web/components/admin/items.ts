@@ -18,8 +18,10 @@ import {
   TableIcon,
   TrendingUpIcon,
   UserCheckIcon,
+  UserIcon,
   UsersIcon,
   VideoIcon,
+  VoteIcon,
 } from "lucide-react"
 
 // The Admin rail, entry for entry as paceui's Ultimate Dashboard lists it
@@ -43,7 +45,9 @@ export const ADMIN_MENU: MenuItem[] = [
   // paceui's Sales, as the session (Brendan, 2026-09-07: "sales is now session").
   { label: "Session", icon: TrendingUpIcon, page: "" },
   { label: "Log", icon: FileTextIcon, page: "logs" },
+  { label: "Roll Call", icon: VoteIcon, page: "roll-call" },
   { label: "Customer", icon: UserCheckIcon, page: "customers" },
+  { label: "Member", icon: UserIcon, page: "member" },
   { label: "Order", icon: ShoppingCartIcon, page: "orders" },
   // paceui's AI Tokens, as the site's traffic: Cloudflare and Amplify, live.
   { label: "Traffic", icon: ActivityIcon, page: "traffic", tag: "trend" },
@@ -52,7 +56,7 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Committee", icon: GavelIcon, page: "committee", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
   { label: "Database", icon: DatabaseIcon, page: "database", tag: "trend" },
-  { label: "Skeleton", icon: LayoutGridIcon, page: "skeleton", tag: "coming-soon" },
+  // Skeleton left the rail on 2026-09-07: it is the loading state between dashboards now (app/workspace/dashboard/[...page]/loading.tsx), still at admin/skeleton by address.
   { label: "Apps", isTitle: true },
   { label: "Email", icon: MailIcon, page: "apps/email", tag: "coming-soon" },
   { label: "Chat", icon: MessageSquareIcon, page: "apps/chat", tag: "coming-soon" },
