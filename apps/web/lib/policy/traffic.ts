@@ -138,10 +138,10 @@ export async function getTraffic(days = 90) {
   const since = day(daysAgo(days))
   const [zone, hourly, dims, amplify, state] = await Promise.all([
     q<ZoneDay>(`select date::text, requests, cached_requests, bytes, cached_bytes, threats, page_views, uniques, response_status_map, country_map, browser_map
-                  from cloudflare_zone_daily where date >= $1 order by date`, [since]),
+                  from cloudflare_zone_daily where date >= $1::date order by date`, [since]),
     q<ZoneHour>(`select datetime::text, requests, cached_requests, bytes, threats, page_views, uniques from cloudflare_zone_hourly where datetime >= now() - interval '3 days' order by datetime`),
-    q<Dim & { dimension: string }>(`select date::text, host, dimension, value, requests, visits, bytes from cloudflare_adaptive_daily where date >= $1 order by date`, [day(daysAgo(9))]),
-    q<AmplifyDay>(`select date::text, app_id, app_name, requests, errors_4xx, errors_5xx, bytes_downloaded, latency_ms from amplify_daily where date >= $1 order by date`, [since]),
+    q<Dim & { dimension: string }>(`select date::text, host, dimension, value, requests, visits, bytes from cloudflare_adaptive_daily where date >= $1::date order by date`, [day(daysAgo(9))]),
+    q<AmplifyDay>(`select date::text, app_id, app_name, requests, errors_4xx, errors_5xx, bytes_downloaded, latency_ms from amplify_daily where date >= $1::date order by date`, [since]),
     one<{ last_run: string | null }>(`select last_run::text from cloudflare_pull_state where key = 'zone'`),
   ])
   const num = <T extends Record<string, unknown>>(row: T, keys: (keyof T)[]) => { for (const k of keys) (row as Record<string, unknown>)[k as string] = n(row[k]); return row }
