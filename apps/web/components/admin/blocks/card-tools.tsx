@@ -28,7 +28,18 @@ export function CardAnchor({ children, id, className }: { children: string; id?:
   }
   return (
     <CardTitle id={anchor} className={cn("scroll-mt-20", className)}>
-      <button type="button" onClick={copy} title="Copy link to this card" className="inline-flex items-center gap-1.5 rounded-sm text-left underline-offset-4 hover:underline focus-visible:outline-1 focus-visible:outline-ring">
+      {/* hq's copy chip (app/ui/copy-code.tsx), as Brendan asked on 2026-09-07: a
+          rounded box on the muted ground, violet text, the ground darker on
+          hover, and the whole thing green while the link is on the clipboard. */}
+      <button
+        type="button"
+        onClick={copy}
+        title="Copy link to this card"
+        className={cn(
+          "inline-flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-left transition-colors select-none focus-visible:outline-1 focus-visible:outline-ring",
+          copied ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "bg-muted text-violet-600 hover:bg-muted/70 hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-200"
+        )}
+      >
         {children}
         {copied && <CheckIcon className="size-3.5 text-green-600" />}
       </button>

@@ -137,12 +137,14 @@ export function Table1({
 export type ProductRow = {
   id: string
   name: string
-  sku: string
+  /** The line under the name; none for a member (Brendan, 2026-09-07). */
+  sku?: string
   category: string
   image?: string | null
   fallback?: string
   revenue: React.ReactNode
-  sales: string
+  /** The line under the figure; none for a member's bills (Brendan, 2026-09-07). */
+  sales?: string
   status: string
   statusVariant?: "default" | "secondary" | "destructive" | "outline"
   href?: string
@@ -285,7 +287,7 @@ export function Table3({
                         ) : (
                           <p className="truncate font-medium">{product.name}</p>
                         )}
-                        <p className="text-xs text-muted-foreground">{product.sku}</p>
+                        {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
                       </div>
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
@@ -299,7 +301,7 @@ export function Table3({
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
                         <p className="font-medium">{product.revenue}</p>
-                        <p className="text-xs text-muted-foreground">{product.sales}</p>
+                        {product.sales && <p className="text-xs text-muted-foreground">{product.sales}</p>}
                       </div>
                     </TableCell>
                   </TableRow>

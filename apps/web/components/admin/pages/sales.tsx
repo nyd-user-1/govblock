@@ -5,7 +5,7 @@ import { DownloadIcon } from "lucide-react"
 
 import CODES from "@/lib/data/congress/committee-codes.json"
 import { memberHref, stateName } from "@/lib/filters"
-import { honorific, shortDistrict } from "@/lib/format"
+import { honorific } from "@/lib/format"
 import { PARTY_BLUE, PARTY_OTHER, PARTY_RED, portraitFor } from "@/lib/imagery"
 import { committeeKey } from "@/lib/policy/congress"
 import { committeeSlug } from "@/lib/policy/committee-slug"
@@ -51,16 +51,6 @@ function committeeHref(state: string, chamber: string, name: string, slug?: stri
     return code ? `/docs/committees/${code}` : `/docs/bills?state=${state}&committee=${encodeURIComponent(name)}`
   }
   return `/docs/committees/${slug ?? committeeSlug(state, chamber, name)}`
-}
-
-/** "SD-FL" is a senator for Florida; "HD-FL-14" a representative for FL-14; "SD-025" a state seat, District 25. */
-function seat(state: string, district: string, chamber: string) {
-  if (state === "US") {
-    const [, code, n] = district.split("-")
-    return n ? `${code}-${Number(n)}` : stateName(code) || chamber
-  }
-  const d = shortDistrict(district)
-  return d ? `District ${d}` : chamber
 }
 
 const initials = (name: string) =>
@@ -125,12 +115,10 @@ export function SalesPage() {
     sponsors.data?.map((s) => ({
       id: String(s.people_id),
       name: `${honorific(s.role, s.chamber)} ${s.name}`,
-      sku: seat(state, s.district ?? "", s.chamber),
       category: state === "US" ? stateName((s.district ?? "").split("-")[1]) || s.chamber : s.chamber,
       image: portraitFor(s),
       fallback: initials(s.name),
       revenue: `${num(s.prime)} bills`,
-      sales: "prime sponsor",
       status: s.party === "D" ? "Democrat" : s.party === "R" ? "Republican" : s.party || "Other",
       statusVariant: "outline",
       // The party is the dot on the portrait, not a column (Brendan, 2026-09-07).
