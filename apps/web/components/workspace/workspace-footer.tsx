@@ -118,8 +118,13 @@ export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-      <FilterChip />
+      {/* The Filter chip belongs to the Data pages alone (Brendan, 2026-09-07). */}
+      {mode === "data" && (
+        <>
+          <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+          <FilterChip />
+        </>
+      )}
       <ShellFooterLinks />
     </div>
   )
