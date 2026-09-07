@@ -18,6 +18,7 @@ import {
   TrendingUpIcon,
   UserCheckIcon,
   UsersIcon,
+  VideoIcon,
 } from "lucide-react"
 
 // The Admin rail, entry for entry as paceui's Ultimate Dashboard lists it
@@ -52,6 +53,8 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Email", icon: MailIcon, page: "apps/email", tag: "coming-soon" },
   { label: "Chat", icon: MessageSquareIcon, page: "apps/chat", tag: "coming-soon" },
   { label: "Calendar", icon: CalendarIcon, page: "apps/calendar", tag: "coming-soon" },
+  // Cloudflare Stream: the library, a player, imports, live inputs (2026-09-06).
+  { label: "Stream", icon: VideoIcon, page: "apps/stream", tag: "new" },
   {
     label: "Users",
     icon: UsersIcon,

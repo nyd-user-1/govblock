@@ -19,6 +19,7 @@ import { OrdersPage } from "./orders"
 import { SalesPage } from "./sales"
 import { SettingsPage } from "./settings"
 import { SkeletonPage } from "./skeleton"
+import { StreamPage } from "./stream"
 import { UsersCreatePage } from "./users-create"
 import { UsersPage } from "./users"
 
@@ -55,6 +56,8 @@ export function AdminPage({ page }: { page: string }) {
       return <ChatPage />
     case "apps/calendar":
       return <CalendarPage />
+    case "apps/stream":
+      return <StreamPage />
     case "apps/users":
       return <UsersPage />
     case "apps/users/create":
