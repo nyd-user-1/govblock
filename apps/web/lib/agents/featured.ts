@@ -11,7 +11,7 @@ import { nameOf, type Thread } from "@/lib/agents/inbox"
 
 const OPEN_PRIMARIES = `# Open primaries, on the record
 
-Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf), nine pages, and was mailed to you from govblock-clerk@agentmail.to.
+Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf), ten pages, and was mailed to you from govblock-clerk@agentmail.to.
 
 ## The short version
 
@@ -21,6 +21,7 @@ Every bill to open, half-open or close a primary in all 50 states, the District 
 - The ballot-measure route ran the other way in 2024. Top-two, top-four or top-five proposals failed in Alaska (a repeal that fell short), Arizona, Colorado, Idaho, Montana, Nevada and South Dakota; only the District of Columbia's Initiative 83 passed.
 - **Louisiana** is the one state moving toward closed primaries by statute: party primaries for Congress and three statewide boards begin in 2026, and the 2026 session is filling in the mechanics.
 - In Congress the idea has never left committee: the Open Our Democracy Act (2014, 2015), the CLEAN Elections Act (four Congresses) and the Let America Vote Act, H.R. 155 of the 119th Congress, sponsored by Rep. Brian Fitzpatrick with five cosponsors and referred on January 3, 2025.
+- **Where the fight was expensive, it was the 2024 ballot measures, not the bills.** Reform was bankrolled by a small set of national donors and their vehicles — Unite America, Article IV, the Arnold network's Action Now, and Katherine Gehl — and still lost almost everywhere. Nevada's Question 3 drew about $29M, Colorado's Proposition 131 about $15M, and Alaska's defenders of reform outspent a shoestring repeal a hundred to one and won by 664 votes.
 
 ## What the record shows
 
@@ -89,6 +90,16 @@ States with no qualifying bill since 2009: Iowa, Kansas, Massachusetts, Minnesot
 - **New Mexico SB16** (2025 Regular Session): Non-major Party Voters In Primary Elections — Signed by Governor, 2025-04-07
 - **Maine LD390** (2025-2026 Regular Session): An Act to Establish a Primary Election Period for Unenrolled Candidates in Order to Receive Campaign Contributions in Am — Passed, 2025-05-27
 
+## The money behind the 2024 campaigns
+
+The bills carry no campaign money; the ballot measures do, and 2024 was the expensive year. OpenSecrets counted more than $417M across all 2024 ballot measures. Primary reform was funded by one national donor network — Unite America (Denver; co-chairs Kent Thiry and Kathryn Murdoch, board including Kenneth Griffin), Article IV (Arlington VA), the Arnolds' Action Now Initiative (Houston), and Katherine Gehl's Institute for Political Innovation — and lost almost everywhere.
+
+- **Nevada Question 3** (~$29M): Unite America $9.6M, Katherine Gehl $5M, Kenneth Griffin $3M, Action Now $3M, Kathryn Murdoch $2.5M, John Sobrato $1M. Failed.
+- **Colorado Proposition 131** (~$15M): Unite America the largest donor (about $5M), Kent Thiry ~$1.5M, Ben Walton $1M, Reed Hastings $1M, Kathryn Murdoch $500K. Failed 55–45.
+- **Alaska Measure 2** (repeal): the pro-reform "No on 2" raised over $12M, mostly out of state (Article IV $4.42M, Unite America PAC $4.1M, Action Now); the repeal side raised about $120K and was outraised roughly a hundred to one. Repeal failed by 664 votes, so reform survives.
+
+Reform is a top-down, donor-funded movement spending out-of-state money and losing at the ballot box; Alaska is the mirror image, where the funded side was defending reform and barely held. None of this is in GovBlock's database; it was read from OpenSecrets and state newsrooms. Sources: [OpenSecrets/IVN](https://ivn.us/posts/more-400-million-raised-2024-ballot-measures-opensecrets-reports-2024-10-31), [Sentinel Colorado](https://sentinelcolorado.com/nation-world/prop-131-part-of-a-national-push-to-ease-polarization-by-ditching-partisan-primaries/), [Nevada Independent](https://thenevadaindependent.com/article/question-3-backers-promote-ranked-choice-voting-with-major-out-of-state-money), [Colorado Newsline](https://coloradonewsline.com/2024/10/25/colorado-proposition-131-debate/), [Alaska Beacon](https://alaskabeacon.com/briefs/alaska-ranked-choice-voting-repeal-effort-outraised-a-hundredfold-campaign-finance-filings-show/).
+
 ## Method
 
 The GovBlock record, all 52 jurisdictions from 2009 (some from 2007), titles and summaries searched for open, top-two, top-four, nonpartisan, blanket and semi-open primaries, unaffiliated and independent voters in primaries, closed primaries and crossover rules, and ranked-choice voting. 947 bills matched; 339 bear on who may vote, 481 are ranked-choice bills. Only titles and summaries were searched, so the count is a floor. Louisiana's 2024 special session holds one bill in the record, so its closed-primary act is described from the bills implementing it. H.R. 155's status was read from congress.gov today.
@@ -139,7 +150,7 @@ export const FEATURED: Thread[] = [
           ...emptyRun(),
           text: OPEN_PRIMARIES,
           model: "Claude Fable 5.1",
-          rounds: 9,
+          rounds: 11,
           ms: 41 * 60_000,
           done: true,
           steps: [
@@ -148,7 +159,8 @@ export const FEATURED: Thread[] = [
             { kind: "tool", id: "s3", name: "classify", input: { into: ["widen", "narrow", "ranked-choice"] }, summary: "339 on primary access: 277 widen, 62 narrow; 481 ranked-choice; 46 set aside", ok: true, ms: 800 },
             { kind: "tool", id: "s4", name: "verify", input: { bills: ["NM SB16 2025", "PA HB280 2025", "LA 2024 1st Special", "AK 2025"] }, summary: "SB16 signed 2025-04-07; HB280 laid on the table 2025-05-13; LA special session holds one bill", ok: true, ms: 9000 },
             { kind: "tool", id: "s5", name: "congress_gov", input: { bill: "119/hr/155" }, summary: "Let America Vote Act, Fitzpatrick, 5 cosponsors, referred 2025-01-03", ok: true, ms: 1400 },
-            { kind: "tool", id: "s6", name: "render_pdf", input: { pages: "Letter" }, summary: "9 pages, /reports/open-primaries-2026-09-07.pdf", ok: true, ms: 6000 },
+            { kind: "tool", id: "s5b", name: "web_search", input: { q: "who funds open primaries ballot measures 2024" }, summary: "Unite America, Article IV, Action Now (Arnold), Katherine Gehl; NV $29M, CO $15M, AK 100:1", ok: true, ms: 11000 },
+            { kind: "tool", id: "s6", name: "render_pdf", input: { pages: "Letter" }, summary: "10 pages, /reports/open-primaries-2026-09-07.pdf", ok: true, ms: 6000 },
             { kind: "tool", id: "s7", name: "deliver_report", input: { to: "brendan.stanton@gmail.com" }, summary: "delivered to brendan.stanton@gmail.com", ok: true, ms: 1200 },
           ],
         },
