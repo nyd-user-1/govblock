@@ -1,12 +1,10 @@
 "use client"
 
-import Link from "next/link"
-
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { Button } from "@govblock/ui/components/button"
-import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardFoot } from "@/components/card-foot"
 
 // Lobbying — registrations, clients and reported spend, and who spends most.
 // The Senate LDA is a federal register, not a per-state one, so this card reads
@@ -41,11 +39,7 @@ export function LobbyingCard() {
           ))}
         </div>
       </CardContent>
-      <CardFooter>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/lobbying?state=${state}`} />}>
-          All registrations
-        </Button>
-      </CardFooter>
+      <CardFoot href={`/docs/lobbying?state=${state}`} label="Lobbying" />
     </CardFrame>
   )
 }

@@ -9,8 +9,8 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber, truncate } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { ChamberPills } from "@/components/chamber-pills"
-import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardFoot } from "@/components/card-foot"
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
 // Committees — each with its bill count; the footer picks the chamber
@@ -45,11 +45,7 @@ export function CommitteesCard() {
       <CardContent>
         <ItemGroup>
           {committees.map((row) => (
-            <Item
-              key={row.label}
-              variant="muted"
-              render={<Link href={`/docs/bills?state=${state}&committee=${encodeURIComponent(row.label)}`} className="no-underline" />}
-            >
+            <Item key={row.label} variant="muted" render={<Link href={`/docs/bills?state=${state}&committee=${encodeURIComponent(row.label)}`} className="no-underline" />}>
               <ItemMedia>
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
@@ -61,9 +57,7 @@ export function CommitteesCard() {
           ))}
         </ItemGroup>
       </CardContent>
-      <CardFooter>
-        <ChamberPills value={chamber} onChange={setChamber} />
-      </CardFooter>
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/committees?state=${state}`} label="All committees" />
     </CardFrame>
   )
 }

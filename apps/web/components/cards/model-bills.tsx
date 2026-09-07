@@ -1,12 +1,10 @@
 "use client"
 
-import Link from "next/link"
-
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { Button } from "@govblock/ui/components/button"
-import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardFoot } from "@/components/card-foot"
 
 // Model bills — bills whose text is shared with bills in other states.
 // Model bills are a cross-jurisdiction measure by definition: the match is
@@ -40,11 +38,7 @@ export function ModelBillsCard() {
           ))}
         </div>
       </CardContent>
-      <CardFooter>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/docs/model-bills?state=${state}`} />}>
-          All lineages
-        </Button>
-      </CardFooter>
+      <CardFoot href={`/docs/model-bills?state=${state}`} label="Model bills" />
     </CardFrame>
   )
 }

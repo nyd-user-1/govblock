@@ -6,6 +6,7 @@ import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
+import { CardFoot } from "@/components/card-foot"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govblock/ui/components/item"
 
@@ -14,7 +15,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govbl
 type ApiSession = { session_id: number; bills: number; title: string }
 
 export function SessionsCard() {
-  const { data, session, congress } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
+  const { data, session, state, congress } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
   const sessions = React.useMemo(
     () =>
       data
@@ -45,13 +46,7 @@ export function SessionsCard() {
           {sessions.map((row) => {
             const isCurrent = row.session_year === session
             return (
-              <Item
-                key={row.session_year}
-                variant="muted"
-                aria-current={isCurrent ? "true" : undefined}
-                className={isCurrent ? "ring-1 ring-ring/40" : undefined}
-                render={<button type="button" className="w-full text-left" />}
-              >
+              <Item key={row.session_year} variant="muted" aria-current={isCurrent ? "true" : undefined} className={isCurrent ? "ring-1 ring-ring/40" : undefined} render={<button type="button" className="w-full text-left" />}>
                 <ItemContent>
                   <ItemTitle>{row.label}</ItemTitle>
                   <ItemDescription>
@@ -63,6 +58,7 @@ export function SessionsCard() {
           })}
         </ItemGroup>
       </CardContent>
+      <CardFoot href={`/docs/datasets/${state.toLowerCase()}`} label="The sessions as files" />
     </CardFrame>
   )
 }

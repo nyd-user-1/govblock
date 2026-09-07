@@ -12,7 +12,14 @@ export function ChamberPills({ value, onChange }: { value: string; onChange: (ch
   return (
     <ToggleGroup value={value ? [value] : []} onValueChange={(next) => onChange(String(next?.[0] ?? ""))} variant="outline" spacing={1}>
       {chambers.map((name) => (
-        <ToggleGroupItem key={name} value={name}>
+        // The pressed pill is the lit one — filled, in the foreground — and
+        // the other sits dim, so the pair reads as a choice made rather than
+        // two switched on (Brendan, 2026-09-07).
+        <ToggleGroupItem
+          key={name}
+          value={name}
+          className="text-muted-foreground hover:text-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background"
+        >
           {name}
         </ToggleGroupItem>
       ))}

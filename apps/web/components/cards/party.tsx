@@ -10,7 +10,8 @@ import { fmtNumber } from "@/lib/format"
 import { partyColor } from "@/lib/imagery"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { PartyDot } from "@/components/policy/imagery"
-import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardFoot } from "@/components/card-foot"
 import { ToggleGroup, ToggleGroupItem } from "@govblock/ui/components/toggle-group"
 
 // Party — the two-tone proportion: who holds the seats, chamber by chamber.
@@ -38,39 +39,33 @@ export function PartyCard() {
       <CardContent className="flex flex-col gap-3">
         <span aria-hidden="true" className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
           {ordered.map((row) => (
-            <span
-              key={row.party}
-              className="h-full"
-              style={{ width: `${(row.seats / Math.max(total, 1)) * 100}%`, background: partyColor(row.party) }}
-            />
+            <span key={row.party} className="h-full" style={{ width: `${(row.seats / Math.max(total, 1)) * 100}%`, background: partyColor(row.party) }} />
           ))}
         </span>
         <div className="flex flex-col gap-1.5">
           {ordered.map((row) => (
-            <Link
-              key={row.party}
-              href={`/docs/directory?state=${state}&party=${row.party}&chamber=${encodeURIComponent(active)}`}
-              className="flex items-center gap-2 text-sm no-underline"
-            >
+            <Link key={row.party} href={`/docs/directory?state=${state}&party=${row.party}&chamber=${encodeURIComponent(active)}`} className="flex items-center gap-2 text-sm no-underline">
               <PartyDot party={row.party} />
               <span className="truncate text-foreground">{partyName(row.party)}</span>
               <span className="ml-auto shrink-0 font-medium tabular-nums">{fmtNumber(row.seats)}</span>
-              <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                {Math.round((row.seats / Math.max(total, 1)) * 100)}%
-              </span>
+              <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{Math.round((row.seats / Math.max(total, 1)) * 100)}%</span>
             </Link>
           ))}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFoot href={`/docs/directory?state=${state}${active ? `&chamber=${encodeURIComponent(active)}` : ""}`} label="All members">
         <ToggleGroup value={active ? [active] : []} onValueChange={(value) => setChamber(String(value ?? ""))} variant="outline" spacing={1}>
           {chambers.map((name) => (
-            <ToggleGroupItem key={name} value={name}>
+            <ToggleGroupItem
+              key={name}
+              value={name}
+              className="text-muted-foreground hover:text-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background"
+            >
               {name}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-      </CardFooter>
+      </CardFoot>
     </CardFrame>
   )
 }

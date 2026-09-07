@@ -2,110 +2,116 @@
 
 import * as React from "react"
 
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { Button } from "@govblock/ui/components/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@govblock/ui/components/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Checkbox } from "@govblock/ui/components/checkbox"
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@govblock/ui/components/field"
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@govblock/ui/components/field"
+import { Input } from "@govblock/ui/components/input"
 
-// The four rows Brendan mocked. The card was the finance demo's — deposits,
-// logins, goal milestones, a portfolio summary — on a site about legislatures.
+// Subscribe — what to hear about, and one button that becomes the address
+// field when pressed; Enter sends it (Brendan, 2026-09-07). The address
+// goes to the Subscribers table through /api/subscribe.
 //
 // His mock spelled it "ammendment"; this ships "amendment".
-const NOTIFICATIONS = [
-  {
-    id: "bills",
-    label: "Bill alerts",
-    description: "Get amendment, status, and votes updates.",
-    defaultChecked: true,
-  },
-  {
-    id: "committees",
-    label: "Committee alerts",
-    description: "Get agenda, hearing, and vote updates.",
-    defaultChecked: true,
-  },
-  {
-    id: "members",
-    label: "Member alerts",
-    description: "Get Member-specific updates.",
-    defaultChecked: true,
-  },
-  {
-    id: "votes",
-    label: "Vote alerts",
-    description: "Get itemized vote results.",
-    defaultChecked: false,
-  },
+const TOPICS = [
+  { id: "bills", label: "Bill alerts", description: "Get amendment, status, and votes updates.", defaultChecked: true },
+  { id: "committees", label: "Committee alerts", description: "Get agenda, hearing, and vote updates.", defaultChecked: true },
+  { id: "members", label: "Member alerts", description: "Get Member-specific updates.", defaultChecked: true },
+  { id: "votes", label: "Vote alerts", description: "Get itemized vote results.", defaultChecked: false },
 ]
 
 export function NotificationSettings() {
-  const [checked, setChecked] = React.useState<Record<string, boolean>>(
-    Object.fromEntries(NOTIFICATIONS.map((n) => [n.id, n.defaultChecked]))
-  )
+  const { state } = useJurisdiction()
+  const [checked, setChecked] = React.useState<Record<string, boolean>>(Object.fromEntries(TOPICS.map((n) => [n.id, n.defaultChecked])))
+  const [mode, setMode] = React.useState<"button" | "input" | "busy" | "done" | "error">("button")
+  const [email, setEmail] = React.useState("")
+  const [message, setMessage] = React.useState<string | null>(null)
+  const input = React.useRef<HTMLInputElement>(null)
 
-  const allChecked = NOTIFICATIONS.every((n) => checked[n.id])
-  const someChecked = NOTIFICATIONS.some((n) => checked[n.id]) && !allChecked
+  const allChecked = TOPICS.every((n) => checked[n.id])
+  const someChecked = TOPICS.some((n) => checked[n.id]) && !allChecked
 
-  const handleSelectAll = (value: boolean) => {
-    setChecked(Object.fromEntries(NOTIFICATIONS.map((n) => [n.id, value])))
-  }
+  React.useEffect(() => {
+    if (mode === "input") input.current?.focus()
+  }, [mode])
 
-  const handleToggle = (id: string, value: boolean) => {
-    setChecked((prev) => ({ ...prev, [id]: value }))
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!email.trim()) return
+    setMode("busy")
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, state, topics: TOPICS.filter((n) => checked[n.id]).map((n) => n.id) }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "Could not subscribe.")
+      setMode("done")
+      setMessage(`Subscribed ${email.trim()}.`)
+    } catch (error) {
+      setMode("input")
+      setMessage(error instanceof Error ? error.message : "Could not subscribe.")
+    }
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-        <CardDescription>
-          Choose what you want to be notified about.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <Field orientation="horizontal">
-            <Checkbox
-              id="notify-all"
-              checked={allChecked}
-              indeterminate={someChecked}
-              onCheckedChange={(v) => handleSelectAll(!!v)}
-            />
-            <FieldContent>
-              <FieldLabel htmlFor="notify-all">Select all</FieldLabel>
-            </FieldContent>
-          </Field>
-          {NOTIFICATIONS.map((n) => (
-            <Field key={n.id} orientation="horizontal">
-              <Checkbox
-                id={`notify-${n.id}`}
-                checked={checked[n.id]}
-                onCheckedChange={(v) => handleToggle(n.id, !!v)}
-              />
+      <form onSubmit={submit}>
+        <CardHeader>
+          <CardTitle>Subscribe</CardTitle>
+          <CardDescription>Bills, votes and hearings, in your inbox.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            <Field orientation="horizontal">
+              <Checkbox id="notify-all" checked={allChecked} indeterminate={someChecked} onCheckedChange={(v) => setChecked(Object.fromEntries(TOPICS.map((n) => [n.id, !!v])))} />
               <FieldContent>
-                <FieldLabel htmlFor={`notify-${n.id}`}>{n.label}</FieldLabel>
-                <FieldDescription>{n.description}</FieldDescription>
+                <FieldLabel htmlFor="notify-all">Select all</FieldLabel>
               </FieldContent>
             </Field>
-          ))}
-        </FieldGroup>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full">Save Preferences</Button>
-      </CardFooter>
+            {TOPICS.map((n) => (
+              <Field key={n.id} orientation="horizontal">
+                <Checkbox id={`notify-${n.id}`} checked={checked[n.id]} onCheckedChange={(v) => setChecked((prev) => ({ ...prev, [n.id]: !!v }))} />
+                <FieldContent>
+                  <FieldLabel htmlFor={`notify-${n.id}`}>{n.label}</FieldLabel>
+                  <FieldDescription>{n.description}</FieldDescription>
+                </FieldContent>
+              </Field>
+            ))}
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="flex-col items-stretch gap-2">
+          {mode === "button" ? (
+            <Button type="button" className="w-full" onClick={() => setMode("input")}>
+              Subscribe
+            </Button>
+          ) : mode === "done" ? (
+            <Button type="button" className="w-full" disabled>
+              Subscribed
+            </Button>
+          ) : (
+            // The button's place, as an address field: type, then Enter.
+            <Input
+              ref={input}
+              type="email"
+              name="email"
+              placeholder="m@example.com, then Enter"
+              aria-label="Email"
+              required
+              value={email}
+              disabled={mode === "busy"}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && !email) setMode("button")
+              }}
+              className="h-9 w-full rounded-full text-center"
+            />
+          )}
+          {message && <p className={mode === "done" ? "text-center text-xs text-muted-foreground" : "text-center text-xs text-destructive"}>{message}</p>}
+        </CardFooter>
+      </form>
     </Card>
   )
 }

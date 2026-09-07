@@ -7,7 +7,8 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CopyButton } from "@/components/copy-button"
 import { Button } from "@govblock/ui/components/button"
-import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardFoot } from "@/components/card-foot"
 
 // API — the same numbers this page renders, as JSON, for the scope in the
 // header. The card is the documentation: the URL it shows is meant to be live.
@@ -30,14 +31,11 @@ export function ApiCard() {
           <CopyButton value={command} className="absolute top-2 right-2" variant="ghost" />
         </div>
       </CardContent>
-      <CardFooter className="gap-2">
+      <CardFoot href="/docs/api" label="The API">
         <Button size="sm" nativeButton={false} render={<Link href={path} target="_blank" />}>
           Try it
         </Button>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/docs" />}>
-          Docs
-        </Button>
-      </CardFooter>
+      </CardFoot>
     </CardFrame>
   )
 }

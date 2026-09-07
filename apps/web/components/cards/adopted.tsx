@@ -7,6 +7,7 @@ import { fmtNumber } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
+import { CardFoot } from "@/components/card-foot"
 import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/chart"
 
@@ -23,21 +24,23 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function AdoptedBillsCard() {
-  const { data, state, pending } = useScoped<Row[]>("adopted", [])
+  const { data, state, session, pending } = useScoped<Row[]>("adopted", [])
+  const nameOf = React.useCallback((id: number) => (state === "US" ? congressName(id).replace(" Congress", "") : String(id)), [state])
   const rows = React.useMemo(() => {
     const all = (data ?? []).filter((r) => r.bills > 0)
     // The last twelve sessions, and a session's name is what the pages call it.
-    return all.slice(-12).map((r) => ({ session: state === "US" ? congressName(r.session_id).replace(" Congress", "") : String(r.session_id), adopted: r.adopted, bills: r.bills }))
-  }, [data, state])
-  const latest = rows[rows.length - 1]
+    return all.slice(-12).map((r) => ({ session: nameOf(r.session_id), adopted: r.adopted, bills: r.bills, id: r.session_id }))
+  }, [data, nameOf])
+  // The chosen session is the one the sentence counts (Brendan, 2026-09-07:
+  // "this didn't change when I changed the session").
+  const chosen = rows.find((r) => r.id === Number(session)) ?? rows[rows.length - 1]
+  const current = chosen && chosen === rows[rows.length - 1]
 
   return (
     <CardFrame id="stock">
       <CardHeader>
         <CardTitle>Adopted Bills</CardTitle>
-        <CardDescription>
-          {pending && !rows.length ? "By session" : latest ? `By session · ${fmtNumber(latest.adopted)} so far this session` : "By session"}
-        </CardDescription>
+        <CardDescription>{pending && !rows.length ? "By session" : chosen ? `By session · ${fmtNumber(chosen.adopted)} ${current ? "so far this session" : `in the ${chosen.session}`}` : "By session"}</CardDescription>
         <CardAction>
           <ComponentActions />
         </CardAction>
@@ -58,6 +61,7 @@ export function AdoptedBillsCard() {
           </AreaChart>
         </ChartContainer>
       </CardContent>
+      <CardFoot href={`/docs/laws?state=${state}`} label="The laws" />
     </CardFrame>
   )
 }
