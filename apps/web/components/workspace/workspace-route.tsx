@@ -22,10 +22,17 @@ export function WorkspaceRoute({ segments }: { segments: string[] }) {
   const node = parsed.kind === "node" ? parsed : null
 
   const { data: sessions } = usePolicy<SessionRow[]>(node ? "sessions" : null, { state: node?.state })
+  // A year in the path is the dataset whose span covers it: 2026 reads the
+  // 119th Congress, keyed 2025, since two-year legislatures are keyed by the
+  // year they began. Absent, the newest year with bills.
   const session = React.useMemo(() => {
     if (!node) return null
-    if (node.session) return node.session
     const rows = sessions ?? []
+    if (node.session) {
+      if (!rows.length || rows.some((r) => Number(r.session_id) === node.session)) return node.session
+      const covering = rows.map((r) => Number(r.session_id)).filter((y) => y <= node.session!).sort((a, b) => b - a)[0]
+      return covering ?? node.session
+    }
     const pick = rows.find((r) => Number(r.bills) > 0) ?? rows[0]
     return pick ? Number(pick.session_id) : null
   }, [node, sessions])

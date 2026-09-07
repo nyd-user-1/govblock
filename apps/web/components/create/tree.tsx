@@ -250,7 +250,7 @@ export function Tree({ scope, location, node, onGo }: { scope: Scope; location: 
             {/* The repository's name: the session. The organization above it
                 is a click away on the label. */}
             <SidebarGroupLabel className="cursor-pointer" onClick={() => onGo({ at: null, committee: null, member: null, bill: null, rollcall: null })} title={`${legislatureName(state)} · ${sessionTitle}`}>
-              {sessionTitle || "…"}
+              {session ? String(session) : "…"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

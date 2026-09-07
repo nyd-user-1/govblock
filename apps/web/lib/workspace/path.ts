@@ -4,7 +4,8 @@ import { chambersOf } from "@/lib/workspace/datasets"
 
 // The workspace's paths (Brendan, 2026-09-07): /create's query keys, as a
 // path. The jurisdiction is its two-letter code, the chamber as the record
-// names it, the session its id, then the node:
+// names it, the year the session began (Brendan, 2026-09-07: by year, always;
+// a year inside a two-year session reads that session), then the node:
 //
 //   /workspace/data                                    the datasets
 //   /workspace/data/us/house                           the dataset, current session
@@ -47,7 +48,7 @@ export function parseWorkspacePath(segments: string[]): ParsedPath {
   const chamber = chamberFor(state, ch ?? "") ?? (ch ? undefined : chambersOf(state)[0])
   if (!chamber) return { kind: "missing", reason: `${state} has no chamber "${ch}".` }
   const session = sess && /^\d+$/.test(sess) ? Number(sess) : null
-  if (sess && session === null) return { kind: "missing", reason: `"${sess}" is not a session.` }
+  if (sess && session === null) return { kind: "missing", reason: `"${sess}" is not a year.` }
   const location: Location = { at: "", committee: "", member: "", bill: "", rollcall: "" }
   const out: ParsedPath = { kind: "node", state, chamber, session, location }
   const [head, a, b, c, d] = rest

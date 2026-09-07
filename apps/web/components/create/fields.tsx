@@ -51,7 +51,8 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
 
   const toOptions = (rows: Count[] | undefined, labelOf?: (value: string) => string): Option[] => (rows ?? []).map((row) => ({ value: row.value, label: labelOf ? labelOf(row.value) : row.value, hint: compact(row.count) }))
   const stateOptions = React.useMemo<Option[]>(() => (states ?? []).map((row) => ({ value: row.state, label: stateName(row.state), hint: compact(row.bills) })), [states])
-  const sessionOptions = React.useMemo<Option[]>(() => (sessions ?? []).map((row) => ({ value: String(row.session_id), label: shortSession(row.title), hint: compact(row.bills) })), [sessions])
+  // The year the session began is the label; the session's own name is the hint (Brendan, 2026-09-07: organise by year).
+  const sessionOptions = React.useMemo<Option[]>(() => (sessions ?? []).map((row) => ({ value: String(row.session_id), label: String(row.session_id), hint: row.title && shortSession(row.title) !== String(row.session_id) ? shortSession(row.title) : compact(row.bills) })), [sessions])
   const memberOptions = React.useMemo<Option[]>(
     () =>
       (members ?? [])
@@ -77,7 +78,7 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
         onChange={(next) => setFilters({ state: next, session: "", chamber: "", committee: "", member: "", party: "", status: "", subject: "", bill: "" })}
       />
       <FilterPicker
-        label="Session"
+        label="Year"
         param="session"
         value={session}
         display={sessionOptions.find((s) => s.value === session)?.label}

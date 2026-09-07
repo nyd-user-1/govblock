@@ -49,22 +49,22 @@ const fileUrl = (state: string, session: number, format: "csv" | "json") => `/ap
 // The route answers with an attachment, so the page stays where it is.
 const download = (url: string) => window.location.assign(url)
 
-/** Choose Session: the current one is free, the earlier ones wait on the plan. */
+/** Choose Year: the current one is free, the earlier ones wait on the plan. */
 function ChooseSession({ dataset, chosen, onChoose }: { dataset: Dataset; chosen?: number; onChoose: (session: number) => void }) {
   const sessions = useSessions(dataset.state)
   const current = sessions[0]?.session_id
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>Choose Session</DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger>Choose Year</DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="w-max min-w-44">
         <DropdownMenuRadioGroup value={String(chosen ?? current ?? "")} onValueChange={(value) => onChoose(Number(value))}>
           {sessions.map((row) => (
-            <DropdownMenuRadioItem key={row.session_id} value={String(row.session_id)} disabled={row.session_id !== current} className="whitespace-nowrap" title={row.session_id !== current ? "Earlier sessions wait on a paid plan" : undefined}>
-              {row.title || String(row.session_id)}
+            <DropdownMenuRadioItem key={row.session_id} value={String(row.session_id)} disabled={row.session_id !== current} className="whitespace-nowrap" title={row.session_id !== current ? "Earlier years wait on a paid plan" : row.title}>
+              {String(row.session_id)}
               {row.session_id !== current && <LockIcon className="ml-auto size-3.5 text-muted-foreground" aria-label="Locked" />}
             </DropdownMenuRadioItem>
           ))}
-          {!sessions.length && <DropdownMenuItem disabled>Loading sessions…</DropdownMenuItem>}
+          {!sessions.length && <DropdownMenuItem disabled>Loading years…</DropdownMenuItem>}
         </DropdownMenuRadioGroup>
       </DropdownMenuSubContent>
     </DropdownMenuSub>

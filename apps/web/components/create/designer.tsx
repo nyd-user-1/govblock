@@ -220,7 +220,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
     if (workspace) out.unshift({ label: "Data", go: { at: "datasets" } })
     if (node.kind === "sessions") return out
     if (workspace && !routeNode) return out
-    out.push({ label: sessionTitle || String(scope.session ?? ""), go: listing(null) })
+    // The year, not the session's name (Brendan, 2026-09-07: "by year is 10000% required"). The record keys each dataset by the year its session began.
+    out.push({ label: String(scope.session ?? sessionTitle ?? ""), go: listing(null) })
     const at = params.at.split("/").filter(Boolean).map(decodeURIComponent)
     if (location.committee) {
       out.push({ label: "Committees", go: listing("committees") })
