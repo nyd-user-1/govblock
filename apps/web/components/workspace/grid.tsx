@@ -260,6 +260,8 @@ function GridCard({
       className={cn(
         // A 1px border on hover (Brendan, 2026-09-07); transparent otherwise so nothing shifts.
         "relative h-full min-h-0 overflow-hidden border border-transparent transition-colors hover:border-foreground/50",
+        // Half the card, half the padding (Brendan, 2026-09-07): the card's own spacing token, halved, so its padding and gaps follow.
+        compact && "[--card-spacing:--spacing(2.5)]",
         COLS[size.cols],
         ROWS[size.rows],
         openable && "cursor-pointer",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 import { ROOMS, type Room } from "@/lib/workspace/path"
 import { Designer } from "@/components/create/designer"
@@ -21,5 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ room: str
 export default async function RoomPage({ params }: { params: Promise<{ room: string }> }) {
   const { room } = await params
   if (!(ROOMS as readonly string[]).includes(room)) notFound()
+  // Finance moved under the dashboards (Brendan, 2026-09-07).
+  if (room === "finance") redirect("/workspace/dashboard/finance")
   return <Designer route={{ room: room as Room }} />
 }

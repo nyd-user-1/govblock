@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArchiveIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LandmarkIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
+import { ArchiveIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
 
 import { readSort, SORTS } from "@/lib/workspace/sort"
 import { AssistToggle } from "@/components/assist-panel"
@@ -26,7 +26,6 @@ export const WORKSPACES: { key: Workspace; label: string; href: string; icon: ty
   { key: "data", label: "Data", href: "/workspace/data", icon: DatabaseIcon },
   { key: "dashboards", label: "Dashboards", href: "/workspace/dashboard", icon: LayoutDashboardIcon },
   { key: "inbox", label: "Agentic Inbox", href: "/workspace/inbox", icon: InboxIcon },
-  { key: "finance", label: "Finance", href: "/workspace/finance", icon: LandmarkIcon },
   { key: "forms", label: "Forms", href: "/workspace/forms", icon: FileTextIcon },
   { key: "documents", label: "Documents", href: "/workspace/documents", icon: ArchiveIcon },
   { key: "typeset", label: "Typeset", href: "/workspace/typeset", icon: TypeIcon },
@@ -40,7 +39,11 @@ function FilterChip() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex h-7 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent data-[state=open]:bg-accent" aria-label="How the rows are ordered">
+        <button
+          type="button"
+          className="flex h-7 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent data-[state=open]:bg-accent"
+          aria-label="How the rows are ordered"
+        >
           {current ? SORTS.find((s) => s.value === current)?.label : "Filter"}
           <ChevronsUpDown className="size-3.5 opacity-70" />
         </button>
@@ -77,7 +80,19 @@ export function ShellFooterLinks({ className }: { className?: string }) {
   )
 }
 
-export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className, children }: { mode: Workspace; panelOpen: boolean; onTogglePanel: () => void; className?: string; /** The page's own controls, after the mode switcher: typeset's pages. */ children?: React.ReactNode }) {
+export function WorkspaceFooter({
+  mode,
+  panelOpen,
+  onTogglePanel,
+  className,
+  children,
+}: {
+  mode: Workspace
+  panelOpen: boolean
+  onTogglePanel: () => void
+  className?: string
+  /** The page's own controls, after the mode switcher: typeset's pages. */ children?: React.ReactNode
+}) {
   const router = useRouter()
   const current = WORKSPACES.find((w) => w.key === mode) ?? WORKSPACES[0]
   return (

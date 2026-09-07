@@ -19,28 +19,10 @@ import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, S
 import { PARTY_BLUE, PARTY_OTHER, PARTY_RED } from "@/lib/imagery"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@govblock/ui/components/nova/card"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@govblock/ui/components/nova/chart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@govblock/ui/components/nova/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 
 // The FEC explorer — everything on this page comes from Parquet files on S3
 // through /api/fec/candidates. No Postgres is touched, by design: it is the
@@ -116,28 +98,14 @@ const chartConfig = {
   receipts: { label: "Receipts" },
 } satisfies ChartConfig
 
-function Tile({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: string
-  hint?: string
-}) {
+function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card size="sm">
       <CardHeader>
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="cn-font-heading text-2xl tabular-nums">
-          {value}
-        </CardTitle>
+        <CardTitle className="cn-font-heading text-2xl tabular-nums">{value}</CardTitle>
       </CardHeader>
-      {hint && (
-        <CardContent className="pt-0 text-xs text-muted-foreground">
-          {hint}
-        </CardContent>
-      )}
+      {hint && <CardContent className="pt-0 text-xs text-muted-foreground">{hint}</CardContent>}
     </Card>
   )
 }
@@ -149,7 +117,13 @@ const PAGE = 25
 const FEC_PARTY: Record<string, string> = { D: "DEM", R: "REP", I: "OTHER", L: "OTHER", G: "OTHER", N: "OTHER" }
 const FEC_OFFICE: Record<string, string> = { House: "House", Assembly: "House", Senate: "Senate" }
 
-export function FecExplorer() {
+/**
+ * Embedded (Brendan, 2026-09-07: "finance belongs with the other dashboards"),
+ * the explorer is a page under /workspace/dashboard: no shell of its own, the
+ * dashboard's header above it, and the five filters as a row of pills over
+ * the tiles instead of a rail.
+ */
+export function FecExplorer({ embedded = false }: { embedded?: boolean }) {
   const { state, resolved, filters } = useScope()
   const [scopeAll, setScopeAll] = React.useState(false)
   const [cycle, setCycle] = React.useState<number | null>(null)
@@ -184,11 +158,7 @@ export function FecExplorer() {
   if (party) query.set("party", party)
   if (ici) query.set("ici", ici)
 
-  const { data, error, isLoading } = useSWR<Payload>(
-    resolved ? `/api/fec/candidates?${query}` : null,
-    fetcher,
-    { revalidateOnFocus: false, keepPreviousData: true }
-  )
+  const { data, error, isLoading } = useSWR<Payload>(resolved ? `/api/fec/candidates?${query}` : null, fetcher, { revalidateOnFocus: false, keepPreviousData: true })
   const { data: manifest } = useSWR<Manifest>("/api/fec/manifest", fetcher, {
     revalidateOnFocus: false,
   })
@@ -205,112 +175,100 @@ export function FecExplorer() {
     }
   }
 
-
-  const item = (label: string, active: boolean, onClick: () => void, hint?: string) => (
-    <SidebarMenuItem key={label}>
-      <SidebarMenuButton isActive={active} onClick={onClick} className="justify-between gap-2">
-        <span className="truncate">{label}</span>
-        {hint && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{hint}</span>}
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
+  type Choice = { label: string; active: boolean; onClick: () => void; hint?: string }
+  const groups: { label: string; choices: Choice[] }[] = [
+    { label: "Cycle", choices: (meta?.cycles ?? manifest?.cycles.map((c) => c.cycle) ?? []).map((year) => ({ label: `${year - 1}–${year}`, active: year === meta?.cycle, onClick: () => setCycle(year) })) },
+    {
+      label: "Scope",
+      choices: [
+        { label: stateName(state), active: !scopeAll, onClick: () => setScopeAll(false) },
+        { label: "All states", active: scopeAll, onClick: () => setScopeAll(true) },
+      ],
+    },
+    {
+      label: "Office",
+      choices: [
+        { label: "Every office", active: office === "", onClick: () => setOffice("") },
+        ...["House", "Senate", "President"].map((value) => ({
+          label: value,
+          active: office === value,
+          onClick: () => setOffice(value),
+          hint: meta?.byOffice.find((o) => o.office === value) ? fmtNumber(meta.byOffice.find((o) => o.office === value)!.candidates) : undefined,
+        })),
+      ],
+    },
+    {
+      label: "Party",
+      choices: [
+        { label: "Every party", active: party === "", onClick: () => setParty("") },
+        ...(["DEM", "REP", "OTHER"] as const).map((value) => ({
+          label: PARTY_LABEL[value],
+          active: party === value,
+          onClick: () => setParty(value),
+          hint: meta?.byParty.find((p) => p.party === value) ? fmtNumber(meta.byParty.find((p) => p.party === value)!.candidates) : undefined,
+        })),
+      ],
+    },
+    {
+      label: "Incumbency",
+      choices: [{ label: "Incumbent, challenger or open", active: ici === "", onClick: () => setIci("") }, ...(["I", "C", "O"] as const).map((value) => ({ label: ICI_LABEL[value], active: ici === value, onClick: () => setIci(value) }))],
+    },
+  ]
   const rail = (
     <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>Cycle</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {(meta?.cycles ?? manifest?.cycles.map((c) => c.cycle) ?? []).map((year) => item(`${year - 1}–${year}`, year === meta?.cycle, () => setCycle(year)))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Scope</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {item(stateName(state), !scopeAll, () => setScopeAll(false))}
-            {item("All states", scopeAll, () => setScopeAll(true))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Office</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {item("Every office", office === "", () => setOffice(""))}
-            {["House", "Senate", "President"].map((value) => item(value, office === value, () => setOffice(value), meta?.byOffice.find((o) => o.office === value) ? fmtNumber(meta.byOffice.find((o) => o.office === value)!.candidates) : undefined))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Party</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {item("Every party", party === "", () => setParty(""))}
-            {(["DEM", "REP", "OTHER"] as const).map((value) => item(PARTY_LABEL[value], party === value, () => setParty(value), meta?.byParty.find((p) => p.party === value) ? fmtNumber(meta.byParty.find((p) => p.party === value)!.candidates) : undefined))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Incumbency</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {item("Incumbent, challenger or open", ici === "", () => setIci(""))}
-            {(["I", "C", "O"] as const).map((value) => item(ICI_LABEL[value], ici === value, () => setIci(value)))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+      {groups.map((group) => (
+        <SidebarGroup key={group.label}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {group.choices.map((c) => (
+                <SidebarMenuItem key={c.label}>
+                  <SidebarMenuButton isActive={c.active} onClick={c.onClick} className="justify-between gap-2">
+                    <span className="truncate">{c.label}</span>
+                    {c.hint && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{c.hint}</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
     </SidebarContent>
   )
+  // The same five filters as pills, for the dashboard.
+  const pills = (
+    <div className="flex flex-col gap-3">
+      {groups.map((group) => (
+        <div key={group.label} className="flex flex-wrap items-center gap-1.5">
+          <span className="w-24 shrink-0 text-xs font-medium text-muted-foreground">{group.label}</span>
+          {group.choices.map((c) => (
+            <Button key={c.label} variant={c.active ? "default" : "outline"} size="sm" className="h-7 gap-1.5 rounded-full px-3 text-xs shadow-none" aria-pressed={c.active} onClick={c.onClick}>
+              {c.label}
+              {c.hint && <span className={c.active ? "opacity-80" : "text-muted-foreground"}>{c.hint}</span>}
+            </Button>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
 
-  return (
-    <BlockShell
-      rail={rail}
-      title={
-        <>
-          <span>Finance — {scopeAll ? "all states" : stateName(scope)}</span>
-          <Badge variant="outline" className="hidden font-normal sm:inline-flex">
-            {meta ? `${meta.cycle - 1}–${meta.cycle}` : "…"}
-          </Badge>
-        </>
-      }
-      actions={<span className="hidden text-xs text-muted-foreground lg:inline">Read from Parquet on S3. No database is in the path.</span>}
-    >
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+  const body = (
+    <div className={embedded ? "flex flex-col gap-6" : "flex flex-col gap-6 p-4 md:p-6"}>
+      {embedded && pills}
       {error && <p className="text-sm text-muted-foreground">{error.message}</p>}
       {/* KPI tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile
-          label="Candidates"
-          value={meta ? fmtNumber(meta.matched) : "—"}
-          hint={meta ? `of ${fmtNumber(meta.cycleRows)} filed this cycle` : ""}
-        />
-        <Tile
-          label="Total receipts"
-          value={meta ? fmtCompact(meta.totalReceipts) : "—"}
-        />
-        <Tile
-          label="Total disbursements"
-          value={meta ? fmtCompact(meta.totalDisbursements) : "—"}
-        />
-        <Tile
-          label="Cash on hand"
-          value={meta ? fmtCompact(meta.totalCashOnHand) : "—"}
-          hint="at the close of the reporting period"
-        />
+        <Tile label="Candidates" value={meta ? fmtNumber(meta.matched) : "—"} hint={meta ? `of ${fmtNumber(meta.cycleRows)} filed this cycle` : ""} />
+        <Tile label="Total receipts" value={meta ? fmtCompact(meta.totalReceipts) : "—"} />
+        <Tile label="Total disbursements" value={meta ? fmtCompact(meta.totalDisbursements) : "—"} />
+        <Tile label="Cash on hand" value={meta ? fmtCompact(meta.totalCashOnHand) : "—"} hint="at the close of the reporting period" />
       </div>
 
       {/* Receipts by party */}
       <Card>
         <CardHeader>
           <CardTitle>Receipts by party</CardTitle>
-          <CardDescription>
-            {meta
-              ? meta.byOffice
-                  .map((o) => `${o.office} ${fmtNumber(o.candidates)}`)
-                  .join(" · ")
-              : ""}
-          </CardDescription>
+          <CardDescription>{meta ? meta.byOffice.map((o) => `${o.office} ${fmtNumber(o.candidates)}`).join(" · ") : ""}</CardDescription>
         </CardHeader>
         <CardContent>
           {meta?.byParty.length ? (
@@ -323,27 +281,12 @@ export function FecExplorer() {
                 layout="vertical"
                 margin={{ left: 8, right: 8 }}
               >
-                <YAxis
-                  type="category"
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  width={90}
-                />
+                <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} width={90} />
                 <XAxis type="number" dataKey="receipts" hide />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value) => fmtCompact(Number(value))}
-                    />
-                  }
-                />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => fmtCompact(Number(value))} />} />
                 <Bar dataKey="receipts" radius={4}>
                   {meta.byParty.map((row) => (
-                    <Cell
-                      key={row.party}
-                      fill={PARTY_COLOR[row.party] ?? PARTY_OTHER}
-                    />
+                    <Cell key={row.party} fill={PARTY_COLOR[row.party] ?? PARTY_OTHER} />
                   ))}
                 </Bar>
               </BarChart>
@@ -358,11 +301,7 @@ export function FecExplorer() {
       <Card>
         <CardHeader>
           <CardTitle>Candidates</CardTitle>
-          <CardDescription>
-            {meta
-              ? `${fmtNumber(meta.matched)} matching · page ${page + 1} of ${Math.max(pages, 1)}`
-              : "Loading…"}
-          </CardDescription>
+          <CardDescription>{meta ? `${fmtNumber(meta.matched)} matching · page ${page + 1} of ${Math.max(pages, 1)}` : "Loading…"}</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           <Table>
@@ -396,34 +335,18 @@ export function FecExplorer() {
               {(data?.rows ?? []).map((row) => (
                 <TableRow key={row.cand_id}>
                   <TableCell>
-                    <a
-                      href={row.fec_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 font-medium"
-                    >
+                    <a href={row.fec_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 font-medium">
                       <span
                         aria-hidden="true"
                         className="size-2 shrink-0 rounded-full"
                         style={{
-                          background:
-                            PARTY_COLOR[
-                              (row.party ?? "").toUpperCase().startsWith("DEM")
-                                ? "DEM"
-                                : (row.party ?? "")
-                                      .toUpperCase()
-                                      .startsWith("REP")
-                                  ? "REP"
-                                  : "OTHER"
-                            ],
+                          background: PARTY_COLOR[(row.party ?? "").toUpperCase().startsWith("DEM") ? "DEM" : (row.party ?? "").toUpperCase().startsWith("REP") ? "REP" : "OTHER"],
                         }}
                       />
                       {row.name}
                     </a>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {row.seat}
-                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{row.seat}</TableCell>
                   <TableCell>
                     {row.ici ? (
                       <Badge variant="outline" className="font-normal">
@@ -431,23 +354,14 @@ export function FecExplorer() {
                       </Badge>
                     ) : null}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {fmtCompact(row.receipts)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {fmtCompact(row.disbursements)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {fmtCompact(row.cash_on_hand)}
-                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtCompact(row.receipts)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtCompact(row.disbursements)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtCompact(row.cash_on_hand)}</TableCell>
                 </TableRow>
               ))}
               {!data?.rows.length && !isLoading && (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-10 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                     No candidates match these filters.
                   </TableCell>
                 </TableRow>
@@ -457,25 +371,13 @@ export function FecExplorer() {
         </CardContent>
         {pages > 1 && (
           <CardContent className="flex items-center justify-between gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
+            <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
               Previous
             </Button>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {page * PAGE + 1}–
-              {Math.min((page + 1) * PAGE, meta?.matched ?? 0)} of{" "}
-              {fmtNumber(meta?.matched ?? 0)}
+              {page * PAGE + 1}–{Math.min((page + 1) * PAGE, meta?.matched ?? 0)} of {fmtNumber(meta?.matched ?? 0)}
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page + 1 >= pages}
-              onClick={() => setPage((p) => p + 1)}
-            >
+            <Button size="sm" variant="outline" disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)}>
               Next
             </Button>
           </CardContent>
@@ -499,30 +401,39 @@ export function FecExplorer() {
                 key={entry.cycle}
                 type="button"
                 onClick={() => setCycle(entry.cycle)}
-                className={`flex flex-col gap-0.5 rounded-lg border p-2 text-left text-xs transition-colors hover:bg-muted ${
-                  entry.cycle === meta?.cycle ? "border-ring bg-muted" : ""
-                }`}
+                className={`flex flex-col gap-0.5 rounded-lg border p-2 text-left text-xs transition-colors hover:bg-muted ${entry.cycle === meta?.cycle ? "border-ring bg-muted" : ""}`}
               >
                 <span className="font-medium tabular-nums">
                   {entry.cycle - 1}–{entry.cycle}
                 </span>
-                <span className="text-muted-foreground tabular-nums">
-                  {fmtNumber(entry.rows)} rows
-                </span>
-                <span className="text-muted-foreground tabular-nums">
-                  {(entry.bytes / 1024).toFixed(0)} KB
-                </span>
+                <span className="text-muted-foreground tabular-nums">{fmtNumber(entry.rows)} rows</span>
+                <span className="text-muted-foreground tabular-nums">{(entry.bytes / 1024).toFixed(0)} KB</span>
               </button>
             ))}
           </div>
           <p className="mt-3 font-mono text-[11px] break-all text-muted-foreground">
-            {meta?.source ??
-              "s3://livingston-fec-bulk-638175140432/parquet/candidate_summary"}
+            {meta?.source ?? "s3://livingston-fec-bulk-638175140432/parquet/candidate_summary"}
             /cycle=&lt;YYYY&gt;/part-0.parquet
           </p>
         </CardContent>
       </Card>
     </div>
+  )
+  if (embedded) return body
+  return (
+    <BlockShell
+      rail={rail}
+      title={
+        <>
+          <span>Finance — {scopeAll ? "all states" : stateName(scope)}</span>
+          <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+            {meta ? `${meta.cycle - 1}–${meta.cycle}` : "…"}
+          </Badge>
+        </>
+      }
+      actions={<span className="hidden text-xs text-muted-foreground lg:inline">Read from Parquet on S3. No database is in the path.</span>}
+    >
+      {body}
     </BlockShell>
   )
 }

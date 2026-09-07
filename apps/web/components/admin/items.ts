@@ -7,6 +7,7 @@ import {
   FileTextIcon,
   GavelIcon,
   GraduationCapIcon,
+  LandmarkIcon,
   LayoutGridIcon,
   type LucideIcon,
   MailIcon,
@@ -56,6 +57,8 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Committee", icon: GavelIcon, page: "committee", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
   { label: "Database", icon: DatabaseIcon, page: "database", tag: "trend" },
+  // The FEC explorer, from /workspace/finance (Brendan, 2026-09-07: "this belongs with the other dashboards").
+  { label: "Finance", icon: LandmarkIcon, page: "finance", tag: "trend" },
   // Skeleton left the rail on 2026-09-07: it is the loading state between dashboards now (app/workspace/dashboard/[...page]/loading.tsx), still at admin/skeleton by address.
   { label: "Apps", isTitle: true },
   { label: "Email", icon: MailIcon, page: "apps/email", tag: "coming-soon" },
