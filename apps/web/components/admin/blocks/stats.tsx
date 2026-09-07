@@ -15,7 +15,12 @@ import { cn } from "@govblock/ui/lib/utils"
 // Ultimate Dashboard's rendered pages. Each takes its figures as props so a
 // page can hand it the record's numbers or the template's sample ones.
 
-export type Stat1Props = { title: string; value: React.ReactNode; changeValue: React.ReactNode; direction?: "up" | "down" | "neutral" }
+export type Stat1Props = {
+  title: string
+  value: React.ReactNode
+  changeValue: React.ReactNode
+  direction?: "up" | "down" | "neutral"
+}
 
 /** Logs: title, value, and a coloured change with an arrow. */
 export function Stat1({ title, value, changeValue, direction = "up" }: Stat1Props) {
@@ -39,12 +44,18 @@ export function Stat1({ title, value, changeValue, direction = "up" }: Stat1Prop
   )
 }
 
-export type Stat2Props = { title: string; value: React.ReactNode; trendValue: number; footerLabel: string; footerSubtext: string }
+export type Stat2Props = {
+  title: string
+  value: React.ReactNode
+  trendValue?: number | null
+  footer?: React.ReactNode
+}
 
-/** Sales: title, value, a trend badge, and a two-line footer. */
-export function Stat2({ title, value, trendValue, footerLabel, footerSubtext }: Stat2Props) {
-  const isPositive = trendValue > 0
-  const isNeutral = trendValue === 0
+/** Sales: title, value, a trend badge where there is a comparison, and one stat line beneath. */
+export function Stat2({ title, value, trendValue, footer }: Stat2Props) {
+  const hasTrend = typeof trendValue === "number"
+  const isPositive = hasTrend && trendValue > 0
+  const isNeutral = hasTrend && trendValue === 0
   const Icon = isNeutral ? MinusIcon : isPositive ? TrendingUpIcon : TrendingDownIcon
   const trendClass = isNeutral ? "text-foreground bg-muted" : isPositive ? "text-green-500 border-green-500/20 bg-green-500/10" : "text-destructive border-destructive/20 bg-destructive/10"
   const formattedTrend = isNeutral ? "0%" : `${isPositive ? "+" : ""}${trendValue}%`
@@ -55,18 +66,21 @@ export function Stat2({ title, value, trendValue, footerLabel, footerSubtext }: 
           <CardDescription className="font-medium">{title}</CardDescription>
           <CardTitle className="text-2xl font-bold @[600px]/card:text-4xl @[800px]/card:text-5xl">{value}</CardTitle>
         </div>
-        <Badge variant="outline" className={cn("gap-1 px-1.5 py-0.5", trendClass)}>
-          <Icon className="size-3" />
-          {formattedTrend}
-        </Badge>
+        {hasTrend && (
+          <Badge variant="outline" className={cn("gap-1 px-1.5 py-0.5", trendClass)}>
+            <Icon className="size-3" />
+            {formattedTrend}
+          </Badge>
+        )}
       </CardHeader>
-      <CardFooter className="flex-col items-start gap-1 text-sm max-sm:px-4">
-        <div className="line-clamp-1 flex items-center gap-1.5 font-medium">
-          <span className={isNeutral ? "" : isPositive ? "text-green-500" : "text-destructive"}>{footerLabel}</span>
-          <Icon className={cn("size-3.5", isNeutral ? "text-muted-foreground" : isPositive ? "text-green-500" : "text-destructive")} />
-        </div>
-        <div className="text-xs text-muted-foreground">{footerSubtext}</div>
-      </CardFooter>
+      {footer && (
+        <CardFooter className="max-sm:px-4">
+          <div className="line-clamp-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+            {hasTrend && !isNeutral && <Icon className={cn("size-3.5 shrink-0", isPositive ? "text-green-500" : "text-destructive")} />}
+            <span>{footer}</span>
+          </div>
+        </CardFooter>
+      )}
     </Card>
   )
 }
@@ -131,7 +145,9 @@ export function StatEducation({ title, period, value, badge, note, options = ["V
             />
             <DropdownMenuContent align="end" className="w-max min-w-44">
               {options.map((o) => (
-                <DropdownMenuItem key={o} className="whitespace-nowrap">{o}</DropdownMenuItem>
+                <DropdownMenuItem key={o} className="whitespace-nowrap">
+                  {o}
+                </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -195,7 +211,13 @@ export function StatCrypto({ title, description, value, of, percent, note }: { t
   )
 }
 
-export type DbStat = { title: string; value: React.ReactNode; change?: string; direction?: "up" | "down" | "neutral"; note?: string }
+export type DbStat = {
+  title: string
+  value: React.ReactNode
+  change?: string
+  direction?: "up" | "down" | "neutral"
+  note?: string
+}
 
 /** Database: six tiles inside one card, a hairline between them. */
 export function StatDatabaseGrid({ stats }: { stats: DbStat[] }) {

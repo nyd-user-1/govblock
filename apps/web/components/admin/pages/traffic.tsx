@@ -1,16 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpRightIcon, MoreHorizontalIcon, RefreshCwIcon, SearchIcon } from "lucide-react"
+import { ArrowUpRightIcon, RefreshCwIcon, SearchIcon } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, Line, LineChart, Pie, PieChart, XAxis } from "recharts"
 
 import { fmtCompact, fmtNumber } from "@/lib/format"
 import { StatAi } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { useSnapshot } from "@/lib/policy/use-policy"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Input } from "@govblock/ui/components/nova/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
@@ -33,13 +34,66 @@ import { cn } from "@govblock/ui/lib/utils"
 // reads: policy.nysgpt.com is DNS-only, straight to CloudFront, so Cloudflare
 // has never seen GovBlock's own traffic. That series is Amplify's.
 
-type Zone = { date: string; requests: number; cached_requests: number; bytes: number; cached_bytes: number; threats: number; page_views: number; uniques: number; response_status_map: { edgeResponseStatus: number; requests: number }[] | null; country_map: { clientCountryName: string; requests: number }[] | null; browser_map: { uaBrowserFamily: string; pageViews: number }[] | null }
-type Hour = { datetime: string; requests: number; cached_requests: number; threats: number; page_views: number; uniques: number }
-type Dim = { date: string; host: string; value: string; requests: number; visits: number; bytes: number }
-type Amp = { date: string; app_id: string; app_name: string; requests: number; errors_4xx: number; errors_5xx: number; bytes_downloaded: number; latency_ms: number | null }
-type Traffic = { zone: Zone[]; hourly: Hour[]; hosts: Dim[]; paths: Dim[]; countries: Dim[]; devices: Dim[]; browsers: Dim[]; statuses: Dim[]; amplify: Amp[]; pulled_at: string | null; zone_name: string; note: string; refresh?: { refreshed: boolean; reason: string } }
+type Zone = {
+  date: string
+  requests: number
+  cached_requests: number
+  bytes: number
+  cached_bytes: number
+  threats: number
+  page_views: number
+  uniques: number
+  response_status_map: { edgeResponseStatus: number; requests: number }[] | null
+  country_map: { clientCountryName: string; requests: number }[] | null
+  browser_map: { uaBrowserFamily: string; pageViews: number }[] | null
+}
+type Hour = {
+  datetime: string
+  requests: number
+  cached_requests: number
+  threats: number
+  page_views: number
+  uniques: number
+}
+type Dim = {
+  date: string
+  host: string
+  value: string
+  requests: number
+  visits: number
+  bytes: number
+}
+type Amp = {
+  date: string
+  app_id: string
+  app_name: string
+  requests: number
+  errors_4xx: number
+  errors_5xx: number
+  bytes_downloaded: number
+  latency_ms: number | null
+}
+type Traffic = {
+  zone: Zone[]
+  hourly: Hour[]
+  hosts: Dim[]
+  paths: Dim[]
+  countries: Dim[]
+  devices: Dim[]
+  browsers: Dim[]
+  statuses: Dim[]
+  amplify: Amp[]
+  pulled_at: string | null
+  zone_name: string
+  note: string
+  refresh?: { refreshed: boolean; reason: string }
+}
 
-const fmtDay = (v: string, long = false) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: long ? "long" : "short", day: "numeric" })
+const fmtDay = (v: string, long = false) =>
+  new Date(`${v}T12:00:00`).toLocaleDateString("en-US", {
+    month: long ? "long" : "short",
+    day: "numeric",
+  })
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0)
 const sign = (v: number) => `${v > 0 ? "+" : ""}${v}%`
 const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((a, r) => a + f(r), 0)
@@ -52,49 +106,131 @@ export function TrafficPage() {
   const [hostFilter, setHostFilter] = React.useState("all")
 
   const zone = data?.zone ?? []
-  const last30 = zone.slice(-30), prior30 = zone.slice(-60, -30)
-  const requests30 = sum(last30, (r) => r.requests), requestsPrior = sum(prior30, (r) => r.requests)
-  const views30 = sum(last30, (r) => r.page_views), viewsPrior = sum(prior30, (r) => r.page_views)
-  const uniques30 = sum(last30, (r) => r.uniques), uniquesPrior = sum(prior30, (r) => r.uniques)
-  const bytes30 = sum(last30, (r) => r.bytes), bytesPrior = sum(prior30, (r) => r.bytes)
+  const last30 = zone.slice(-30),
+    prior30 = zone.slice(-60, -30)
+  const requests30 = sum(last30, (r) => r.requests),
+    requestsPrior = sum(prior30, (r) => r.requests)
+  const views30 = sum(last30, (r) => r.page_views),
+    viewsPrior = sum(prior30, (r) => r.page_views)
+  const uniques30 = sum(last30, (r) => r.uniques),
+    uniquesPrior = sum(prior30, (r) => r.uniques)
+  const bytes30 = sum(last30, (r) => r.bytes),
+    bytesPrior = sum(prior30, (r) => r.bytes)
   const threats30 = sum(last30, (r) => r.threats)
   const cached30 = sum(last30, (r) => r.cached_requests)
   const govblock = (data?.amplify ?? []).filter((a) => a.app_name === "govblock")
-  const gbRequests = sum(govblock, (a) => a.requests), gb5xx = sum(govblock, (a) => a.errors_5xx), gb4xx = sum(govblock, (a) => a.errors_4xx)
+  const gbRequests = sum(govblock, (a) => a.requests),
+    gb5xx = sum(govblock, (a) => a.errors_5xx),
+    gb4xx = sum(govblock, (a) => a.errors_4xx)
 
-  const trend = zone.map((r) => ({ date: r.date, requests: r.requests, views: r.page_views, uniques: r.uniques, cached: r.cached_requests, uncached: r.requests - r.cached_requests }))
-  const gbTrend = govblock.map((a) => ({ date: a.date, requests: a.requests, errors: a.errors_4xx + a.errors_5xx }))
-  const trendConfig: ChartConfig = tab === "requests" ? { uncached: { label: "Uncached", color: "var(--chart-1)" }, cached: { label: "Cached", color: "var(--chart-3)" } } : tab === "views" ? { views: { label: "Page views", color: "var(--chart-1)" }, uniques: { label: "Unique visitors", color: "var(--chart-2)" } } : { requests: { label: "Requests", color: "var(--chart-1)" }, errors: { label: "Errors", color: "var(--chart-5)" } }
+  const trend = zone.map((r) => ({
+    date: r.date,
+    requests: r.requests,
+    views: r.page_views,
+    uniques: r.uniques,
+    cached: r.cached_requests,
+    uncached: r.requests - r.cached_requests,
+  }))
+  const gbTrend = govblock.map((a) => ({
+    date: a.date,
+    requests: a.requests,
+    errors: a.errors_4xx + a.errors_5xx,
+  }))
+  const trendConfig: ChartConfig =
+    tab === "requests"
+      ? {
+          uncached: { label: "Uncached", color: "var(--chart-1)" },
+          cached: { label: "Cached", color: "var(--chart-3)" },
+        }
+      : tab === "views"
+        ? {
+            views: { label: "Page views", color: "var(--chart-1)" },
+            uniques: { label: "Unique visitors", color: "var(--chart-2)" },
+          }
+        : {
+            requests: { label: "Requests", color: "var(--chart-1)" },
+            errors: { label: "Errors", color: "var(--chart-5)" },
+          }
 
   // Traffic by host: the eight-day window the API keeps, summed.
   const hosts = React.useMemo(() => {
     const m = new Map<string, { requests: number; visits: number; bytes: number }>()
-    for (const h of data?.hosts ?? []) { const cur = m.get(h.value) ?? { requests: 0, visits: 0, bytes: 0 }; cur.requests += h.requests; cur.visits += h.visits; cur.bytes += h.bytes; m.set(h.value, cur) }
+    for (const h of data?.hosts ?? []) {
+      const cur = m.get(h.value) ?? { requests: 0, visits: 0, bytes: 0 }
+      cur.requests += h.requests
+      cur.visits += h.visits
+      cur.bytes += h.bytes
+      m.set(h.value, cur)
+    }
     return [...m.entries()].map(([host, v]) => ({ host, ...v })).sort((a, b) => b.requests - a.requests)
   }, [data?.hosts])
-  const hostTotal = Math.max(1, sum(hosts, (h) => h.requests))
+  const hostTotal = Math.max(
+    1,
+    sum(hosts, (h) => h.requests)
+  )
   const hostConfig: ChartConfig = Object.fromEntries(hosts.slice(0, 6).map((h, i) => [h.host, { label: h.host, color: `var(--chart-${(i % 5) + 1})` }]))
 
-  const hourly = (data?.hourly ?? []).map((h) => ({ t: h.datetime, requests: h.requests, views: h.page_views, uniques: h.uniques, threats: h.threats }))
-  const hourConfig: ChartConfig = { requests: { label: "Requests", color: "var(--chart-1)" }, views: { label: "Page views", color: "var(--chart-2)" }, uniques: { label: "Visitors", color: "var(--chart-3)" } }
+  const hourly = (data?.hourly ?? []).map((h) => ({
+    t: h.datetime,
+    requests: h.requests,
+    views: h.page_views,
+    uniques: h.uniques,
+    threats: h.threats,
+  }))
+  const hourConfig: ChartConfig = {
+    requests: { label: "Requests", color: "var(--chart-1)" },
+    views: { label: "Page views", color: "var(--chart-2)" },
+    uniques: { label: "Visitors", color: "var(--chart-3)" },
+  }
 
   // Response classes over the last 30 days, from each day's status map.
   const classes = React.useMemo(() => {
     const c = { "2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0 }
-    for (const d of last30) for (const s of d.response_status_map ?? []) { const k = `${String(s.edgeResponseStatus)[0]}xx` as keyof typeof c; if (k in c) c[k] += s.requests }
+    for (const d of last30)
+      for (const s of d.response_status_map ?? []) {
+        const k = `${String(s.edgeResponseStatus)[0]}xx` as keyof typeof c
+        if (k in c) c[k] += s.requests
+      }
     return c
   }, [last30])
-  const classTotal = Math.max(1, Object.values(classes).reduce((a, b) => a + b, 0))
+  const classTotal = Math.max(
+    1,
+    Object.values(classes).reduce((a, b) => a + b, 0)
+  )
 
   const paths = React.useMemo(() => {
-    const m = new Map<string, { host: string; path: string; requests: number; visits: number; bytes: number; days: Set<string> }>()
+    const m = new Map<
+      string,
+      {
+        host: string
+        path: string
+        requests: number
+        visits: number
+        bytes: number
+        days: Set<string>
+      }
+    >()
     for (const p of data?.paths ?? []) {
       if (!p.host) continue
       const key = `${p.host}${p.value}`
-      const cur = m.get(key) ?? { host: p.host, path: p.value, requests: 0, visits: 0, bytes: 0, days: new Set<string>() }
-      cur.requests += p.requests; cur.visits += p.visits; cur.bytes += p.bytes; cur.days.add(p.date); m.set(key, cur)
+      const cur = m.get(key) ?? {
+        host: p.host,
+        path: p.value,
+        requests: 0,
+        visits: 0,
+        bytes: 0,
+        days: new Set<string>(),
+      }
+      cur.requests += p.requests
+      cur.visits += p.visits
+      cur.bytes += p.bytes
+      cur.days.add(p.date)
+      m.set(key, cur)
     }
-    return [...m.values()].filter((r) => (hostFilter === "all" || r.host === hostFilter) && (!query || r.path.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => b.requests - a.requests).slice(0, 40)
+    return [...m.values()]
+      .filter((r) => (hostFilter === "all" || r.host === hostFilter) && (!query || r.path.toLowerCase().includes(query.toLowerCase())))
+      .sort((a, b) => b.requests - a.requests)
+      .slice(0, 40)
   }, [data?.paths, hostFilter, query])
 
   const top = (rows: Dim[] | undefined, k = 5) => {
@@ -115,38 +251,73 @@ export function TrafficPage() {
               {data?.pulled_at ? `Cloudflare · pulled ${new Date(data.pulled_at.replace(" ", "T")).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Cloudflare"}
             </Badge>
             <Select value={days} onValueChange={(v) => v && setDays(String(v))}>
-              <SelectTrigger className="h-8 w-32" size="sm">
-                <SelectValue />
+              <SelectTrigger className="h-8 w-max min-w-32" size="sm">
+                <SelectValue>{() => (days === "90" ? "Last 90 days" : days === "400" ? "Since July 1" : "Last 30 days")}</SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="400">Since July 1</SelectItem>
+              <SelectContent className="w-max min-w-44">
+                <SelectItem value="30" className="whitespace-nowrap">
+                  Last 30 days
+                </SelectItem>
+                <SelectItem value="90" className="whitespace-nowrap">
+                  Last 90 days
+                </SelectItem>
+                <SelectItem value="400" className="whitespace-nowrap">
+                  Since July 1
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         }
       />
       <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatAi title="Requests (30d)" badge={pending ? "…" : sign(pct(requests30 - requestsPrior, requestsPrior))} badgeTone={requests30 >= requestsPrior ? "up" : "down"} value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(requests30, false)} note={`${fmtCompact(cached30, false)} served from cache · ${pct(cached30, requests30)}%`} />
-        <StatAi title="Page Views & Visitors (30d)" badge={pending ? "…" : sign(pct(views30 - viewsPrior, viewsPrior))} badgeTone={views30 >= viewsPrior ? "up" : "down"} value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(views30, false)} note={`${fmtNumber(uniques30)} unique visitors, summed by day${uniquesPrior ? ` · ${sign(pct(uniques30 - uniquesPrior, uniquesPrior))}` : ""}`} />
-        <StatAi title="Bandwidth (30d)" badge={pending ? "…" : sign(pct(bytes30 - bytesPrior, bytesPrior))} badgeTone={bytes30 >= bytesPrior ? "up" : "down"} value={pending ? <Skeleton className="h-7 w-24" /> : `${(bytes30 / 1e9).toFixed(2)}`} unit="GB" note={`${(sum(last30, (r) => r.cached_bytes) / 1e6).toFixed(0)} MB of it cached`} />
-        <StatAi title="Threats Blocked (30d)" badge="Cloudflare" badgeTone="neutral" value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(threats30, false)} note={`${pct(threats30, requests30)}% of requests · policy.nysgpt.com is not behind Cloudflare`} />
+        <StatAi
+          title="Requests (30d)"
+          badge={pending ? "…" : sign(pct(requests30 - requestsPrior, requestsPrior))}
+          badgeTone={requests30 >= requestsPrior ? "up" : "down"}
+          value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(requests30, false)}
+          note={`${fmtCompact(cached30, false)} served from cache · ${pct(cached30, requests30)}%`}
+        />
+        <StatAi
+          title="Page Views & Visitors (30d)"
+          badge={pending ? "…" : sign(pct(views30 - viewsPrior, viewsPrior))}
+          badgeTone={views30 >= viewsPrior ? "up" : "down"}
+          value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(views30, false)}
+          note={`${fmtNumber(uniques30)} unique visitors, summed by day${uniquesPrior ? ` · ${sign(pct(uniques30 - uniquesPrior, uniquesPrior))}` : ""}`}
+        />
+        <StatAi
+          title="Bandwidth (30d)"
+          badge={pending ? "…" : sign(pct(bytes30 - bytesPrior, bytesPrior))}
+          badgeTone={bytes30 >= bytesPrior ? "up" : "down"}
+          value={pending ? <Skeleton className="h-7 w-24" /> : `${(bytes30 / 1e9).toFixed(2)}`}
+          unit="GB"
+          note={`${(sum(last30, (r) => r.cached_bytes) / 1e6).toFixed(0)} MB of it cached`}
+        />
+        <StatAi
+          title="Threats Blocked (30d)"
+          badge="Cloudflare"
+          badgeTone="neutral"
+          value={pending ? <Skeleton className="h-7 w-24" /> : fmtCompact(threats30, false)}
+          note={`${pct(threats30, requests30)}% of requests · policy.nysgpt.com is not behind Cloudflare`}
+        />
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">
           <Card className="max-2xl:gap-3 max-2xl:pt-4">
             <CardHeader className="max-2xl:px-4">
-              <CardTitle>Traffic Trends</CardTitle>
-              <CardDescription className="max-sm:text-xs">{tab === "govblock" ? "policy.nysgpt.com from Amplify's metrics, daily since August 31" : `The zone ${data?.zone_name ?? "nysgpt.com"} through Cloudflare, daily since July 1`}</CardDescription>
+              <CardAnchor>Traffic Trends</CardAnchor>
+              <CardDescription className="max-sm:text-xs">
+                {tab === "govblock" ? "policy.nysgpt.com from Amplify's metrics, daily since August 31" : `The zone ${data?.zone_name ?? "nysgpt.com"} through Cloudflare, daily since July 1`}
+              </CardDescription>
               <CardAction>
-                <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-                  <TabsList className="h-8">
-                    <TabsTrigger value="requests">Requests</TabsTrigger>
-                    <TabsTrigger value="views">Views</TabsTrigger>
-                    <TabsTrigger value="govblock">GovBlock</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <CardTools className="gap-2">
+                  <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="requests">Requests</TabsTrigger>
+                      <TabsTrigger value="views">Views</TabsTrigger>
+                      <TabsTrigger value="govblock">GovBlock</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardTools>
               </CardAction>
             </CardHeader>
             <CardContent className="sm:px-4">
@@ -179,12 +350,10 @@ export function TrafficPage() {
         <div className="xl:col-span-2">
           <Card>
             <CardHeader className="max-2xl:px-4">
-              <CardTitle>Traffic by Host</CardTitle>
+              <CardAnchor>Traffic by Host</CardAnchor>
               <CardDescription className="max-sm:text-xs">The last eight days, which is as far back as Cloudflare keeps the split</CardDescription>
               <CardAction>
-                <Button variant="ghost" size="icon-sm" aria-label="Options">
-                  <MoreHorizontalIcon />
-                </Button>
+                <CardTools />
               </CardAction>
             </CardHeader>
             <CardContent>
@@ -192,7 +361,18 @@ export function TrafficPage() {
                 <ChartContainer config={hostConfig} className="mx-auto aspect-square h-56">
                   <PieChart>
                     <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="host" />} />
-                    <Pie data={hosts.slice(0, 6).map((h, i) => ({ ...h, fill: `var(--chart-${(i % 5) + 1})` }))} dataKey="requests" nameKey="host" innerRadius={60} outerRadius={90} paddingAngle={3} cornerRadius={4} />
+                    <Pie
+                      data={hosts.slice(0, 6).map((h, i) => ({
+                        ...h,
+                        fill: `var(--chart-${(i % 5) + 1})`,
+                      }))}
+                      dataKey="requests"
+                      nameKey="host"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={3}
+                      cornerRadius={4}
+                    />
                   </PieChart>
                 </ChartContainer>
                 <div className="flex flex-col justify-center gap-3">
@@ -220,16 +400,20 @@ export function TrafficPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-3">
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>Cached vs Uncached</CardTitle>
+            <CardAnchor>Cached vs Uncached</CardAnchor>
             <CardAction>
-              <Badge variant="outline" className="h-6 font-normal">
-                30d
-              </Badge>
+              <CardTools className="gap-2">
+                <Badge variant="outline" className="h-6 font-normal">
+                  30d
+                </Badge>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p className="text-3xl font-semibold">
-              {pct(cached30, requests30)}<span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> {Math.round((100 - pct(cached30, requests30)) * 10) / 10}<span className="text-base text-muted-foreground">%</span>
+              {pct(cached30, requests30)}
+              <span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> {Math.round((100 - pct(cached30, requests30)) * 10) / 10}
+              <span className="text-base text-muted-foreground">%</span>
             </p>
             <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full bg-primary" style={{ width: `${pct(cached30, requests30)}%` }} />
@@ -266,16 +450,19 @@ export function TrafficPage() {
         </Card>
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>Hourly Timeline</CardTitle>
-            <CardAction className="gap-1.5">
-              <Badge variant="outline" className="h-6 font-normal">
-                3 days
-              </Badge>
+            <CardAnchor>Hourly Timeline</CardAnchor>
+            <CardAction>
+              <CardTools className="gap-2">
+                <Badge variant="outline" className="h-6 font-normal">
+                  3 days
+                </Badge>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="text-3xl font-semibold">
-              {fmtNumber(hourly[hourly.length - 1]?.requests ?? 0)}<span className="text-base text-muted-foreground"> in the last hour</span>
+              {fmtNumber(hourly[hourly.length - 1]?.requests ?? 0)}
+              <span className="text-base text-muted-foreground"> in the last hour</span>
             </p>
             <div className="flex gap-3 text-xs text-muted-foreground">
               {["Requests", "Page views", "Visitors"].map((p, i) => (
@@ -288,8 +475,32 @@ export function TrafficPage() {
             <ChartContainer config={hourConfig} className="aspect-auto h-40 w-full">
               <LineChart data={hourly}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="t" tickLine={false} axisLine={false} tickMargin={8} minTickGap={40} tickFormatter={(v) => new Date(String(v)).toLocaleTimeString("en-US", { hour: "numeric" })} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => new Date(String(v)).toLocaleString("en-US", { weekday: "short", hour: "numeric" })} />} />
+                <XAxis
+                  dataKey="t"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={40}
+                  tickFormatter={(v) =>
+                    new Date(String(v)).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                    })
+                  }
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      indicator="dot"
+                      labelFormatter={(v) =>
+                        new Date(String(v)).toLocaleString("en-US", {
+                          weekday: "short",
+                          hour: "numeric",
+                        })
+                      }
+                    />
+                  }
+                />
                 <Line dataKey="requests" type="monotone" stroke="var(--color-requests)" dot={false} strokeWidth={2} />
                 <Line dataKey="views" type="monotone" stroke="var(--color-views)" dot={false} strokeWidth={2} />
                 <Line dataKey="uniques" type="monotone" stroke="var(--color-uniques)" dot={false} strokeWidth={2} />
@@ -299,12 +510,14 @@ export function TrafficPage() {
         </Card>
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>Response Status</CardTitle>
+            <CardAnchor>Response Status</CardAnchor>
             <CardAction>
-              <Button variant="outline" size="sm" render={<a href="/api/traffic?refresh=1" target="_blank" rel="noreferrer" />}>
-                <RefreshCwIcon className="size-3.5" />
-                Refresh
-              </Button>
+              <CardTools className="gap-2">
+                <Button variant="outline" size="sm" render={<a href="/api/traffic?refresh=1" target="_blank" rel="noreferrer" />}>
+                  <RefreshCwIcon className="size-3.5" />
+                  Refresh
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -337,12 +550,14 @@ export function TrafficPage() {
       <div className="mt-4 grid grid-cols-1 sm:mt-5">
         <Card>
           <CardHeader className="max-2xl:px-4">
-            <CardTitle>Top Paths</CardTitle>
+            <CardAnchor>Top Paths</CardAnchor>
             <CardDescription className="max-sm:text-xs">The most requested paths per host over the last eight days, Cloudflare's window for the split.</CardDescription>
             <CardAction>
-              <Badge variant="outline" className="h-6 font-normal text-muted-foreground">
-                {data?.note ? "Cloudflare hosts only" : ""}
-              </Badge>
+              <CardTools className="gap-2">
+                <Badge variant="outline" className="h-6 font-normal text-muted-foreground">
+                  {data?.note ? "Cloudflare hosts only" : ""}
+                </Badge>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -353,9 +568,9 @@ export function TrafficPage() {
               </div>
               <Select value={hostFilter} onValueChange={(v) => setHostFilter(String(v))}>
                 <SelectTrigger className="h-9 sm:w-48">
-                  <SelectValue />
+                  <SelectValue>{() => (hostFilter === "all" ? "All hosts" : hostFilter)}</SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-max min-w-44">
                   <SelectItem value="all">All hosts</SelectItem>
                   {hosts.map((h) => (
                     <SelectItem key={h.host} value={h.host}>

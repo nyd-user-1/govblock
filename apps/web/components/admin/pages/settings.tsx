@@ -3,12 +3,13 @@
 import * as React from "react"
 import { CheckIcon, CopyIcon, CreditCardIcon, KeyIcon, PlusIcon, RefreshCwIcon, ShieldCheckIcon, UploadIcon, MonitorIcon, SmartphoneIcon, LaptopIcon } from "lucide-react"
 
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { useAdminNav } from "@/components/admin/nav"
 import { ADMIN_USER } from "@/components/admin/rail"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
 import { Input } from "@govblock/ui/components/nova/input"
 import { Label } from "@govblock/ui/components/nova/label"
 import { Progress } from "@govblock/ui/components/progress"
@@ -37,7 +38,12 @@ function Tabs({ page }: { page: string }) {
   return (
     <div className="flex flex-wrap gap-1 border-b">
       {SETTINGS_TABS.map((t) => (
-        <button key={t.page} type="button" onClick={() => go(t.page)} className={cn("-mb-px border-b-2 px-3 py-2 text-sm transition-colors", page === t.page ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+        <button
+          key={t.page}
+          type="button"
+          onClick={() => go(t.page)}
+          className={cn("-mb-px border-b-2 px-3 py-2 text-sm transition-colors", page === t.page ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+        >
           {t.label}
         </button>
       ))}
@@ -59,8 +65,10 @@ function Profile() {
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>My profile</CardTitle>
-          <CardDescription>Manage your personal information.</CardDescription>
+          <CardAnchor>My profile</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="flex items-center gap-4">
@@ -96,8 +104,10 @@ function Profile() {
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>Personal information</CardTitle>
-            <CardDescription>Your role and location details.</CardDescription>
+            <CardAnchor>Personal information</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="text-sm">
             {[
@@ -117,8 +127,10 @@ function Profile() {
         </Card>
         <Card className="bg-muted/40">
           <CardHeader>
-            <CardTitle>Update your location</CardTitle>
-            <CardDescription>Keep your timezone accurate for team scheduling and calendar integrations.</CardDescription>
+            <CardAnchor>Update your location</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
         </Card>
       </div>
@@ -134,17 +146,38 @@ function Plan() {
     ["API calls", "8,450", "10,000", 84],
   ] as const
   const plans = [
-    { name: "Free", price: "$0", per: "forever", cta: "Downgrade", points: ["1 team member", "2 GB storage", "5 projects", "Basic support"] },
-    { name: "Pro", price: "$89.99", per: "/month", cta: "Current", current: true, points: ["10 team members", "10 GB storage", "20 projects", "Priority support", "API access"] },
-    { name: "Enterprise", price: "$249.99", per: "/month", cta: "Upgrade", points: ["Unlimited members", "100 GB storage", "Unlimited projects", "24/7 support", "Custom integrations"] },
+    {
+      name: "Free",
+      price: "$0",
+      per: "forever",
+      cta: "Downgrade",
+      points: ["1 team member", "2 GB storage", "5 projects", "Basic support"],
+    },
+    {
+      name: "Pro",
+      price: "$89.99",
+      per: "/month",
+      cta: "Current",
+      current: true,
+      points: ["10 team members", "10 GB storage", "20 projects", "Priority support", "API access"],
+    },
+    {
+      name: "Enterprise",
+      price: "$249.99",
+      per: "/month",
+      cta: "Upgrade",
+      points: ["Unlimited members", "100 GB storage", "Unlimited projects", "24/7 support", "Custom integrations"],
+    },
   ]
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
       <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Current plan</CardTitle>
-            <CardDescription>Manage your subscription and usage.</CardDescription>
+            <CardAnchor>Current plan</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="flex items-center justify-between rounded-lg border p-4">
             <div>
@@ -157,14 +190,17 @@ function Plan() {
               <p className="text-xs text-muted-foreground">Billed monthly</p>
             </div>
             <p className="text-2xl font-semibold">
-              $89.99<span className="text-sm font-normal text-muted-foreground">/month</span>
+              $89.99
+              <span className="text-sm font-normal text-muted-foreground">/month</span>
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Usage overview</CardTitle>
-            <CardDescription>Current billing period usage.</CardDescription>
+            <CardAnchor>Usage overview</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-3">
             {usage.map(([k, used, limit, p]) => (
@@ -183,8 +219,10 @@ function Plan() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Available plans</CardTitle>
-          <CardDescription>Choose the plan that fits your needs.</CardDescription>
+          <CardAnchor>Available plans</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           {plans.map((p) => (
@@ -237,8 +275,10 @@ function Billing() {
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>Payment method</CardTitle>
-          <CardDescription>Select your payment method.</CardDescription>
+          <CardAnchor>Payment method</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent className="grid gap-3">
           {cards.map((c) => (
@@ -266,8 +306,10 @@ function Billing() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Billing history</CardTitle>
-          <CardDescription>Access all you previous invoices.</CardDescription>
+          <CardAnchor>Billing history</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent>
           <Table>
@@ -332,8 +374,10 @@ function Notifications() {
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Notification channels</CardTitle>
-          <CardDescription>Choose how you want to be notified.</CardDescription>
+          <CardAnchor>Notification channels</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent className="divide-y">
           {channels.map(([t, d, on]) => (
@@ -344,8 +388,10 @@ function Notifications() {
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>Notification types</CardTitle>
-            <CardDescription>Select which notifications you want to receive.</CardDescription>
+            <CardAnchor>Notification types</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="divide-y">
             {types.map(([t, d, on]) => (
@@ -355,8 +401,11 @@ function Notifications() {
         </Card>
         <Card className="bg-muted/40">
           <CardHeader>
-            <CardTitle>Email digest preference</CardTitle>
+            <CardAnchor>Email digest preference</CardAnchor>
             <CardDescription>Weekly digests are sent every Monday at 9:00 AM in your local timezone.</CardDescription>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
         </Card>
       </div>
@@ -366,16 +415,34 @@ function Notifications() {
 
 function Password() {
   const sessions = [
-    { icon: LaptopIcon, name: "MacBook Pro", where: "San Francisco, CA", when: "Now", current: true },
-    { icon: SmartphoneIcon, name: "iPhone 15 Pro", where: "San Francisco, CA", when: "2 hours ago" },
-    { icon: MonitorIcon, name: "Windows Desktop", where: "New York, NY", when: "3 days ago" },
+    {
+      icon: LaptopIcon,
+      name: "MacBook Pro",
+      where: "San Francisco, CA",
+      when: "Now",
+      current: true,
+    },
+    {
+      icon: SmartphoneIcon,
+      name: "iPhone 15 Pro",
+      where: "San Francisco, CA",
+      when: "2 hours ago",
+    },
+    {
+      icon: MonitorIcon,
+      name: "Windows Desktop",
+      where: "New York, NY",
+      when: "3 days ago",
+    },
   ]
   return (
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Change password</CardTitle>
-          <CardDescription>Update your account password.</CardDescription>
+          <CardAnchor>Change password</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent className="grid gap-4">
           <Field label="Current password">
@@ -395,8 +462,10 @@ function Password() {
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>Password requirements</CardTitle>
-            <CardDescription>Ensure your password meets these criteria.</CardDescription>
+            <CardAnchor>Password requirements</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent>
             <ul className="grid gap-2 text-sm">
@@ -411,8 +480,10 @@ function Password() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Active sessions</CardTitle>
-            <CardDescription>Devices currently logged in to your account.</CardDescription>
+            <CardAnchor>Active sessions</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-3">
             {sessions.map((s) => (
@@ -462,8 +533,10 @@ function AccountSecurity() {
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>Two-factor authentication</CardTitle>
-            <CardDescription>Add an extra layer of security.</CardDescription>
+            <CardAnchor>Two-factor authentication</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div className="flex items-center gap-3">
@@ -480,8 +553,10 @@ function AccountSecurity() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Backup codes</CardTitle>
-            <CardDescription>Use these codes if you lose access to your authenticator.</CardDescription>
+            <CardAnchor>Backup codes</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {codes.map((c) => (
@@ -500,8 +575,10 @@ function AccountSecurity() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Login activity</CardTitle>
-          <CardDescription>Recent login attempts on your account.</CardDescription>
+          <CardAnchor>Login activity</CardAnchor>
+          <CardAction>
+            <CardTools />
+          </CardAction>
         </CardHeader>
         <CardContent>
           <Table>
@@ -544,13 +621,14 @@ function Api() {
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
-          <CardTitle>API keys</CardTitle>
-          <CardDescription>Manage your API keys for integrations.</CardDescription>
+          <CardAnchor>API keys</CardAnchor>
           <CardAction>
-            <Button size="sm" className="gap-1.5">
-              <PlusIcon className="size-3.5" />
-              Create new key
-            </Button>
+            <CardTools className="gap-2">
+              <Button size="sm" className="gap-1.5">
+                <PlusIcon className="size-3.5" />
+                Create new key
+              </Button>
+            </CardTools>
           </CardAction>
         </CardHeader>
         <CardContent className="grid gap-3">
@@ -579,8 +657,10 @@ function Api() {
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
-            <CardTitle>API usage</CardTitle>
-            <CardDescription>Monitor your API consumption and limits.</CardDescription>
+            <CardAnchor>API usage</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
             {[
@@ -598,8 +678,10 @@ function Api() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Webhook endpoint</CardTitle>
-            <CardDescription>Configure where API events are sent.</CardDescription>
+            <CardAnchor>Webhook endpoint</CardAnchor>
+            <CardAction>
+              <CardTools />
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-3">
             <Field label="Endpoint URL">

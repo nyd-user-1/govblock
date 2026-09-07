@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ActivityIcon, ArrowDownToLineIcon, CalendarArrowUpIcon, FileJsonIcon, MoreHorizontalIcon, RefreshCwIcon, SettingsIcon, Share2Icon } from "lucide-react"
+import { ActivityIcon, ArrowDownToLineIcon, CalendarArrowUpIcon, RefreshCwIcon } from "lucide-react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Label, Pie, PieChart, XAxis, YAxis } from "recharts"
 
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
+import { Card, CardAction, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
@@ -16,7 +16,11 @@ import { cn } from "@govblock/ui/lib/utils"
 // the free template's random rows are the default where a page has nothing
 // better, and the record's rows where it does.
 
-const fmtDay = (value: string, long = false) => new Date(`${value}T12:00:00`).toLocaleDateString("en-US", { month: long ? "long" : "short", day: "numeric" })
+const fmtDay = (value: string, long = false) =>
+  new Date(`${value}T12:00:00`).toLocaleDateString("en-US", {
+    month: long ? "long" : "short",
+    day: "numeric",
+  })
 
 export type SeriesRow = { date: string; a: number; b: number }
 
@@ -31,7 +35,6 @@ export function sampleSeries(days = 90, base = 400, spread = 400, failBase = 5, 
 /** Logs: a two-series area over time with a range select. */
 export function Chart1({
   title = "API Traffic",
-  description = "Last 30 days performance",
   data,
   labels = { a: "Success", b: "Failed" },
   ranges = [
@@ -42,7 +45,6 @@ export function Chart1({
   icon: Icon = ActivityIcon,
 }: {
   title?: string
-  description?: string
   data?: SeriesRow[]
   labels?: { a: string; b: string }
   ranges?: { value: string; label: string; days: number }[]
@@ -52,7 +54,10 @@ export function Chart1({
   const [range, setRange] = React.useState(ranges[0].value)
   const days = ranges.find((r) => r.value === range)?.days ?? rows.length
   const filtered = rows.slice(-days)
-  const config: ChartConfig = { a: { label: labels.a, color: "var(--chart-1)" }, b: { label: labels.b, color: "var(--chart-5)" } }
+  const config: ChartConfig = {
+    a: { label: labels.a, color: "var(--chart-1)" },
+    b: { label: labels.b, color: "var(--chart-5)" },
+  }
   return (
     <Card className="pb-3 max-2xl:gap-3 max-2xl:pt-4">
       <CardHeader className="max-2xl:px-4">
@@ -60,24 +65,23 @@ export function Chart1({
           <div className="rounded-md border p-2 shadow-xs">
             <Icon className="size-4.5" />
           </div>
-          <div className="flex flex-col gap-0.5">
-            <CardTitle className="leading-none">{title}</CardTitle>
-            <CardDescription className="leading-none max-sm:text-xs">{description}</CardDescription>
-          </div>
+          <CardAnchor className="leading-none">{title}</CardAnchor>
         </div>
         <CardAction>
-          <Select value={range} onValueChange={(v) => v && setRange(String(v))}>
-            <SelectTrigger className="w-20 sm:w-32" size="sm" aria-label="Select time range">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              {ranges.map((r) => (
-                <SelectItem key={r.value} value={r.value}>
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CardTools>
+            <Select value={range} onValueChange={(v) => v && setRange(String(v))}>
+              <SelectTrigger className="w-max min-w-28" size="sm" aria-label="Select time range">
+                <SelectValue>{() => ranges.find((r) => r.value === range)?.label ?? range}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-max min-w-44 rounded-xl">
+                {ranges.map((r) => (
+                  <SelectItem key={r.value} value={r.value} className="whitespace-nowrap">
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardTools>
         </CardAction>
       </CardHeader>
       <CardContent className="px-3 pt-2 sm:px-4">
@@ -120,7 +124,10 @@ const SLOTS = [
 export type HeatRow = { day: string; slots: number[] }
 
 export function sampleHeat(): HeatRow[] {
-  return DAYS.map((day) => ({ day, slots: SLOTS.map((_, i) => Math.floor(i >= 3 && i <= 5 ? Math.random() * 80 + 20 : Math.random() * 20)) }))
+  return DAYS.map((day) => ({
+    day,
+    slots: SLOTS.map((_, i) => Math.floor(i >= 3 && i <= 5 ? Math.random() * 80 + 20 : Math.random() * 20)),
+  }))
 }
 
 /** Logs: a day-by-slot heatmap. `columns` renames the eight slots; `unit` names what a cell counts. */
@@ -140,9 +147,9 @@ export function Chart2({ title = "Weekly Traffic", data, columns = SLOTS, unit =
       <CardHeader className="flex items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2">
           <CalendarArrowUpIcon className="size-4.5" />
-          <CardTitle>{title}</CardTitle>
+          <CardAnchor>{title}</CardAnchor>
         </div>
-        <div className="flex items-center justify-end gap-2">
+        <CardTools className="gap-2">
           <span className="text-sm text-muted-foreground">
             L<span className="max-sm:hidden">ow</span>
           </span>
@@ -154,12 +161,17 @@ export function Chart2({ title = "Weekly Traffic", data, columns = SLOTS, unit =
           <span className="text-sm text-muted-foreground">
             H<span className="max-sm:hidden">igh</span>
           </span>
-        </div>
+        </CardTools>
       </CardHeader>
       <CardContent className="flex min-h-0 w-full grow flex-col gap-2 px-4">
         <div className="flex gap-2">
           <div className="w-8" />
-          <div className="grid grow gap-1 text-center" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
+          <div
+            className="grid grow gap-1 text-center"
+            style={{
+              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+            }}
+          >
             {columns.map((slot) => (
               <span key={slot.label} className="truncate px-0.5 text-[9px] text-muted-foreground">
                 {slot.label}
@@ -177,7 +189,13 @@ export function Chart2({ title = "Weekly Traffic", data, columns = SLOTS, unit =
           </div>
           <div className="flex h-full w-full grow flex-col gap-1">
             {rows.map((row) => (
-              <div key={row.day} className="grid grow gap-1" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
+              <div
+                key={row.day}
+                className="grid grow gap-1"
+                style={{
+                  gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+                }}
+              >
                 {row.slots.map((val, i) => (
                   <Tooltip key={`${row.day}-${i}`}>
                     <TooltipTrigger render={<div className={cn("h-full min-h-6 w-full cursor-pointer rounded-sm transition-colors", tone(val))} />} />
@@ -207,14 +225,29 @@ export function sampleStack(): StackRow[] {
     const date = new Date()
     date.setMonth(date.getMonth() - 1)
     date.setDate(date.getDate() + i)
-    return { date: date.toISOString().split("T")[0], item1: Math.floor(Math.random() * 500) + 50, item2: Math.floor(Math.random() * 500) + 50 }
+    return {
+      date: date.toISOString().split("T")[0],
+      item1: Math.floor(Math.random() * 500) + 50,
+      item2: Math.floor(Math.random() * 500) + 50,
+    }
   })
 }
 
-/** Sales: three figures over a stacked bar chart, with a refresh, a download and a menu. */
+/** Turn rows into a CSV file and hand it to the browser. */
+export function downloadCsv(name: string, header: string[], rows: (string | number)[][]) {
+  const cell = (v: string | number) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
+  const text = [header, ...rows].map((r) => r.map(cell).join(",")).join("\n")
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }))
+  const a = document.createElement("a")
+  a.href = url
+  a.download = name.endsWith(".csv") ? name : `${name}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Sales: three figures over a stacked bar chart. Refresh re-reads the page; Download is the series as CSV; the menu is the standard one. */
 export function Chart3({
   title = "Financial Performance",
-  description = "Real-time insights for the last 30 days",
   data,
   labels = { item1: "Item 1", item2: "Item 2" },
   figures = [
@@ -224,68 +257,50 @@ export function Chart3({
   ],
   tickFormatter,
   onRefresh,
+  refreshing,
+  fileName = "series",
 }: {
   title?: string
-  description?: string
   data?: StackRow[]
   labels?: { item1: string; item2: string }
   figures?: { label: string; value: React.ReactNode }[]
   tickFormatter?: (value: string) => string
   onRefresh?: () => void
+  refreshing?: boolean
+  fileName?: string
 }) {
   const [sample, setSample] = React.useState<StackRow[] | null>(null)
   const rows = data ?? sample ?? sampleStack()
   const refresh = () => (onRefresh ? onRefresh() : setSample(sampleStack()))
-  const config: ChartConfig = { item1: { label: labels.item1, color: "var(--chart-2)" }, item2: { label: labels.item2, color: "var(--chart-1)" } }
   const tick = tickFormatter ?? ((v: string) => fmtDay(v))
+  const download = () =>
+    downloadCsv(
+      fileName,
+      ["date", labels.item1, labels.item2],
+      rows.map((r) => [r.date, r.item1, r.item2])
+    )
+  // A neutral pair, dark over light, as the split bar on Bill Performance:
+  // the chart palette's first two colours are reds here, and red reads as bad.
+  const config: ChartConfig = {
+    item1: { label: labels.item1, color: "var(--primary)" },
+    item2: {
+      label: labels.item2,
+      color: "color-mix(in oklab, var(--primary) 40%, transparent)",
+    },
+  }
   return (
     <Card className="@container/card max-md:py-4!">
       <CardHeader className="max-md:px-4">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-        <CardAction className="flex items-center gap-2">
-          <Button variant="outline" size="icon-sm" className="max-sm:hidden" aria-label="Refresh" onClick={refresh}>
-            <RefreshCwIcon />
-          </Button>
-          <Button variant="outline" size="icon-sm" className="max-sm:hidden" aria-label="Download">
-            <ArrowDownToLineIcon />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="icon-sm">
-                  <MoreHorizontalIcon />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end" className="w-max min-w-44">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Options</DropdownMenuLabel>
-                <DropdownMenuItem className="whitespace-nowrap">
-                  <SettingsIcon />
-                  <span>Configure</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={refresh} className="whitespace-nowrap">
-                  <RefreshCwIcon />
-                  <span>Refresh Data</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="whitespace-nowrap">
-                  <ArrowDownToLineIcon />
-                  <span>Export as PNG</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="whitespace-nowrap">
-                  <FileJsonIcon />
-                  <span>Export CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="whitespace-nowrap">
-                  <Share2Icon />
-                  <span>Share Chart</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <CardAnchor>{title}</CardAnchor>
+        <CardAction>
+          <CardTools className="gap-2">
+            <Button variant="outline" size="icon-sm" aria-label="Refresh" onClick={refresh} disabled={refreshing}>
+              <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
+            </Button>
+            <Button variant="outline" size="icon-sm" aria-label="Download as CSV" onClick={download}>
+              <ArrowDownToLineIcon />
+            </Button>
+          </CardTools>
         </CardAction>
         <div className="mt-4 flex items-center gap-6">
           {figures.map((f, i) => (
@@ -320,7 +335,6 @@ export type Slice = { title: string; value: number; fill: string }
 /** Sales: a half donut with the total in the middle and a three-up legend beneath. */
 export function Chart4({
   title = "Sales by Channel",
-  description = "Distribution of sales across acquisition channels",
   totalLabel = "Total Sales",
   data = [
     { title: "Direct", value: 5200, fill: "var(--chart-1)" },
@@ -329,7 +343,6 @@ export function Chart4({
   ],
 }: {
   title?: string
-  description?: string
   totalLabel?: string
   data?: Slice[]
 }) {
@@ -337,9 +350,11 @@ export function Chart4({
   const config: ChartConfig = Object.fromEntries(data.map((d) => [d.title, { label: d.title, color: d.fill }]))
   return (
     <Card className="flex flex-col max-md:py-4!">
-      <CardHeader className="items-center pb-0 max-md:px-4!">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="pb-0 max-md:px-4!">
+        <CardAnchor>{title}</CardAnchor>
+        <CardAction>
+          <CardTools />
+        </CardAction>
       </CardHeader>
       <CardContent className="flex-1">
         <ChartContainer config={config} className="mx-auto -mt-6 aspect-square max-h-60 min-h-48">
@@ -373,7 +388,7 @@ export function Chart4({
             <div key={item.title} className="flex flex-col items-center justify-center text-center">
               <div className="mb-1 flex items-center gap-1.5">
                 <div className="size-1.5 rounded-full" style={{ backgroundColor: item.fill }} />
-                <span className="max-w-15 truncate text-xs text-muted-foreground">{item.title}</span>
+                <span className="text-xs whitespace-nowrap text-muted-foreground">{item.title}</span>
               </div>
               <span className="text-lg font-semibold">{item.value.toLocaleString()}</span>
             </div>

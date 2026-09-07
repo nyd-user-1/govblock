@@ -67,10 +67,10 @@ export function ComponentsPage({ page }: { page: string }) {
             </Section>
             <Section title="Stat 2" description="A trend badge and a two-line footer. Sales.">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Stat2 title="Gross Revenue" value="$7,142,480" trendValue={12.5} footerLabel="Record high" footerSubtext="vs. $6,300,368 last month" />
-                <Stat2 title="Total Orders" value="1,248" trendValue={5.2} footerLabel="Increased volume" footerSubtext="Successful holiday promotion" />
-                <Stat2 title="Avg. Order Value" value="$114.16" trendValue={-2.1} footerLabel="Minor decrease" footerSubtext="Due to high volume of small items" />
-                <Stat2 title="Customer LTV" value="$892.00" trendValue={0} footerLabel="Flat" footerSubtext="No change this month" />
+                <Stat2 title="Gross Revenue" value="$7,142,480" trendValue={12.5} footer="vs. $6,300,368 last month" />
+                <Stat2 title="Total Orders" value="1,248" trendValue={5.2} footer="Successful holiday promotion" />
+                <Stat2 title="Avg. Order Value" value="$114.16" trendValue={-2.1} footer="Due to high volume of small items" />
+                <Stat2 title="Customer LTV" value="$892.00" footer="No change this month" />
               </div>
             </Section>
             <Section title="Customer, Order, Education" description="The tiles the Customer, Order and Education pages open with.">

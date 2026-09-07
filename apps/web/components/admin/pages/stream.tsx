@@ -4,10 +4,11 @@ import * as React from "react"
 import { CheckIcon, ClapperboardIcon, CopyIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, KeyRoundIcon, PlayIcon, PlusIcon, RadioIcon, RefreshCwIcon, Trash2Icon, UploadIcon, VideoIcon } from "lucide-react"
 
 import { StatAi } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@govblock/ui/components/nova/card"
 import { Input } from "@govblock/ui/components/nova/input"
 import { Label } from "@govblock/ui/components/nova/label"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
@@ -20,18 +21,68 @@ import { cn } from "@govblock/ui/lib/utils"
 // server. Until a token with Stream: Edit is in the environment the page
 // shows the three steps that make it work, not an empty library.
 
-type Video = { uid: string; name: string; state: string; readyToStream: boolean; duration: number; created: string; size: number; thumbnail: string; preview: string; hls: string | null; width: number | null; height: number | null; requireSignedURLs: boolean }
-type Live = { uid: string; name: string; created: string; status: string | null; rtmpsUrl: string | null; rtmpsKey: string | null; srtUrl: string | null; webRtcUrl: string | null; recording: string | null }
-type Payload = { ok: boolean; reason: string; needs: "env" | "token" | "subscription" | "unknown" | null; videos: Video[]; live: Live[]; customer: string | null; account: string | null }
+type Video = {
+  uid: string
+  name: string
+  state: string
+  readyToStream: boolean
+  duration: number
+  created: string
+  size: number
+  thumbnail: string
+  preview: string
+  hls: string | null
+  width: number | null
+  height: number | null
+  requireSignedURLs: boolean
+}
+type Live = {
+  uid: string
+  name: string
+  created: string
+  status: string | null
+  rtmpsUrl: string | null
+  rtmpsKey: string | null
+  srtUrl: string | null
+  webRtcUrl: string | null
+  recording: string | null
+}
+type Payload = {
+  ok: boolean
+  reason: string
+  needs: "env" | "token" | "subscription" | "unknown" | null
+  videos: Video[]
+  live: Live[]
+  customer: string | null
+  account: string | null
+}
 
-const fmtDuration = (s: number) => { const m = Math.floor(s / 60), r = Math.round(s % 60); return m ? `${m}m ${r}s` : `${r}s` }
+const fmtDuration = (s: number) => {
+  const m = Math.floor(s / 60),
+    r = Math.round(s % 60)
+  return m ? `${m}m ${r}s` : `${r}s`
+}
 const fmtBytes = (b: number) => (b > 1e9 ? `${(b / 1e9).toFixed(2)} GB` : b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`)
-const fmtDate = (s: string) => new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+const fmtDate = (s: string) =>
+  new Date(s).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
 
 function Copy({ text, label = "Copy" }: { text: string; label?: string }) {
   const [done, setDone] = React.useState(false)
   return (
-    <Button variant="ghost" size="icon-sm" aria-label={label} onClick={() => { void navigator.clipboard?.writeText(text); setDone(true); setTimeout(() => setDone(false), 1500) }}>
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label={label}
+      onClick={() => {
+        void navigator.clipboard?.writeText(text)
+        setDone(true)
+        setTimeout(() => setDone(false), 1500)
+      }}
+    >
       {done ? <CheckIcon className="size-3.5 text-green-600" /> : <CopyIcon className="size-3.5" />}
     </Button>
   )
@@ -53,20 +104,32 @@ export function StreamPage() {
     setData(body)
     setSelected((s) => s ?? body.videos?.find((v) => v.readyToStream)?.uid ?? body.live?.[0]?.uid ?? null)
   }, [])
-  React.useEffect(() => { void load() }, [load])
+  React.useEffect(() => {
+    void load()
+  }, [load])
 
   const act = async (payload: Record<string, string>, key: string) => {
-    setBusy(key); setError(null)
+    setBusy(key)
+    setError(null)
     try {
-      const res = await fetch("/api/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const res = await fetch("/api/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
       const body = (await res.json()) as { error?: string; uid?: string }
       if (!res.ok || body.error) throw new Error(body.error ?? `${res.status}`)
       await load()
       return body
-    } catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(null) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
   }
 
-  const videos = data?.videos ?? [], live = data?.live ?? []
+  const videos = data?.videos ?? [],
+    live = data?.live ?? []
   const ready = videos.filter((v) => v.readyToStream).length
   const minutes = videos.reduce((a, v) => a + v.duration, 0) / 60
   const customer = data?.customer
@@ -96,10 +159,10 @@ export function StreamPage() {
       {!pending && !data?.ok && (
         <Card className="mt-4 border-amber-500/30 bg-amber-500/5 sm:mt-5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <KeyRoundIcon className="size-4" />
-              Stream is not reachable yet
-            </CardTitle>
+              <CardAnchor>Stream is not reachable yet</CardAnchor>
+            </div>
             <CardDescription>{data?.reason}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm md:grid-cols-3">
@@ -120,8 +183,20 @@ export function StreamPage() {
       <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
         <StatAi title="Videos" badge={data?.ok ? "library" : "—"} badgeTone="neutral" value={pending ? <Skeleton className="h-7 w-16" /> : videos.length} note={`${ready} ready to stream`} />
         <StatAi title="Minutes Stored" badge="$5 / 1,000" badgeTone="neutral" value={pending ? <Skeleton className="h-7 w-16" /> : Math.round(minutes)} unit="min" note={`${fmtBytes(videos.reduce((a, v) => a + v.size, 0))} of source`} />
-        <StatAi title="Live Inputs" badge={live.some((l) => l.status === "connected") ? "on air" : "idle"} badgeTone={live.some((l) => l.status === "connected") ? "up" : "neutral"} value={pending ? <Skeleton className="h-7 w-16" /> : live.length} note="RTMPS, SRT and WebRTC ingest" />
-        <StatAi title="Account" badge={customer ? `customer-${customer}` : "no code yet"} badgeTone="neutral" value={pending ? <Skeleton className="h-7 w-16" /> : data?.account ? data.account.slice(0, 8) + "…" : "—"} note="the player subdomain comes from the first video" />
+        <StatAi
+          title="Live Inputs"
+          badge={live.some((l) => l.status === "connected") ? "on air" : "idle"}
+          badgeTone={live.some((l) => l.status === "connected") ? "up" : "neutral"}
+          value={pending ? <Skeleton className="h-7 w-16" /> : live.length}
+          note="RTMPS, SRT and WebRTC ingest"
+        />
+        <StatAi
+          title="Account"
+          badge={customer ? `customer-${customer}` : "no code yet"}
+          badgeTone="neutral"
+          value={pending ? <Skeleton className="h-7 w-16" /> : data?.account ? data.account.slice(0, 8) + "…" : "—"}
+          note="the player subdomain comes from the first video"
+        />
       </div>
 
       {error && <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</p>}
@@ -130,11 +205,14 @@ export function StreamPage() {
         <div className="xl:col-span-3">
           <Card className="gap-4">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <ClapperboardIcon className="size-4" />
-                Library
-              </CardTitle>
+                <CardAnchor>Library</CardAnchor>
+              </div>
               <CardDescription>Every video in the account, newest first. Pick one to play it.</CardDescription>
+              <CardAction>
+                <CardTools />
+              </CardAction>
             </CardHeader>
             <CardContent>
               <Table>
@@ -160,7 +238,13 @@ export function StreamPage() {
                     : videos.map((v) => (
                         <TableRow key={v.uid} className={cn("cursor-pointer", selected === v.uid && "bg-muted/50")} onClick={() => setSelected(v.uid)}>
                           <TableCell>
-                            {v.thumbnail ? <img src={v.thumbnail} alt="" className="h-9 w-14 rounded object-cover" /> : <div className="flex h-9 w-14 items-center justify-center rounded bg-muted"><VideoIcon className="size-4 text-muted-foreground" /></div>}
+                            {v.thumbnail ? (
+                              <img src={v.thumbnail} alt="" className="h-9 w-14 rounded object-cover" />
+                            ) : (
+                              <div className="flex h-9 w-14 items-center justify-center rounded bg-muted">
+                                <VideoIcon className="size-4 text-muted-foreground" />
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
@@ -177,11 +261,33 @@ export function StreamPage() {
                           <TableCell className="whitespace-nowrap">{fmtDate(v.created)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-0.5">
-                              <Button variant="ghost" size="icon-sm" aria-label="Play" onClick={(e) => { e.stopPropagation(); setSelected(v.uid) }}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Play"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelected(v.uid)
+                                }}
+                              >
                                 <PlayIcon className="size-3.5" />
                               </Button>
-                              {embed(v.uid) && <span onClick={(e) => e.stopPropagation()}><Copy text={`<iframe src="${embed(v.uid)}" title="${v.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" /></span>}
-                              <Button variant="ghost" size="icon-sm" aria-label="Delete" className="text-destructive" disabled={busy === v.uid} onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete "${v.name}" from Stream? This cannot be undone.`)) void act({ action: "delete-video", uid: v.uid }, v.uid) }}>
+                              {embed(v.uid) && (
+                                <span onClick={(e) => e.stopPropagation()}>
+                                  <Copy text={`<iframe src="${embed(v.uid)}" title="${v.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Delete"
+                                className="text-destructive"
+                                disabled={busy === v.uid}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (window.confirm(`Delete "${v.name}" from Stream? This cannot be undone.`)) void act({ action: "delete-video", uid: v.uid }, v.uid)
+                                }}
+                              >
                                 <Trash2Icon className="size-3.5" />
                               </Button>
                             </div>
@@ -204,7 +310,13 @@ export function StreamPage() {
           <Card className="gap-3 overflow-hidden py-0">
             <CardContent className="px-0">
               {selected && embed(selected) ? (
-                <iframe src={embed(selected) ?? undefined} title={current?.name ?? currentLive?.name ?? "Stream"} className="aspect-video w-full" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                <iframe
+                  src={embed(selected) ?? undefined}
+                  title={current?.name ?? currentLive?.name ?? "Stream"}
+                  className="aspect-video w-full"
+                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               ) : (
                 <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
                   <PlayIcon className="size-6" />
@@ -214,7 +326,9 @@ export function StreamPage() {
               <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{current?.name ?? currentLive?.name ?? "Nothing selected"}</p>
-                  <p className="truncate text-xs text-muted-foreground">{current ? `${current.width ?? "?"}×${current.height ?? "?"} · ${fmtDuration(current.duration)} · ${fmtBytes(current.size)}` : currentLive ? `live input · ${currentLive.status ?? "idle"}` : ""}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {current ? `${current.width ?? "?"}×${current.height ?? "?"} · ${fmtDuration(current.duration)} · ${fmtBytes(current.size)}` : currentLive ? `live input · ${currentLive.status ?? "idle"}` : ""}
+                  </p>
                 </div>
                 {current?.preview && (
                   <Button variant="outline" size="sm" className="gap-1" render={<a href={current.preview} target="_blank" rel="noreferrer" />}>
@@ -227,11 +341,14 @@ export function StreamPage() {
           </Card>
           <Card className="gap-4">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <UploadIcon className="size-4" />
-                Import from a URL
-              </CardTitle>
+                <CardAnchor>Import from a URL</CardAnchor>
+              </div>
               <CardDescription>A public MP4, MOV, MKV, AVI, FLV, MPEG-2 TS or PS, MXF, LXF, GXF, 3GP, WebM, MPG or QuickTime file. Stream fetches and encodes it.</CardDescription>
+              <CardAction>
+                <CardTools />
+              </CardAction>
             </CardHeader>
             <CardContent className="grid gap-3">
               <div className="grid gap-1.5">
@@ -242,7 +359,18 @@ export function StreamPage() {
                 <Label>Name</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Senate Finance, September 10" />
               </div>
-              <Button disabled={!url || !data?.ok || busy === "copy"} onClick={() => void act({ action: "copy", url, name }, "copy").then((r) => { if (r?.uid) { setUrl(""); setName(""); setSelected(r.uid) } })}>
+              <Button
+                disabled={!url || !data?.ok || busy === "copy"}
+                onClick={() =>
+                  void act({ action: "copy", url, name }, "copy").then((r) => {
+                    if (r?.uid) {
+                      setUrl("")
+                      setName("")
+                      setSelected(r.uid)
+                    }
+                  })
+                }
+              >
                 {busy === "copy" ? "Importing…" : "Import"}
               </Button>
             </CardContent>
@@ -253,24 +381,40 @@ export function StreamPage() {
       <div className="mt-4 sm:mt-5">
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <RadioIcon className="size-4" />
-              Live inputs
-            </CardTitle>
+              <CardAnchor>Live inputs</CardAnchor>
+            </div>
             <CardDescription>Each input is an RTMPS address and key for OBS or any encoder, recorded automatically, playable at the same player URL as a video.</CardDescription>
-            <CardAction className="flex items-center gap-2">
-              <Input value={liveName} onChange={(e) => setLiveName(e.target.value)} placeholder="Name the input" className="h-8 w-48" />
-              <Button size="sm" className="gap-1" disabled={!data?.ok || busy === "live"} onClick={() => void act({ action: "live", name: liveName }, "live").then((r) => { if (r?.uid) { setLiveName(""); setSelected(r.uid) } })}>
-                <PlusIcon className="size-3.5" />
-                {busy === "live" ? "Creating…" : "New input"}
-              </Button>
+            <CardAction>
+              <CardTools className="gap-2">
+                <Input value={liveName} onChange={(e) => setLiveName(e.target.value)} placeholder="Name the input" className="h-8 w-48" />
+                <Button
+                  size="sm"
+                  className="gap-1"
+                  disabled={!data?.ok || busy === "live"}
+                  onClick={() =>
+                    void act({ action: "live", name: liveName }, "live").then((r) => {
+                      if (r?.uid) {
+                        setLiveName("")
+                        setSelected(r.uid)
+                      }
+                    })
+                  }
+                >
+                  <PlusIcon className="size-3.5" />
+                  {busy === "live" ? "Creating…" : "New input"}
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {live.map((l) => (
               <div key={l.uid} className={cn("flex flex-col gap-2 rounded-lg border p-3 text-sm", selected === l.uid && "border-primary")}>
                 <div className="flex items-center justify-between gap-2">
-                  <button type="button" className="truncate text-left font-medium hover:underline" onClick={() => setSelected(l.uid)}>{l.name}</button>
+                  <button type="button" className="truncate text-left font-medium hover:underline" onClick={() => setSelected(l.uid)}>
+                    {l.name}
+                  </button>
                   <Badge variant="outline" className={cn("h-5", l.status === "connected" ? "text-green-600" : "text-muted-foreground")}>
                     {l.status ?? "idle"}
                   </Badge>
@@ -291,10 +435,23 @@ export function StreamPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{fmtDate(l.created)} · recording {l.recording ?? "off"}</span>
+                  <span>
+                    {fmtDate(l.created)} · recording {l.recording ?? "off"}
+                  </span>
                   <div className="flex gap-0.5">
-                    {embed(l.uid) && <Copy text={`<iframe src="${embed(l.uid)}" title="${l.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />}
-                    <Button variant="ghost" size="icon-sm" aria-label="Delete input" className="text-destructive" disabled={busy === l.uid} onClick={() => { if (window.confirm(`Delete live input "${l.name}"?`)) void act({ action: "delete-live", uid: l.uid }, l.uid) }}>
+                    {embed(l.uid) && (
+                      <Copy text={`<iframe src="${embed(l.uid)}" title="${l.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Delete input"
+                      className="text-destructive"
+                      disabled={busy === l.uid}
+                      onClick={() => {
+                        if (window.confirm(`Delete live input "${l.name}"?`)) void act({ action: "delete-live", uid: l.uid }, l.uid)
+                      }}
+                    >
                       <Trash2Icon className="size-3.5" />
                     </Button>
                   </div>

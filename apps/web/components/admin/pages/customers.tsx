@@ -1,16 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { MoreHorizontalIcon, SearchIcon } from "lucide-react"
+import { SearchIcon } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 import { honorific } from "@/lib/format"
 import { num, useActivity, useMembers, useSeats } from "@/components/admin/data"
 import { StatCustomer } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Checkbox } from "@govblock/ui/components/checkbox"
 import { Input } from "@govblock/ui/components/nova/input"
@@ -40,27 +41,72 @@ export function CustomersPage() {
   const senate = seats.data?.filter((s) => s.chamber === "Senate").reduce((a, s) => a + s.seats, 0) ?? 0
 
   const stats = [
-    { title: "Members on Record", value: members.data ? num(all.length) : <Skeleton className="h-7 w-16" />, trend: `${num(sitting.length)} sitting`, note: "Everyone the record has ever known" },
-    { title: "Sitting Members", value: members.data ? num(sitting.length) : <Skeleton className="h-7 w-16" />, trend: `${num(senate)} Senate`, note: "On this session's roster" },
-    { title: "Bills per Member", value: activity.data && members.data ? String(perMember) : <Skeleton className="h-7 w-16" />, trend: `${num(total)} bills`, note: "The session's bills over its roster" },
-    { title: "Leadership", value: members.data ? num(leaders) : <Skeleton className="h-7 w-16" />, trend: sitting.length ? `${Math.round((leaders / sitting.length) * 100)}%` : "0%", note: "Members with a leadership title" },
+    {
+      title: "Members on Record",
+      value: members.data ? num(all.length) : <Skeleton className="h-7 w-16" />,
+      trend: `${num(sitting.length)} sitting`,
+      note: "Everyone the record has ever known",
+    },
+    {
+      title: "Sitting Members",
+      value: members.data ? num(sitting.length) : <Skeleton className="h-7 w-16" />,
+      trend: `${num(senate)} Senate`,
+      note: "On this session's roster",
+    },
+    {
+      title: "Bills per Member",
+      value: activity.data && members.data ? String(perMember) : <Skeleton className="h-7 w-16" />,
+      trend: `${num(total)} bills`,
+      note: "The session's bills over its roster",
+    },
+    {
+      title: "Leadership",
+      value: members.data ? num(leaders) : <Skeleton className="h-7 w-16" />,
+      trend: sitting.length ? `${Math.round((leaders / sitting.length) * 100)}%` : "0%",
+      note: "Members with a leadership title",
+    },
   ]
 
   const count = (name: RegExp) => activity.data?.statuses.filter((s) => name.test(s.status)).reduce((a, s) => a + s.bills, 0) ?? 0
   const funnel = [
     { label: "Introduced", value: total, share: 100 },
-    { label: "Engrossed", value: count(/engrossed|passed (house|senate|assembly)/i), share: total ? Math.round((count(/engrossed|passed (house|senate|assembly)/i) / total) * 100) : 0 },
-    { label: "Enrolled", value: count(/enrolled/i), share: total ? Math.round((count(/enrolled/i) / total) * 100) : 0 },
-    { label: "Adopted", value: count(/passed$|signed|chaptered|adopted|enacted|became law/i), share: total ? Math.round((count(/passed$|signed|chaptered|adopted|enacted|became law/i) / total) * 100) : 0 },
+    {
+      label: "Engrossed",
+      value: count(/engrossed|passed (house|senate|assembly)/i),
+      share: total ? Math.round((count(/engrossed|passed (house|senate|assembly)/i) / total) * 100) : 0,
+    },
+    {
+      label: "Enrolled",
+      value: count(/enrolled/i),
+      share: total ? Math.round((count(/enrolled/i) / total) * 100) : 0,
+    },
+    {
+      label: "Adopted",
+      value: count(/passed$|signed|chaptered|adopted|enacted|became law/i),
+      share: total ? Math.round((count(/passed$|signed|chaptered|adopted|enacted|became law/i) / total) * 100) : 0,
+    },
   ]
 
-  const growth = activity.data?.rollCalls.map((r) => ({ month: r.ym, yea: r.yea, nay: r.nay })) ?? []
-  const growthConfig: ChartConfig = { yea: { label: "Yea", color: "var(--chart-1)" }, nay: { label: "Nay", color: "var(--chart-5)" } }
+  const growth =
+    activity.data?.rollCalls.map((r) => ({
+      month: r.ym,
+      yea: r.yea,
+      nay: r.nay,
+    })) ?? []
+  const growthConfig: ChartConfig = {
+    yea: { label: "Yea", color: "var(--chart-1)" },
+    nay: { label: "Nay", color: "var(--chart-5)" },
+  }
 
   const filtered = sitting.filter((m) => !query || m.name.toLowerCase().includes(query.toLowerCase()) || (m.district ?? "").toLowerCase().includes(query.toLowerCase())).slice(0, 5)
 
   const top = activity.data?.committees[0]?.bills ?? 1
-  const goals = activity.data?.committees.slice(0, 5).map((c) => ({ name: c.committee, sub: `${num(c.bills)} bills`, percent: Math.round((c.bills / top) * 100) })) ?? []
+  const goals =
+    activity.data?.committees.slice(0, 5).map((c) => ({
+      name: c.committee,
+      sub: `${num(c.bills)} bills`,
+      percent: Math.round((c.bills / top) * 100),
+    })) ?? []
 
   return (
     <div>
@@ -74,12 +120,9 @@ export function CustomersPage() {
         <div className="xl:col-span-4">
           <Card>
             <CardHeader>
-              <CardTitle>Passage</CardTitle>
-              <CardDescription>Where the session's bills stand, from introduction to adoption</CardDescription>
+              <CardAnchor>Passage</CardAnchor>
               <CardAction>
-                <Button variant="ghost" size="icon-sm" aria-label="Options">
-                  <MoreHorizontalIcon />
-                </Button>
+                <CardTools />
               </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
@@ -112,10 +155,11 @@ export function CustomersPage() {
         <div className="xl:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>Votes Cast</CardTitle>
-              <CardDescription>Yeas and nays recorded, by month</CardDescription>
+              <CardAnchor>Votes Cast</CardAnchor>
               <CardAction>
-                <Badge variant="outline">This Session</Badge>
+                <CardTools className="gap-2">
+                  <Badge variant="outline">This Session</Badge>
+                </CardTools>
               </CardAction>
             </CardHeader>
             <CardContent>
@@ -142,12 +186,14 @@ export function CustomersPage() {
         <div className="xl:col-span-2">
           <Card className="gap-3 max-md:py-4!">
             <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
-              <CardTitle>Member Directory</CardTitle>
-              <CardAction className="sm:w-auto">
-                <div className="relative">
-                  <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search members" className="h-9 w-56 pl-8" />
-                </div>
+              <CardAnchor>Member Directory</CardAnchor>
+              <CardAction>
+                <CardTools className="gap-2">
+                  <div className="relative">
+                    <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search members" className="h-9 w-56 pl-8" />
+                  </div>
+                </CardTools>
               </CardAction>
             </CardHeader>
             <CardContent className="max-md:px-4">
@@ -184,7 +230,7 @@ export function CustomersPage() {
                               <span className="font-medium">
                                 {honorific(m.role, m.chamber)} {m.name}
                               </span>
-                              <span className="text-xs text-muted-foreground">{m.district ? `District ${m.district}` : m.leadership_title ?? ""}</span>
+                              <span className="text-xs text-muted-foreground">{m.district ? `District ${m.district}` : (m.leadership_title ?? "")}</span>
                             </div>
                           </TableCell>
                           <TableCell>{m.party === "D" ? "Democrat" : m.party === "R" ? "Republican" : m.party || "—"}</TableCell>
@@ -204,12 +250,9 @@ export function CustomersPage() {
         <div className="xl:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Committee Load</CardTitle>
-              <CardDescription>Against the busiest committee</CardDescription>
+              <CardAnchor>Committee Load</CardAnchor>
               <CardAction>
-                <Button variant="ghost" size="icon-sm" aria-label="Options">
-                  <MoreHorizontalIcon />
-                </Button>
+                <CardTools />
               </CardAction>
             </CardHeader>
             <CardContent className="grid gap-4">

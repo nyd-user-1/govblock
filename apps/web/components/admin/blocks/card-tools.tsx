@@ -12,7 +12,11 @@ import { cn } from "@govblock/ui/lib/utils"
 // anchor — and the standard three-dot menu in the top right, with whatever
 // control the card already had sitting to its left.
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
 
 export function CardAnchor({ children, id, className }: { children: string; id?: string; className?: string }) {
   const anchor = id ?? slug(children)

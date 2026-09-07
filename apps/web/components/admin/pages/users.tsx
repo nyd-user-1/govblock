@@ -33,7 +33,9 @@ export function UsersPage() {
 
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase()
-    return (members.data ?? []).filter((m) => (chamber === "all" || m.chamber === chamber) && (status === "all" || (status === "active" ? m.active : !m.active)) && (!q || m.name.toLowerCase().includes(q) || (m.district ?? "").toLowerCase().includes(q)))
+    return (members.data ?? []).filter(
+      (m) => (chamber === "all" || m.chamber === chamber) && (status === "all" || (status === "active" ? m.active : !m.active)) && (!q || m.name.toLowerCase().includes(q) || (m.district ?? "").toLowerCase().includes(q))
+    )
   }, [members.data, query, chamber, status])
   const pages = Math.max(1, Math.ceil(rows.length / PAGE))
   const current = Math.min(page, pages)
@@ -74,7 +76,7 @@ export function UsersPage() {
               }}
             >
               <SelectTrigger className="h-9 sm:w-36.25">
-                <SelectValue />
+                <SelectValue>{() => (chamber === "all" ? "All chambers" : chamber)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All chambers</SelectItem>
@@ -93,7 +95,7 @@ export function UsersPage() {
               }}
             >
               <SelectTrigger className="h-9 sm:w-36.25">
-                <SelectValue />
+                <SelectValue>{() => (status === "active" ? "Active" : status === "former" ? "Former" : "All statuses")}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
@@ -110,8 +112,12 @@ export function UsersPage() {
                 }
               />
               <DropdownMenuContent align="end" className="w-max min-w-44">
-                <DropdownMenuItem render={<a href="/docs/directory" />} className="whitespace-nowrap">Open Directory</DropdownMenuItem>
-                <DropdownMenuItem render={<a href="/docs/datasets" />} className="whitespace-nowrap">Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem render={<a href="/docs/directory" />} className="whitespace-nowrap">
+                  Open Directory
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<a href="/docs/datasets" />} className="whitespace-nowrap">
+                  Export as CSV
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -198,7 +204,8 @@ export function UsersPage() {
           </Table>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
             <p className="text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{rows.length ? (current - 1) * PAGE + 1 : 0}</span> to <span className="font-medium text-foreground">{Math.min(current * PAGE, rows.length)}</span> of <span className="font-medium text-foreground">{rows.length}</span> results
+              Showing <span className="font-medium text-foreground">{rows.length ? (current - 1) * PAGE + 1 : 0}</span> to <span className="font-medium text-foreground">{Math.min(current * PAGE, rows.length)}</span> of{" "}
+              <span className="font-medium text-foreground">{rows.length}</span> results
             </p>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="sm" disabled={current <= 1} onClick={() => setPage(current - 1)}>

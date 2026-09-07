@@ -175,31 +175,31 @@ export function DatabasePage() {
             <CardAnchor>Volume</CardAnchor>
             <CardAction>
               <CardTools className="gap-2">
-              <Select value={metric} onValueChange={(v) => v && setMetric(v as (typeof METRICS)[number]["value"])}>
-                <SelectTrigger className="h-8 w-32" size="sm" aria-label="What to count">
-                  <SelectValue>{() => METRICS.find((m) => m.value === metric)?.label ?? metric}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {METRICS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="h-4 w-px bg-border" />
-              <Select value={span} onValueChange={(v) => v && setSpan(v as (typeof SPANS)[number]["value"])}>
-                <SelectTrigger className="h-8 w-28" size="sm" aria-label="How far back">
-                  <SelectValue>{() => SPANS.find((x) => x.value === span)?.label ?? span}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {SPANS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select value={metric} onValueChange={(v) => v && setMetric(v as (typeof METRICS)[number]["value"])}>
+                  <SelectTrigger className="h-8 w-32" size="sm" aria-label="What to count">
+                    <SelectValue>{() => METRICS.find((m) => m.value === metric)?.label ?? metric}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {METRICS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="h-4 w-px bg-border" />
+                <Select value={span} onValueChange={(v) => v && setSpan(v as (typeof SPANS)[number]["value"])}>
+                  <SelectTrigger className="h-8 w-28" size="sm" aria-label="How far back">
+                    <SelectValue>{() => SPANS.find((x) => x.value === span)?.label ?? span}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPANS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardTools>
             </CardAction>
           </CardHeader>

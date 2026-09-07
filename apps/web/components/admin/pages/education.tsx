@@ -1,15 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon, ClockIcon, FilterIcon, MoreHorizontalIcon, PlusIcon, Share2Icon, UserIcon, VideoIcon } from "lucide-react"
+import { CalendarIcon, ClockIcon, FilterIcon, PlusIcon, Share2Icon, UserIcon, VideoIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 import { StatEducation } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Checkbox } from "@govblock/ui/components/checkbox"
 import { Progress } from "@govblock/ui/components/progress"
@@ -18,14 +19,36 @@ import { Progress } from "@govblock/ui/components/progress"
 // sample figures. The layout is a main column and a narrow right column
 // that holds the professor's card.
 
-const attendance = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => ({ day: d, students: 200 + Math.round(Math.random() * 200), campaign: 40 + Math.round(Math.random() * 80) }))
-const attendanceConfig: ChartConfig = { students: { label: "Attendance", color: "var(--chart-1)" }, campaign: { label: "Social Campaign", color: "var(--chart-3)" } }
+const attendance = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => ({
+  day: d,
+  students: 200 + Math.round(Math.random() * 200),
+  campaign: 40 + Math.round(Math.random() * 80),
+}))
+const attendanceConfig: ChartConfig = {
+  students: { label: "Attendance", color: "var(--chart-1)" },
+  campaign: { label: "Social Campaign", color: "var(--chart-3)" },
+}
 const sessions = [
-  { time: "09:00", m: "AM", title: "User Research and Persona Development Workshop" },
-  { time: "10:30", m: "AM", title: "UI Grid Systems, Baseline Alignment, and Spacing Rules" },
-  { time: "13:00", m: "PM", title: "Interactive Prototyping and Micro-animations in Figma" },
+  {
+    time: "09:00",
+    m: "AM",
+    title: "User Research and Persona Development Workshop",
+  },
+  {
+    time: "10:30",
+    m: "AM",
+    title: "UI Grid Systems, Baseline Alignment, and Spacing Rules",
+  },
+  {
+    time: "13:00",
+    m: "PM",
+    title: "Interactive Prototyping and Micro-animations in Figma",
+  },
 ]
-const engagement = Array.from({ length: 8 }, (_, i) => ({ w: `W${i + 1}`, v: 50 + Math.round(Math.random() * 40) }))
+const engagement = Array.from({ length: 8 }, (_, i) => ({
+  w: `W${i + 1}`,
+  v: 50 + Math.round(Math.random() * 40),
+}))
 
 export function EducationPage() {
   return (
@@ -42,7 +65,7 @@ export function EducationPage() {
             <div className="2xl:col-span-3">
               <Card>
                 <CardHeader className="gap-4">
-                  <CardTitle>Weekly Attendance</CardTitle>
+                  <CardAnchor>Weekly Attendance</CardAnchor>
                   <div className="flex flex-wrap items-end gap-4">
                     <span className="text-3xl font-semibold">2,182</span>
                     <span className="mb-1 text-xs text-muted-foreground">This week (+8.3%)</span>
@@ -68,12 +91,9 @@ export function EducationPage() {
             <div className="2xl:col-span-2">
               <Card className="gap-4">
                 <CardHeader>
-                  <CardTitle>Scalable Systems & API Design</CardTitle>
-                  <CardDescription>Learn back-end optimizations, caching strategies, and robust data schema architectures.</CardDescription>
+                  <CardAnchor>Scalable Systems & API Design</CardAnchor>
                   <CardAction>
-                    <Button variant="ghost" size="icon-sm" aria-label="Options">
-                      <MoreHorizontalIcon />
-                    </Button>
+                    <CardTools />
                   </CardAction>
                 </CardHeader>
                 <CardContent className="grid gap-4">
@@ -108,12 +128,14 @@ export function EducationPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card className="gap-3">
               <CardHeader>
-                <CardTitle>Product Masterclass</CardTitle>
+                <CardAnchor>Product Masterclass</CardAnchor>
                 <CardAction>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <FilterIcon className="size-3.5" />
-                    Filter sessions
-                  </Button>
+                  <CardTools className="gap-2">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <FilterIcon className="size-3.5" />
+                      Filter sessions
+                    </Button>
+                  </CardTools>
                 </CardAction>
               </CardHeader>
               <CardContent>
@@ -177,13 +199,11 @@ export function EducationPage() {
                 <AvatarFallback>SJ</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <CardTitle>Dr. Sarah Jenkins</CardTitle>
-                <CardDescription>Physics Professor</CardDescription>
+                <CardAnchor>Dr. Sarah Jenkins</CardAnchor>
+                <p className="text-sm text-muted-foreground">Physics Professor</p>
               </div>
               <CardAction>
-                <Button variant="ghost" size="icon-sm" aria-label="Options">
-                  <MoreHorizontalIcon />
-                </Button>
+                <CardTools />
               </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -206,7 +226,12 @@ export function EducationPage() {
                     Target +12%
                   </Badge>
                 </div>
-                <ChartContainer config={{ v: { label: "Engagement", color: "var(--chart-1)" } }} className="mt-2 aspect-video h-24 w-full">
+                <ChartContainer
+                  config={{
+                    v: { label: "Engagement", color: "var(--chart-1)" },
+                  }}
+                  className="mt-2 aspect-video h-24 w-full"
+                >
                   <BarChart data={engagement}>
                     <XAxis dataKey="w" hide />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />

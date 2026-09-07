@@ -3,12 +3,13 @@
 import * as React from "react"
 import { ArrowUpIcon } from "lucide-react"
 
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { useAdminNav } from "@/components/admin/nav"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@govblock/ui/components/nova/card"
 import { Input } from "@govblock/ui/components/nova/input"
 import { Label } from "@govblock/ui/components/nova/label"
 import { NativeSelect, NativeSelectOption } from "@govblock/ui/components/nova/native-select"
@@ -18,16 +19,61 @@ import { Textarea } from "@govblock/ui/components/nova/textarea"
 // paceui's Create User, rebuilt from its rendered page: five sections of a
 // form beside a preview card that updates as you type.
 
-type Form = { first: string; last: string; email: string; phone: string; bio: string; title: string; role: string; department: string; manager: string; timezone: string; location: string; employeeId: string; joined: string; language: string; timeout: string; password: string; confirm: string; active: boolean; welcome: boolean; mfa: boolean }
+type Form = {
+  first: string
+  last: string
+  email: string
+  phone: string
+  bio: string
+  title: string
+  role: string
+  department: string
+  manager: string
+  timezone: string
+  location: string
+  employeeId: string
+  joined: string
+  language: string
+  timeout: string
+  password: string
+  confirm: string
+  active: boolean
+  welcome: boolean
+  mfa: boolean
+}
 
-const EMPTY: Form = { first: "", last: "", email: "", phone: "", bio: "", title: "", role: "", department: "", manager: "", timezone: "", location: "", employeeId: "", joined: "", language: "", timeout: "", password: "", confirm: "", active: true, welcome: true, mfa: false }
+const EMPTY: Form = {
+  first: "",
+  last: "",
+  email: "",
+  phone: "",
+  bio: "",
+  title: "",
+  role: "",
+  department: "",
+  manager: "",
+  timezone: "",
+  location: "",
+  employeeId: "",
+  joined: "",
+  language: "",
+  timeout: "",
+  password: "",
+  confirm: "",
+  active: true,
+  welcome: true,
+  mfa: false,
+}
 
-function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardAnchor>{title}</CardAnchor>
+        {description && <CardDescription>{description}</CardDescription>}
+        <CardAction>
+          <CardTools />
+        </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">{children}</CardContent>
     </Card>
@@ -129,14 +175,28 @@ export function UsersCreatePage() {
           </Section>
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>Account status, notifications, and authentication controls</CardDescription>
+              <CardAnchor>Preferences</CardAnchor>
+              <CardAction>
+                <CardTools />
+              </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {[
-                { k: "active" as const, t: "Active Account", d: "User can sign in and access the platform" },
-                { k: "welcome" as const, t: "Welcome Email", d: "Send credentials via welcome email" },
-                { k: "mfa" as const, t: "Multi-Factor Authentication", d: "Require MFA for enhanced security" },
+                {
+                  k: "active" as const,
+                  t: "Active Account",
+                  d: "User can sign in and access the platform",
+                },
+                {
+                  k: "welcome" as const,
+                  t: "Welcome Email",
+                  d: "Send credentials via welcome email",
+                },
+                {
+                  k: "mfa" as const,
+                  t: "Multi-Factor Authentication",
+                  d: "Require MFA for enhanced security",
+                },
               ].map((p) => (
                 <div key={p.k} className="flex items-center justify-between gap-4 rounded-lg border p-3">
                   <div>

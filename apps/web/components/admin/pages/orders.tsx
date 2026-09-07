@@ -1,16 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpRightIcon, KanbanIcon, ListFilterIcon, ListIcon, MoreHorizontalIcon, SortAscIcon } from "lucide-react"
+import { ArrowUpRightIcon, KanbanIcon, ListFilterIcon, ListIcon, SortAscIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 import { fmtBill, fmtDate } from "@/lib/format"
 import { num, pct, priorSession, useActivity, useAdopted, useBills } from "@/components/admin/data"
 import { StatOrder } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Checkbox } from "@govblock/ui/components/checkbox"
 import { Progress } from "@govblock/ui/components/progress"
@@ -26,7 +27,11 @@ import { cn } from "@govblock/ui/lib/utils"
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-function stage(status: string | null | undefined): { label: string; percent: number; variant: "default" | "secondary" | "destructive" | "outline" } {
+function stage(status: string | null | undefined): {
+  label: string
+  percent: number
+  variant: "default" | "secondary" | "destructive" | "outline"
+} {
   const s = (status ?? "").toLowerCase()
   if (/veto|fail|died/.test(s)) return { label: "Failed", percent: 0, variant: "destructive" }
   if (/passed$|signed|chaptered|adopted|enacted|became law/.test(s)) return { label: "Adopted", percent: 100, variant: "default" }
@@ -54,11 +59,36 @@ export function OrdersPage() {
   const sign = (n: number) => `${n > 0 ? "+" : ""}${n}%`
 
   const stats = [
-    { label: "Total Bills", value: v(num(total)), target: before ? `${num(before.bills)} last session` : "no earlier session", change: sign(pct(total, before?.bills)) },
-    { label: "Adopted", value: v(num(now?.adopted ?? 0)), target: before ? `${num(before.adopted)} last session` : "—", change: sign(pct(now?.adopted ?? 0, before?.adopted)) },
-    { label: "Adoption Rate", value: v(`${total ? Math.round(((now?.adopted ?? 0) / total) * 1000) / 10 : 0}%`), target: before?.bills ? `${Math.round((before.adopted / before.bills) * 1000) / 10}% last session` : "—", change: sign(Math.round(((total ? (now?.adopted ?? 0) / total : 0) - (before?.bills ? before.adopted / before.bills : 0)) * 1000) / 10) },
-    { label: "Roll Calls", value: v(num(rc)), target: `${num(yea + nay)} positions`, change: sign(0) },
-    { label: "Yea Rate", value: v(`${yea + nay ? Math.round((yea / (yea + nay)) * 1000) / 10 : 0}%`), target: "of positions recorded", change: sign(0) },
+    {
+      label: "Total Bills",
+      value: v(num(total)),
+      target: before ? `${num(before.bills)} last session` : "no earlier session",
+      change: sign(pct(total, before?.bills)),
+    },
+    {
+      label: "Adopted",
+      value: v(num(now?.adopted ?? 0)),
+      target: before ? `${num(before.adopted)} last session` : "—",
+      change: sign(pct(now?.adopted ?? 0, before?.adopted)),
+    },
+    {
+      label: "Adoption Rate",
+      value: v(`${total ? Math.round(((now?.adopted ?? 0) / total) * 1000) / 10 : 0}%`),
+      target: before?.bills ? `${Math.round((before.adopted / before.bills) * 1000) / 10}% last session` : "—",
+      change: sign(Math.round(((total ? (now?.adopted ?? 0) / total : 0) - (before?.bills ? before.adopted / before.bills : 0)) * 1000) / 10),
+    },
+    {
+      label: "Roll Calls",
+      value: v(num(rc)),
+      target: `${num(yea + nay)} positions`,
+      change: sign(0),
+    },
+    {
+      label: "Yea Rate",
+      value: v(`${yea + nay ? Math.round((yea / (yea + nay)) * 1000) / 10 : 0}%`),
+      target: "of positions recorded",
+      change: sign(0),
+    },
   ]
 
   const months = activity.data?.monthly ?? []
@@ -68,7 +98,10 @@ export function OrdersPage() {
   const lower = months.reduce((s, m) => s + m.assembly, 0)
   const split = [
     { label: "Senate", value: senate },
-    { label: activity.scope.state === "US" ? "House" : "Lower chamber", value: lower },
+    {
+      label: activity.scope.state === "US" ? "House" : "Lower chamber",
+      value: lower,
+    },
   ]
   const splitTotal = Math.max(1, senate + lower)
 
@@ -86,7 +119,9 @@ export function OrdersPage() {
     })
   }, [activity.data])
   const best = week.reduce((a, b) => (b.bills > a.bills ? b : a), week[0])
-  const weekConfig: ChartConfig = { bills: { label: "Bills", color: "var(--chart-1)" } }
+  const weekConfig: ChartConfig = {
+    bills: { label: "Bills", color: "var(--chart-1)" },
+  }
 
   const rows = bills.data?.rows ?? []
 
@@ -101,19 +136,18 @@ export function OrdersPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Bills Overview</CardTitle>
-            <CardAction className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <ListFilterIcon className="size-3.5" />
-                Filter
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 max-sm:hidden">
-                <SortAscIcon className="size-3.5" />
-                Sort
-              </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="More">
-                <MoreHorizontalIcon />
-              </Button>
+            <CardAnchor>Bills Overview</CardAnchor>
+            <CardAction>
+              <CardTools className="gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ListFilterIcon className="size-3.5" />
+                  Filter
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 max-sm:hidden">
+                  <SortAscIcon className="size-3.5" />
+                  Sort
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -123,7 +157,9 @@ export function OrdersPage() {
                 <ArrowUpRightIcon className="size-3" />
                 {lastMonth ? sign(pct(thisMonth?.bills ?? 0, lastMonth.bills)) : "—"}
               </Badge>
-              <span className="mb-1 text-xs text-muted-foreground">{lastMonth ? `${thisMonth && thisMonth.bills - lastMonth.bills >= 0 ? "+" : ""}${num((thisMonth?.bills ?? 0) - lastMonth.bills)} vs last month` : "bills with an action this month"}</span>
+              <span className="mb-1 text-xs text-muted-foreground">
+                {lastMonth ? `${thisMonth && thisMonth.bills - lastMonth.bills >= 0 ? "+" : ""}${num((thisMonth?.bills ?? 0) - lastMonth.bills)} vs last month` : "bills with an action this month"}
+              </span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {months.slice(-3).map((m) => (
@@ -151,17 +187,23 @@ export function OrdersPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Daily Actions</CardTitle>
+            <CardAnchor>Daily Actions</CardAnchor>
             <CardAction>
-              <Select defaultValue="week">
-                <SelectTrigger className="w-32" size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">This week</SelectItem>
-                  <SelectItem value="last">Last week</SelectItem>
-                </SelectContent>
-              </Select>
+              <CardTools className="gap-2">
+                <Select defaultValue="week">
+                  <SelectTrigger className="w-max min-w-28" size="sm">
+                    <SelectValue>{(v: unknown) => (v === "last" ? "Last week" : "This week")}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-max min-w-44">
+                    <SelectItem value="week" className="whitespace-nowrap">
+                      This week
+                    </SelectItem>
+                    <SelectItem value="last" className="whitespace-nowrap">
+                      Last week
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -199,16 +241,18 @@ export function OrdersPage() {
       <div className="mt-4 grid grid-cols-1 sm:mt-5">
         <Card className="gap-4">
           <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
-            <CardTitle>Recent Bills</CardTitle>
-            <CardAction className="flex items-center gap-1">
-              <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("list")}>
-                <ListIcon className="size-3.5" />
-                <span className="max-lg:hidden">List</span>
-              </Button>
-              <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("board")}>
-                <KanbanIcon className="size-3.5" />
-                <span className="max-lg:hidden">Board</span>
-              </Button>
+            <CardAnchor>Recent Bills</CardAnchor>
+            <CardAction>
+              <CardTools className="gap-2">
+                <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("list")}>
+                  <ListIcon className="size-3.5" />
+                  <span className="max-lg:hidden">List</span>
+                </Button>
+                <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("board")}>
+                  <KanbanIcon className="size-3.5" />
+                  <span className="max-lg:hidden">Board</span>
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="max-md:px-4">

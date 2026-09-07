@@ -1,12 +1,31 @@
 "use client"
 
 import * as React from "react"
-import { ActivityIcon, AlertCircleIcon, ArrowRightIcon, CalendarDays, CheckCircle2Icon, CheckIcon, CpuIcon, DatabaseIcon, GlobeIcon, HardDriveIcon, LockIcon, NetworkIcon, PauseIcon, PlayIcon, SparklesIcon, TerminalIcon, Trash2Icon, ZapIcon, type LucideIcon } from "lucide-react"
+import {
+  ActivityIcon,
+  AlertCircleIcon,
+  ArrowRightIcon,
+  CheckCircle2Icon,
+  CpuIcon,
+  DatabaseIcon,
+  GlobeIcon,
+  HardDriveIcon,
+  LockIcon,
+  NetworkIcon,
+  PauseIcon,
+  PlayIcon,
+  SparklesIcon,
+  TerminalIcon,
+  Trash2Icon,
+  ZapIcon,
+  type LucideIcon,
+} from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
 import { Progress } from "@govblock/ui/components/progress"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
 import { cn } from "@govblock/ui/lib/utils"
@@ -15,7 +34,15 @@ import { cn } from "@govblock/ui/lib/utils"
 // sources and the promo card. The console takes a feed of lines and plays
 // them in; the record's stream stands in for the template's random requests.
 
-export type LogEntry = { id: string; timestamp: string; method: string; path: string; status: number | string; latency: string; bad?: boolean }
+export type LogEntry = {
+  id: string
+  timestamp: string
+  method: string
+  path: string
+  status: number | string
+  latency: string
+  bad?: boolean
+}
 
 const METHODS = ["GET", "POST", "PUT", "DELETE"]
 const PATHS = ["/api/v1/users", "/api/auth/login", "/api/products", "/api/settings", "/health"]
@@ -25,7 +52,12 @@ function sampleLog(): LogEntry {
   const status = STATUSES[Math.floor(Math.random() * STATUSES.length)]
   return {
     id: Math.random().toString(36).slice(2, 9),
-    timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    timestamp: new Date().toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
     method: METHODS[Math.floor(Math.random() * METHODS.length)],
     path: PATHS[Math.floor(Math.random() * PATHS.length)],
     status,
@@ -63,22 +95,20 @@ export function Widget1({ title = "Live Console", feed, empty = "Waiting for inc
   return (
     <Card className="flex h-full flex-col gap-0 pt-3 pb-0">
       <CardHeader className="flex items-center justify-between space-y-0 border-b px-4 pb-3!">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 whitespace-nowrap">
           <TerminalIcon className="size-4" />
-          <CardTitle className="flex items-center gap-3 whitespace-nowrap">
-            <p>{title}</p>
-            <div className="size-1.25 rounded-full bg-foreground/15 max-sm:hidden" />
-            <span className="text-xs text-muted-foreground max-sm:hidden">Last {logs.length} events</span>
-          </CardTitle>
+          <CardAnchor>{title}</CardAnchor>
+          <div className="size-1.25 rounded-full bg-foreground/15 max-sm:hidden" />
+          <span className="text-xs text-muted-foreground max-sm:hidden">Last {logs.length} events</span>
         </div>
-        <div className="flex items-center gap-0">
+        <CardTools className="gap-0">
           <Button variant="ghost" size="icon-sm" onClick={() => setPaused((p) => !p)} aria-label={paused ? "Resume" : "Pause"}>
             {paused ? <PlayIcon className="size-4" /> : <PauseIcon className="size-4" />}
           </Button>
           <Button aria-label="Clear" variant="destructive" className="bg-transparent" size="icon-sm" onClick={() => setLogs([])}>
             <Trash2Icon className="size-4" />
           </Button>
-        </div>
+        </CardTools>
       </CardHeader>
       <CardContent className="h-64 min-h-0 grow px-1.5 pt-0">
         {logs.length === 0 && (
@@ -90,7 +120,7 @@ export function Widget1({ title = "Live Console", feed, empty = "Waiting for inc
         <ScrollArea ref={scrollRef} className="flex h-full flex-col gap-px">
           <div className="my-1.5">
             {logs.map((log) => (
-              <div key={log.id} className="group flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-1.5 text-sm hover:bg-accent animate-in fade-in slide-in-from-left-2 duration-200">
+              <div key={log.id} className="group flex animate-in cursor-pointer items-center gap-3 rounded-md px-2.5 py-1.5 text-sm duration-200 fade-in slide-in-from-left-2 hover:bg-accent">
                 <span className="w-20 shrink-0 text-muted-foreground">{log.timestamp}</span>
                 <span className={cn("w-12 shrink-0 text-xs font-medium", ["GET", "POST"].includes(log.method) && "text-primary", log.method === "DELETE" && "text-destructive")}>{log.method}</span>
                 <span className={cn("w-10 shrink-0 font-medium", log.bad && "text-destructive")}>{log.status}</span>
@@ -105,33 +135,88 @@ export function Widget1({ title = "Live Console", feed, empty = "Waiting for inc
   )
 }
 
-export type Quota = { id: string; name: string; icon: LucideIcon; used: number; limit: number; unit: string; resetIn?: string | null }
+export type Quota = {
+  id: string
+  name: string
+  icon: LucideIcon
+  used: number
+  limit: number
+  unit: string
+  resetIn?: string | null
+}
 
 export const SAMPLE_QUOTAS: Quota[] = [
-  { id: "daily-req", name: "Daily Requests", icon: ZapIcon, used: 81512, limit: 100000, unit: "reqs", resetIn: "4h 12m" },
-  { id: "bandwidth", name: "Egress Bandwidth", icon: NetworkIcon, used: 45.2, limit: 100, unit: "GB", resetIn: "4h 12m" },
-  { id: "db-conn", name: "Active DB Connections", icon: DatabaseIcon, used: 89, limit: 100, unit: "conns", resetIn: null },
-  { id: "storage", name: "Log Storage (Retention)", icon: HardDriveIcon, used: 3.2, limit: 5.0, unit: "TB", resetIn: null },
+  {
+    id: "daily-req",
+    name: "Daily Requests",
+    icon: ZapIcon,
+    used: 81512,
+    limit: 100000,
+    unit: "reqs",
+    resetIn: "4h 12m",
+  },
+  {
+    id: "bandwidth",
+    name: "Egress Bandwidth",
+    icon: NetworkIcon,
+    used: 45.2,
+    limit: 100,
+    unit: "GB",
+    resetIn: "4h 12m",
+  },
+  {
+    id: "db-conn",
+    name: "Active DB Connections",
+    icon: DatabaseIcon,
+    used: 89,
+    limit: 100,
+    unit: "conns",
+    resetIn: null,
+  },
+  {
+    id: "storage",
+    name: "Log Storage (Retention)",
+    icon: HardDriveIcon,
+    used: 3.2,
+    limit: 5.0,
+    unit: "TB",
+    resetIn: null,
+  },
 ]
 
 /** Logs: quotas as a list with a thin bar each; a badge in the corner names the load. */
-export function Widget5({ title = "System Limits", description = "Resource usage against plan quotas.", quotas = SAMPLE_QUOTAS, badge, footer = "Manage Plan & Limits", onFooter, critical = 85 }: { title?: string; description?: string; quotas?: Quota[]; badge?: React.ReactNode; footer?: string; onFooter?: () => void; critical?: number }) {
+export function Widget5({
+  title = "System Limits",
+  quotas = SAMPLE_QUOTAS,
+  badge,
+  footer = "Manage Plan & Limits",
+  onFooter,
+  critical = 85,
+}: {
+  title?: string
+  quotas?: Quota[]
+  badge?: React.ReactNode
+  footer?: string
+  onFooter?: () => void
+  critical?: number
+}) {
   const anyCritical = quotas.some((q) => (q.used / q.limit) * 100 >= critical)
   return (
     <Card className="flex flex-col gap-5 py-4">
       <CardHeader className="px-4">
-        <CardTitle className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <CpuIcon className="size-4.5" />
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
+          <CardAnchor>{title}</CardAnchor>
+        </div>
         <CardAction>
-          {badge ?? (
-            <Badge variant={anyCritical ? "destructive" : "secondary"}>
-              {anyCritical && <AlertCircleIcon className="size-4" />}
-              <span>{anyCritical ? "Critical Load" : "Healthy"}</span>
-            </Badge>
-          )}
+          <CardTools className="gap-2">
+            {badge ?? (
+              <Badge variant={anyCritical ? "destructive" : "secondary"}>
+                {anyCritical && <AlertCircleIcon className="size-4" />}
+                <span>{anyCritical ? "Critical Load" : "Healthy"}</span>
+              </Badge>
+            )}
+          </CardTools>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 px-4">
@@ -152,9 +237,16 @@ export function Widget5({ title = "System Limits", description = "Resource usage
                 </div>
                 <div className="flex flex-col items-end gap-1 text-end">
                   <p className="font-mono text-[10px] tracking-tight sm:text-xs">
-                    {item.used.toLocaleString()} <span className="text-muted-foreground">/ {item.limit.toLocaleString()} {item.unit}</span>
+                    {item.used.toLocaleString()}{" "}
+                    <span className="text-muted-foreground">
+                      / {item.limit.toLocaleString()} {item.unit}
+                    </span>
                   </p>
-                  <Progress aria-label={`Usage for ${item.name}`} value={percentage} className={cn("w-28 bg-muted **:data-[slot=progress-indicator]:bg-green-600 *:data-[slot=progress-track]:h-1", isCritical && "**:data-[slot=progress-indicator]:bg-destructive")} />
+                  <Progress
+                    aria-label={`Usage for ${item.name}`}
+                    value={percentage}
+                    className={cn("w-28 bg-muted **:data-[slot=progress-indicator]:bg-green-600 *:data-[slot=progress-track]:h-1", isCritical && "**:data-[slot=progress-indicator]:bg-destructive")}
+                  />
                 </div>
               </div>
             </div>
@@ -170,15 +262,18 @@ export function Widget5({ title = "System Limits", description = "Resource usage
   )
 }
 
-type RangeKey = "7d" | "30d" | "90d" | "year"
-const RANGES: { value: RangeKey; label: string }[] = [
-  { value: "7d", label: "This Week" },
-  { value: "30d", label: "This Month" },
-  { value: "90d", label: "Last 3 Months" },
-  { value: "year", label: "Year to Date" },
-]
-
-export type Source = { key: string; label: string; icon?: LucideIcon; sub: string; value: React.ReactNode; percent: number; tone?: string; toneBg?: string }
+export type Source = {
+  key: string
+  label: string
+  icon?: LucideIcon
+  media?: React.ReactNode
+  sub: string
+  value: React.ReactNode
+  percent: number
+  tone?: string
+  toneBg?: string
+  href?: string
+}
 
 const TONES = [
   ["text-blue-500", "bg-blue-50 dark:bg-blue-800/20"],
@@ -189,66 +284,78 @@ const TONES = [
 ]
 
 export const SAMPLE_SOURCES: Source[] = [
-  { key: "facebook", label: "Facebook", sub: "12,450 visitors", value: "$45,200", percent: 78 },
-  { key: "instagram", label: "Instagram", sub: "8,300 visitors", value: "$28,500", percent: 62 },
-  { key: "dribbble", label: "Dribbble", sub: "4,100 visitors", value: "$12,100", percent: 45 },
-  { key: "google", label: "Google Ads", sub: "2,400 visitors", value: "$8,400", percent: 25 },
+  {
+    key: "facebook",
+    label: "Facebook",
+    sub: "12,450 visitors",
+    value: "$45,200",
+    percent: 78,
+  },
+  {
+    key: "instagram",
+    label: "Instagram",
+    sub: "8,300 visitors",
+    value: "$28,500",
+    percent: 62,
+  },
+  {
+    key: "dribbble",
+    label: "Dribbble",
+    sub: "4,100 visitors",
+    value: "$12,100",
+    percent: 45,
+  },
+  {
+    key: "google",
+    label: "Google Ads",
+    sub: "2,400 visitors",
+    value: "$8,400",
+    percent: 25,
+  },
 ]
 
-/** Sales: a list of sources, each with an icon tile, two lines, a figure and a bar. */
-export function Analytics7({ title = "Traffic Sources", description = "Revenue contribution from each traffic source", sources = SAMPLE_SOURCES }: { title?: string; description?: string; sources?: Source[] }) {
-  const [range, setRange] = React.useState<RangeKey>("30d")
-  const selected = RANGES.find((r) => r.value === range)?.label
+/** Sales: a list of sources, each with a tile, two lines, a figure and a bar. `note` names the span beside the menu; a row with an `href` opens it. */
+export function Analytics7({ title = "Traffic Sources", note, sources = SAMPLE_SOURCES }: { title?: string; note?: React.ReactNode; sources?: Source[] }) {
+  const router = useRouter()
   return (
     <Card className="gap-3 max-md:py-4!">
       <CardHeader className="max-md:px-4">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardAnchor>{title}</CardAnchor>
         <CardAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="sm" className="gap-2 max-md:size-8">
-                  <CalendarDays className="size-4 text-muted-foreground" />
-                  <span className="max-md:hidden">{selected}</span>
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end" className="w-max min-w-44">
-              {RANGES.map((item) => (
-                <DropdownMenuItem key={item.value} onClick={() => setRange(item.value)} className="whitespace-nowrap justify-between">
-                  {item.label}
-                  {range === item.value && <CheckIcon className="size-4" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <CardTools className="gap-2">{note && <span className="text-sm whitespace-nowrap text-muted-foreground">{note}</span>}</CardTools>
         </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2.5 max-md:px-4">
+      <CardContent className="flex flex-col gap-1 max-md:px-4">
         {sources.map((item, i) => {
           const Icon = item.icon ?? GlobeIcon
           const [fg, bg] = TONES[i % TONES.length]
           return (
-            <div key={item.key} className="group flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex min-w-0 items-center gap-3">
+            <div
+              key={item.key}
+              role={item.href ? "link" : undefined}
+              tabIndex={item.href ? 0 : undefined}
+              onClick={item.href ? () => router.push(item.href!) : undefined}
+              onKeyDown={item.href ? (e) => e.key === "Enter" && router.push(item.href!) : undefined}
+              className={cn("group -mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-1.5", item.href && "cursor-pointer transition-colors hover:bg-accent/60")}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                {item.media ?? (
                   <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-md", item.toneBg ?? bg)}>
                     <Icon className={cn("size-5", item.tone ?? fg)} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.sub}</p>
-                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-base font-medium">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.sub}</p>
                 </div>
-                <div className="shrink-0 text-end">
-                  <p className="text-base font-medium">
-                    {item.value}
-                    <span className="ms-1 text-xs text-muted-foreground">({item.percent}%)</span>
-                  </p>
-                  <div className="mt-1 flex items-center justify-end gap-2.5">
-                    <Progress aria-label={`Progress for ${item.label}`} value={item.percent} className="h-1 w-30 bg-muted **:data-[slot=progress-indicator]:bg-primary/70 *:data-[slot=progress-track]:h-1" />
-                  </div>
+              </div>
+              <div className="shrink-0 text-end">
+                <p className="text-base font-medium">
+                  {item.value}
+                  <span className="ms-1 text-xs text-muted-foreground">({item.percent}%)</span>
+                </p>
+                <div className="mt-1 flex items-center justify-end gap-2.5">
+                  <Progress aria-label={`Progress for ${item.label}`} value={item.percent} className="h-1 w-30 bg-muted **:data-[slot=progress-indicator]:bg-primary/70 *:data-[slot=progress-track]:h-1" />
                 </div>
               </div>
             </div>
@@ -268,6 +375,7 @@ export function Promo1({
   cta = "Upgrade to Pro",
   href,
   onClick,
+  icon: Icon = LockIcon,
 }: {
   badge?: string
   title?: string
@@ -276,15 +384,21 @@ export function Promo1({
   cta?: string
   href?: string
   onClick?: () => void
+  icon?: LucideIcon
 }) {
   return (
     <Card className="relative">
       <div className="absolute top-3 left-3 flex size-10 items-center justify-center rounded-full bg-primary/10 ring-6 ring-primary/5 md:top-6 md:left-6">
-        <LockIcon className="size-5 text-primary" />
+        <Icon className="size-5 text-primary" />
+      </div>
+      <div className="absolute top-3 right-3 md:top-4 md:right-4">
+        <CardTools />
       </div>
       <CardHeader className="relative flex flex-col items-center text-center">
         <Badge variant="secondary">{badge}</Badge>
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardAnchor id={badge.toLowerCase().replace(/[^a-z0-9]+/g, "-")} className="text-lg">
+          {title}
+        </CardAnchor>
         <CardDescription className="mx-auto max-w-70">{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-1 text-muted-foreground">

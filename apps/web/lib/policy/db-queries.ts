@@ -800,12 +800,13 @@ export async function getTopSponsors(f: Resolved, limit = 8) {
     chamber: string
     district: string
     photo_url: string | null
+    bioguide_id: string | null
     prime: number
   }>(
-    `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, count(*)::int prime
+    `select p.people_id, p.name, p.party, p.role, p.chamber, p.district, p.photo_url, p.bioguide_id, count(*)::int prime
      from "Sponsors" s join "Bills" b using (bill_id) join "People" p using (people_id)
      where b.state = $1 and b.session_id = $2 and s.sponsor_type_id = 1 ${f.chamber ? "and b.body = $4" : ""}
-     group by 1, 2, 3, 4, 5, 6, 7 order by 8 desc limit $3`,
+     group by 1, 2, 3, 4, 5, 6, 7, 8 order by 9 desc limit $3`,
     f.chamber
       ? [f.state, f.session, limit, f.chamber]
       : [f.state, f.session, limit]

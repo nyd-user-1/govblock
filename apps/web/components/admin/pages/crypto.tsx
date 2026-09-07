@@ -1,20 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { CopyIcon, LinkIcon, MoreHorizontalIcon, CheckIcon } from "lucide-react"
+import { CopyIcon, LinkIcon, CheckIcon } from "lucide-react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 import { StatCrypto } from "@/components/admin/blocks/stats"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
 
 // paceui's Crypto Wallet, rebuilt from its rendered page with its sample figures.
 
-const trend = Array.from({ length: 30 }, (_, i) => ({ d: i, btc: 60000 + Math.round(Math.sin(i / 4) * 4000 + i * 250), eth: 3000 + Math.round(Math.cos(i / 5) * 300), sol: 120 + Math.round(Math.sin(i / 3) * 20) }))
+const trend = Array.from({ length: 30 }, (_, i) => ({
+  d: i,
+  btc: 60000 + Math.round(Math.sin(i / 4) * 4000 + i * 250),
+  eth: 3000 + Math.round(Math.cos(i / 5) * 300),
+  sol: 120 + Math.round(Math.sin(i / 3) * 20),
+}))
 const portfolio = [
   { name: "Bitcoin", value: 45000 },
   { name: "Ethereum", value: 28000 },
@@ -23,14 +29,37 @@ const portfolio = [
   { name: "Polkadot", value: 4200 },
 ]
 const holdings = [
-  { name: "Bitcoin", sym: "BTC", apy: "1.5%", value: "$64,250.00", change: "4.85%", pct: 73 },
-  { name: "Ethereum", sym: "ETH", apy: "4.2%", value: "$3,450.00", change: "2.10%", pct: 20 },
-  { name: "Solana", sym: "SOL", apy: "7.5%", value: "$145.00", change: "1.25%", pct: 7 },
+  {
+    name: "Bitcoin",
+    sym: "BTC",
+    apy: "1.5%",
+    value: "$64,250.00",
+    change: "4.85%",
+    pct: 73,
+  },
+  {
+    name: "Ethereum",
+    sym: "ETH",
+    apy: "4.2%",
+    value: "$3,450.00",
+    change: "2.10%",
+    pct: 20,
+  },
+  {
+    name: "Solana",
+    sym: "SOL",
+    apy: "7.5%",
+    value: "$145.00",
+    change: "1.25%",
+    pct: 7,
+  },
 ]
 
 export function CryptoPage() {
   const [coin, setCoin] = React.useState<"btc" | "eth" | "sol">("btc")
-  const config: ChartConfig = { [coin]: { label: coin.toUpperCase(), color: "var(--chart-1)" } }
+  const config: ChartConfig = {
+    [coin]: { label: coin.toUpperCase(), color: "var(--chart-1)" },
+  }
   return (
     <div>
       <PageTitle title="Crypto Wallet" />
@@ -47,7 +76,7 @@ export function CryptoPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle>Market Trends</CardTitle>
+                    <CardAnchor>Market Trends</CardAnchor>
                     <div className="flex gap-1">
                       {(["btc", "eth", "sol"] as const).map((c) => (
                         <Button key={c} variant={coin === c ? "secondary" : "ghost"} size="sm" onClick={() => setCoin(c)}>
@@ -94,22 +123,33 @@ export function CryptoPage() {
         <div className="2xl:col-span-3">
           <Card className="gap-0 sm:pb-0">
             <CardHeader>
-              <CardTitle>Portfolio Overview</CardTitle>
+              <CardAnchor>Portfolio Overview</CardAnchor>
               <CardAction>
-                <Select defaultValue="weekly">
-                  <SelectTrigger className="h-8 w-25" size="sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">weekly</SelectItem>
-                    <SelectItem value="monthly">monthly</SelectItem>
-                  </SelectContent>
-                </Select>
+                <CardTools className="gap-2">
+                  <Select defaultValue="weekly">
+                    <SelectTrigger className="h-8 w-max min-w-24" size="sm">
+                      <SelectValue>{(v: unknown) => (v === "monthly" ? "Monthly" : "Weekly")}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="w-max min-w-44">
+                      <SelectItem value="weekly" className="whitespace-nowrap">
+                        Weekly
+                      </SelectItem>
+                      <SelectItem value="monthly" className="whitespace-nowrap">
+                        Monthly
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardTools>
               </CardAction>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
-                <ChartContainer config={{ value: { label: "Value", color: "var(--chart-2)" } }} className="aspect-video h-75 w-full">
+                <ChartContainer
+                  config={{
+                    value: { label: "Value", color: "var(--chart-2)" },
+                  }}
+                  className="aspect-video h-75 w-full"
+                >
                   <BarChart data={portfolio} layout="vertical" margin={{ left: 0, right: 0 }}>
                     <XAxis type="number" hide />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
@@ -135,11 +175,9 @@ export function CryptoPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-3">
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>Secure Vault</CardTitle>
+            <CardAnchor>Secure Vault</CardAnchor>
             <CardAction>
-              <Button variant="ghost" size="icon-sm" aria-label="Options">
-                <MoreHorizontalIcon />
-              </Button>
+              <CardTools />
             </CardAction>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -159,7 +197,14 @@ export function CryptoPage() {
               </div>
               <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full">
                 {holdings.map((h, i) => (
-                  <div key={h.sym} className="h-full" style={{ width: `${h.pct}%`, background: `var(--chart-${i + 1})` }} />
+                  <div
+                    key={h.sym}
+                    className="h-full"
+                    style={{
+                      width: `${h.pct}%`,
+                      background: `var(--chart-${i + 1})`,
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -183,12 +228,14 @@ export function CryptoPage() {
         </Card>
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>My Wallets</CardTitle>
+            <CardAnchor>My Wallets</CardAnchor>
             <CardAction>
-              <Button variant="outline" size="sm" className="gap-1">
-                <LinkIcon className="size-3.5" />
-                Link Wallet
-              </Button>
+              <CardTools className="gap-2">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <LinkIcon className="size-3.5" />
+                  Link Wallet
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -229,8 +276,7 @@ export function CryptoPage() {
         <Card className="gap-4">
           <CardHeader className="flex-col gap-2.5">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase">API Feature</CardTitle>
-            <CardTitle>Unlock Crypto Market Data API</CardTitle>
-            <CardDescription>Integrate high-frequency crypto pricing, historical candlestick data, and trade feeds.</CardDescription>
+            <CardAnchor>Unlock Crypto Market Data API</CardAnchor>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <ul className="grid gap-2 text-sm">

@@ -19,44 +19,154 @@ export type Activity = {
   total: number
 }
 export type AdoptedRow = { session_id: number; adopted: number; bills: number }
-export type Sponsor = { people_id: number; name: string; party: string; role: string; chamber: string; district: string; photo_url: string | null; prime: number }
-export type Committee = { committee_name: string; chamber: string; bills: number }
-export type RollCall = { roll_call_id: number; date: string; chamber: string; description: string; yea: number; nay: number; total: number; bill_id: number; bill_number: string; title: string }
-export type Member = { people_id: number; name: string; first_name: string; last_name: string; party: string; role: string; chamber: string; district: string; photo_url: string | null; leadership_title: string | null; active: boolean }
+export type Sponsor = {
+  people_id: number
+  name: string
+  party: string
+  role: string
+  chamber: string
+  district: string
+  photo_url: string | null
+  bioguide_id: string | null
+  prime: number
+}
+export type Committee = {
+  committee_name: string
+  chamber: string
+  bills: number
+  slug?: string
+}
+export type RollCall = {
+  roll_call_id: number
+  date: string
+  chamber: string
+  description: string
+  yea: number
+  nay: number
+  total: number
+  bill_id: number
+  bill_number: string
+  title: string
+}
+export type Member = {
+  people_id: number
+  name: string
+  first_name: string
+  last_name: string
+  party: string
+  role: string
+  chamber: string
+  district: string
+  photo_url: string | null
+  leadership_title: string | null
+  active: boolean
+}
 export type Seat = { chamber: string; party: string; seats: number }
 export type StreamGroup = { state: string; session: number; bills: BillRow[] }
-export type BillRow = { bill_id: number; bill_number: string; title: string; description: string; status_desc: string; last_action: string; last_action_date: string; committee: string | null; body: string; url: string; state_link: string; text_chars: number | null; sponsor: string | null; sponsor_party: string | null; sponsor_id: number | null }
-export type Hearing = { date: string; time: string; type: string; description: string; location: string; bill_id: number; bill_number: string; title: string; committee: string | null; body: string | null; status_desc: string | null }
-export type StateRow = { state: string; bills: number; latest_year: number; sessions: number }
+export type BillRow = {
+  bill_id: number
+  bill_number: string
+  title: string
+  description: string
+  status_desc: string
+  last_action: string
+  last_action_date: string
+  committee: string | null
+  body: string
+  url: string
+  state_link: string
+  text_chars: number | null
+  sponsor: string | null
+  sponsor_party: string | null
+  sponsor_id: number | null
+}
+export type Hearing = {
+  date: string
+  time: string
+  type: string
+  description: string
+  location: string
+  bill_id: number
+  bill_number: string
+  title: string
+  committee: string | null
+  body: string | null
+  status_desc: string | null
+}
+export type StateRow = {
+  state: string
+  bills: number
+  latest_year: number
+  sessions: number
+}
 export type Provenance = {
-  totals: { bills: number; sessions: number; states: number; rollcalls: number; people: number; committees: number; texts: number }
+  totals: {
+    bills: number
+    sessions: number
+    states: number
+    rollcalls: number
+    people: number
+    committees: number
+    texts: number
+  }
   daily: { day: string; texts: number; datasets: number; bills: number }[]
-  feeds: { legiscan_at: string | null; legiscan_delta_at: string | null; texts_at: string | null; texts_week: number; congress_at: string | null; congress_note: string | null; lobbying_at: string | null; fec_at: string | null; house_at: string | null; senate_at: string | null; laws_at: string | null; model_at: string | null }
-  fresh: { state: string; last_action: string; bills: number; recent: number; pulled_at: string | null }[]
+  feeds: {
+    legiscan_at: string | null
+    legiscan_delta_at: string | null
+    texts_at: string | null
+    texts_week: number
+    congress_at: string | null
+    congress_note: string | null
+    lobbying_at: string | null
+    fec_at: string | null
+    house_at: string | null
+    senate_at: string | null
+    laws_at: string | null
+    model_at: string | null
+  }
+  fresh: {
+    state: string
+    last_action: string
+    bills: number
+    recent: number
+    pulled_at: string | null
+  }[]
   coverage: { with_text: number; of: number }
 }
 
 function useRecord<T>(resource: string | null, extra: Record<string, string | number | undefined> = {}) {
   const scope = useScope()
-  const filters = React.useMemo(() => ({ state: scope.state, session: scope.session ? String(scope.session) : undefined }), [scope.state, scope.session])
+  const filters = React.useMemo(
+    () => ({
+      state: scope.state,
+      session: scope.session ? String(scope.session) : undefined,
+    }),
+    [scope.state, scope.session]
+  )
   const { data, isLoading } = usePolicy<T>(scope.resolved ? resource : null, filters, extra)
   return { data, pending: !scope.resolved || isLoading, scope }
 }
 
-export const useActivity = () => useRecord<Activity>("activity")
-export const useAdopted = () => useRecord<AdoptedRow[]>("adopted")
-export const useSponsors = (limit = 8) => useRecord<Sponsor[]>("sponsors", { limit })
-export const useCommittees = () => useRecord<Committee[]>("committees")
+// `extra` rides into the query string; a page's Refresh bumps a counter
+// there so every card re-reads at once.
+type Extra = Record<string, string | number | undefined>
+export const useActivity = (extra: Extra = {}) => useRecord<Activity>("activity", extra)
+export const useAdopted = (extra: Extra = {}) => useRecord<AdoptedRow[]>("adopted", extra)
+export const useSponsors = (limit = 8, extra: Extra = {}) => useRecord<Sponsor[]>("sponsors", { limit, ...extra })
+export const useCommittees = (extra: Extra = {}) => useRecord<Committee[]>("committees", extra)
 export const useRollCalls = (limit = 120) => useRecord<RollCall[]>("rollcalls", { limit })
 export const useMembers = () => useRecord<Member[]>("members")
-export const useSeats = () => useRecord<Seat[]>("seats")
+export const useSeats = (extra: Extra = {}) => useRecord<Seat[]>("seats", extra)
 export const useBills = (limit = 20) => useRecord<{ rows: BillRow[]; total: number }>("bills", { limit })
 // The hearings route is a Congress dataset and answers no other state; ask
 // only where there is an answer, so the page does not sit through the
 // retries a failed read earns.
 export function useHearings(from: string, to: string) {
   const scope = useScope()
-  return useRecord<Hearing[]>(scope.state === "US" ? "hearings" : null, { from, to })
+  return useRecord<Hearing[]>(scope.state === "US" ? "hearings" : null, {
+    from,
+    to,
+  })
 }
 export const useStates = (extra: Record<string, string | number | undefined> = {}) => useRecord<StateRow[]>("states", extra)
 export const useProvenance = (extra: Record<string, string | number | undefined> = {}) => useRecord<Provenance>("provenance", extra)
@@ -87,7 +197,12 @@ export function fmtStamp(value: string | null | undefined) {
   if (!value) return "—"
   const d = new Date(value.replace(" ", "T"))
   if (!Number.isFinite(d.getTime())) return value
-  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 /** How long ago, in words. */
