@@ -133,6 +133,8 @@ export function SalesPage() {
       sales: "prime sponsor",
       status: s.party === "D" ? "Democrat" : s.party === "R" ? "Republican" : s.party || "Other",
       statusVariant: "outline",
+      // The party is the dot on the portrait, not a column (Brendan, 2026-09-07).
+      dot: s.party === "D" ? PARTY_BLUE : s.party === "R" ? PARTY_RED : PARTY_OTHER,
       href: memberHref(s.people_id, state),
     })) ?? []
 
@@ -191,7 +193,7 @@ export function SalesPage() {
           />
         </div>
         <div className="xl:col-span-3">
-          <Table3 title="Top Sponsors" rows={members} pending={sponsors.pending} columns={["Portrait", "Member", state === "US" ? "State" : "Chamber", "Party", "Bills"]} />
+          <Table3 title="Top Sponsors" rows={members} pending={sponsors.pending} columns={["Portrait", "Member", state === "US" ? "State" : "Chamber", null, "Bills"]} />
         </div>
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-2 2xl:grid-cols-3">

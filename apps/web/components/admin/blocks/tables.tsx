@@ -146,6 +146,8 @@ export type ProductRow = {
   status: string
   statusVariant?: "default" | "secondary" | "destructive" | "outline"
   href?: string
+  /** A colour on the avatar's corner, the way a notification dot sits: a member's party (Brendan, 2026-09-07). */
+  dot?: string
 }
 
 export const SAMPLE_PRODUCTS: ProductRow[] = [
@@ -227,11 +229,14 @@ export function Table3({
 }: {
   title?: string
   rows?: ProductRow[]
-  columns?: [string, string, string, string, string]
+  /** The five heads; a null fourth drops the status column, where the status rides the avatar's dot instead. */
+  columns?: [string, string, string, string | null, string]
   pending?: boolean
   tools?: React.ReactNode
 }) {
   const router = useRouter()
+  const showStatus = columns[3] != null
+  const span = showStatus ? 5 : 4
   return (
     <Card className="w-full gap-5 pb-5 max-md:py-4!">
       <CardHeader className="max-md:px-4">
@@ -247,7 +252,7 @@ export function Table3({
               <TableHead className="w-12">{columns[0]}</TableHead>
               <TableHead>{columns[1]}</TableHead>
               <TableHead>{columns[2]}</TableHead>
-              <TableHead>{columns[3]}</TableHead>
+              {showStatus && <TableHead>{columns[3]}</TableHead>}
               <TableHead className="text-right">{columns[4]}</TableHead>
             </TableRow>
           </TableHeader>
@@ -255,7 +260,7 @@ export function Table3({
             {pending && rows.length === 0
               ? Array.from({ length: 6 }, (_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={span}>
                       <Skeleton className="h-9 w-full" />
                     </TableCell>
                   </TableRow>
@@ -263,10 +268,13 @@ export function Table3({
               : rows.map((product) => (
                   <TableRow key={product.id} className={cn(product.href && "cursor-pointer")} onClick={product.href ? () => router.push(product.href!) : undefined}>
                     <TableCell>
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={product.image ?? undefined} alt={product.name} className="object-cover object-top" />
-                        <AvatarFallback>{product.fallback ?? product.name.slice(0, 2)}</AvatarFallback>
-                      </Avatar>
+                      <span className="relative inline-flex">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={product.image ?? undefined} alt={product.name} className="object-cover object-top" />
+                          <AvatarFallback>{product.fallback ?? product.name.slice(0, 2)}</AvatarFallback>
+                        </Avatar>
+                        {product.dot && <span aria-label={product.status} title={product.status} className="absolute right-0 bottom-0 size-2.5 rounded-full ring-2 ring-background" style={{ background: product.dot }} />}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex w-40 flex-col">
@@ -281,11 +289,13 @@ export function Table3({
                       </div>
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>
-                      <Badge variant={product.statusVariant ?? "secondary"} className="whitespace-nowrap capitalize">
-                        {product.status}
-                      </Badge>
-                    </TableCell>
+                    {showStatus && (
+                      <TableCell>
+                        <Badge variant={product.statusVariant ?? "secondary"} className="whitespace-nowrap capitalize">
+                          {product.status}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
                         <p className="font-medium">{product.revenue}</p>
