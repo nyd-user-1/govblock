@@ -2,15 +2,12 @@
 
 import * as React from "react"
 
-import { stateName } from "@/lib/filters"
-import { useScope, useSessionTitle } from "@/lib/policy/scope"
 import { AdminTopbar } from "@/components/admin/blocks/layout"
 import { AdminNavProvider } from "@/components/admin/nav"
-import { AdminFooter } from "@/components/admin/page-title"
+import { AdminCrumb, AdminFooter } from "@/components/admin/page-title"
 import { AdminRail } from "@/components/admin/rail"
-import { AdminPage } from "@/components/admin/pages"
+import { AdminPage, adminTitle } from "@/components/admin/pages"
 import { BlockShell } from "@/components/policy/block-shell"
-import { Badge } from "@govblock/ui/components/nova/badge"
 
 // The Admin experience: paceui's Ultimate Dashboard, rebuilt in our chrome
 // and dropped into the block shell (Brendan, 2026-09-05: "Don't materially
@@ -21,31 +18,32 @@ import { Badge } from "@govblock/ui/components/nova/badge"
 // its members for Customers, the feeds behind it for Database — the page reads
 // the record; the rest keep paceui's sample rows until they have a home.
 
+// Brendan, 2026-09-06, reading his Data Pipeline redesign back: the page's
+// title is the header's breadcrumb, "Admin › Data Pipeline", on every page;
+// the rule after the sidebar trigger runs tight; the first block sits flush
+// under the header; the footer is the header's twin; and the customizer
+// leaves the screen (that part lives in the designer).
+
+const PARENTS: Record<string, { label: string; page: string }[]> = {
+  "apps/users/create": [{ label: "Members", page: "apps/users" }],
+}
+
 export function AdminStage({ page, onGo }: { page: string; onGo: (page: string) => void }) {
-  const scope = useScope()
-  const sessionTitle = useSessionTitle(scope.state, scope.session)
   const nav = React.useMemo(() => ({ page, go: onGo }), [page, onGo])
+  const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
   return (
     <AdminNavProvider value={nav}>
       <BlockShell
         rail={<AdminRail />}
         sidebarWidth="250px"
-        title={
-          <>
-            <span>Admin — {stateName(scope.state)}</span>
-            <Badge variant="outline" className="hidden font-normal sm:inline-flex">
-              {sessionTitle || "…"}
-            </Badge>
-          </>
-        }
+        separatorClassName="mx-1"
+        title={<AdminCrumb title={adminTitle(page)} links={links} />}
         actions={<AdminTopbar />}
       >
-        <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">
           <AdminPage page={page} />
         </div>
-        <div className="mb-3 px-6">
-          <AdminFooter />
-        </div>
+        <AdminFooter />
       </BlockShell>
     </AdminNavProvider>
   )

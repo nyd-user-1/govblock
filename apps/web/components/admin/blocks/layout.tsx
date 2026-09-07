@@ -230,7 +230,7 @@ export function AdminTopbar() {
       <StateSwitcher className="h-7" />
       <ModeSwitcher className="size-7" />
       <Notification1 />
-      <div className="ms-3 h-6.5 w-px bg-border max-sm:hidden" />
+      <div className="h-6.5 w-px bg-border max-sm:hidden" />
       <Profile1 />
     </div>
   )

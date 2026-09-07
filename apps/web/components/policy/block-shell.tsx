@@ -34,6 +34,7 @@ export function BlockShell({
   className,
   headerClassName,
   contentClassName,
+  separatorClassName,
   defaultOpen = true,
 }: {
   /** The sidebar's contents: SidebarHeader, SidebarContent, SidebarFooter. */
@@ -48,6 +49,8 @@ export function BlockShell({
   /** For the shadow a header wears while rows pass under it. */
   headerClassName?: string
   contentClassName?: string
+  /** The rule between the trigger and the title; the Admin experience runs it tighter. */
+  separatorClassName?: string
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = React.useState(defaultOpen)
@@ -70,7 +73,7 @@ export function BlockShell({
         <header className={cn("relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-shadow", headerClassName)}>
           <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+            <Separator orientation="vertical" className={cn("mx-2 data-[orientation=vertical]:h-4", separatorClassName)} />
             <div className="flex min-w-0 flex-1 items-center gap-2 text-base font-medium">{title}</div>
             {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
           </div>

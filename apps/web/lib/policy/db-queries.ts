@@ -2782,11 +2782,11 @@ export async function getProvenance() {
     ),
     q<{ day: string; texts: number }>(
       `select ${day("fetched_at")} as day, count(*)::int as texts
-         from "BillTexts" where fetched_at >= now() - interval '30 days' group by 1 order by 1`
+         from "BillTexts" where fetched_at >= now() - interval '90 days' group by 1 order by 1`
     ),
     q<{ day: string; datasets: number; bills: number }>(
       `select ${day("imported_at")} as day, count(*)::int as datasets, sum(bills)::int as bills
-         from "LegiscanDatasets" where imported_at >= now() - interval '30 days' group by 1 order by 1`
+         from "LegiscanDatasets" where imported_at >= now() - interval '90 days' group by 1 order by 1`
     ),
     one<{
       legiscan_at: string | null
@@ -2815,10 +2815,16 @@ export async function getProvenance() {
               (select max(fetched_at)::text from "Laws") as laws_at,
               (select max(fetched_at)::text from "ModelBills") as model_at`
     ),
-    q<{ state: string; last_action: string; bills: number; recent: number }>(
-      `select state, max(last_action_date) as last_action, count(*)::int as bills,
-              count(*) filter (where last_action_date >= to_char(now() - interval '7 days', 'YYYY-MM-DD'))::int as recent
-         from "Bills" where session_id >= 2025 group by 1 order by 1`
+    // Per jurisdiction: the last action the record holds, and — the figure a
+    // reader wants (Brendan, 2026-09-06: "the last time we pulled the bulk
+    // data or api or harvested that site") — the last time a loader wrote it:
+    // the dataset ledger's import, or for Congress the pipeline's last run.
+    q<{ state: string; last_action: string; bills: number; recent: number; pulled_at: string | null }>(
+      `select b.state, max(b.last_action_date) as last_action, count(*)::int as bills,
+              count(*) filter (where b.last_action_date >= to_char(now() - interval '7 days', 'YYYY-MM-DD'))::int as recent,
+              greatest((select max(imported_at) from "LegiscanDatasets" d where d.state = b.state),
+                       case when b.state = 'US' then (select max(last_run) from congress_sync_state) end)::text as pulled_at
+         from "Bills" b where b.session_id >= 2025 group by 1 order by 1`
     ),
     one<{ with_text: number; of: number }>(
       `select count(*) filter (where coalesce(text_chars, 0) > 0)::int as with_text, count(*)::int as of
@@ -2858,7 +2864,7 @@ export async function getProvenance() {
       laws_at: feeds?.laws_at ?? null,
       model_at: feeds?.model_at ?? null,
     },
-    fresh: fresh.map((f) => ({ state: f.state, last_action: f.last_action, bills: n(f.bills), recent: n(f.recent) })),
+    fresh: fresh.map((f) => ({ state: f.state, last_action: f.last_action, bills: n(f.bills), recent: n(f.recent), pulled_at: f.pulled_at ?? null })),
     coverage: { with_text: n(coverage?.with_text), of: n(coverage?.of) },
   }
 }

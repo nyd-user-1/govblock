@@ -18,9 +18,13 @@ export function SiteHeader() {
     <header data-slot="site-header" className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden">
       <div className="container-wrapper px-6 3xl:fixed:px-0">
         <div className="flex h-(--header-height) items-center **:data-[slot=separator]:h-4! 3xl:fixed:container">
-          <MainNav items={siteConfig.navItems} className="hidden lg:flex" />
+          {/* The jurisdiction switcher leads the nav, the flag alone (Brendan,
+              2026-09-06). It still opens the picker and still sets the scope. */}
+          <nav className="hidden items-center gap-0 lg:flex">
+            <StateSwitcher compact className="hidden md:flex" />
+            <MainNav items={siteConfig.navItems} className="flex" />
+          </nav>
           <div className="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
-            <StateSwitcher className="hidden md:flex" />
             <div className="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
               <CommandMenu />
             </div>

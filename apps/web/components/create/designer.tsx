@@ -53,6 +53,13 @@ function DesignerInner() {
   const [picked, setMode] = React.useState<Mode | null>(null)
   const mode: Mode = picked ?? (params.mode === "design" ? "design" : "state")
   const [panelOpen, setPanelOpen] = useLocal("govblock:create:customizer", true)
+  // The Admin experience opens with the customizer off screen (Brendan,
+  // 2026-09-06: "I want all admin pages to load with the customizer off
+  // screen"). The FAB brings it back for anyone who wants it.
+  const isAdmin = params.at === "admin" || params.at.startsWith("admin/")
+  React.useEffect(() => {
+    if (isAdmin) setPanelOpen(false)
+  }, [isAdmin, setPanelOpen])
   // The look lives in the URL alone (Brendan, 2026-09-04: Canvas set the
   // cards look and a `look=table` left in the address bar overruled it).
   const look: Look = params.look === "cards" ? "cards" : "table"

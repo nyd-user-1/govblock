@@ -32,7 +32,7 @@ export type Provenance = {
   totals: { bills: number; sessions: number; states: number; rollcalls: number; people: number; committees: number; texts: number }
   daily: { day: string; texts: number; datasets: number; bills: number }[]
   feeds: { legiscan_at: string | null; legiscan_delta_at: string | null; texts_at: string | null; texts_week: number; congress_at: string | null; congress_note: string | null; lobbying_at: string | null; fec_at: string | null; house_at: string | null; senate_at: string | null; laws_at: string | null; model_at: string | null }
-  fresh: { state: string; last_action: string; bills: number; recent: number }[]
+  fresh: { state: string; last_action: string; bills: number; recent: number; pulled_at: string | null }[]
   coverage: { with_text: number; of: number }
 }
 
@@ -58,8 +58,8 @@ export function useHearings(from: string, to: string) {
   const scope = useScope()
   return useRecord<Hearing[]>(scope.state === "US" ? "hearings" : null, { from, to })
 }
-export const useStates = () => useRecord<StateRow[]>("states")
-export const useProvenance = () => useRecord<Provenance>("provenance")
+export const useStates = (extra: Record<string, string | number | undefined> = {}) => useRecord<StateRow[]>("states", extra)
+export const useProvenance = (extra: Record<string, string | number | undefined> = {}) => useRecord<Provenance>("provenance", extra)
 export function useStream(limit = 12) {
   const scope = useScope()
   const { data, isLoading } = usePolicy<StreamGroup[]>(scope.resolved ? "stream" : null, { state: scope.state }, { states: scope.state, limit })

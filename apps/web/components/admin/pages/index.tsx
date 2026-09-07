@@ -26,6 +26,41 @@ import { UsersPage } from "./users"
 // Which of paceui's pages the URL names. Every entry in the rail resolves
 // here; an unknown page lands on Sales, the way the template's root does.
 
+// The page's title, for the shell header's breadcrumb (Brendan, 2026-09-06:
+// the title moved out of the content and into the header, on every Admin
+// page). A page renders no title of its own.
+const TITLES: Record<string, string> = {
+  "": "Session Performance",
+  sales: "Session Performance",
+  logs: "Activity Log",
+  customers: "Member Analytics",
+  orders: "Bill Performance",
+  traffic: "Traffic Observability",
+  ai: "Cost & Usage Observability",
+  education: "Education Management",
+  crypto: "Crypto Wallet",
+  database: "Data Pipeline",
+  skeleton: "Dashboard Skeleton",
+  "apps/email": "Email",
+  "apps/chat": "Chat",
+  "apps/calendar": "Calendar",
+  "apps/stream": "Stream",
+  "apps/users": "Members",
+  "apps/users/create": "Create User",
+  "components/charts": "Charts",
+  "components/stats": "Stats",
+  "components/widgets": "Widgets",
+  "components/tables": "Data Table",
+}
+
+export function adminTitle(page: string): string {
+  if (TITLES[page]) return TITLES[page]
+  if (page === "settings" || page.startsWith("settings/")) return "Settings"
+  if (/^auth-[123]\//.test(page)) return "Authentication"
+  if (page.startsWith("menu/")) return "Menu Levels"
+  return "Admin"
+}
+
 export function AdminPage({ page }: { page: string }) {
   switch (page) {
     case "":

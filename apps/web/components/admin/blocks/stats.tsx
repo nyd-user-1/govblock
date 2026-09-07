@@ -195,7 +195,7 @@ export function StatCrypto({ title, description, value, of, percent, note }: { t
   )
 }
 
-export type DbStat = { title: string; value: React.ReactNode; change: string; direction?: "up" | "down" | "neutral"; note: string }
+export type DbStat = { title: string; value: React.ReactNode; change: string; direction?: "up" | "down" | "neutral"; note?: string }
 
 /** Database: six tiles inside one card, a hairline between them. */
 export function StatDatabaseGrid({ stats }: { stats: DbStat[] }) {
@@ -216,7 +216,7 @@ export function StatDatabaseGrid({ stats }: { stats: DbStat[] }) {
                     {s.change}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{s.note}</p>
+                {s.note && <p className="text-xs text-muted-foreground">{s.note}</p>}
               </div>
             )
           })}

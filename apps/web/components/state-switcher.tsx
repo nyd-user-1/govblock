@@ -58,7 +58,7 @@ function StatePicker({ state, onSelect, className }: { state: string; onSelect: 
   )
 }
 
-export function StateSwitcher({ className }: { className?: string }) {
+export function StateSwitcher({ className, compact = false }: { className?: string; compact?: boolean }) {
   const { state, setState, resolved } = useJurisdiction()
   const [open, setOpen] = React.useState(false)
   const select = React.useCallback(
@@ -88,7 +88,8 @@ export function StateSwitcher({ className }: { className?: string }) {
       >
         {/* An empty code renders /flags/.png, a 404 on every cold load. */}
         {resolved ? <FlagChip state={state} /> : <span className="size-4 shrink-0" aria-hidden />}
-        <span className="font-mono text-xs font-medium tracking-tight">{shown || "\u00a0\u00a0"}</span>
+        {/* Compact is the flag alone (Brendan, 2026-09-06: the switcher leads the nav, no code). The label still names the jurisdiction for a screen reader. */}
+        {!compact && <span className="font-mono text-xs font-medium tracking-tight">{shown || "\u00a0\u00a0"}</span>}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-0" aria-label="Jurisdictions">
         <StatePicker state={state} onSelect={select} className="rounded-lg!" />
