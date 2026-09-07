@@ -32,25 +32,37 @@ export function AssistPanel() {
   )
   const chat = subject ?? fallback
   return (
+    // The same frame as the main container, at the same height (Brendan,
+    // 2026-09-07): the stage's outer ring and its inset card, standing in the
+    // gap the designer keeps around its stage, from under the site header to
+    // the bottom gap.
     <aside
       data-slot="assist-panel"
       aria-hidden={!open}
       className={cn(
-        "fixed inset-y-0 right-0 z-40 flex max-w-full flex-col p-[18px] pl-0 transition-transform duration-300 ease-in-out",
+        "fixed right-(--gap) bottom-(--gap) z-40 flex max-w-[calc(100vw-2*var(--gap))] flex-col transition-transform duration-300 ease-in-out [--gap:--spacing(4)] md:[--gap:--spacing(6)]",
         ASSIST_WIDTH,
-        open ? "translate-x-0" : "pointer-events-none translate-x-full"
+        open ? "translate-x-0" : "pointer-events-none translate-x-[calc(100%+var(--gap))]"
       )}
+      style={{ top: "calc(var(--header-height) + var(--gap) * 0.25)" }}
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-background shadow-[0_4px_32px_rgba(0,0,0,0.10)]">
-        <div className="flex shrink-0 items-center gap-2 border-b px-5 py-3">
-          <MessageSquareIcon className="size-4 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{chat.title ?? "Chat"}</span>
-          <Button variant="ghost" size="icon-sm" aria-label="Close the chat" onClick={close}>
-            <XIcon />
-          </Button>
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col p-4">
-          <AssistChat chatId={chat.chatId} system={chat.system} agentSlug={chat.agentSlug} placeholder={chat.placeholder} compact className="min-h-0 flex-1" />
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
+        <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
+        <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-sidebar" style={{ "--header-height": "calc(var(--spacing) * 12)" } as React.CSSProperties}>
+          <div className="m-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-background shadow-sm">
+            <header className="relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b">
+              <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
+                <MessageSquareIcon className="size-4 text-muted-foreground" />
+                <div className="flex min-w-0 flex-1 items-center gap-2 text-base font-medium">{chat.title ?? "Chat"}</div>
+                <Button variant="ghost" size="icon-sm" className="-mr-1" aria-label="Close the chat" onClick={close}>
+                  <XIcon />
+                </Button>
+              </div>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col p-4">
+              <AssistChat chatId={chat.chatId} system={chat.system} agentSlug={chat.agentSlug} placeholder={chat.placeholder} compact className="min-h-0 flex-1" />
+            </div>
+          </div>
         </div>
       </div>
     </aside>
@@ -60,7 +72,8 @@ export function AssistPanel() {
 /** Wraps the routed pages and narrows them while the drawer is open. */
 export function AssistShell({ children }: { children: React.ReactNode }) {
   const { open } = useAssistPanel()
-  return <div className={cn("flex min-h-0 flex-1 flex-col transition-[padding] duration-300 ease-in-out", open && "md:pr-[423px]")}>{children}</div>
+  // The drawer stands a gap in from the edge, so the pages give up its width plus that gap.
+  return <div className={cn("flex min-h-0 flex-1 flex-col transition-[padding] duration-300 ease-in-out [--gap:--spacing(4)] md:[--gap:--spacing(6)]", open && "md:pr-[calc(423px+var(--gap))]")}>{children}</div>
 }
 
 /** The button that summons the drawer, wherever a footer wants one. */
