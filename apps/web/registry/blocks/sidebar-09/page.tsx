@@ -40,7 +40,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // finished report into the channel under the same subject line, so it arrives
 // somewhere that outlives the tab.
 
-const SEEDED = "govblock:inbox:seeded"
+// Set when the inbox is cleared from its menu, so an inbox that was emptied on
+// purpose stays empty instead of refilling with the placeholders. Recorded by
+// the clearing itself, never by the load: a flag written during the mount
+// effect ran ahead of the save, and Strict Mode's second pass of that effect
+// found the flag set and the store still empty, and kept the empty (the
+// inbox read "1 KB used" and nothing else, 2026-09-07).
+const CLEARED = "govblock:inbox:cleared"
 
 function monogram(name: string) {
   return name
@@ -80,8 +86,7 @@ export default function Page() {
     // An inbox that has never held anything shows the fifty placeholders
     // (Brendan, 2026-09-07); one that was cleared stays empty.
     const kept = loadThreads()
-    const stored = kept.length || window.localStorage.getItem(SEEDED) ? kept : sampleThreads()
-    if (!kept.length && stored.length) window.localStorage.setItem(SEEDED, "1")
+    const stored = kept.length || window.localStorage.getItem(CLEARED) ? kept : sampleThreads()
     // A task that was running when the tab closed did not survive it. Say so
     // rather than leave a spinner that will never stop.
     const settled = stored.map(
@@ -301,6 +306,7 @@ export default function Page() {
             onRefresh={() => setTick((n) => n + 1)}
             onMarkAllRead={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
             onClear={() => {
+              window.localStorage.setItem(CLEARED, "1")
               setThreads([])
               setSelected(null)
             }}
