@@ -44,32 +44,3 @@ export function AdminCrumb({ crumbs }: { crumbs: { label: string; page?: string 
     </Breadcrumb>
   )
 }
-
-/** The footer is the header's twin (Brendan, 2026-09-06): GovBlocks on the left, the docs on the right. Since 2026-09-07 it is the shell's footer, below the card, so this is only the bar's contents. */
-export function AdminFooter() {
-  const { go } = useAdminNav()
-  return (
-    <>
-      <div className="flex min-w-0 flex-1 items-center gap-2 text-base font-medium">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<button type="button" onClick={() => go("")} />}>GovBlocks</BreadcrumbLink>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-      <div className="ml-auto flex shrink-0 items-center gap-4 text-sm">
-        <a href="/docs" className="not-hover:text-muted-foreground">
-          About
-        </a>
-        <a href="/docs/api" className="not-hover:text-muted-foreground">
-          API
-        </a>
-        <a href="/docs/datasets" className="not-hover:text-muted-foreground">
-          Datasets
-        </a>
-      </div>
-    </>
-  )
-}
