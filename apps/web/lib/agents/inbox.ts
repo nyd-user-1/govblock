@@ -78,20 +78,13 @@ export function isPerson(handle: string) {
 export function findAddress(query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return undefined
-  return ADDRESSES.find(
-    (a) => a.email.toLowerCase() === q || a.agent === q || a.name.toLowerCase() === q
-  )
+  return ADDRESSES.find((a) => a.email.toLowerCase() === q || a.agent === q || a.name.toLowerCase() === q)
 }
 
 export function matchAddresses(query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return ADDRESSES
-  return ADDRESSES.filter(
-    (a) =>
-      a.email.toLowerCase().includes(q) ||
-      a.name.toLowerCase().includes(q) ||
-      a.speciality.toLowerCase().includes(q)
-  )
+  return ADDRESSES.filter((a) => a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.speciality.toLowerCase().includes(q))
 }
 
 export type Message = {
@@ -147,10 +140,11 @@ export function loadThreads(): Thread[] {
 
 export function saveThreads(threads: Thread[]) {
   try {
-    // Thirty threads is a long history for one browser and keeps the store well
+    // Sixty threads is a long history for one browser and keeps the store well
     // inside localStorage's few megabytes — a Researcher report with its run
-    // attached is tens of kilobytes.
-    window.localStorage.setItem(KEY, JSON.stringify(threads.slice(0, 30)))
+    // attached is tens of kilobytes. (Thirty until 2026-09-07, when the fifty
+    // placeholders arrived.)
+    window.localStorage.setItem(KEY, JSON.stringify(threads.slice(0, 60)))
   } catch {}
 }
 
@@ -158,21 +152,7 @@ function id() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function newThread({
-  to,
-  cc = [],
-  bcc = [],
-  subject,
-  body,
-  status,
-}: {
-  to: string[]
-  cc?: string[]
-  bcc?: string[]
-  subject: string
-  body: string
-  status: ThreadStatus
-}): Thread {
+export function newThread({ to, cc = [], bcc = [], subject, body, status }: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; status: ThreadStatus }): Thread {
   const at = Date.now()
   const first = to[0] ?? ""
   return {
@@ -217,21 +197,12 @@ export function threadCost(thread: Thread) {
   return thread.messages.reduce((total, message) => total + (message.run?.usd ?? 0), 0)
 }
 
-export function reply(
-  thread: Thread,
-  from: string,
-  run: RunState,
-  status: ThreadStatus
-): Thread {
+export function reply(thread: Thread, from: string, run: RunState, status: ThreadStatus): Thread {
   const at = Date.now()
   const existing = thread.messages.find((message) => message.from === from)
-  const next: Message = existing
-    ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true }
-    : { id: id(), from, at, body: run.text, run, unread: true }
+  const next: Message = existing ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true } : { id: id(), from, at, body: run.text, run, unread: true }
 
-  const messages = existing
-    ? thread.messages.map((message) => (message.from === from ? next : message))
-    : [...thread.messages, next]
+  const messages = existing ? thread.messages.map((message) => (message.from === from ? next : message)) : [...thread.messages, next]
 
   return {
     ...thread,
@@ -274,11 +245,7 @@ export function inFolder(thread: Thread, folder: Folder) {
 }
 
 export function unreadIn(threads: Thread[], folder: Folder) {
-  return threads.filter(
-    (thread) =>
-      inFolder(thread, folder) &&
-      thread.messages.some((message) => message.from !== "you" && message.unread)
-  ).length
+  return threads.filter((thread) => inFolder(thread, folder) && thread.messages.some((message) => message.from !== "you" && message.unread)).length
 }
 
 export function isUnread(thread: Thread) {
@@ -288,9 +255,7 @@ export function isUnread(thread: Thread) {
 export function matches(thread: Thread, query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  const hay = [thread.subject, thread.agentName, ...thread.messages.map((m) => m.body)]
-    .join(" ")
-    .toLowerCase()
+  const hay = [thread.subject, thread.agentName, ...thread.messages.map((m) => m.body)].join(" ").toLowerCase()
   return hay.includes(q)
 }
 
@@ -341,13 +306,7 @@ export function when(at: number) {
 
 /** Whether the run's own steps show it delivered, and where. */
 export function deliveredTo(run: RunState) {
-  const post = run.steps.find(
-    (step) =>
-      step.kind === "tool" &&
-      (step.name.startsWith("post_to") || step.name === "deliver_report") &&
-      step.ok
-  )
-  if (post && post.kind === "tool" && post.summary)
-    return post.summary.replace(/^(posted|delivered) to /, "")
+  const post = run.steps.find((step) => step.kind === "tool" && (step.name.startsWith("post_to") || step.name === "deliver_report") && step.ok)
+  if (post && post.kind === "tool" && post.summary) return post.summary.replace(/^(posted|delivered) to /, "")
   return undefined
 }

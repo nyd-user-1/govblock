@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Copy, ExternalLink, PenSquare, RotateCcw, Star, Trash
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import { isPerson, isUnread, loadThreads, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Folder, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent } from "@/lib/agents/run-client"
+import { sampleThreads } from "@/lib/agents/sample"
 import { cn } from "@/lib/utils"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
@@ -38,6 +39,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 // What makes it feel delivered anyway is Discord — the agent delivers the
 // finished report into the channel under the same subject line, so it arrives
 // somewhere that outlives the tab.
+
+const SEEDED = "govblock:inbox:seeded"
 
 function monogram(name: string) {
   return name
@@ -74,7 +77,11 @@ export default function Page() {
   const [, setTick] = React.useState(0)
 
   React.useEffect(() => {
-    const stored = loadThreads()
+    // An inbox that has never held anything shows the fifty placeholders
+    // (Brendan, 2026-09-07); one that was cleared stays empty.
+    const kept = loadThreads()
+    const stored = kept.length || window.localStorage.getItem(SEEDED) ? kept : sampleThreads()
+    if (!kept.length && stored.length) window.localStorage.setItem(SEEDED, "1")
     // A task that was running when the tab closed did not survive it. Say so
     // rather than leave a spinner that will never stop.
     const settled = stored.map(
