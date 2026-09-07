@@ -3,11 +3,8 @@ import {
   CalendarIcon,
   ChartAreaIcon,
   CoinsIcon,
-  DatabaseIcon,
   FileTextIcon,
-  GavelIcon,
   GraduationCapIcon,
-  LandmarkIcon,
   LayoutGridIcon,
   type LucideIcon,
   MailIcon,
@@ -22,7 +19,6 @@ import {
   UserIcon,
   UsersIcon,
   VideoIcon,
-  VoteIcon,
 } from "lucide-react"
 
 // The Admin rail, entry for entry as paceui's Ultimate Dashboard lists it
@@ -43,22 +39,23 @@ export type MenuItem = {
 
 export const ADMIN_MENU: MenuItem[] = [
   { label: "Dashboards", isTitle: true },
-  // paceui's Sales, as the session (Brendan, 2026-09-07: "sales is now session").
-  { label: "Session", icon: TrendingUpIcon, page: "" },
+  // Two buckets by eye (Brendan, 2026-09-07): the dashboards he has reviewed
+  // first, A to Z and without icons; then the ones still to review, as they
+  // were. Nothing else changes until he has been through them.
+  { label: "Committee", page: "committee", tag: "trend" },
+  { label: "Database", page: "database", tag: "trend" },
+  { label: "Finance", page: "finance", tag: "trend" },
+  { label: "Member", page: "member" },
+  { label: "Roll Call", page: "roll-call" },
+  // paceui's Sales, as the session (Brendan, 2026-09-07: "sales is now session"); the empty id.
+  { label: "Session", page: "" },
   { label: "Log", icon: FileTextIcon, page: "logs" },
-  { label: "Roll Call", icon: VoteIcon, page: "roll-call" },
   { label: "Customer", icon: UserCheckIcon, page: "customers" },
-  { label: "Member", icon: UserIcon, page: "member" },
   { label: "Order", icon: ShoppingCartIcon, page: "orders" },
   // paceui's AI Tokens, as the site's traffic: Cloudflare and Amplify, live.
   { label: "Traffic", icon: ActivityIcon, page: "traffic", tag: "trend" },
   { label: "Education", icon: GraduationCapIcon, page: "education", tag: "trend" },
-  // The Education page reshaped as a committee's dashboard (Brendan, 2026-09-07).
-  { label: "Committee", icon: GavelIcon, page: "committee", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
-  { label: "Database", icon: DatabaseIcon, page: "database", tag: "trend" },
-  // The FEC explorer, from /workspace/finance (Brendan, 2026-09-07: "this belongs with the other dashboards").
-  { label: "Finance", icon: LandmarkIcon, page: "finance", tag: "trend" },
   // Skeleton left the rail on 2026-09-07: it is the loading state between dashboards now (app/workspace/dashboard/[...page]/loading.tsx), still at admin/skeleton by address.
   { label: "Apps", isTitle: true },
   { label: "Email", icon: MailIcon, page: "apps/email", tag: "coming-soon" },
