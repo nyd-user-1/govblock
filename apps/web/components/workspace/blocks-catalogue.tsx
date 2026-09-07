@@ -2,7 +2,6 @@
 
 import * as React from "react"
 
-import { BLOCK_TABS } from "@/lib/blocks-tabs"
 import type { Size } from "@/lib/workspace/datasets"
 import { BulkDatasetsCard, BusiestCommitteesCard, LegislativeActivityCard, SalesStatCard, SeatsByPartyCard, TopSponsorsCard } from "@/components/admin/pages/sales"
 import { AdoptedBillsCard } from "@/components/cards/adopted"
@@ -24,69 +23,80 @@ import { TopicsCard } from "@/components/cards/topics"
 import { BarChartCard } from "@/components/cards/traffic"
 import { VotesCard } from "@/components/cards/votes"
 import { METRIC_CARDS, MetricCard } from "@/components/home/analytics-grid"
+import { BillActionsCard, BillSponsorsCard, BillSubjectsCard, BillTextCard, BillTrackerCard, BillVotesCard } from "@/components/workspace/demo-bill"
 
-// /workspace/blocks (Brendan, 2026-09-07): every block the site is built
-// from, as a catalogue the grid draws one card from — the home page's cards,
-// the account home's metric tiles, the Sales dashboard's cards, and the
-// full-page blocks /blocks shows one at a time. Each carries the size it
-// needs on the four-column grid, so it always fits; on the eight-column grid
-// that size doubles. Each lives at /workspace/blocks/{slug}.
+// /workspace/blocks (Brendan, 2026-09-07): the site's own parts on the
+// canvas, exactly as they appear where they live — the home page's cards,
+// the account home's metric tiles, the Sales dashboard's cards, the /docs
+// bill page's blocks — each at the size it needs on the four-column grid.
+// The cards are the cards: nothing of the grid's is drawn around them.
 
-export type BlockGroup = "home" | "analytics" | "dashboard" | "page"
+export type BlockGroup = "home" | "analytics" | "dashboard" | "bill"
 
 export type BlockEntry = {
   slug: string
   title: string
   group: BlockGroup
-  /** What it needs on the four-column grid. */
+  /** What it needs on the four-column grid, at the standard row. */
   size: Size
-  /** The block itself; a full page renders through its viewer frame instead. */
-  render?: () => React.ReactNode
-  /** The registry name of a full-page block. */
-  block?: string
+  render: () => React.ReactNode
+  /** The block carries its own ⋮ (card-frame's ComponentActions), which the grid takes over. */
+  ownMenu: boolean
 }
 
-const home = (slug: string, title: string, render: () => React.ReactNode, size: Size = { cols: 1, rows: 1 }): BlockEntry => ({ slug, title, group: "home", size, render })
+const home = (slug: string, title: string, render: () => React.ReactNode, rows: 1 | 2 = 1, ownMenu = true): BlockEntry => ({ slug, title, group: "home", size: { cols: 1, rows }, render, ownMenu })
 
+// In the order the home page stacks them (components/cards/index.tsx).
 export const HOME_BLOCKS: BlockEntry[] = [
-  home("bills", "Bills", () => <BillsCard />),
-  home("votes", "Votes", () => <VotesCard />),
+  home("bills", "Total Bills", () => <BillsCard />, 2),
+  home("votes", "Votes", () => <VotesCard />, 2),
   home("topics", "Topics", () => <TopicsCard />),
   home("lobbying", "Lobbying", () => <LobbyingCard />),
-  home("connect", "Connect", () => <ConnectCard />),
+  home("connect", "Connect", () => <ConnectCard />, 1, false),
   home("party", "Party", () => <PartyCard />),
-  home("sessions", "Sessions", () => <SessionsCard />),
-  home("model-bills", "Model Bills", () => <ModelBillsCard />),
-  home("committees", "Committees", () => <CommitteesCard />),
-  home("traffic", "Traffic", () => <BarChartCard />),
-  home("notifications", "Notifications", () => <NotificationSettings />),
-  home("navigation", "Navigation", () => <NavigationCard />),
-  home("adopted", "Adopted Bills", () => <AdoptedBillsCard />),
-  home("calendar", "Calendar", () => <CalendarCard />),
+  home("sessions", "Sessions", () => <SessionsCard />, 2),
+  home("model-bills", "Model bills", () => <ModelBillsCard />),
+  home("committees", "Committees", () => <CommitteesCard />, 2),
+  home("traffic", "Bills by party", () => <BarChartCard />, 2, false),
+  home("notifications", "Subscribe", () => <NotificationSettings />, 2, false),
+  home("navigation", "Navigation", () => <NavigationCard />, 2),
+  home("adopted", "Adopted Bills", () => <AdoptedBillsCard />, 2),
+  home("calendar", "Calendar", () => <CalendarCard />, 2, false),
   home("members", "Members", () => <MembersCard />),
   home("api", "API", () => <ApiCard />),
-  home("team", "Team", () => <NoTeamMembers />),
+  home("team", "Team", () => <NoTeamMembers />, 1, false),
   home("chambers", "Chambers", () => <ChambersCard />),
 ]
 
-export const ANALYTICS_BLOCKS: BlockEntry[] = METRIC_CARDS.map((m) => ({ slug: `metric-${m.key}`, title: m.label, group: "analytics", size: { cols: 1, rows: 1 }, render: () => <MetricCard metric={m.key} /> }))
+export const ANALYTICS_BLOCKS: BlockEntry[] = METRIC_CARDS.map((m) => ({ slug: `metric-${m.key}`, title: m.label, group: "analytics", size: { cols: 1, rows: 1 }, render: () => <MetricCard metric={m.key} />, ownMenu: false }))
+
+const dash = (slug: string, title: string, render: () => React.ReactNode, size: Size): BlockEntry => ({ slug, title, group: "dashboard", size, render, ownMenu: false })
 
 export const DASHBOARD_BLOCKS: BlockEntry[] = [
-  { slug: "stat-bills", title: "Bills", group: "dashboard", size: { cols: 1, rows: 1 }, render: () => <SalesStatCard index={0} /> },
-  { slug: "stat-adopted", title: "Adopted", group: "dashboard", size: { cols: 1, rows: 1 }, render: () => <SalesStatCard index={1} /> },
-  { slug: "stat-roll-calls", title: "Roll Calls", group: "dashboard", size: { cols: 1, rows: 1 }, render: () => <SalesStatCard index={2} /> },
-  { slug: "stat-seats", title: "Seats", group: "dashboard", size: { cols: 1, rows: 1 }, render: () => <SalesStatCard index={3} /> },
-  { slug: "legislative-activity", title: "Legislative Activity", group: "dashboard", size: { cols: 2, rows: 2 }, render: () => <LegislativeActivityCard /> },
-  { slug: "top-sponsors", title: "Top Sponsors", group: "dashboard", size: { cols: 2, rows: 2 }, render: () => <TopSponsorsCard /> },
-  { slug: "seats-by-party", title: "Seats by Party", group: "dashboard", size: { cols: 1, rows: 2 }, render: () => <SeatsByPartyCard /> },
-  { slug: "busiest-committees", title: "Busiest Committees", group: "dashboard", size: { cols: 1, rows: 2 }, render: () => <BusiestCommitteesCard /> },
-  { slug: "bulk-datasets", title: "Bulk Datasets", group: "dashboard", size: { cols: 1, rows: 2 }, render: () => <BulkDatasetsCard /> },
+  dash("stat-bills", "Bills", () => <SalesStatCard index={0} />, { cols: 1, rows: 1 }),
+  dash("stat-adopted", "Adopted", () => <SalesStatCard index={1} />, { cols: 1, rows: 1 }),
+  dash("stat-roll-calls", "Roll Calls", () => <SalesStatCard index={2} />, { cols: 1, rows: 1 }),
+  dash("stat-seats", "Seats", () => <SalesStatCard index={3} />, { cols: 1, rows: 1 }),
+  dash("legislative-activity", "Legislative Activity", () => <LegislativeActivityCard />, { cols: 2, rows: 2 }),
+  dash("top-sponsors", "Top Sponsors", () => <TopSponsorsCard />, { cols: 2, rows: 2 }),
+  dash("seats-by-party", "Seats by Party", () => <SeatsByPartyCard />, { cols: 1, rows: 2 }),
+  dash("busiest-committees", "Busiest Committees", () => <BusiestCommitteesCard />, { cols: 1, rows: 2 }),
+  dash("bulk-datasets", "Bulk Datasets", () => <BulkDatasetsCard />, { cols: 1, rows: 2 }),
 ]
 
-export const PAGE_BLOCKS: BlockEntry[] = BLOCK_TABS.map((tab) => ({ slug: `page-${tab.value}`, title: tab.label, group: "page", size: { cols: 4, rows: 2 }, block: tab.block }))
+const bill = (slug: string, title: string, render: () => React.ReactNode, size: Size): BlockEntry => ({ slug, title, group: "bill", size, render, ownMenu: false })
 
-export const BLOCKS: BlockEntry[] = [...HOME_BLOCKS, ...ANALYTICS_BLOCKS, ...DASHBOARD_BLOCKS, ...PAGE_BLOCKS]
+export const BILL_BLOCKS: BlockEntry[] = [
+  bill("bill-text", "Bill text", () => <BillTextCard />, { cols: 2, rows: 2 }),
+  bill("bill-sponsors", "Sponsors", () => <BillSponsorsCard />, { cols: 2, rows: 2 }),
+  bill("bill-tracker", "Tracker", () => <BillTrackerCard />, { cols: 2, rows: 1 }),
+  bill("bill-actions", "Actions", () => <BillActionsCard />, { cols: 2, rows: 2 }),
+  bill("bill-votes", "Votes", () => <BillVotesCard />, { cols: 2, rows: 2 }),
+  bill("bill-subjects", "Subjects", () => <BillSubjectsCard />, { cols: 2, rows: 1 }),
+]
 
-export const GROUP_LABEL: Record<BlockGroup, string> = { home: "Home", analytics: "Analytics", dashboard: "Dashboards", page: "Pages" }
+export const BLOCKS: BlockEntry[] = [...HOME_BLOCKS, ...ANALYTICS_BLOCKS, ...DASHBOARD_BLOCKS, ...BILL_BLOCKS]
+
+export const GROUP_LABEL: Record<BlockGroup, string> = { home: "Home", analytics: "Analytics", dashboard: "Dashboards", bill: "Bill" }
 
 export const findBlock = (slug: string | undefined) => BLOCKS.find((b) => b.slug === slug)

@@ -60,6 +60,10 @@ export type GridItem = {
   defaultSize?: Size
   /** The media fills the card (a live block) rather than sitting in the tile. */
   fill?: boolean
+  /** The block IS the cell: no chrome of the grid's around `media`, only the corner and, in Rearrange, the grip. */
+  bare?: boolean
+  /** A bare block with no ⋮ of its own gets one from the grid at its top right. */
+  ownMenu?: boolean
 }
 
 /** A block's default size on this grid: what it needs on four columns, twice that on eight. */
@@ -71,6 +75,98 @@ function sizeFor(item: GridItem, columns: Columns, saved?: Size): Size {
 }
 
 type Metrics = { columns: number; columnWidth: number; rowHeight: number }
+
+/**
+ * A block standing bare on the grid (Brendan, 2026-09-07: "the cards are the
+ * cards") carries no chrome of the grid's; its own ⋮ — card-frame's
+ * ComponentActions — reads this and becomes the grid's menu.
+ */
+export type GridCell = {
+  size: Size
+  color?: Color
+  columns: Columns
+  rearranging: boolean
+  onSize: (size: Size) => void
+  onColor: (color: Color | null) => void
+  onColumns: (columns: Columns) => void
+  onRearranging: (on: boolean) => void
+  onResetLayout: () => void
+  onDelete: () => void
+}
+
+const GridCellContext = React.createContext<GridCell | null>(null)
+
+export function useGridCell(): GridCell | null {
+  return React.useContext(GridCellContext)
+}
+
+/** The grid's menu items, for a bare block's own ⋮. */
+export function GridCellItems({ cell }: { cell: GridCell }) {
+  const changed = !sameSize(cell.size, DEFAULT_SIZE) || !!cell.color
+  const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, cell.size))?.label ?? ""
+  return (
+    <>
+      <DropdownMenuItem onClick={() => cell.onRearranging(!cell.rearranging)}>{cell.rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-max min-w-44">
+          <DropdownMenuRadioGroup value={String(cell.columns)} onValueChange={(value) => cell.onColumns(Number(value) as Columns)}>
+            <DropdownMenuRadioItem value="4" className="whitespace-nowrap">
+              4 columns
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="8" className="whitespace-nowrap">
+              8 columns
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Size</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-max min-w-44">
+          <DropdownMenuRadioGroup
+            value={sizeValue}
+            onValueChange={(label) => {
+              const choice = SIZE_CHOICES.find((c) => c.label === label)
+              if (choice) cell.onSize(choice.size)
+            }}
+          >
+            {SIZE_CHOICES.map((c) => (
+              <DropdownMenuRadioItem key={c.label} value={c.label} className="whitespace-nowrap">
+                {c.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>Color</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="w-max min-w-44">
+          <DropdownMenuRadioGroup value={cell.color ?? ""} onValueChange={(value) => cell.onColor((value as Color) || null)}>
+            {COLORS.map((c) => (
+              <DropdownMenuRadioItem key={c.value} value={c.value} className="whitespace-nowrap">
+                <span className={cn("mr-1 inline-block size-3.5 rounded-full", c.swatch)} aria-hidden />
+                {c.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuItem
+        disabled={!changed}
+        onClick={() => {
+          cell.onSize(DEFAULT_SIZE)
+          cell.onColor(null)
+        }}
+      >
+        Reset Component
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={cell.onResetLayout}>Reset layout</DropdownMenuItem>
+      <DropdownMenuItem variant="destructive" onClick={cell.onDelete}>
+        Delete Component
+      </DropdownMenuItem>
+    </>
+  )
+}
 
 function CardActions({
   item,
@@ -244,6 +340,61 @@ function GridCard({
     if (!openable) return
     if ((e.target as HTMLElement).closest("button, a, input, [role=menuitem], [role=menu]")) return
     open?.()
+  }
+
+  const cell: GridCell = { size, color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
+  const dragProps = {
+    draggable: rearranging,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = "move"
+      e.dataTransfer.setData("text/plain", item.key)
+      onDragStart()
+    },
+    onDragEnter,
+    onDragOver: (e: React.DragEvent) => rearranging && e.preventDefault(),
+    onDrop: (e: React.DragEvent) => e.preventDefault(),
+    onDragEnd,
+  }
+  const corner = (
+    <button type="button" aria-label="Drag to resize" title="Drag to resize" onPointerDown={onHandle} className="absolute right-1 bottom-1 z-10 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground">
+      <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
+        <path d="M14 2 2 14M14 8l-6 6M14 14h0" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      </svg>
+    </button>
+  )
+
+  if (item.bare) {
+    return (
+      <GridCellContext.Provider value={cell}>
+        <div
+          data-component={item.key}
+          data-group={item.group}
+          {...dragProps}
+          style={paint ? ({ "--primary": paint.primary, "--primary-foreground": paint.foreground } as React.CSSProperties) : undefined}
+          className={cn(
+            "relative h-full min-h-0 rounded-[min(var(--radius-4xl),24px)] transition-shadow **:data-[slot=card]:h-full hover:ring-1 hover:ring-foreground/50",
+            COLS[size.cols],
+            ROWS[size.rows],
+            rearranging && "cursor-grab select-none active:cursor-grabbing",
+            dragging && "opacity-40",
+            resizing && "ring-2 ring-ring/40"
+          )}
+        >
+          <div className="h-full min-h-0 overflow-hidden rounded-[min(var(--radius-4xl),24px)]">{item.media}</div>
+          {rearranging && (
+            <span aria-hidden className="absolute top-2 left-2 z-10 flex size-7 items-center justify-center rounded-full bg-background/80 text-muted-foreground/70 shadow-sm" title="Drag to move">
+              <GripVerticalIcon className="size-4" />
+            </span>
+          )}
+          {item.ownMenu === false && (
+            <div className="absolute top-3 right-3 z-10">
+              <CardActions item={item} size={size} color={color} columns={columns} rearranging={rearranging} onSize={onSize} onColor={onColor} onColumns={onColumns} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
+            </div>
+          )}
+          {corner}
+        </div>
+      </GridCellContext.Provider>
+    )
   }
 
   const button = (action: GridAction, index: number) =>

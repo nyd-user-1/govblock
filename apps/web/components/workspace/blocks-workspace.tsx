@@ -2,13 +2,12 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { BarChart3Icon, HomeIcon, LayoutDashboardIcon, LayoutGridIcon, PanelsTopLeftIcon } from "lucide-react"
+import { BarChart3Icon, FileTextIcon, HomeIcon, LayoutDashboardIcon, LayoutGridIcon } from "lucide-react"
 
 import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { readSort, sortRows } from "@/lib/workspace/sort"
-import { BlockFrame } from "@/components/block-frame"
 import { LegislativeFields } from "@/components/create/fields"
 import { LocksProvider } from "@/components/create/locks"
 import { PathBar } from "@/components/create/path-bar"
@@ -16,6 +15,7 @@ import type { Look } from "@/components/create/folder-view"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { BLOCKS, GROUP_LABEL, findBlock, type BlockEntry, type BlockGroup } from "@/components/workspace/blocks-catalogue"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
+import { DemoBillProvider } from "@/components/workspace/demo-bill"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
 import { FieldGroup } from "@govblock/ui/components/nova/field"
@@ -35,7 +35,7 @@ const GROUPS: { key: BlockGroup; icon: typeof HomeIcon }[] = [
   { key: "home", icon: HomeIcon },
   { key: "analytics", icon: BarChart3Icon },
   { key: "dashboard", icon: LayoutDashboardIcon },
-  { key: "page", icon: PanelsTopLeftIcon },
+  { key: "bill", icon: FileTextIcon },
 ]
 
 function BlocksRail() {
@@ -78,11 +78,6 @@ function BlocksCustomizer({ filters, setFilters }: { filters: ReturnType<typeof 
       </CardContent>
     </Card>
   )
-}
-
-/** A full-page block's stand-in on the grid: its name over the viewer's frame is too heavy for a wall of them. */
-function PageMedia() {
-  return <LayoutGridIcon className="size-12 text-muted-foreground" />
 }
 
 function BlocksTable({ rows, onOpen }: { rows: BlockEntry[]; onOpen: (b: BlockEntry) => void }) {
@@ -146,14 +141,15 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
 
   const items = React.useMemo<GridItem[]>(
     () =>
+      // The block itself is the cell (Brendan, 2026-09-07): no chrome of the grid's around it.
       ordered.map((b) => ({
         key: `block-${b.slug}`,
         group: b.group,
-        media: b.render ? <div className="h-full w-full overflow-hidden">{b.render()}</div> : <PageMedia />,
-        fill: !!b.render,
+        media: b.render(),
+        bare: true,
+        ownMenu: b.ownMenu,
         title: b.title,
         defaultSize: b.size,
-        onOpen: () => open(b),
       })),
     [ordered, open]
   )
@@ -161,22 +157,18 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
   const crumbs = block ? [{ label: "Blocks", go: { at: "root" } }, { label: block.title }] : [{ label: "Blocks" }]
   const stage = (
     <ShellFooterProvider footer={<WorkspaceFooter mode="blocks" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((o) => !o)} />}>
-      <BlockShell defaultOpen={false} rail={<BlocksRail />} title={<PathBar crumbs={crumbs} folder={!block} onGo={home} />} actions={block ? undefined : toggleFor(look, setLook)} contentClassName={block?.block ? "overflow-hidden" : "overflow-y-auto"}>
-        {block ? (
-          block.block ? (
-            <div className="flex min-h-0 flex-1 flex-col p-4">
-              <BlockFrame styleName="new-york-v4" name={block.block} title={block.title} />
-            </div>
-          ) : (
+      <BlockShell defaultOpen={false} rail={<BlocksRail />} title={<PathBar crumbs={crumbs} folder={!block} onGo={home} />} actions={block ? undefined : toggleFor(look, setLook)} contentClassName="overflow-y-auto">
+        <DemoBillProvider>
+          {block ? (
             <div className="flex flex-1 items-start justify-center p-6">
-              <div className={cn("w-full", block.size.cols >= 2 ? "max-w-4xl" : "max-w-md")}>{block.render?.()}</div>
+              <div className={cn("w-full", block.size.cols >= 2 ? "max-w-4xl" : "max-w-md")}>{block.render()}</div>
             </div>
-          )
-        ) : look === "table" ? (
-          <BlocksTable rows={ordered} onOpen={open} />
-        ) : (
-          <WorkspaceGrid storageKey="govblock:workspace:blocks" items={items} keepOrder={!!sort} />
-        )}
+          ) : look === "table" ? (
+            <BlocksTable rows={ordered} onOpen={open} />
+          ) : (
+            <WorkspaceGrid storageKey="govblock:workspace:blocks" items={items} keepOrder={!!sort} />
+          )}
+        </DemoBillProvider>
       </BlockShell>
     </ShellFooterProvider>
   )

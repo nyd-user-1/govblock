@@ -4,6 +4,7 @@ import * as React from "react"
 import { EllipsisVerticalIcon } from "lucide-react"
 
 import { SIZE_CHOICES, SIZE_LABEL } from "@/lib/layout"
+import { GridCellItems, useGridCell } from "@/components/workspace/grid"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { cn } from "@govblock/ui/lib/utils"
@@ -66,6 +67,24 @@ function ChooseSession() {
 }
 
 export function ComponentActions({ className, children }: { className?: string; children?: React.ReactNode }) {
+  // On the workspace grid (Brendan, 2026-09-07) the card's own ⋮ is the grid's menu.
+  const cell = useGridCell()
+  if (cell)
+    return (
+      <div className={cn("flex items-center gap-1", className)}>
+        {children}
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Component options" />}>
+            <EllipsisVerticalIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-max min-w-52">
+            <ChooseSession />
+            <DropdownMenuSeparator />
+            <GridCellItems cell={cell} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    )
   return (
     <div className={cn("flex items-center gap-1", className)}>
       {children}
