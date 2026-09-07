@@ -78,15 +78,11 @@ export function AccountAffordance() {
   const label = account?.name ?? account?.email ?? null
 
   if (!account) {
+    // The primary button where the New button stood (Brendan's markup,
+    // 2026-09-07): "Sign In", to the account page.
     return (
-      <Button
-        render={<Link href="/auth" />}
-        nativeButton={false}
-        variant="ghost"
-        size="sm"
-        className="h-[31px] rounded-lg"
-      >
-        Sign in
+      <Button render={<Link href="/auth" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
+        Sign In
       </Button>
     )
   }

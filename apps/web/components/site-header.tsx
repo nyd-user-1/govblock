@@ -1,7 +1,3 @@
-import Link from "next/link"
-import { PlusSignIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
-
 import { siteConfig } from "@/lib/config"
 import { AccountAffordance } from "@/components/account-affordance"
 import { CommandMenu } from "@/components/command-menu"
@@ -9,7 +5,6 @@ import { MainNav } from "@/components/main-nav"
 import { ModeSwitcher } from "@/components/mode-switcher"
 import { StateSwitcher } from "@/components/state-switcher"
 import { Separator } from "@govblock/ui/components/ny4/separator"
-import { Button } from "@govblock/ui/components/nova/button"
 
 // Ported from livingston-v3 components/site-header.tsx (desktop; the mobile
 // nav and the designer actions are not ported yet).
@@ -32,12 +27,10 @@ export function SiteHeader() {
             <ModeSwitcher />
             <div className="flex items-center gap-2 group-has-data-[slot=designer]/layout:hidden">
               <Separator orientation="vertical" />
-              <Button render={<Link href="/create" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
-                <HugeiconsIcon icon={PlusSignIcon} />
-                New
-              </Button>
-              {/* The right side's account affordance — the one part §8 left
-                  alone. It is a client component on purpose; see the file. */}
+              {/* The right side ends on the account: the primary Sign In,
+                  or the avatar once signed in. The New button went with it
+                  (Brendan, 2026-09-07). A client component on purpose; see
+                  the file. */}
               <AccountAffordance />
             </div>
           </div>

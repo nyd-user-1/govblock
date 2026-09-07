@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import type { Session } from "next-auth"
 
-import { DocsPage } from "@/components/docs-page"
 import { auth, signIn, signInConfigured, signOut } from "@/lib/auth/config"
 import { Button } from "@govblock/ui/components/nova/button"
+import { LoginForm } from "@/components/login-form"
 
 // The account surface. State and buttons — nothing else.
 //
@@ -28,11 +28,6 @@ const HOME = "/create"
 export const metadata = { title, description }
 export const dynamic = "force-dynamic"
 
-function GoogleMark() {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/logos/google.svg" alt="" width={16} height={16} className="size-4" data-not-typeset="" />
-}
-
 async function signInWithGoogle() {
   "use server"
   await signIn("google", { redirectTo: HOME })
@@ -41,6 +36,14 @@ async function signInWithGoogle() {
 async function signOutEverywhere() {
   "use server"
   await signOut({ redirectTo: "/" })
+}
+
+// The email form has nowhere to go yet: no credentials or email provider is
+// configured. Pressing Login says so, as a state, through the error path
+// every other failure takes.
+async function signInWithEmail() {
+  "use server"
+  redirect("/auth?error=EmailSignin")
 }
 
 // Auth.js sends its failures back here because `pages.error` points at this
@@ -60,13 +63,10 @@ const ERRORS: Record<string, string> = {
   OAuthAccountNotLinked: "That address has already signed in here by a different route.",
   CredentialsSignin: "Those sign-in details were not accepted.",
   SessionRequired: "You need to be signed in to see that.",
+  EmailSignin: "Email sign-in is not switched on here yet. That one is ours, not yours.",
 }
 
-export default async function AuthPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; signout?: string }>
-}) {
+export default async function AuthPage({ searchParams }: { searchParams: Promise<{ error?: string; signout?: string }> }) {
   const { error, signout } = await searchParams
 
   // `auth()` throws when AUTH_SECRET is absent, which is a state this page
@@ -86,19 +86,14 @@ export default async function AuthPage({
   if (user?.id && signout === undefined) redirect(HOME)
 
   return (
-    <DocsPage
-      title={title}
-      description={description}
-      slug="/auth"
-      previous={{ name: "Connectors", url: "/connectors" }}
-      next={{ name: "Agents", url: "/agents" }}
-    >
-      <div className="flex flex-col gap-4 rounded-xl border p-5">
+    // login-04's own page (Brendan, 2026-09-07: "just the block with our
+    // header/nav"): the muted field under the header, the card centred in it.
+    // No docs shell, no rail, no pager.
+    <div className="flex min-h-[calc(100svh-var(--header-height))] flex-col items-center justify-center bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-4 md:max-w-4xl">
         {user?.id ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="min-w-0 truncate text-sm">
-              {user.name ?? user.email ?? "Signed in"}
-            </span>
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-5">
+            <span className="min-w-0 truncate text-sm">{user.name ?? user.email ?? "Signed in"}</span>
             <form action={signOutEverywhere} className="ml-auto">
               <Button type="submit" variant="outline" size="sm">
                 Sign out
@@ -110,32 +105,14 @@ export default async function AuthPage({
             {error ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                 <p className="text-sm text-destructive">
-                  {ERRORS[error] ?? "Sign-in failed."}{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>
+                  {ERRORS[error] ?? "Sign-in failed."} <code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>
                 </p>
               </div>
             ) : null}
-
-            {signInConfigured ? (
-              <form action={signInWithGoogle}>
-                <Button type="submit" variant="outline" size="lg">
-                  <GoogleMark />
-                  Sign in with Google
-                </Button>
-              </form>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Sign-in is not switched on here yet. That one is ours, not yours.
-              </p>
-            )}
-
-            <div className="flex items-center gap-2 border-t pt-4 text-sm">
-              <span className="font-medium">Email a link instead</span>
-              <span className="ml-auto text-xs text-muted-foreground">Not yet</span>
-            </div>
+            <LoginForm google={signInWithGoogle} email={signInWithEmail} googleReady={signInConfigured} />
           </>
         )}
       </div>
-    </DocsPage>
+    </div>
   )
 }
