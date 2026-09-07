@@ -52,8 +52,10 @@ export function chambersOf(state: string): string[] {
 // The departments whose forms are on file (lib/data/departments.ts names the
 // agency codes the Forms table files under), each open, Explore going to its
 // forms; the FEC's filings are the finance explorer. Their seals are
-// public/seals'.
-const forms = (code: string) => `/workspace/forms?department=${encodeURIComponent(code)}`
+// public/seals'. The forms list scopes by `state` and filters by `agency`, the
+// way the department pages link it: without `state=US` a reader scoped to a
+// state would see that state's rows, or none.
+const forms = (code: string) => `/workspace/forms?state=US&agency=${encodeURIComponent(code)}`
 const dept = (key: string, title: string, seal: string, href: string): Dataset => ({ key, title, seal: { kind: "image", src: seal }, group: "department", href })
 
 const DEPARTMENTS: Dataset[] = [
