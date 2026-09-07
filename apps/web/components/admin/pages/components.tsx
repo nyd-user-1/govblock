@@ -33,7 +33,7 @@ export function ComponentsPage({ page }: { page: string }) {
   const title = family === "charts" ? "Charts" : family === "stats" ? "Stats" : family === "widgets" ? "Widgets" : "Data Table"
   return (
     <div>
-      <PageTitle title={title} links={[{ label: "Components", page: "components/charts" }]} />
+      <PageTitle title={title} />
       <div className="mt-4 flex flex-col gap-8 sm:mt-5">
         {family === "charts" && (
           <>

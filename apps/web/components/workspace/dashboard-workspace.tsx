@@ -12,7 +12,7 @@ import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { writeUrlParams } from "@/lib/policy/url-state"
-import { dashboardHref } from "@/lib/workspace/dashboard"
+import { DASHBOARD_ROOT, dashboardHref } from "@/lib/workspace/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
 import { FieldGroup } from "@govblock/ui/components/nova/field"
 import { cn } from "@govblock/ui/lib/utils"
@@ -49,12 +49,13 @@ function DashboardWorkspaceInner({ page }: { page?: string }) {
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   // The rail moves the router, carrying the jurisdiction and filters along.
   const go = React.useCallback((next: string) => router.push(dashboardHref(next, window.location.search)), [router])
+  const home = React.useCallback(() => router.push(`${DASHBOARD_ROOT}${window.location.search}`), [router])
   // The menu is no page of the rail's, so nothing in it lights up.
   const stagePage = page == null ? "menu" : page
 
   const stage = (
     <ShellFooterProvider footer={<WorkspaceFooter mode="dashboards" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>
-      <AdminStage page={stagePage} onGo={go} railOpen={false} title={page == null ? "Dashboards" : undefined} content={page == null ? <DashboardMenu /> : undefined} />
+      <AdminStage page={stagePage} onGo={go} onHome={home} railOpen={false} content={page == null ? <DashboardMenu /> : undefined} />
     </ShellFooterProvider>
   )
 

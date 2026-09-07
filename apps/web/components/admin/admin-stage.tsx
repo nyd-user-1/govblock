@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { AdminTopbar } from "@/components/admin/blocks/layout"
+import { menuPath } from "@/components/admin/items"
 import { AdminNavProvider } from "@/components/admin/nav"
 import { AdminCrumb } from "@/components/admin/page-title"
 import { AdminRail } from "@/components/admin/rail"
@@ -25,32 +26,29 @@ import { BlockShell } from "@/components/policy/block-shell"
 // leaves the screen (that part lives in the designer). 2026-09-07: the
 // footer is the designer's, set once for every stage's shell.
 
-const PARENTS: Record<string, { label: string; page: string }[]> = {
-  "apps/users/create": [{ label: "Members", page: "apps/users" }],
-  // The committee page is titled by its committee, under Committee.
-  committee: [{ label: "Committee", page: "committee" }],
-  // The member page is titled by its member, under Member.
-  member: [{ label: "Member", page: "member" }],
-}
+// A page about one thing carries it as the last crumb, under the rail's word
+// for the page: Dashboard › Member › Senator Peter Parker.
+const SUBJECT: Record<string, string> = { member: adminTitle("member"), committee: adminTitle("committee") }
 
 export function AdminStage({
   page,
   onGo,
-  title,
+  onHome,
   content,
   railOpen = true,
 }: {
   page: string
   onGo: (page: string) => void
-  /** The crumb's last word, where the stage shows something other than a page (the workspace's dashboards menu, 2026-09-07). */ title?: string
-  /** What the stage shows in place of the page. */ content?: React.ReactNode
+  /** The crumb's root, the dashboards menu (2026-09-07). */ onHome?: () => void
+  /** What the stage shows in place of the page: the menu, whose crumb is the root alone. */ content?: React.ReactNode
   /** Whether the rail starts open; the workspace opens it closed (Brendan, 2026-09-07). */ railOpen?: boolean
 }) {
-  const nav = React.useMemo(() => ({ page, go: onGo }), [page, onGo])
-  const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
+  const nav = React.useMemo(() => ({ page, go: onGo, home: onHome }), [page, onGo, onHome])
+  // The crumb follows the route: the rail's labels down to the page, then the page's subject where it has one (Brendan, 2026-09-07: "get rid of Admin").
+  const crumbs = React.useMemo(() => (content ? [] : SUBJECT[page] ? [...menuPath(page), { label: SUBJECT[page] }] : menuPath(page)), [page, content])
   return (
     <AdminNavProvider value={nav}>
-      <BlockShell defaultOpen={railOpen} rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={title ?? adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
+      <BlockShell defaultOpen={railOpen} rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb crumbs={crumbs} />} actions={<AdminTopbar />}>
         <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">{content ?? <AdminPage page={page} />}</div>
       </BlockShell>
     </AdminNavProvider>

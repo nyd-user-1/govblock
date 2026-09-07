@@ -309,7 +309,6 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                   key: row.key,
                   media: row.avatar.kind === "folder" ? <FolderIcon className="size-12 text-muted-foreground" /> : <RowAvatar avatar={row.avatar} size={96} />,
                   title: detail.label || row.name,
-                  description: row.description ? truncate(row.description, 90) : null,
                   meta: [detail.note, row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
                   actions: [
                     { label: "Open", onClick: () => onGo(row.go) },

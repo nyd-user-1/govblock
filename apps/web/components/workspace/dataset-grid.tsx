@@ -18,8 +18,7 @@ import { readSort, sortRows } from "@/lib/workspace/sort"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
-import { Button } from "@govblock/ui/components/nova/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@govblock/ui/components/dropdown-menu"
+import { DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@govblock/ui/components/dropdown-menu"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // /workspace/data (Brendan, 2026-09-07): every dataset as a card on the
@@ -87,23 +86,6 @@ function FileItems({ dataset, chosen, disabled }: { dataset: Dataset; chosen?: n
   )
 }
 
-function DownloadButton({ dataset, chosen }: { dataset: Dataset; chosen?: number }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" className="min-w-0 flex-1 rounded-2xl" />}>Download</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-max min-w-44">
-        <FileItems dataset={dataset} chosen={chosen} disabled={false} />
-        {dataset.state && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem render={<a href={`/docs/datasets/${dataset.state.toLowerCase()}`} />}>Every file, every session</DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /** The lock, and what it means for this reader. */
 function Plan({ dataset, access, signedIn, home }: { dataset: Dataset; access: Access; signedIn: boolean; home: string }) {
   const Icon = access === "open" ? LockOpenIcon : LockIcon
@@ -156,10 +138,8 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
           badge: <Plan dataset={d} access={access} signedIn={signedIn} home={home} />,
           media: <Seal seal={d.seal} />,
           title: d.title,
-          actions: [
-            { label: "Explore", disabled: locked || !path, onClick: explore },
-            locked ? { label: "Upgrade", disabled: true, title: "There is no plan to buy yet" } : { label: "Download", render: <DownloadButton key="download" dataset={d} chosen={chosen[d.key]} /> },
-          ],
+          // No buttons (Brendan, 2026-09-07): the card opens the dataset; the files are in its menu.
+          onOpen: locked || !path ? undefined : explore,
           menu: (
             <>
               {d.state && <ChooseSession dataset={d} chosen={chosen[d.key]} onChoose={(session) => choose(d.key, session)} />}

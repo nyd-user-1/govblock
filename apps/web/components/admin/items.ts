@@ -124,6 +124,23 @@ export const ADMIN_MENU: MenuItem[] = [
   },
 ]
 
+/** The rail's labels down to a page — ["Users", "Create"] for apps/users/create, ["Session"] for "" — each with its own page where it has one; [] when the rail has no such page. The crumb follows the route with these (Brendan, 2026-09-07). */
+export function menuPath(page: string): { label: string; page?: string }[] {
+  const walk = (items: MenuItem[], trail: { label: string; page?: string }[]): { label: string; page?: string }[] | null => {
+    for (const item of items) {
+      if (item.isTitle) continue
+      const here = [...trail, { label: item.label, page: item.page }]
+      if (item.page === page) return here
+      if (item.items) {
+        const hit = walk(item.items, here)
+        if (hit) return hit
+      }
+    }
+    return null
+  }
+  return walk(ADMIN_MENU, []) ?? []
+}
+
 /** The title a page reads under, walking the rail: "Logs Analytics" is the page's own; this is the rail's word for it. */
 export function menuLabel(page: string): string {
   const walk = (items: MenuItem[]): string | null => {

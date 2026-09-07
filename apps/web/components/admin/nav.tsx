@@ -7,7 +7,7 @@ import * as React from "react"
 // goes through this, so the rail, the breadcrumb and a card's "View all" are
 // one navigation, never three.
 
-export type AdminNav = { page: string; go: (page: string) => void }
+export type AdminNav = { page: string; go: (page: string) => void; /** The crumb's root: the dashboards menu (Brendan, 2026-09-07). */ home?: () => void }
 
 const Ctx = React.createContext<AdminNav>({ page: "", go: () => {} })
 

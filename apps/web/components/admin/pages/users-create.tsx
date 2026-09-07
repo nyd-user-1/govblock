@@ -111,7 +111,7 @@ export function UsersCreatePage() {
 
   return (
     <div>
-      <PageTitle title="Create User" links={[{ label: "Users", page: "apps/users" }]} />
+      <PageTitle title="Create User" />
       <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4 sm:gap-5">
           <Section title="Personal Information" description="Basic identity details for the new team member">
