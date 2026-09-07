@@ -7,20 +7,12 @@ import { ChevronRight } from "lucide-react"
 
 import { hasItems, siteConfig, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
+import { usePolicy } from "@/lib/policy/use-policy"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtBill, fmtLongDate, truncate } from "@/lib/format"
 import { cn } from "@govblock/ui/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/ui/components/ny4/collapsible"
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-} from "@govblock/ui/components/ny4/sidebar"
+import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem } from "@govblock/ui/components/ny4/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 
 // Ported from livingston-v3 components/policy/directory-rail.tsx. Three groups,
@@ -37,7 +29,6 @@ const MENU_CLASS =
 // `HB 10163`: the prefix and the number with a space between, leading zeros
 // dropped, in the rail's own face rather than mono (Brendan, 23:10 ET).
 
-
 // The four sections in the order Brendan gave them (2026-09-02, 20:00 ET),
 // each the top-level nav entry of the same name. Only Records lists its pages:
 // it is the section every docs page belongs to, so its contents are the table
@@ -45,10 +36,12 @@ const MENU_CLASS =
 // are one link each.
 const SECTIONS = ["Agents", "News", "Records", "Workspace"]
 
-type RailItem = {
+export type RailItem = {
   key: string
   href: string
   label: React.ReactNode
+  /** A small glyph before the label, as Cloudflare's rail draws one (the home rail, 2026-09-07). */
+  icon?: React.ReactNode
   /** A second, smaller line under the label; the row grows to hold it. */
   detail?: React.ReactNode
   tooltip?: string
@@ -60,8 +53,9 @@ function RailButton({ item }: { item: RailItem }) {
   const button = (
     <SidebarMenuButton asChild isActive={item.active} className={cn(MENU_CLASS, item.detail && "h-auto flex-col items-start gap-0 py-1.5")}>
       <Link href={item.href}>
-        <span className="min-w-0 max-w-full truncate">{item.label}</span>
-        {item.detail && <span className="mt-1 min-w-0 max-w-full truncate text-xs font-normal text-muted-foreground">{item.detail}</span>}
+        {item.icon}
+        <span className="max-w-full min-w-0 truncate">{item.label}</span>
+        {item.detail && <span className="mt-1 max-w-full min-w-0 truncate text-xs font-normal text-muted-foreground">{item.detail}</span>}
       </Link>
     </SidebarMenuButton>
   )
@@ -94,6 +88,7 @@ function RailNode({ item }: { item: RailItem }) {
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton isActive={highlight} className={MENU_CLASS}>
+            {item.icon}
             <span className="min-w-0 truncate">{item.label}</span>
             <ChevronRight aria-hidden className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
@@ -112,7 +107,7 @@ function RailNode({ item }: { item: RailItem }) {
   )
 }
 
-function RailGroup({ label, items, className }: { label?: string; items: RailItem[]; className?: string }) {
+export function RailGroup({ label, items, className }: { label?: string; items: RailItem[]; className?: string }) {
   return (
     <SidebarGroup className={className}>
       {label && <SidebarGroupLabel className="font-medium text-muted-foreground">{label}</SidebarGroupLabel>}
@@ -129,10 +124,28 @@ function RailGroup({ label, items, className }: { label?: string; items: RailIte
 
 type Committee = { committee_name: string; chamber: string; bills: number }
 
+type RailBill = { bill_id: number; bill_number: string; title: string; last_action_date: string | null }
+type RailData = { label?: string; pending?: RailBill[]; recent?: RailBill[]; sponsored?: RailBill[] }
+
 export function DirectoryRail() {
   const pathname = usePathname()
+  // The session on the URL, read after mount: useSearchParams would make
+  // every prerendered page that carries this rail bail to the client.
+  const [session, setSession] = React.useState<string | undefined>(undefined)
+  React.useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("session") ?? undefined
+    setSession((current) => (current === value ? current : value))
+  }, [pathname])
   const { data: billData, state } = useScoped<{ rows: typeof F.recentBills }>("bills", { rows: F.recentBills }, { limit: 12 })
   const { data: committeeData } = useScoped<Committee[]>("committees", F.committeesAll)
+  // On a committee's or a member's page the rail opens with their own bills
+  // — pending and recent for a committee, sponsored for a member — and the
+  // jurisdiction's Recent Bills follow (Brendan, 2026-09-06). The id comes
+  // off the path; the resource resolves it, so the rail never guesses the
+  // jurisdiction from the URL's scope.
+  const committeeId = pathname.match(/^\/docs\/committees\/([^/?#]+)/)?.[1] ?? null
+  const memberId = pathname.match(/^\/docs\/directory\/(\d+)/)?.[1] ?? null
+  const { data: own } = usePolicy<RailData>(committeeId || memberId ? "rail" : null, { state }, { committee: committeeId ?? undefined, member: memberId ?? undefined, session })
   const scope = `?state=${state}`
   // Docs pages take the jurisdiction on the URL; the rest of the site reads it
   // from the browser.
@@ -157,15 +170,19 @@ export function DirectoryRail() {
     const inside = pathname === entry.href || pages.some((page) => pathname.startsWith(page.href))
     return [{ key: nav, href: scoped(entry.href), label: nav, active: inside, items }]
   })
-  const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => ({
-    key: String(bill.bill_id),
+  const billItem = (bill: RailBill, prefix = ""): RailItem => ({
+    key: `${prefix}${bill.bill_id}`,
     href: `/docs/bills/${bill.bill_id}`,
     label: fmtBill(bill.bill_number),
     // The day it last moved, written out (Brendan, 2026-09-03).
     detail: bill.last_action_date ? fmtLongDate(bill.last_action_date) : null,
     tooltip: bill.title,
     active: pathname === `/docs/bills/${bill.bill_id}`,
-  }))
+  })
+  const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => billItem(bill as RailBill))
+  const pending: RailItem[] = (own?.pending ?? []).map((bill) => billItem(bill, "p-"))
+  const recent: RailItem[] = (own?.recent ?? []).map((bill) => billItem(bill, "r-"))
+  const sponsored: RailItem[] = (own?.sponsored ?? []).map((bill) => billItem(bill, "s-"))
   const committees: RailItem[] = [...(committeeData ?? [])]
     .sort((a, b) => a.committee_name.localeCompare(b.committee_name))
     .map((c) => ({
@@ -176,9 +193,14 @@ export function DirectoryRail() {
       active: false,
     }))
 
+  // Account Home stands first, before Agents (Brendan, 2026-09-07).
+  const home: RailItem = { key: "home", href: "/home", label: "Account Home", active: pathname === "/home" }
   return (
     <>
-      <RailGroup items={sections} className="pt-12" />
+      <RailGroup items={[home, ...sections]} className="pt-12" />
+      {pending.length > 0 && <RailGroup label="Pending Bills" items={pending} />}
+      {recent.length > 0 && <RailGroup label="Committee Bills" items={recent} />}
+      {sponsored.length > 0 && <RailGroup label="Sponsored Bills" items={sponsored} />}
       <RailGroup label="Recent Bills" items={bills} />
       <RailGroup label="Committees" items={committees} />
     </>
