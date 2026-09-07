@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArchiveIcon, CalendarDaysIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
+import { ArchiveIcon, CalendarDaysIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LayoutDashboardIcon, LayoutGridIcon, MenuIcon, TypeIcon } from "lucide-react"
 
 import { readSort, SORTS } from "@/lib/workspace/sort"
 import { AssistToggle } from "@/components/assist-panel"
@@ -20,7 +20,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // Create, Typeset, Charts, Dashboards. Only Data has moved under /workspace so
 // far; the rest go where they live today.
 
-export type Workspace = "data" | "dashboards" | "inbox" | "calendar" | "finance" | "forms" | "documents" | "typeset" | "charts"
+export type Workspace = "data" | "dashboards" | "inbox" | "calendar" | "finance" | "forms" | "documents" | "typeset" | "blocks"
 
 export const WORKSPACES: { key: Workspace; label: string; href: string; icon: typeof DatabaseIcon }[] = [
   { key: "data", label: "Data", href: "/workspace/data", icon: DatabaseIcon },
@@ -30,7 +30,7 @@ export const WORKSPACES: { key: Workspace; label: string; href: string; icon: ty
   { key: "forms", label: "Forms", href: "/workspace/forms", icon: FileTextIcon },
   { key: "documents", label: "Documents", href: "/workspace/documents", icon: ArchiveIcon },
   { key: "typeset", label: "Typeset", href: "/workspace/typeset", icon: TypeIcon },
-  { key: "charts", label: "Charts", href: "/charts/area", icon: ChartAreaIcon },
+  { key: "blocks", label: "Blocks", href: "/workspace/blocks", icon: LayoutGridIcon },
 ]
 
 /** The Filter chip: the same trigger as the mode switcher, ordering the page's rows. */

@@ -61,8 +61,9 @@ const initials = (name: string) =>
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("")
 
-export function SalesPage() {
-  const [refresh, setRefresh] = React.useState(0)
+// The page's numbers, once, for the page and for each card standing alone
+// on /workspace/blocks (Brendan, 2026-09-07).
+function useSalesModel(refresh = 0) {
   const extra = { r: refresh || undefined }
   const activity = useActivity(extra)
   const adopted = useAdopted(extra)
@@ -71,7 +72,6 @@ export function SalesPage() {
   const committees = useCommittees(extra)
   const session = activity.scope.session
   const state = activity.scope.state
-  const refreshAll = () => setRefresh((r) => r + 1)
 
   const now = adopted.data?.find((r) => r.session_id === session)
   const before = priorSession(adopted.data, session)
@@ -149,6 +149,68 @@ export function SalesPage() {
           href: committeeHref(state, c.chamber, c.committee_name, c.slug),
         }))
     : undefined
+
+  return { activity, sponsors, state, session, stats, bars, lastMonth, upper, lower, members, chamberSlices, busiest }
+}
+
+export function SalesStatCard({ index }: { index: 0 | 1 | 2 | 3 }) {
+  const { stats } = useSalesModel()
+  return <Stat2 {...stats[index]} />
+}
+
+export function LegislativeActivityCard({ refresh = 0, onRefresh }: { refresh?: number; onRefresh?: () => void }) {
+  const { activity, state, session, bars, lastMonth, upper, lower } = useSalesModel(refresh)
+  return (
+    <Chart3
+      title="Legislative Activity"
+      data={bars}
+      labels={{ item1: upper, item2: lower }}
+      tickFormatter={monthLabel}
+      onRefresh={onRefresh}
+      refreshing={activity.pending && !!activity.data}
+      fileName={`legislative-activity-${state.toLowerCase()}-${session ?? "session"}`}
+      figures={[
+        { label: lastMonth ? monthName(lastMonth.ym) : "This month", value: lastMonth ? num(lastMonth.bills) : "—" },
+        { label: upper, value: lastMonth ? num(lastMonth.senate) : "—" },
+        { label: lower, value: lastMonth ? num(lastMonth.assembly) : "—" },
+      ]}
+    />
+  )
+}
+
+export function TopSponsorsCard() {
+  const { sponsors, state, members } = useSalesModel()
+  return <Table3 title="Top Sponsors" rows={members} pending={sponsors.pending} columns={["Portrait", "Member", state === "US" ? "State" : "Chamber", null, "Bills"]} />
+}
+
+export function SeatsByPartyCard() {
+  const { chamberSlices } = useSalesModel()
+  return <Chart4 title="Seats by Party" totalLabel="Seats" data={chamberSlices} />
+}
+
+export function BusiestCommitteesCard() {
+  const { busiest } = useSalesModel()
+  return <Analytics7 title="Busiest Committees" note="This session" sources={busiest} />
+}
+
+export function BulkDatasetsCard() {
+  return (
+    <Promo1
+      icon={DownloadIcon}
+      badge="Bulk Datasets"
+      title="Take the session as a file"
+      description="Every family of the record, a session at a time, as JSON or CSV."
+      points={["Bills, sponsors, members, committees", "Roll calls, votes and history", "Cached a day, no key needed"]}
+      cta="Open Datasets"
+      href="/docs/datasets"
+    />
+  )
+}
+
+export function SalesPage() {
+  const [refresh, setRefresh] = React.useState(0)
+  const { stats, activity, state, session, bars, lastMonth, upper, lower, sponsors, members, chamberSlices, busiest } = useSalesModel(refresh)
+  const refreshAll = () => setRefresh((r) => r + 1)
 
   return (
     <div>

@@ -11,7 +11,7 @@ export const SEARCH_PAGES: { name: string; href: string; group: string }[] = [
   { name: "The Record", href: "/docs/record", group: "Docs" },
   { name: "Reports", href: "/docs/reports", group: "Docs" },
   { name: "News", href: "/newsroom", group: "Pages" },
-  { name: "Blocks", href: "/blocks", group: "Pages" },
+  { name: "Blocks", href: "/workspace/blocks", group: "Pages" },
   { name: "Calendar", href: "/calendar", group: "Pages" },
   { name: "Typeset", href: "/workspace/typeset", group: "Pages" },
   { name: "Data", href: "/workspace/data", group: "Pages" },

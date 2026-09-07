@@ -190,6 +190,56 @@ function MetricTile({ tile, days, nonce, columnWidth, onSpan, onRemove, onRefres
   )
 }
 
+/** One metric tile by itself, for /workspace/blocks: the number, the change, the days as a line — no menu, no corner. */
+export function MetricCard({ metric, days = 30 }: { metric: MetricKey; days?: number }) {
+  const { state, session, resolved } = useJurisdiction()
+  const { data, isLoading } = usePolicy<MetricSeries>(resolved ? "metric" : null, { state, session: session ? String(session) : undefined }, { metric, days })
+  const meta = METRICS.find((m) => m.key === metric)
+  const total = data?.total ?? 0
+  const previous = data?.previous ?? 0
+  const change = previous > 0 ? ((total - previous) / previous) * 100 : total > 0 ? 100 : null
+  const empty = !isLoading && data != null && total === 0
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card">
+      <div className="px-4 pt-3 pb-0.5 text-xs font-medium text-muted-foreground" title={meta?.description}>
+        {meta?.label ?? metric}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col px-4 pt-0.5 pb-3">
+        <div className="flex items-baseline gap-2">
+          <span className={cn("text-2xl leading-tight font-semibold", isLoading && "animate-pulse rounded bg-muted text-transparent")}>{fmtNumber(total)}</span>
+          {change != null && !isLoading && (
+            <span className={cn("text-sm font-medium tabular-nums", change >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400")}>
+              {change >= 0 ? "↗" : "↘"} {Math.abs(change).toFixed(1)}%
+            </span>
+          )}
+        </div>
+        <div className="relative mt-2 min-h-0 flex-1">
+          {empty ? (
+            <NoData />
+          ) : (
+            <ChartContainer config={chartConfig} className="h-full w-full">
+              <AreaChart accessibilityLayer data={data?.series ?? []} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={`fill-card-${metric}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} strokeDasharray="0" />
+                <YAxis orientation="right" axisLine={false} tickLine={false} width={34} tickCount={4} allowDecimals={false} tick={{ fontSize: 11 }} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(value) => fmtDate(String(value))} labelKey="date" />} />
+                <Area type="monotone" dataKey="value" stroke="var(--color-value)" strokeWidth={1.5} fill={`url(#fill-card-${metric})`} isAnimationActive={false} />
+              </AreaChart>
+            </ChartContainer>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export const METRIC_CARDS = METRICS
+
 /** Cloudflare's empty tile: a faint wave with "No data" over it. */
 function NoData() {
   return (

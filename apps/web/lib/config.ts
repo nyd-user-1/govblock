@@ -73,8 +73,7 @@ export const siteConfig = {
       href: "/workspace/data",
       items: [
         { href: "/workspace/data", label: "Data", description: "Every dataset as a card: open one, or take a session as a file." },
-        { href: "/blocks", label: "Blocks", description: "The composed surfaces this site is built from." },
-        { href: "/charts/area", label: "Charts", description: "The chart kit, on real rows." },
+        { href: "/workspace/blocks", label: "Blocks", description: "Every block the site is built from, live." },
         { href: "/workspace/typeset", label: "Typeset", description: "Set a bill as a document and take the code." },
         { href: "/docs/api", label: "API", description: "Every number on the site, as JSON, one route per family." },
         { href: "/docs/datasets", label: "Datasets", description: "A session at a time, as a file." },

@@ -99,7 +99,7 @@ export function accessTo(dataset: Dataset, reader: { signedIn: boolean; home: st
 // the ones the reader deleted, and the session each card is set to. Lives in
 // the browser, as the home page's tiles do.
 
-export type Size = { cols: 1 | 2 | 3 | 4; rows: 1 | 2 }
+export type Size = { cols: 1 | 2 | 3 | 4 | 6 | 8; rows: 1 | 2 | 3 | 4 }
 
 export const DEFAULT_SIZE: Size = { cols: 1, rows: 1 }
 

@@ -71,7 +71,7 @@ export function HomeRail() {
       { key: "agents", href: "/agents", label: "Agents", active: pathname.startsWith("/agents") },
       { key: "agent", href: "/agent", label: "Ask", active: pathname === "/agent" },
       { key: "data", href: "/workspace/data", label: "Data", active: pathname.startsWith("/workspace/data") },
-      { key: "blocks", href: "/blocks", label: "Blocks", active: pathname.startsWith("/blocks") },
+      { key: "blocks", href: "/workspace/blocks", label: "Blocks", active: pathname.startsWith("/workspace/blocks") },
     ]),
     item("data", "/docs/api", "Data", glyph(Database), [
       { key: "api", href: "/docs/api", label: "API", active: pathname.startsWith("/docs/api") },
@@ -80,7 +80,7 @@ export function HomeRail() {
     item("news", "/newsroom", "News", glyph(Newspaper)),
   ]
   const records: RailItem[] = [item("records", `/docs/bills${scope}`, "Records", glyph(FileText), pages("Records").map(page))]
-  const workspace: RailItem[] = [item("workspace", "/blocks", "Workspace", glyph(LayoutGrid), pages("Workspace").map(page))]
+  const workspace: RailItem[] = [item("workspace", "/workspace/data", "Workspace", glyph(LayoutGrid), pages("Workspace").map(page))]
   const account: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
 
   return (

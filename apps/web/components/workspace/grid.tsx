@@ -33,8 +33,8 @@ import { cn } from "@govblock/ui/lib/utils"
 // changes per kind is the media, the text, the two buttons and the first
 // group of menu items, never the chrome.
 
-const COLS: Record<Size["cols"], string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 xl:col-span-3", 4: "md:col-span-2 xl:col-span-4" }
-const ROWS: Record<Size["rows"], string> = { 1: "", 2: "row-span-2" }
+const COLS: Record<Size["cols"], string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 xl:col-span-3", 4: "md:col-span-2 xl:col-span-4", 6: "md:col-span-2 xl:col-span-6", 8: "md:col-span-2 xl:col-span-8" }
+const ROWS: Record<Size["rows"], string> = { 1: "", 2: "row-span-2", 3: "row-span-3", 4: "row-span-4" }
 
 export type GridAction = { label: string; onClick?: () => void; disabled?: boolean; title?: string; /** A menu in place of a plain button: the trigger is rendered by the item. */ render?: React.ReactNode }
 
@@ -56,6 +56,18 @@ export type GridItem = {
   menu?: React.ReactNode
   /** A colour the record itself chooses, when the reader has not. */
   color?: Color
+  /** The size the block needs on the four-column grid; doubled on the eight-column one. */
+  defaultSize?: Size
+  /** The media fills the card (a live block) rather than sitting in the tile. */
+  fill?: boolean
+}
+
+/** A block's default size on this grid: what it needs on four columns, twice that on eight. */
+function sizeFor(item: GridItem, columns: Columns, saved?: Size): Size {
+  if (saved) return saved
+  const base = item.defaultSize ?? DEFAULT_SIZE
+  if (columns === 4) return base
+  return { cols: Math.min(8, base.cols * 2) as Size["cols"], rows: Math.min(4, base.rows * 2) as Size["rows"] }
 }
 
 type Metrics = { columns: number; columnWidth: number; rowHeight: number }
@@ -210,8 +222,8 @@ function GridCard({
     const move = (e: PointerEvent) => {
       const { columns, columnWidth, rowHeight } = metrics()
       if (!columnWidth || !rowHeight) return
-      const cols = Math.max(1, Math.min(4, columns, Math.round(start.cols + (e.clientX - startX) / columnWidth))) as Size["cols"]
-      const rows = Math.max(1, Math.min(2, Math.round(start.rows + (e.clientY - startY) / rowHeight))) as Size["rows"]
+      const cols = Math.max(1, Math.min(columns, Math.round(start.cols + (e.clientX - startX) / columnWidth))) as Size["cols"]
+      const rows = Math.max(1, Math.min(4, Math.round(start.rows + (e.clientY - startY) / rowHeight))) as Size["rows"]
       if (cols !== size.cols || rows !== size.rows) onSize({ cols, rows })
     }
     const up = () => {
@@ -283,8 +295,8 @@ function GridCard({
           <CardActions item={item} size={size} color={color} columns={columns} rearranging={rearranging} onSize={onSize} onColor={onColor} onColumns={onColumns} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
         </CardAction>
       </CardHeader>
-      <CardContent className={cn("flex min-h-0 flex-1 flex-col items-center justify-center text-center", compact ? "gap-2" : "gap-4")}>
-        <div className={cn("flex items-center justify-center rounded-2xl bg-muted/60", compact ? "p-2" : "p-4")} style={compact ? ({ zoom: 0.6 } as React.CSSProperties) : undefined}>
+      <CardContent className={cn("flex min-h-0 flex-1 flex-col items-center justify-center text-center", compact ? "gap-2" : "gap-4", item.fill && "justify-start")}>
+        <div className={cn("flex items-center justify-center rounded-2xl bg-muted/60", compact ? "p-2" : "p-4", item.fill && "min-h-0 w-full flex-1 overflow-hidden p-0 text-left [&>*]:h-full [&>*]:w-full")} style={compact && !item.fill ? ({ zoom: 0.6 } as React.CSSProperties) : undefined}>
           {item.media}
         </div>
         <div className="flex min-w-0 flex-col gap-1.5">
@@ -357,7 +369,7 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
           <GridCard
             key={item.key}
             item={item}
-            size={layout.sizes[item.key] ?? DEFAULT_SIZE}
+            size={sizeFor(item, columns, layout.sizes[item.key])}
             color={layout.colors[item.key]}
             columns={columns}
             onColumns={setColumns}
