@@ -9,7 +9,15 @@ import { nameOf, type Thread } from "@/lib/agents/inbox"
 // text went to Brendan by mail from govblock-clerk@agentmail.to. These are not
 // placeholders: the ids are stable so a reader who trashes one keeps it trashed.
 
-const OPEN_PRIMARIES = `# Open primaries, on the record
+const OPEN_PRIMARIES = `# Who's paying to blow up the party primary?
+
+Nearly a thousand bills in 52 legislatures since 2009, and just thirteen became law. Then a handful of billionaires poured tens of millions into 2024 ballot measures to throw the primaries open, and voters said no almost everywhere. The whole fight, on the record.
+
+## Key takeaways
+
+- **Almost nothing passes.** 947 bills since 2009 touched who may vote in a primary; thirteen became law.
+- **The money is a network, not a movement.** Unite America, the Arnolds' Action Now, Katherine Gehl and Kenneth Griffin bankrolled the 2024 ballot measures, about $29M in Nevada and $15M in Colorado. Both lost.
+- **Voters keep saying no.** Every 2024 measure to open a primary failed except in DC; in Alaska the reform side outspent a repeal a hundred to one and won by only 664 votes.
 
 Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf), ten pages, and was mailed to you from govblock-clerk@agentmail.to.
 
@@ -127,7 +135,7 @@ export const FEATURED: Thread[] = [
     to: ["bill-reader"],
     cc: [],
     bcc: [],
-    subject: "Report: open primaries, every state, every session since 2009",
+    subject: "Who's paying to blow up the party primary?",
     createdAt: AT - 41 * 60_000,
     updatedAt: AT,
     status: "delivered",
