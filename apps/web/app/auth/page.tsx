@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import type { Session } from "next-auth"
 
-import { auth, signIn, signInConfigured, signOut } from "@/lib/auth/config"
+import { auth, devSignIn, signIn, signInConfigured, signOut } from "@/lib/auth/config"
 import { Button } from "@govblock/ui/components/nova/button"
 import { LoginForm } from "@/components/login-form"
 
@@ -38,12 +38,14 @@ async function signOutEverywhere() {
   await signOut({ redirectTo: "/" })
 }
 
-// The email form has nowhere to go yet: no credentials or email provider is
-// configured. Pressing Login says so, as a state, through the error path
-// every other failure takes.
-async function signInWithEmail() {
+// The email form has nowhere to go in production: no credentials or email
+// provider is configured, and pressing Login says so through the error path
+// every other failure takes. On the dev server it signs the developer in
+// (lib/auth/config.ts, `devSignIn`).
+async function signInWithEmail(form: FormData) {
   "use server"
-  redirect("/auth?error=EmailSignin")
+  if (!devSignIn) redirect("/auth?error=EmailSignin")
+  await signIn("dev", { email: String(form.get("email") ?? ""), password: String(form.get("password") ?? ""), redirectTo: HOME })
 }
 
 // Auth.js sends its failures back here because `pages.error` points at this

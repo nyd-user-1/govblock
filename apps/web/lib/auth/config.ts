@@ -1,4 +1,5 @@
 import NextAuth, { type NextAuthResult } from "next-auth"
+import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 
 // Sign-in, chosen by measurement rather than by stack loyalty.
@@ -40,10 +41,32 @@ const clientSecret = process.env.AUTH_GOOGLE_SECRET
  */
 export const signInConfigured = Boolean(clientId && clientSecret && process.env.AUTH_SECRET)
 
+/**
+ * The email form signs a developer in on the dev server (Brendan, 2026-09-07:
+ * "fix this, at least momentarily so I can login"). Any address, any
+ * password, never in production: the provider exists only when NODE_ENV is
+ * not "production", so a deployed build has no such door. The subject is the
+ * address, lowercased and reduced to the contract's charset, so the same
+ * address is the same reader every time.
+ */
+export const devSignIn = process.env.NODE_ENV !== "production"
+
+const devProvider = Credentials({
+  id: "dev",
+  name: "Development",
+  credentials: { email: { label: "Email", type: "email" }, password: { label: "Password", type: "password" } },
+  authorize: async (credentials) => {
+    const email = String(credentials?.email ?? "").trim().toLowerCase()
+    if (!email) return null
+    const id = `dev-${email.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`.slice(0, 60)
+    return { id, email, name: email.split("@")[0] }
+  },
+})
+
 const nextAuth = NextAuth({
   // With no client there is no provider, so Auth.js renders no sign-in route
   // rather than a broken one. /auth reads `signInConfigured` and says why.
-  providers: signInConfigured ? [Google({ clientId, clientSecret })] : [],
+  providers: [...(signInConfigured ? [Google({ clientId, clientSecret })] : []), ...(devSignIn ? [devProvider] : [])],
 
   // No database. The session is a signed, encrypted cookie the reader carries,
   // which is what keeps SSR free of a network round trip: measured at 1.4 ms
