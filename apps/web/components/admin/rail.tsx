@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { BadgeCheckIcon, BellIcon, ChevronRightIcon, ChevronsUpDownIcon, CreditCardIcon, LogOutIcon, UserIcon } from "lucide-react"
+import { ChevronRightIcon } from "lucide-react"
 
 import { ADMIN_MENU, type MenuItem } from "@/components/admin/items"
+import { AccountFooter } from "@/components/admin/account-footer"
 import { useAdminNav } from "@/components/admin/nav"
-import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/ny4/avatar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/ui/components/ny4/collapsible"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
-import { SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, useSidebar } from "@govblock/ui/components/ny4/sidebar"
+import { SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
 // paceui's DemoAdminSidebar, in the block shell's rail (Brendan, 2026-09-05:
@@ -18,7 +17,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // router. The account is the site's demo account until sign-in reaches the
 // experience.
 
-export const ADMIN_USER = { name: "John Doe", email: "john@example.com", avatar: "" }
+export { ADMIN_USER } from "@/components/admin/account-footer"
 
 function Tag({ tag }: { tag?: MenuItem["tag"] }) {
   if (tag === "coming-soon") return <div title="Coming Soon" className="size-1.5 rounded-full bg-foreground/20 transition-all delay-100 duration-300 group-hover/sub-item:w-3 group-hover/sub-item:bg-foreground/30" />
@@ -89,7 +88,6 @@ function NavItem({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
 
 export function AdminRail() {
   const { go } = useAdminNav()
-  const { isMobile } = useSidebar()
   return (
     <>
       <SidebarHeader className="flex-row items-center gap-2.5 p-4">
@@ -105,63 +103,7 @@ export function AdminRail() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-1">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                  <Avatar className="size-8">
-                    <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{ADMIN_USER.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{ADMIN_USER.email}</span>
-                  </div>
-                  <ChevronsUpDownIcon className="ms-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" side={isMobile ? "bottom" : "top"} align="start" sideOffset={4}>
-                <div className="flex items-center gap-2.5 p-2 text-left text-sm">
-                  <Avatar className="size-8">
-                    <AvatarImage src={ADMIN_USER.avatar} alt={ADMIN_USER.name} />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{ADMIN_USER.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{ADMIN_USER.email}</span>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => go("settings/profile")} className="whitespace-nowrap">
-                    <UserIcon />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => go("settings/account-security")} className="whitespace-nowrap">
-                    <BadgeCheckIcon />
-                    <span>Account</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => go("settings/billing")} className="whitespace-nowrap">
-                    <CreditCardIcon />
-                    <span>Billing</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => go("settings/notifications")} className="whitespace-nowrap">
-                    <BellIcon />
-                    <span>Notifications</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => go("auth-1/login")} className="whitespace-nowrap">
-                  <LogOutIcon />
-                  <span>Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      <AccountFooter go={go} />
     </>
   )
 }

@@ -1,53 +1,46 @@
 "use client"
 
 import * as React from "react"
-import { Search, Star } from "lucide-react"
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, EllipsisVerticalIcon, PanelRightIcon, RefreshCwIcon, RowsIcon, StarIcon } from "lucide-react"
 
-import {
-  inFolder,
-  isUnread,
-  matches,
-  running,
-  shownRecipients,
-  teaser,
-  threadCost,
-  when,
-  type Folder,
-  type Thread,
-} from "@/lib/agents/inbox"
+import { inFolder, isUnread, matches, running, shownRecipients, teaser, when, type Folder, type Thread } from "@/lib/agents/inbox"
 import { cn } from "@/lib/utils"
-import { Badge } from "@govblock/ui/components/ny4/badge"
-import { Input } from "@govblock/ui/components/ny4/input"
+import { Button } from "@govblock/ui/components/nova/button"
+import { Checkbox } from "@govblock/ui/components/checkbox"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { ScrollArea } from "@govblock/ui/components/ny4/scroll-area"
-import { Tabs, TabsList, TabsTrigger } from "@govblock/ui/components/ny4/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
-// The thread list, in the shape of shadcn's mail example: a title with the
-// All mail / Unread switch beside it, a search field, and the threads as cards
-// that scroll inside the pane. A thread is a task — the message you sent and
-// the agent's reply — so the card carries what a task has and mail does not:
-// its status, and what it cost.
+// The thread list in Gmail's shape (Brendan, 2026-09-07, from his screenshot):
+// a toolbar — the select-all box with its menu, refresh, more; at the right
+// the count, the pager and the split toggle — then the threads as rows. Full
+// width, a row is one line: box, star, the marker, who, the subject in bold
+// with the teaser after a dash, the time. In split mode the same row stacks
+// three lines high, who and the time, the subject, the teaser with the star,
+// the way Gmail folds it beside a reading pane. Unread is bold on a lit ground.
 
 export type ListTab = "all" | "unread"
+export type Split = "none" | "vertical"
 
-const TITLES: Record<Folder, string> = {
-  inbox: "Inbox",
-  sent: "Sent",
-  drafts: "Drafts",
-  starred: "Starred",
-  trash: "Trash",
+const TITLES: Record<Folder, string> = { inbox: "Inbox", sent: "Sent", drafts: "Drafts", starred: "Starred", trash: "Trash" }
+
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
 }
 
-function StatusBadge({ thread }: { thread: Thread }) {
-  switch (thread.status) {
-    case "running":
-      return <Badge>Running</Badge>
-    case "failed":
-      return <Badge variant="destructive">Failed</Badge>
-    case "draft":
-      return <Badge variant="outline">Draft</Badge>
-    default:
-      return <Badge variant="secondary">Delivered</Badge>
-  }
+/** Gmail's importance marker: lit for a task still running or one that failed, quiet otherwise. */
+function Marker({ thread }: { thread: Thread }) {
+  const lit = thread.status === "running" || thread.status === "failed"
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden className={cn("size-4 shrink-0", lit ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/50")}>
+      <path d="M4 5h7l5 5-5 5H4l5-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 export function ThreadList({
@@ -57,6 +50,12 @@ export function ThreadList({
   tab,
   onTab,
   onOpenThread,
+  onStar,
+  onRefresh,
+  onMarkAllRead,
+  onClear,
+  split,
+  onSplit,
 }: {
   threads: Thread[]
   folder: Folder
@@ -64,115 +63,163 @@ export function ThreadList({
   tab: ListTab
   onTab: (tab: ListTab) => void
   onOpenThread: (id: string) => void
+  onStar: (id: string) => void
+  onRefresh: () => void
+  onMarkAllRead: () => void
+  onClear: () => void
+  split: Split
+  onSplit: (split: Split) => void
 }) {
-  const [query, setQuery] = React.useState("")
-
-  // Search reaches across every folder, the way mail search does — a thread you
-  // sent and a report you were sent are the same thread, and looking for one
-  // should not depend on remembering which side of it you are on.
-  const searching = query.trim().length > 0
+  const [checked, setChecked] = React.useState<Set<string>>(() => new Set())
   const shown = threads
-    .filter((thread) => (searching ? !thread.trashed || folder === "trash" : inFolder(thread, folder)))
-    .filter((thread) => matches(thread, query))
+    .filter((thread) => inFolder(thread, folder))
+    .filter((thread) => matches(thread, ""))
     .filter((thread) => tab === "all" || isUnread(thread))
+  const allChecked = shown.length > 0 && shown.every((thread) => checked.has(thread.id))
+  const someChecked = shown.some((thread) => checked.has(thread.id))
+  const toggleAll = (on: boolean) => setChecked(on ? new Set(shown.map((thread) => thread.id)) : new Set())
+  const toggle = (id: string, on: boolean) =>
+    setChecked((current) => {
+      const next = new Set(current)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  const stacked = split === "vertical"
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-[52px] shrink-0 items-center justify-between gap-2 border-b px-4">
-        <h2 className="truncate text-xl font-bold">{searching ? "All mail" : TITLES[folder]}</h2>
-        <Tabs value={tab} onValueChange={(value) => onTab(value as ListTab)}>
-          <TabsList>
-            <TabsTrigger value="all">All mail</TabsTrigger>
-            <TabsTrigger value="unread">Unread</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="shrink-0 p-4">
-        <form onSubmit={(event) => event.preventDefault()}>
-          <div className="relative">
-            <Search className="absolute top-2.5 left-2 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search"
-              autoComplete="off"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="pl-8"
-            />
-          </div>
-        </form>
+      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-3">
+        <div className="flex items-center">
+          <Checkbox aria-label="Select all" checked={allChecked} indeterminate={!allChecked && someChecked} onCheckedChange={(value) => toggleAll(value === true)} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="Select" className="-ml-0.5 size-6">
+                <ChevronDownIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-max min-w-40">
+              <DropdownMenuItem onClick={() => toggleAll(true)}>All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toggleAll(false)}>None</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter(isUnread).map((t) => t.id)))}>Unread</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setChecked(new Set(shown.filter((t) => t.starred).map((t) => t.id)))}>Starred</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <Tip label="Refresh">
+          <Button variant="ghost" size="icon-sm" aria-label="Refresh" onClick={onRefresh}>
+            <RefreshCwIcon className="size-4" />
+          </Button>
+        </Tip>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="More">
+              <EllipsisVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-max min-w-48">
+            <DropdownMenuRadioGroup value={tab} onValueChange={(value) => onTab(value as ListTab)}>
+              <DropdownMenuRadioItem value="all">All {TITLES[folder].toLowerCase()}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="unread">Unread only</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onMarkAllRead}>Mark all as read</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={onClear}>
+              Clear every thread
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="ml-auto flex items-center gap-1">
+          <span className="px-2 text-xs text-muted-foreground tabular-nums">{shown.length ? `1–${shown.length} of ${shown.length}` : "0 of 0"}</span>
+          <Button variant="ghost" size="icon-sm" aria-label="Newer" disabled>
+            <ChevronLeftIcon className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label="Older" disabled>
+            <ChevronRightIcon className="size-4" />
+          </Button>
+          {/* The split toggle (Brendan, 2026-09-07): the list alone, or the list beside a reading pane. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" aria-label="Toggle split pane" className="gap-0.5 px-1.5">
+                {stacked ? <PanelRightIcon className="size-4" /> : <RowsIcon className="size-4" />}
+                <ChevronDownIcon className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-max min-w-44">
+              <DropdownMenuRadioGroup value={split} onValueChange={(value) => onSplit(value as Split)}>
+                <DropdownMenuRadioItem value="none">No split</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="vertical">Vertical split</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-2 p-4 pt-0">
-          {shown.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {searching
-                ? `Nothing matches “${query.trim()}”.`
-                : tab === "unread"
-                  ? "Nothing unread."
-                  : folder === "inbox"
-                    ? "Nothing has arrived yet. Compose a task and the reply lands here."
-                    : "Nothing here."}
-            </p>
-          )}
+        {shown.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">{tab === "unread" ? "Nothing unread." : folder === "inbox" ? "Nothing has arrived yet. Compose a task and the reply lands here." : "Nothing here."}</p>
+        )}
+        <ul className="divide-y">
           {shown.map((thread) => {
             // Unread is the arriving reply, never your own message — a thread
             // you composed is born read on your side.
             const unread = isUnread(thread)
             const active = selected === thread.id
-            const cost = threadCost(thread)
-            const who =
-              folder === "sent" || folder === "drafts"
-                ? `To: ${shownRecipients(thread).join(", ")}`
-                : shownRecipients(thread).join(", ") || thread.agentName
-            return (
+            const who = folder === "sent" || folder === "drafts" ? `To: ${shownRecipients(thread).join(", ")}` : shownRecipients(thread).join(", ") || thread.agentName
+            const snippet = thread.status === "running" ? running(thread) : teaser(thread)
+            const star = (
               <button
                 type="button"
-                key={thread.id}
-                onClick={() => onOpenThread(thread.id)}
-                data-active={active}
-                data-unread={unread}
-                className={cn(
-                  "flex w-full flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent",
-                  active && "bg-muted"
-                )}
+                aria-label={thread.starred ? "Remove star" : "Star"}
+                aria-pressed={!!thread.starred}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onStar(thread.id)
+                }}
+                className="shrink-0 rounded-sm text-muted-foreground/60 hover:text-foreground"
               >
-                <div className="flex w-full items-center gap-2">
-                  <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>{who}</span>
-                  {unread && <span aria-label="Unread" className="size-2 shrink-0 rounded-full bg-blue-600" />}
-                  {thread.starred && <Star className="size-3 shrink-0 fill-yellow-400 text-yellow-500" />}
-                  <span
-                    className={cn(
-                      "ml-auto shrink-0 text-xs",
-                      active ? "text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    {when(thread.updatedAt)}
-                  </span>
-                </div>
-                <div className="line-clamp-1 w-full text-xs font-medium">{thread.subject}</div>
-                <div className="line-clamp-2 w-full text-xs text-muted-foreground">
-                  {thread.status === "running" ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      {/* A running task must never be mistaken for a finished
-                          one. The dot pulses beside whatever tool is in flight. */}
-                      <span aria-hidden className="size-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
-                      <span className="animate-pulse">{running(thread)}</span>
-                    </span>
-                  ) : (
-                    teaser(thread)
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge thread={thread} />
-                  {cost > 0 && <Badge variant="outline">${cost.toFixed(2)}</Badge>}
-                  {thread.deliveredTo && <Badge variant="outline">{thread.deliveredTo}</Badge>}
-                </div>
+                <StarIcon className={cn("size-4", thread.starred && "fill-yellow-400 text-yellow-500")} />
               </button>
             )
+            return (
+              <li
+                key={thread.id}
+                data-active={active}
+                data-unread={unread}
+                className={cn("group/row flex cursor-pointer items-start gap-3 px-3 text-sm transition-colors hover:bg-accent/60", stacked ? "py-2.5" : "h-10 items-center", unread && "bg-primary/5", active && "bg-muted")}
+                onClick={() => onOpenThread(thread.id)}
+              >
+                <span className={cn("flex shrink-0 items-center gap-2", stacked && "pt-0.5")} onClick={(event) => event.stopPropagation()}>
+                  <Checkbox aria-label={`Select ${thread.subject}`} checked={checked.has(thread.id)} onCheckedChange={(value) => toggle(thread.id, value === true)} />
+                  {!stacked && star}
+                  <Marker thread={thread} />
+                </span>
+                {stacked ? (
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>{who}</span>
+                      <span className={cn("ml-auto shrink-0 text-xs tabular-nums", unread ? "font-semibold" : "text-muted-foreground")}>{when(thread.updatedAt)}</span>
+                    </span>
+                    <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>{thread.subject}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("truncate text-muted-foreground", thread.status === "running" && "animate-pulse")}>{snippet}</span>
+                      <span className="ml-auto">{star}</span>
+                    </span>
+                  </span>
+                ) : (
+                  <>
+                    <span className={cn("w-44 shrink-0 truncate", unread ? "font-semibold" : "font-medium")}>{who}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className={cn(unread ? "font-semibold" : "font-medium")}>{thread.subject}</span>
+                      {snippet && <span className={cn("text-muted-foreground", thread.status === "running" && "animate-pulse")}> - {snippet}</span>}
+                    </span>
+                    <span className={cn("shrink-0 text-xs tabular-nums", unread ? "font-semibold" : "text-muted-foreground")}>{when(thread.updatedAt)}</span>
+                  </>
+                )}
+              </li>
+            )
           })}
-        </div>
+        </ul>
       </ScrollArea>
     </div>
   )

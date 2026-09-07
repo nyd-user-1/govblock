@@ -42,6 +42,7 @@ export function RailAndCards({
   actions,
   children,
   className,
+  defaultOpen,
 }: {
   groups: RailGroup[]
   selected: string
@@ -56,9 +57,12 @@ export function RailAndCards({
   /** The cards. */
   children: React.ReactNode
   className?: string
+  /** Whether the rail starts open; the workspace's pages start closed (Brendan, 2026-09-07). */
+  defaultOpen?: boolean
 }) {
   return (
     <BlockShell
+      defaultOpen={defaultOpen}
       title={header}
       actions={actions}
       rail={

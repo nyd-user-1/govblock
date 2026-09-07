@@ -1,26 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Check, Copy, PenSquare, RotateCcw, Star, Trash2 } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink, PenSquare, RotateCcw, Star, Trash2 } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import {
-  isPerson,
-  isUnread,
-  loadThreads,
-  nameOf,
-  newThread,
-  reply,
-  running,
-  runners,
-  saveThreads,
-  settle,
-  shownRecipients,
-  threadCost,
-  when,
-  type Folder,
-  type Thread,
-} from "@/lib/agents/inbox"
+import { isPerson, isUnread, loadThreads, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Folder, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent } from "@/lib/agents/run-client"
 import { cn } from "@/lib/utils"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
@@ -28,13 +12,11 @@ import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BlockShell } from "@/components/policy/block-shell"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
-import { ThreadList, type ListTab } from "@/registry/blocks/sidebar-09/components/thread-list"
+import { ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
+import { useLocal } from "@/lib/policy/use-local"
+import { Progress } from "@govblock/ui/components/progress"
 import { Button } from "@govblock/ui/components/nova/button"
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@govblock/ui/components/ny4/resizable"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@govblock/ui/components/ny4/resizable"
 import { Separator } from "@govblock/ui/components/ny4/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/ny4/tooltip"
 
@@ -86,29 +68,31 @@ export default function Page() {
   const [restored, setRestored] = React.useState(false)
   const [replyDraft, setReplyDraft] = React.useState<Draft>(EMPTY_DRAFT)
   const [copied, setCopied] = React.useState<string | null>(null)
+  // The list alone, or the list beside the reading pane (Brendan, 2026-09-07:
+  // Gmail's split toggle). Kept in this browser with the threads.
+  const [split, setSplit] = useLocal<Split>("govblock:inbox:split", "vertical")
+  const [, setTick] = React.useState(0)
 
   React.useEffect(() => {
     const stored = loadThreads()
     // A task that was running when the tab closed did not survive it. Say so
     // rather than leave a spinner that will never stop.
-    const settled = stored.map((thread): Thread =>
-      thread.status === "running"
-        ? {
-            ...thread,
-            status: "failed",
-            messages: thread.messages.map((message) =>
-              message.from === "you"
-                ? message
-                : {
-                    ...message,
-                    body:
-                      message.body +
-                      (message.body ? "\n\n" : "") +
-                      "This task was still running when the tab was closed, and tasks run in the tab. Send it again.",
-                  }
-            ),
-          }
-        : thread
+    const settled = stored.map(
+      (thread): Thread =>
+        thread.status === "running"
+          ? {
+              ...thread,
+              status: "failed",
+              messages: thread.messages.map((message) =>
+                message.from === "you"
+                  ? message
+                  : {
+                      ...message,
+                      body: message.body + (message.body ? "\n\n" : "") + "This task was still running when the tab was closed, and tasks run in the tab. Send it again.",
+                    }
+              ),
+            }
+          : thread
     )
     setThreads(settled)
     setRestored(true)
@@ -189,10 +173,7 @@ export default function Page() {
         ...current,
         status: "running",
         updatedAt: at,
-        messages: [
-          ...current.messages,
-          { id: `${at.toString(36)}-you`, from: "you" as const, at, body: text },
-        ],
+        messages: [...current.messages, { id: `${at.toString(36)}-you`, from: "you" as const, at, body: text }],
       }))
 
       await Promise.all(
@@ -204,11 +185,7 @@ export default function Page() {
             agent: definition.slug,
             maxRounds: maxRounds(definition),
             subject: thread.subject,
-            turns: [
-              { role: "user", text: thread.messages[0]?.body ?? "" },
-              ...(prior?.body ? [{ role: "assistant" as const, text: prior.body }] : []),
-              { role: "user", text },
-            ],
+            turns: [{ role: "user", text: thread.messages[0]?.body ?? "" }, ...(prior?.body ? [{ role: "assistant" as const, text: prior.body }] : []), { role: "user", text }],
             onUpdate: (run) => patch(thread.id, (current) => reply(current, slug, run, "running")),
           })
           patch(thread.id, (current) => {
@@ -228,9 +205,7 @@ export default function Page() {
     if (!open || composing || !isUnread(open) || open.status === "running") return
     patch(open.id, (thread) => ({
       ...thread,
-      messages: thread.messages.map((message) =>
-        message.from === "you" ? message : { ...message, unread: false }
-      ),
+      messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })),
     }))
   }, [open, composing, patch])
 
@@ -281,14 +256,13 @@ export default function Page() {
   }
 
   // The latest finished reply is what Copy and Save to Drive act on.
-  const latestReply = open
-    ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed)
-    : undefined
+  const latestReply = open ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed) : undefined
 
   return (
     // The shared block shell: the folders in its sidebar, the thread list and
     // the reading pane sharing the inset pane beside it.
     <BlockShell
+      defaultOpen={false}
       title="Inbox"
       sidebarWidth="calc(var(--spacing) * 56)"
       contentClassName="overflow-hidden"
@@ -301,16 +275,11 @@ export default function Page() {
             setComposing(false)
           }}
           onCompose={startCompose}
-          onClear={() => {
-            setThreads([])
-            setSelected(null)
-          }}
         />
       }
     >
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        {/* react-resizable-panels v4 reads bare numbers as pixels. */}
-        <ResizablePanel defaultSize={420} minSize={320} maxSize={640} className="min-w-0">
+      {(() => {
+        const list = (
           <ThreadList
             threads={threads}
             folder={folder}
@@ -321,224 +290,266 @@ export default function Page() {
               setSelected(id)
               setComposing(false)
             }}
+            onStar={(id) => patch(id, (t) => ({ ...t, starred: !t.starred }))}
+            onRefresh={() => setTick((n) => n + 1)}
+            onMarkAllRead={() => setThreads((current) => current.map((thread) => ({ ...thread, messages: thread.messages.map((message) => (message.from === "you" ? message : { ...message, unread: false })) })))}
+            onClear={() => {
+              setThreads([])
+              setSelected(null)
+            }}
+            split={split}
+            onSplit={setSplit}
           />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel className="min-w-0">
-          <div className="flex h-full min-h-0 flex-col">
-            {composing ? (
-              <>
-                <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
-                  <span className="text-sm font-medium">New task</span>
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col p-4">
-                  <Compose
-                    draft={draft}
-                    onChange={setDraft}
-                    onSend={(current) => void send(current, draftId ?? undefined)}
-                    onDiscard={() => {
-                      setComposing(false)
-                      setDraft(EMPTY_DRAFT)
-                      setDraftId(null)
-                    }}
-                    onSaveDraft={saveDraft}
-                  />
-                </div>
-              </>
-            ) : open ? (
-              <>
-                {/* The reading pane's toolbar, as the mail example has it:
+        )
+        // Gmail's empty reading pane: nothing chosen, how much of this
+        // browser's store the threads take, and the small print at the foot.
+        const bytes = new Blob([JSON.stringify(threads)]).size
+        const budget = 5 * 1024 * 1024
+        const latest = threads.reduce((at, thread) => Math.max(at, thread.updatedAt), 0)
+        const empty = (
+          <div className="flex h-full flex-col items-center px-8 py-16 text-center">
+            <p className="text-lg">No conversations selected</p>
+            <div className="mt-12 w-64">
+              <Progress value={Math.min(100, (bytes / budget) * 100)} className="*:data-[slot=progress-track]:h-1.5" />
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                {bytes < 1024 * 100 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`} of 5 MB used in this browser
+                <a href="/agents" className="text-muted-foreground hover:text-foreground" aria-label="About the agents">
+                  <ExternalLink className="size-4" />
+                </a>
+              </p>
+            </div>
+            <div className="mt-auto flex flex-col items-center gap-1 pt-16 text-sm text-muted-foreground">
+              <p>Last activity: {latest ? when(latest) : "none yet"}</p>
+              <a href="/agents" className="hover:text-foreground">
+                Details
+              </a>
+              <p>
+                <a href="/docs" className="hover:text-foreground">
+                  Terms
+                </a>
+                {" · "}
+                <a href="/docs" className="hover:text-foreground">
+                  Privacy
+                </a>
+                {" · "}
+                <a href="/docs/api" className="hover:text-foreground">
+                  Program Policies
+                </a>
+              </p>
+            </div>
+          </div>
+        )
+        const showList = split === "vertical" || (!open && !composing)
+        const showPane = split === "vertical" || open || composing
+        const back = split === "none" && (
+          <Tip label="Back to the list">
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Back to the list"
+              onClick={() => {
+                setSelected(null)
+                setComposing(false)
+              }}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+          </Tip>
+        )
+        return (
+          <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+            {/* react-resizable-panels v4 reads bare numbers as pixels. */}
+            {showList && (
+              <ResizablePanel defaultSize={split === "vertical" ? 420 : 100000} minSize={320} maxSize={split === "vertical" ? 640 : undefined} className="min-w-0">
+                {list}
+              </ResizablePanel>
+            )}
+            {showList && showPane && <ResizableHandle withHandle />}
+            {showPane && (
+              <ResizablePanel className="min-w-0">
+                <div className="flex h-full min-h-0 flex-col">
+                  {composing ? (
+                    <>
+                      <div className="flex h-[52px] shrink-0 items-center gap-2 border-b px-4">
+                        {back}
+                        <span className="text-sm font-medium">New task</span>
+                      </div>
+                      <div className="flex min-h-0 flex-1 flex-col p-4">
+                        <Compose
+                          draft={draft}
+                          onChange={setDraft}
+                          onSend={(current) => void send(current, draftId ?? undefined)}
+                          onDiscard={() => {
+                            setComposing(false)
+                            setDraft(EMPTY_DRAFT)
+                            setDraftId(null)
+                          }}
+                          onSaveDraft={saveDraft}
+                        />
+                      </div>
+                    </>
+                  ) : open ? (
+                    <>
+                      {/* The reading pane's toolbar, as the mail example has it:
                     the actions on this thread at the left, a new task at the
                     right. */}
-                <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-2">
-                  <Tip label={open.starred ? "Remove star" : "Star"}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={open.starred ? "Remove star" : "Star"}
-                      onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}
-                    >
-                      <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
-                    </Button>
-                  </Tip>
-                  <Tip label={open.trashed ? "Restore" : "Move to trash"}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={open.trashed ? "Restore" : "Move to trash"}
-                      onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}
-                    >
-                      {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
-                    </Button>
-                  </Tip>
-                  {latestReply && (
-                    <>
-                      <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
-                      <Tip label="Copy the report">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Copy the report"
-                          onClick={() => {
-                            void navigator.clipboard?.writeText(latestReply.body)
-                            setCopied(latestReply.id)
-                            window.setTimeout(() => setCopied(null), 1500)
-                          }}
-                        >
-                          {copied === latestReply.id ? <Check className="size-4" /> : <Copy className="size-4" />}
-                        </Button>
-                      </Tip>
-                      {/* Save to Drive sits beside Copy because it is the same
+                      <div className="flex h-[52px] shrink-0 items-center gap-1 border-b px-2">
+                        {back}
+                        <Tip label={open.starred ? "Remove star" : "Star"}>
+                          <Button variant="ghost" size="sm" aria-label={open.starred ? "Remove star" : "Star"} onClick={() => patch(open.id, (t) => ({ ...t, starred: !t.starred }))}>
+                            <Star className={cn("size-4", open.starred && "fill-yellow-400 text-yellow-500")} />
+                          </Button>
+                        </Tip>
+                        <Tip label={open.trashed ? "Restore" : "Move to trash"}>
+                          <Button variant="ghost" size="sm" aria-label={open.trashed ? "Restore" : "Move to trash"} onClick={() => patch(open.id, (t) => ({ ...t, trashed: !t.trashed }))}>
+                            {open.trashed ? <RotateCcw className="size-4" /> : <Trash2 className="size-4" />}
+                          </Button>
+                        </Tip>
+                        {latestReply && (
+                          <>
+                            <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
+                            <Tip label="Copy the report">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Copy the report"
+                                onClick={() => {
+                                  void navigator.clipboard?.writeText(latestReply.body)
+                                  setCopied(latestReply.id)
+                                  window.setTimeout(() => setCopied(null), 1500)
+                                }}
+                              >
+                                {copied === latestReply.id ? <Check className="size-4" /> : <Copy className="size-4" />}
+                              </Button>
+                            </Tip>
+                            {/* Save to Drive sits beside Copy because it is the same
                           kind of act — take this reply somewhere of your own —
                           and it saves the string the reader is looking at, so
                           the document cannot differ from the report on the
                           page. */}
-                      <SaveToDrive name={open.subject || "govblock report"} markdown={latestReply.body} />
-                    </>
-                  )}
-                  <div className="ml-auto flex items-center gap-1">
-                    <Tip label="New task">
-                      <Button variant="ghost" size="sm" aria-label="New task" onClick={startCompose}>
-                        <PenSquare className="size-4" />
-                      </Button>
-                    </Tip>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-start gap-4 p-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                    {monogram(open.agentName)}
-                  </span>
-                  <div className="grid min-w-0 flex-1 gap-1">
-                    <div className="truncate font-semibold">
-                      {open.agentName}
-                      {runners(open).length > 1 && (
-                        <span className="font-normal text-muted-foreground"> +{runners(open).length - 1}</span>
-                      )}
-                    </div>
-                    <div className="line-clamp-1 text-xs">{open.subject}</div>
-                    <div className="line-clamp-1 text-xs">
-                      <span className="font-medium">To:</span> {shownRecipients(open).join(", ") || open.agentName}
-                    </div>
-                  </div>
-                  <div className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
-                    <div>{when(open.createdAt)}</div>
-                    {open.trashed && <div>in trash</div>}
-                    {open.deliveredTo && <div>delivered to {open.deliveredTo}</div>}
-                    {threadCost(open) > 0 && (
-                      <div>
-                        {runners(open).length} run{runners(open).length === 1 ? "" : "s"}, ${threadCost(open).toFixed(3)}
+                            <SaveToDrive name={open.subject || "govblock report"} markdown={latestReply.body} />
+                          </>
+                        )}
+                        <div className="ml-auto flex items-center gap-1">
+                          <Tip label="New task">
+                            <Button variant="ghost" size="sm" aria-label="New task" onClick={startCompose}>
+                              <PenSquare className="size-4" />
+                            </Button>
+                          </Tip>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-                <Separator />
 
-                <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
-                  {open.messages.map((message) =>
-                    message.from === "you" ? (
-                      <div key={message.id} className="rounded-lg border p-4 text-sm whitespace-pre-wrap">
-                        <Prose text={message.body} />
-                      </div>
-                    ) : (
-                      <section key={message.id} className="group relative flex flex-col gap-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                            {monogram(nameOf(message.from))}
-                          </span>
-                          <span>{nameOf(message.from)}</span>
-                          {message.unread && (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>
+                      <div className="flex shrink-0 items-start gap-4 p-4">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">{monogram(open.agentName)}</span>
+                        <div className="grid min-w-0 flex-1 gap-1">
+                          <div className="truncate font-semibold">
+                            {open.agentName}
+                            {runners(open).length > 1 && <span className="font-normal text-muted-foreground"> +{runners(open).length - 1}</span>}
+                          </div>
+                          <div className="line-clamp-1 text-xs">{open.subject}</div>
+                          <div className="line-clamp-1 text-xs">
+                            <span className="font-medium">To:</span> {shownRecipients(open).join(", ") || open.agentName}
+                          </div>
+                        </div>
+                        <div className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
+                          <div>{when(open.createdAt)}</div>
+                          {open.trashed && <div>in trash</div>}
+                          {open.deliveredTo && <div>delivered to {open.deliveredTo}</div>}
+                          {threadCost(open) > 0 && (
+                            <div>
+                              {runners(open).length} run{runners(open).length === 1 ? "" : "s"}, ${threadCost(open).toFixed(3)}
+                            </div>
                           )}
                         </div>
+                      </div>
+                      <Separator />
 
-                        {message.body && (
-                          // The muted field is the "this came from a model" cue.
-                          <div className="relative rounded-lg bg-muted/60 p-4">
-                            <div className={cn("text-sm whitespace-pre-wrap", message.run?.failed && "text-destructive")}>
+                      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
+                        {open.messages.map((message) =>
+                          message.from === "you" ? (
+                            <div key={message.id} className="rounded-lg border p-4 text-sm whitespace-pre-wrap">
                               <Prose text={message.body} />
                             </div>
+                          ) : (
+                            <section key={message.id} className="group relative flex flex-col gap-3">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">{monogram(nameOf(message.from))}</span>
+                                <span>{nameOf(message.from)}</span>
+                                {message.unread && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Unread</span>}
+                              </div>
+
+                              {message.body && (
+                                // The muted field is the "this came from a model" cue.
+                                <div className="relative rounded-lg bg-muted/60 p-4">
+                                  <div className={cn("text-sm whitespace-pre-wrap", message.run?.failed && "text-destructive")}>
+                                    <Prose text={message.body} />
+                                  </div>
+                                </div>
+                              )}
+
+                              {(message.run?.steps.length ?? 0) > 0 && (
+                                <details className="rounded-lg border p-3">
+                                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                                    {message.run!.steps.length} tool call
+                                    {message.run!.steps.length === 1 ? "" : "s"}
+                                    {message.run!.done ? "" : " so far"}
+                                  </summary>
+                                  <div className="pt-3">
+                                    <RunSteps steps={message.run!.steps} />
+                                  </div>
+                                </details>
+                              )}
+                            </section>
+                          )
+                        )}
+
+                        {open.status === "running" && (
+                          // The reading pane's own sign of life. It names the tool in
+                          // flight rather than saying "working", so a long gather
+                          // reads as progress instead of as a hang.
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-primary" />
+                            <span className="animate-pulse">{running(open)}</span>
                           </div>
                         )}
+                      </div>
 
-                        {(message.run?.steps.length ?? 0) > 0 && (
-                          <details className="rounded-lg border p-3">
-                            <summary className="cursor-pointer text-sm text-muted-foreground">
-                              {message.run!.steps.length} tool call
-                              {message.run!.steps.length === 1 ? "" : "s"}
-                              {message.run!.done ? "" : " so far"}
-                            </summary>
-                            <div className="pt-3">
-                              <RunSteps steps={message.run!.steps} />
-                            </div>
-                          </details>
+                      <Separator />
+                      <div className="shrink-0 p-4">
+                        {open.status === "draft" ? (
+                          <Button size="sm" onClick={() => editDraft(open)}>
+                            Edit draft
+                          </Button>
+                        ) : open.status === "running" ? (
+                          <p className="text-xs text-muted-foreground">Running. The reply lands on this thread; you can write back once it does.</p>
+                        ) : (
+                          // Pinned to the bottom of the pane, the way every mail
+                          // client does it — a reply is part of the conversation,
+                          // not a page. Send at the bottom left, formatting beside it.
+                          <Compose
+                            inline
+                            placeholder={`Reply ${open.agentName}…`}
+                            draft={replyDraft}
+                            onChange={setReplyDraft}
+                            onSend={(current) => {
+                              const text = current.body
+                              setReplyDraft({ ...current, body: "" })
+                              void followUp(open, text)
+                            }}
+                            onDiscard={() => setReplyDraft((current) => ({ ...current, body: "" }))}
+                          />
                         )}
-                      </section>
-                    )
-                  )}
-
-                  {open.status === "running" && (
-                    // The reading pane's own sign of life. It names the tool in
-                    // flight rather than saying "working", so a long gather
-                    // reads as progress instead of as a hang.
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-primary" />
-                      <span className="animate-pulse">{running(open)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-                <div className="shrink-0 p-4">
-                  {open.status === "draft" ? (
-                    <Button size="sm" onClick={() => editDraft(open)}>
-                      Edit draft
-                    </Button>
-                  ) : open.status === "running" ? (
-                    <p className="text-xs text-muted-foreground">
-                      Running. The reply lands on this thread; you can write back once it does.
-                    </p>
+                      </div>
+                    </>
                   ) : (
-                    // Pinned to the bottom of the pane, the way every mail
-                    // client does it — a reply is part of the conversation,
-                    // not a page. Send at the bottom left, formatting beside it.
-                    <Compose
-                      inline
-                      placeholder={`Reply ${open.agentName}…`}
-                      draft={replyDraft}
-                      onChange={setReplyDraft}
-                      onSend={(current) => {
-                        const text = current.body
-                        setReplyDraft({ ...current, body: "" })
-                        void followUp(open, text)
-                      }}
-                      onDiscard={() => setReplyDraft((current) => ({ ...current, body: "" }))}
-                    />
+                    empty
                   )}
                 </div>
-              </>
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-                <h1 className="text-lg font-semibold tracking-tight">Inbox</h1>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Longer work than a chat. Compose a task to one of the five agents, and its finished
-                  report arrives as a reply on the same thread, with the run it did underneath. The
-                  Librarian writes a sourced report over the record; the Whip watches a topic and
-                  posts a digest; the other three answer in one message.
-                </p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Threads are kept in this browser and nowhere else, and a task runs while this tab is
-                  open. What outlives the tab is the report the agent delivers to Discord, under the
-                  same subject line.
-                </p>
-                <Button size="sm" onClick={startCompose}>
-                  <PenSquare className="size-4" /> Compose
-                </Button>
-              </div>
+              </ResizablePanel>
             )}
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          </ResizablePanelGroup>
+        )
+      })()}
     </BlockShell>
   )
 }

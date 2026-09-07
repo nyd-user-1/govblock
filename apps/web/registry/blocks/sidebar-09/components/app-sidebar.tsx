@@ -2,11 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Command, File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { File, Inbox, PenSquare, Send, Star, Trash2 } from "lucide-react"
 
 import { unreadIn, type Folder, type Thread } from "@/lib/agents/inbox"
-import { NavUser } from "@/registry/blocks/sidebar-09/components/nav-user"
-import { SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
+import { AccountFooter } from "@/components/admin/account-footer"
+import { dashboardHref } from "@/lib/workspace/dashboard"
+import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // The Agentic Inbox's rail: Compose above the folders, where mail clients put
 // it, and the folders with their unread counts. Since 2026-09-03 it is the
@@ -23,25 +25,15 @@ const FOLDERS: { title: string; icon: typeof Inbox; folder: Folder }[] = [
   { title: "Trash", icon: Trash2, folder: "trash" },
 ]
 
-export function InboxRail({ threads, folder, onFolder, onCompose, onClear }: { threads: Thread[]; folder: Folder; onFolder: (folder: Folder) => void; onCompose: () => void; onClear: () => void }) {
+export function InboxRail({ threads, folder, onFolder, onCompose }: { threads: Thread[]; folder: Folder; onFolder: (folder: Folder) => void; onCompose: () => void }) {
+  const router = useRouter()
   return (
     <>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-              <Link href="/agents">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Command className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">govblock</span>
-                  <span className="truncate text-xs">Inbox</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      {/* The dashboard rail's header: the word alone (Brendan, 2026-09-07: "both should match the /dashboard sidebar"). */}
+      <SidebarHeader className="flex-row items-center gap-2.5 p-4">
+        <Link href="/workspace/inbox" className="flex items-center gap-2.5">
+          <p className="text-xl font-semibold">Inbox</p>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -76,16 +68,8 @@ export function InboxRail({ threads, folder, onFolder, onCompose, onClear }: { t
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser
-          user={{
-            name: "This browser",
-            email: `${threads.length} thread${threads.length === 1 ? "" : "s"} kept locally`,
-            avatar: "",
-          }}
-          onClear={onClear}
-        />
-      </SidebarFooter>
+      {/* The dashboard rail's account block; its menu opens the dashboard's settings pages. */}
+      <AccountFooter go={(page) => router.push(dashboardHref(page))} />
     </>
   )
 }
