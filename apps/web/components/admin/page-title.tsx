@@ -17,7 +17,7 @@ export function PageTitle({ endContent }: { title: string; endContent?: React.Re
 }
 
 /** The shell header's title, following the route (Brendan, 2026-09-07): Dashboard, then the rail's labels down to the page — Dashboard › Session, Dashboard › Roll Call, Dashboard › Users › Create — and a page's subject last where it has one, Dashboard › Member › Senator Peter Parker. A crumb with a page of its own is a link; the root opens the dashboards menu. */
-export function AdminCrumb({ crumbs }: { crumbs: { label: string; page?: string }[] }) {
+export function AdminCrumb({ crumbs }: { crumbs: { label: string; page?: string; /** The crumb drawn as something else: a subject switcher. */ node?: React.ReactNode }[] }) {
   const { go, home } = useAdminNav()
   const last = crumbs.length - 1
   return (
@@ -30,7 +30,9 @@ export function AdminCrumb({ crumbs }: { crumbs: { label: string; page?: string 
           <React.Fragment key={`${i}-${crumb.label}`}>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              {i === last || crumb.page == null ? (
+              {crumb.node ? (
+                <BreadcrumbPage className="whitespace-nowrap">{crumb.node}</BreadcrumbPage>
+              ) : i === last || crumb.page == null ? (
                 <BreadcrumbPage className="whitespace-nowrap">{crumb.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink render={<button type="button" onClick={() => go(crumb.page!)} />} className="whitespace-nowrap">

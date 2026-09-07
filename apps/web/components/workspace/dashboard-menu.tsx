@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { LayoutDashboardIcon, type LucideIcon } from "lucide-react"
 
 import { ADMIN_MENU, type MenuItem } from "@/components/admin/items"
-import { adminTitle } from "@/components/admin/pages"
+import { adminTitle, SUBJECTS } from "@/components/admin/pages"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
 import { DashboardSketch, type SketchSpec } from "@/components/workspace/dashboard-sketch"
 import { dashboardHref } from "@/lib/workspace/dashboard"
@@ -81,7 +81,8 @@ function DashboardCards({ entries, search }: { entries: Entry[]; search: string 
           group: "dashboards",
           badge: <Dot tag={entry.tag} />,
           media: <DashboardSketch spec={record.spec} />,
-          title: adminTitle(entry.page),
+          // A page about one thing is named by the rail, not its subject: Committee, not Labor (Brendan, 2026-09-07).
+          title: SUBJECTS[entry.page] ? entry.label : adminTitle(entry.page),
           // No buttons (Brendan, 2026-09-07): the card itself opens the dashboard.
           onOpen: explore,
           menu: (

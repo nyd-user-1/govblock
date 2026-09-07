@@ -7,7 +7,8 @@ import { menuPath } from "@/components/admin/items"
 import { AdminNavProvider } from "@/components/admin/nav"
 import { AdminCrumb } from "@/components/admin/page-title"
 import { AdminRail } from "@/components/admin/rail"
-import { AdminPage, adminTitle } from "@/components/admin/pages"
+import { AdminPage, SUBJECTS } from "@/components/admin/pages"
+import { SubjectSwitcher } from "@/components/admin/subject-switcher"
 import { BlockShell } from "@/components/policy/block-shell"
 
 // The Admin experience: paceui's Ultimate Dashboard, rebuilt in our chrome
@@ -26,10 +27,6 @@ import { BlockShell } from "@/components/policy/block-shell"
 // leaves the screen (that part lives in the designer). 2026-09-07: the
 // footer is the designer's, set once for every stage's shell.
 
-// A page about one thing carries it as the last crumb, under the rail's word
-// for the page: Dashboard › Member › Senator Peter Parker.
-const SUBJECT: Record<string, string> = { member: adminTitle("member"), committee: adminTitle("committee") }
-
 export function AdminStage({
   page,
   onGo,
@@ -45,7 +42,12 @@ export function AdminStage({
 }) {
   const nav = React.useMemo(() => ({ page, go: onGo, home: onHome }), [page, onGo, onHome])
   // The crumb follows the route: the rail's labels down to the page, then the page's subject where it has one (Brendan, 2026-09-07: "get rid of Admin").
-  const crumbs = React.useMemo(() => (content ? [] : SUBJECT[page] ? [...menuPath(page), { label: SUBJECT[page] }] : menuPath(page)), [page, content])
+  // A page about one thing ends on its subject, as a switcher: Dashboard › Committee › Labor ⌃⌄.
+  const crumbs = React.useMemo(() => {
+    if (content) return []
+    const subject = SUBJECTS[page]
+    return subject ? [...menuPath(page), { label: subject.fallback, node: <SubjectSwitcher kind={subject.kind} fallback={subject.fallback} /> }] : menuPath(page)
+  }, [page, content])
   return (
     <AdminNavProvider value={nav}>
       <BlockShell defaultOpen={railOpen} rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb crumbs={crumbs} />} actions={<AdminTopbar />}>

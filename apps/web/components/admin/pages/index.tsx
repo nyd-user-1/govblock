@@ -39,7 +39,6 @@ const TITLES: Record<string, string> = {
   logs: "Activity Log",
   "roll-call": "Roll Call",
   customers: "Member Analytics",
-  // Titled by the member; the crumb reads Admin › Member › the senator.
   member: MEMBER,
   orders: "Bill Performance",
   traffic: "Traffic Observability",
@@ -61,6 +60,12 @@ const TITLES: Record<string, string> = {
   "components/stats": "Stats",
   "components/widgets": "Widgets",
   "components/tables": "Data Table",
+}
+
+/** The pages about one thing, and what each is about until it reads a real one; the crumb's last word is a switcher for these (Brendan, 2026-09-07). */
+export const SUBJECTS: Record<string, { kind: "committee" | "member"; fallback: string }> = {
+  committee: { kind: "committee", fallback: "Labor" },
+  member: { kind: "member", fallback: MEMBER },
 }
 
 export function adminTitle(page: string): string {
