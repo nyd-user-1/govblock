@@ -214,7 +214,7 @@ export function UsersCreatePage() {
               <Button variant="outline" onClick={() => setF(EMPTY)}>
                 Reset
               </Button>
-              <Button onClick={() => go("apps/users")}>Create User</Button>
+              <Button onClick={() => go("roster")}>Create User</Button>
             </div>
           </div>
           <div className="flex justify-center">

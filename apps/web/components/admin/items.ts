@@ -16,7 +16,6 @@ import {
   TableIcon,
   TrendingUpIcon,
   UserCheckIcon,
-  UserIcon,
   UsersIcon,
   VideoIcon,
 } from "lucide-react"
@@ -67,7 +66,8 @@ export const ADMIN_MENU: MenuItem[] = [
     label: "Users",
     icon: UsersIcon,
     items: [
-      { label: "List", page: "apps/users" },
+      // The list is the roster, at /workspace/dashboard/roster (Brendan, 2026-09-07).
+      { label: "Roster", page: "roster" },
       { label: "Create", page: "apps/users/create" },
     ],
   },
@@ -124,7 +124,7 @@ export const ADMIN_MENU: MenuItem[] = [
   },
 ]
 
-/** The rail's labels down to a page — ["Users", "Create"] for apps/users/create, ["Session"] for "" — each with its own page where it has one; [] when the rail has no such page. The crumb follows the route with these (Brendan, 2026-09-07). */
+/** The rail's labels down to a page — ["Users", "Create"] for apps/users/create, ["Users", "Roster"] for roster, ["Session"] for "" — each with its own page where it has one; [] when the rail has no such page. The crumb follows the route with these (Brendan, 2026-09-07). */
 export function menuPath(page: string): { label: string; page?: string }[] {
   const walk = (items: MenuItem[], trail: { label: string; page?: string }[]): { label: string; page?: string }[] | null => {
     for (const item of items) {

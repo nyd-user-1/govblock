@@ -5,7 +5,7 @@ import { DashboardWorkspace } from "@/components/workspace/dashboard-workspace"
 import { dashboardPage } from "@/lib/workspace/dashboard"
 
 // /workspace/dashboard/<page> — one Admin page per route: committee,
-// database, apps/users, settings/plan and the rest, named as the rail names
+// database, roster, settings/plan and the rest, named as the rail names
 // them (Brendan, 2026-09-07). Sales, the rail's empty id, is /sales.
 type Props = { params: Promise<{ page: string[] }> }
 

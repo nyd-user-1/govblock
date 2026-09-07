@@ -58,6 +58,7 @@ export type Member = {
   chamber: string
   district: string
   photo_url: string | null
+  bioguide_id: string | null
   leadership_title: string | null
   active: boolean
 }

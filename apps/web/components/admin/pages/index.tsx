@@ -55,7 +55,7 @@ const TITLES: Record<string, string> = {
   "apps/chat": "Chat",
   "apps/calendar": "Calendar",
   "apps/stream": "Stream",
-  "apps/users": "Members",
+  roster: "Roster",
   "apps/users/create": "Create User",
   "components/charts": "Charts",
   "components/stats": "Stats",
@@ -111,7 +111,7 @@ export function AdminPage({ page }: { page: string }) {
       return <CalendarPage />
     case "apps/stream":
       return <StreamPage />
-    case "apps/users":
+    case "roster":
       return <UsersPage />
     case "apps/users/create":
       return <UsersCreatePage />

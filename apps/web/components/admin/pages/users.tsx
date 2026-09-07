@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, UserIcon } from "lucide-react"
+import { ExternalLinkIcon, MoreHorizontalIcon, PencilIcon, SearchIcon, Trash2Icon, UserIcon } from "lucide-react"
 
 import { honorific } from "@/lib/format"
+import { PARTY_BLUE, PARTY_OTHER, PARTY_RED, portraitFor } from "@/lib/imagery"
 import { useMembers } from "@/components/admin/data"
-import { useAdminNav } from "@/components/admin/nav"
 import { PageTitle } from "@/components/admin/page-title"
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
@@ -23,8 +23,15 @@ import { cn } from "@govblock/ui/lib/utils"
 
 const PAGE = 10
 
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("")
+
 export function UsersPage() {
-  const { go } = useAdminNav()
   const members = useMembers()
   const [query, setQuery] = React.useState("")
   const [chamber, setChamber] = React.useState("all")
@@ -44,15 +51,8 @@ export function UsersPage() {
 
   return (
     <div>
-      <PageTitle
-        title="Members"
-        endContent={
-          <Button size="lg" className="gap-1.5" onClick={() => go("apps/users/create")}>
-            <PlusIcon className="size-4" />
-            Create
-          </Button>
-        }
-      />
+      {/* The Create button went (Brendan, 2026-09-07); the Create page is still in the rail. */}
+      <PageTitle title="Roster" />
       <Card className="mt-4 gap-4 sm:mt-5">
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -146,10 +146,19 @@ export function UsersPage() {
                 : slice.map((m) => (
                     <TableRow key={m.people_id}>
                       <TableCell>
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={m.photo_url ?? undefined} alt={m.name} className="object-cover object-top" />
-                          <AvatarFallback>{(m.first_name?.[0] ?? "") + (m.last_name?.[0] ?? "")}</AvatarFallback>
-                        </Avatar>
+                        {/* The member's own portrait — congress.gov's by bioguide id, the state's photo otherwise — with the party as the dot at its corner, as Top Sponsors wears it (Brendan, 2026-09-07). */}
+                        <span className="relative inline-flex">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={portraitFor(m) ?? undefined} alt={m.name} className="object-cover object-top" />
+                            <AvatarFallback>{initials(m.name)}</AvatarFallback>
+                          </Avatar>
+                          <span
+                            aria-hidden
+                            title={m.party === "D" ? "Democrat" : m.party === "R" ? "Republican" : m.party || undefined}
+                            className="absolute right-0 bottom-0 size-2.5 rounded-full ring-2 ring-background"
+                            style={{ background: m.party === "D" ? PARTY_BLUE : m.party === "R" ? PARTY_RED : PARTY_OTHER }}
+                          />
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
