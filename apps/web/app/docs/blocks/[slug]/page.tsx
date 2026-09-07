@@ -4,7 +4,7 @@ import path from "node:path"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { BLOCK_DOCS, BLOCK_GROUP_LABEL, compositionIn, findBlockDoc, resourcesIn } from "@/lib/workspace/block-docs"
+import { BLOCK_DOCS, compositionIn, findBlockDoc, resourcesIn } from "@/lib/workspace/block-docs"
 import { CodeFigure } from "@/components/code-block"
 import { CommandBlock } from "@/components/command-block"
 import { DocsPage } from "@/components/docs-page"
@@ -57,7 +57,7 @@ export default async function BlockDocPage({ params }: { params: Promise<{ slug:
   return (
     <DocsPage
       title={doc.title}
-      description={`A ${BLOCK_GROUP_LABEL[doc.group].toLowerCase()} block. It lives at ${doc.lives}${doc.group === "bill" ? ", drawn here for the newest bill in scope" : ""}.`}
+      description={doc.description}
       slug={`/docs/blocks/${slug}`}
       previous={previous ? { name: previous.title, url: `/docs/blocks/${previous.slug}` } : { name: "Blocks", url: "/docs/blocks" }}
       next={next ? { name: next.title, url: `/docs/blocks/${next.slug}` } : { name: "Bulk Datasets", url: "/docs/datasets" }}
@@ -67,7 +67,7 @@ export default async function BlockDocPage({ params }: { params: Promise<{ slug:
         <BlockPreview slug={slug} />
       </PreviewFrame>
       <p>
-        <Link href={`/workspace/blocks/${slug}`}>Open it on the canvas</Link>, where it can be sized, coloured and rearranged with the rest.
+        On the site it lives at <code>{doc.lives}</code>. <Link href={`/workspace/blocks/${slug}`}>Open it on the canvas</Link>, where it can be sized, coloured and rearranged with the rest.
       </p>
 
       <H2 id="installation">Installation</H2>
