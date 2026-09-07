@@ -1,10 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { BadgeCheckIcon, BellIcon, Check, Copy, CreditCardIcon, Gift, LogOutIcon, SearchIcon, Share, Sparkles, UserIcon, Users, XIcon } from "lucide-react"
+import { BadgeCheckIcon, BellIcon, Check, ChevronsUpDownIcon, Copy, CreditCardIcon, Gift, LogOutIcon, SearchIcon, Share, Sparkles, UserIcon, Users, XIcon } from "lucide-react"
 
 import { ADMIN_USER } from "@/components/admin/rail"
 import { useAdminNav } from "@/components/admin/nav"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { congressName } from "@/lib/policy/scope"
+import type { SessionRow } from "@/lib/policy/types"
+import { writeUrlParams } from "@/lib/policy/url-state"
+import { usePolicy } from "@/lib/policy/use-policy"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -33,6 +38,41 @@ export function SearchButton() {
         <SearchIcon className="size-4.5" />
       </Button>
     </>
+  )
+}
+
+const shortSession = (title: string) =>
+  title
+    .replace(/\s*(Regular|General)\s+Session$/i, "")
+    .replace(/\s*Session$/i, "")
+    .trim()
+
+/** The session filter, where the search was (Brendan, 2026-09-07): the session in scope, and a menu of the jurisdiction's sessions, newest first, that writes the pick into the URL for every card to follow. */
+export function SessionFilter() {
+  const { state, session } = useJurisdiction()
+  const { data } = usePolicy<SessionRow[]>("sessions", { state }, { titles: 1 })
+  const sessions = data ?? []
+  const label = (id: number, title?: string | null) => (state === "US" ? congressName(id) : (title && shortSession(title)) || String(id))
+  const current = session ? label(session, sessions.find((row) => Number(row.session_id) === session)?.title) : "Session"
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="justify-between shadow-none md:w-48" aria-label="Filter by session" />}>
+        <span className="truncate font-normal">{current}</span>
+        <ChevronsUpDownIcon className="size-3.5 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-max min-w-48">
+        {sessions.map((row) => {
+          const active = Number(row.session_id) === session
+          return (
+            <DropdownMenuItem key={row.session_id} className="whitespace-nowrap" onClick={() => !active && writeUrlParams({ session: String(row.session_id) }, { history: "push" })}>
+              {label(Number(row.session_id), row.title)}
+              {active && <Check className="ml-auto size-4" />}
+            </DropdownMenuItem>
+          )
+        })}
+        {!sessions.length && <DropdownMenuItem disabled>Loading sessions…</DropdownMenuItem>}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -219,11 +259,11 @@ export function ReferDialog() {
   )
 }
 
-/** The topbar's right half, as the block shell's actions: the search and the bell (Brendan, 2026-09-06). The flag moved to the site header; the gift, the theme toggle and the profile are gone. */
+/** The topbar's right half, as the block shell's actions: the session filter and the bell (Brendan, 2026-09-07: the search became a filter with a dropdown for sessions). The flag moved to the site header; the gift, the theme toggle and the profile are gone. */
 export function AdminTopbar() {
   return (
     <div className="flex items-center gap-1.5">
-      <SearchButton />
+      <SessionFilter />
       <div className="h-6.5 w-px bg-border max-sm:hidden" />
       <Notification1 />
     </div>

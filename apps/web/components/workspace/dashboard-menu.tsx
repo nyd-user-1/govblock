@@ -77,7 +77,7 @@ function DashboardCards({ entries, search }: { entries: Entry[]; search: string 
         const explore = () => router.push(href)
         const share = () => navigator.clipboard?.writeText(`${window.location.origin}${href}`).catch(() => {})
         return {
-          key: `dashboard-${entry.page || "sales"}`,
+          key: `dashboard-${entry.page || "session"}`,
           group: "dashboards",
           badge: <Dot tag={entry.tag} />,
           media: <DashboardSketch spec={record.spec} />,

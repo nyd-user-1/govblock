@@ -25,7 +25,7 @@ import {
 // The Admin rail, entry for entry as paceui's Ultimate Dashboard lists it
 // (Brendan, 2026-09-05: "I went through virtually the entire left rail by
 // hand … make sure you build all of them out"). A `page` is the part of
-// `at=admin/<page>` after the slash; the Sales page is `at=admin` itself.
+// `at=admin/<page>` after the slash; the Session page is `at=admin` itself.
 // The dots are paceui's tags: red for trending, grey for coming soon, the
 // primary colour for new.
 
@@ -40,7 +40,8 @@ export type MenuItem = {
 
 export const ADMIN_MENU: MenuItem[] = [
   { label: "Dashboards", isTitle: true },
-  { label: "Sales", icon: TrendingUpIcon, page: "" },
+  // paceui's Sales, as the session (Brendan, 2026-09-07: "sales is now session").
+  { label: "Session", icon: TrendingUpIcon, page: "" },
   { label: "Log", icon: FileTextIcon, page: "logs" },
   { label: "Customer", icon: UserCheckIcon, page: "customers" },
   { label: "Order", icon: ShoppingCartIcon, page: "orders" },
