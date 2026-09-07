@@ -1,94 +1,153 @@
 "use client"
 
-// The clips a reader can see: the ones GovBlock published, and the ones they
-// recorded themselves. This is the mock's store (Brendan, 2026-09-07: "have it
-// be a mockup, just to show me how it would really look and feel, and we'd
-// wire it up later"). A recording never leaves the browser — it sits in
-// IndexedDB as a blob — and the published set is five free stock clips
-// (Mixkit licence, no attribution required) streamed from Mixkit's CDN.
+import { flagUrl } from "@/lib/filters"
+
+// The clips a reader can see, who made them, and what was said under them.
+// This is the mock's store (Brendan, 2026-09-07: "have it be a mockup, just
+// to show me how it would really look and feel, and we'd wire it up later").
+// A recording never leaves the browser — it sits in IndexedDB as a blob —
+// likes and comments a reader adds sit in localStorage, and the published set
+// is five free stock clips (Mixkit licence, no attribution required)
+// streamed from Mixkit's CDN under the desks that would have shot them.
 //
 // When this is wired up, `saveClip` becomes a Cloudflare Stream direct
 // creator upload (one-time URL from our /api/stream, PUT the blob to it) with
-// the reader's id and the visibility in the video's `meta`, and `loadMine`
-// becomes a `listVideos` filtered on that id. Nothing else here changes.
+// the reader's id and the visibility in the video's `meta`; `loadMine`
+// becomes a `listVideos` filtered on that id; likes and comments become
+// rows. Nothing that renders changes.
 
 export type Visibility = "private" | "public"
 
+export type Creator = { id: string; name: string; handle: string; image?: string | null; state?: string; kind: "desk" | "user" }
+
 export type Clip = {
   id: string
+  creatorId: string
+  author: { name: string; handle: string; image?: string | null }
   title: string
   caption: string
-  author: { name: string; image?: string | null }
   src: string
   blob?: Blob
   duration?: number
   createdAt: string
   visibility: Visibility
+  views: number
+  likes: number
   mine?: boolean
 }
 
+export type Comment = { id: string; clipId: string; author: { name: string; handle: string; image?: string | null }; text: string; at: string; likes: number; mine?: boolean }
+
+export const CREATORS: Creator[] = [
+  { id: "govblock", name: "GovBlock", handle: "govblock", image: flagUrl("US"), state: "US", kind: "desk" },
+  { id: "ny", name: "New York Desk", handle: "nydesk", image: flagUrl("NY"), state: "NY", kind: "desk" },
+  { id: "tx", name: "Texas Desk", handle: "txdesk", image: flagUrl("TX"), state: "TX", kind: "desk" },
+  { id: "ca", name: "California Desk", handle: "cadesk", image: flagUrl("CA"), state: "CA", kind: "desk" },
+]
+
+export const creatorOf = (id: string) => CREATORS.find((c) => c.id === id)
+
 const MIXKIT = (id: number) => `https://assets.mixkit.co/videos/${id}/${id}-360.mp4`
+const by = (id: string) => {
+  const c = creatorOf(id)!
+  return { name: c.name, handle: c.handle, image: c.image }
+}
 
 export const PUBLISHED: Clip[] = [
   {
     id: "pub-40700",
+    creatorId: "tx",
+    author: by("tx"),
     title: "Sine die at the Texas Capitol",
-    caption: "The 89th adjourned Monday. What passed, what died, and the three bills the Governor still has to sign.",
-    author: { name: "GovBlock" },
+    caption: "The 89th adjourned Monday. What passed, what died, and the three bills the Governor still has to sign. Full list on the session page.",
     src: MIXKIT(40700),
     duration: 15,
     createdAt: "2026-09-01T14:10:00Z",
     visibility: "public",
+    views: 98800,
+    likes: 219,
   },
   {
     id: "pub-49851",
+    creatorId: "ny",
+    author: by("ny"),
     title: "Budget week from the Corning Tower",
     caption: "Albany from 42 floors up. The one-house budgets are due Thursday. Here's what's in each.",
-    author: { name: "GovBlock" },
     src: MIXKIT(49851),
     duration: 15,
     createdAt: "2026-08-28T22:40:00Z",
     visibility: "public",
+    views: 56800,
+    likes: 143,
   },
   {
     id: "pub-49878",
+    creatorId: "ny",
+    author: by("ny"),
     title: "The Assembly went past midnight",
     caption: "Housing package, 98 to 47. The vote list is on the bill page.",
-    author: { name: "GovBlock" },
     src: MIXKIT(49878),
     duration: 14,
     createdAt: "2026-08-21T04:12:00Z",
     visibility: "public",
+    views: 1801,
+    likes: 41,
   },
   {
     id: "pub-34562",
+    creatorId: "ny",
+    author: by("ny"),
     title: "Congestion pricing, week one",
     caption: "The cameras went live Sunday. The bill that got us here is S 6812, and the fight over it is not done.",
-    author: { name: "GovBlock" },
     src: MIXKIT(34562),
     duration: 8,
     createdAt: "2026-08-15T12:00:00Z",
     visibility: "public",
+    views: 659000,
+    likes: 2310,
   },
   {
     id: "pub-40656",
+    creatorId: "govblock",
+    author: by("govblock"),
     title: "Walking in to Finance",
-    caption: "Ten minutes early. Four bills on the agenda, one of them the pay-transparency amendment.",
-    author: { name: "GovBlock" },
+    caption: "Ten minutes early. Four bills on the agenda, one of them the pay-transparency amendment. Agenda in the first comment.",
     src: MIXKIT(40656),
     duration: 12,
     createdAt: "2026-08-09T13:30:00Z",
     visibility: "public",
+    views: 990,
+    likes: 27,
   },
 ]
+
+const person = (name: string, handle: string) => ({ name, handle, image: null })
+
+export const SEED_COMMENTS: Comment[] = [
+  { id: "c1", clipId: "pub-40700", author: person("Dana Whitfield", "dana.w"), text: "Which three? The bond bill is the one I'm watching.", at: "2026-09-01T15:02:00Z", likes: 4 },
+  { id: "c2", clipId: "pub-40700", author: person("Marcus Ibáñez", "mibanez"), text: "HB 2, SB 4 and the water bill. He has until the 21st.", at: "2026-09-01T15:20:00Z", likes: 11 },
+  { id: "c3", clipId: "pub-40700", author: person("Priya Raman", "praman"), text: "Sine die was 11:58 PM. They cut it close.", at: "2026-09-02T02:11:00Z", likes: 2 },
+  { id: "c4", clipId: "pub-49851", author: person("Tom Okafor", "tokafor"), text: "The Senate one-house has the childcare line at $1.2B. The Assembly's is $1.9B.", at: "2026-08-29T01:12:00Z", likes: 9 },
+  { id: "c5", clipId: "pub-49851", author: person("Lena Fischer", "lfischer"), text: "Is the tuition freeze in either?", at: "2026-08-29T13:45:00Z", likes: 1 },
+  { id: "c6", clipId: "pub-49878", author: person("Dana Whitfield", "dana.w"), text: "98–47 with 5 excused. Two Democrats crossed.", at: "2026-08-21T05:00:00Z", likes: 6 },
+  { id: "c7", clipId: "pub-34562", author: person("Marcus Ibáñez", "mibanez"), text: "S 6812 passed the Senate 36–25. Not unanimous, whatever the press release says.", at: "2026-08-15T14:30:00Z", likes: 23 },
+  { id: "c8", clipId: "pub-34562", author: person("Aisha Bello", "abello"), text: "First week revenue numbers come out Friday.", at: "2026-08-16T09:10:00Z", likes: 3 },
+  { id: "c9", clipId: "pub-34562", author: person("Tom Okafor", "tokafor"), text: "The lawsuit in NJ is still pending. This isn't over.", at: "2026-08-17T20:41:00Z", likes: 8 },
+  { id: "c10", clipId: "pub-40656", author: person("GovBlock", "govblock"), text: "Agenda: S 1030, S 2277, A 4810 and the pay-transparency amendment to S 5598.", at: "2026-08-09T13:31:00Z", likes: 5 },
+  { id: "c11", clipId: "pub-40656", author: person("Lena Fischer", "lfischer"), text: "Did the amendment get out of committee?", at: "2026-08-09T17:05:00Z", likes: 0 },
+]
+
+/* ---- what the reader adds: IndexedDB for recordings, localStorage for the rest ---- */
 
 const DB = "govblock-clips"
 const STORE = "clips"
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1)
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "id" })
+    const req = indexedDB.open(DB, 2)
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: "id" })
+    }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
   })
@@ -131,10 +190,53 @@ export async function deleteClip(id: string) {
   db.close()
 }
 
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+const writeJson = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {}
+}
+
+const LIKES = "govblock:clips:likes"
+const SAVES = "govblock:clips:saves"
+const FOLLOWS = "govblock:clips:follows"
+const COMMENTS = "govblock:clips:comments"
+
+export const loadLikes = () => new Set(readJson<string[]>(LIKES, []))
+export const storeLikes = (s: Set<string>) => writeJson(LIKES, [...s])
+export const loadSaves = () => new Set(readJson<string[]>(SAVES, []))
+export const storeSaves = (s: Set<string>) => writeJson(SAVES, [...s])
+export const loadFollows = () => new Set(readJson<string[]>(FOLLOWS, []))
+export const storeFollows = (s: Set<string>) => writeJson(FOLLOWS, [...s])
+export const loadMyComments = () => readJson<Comment[]>(COMMENTS, [])
+export const storeMyComments = (rows: Comment[]) => writeJson(COMMENTS, rows)
+
+/* ---- formatting ---- */
+
 export const fmtDuration = (s?: number) => {
   if (!s || !Number.isFinite(s)) return ""
   const m = Math.floor(s / 60)
   return `${m}:${String(Math.round(s % 60)).padStart(2, "0")}`
 }
 
-export const fmtWhen = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+/** 98,800 → 98.8K, as the play count on a tile. */
+export const fmtCount = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : String(n))
+
+export const fmtWhen = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" })
+
+/** "3w", "4d", "2h", as a comment's age. */
+export function fmtAge(iso: string) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m`
+  if (s < 86400) return `${Math.floor(s / 3600)}h`
+  if (s < 86400 * 7) return `${Math.floor(s / 86400)}d`
+  if (s < 86400 * 365) return `${Math.floor(s / (86400 * 7))}w`
+  return `${Math.floor(s / (86400 * 365))}y`
+}

@@ -2,25 +2,31 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CameraIcon, LockIcon } from "lucide-react"
+import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
+import { Drawer, DrawerContent, DrawerTitle } from "@govblock/ui/components/nova/drawer"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
 import { cn } from "@govblock/ui/lib/utils"
 
 import { Capture } from "./capture"
-import { Player } from "./player"
-import { PUBLISHED, deleteClip, fmtDuration, loadMine, saveClip, type Clip } from "./store"
+import { CommentsPanel } from "./comments"
+import { Creators, type CreatorRow } from "./creators"
+import { Feed, type Reactions } from "./feed"
+import { Grid } from "./grid"
+import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFollows, loadLikes, loadMine, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, type Clip, type Comment } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
 // 2026-09-07) so the shape can be judged before Stream is wired in.
 //
-// Two tabs. Clips is what GovBlock and its readers have published, for
-// everyone. Your library is the signed-in reader's own recordings, private
-// ones included. On a phone the grid is edge to edge and the record button
-// floats; on a desktop the grid sits in the container and recording and
-// playback happen in a phone-sized frame on a dark field, which is how a
-// vertical video should be met on a wide screen.
+// The page is the site's centred layout with both rails (Brendan, 2026-09-07):
+// creators on the left, the clip in the middle, and the comments on the
+// right. The middle scrolls down, one clip a screen, the way every other
+// page here scrolls; a grid of the same clips is one toggle away and opens
+// into the feed at the tile you chose. On a phone the rails fold away: the
+// creators become a select in the toolbar and the comments a sheet that
+// rises from the foot.
 
 type Account = { name?: string | null; email?: string | null; image?: string | null } | null
 
@@ -48,7 +54,7 @@ function useAccount(): { account: Account; ready: boolean } {
   return { account, ready }
 }
 
-/** The frame a clip lives in: the whole screen on a phone, a phone on a desktop. */
+/** Recording and the sign-in gate: the whole screen on a phone, a phone on a desktop. */
 function Frame({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   React.useEffect(() => {
     const prev = document.body.style.overflow
@@ -66,144 +72,274 @@ function Frame({ children, onClose }: { children: React.ReactNode; onClose: () =
   )
 }
 
-function Tile({ clip, onOpen }: { clip: Clip; onOpen: () => void }) {
-  const [duration, setDuration] = React.useState(clip.duration)
-  return (
-    <button type="button" onClick={onOpen} className="group relative aspect-[9/16] overflow-hidden bg-black text-left md:rounded-xl" aria-label={clip.title}>
-      <video
-        src={`${clip.src}#t=0.1`}
-        preload="metadata"
-        muted
-        playsInline
-        className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-        onLoadedMetadata={(e) => {
-          const d = e.currentTarget.duration
-          if (!clip.duration && Number.isFinite(d)) setDuration(d)
-        }}
-      />
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-8">
-        <p className="line-clamp-2 text-xs leading-tight font-medium text-white md:text-sm">{clip.title}</p>
-      </div>
-      <span className="absolute top-1.5 right-1.5 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[10px] text-white tabular-nums">{fmtDuration(duration)}</span>
-      {clip.visibility === "private" && (
-        <span className="absolute top-1.5 left-1.5 flex size-6 items-center justify-center rounded-full bg-black/50 text-white" title="Private">
-          <LockIcon className="size-3" />
-        </span>
-      )}
-    </button>
-  )
-}
+const FEED_HEIGHT = "h-[calc(100svh-var(--header-height)-3.5rem)]"
 
 export function ClipsApp() {
   const { account, ready } = useAccount()
-  const [tab, setTab] = React.useState<"clips" | "mine">("clips")
+  const signedIn = !!account
   const [mine, setMine] = React.useState<Clip[]>([])
-  const [mode, setMode] = React.useState<{ kind: "player"; index: number } | { kind: "capture" } | { kind: "gate" } | null>(null)
+  const [creator, setCreator] = React.useState("all")
+  const [view, setView] = React.useState<"feed" | "grid">("feed")
+  const [activeId, setActiveId] = React.useState<string | null>(null)
+  const [muted, setMuted] = React.useState(true)
+  const [liked, setLiked] = React.useState<Set<string>>(new Set())
+  const [saved, setSaved] = React.useState<Set<string>>(new Set())
+  const [following, setFollowing] = React.useState<Set<string>>(new Set())
+  const [likedComments, setLikedComments] = React.useState<Set<string>>(new Set())
+  const [myComments, setMyComments] = React.useState<Comment[]>([])
+  const [mode, setMode] = React.useState<"capture" | "gate" | null>(null)
+  const [sheet, setSheet] = React.useState(false)
+  const [focusKey, setFocusKey] = React.useState(0)
+  const pendingId = React.useRef<string | null>(null)
 
   React.useEffect(() => {
     void loadMine().then(setMine)
+    setLiked(loadLikes())
+    setSaved(loadSaves())
+    setFollowing(loadFollows())
+    setMyComments(loadMyComments())
+    const c = new URLSearchParams(window.location.search).get("c")
+    if (c) pendingId.current = c
   }, [])
 
-  const author: Clip["author"] = { name: account?.name ?? account?.email ?? "You", image: account?.image }
-  // Clips is the published set, ours and the reader's own public ones.
+  const you: Clip["author"] = { name: account?.name ?? account?.email ?? "You", handle: (account?.email ?? "you").split("@")[0], image: account?.image }
+
+  // What is on offer: the published set (the desks' clips and the reader's
+  // own public ones), narrowed to a creator when one is picked.
   const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public"), ...PUBLISHED], [mine])
-  const shown = tab === "clips" ? published : mine
+  const clips = React.useMemo(() => {
+    if (creator === "you") return mine
+    if (creator === "all") return published
+    return published.filter((c) => c.creatorId === creator)
+  }, [creator, mine, published])
 
-  const record = () => setMode(account ? { kind: "capture" } : { kind: "gate" })
+  const rows: CreatorRow[] = CREATORS.map((c) => ({ ...c, count: published.filter((x) => x.creatorId === c.id).length }))
+  const youRow: CreatorRow | null = signedIn ? { id: "you", name: you.name, handle: you.handle, image: you.image, kind: "user", count: mine.length } : null
 
-  const saved = async (clip: Clip) => {
-    await saveClip(clip)
-    setMine((m) => [clip, ...m])
-    setTab("mine")
-    setMode({ kind: "player", index: 0 })
+  // The first clip plays on arrival, or the one the address names.
+  React.useEffect(() => {
+    if (!clips.length) return
+    const want = pendingId.current && clips.find((c) => c.id === pendingId.current) ? pendingId.current : null
+    if (want) {
+      pendingId.current = null
+      setActiveId(want)
+      setTimeout(() => document.querySelector(`[data-id="${CSS.escape(want)}"]`)?.scrollIntoView({ block: "start" }), 50)
+    } else if (!activeId || !clips.some((c) => c.id === activeId)) {
+      setActiveId(clips[0].id)
+    }
+  }, [clips, activeId])
+
+  const active = clips.find((c) => c.id === activeId) ?? null
+  const commentsFor = React.useCallback((id: string) => [...SEED_COMMENTS.filter((c) => c.clipId === id), ...myComments.filter((c) => c.clipId === id)], [myComments])
+
+  const toggleIn = (set: Set<string>, id: string) => {
+    const next = new Set(set)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  }
+  const record = () => setMode(signedIn ? "capture" : "gate")
+  const goToPost = (clip: Clip) => {
+    window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(clip.id)}`)
+    setView("feed")
+    setActiveId(clip.id)
+    setTimeout(() => document.querySelector(`[data-id="${CSS.escape(clip.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 30)
   }
 
-  const toggleVisibility = async (clip: Clip) => {
-    const next: Clip = { ...clip, visibility: clip.visibility === "public" ? "private" : "public" }
-    await saveClip(next)
-    setMine((m) => m.map((c) => (c.id === clip.id ? next : c)))
+  const reactions: Reactions = {
+    liked,
+    saved,
+    following,
+    commentCount: (id) => commentsFor(id).length,
+    onLike: (clip) => {
+      if (!signedIn) return setMode("gate")
+      setLiked((s) => {
+        const n = toggleIn(s, clip.id)
+        storeLikes(n)
+        return n
+      })
+    },
+    onSave: (clip) => {
+      if (!signedIn) return setMode("gate")
+      setSaved((s) => {
+        const n = toggleIn(s, clip.id)
+        storeSaves(n)
+        return n
+      })
+    },
+    onFollow: (creatorId) => {
+      if (!signedIn) return setMode("gate")
+      setFollowing((s) => {
+        const n = toggleIn(s, creatorId)
+        storeFollows(n)
+        return n
+      })
+    },
+    onComment: (clip) => {
+      setActiveId(clip.id)
+      if (window.matchMedia("(min-width: 64rem)").matches) setFocusKey((k) => k + 1)
+      else setSheet(true)
+    },
+    onGoToPost: goToPost,
+  }
+
+  const post = (text: string) => {
+    if (!active) return
+    const row: Comment = { id: `mc-${Date.now().toString(36)}`, clipId: active.id, author: you, text, at: new Date().toISOString(), likes: 0, mine: true }
+    setMyComments((m) => {
+      const n = [...m, row]
+      storeMyComments(n)
+      return n
+    })
+  }
+
+  const saveRecording = async (clip: Clip) => {
+    await saveClip(clip)
+    setMine((m) => [clip, ...m])
+    setCreator("you")
+    setView("feed")
+    setMode(null)
+    pendingId.current = clip.id
   }
 
   const remove = async (clip: Clip) => {
     await deleteClip(clip.id)
     setMine((m) => m.filter((c) => c.id !== clip.id))
-    setMode(null)
   }
+  const publish = async (clip: Clip) => {
+    const next: Clip = { ...clip, visibility: clip.visibility === "public" ? "private" : "public" }
+    await saveClip(next)
+    setMine((m) => m.map((c) => (c.id === clip.id ? next : c)))
+  }
+
+  const panel = (className?: string) =>
+    active ? (
+      <CommentsPanel
+        clip={active}
+        comments={commentsFor(active.id)}
+        liked={liked.has(active.id)}
+        saved={saved.has(active.id)}
+        following={following.has(active.creatorId)}
+        signedIn={signedIn}
+        onLike={() => reactions.onLike(active)}
+        onSave={() => reactions.onSave(active)}
+        onFollow={() => reactions.onFollow?.(active.creatorId)}
+        onGoToPost={() => goToPost(active)}
+        onPost={post}
+        onLikeComment={(id) => setLikedComments((s) => toggleIn(s, id))}
+        likedComments={likedComments}
+        focusKey={focusKey}
+        className={className}
+      />
+    ) : null
+
+  const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
 
   return (
     <div className="container-wrapper">
-      <div className="flex items-center gap-3 px-4 py-4 md:px-6 md:py-6">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Clips</h1>
-        <div className="ml-2 flex items-center gap-1 rounded-full bg-muted p-0.5 text-sm">
-          {(
-            [
-              { value: "clips", label: "Clips" },
-              { value: "mine", label: "Your library" },
-            ] as const
-          ).map((t) => (
-            <button key={t.value} type="button" onClick={() => setTab(t.value)} className={cn("rounded-full px-3 py-1 transition-colors", tab === t.value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-              {t.label}
-              {t.value === "mine" && mine.length > 0 && <span className="ml-1.5 text-xs text-muted-foreground">{mine.length}</span>}
-            </button>
-          ))}
-        </div>
-        <Button className="ml-auto gap-1.5 max-md:hidden" onClick={record}>
-          <CameraIcon className="size-4" />
-          Record
-        </Button>
+      <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
+        <aside className="hidden lg:block">
+          <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", "h-[calc(100svh-var(--header-height))]")}>
+            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} />
+          </div>
+        </aside>
+
+        <main className="min-w-0">
+          <div className="flex h-14 items-center gap-2">
+            <div className="flex items-center rounded-full bg-muted p-0.5">
+              <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
+                <PlaySquareIcon className="size-4" />
+              </button>
+              <button type="button" onClick={() => setView("grid")} className={cn("flex size-8 items-center justify-center rounded-full", view === "grid" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Grid">
+                <LayoutGridIcon className="size-4" />
+              </button>
+            </div>
+            <Select value={creator} onValueChange={(v) => v && setCreator(String(v))}>
+              <SelectTrigger className="h-8 w-max min-w-36 lg:hidden" size="sm" aria-label="Creator">
+                <SelectValue>{() => creatorLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-max min-w-44">
+                <SelectItem value="all" className="whitespace-nowrap">
+                  All clips
+                </SelectItem>
+                {CREATORS.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="whitespace-nowrap">
+                    {c.name}
+                  </SelectItem>
+                ))}
+                {signedIn && (
+                  <SelectItem value="you" className="whitespace-nowrap">
+                    Your library
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <span className="hidden text-sm font-medium lg:inline">{creatorLabel}</span>
+            <span className="ml-auto text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
+          </div>
+
+          {creator === "you" && ready && !signedIn ? (
+            <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
+              <Button render={<Link href="/auth" />} size="sm">
+                Sign in
+              </Button>
+            </Empty>
+          ) : clips.length === 0 ? (
+            <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
+              {creator === "you" && (
+                <Button size="sm" onClick={record}>
+                  Record the first one
+                </Button>
+              )}
+            </Empty>
+          ) : view === "grid" ? (
+            <Grid clips={clips} onOpen={goToPost} className="-mx-2 lg:mx-0" />
+          ) : (
+            <Feed clips={clips} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT, "-mx-2 lg:mx-0")} />
+          )}
+
+          {creator === "you" && active?.mine && view === "feed" && (
+            <div className="flex items-center gap-2 py-3 text-sm lg:pr-16">
+              <span className="text-muted-foreground">{active.visibility === "public" ? "Everyone can see this." : "Only you can see this."}</span>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={() => void publish(active)}>
+                {active.visibility === "public" ? "Make private" : "Publish"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void remove(active)}>
+                Delete
+              </Button>
+            </div>
+          )}
+        </main>
+
+        <aside className="hidden lg:block">
+          <div className={cn("sticky top-(--header-height) py-4", "h-[calc(100svh-var(--header-height))]")}>
+            <div className="h-full overflow-hidden rounded-xl border bg-card">{panel()}</div>
+          </div>
+        </aside>
       </div>
 
-      {tab === "mine" && ready && !account ? (
-        <div className="flex flex-col items-center gap-3 px-6 py-20 text-center">
-          <LockIcon className="size-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Your library is yours. Sign in to see it.</p>
-          <Button render={<Link href="/auth" />} size="sm">
-            Sign in
-          </Button>
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 px-6 py-20 text-center">
-          <CameraIcon className="size-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">{tab === "mine" ? "Nothing recorded yet." : "Nothing published yet."}</p>
-          {tab === "mine" && (
-            <Button size="sm" onClick={record}>
-              Record the first one
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-0.5 md:grid-cols-4 md:gap-3 md:px-6 lg:grid-cols-5 xl:grid-cols-6">
-          {shown.map((clip, i) => (
-            <Tile key={clip.id} clip={clip} onOpen={() => setMode({ kind: "player", index: i })} />
-          ))}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={record}
-        aria-label="Record"
-        className="fixed bottom-6 left-1/2 z-40 flex size-16 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background md:hidden"
-      >
-        <CameraIcon className="size-7" />
+      <button type="button" onClick={record} aria-label="Record" className="fixed right-4 bottom-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background lg:hidden">
+        <CameraIcon className="size-6" />
       </button>
 
-      {mode?.kind === "capture" && (
+      <Drawer open={sheet} onOpenChange={setSheet} showSwipeHandle>
+        <DrawerContent className="h-[75dvh]">
+          <DrawerTitle className="sr-only">Comments</DrawerTitle>
+          {panel("h-full")}
+        </DrawerContent>
+      </Drawer>
+
+      {mode === "capture" && (
         <Frame onClose={() => setMode(null)}>
-          <Capture author={author} onSaved={saved} onClose={() => setMode(null)} />
+          <Capture author={you} onSaved={saveRecording} onClose={() => setMode(null)} />
         </Frame>
       )}
-      {mode?.kind === "player" && (
-        <Frame onClose={() => setMode(null)}>
-          <Player clips={shown} index={Math.min(mode.index, shown.length - 1)} onIndex={(index) => setMode({ kind: "player", index })} onClose={() => setMode(null)} onVisibility={toggleVisibility} onDelete={remove} />
-        </Frame>
-      )}
-      {mode?.kind === "gate" && (
+      {mode === "gate" && (
         <Frame onClose={() => setMode(null)}>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-8 text-center">
             <CameraIcon className="size-8 text-muted-foreground" />
-            <p className="text-base font-medium">Sign in to record</p>
-            <p className="text-sm text-muted-foreground">What you record is yours, and private until you publish it.</p>
+            <p className="text-base font-medium">Sign in to take part</p>
+            <p className="text-sm text-muted-foreground">Recording, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
             <Button render={<Link href="/auth" />}>Sign in</Button>
             <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
               Not now
@@ -211,6 +347,16 @@ export function ClipsApp() {
           </div>
         </Frame>
       )}
+    </div>
+  )
+}
+
+function Empty({ icon, text, children }: { icon: React.ReactNode; text: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-20 text-center text-muted-foreground">
+      {icon}
+      <p className="text-sm">{text}</p>
+      {children}
     </div>
   )
 }

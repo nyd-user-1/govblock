@@ -144,14 +144,17 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
     setSaving(true)
     onSaved({
       id: `mine-${Date.now().toString(36)}`,
+      creatorId: "you",
+      author,
       title: title.trim(),
       caption: caption.trim(),
-      author,
       src: url ?? "",
       blob,
       duration,
       createdAt: new Date().toISOString(),
       visibility,
+      views: 0,
+      likes: 0,
       mine: true,
     })
   }
