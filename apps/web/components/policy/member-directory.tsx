@@ -6,6 +6,7 @@ import { CommandBlock } from "@/components/command-block"
 import { FileBlock } from "@/components/file-block"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { H3 } from "@/components/typeset"
+import { Chip } from "@/components/chip"
 
 // The member's own offices and the people in them, from the House Telephone
 // Directory (directory.house.gov).
@@ -68,7 +69,7 @@ export function MemberStaff({ staff, offices, who, surname }: { staff: Directory
     <>
       <H3>Staff</H3>
       <p>
-        {who} has <code>{staff.length}</code> staff listed in the House Directory.
+        <Chip>{who}</Chip> has {staff.length} staff listed in the House Directory.
       </p>
       {/* shadcn's file block — the titled code figure with line numbers, the
           copy button, and Expand over a collapsed body — with the House seal

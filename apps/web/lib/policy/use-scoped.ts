@@ -16,16 +16,13 @@ import { usePolicy } from "@/lib/policy/use-policy"
 // the fixture itself. Congress's rows under another state's name are a lie, and
 // a quieter one than an empty card.
 export function useScoped<T>(
-  resource: string,
+  /** Null reads nothing: a card handed its rows by the page still wants the scope. */
+  resource: string | null,
   fallback: T,
   extra: Record<string, string | number | undefined> = {}
 ) {
   const { state, session, resolved } = useJurisdiction()
-  const { data, isLoading } = usePolicy<T>(
-    resolved ? resource : null,
-    { state, session: session ? String(session) : undefined },
-    extra
-  )
+  const { data, isLoading } = usePolicy<T>(resolved && resource ? resource : null, { state, session: session ? String(session) : undefined }, extra)
   const pending = !resolved || isLoading
   const congress = state === "US"
   return {

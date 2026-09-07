@@ -27,6 +27,7 @@ export function CardBlock({
   menu,
   initial,
   empty,
+  framed = true,
 }: {
   cards: CardSpec[]
   /** What sits at the block's top right: the Sessions menu, a Sort control. */
@@ -34,12 +35,15 @@ export function CardBlock({
   /** How many cards show before See more; every card when left out. */
   initial?: number
   empty?: React.ReactNode
+  /** Off when the grid sits inside a tab of a frame the block already has. */
+  framed?: boolean
 }) {
   const [all, setAll] = React.useState(false)
   const shown = initial != null && !all ? cards.slice(0, initial) : cards
   const hidden = cards.length - shown.length
+  const Frame = framed ? PreviewFrame : React.Fragment
   return (
-    <PreviewFrame>
+    <Frame>
       {menu && <div className="flex items-center pb-4">{menu}</div>}
       {cards.length ? (
         <ProjectGrid>
@@ -57,6 +61,6 @@ export function CardBlock({
           </Button>
         </div>
       )}
-    </PreviewFrame>
+    </Frame>
   )
 }

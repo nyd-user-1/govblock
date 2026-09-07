@@ -12,6 +12,7 @@ import { FinanceTable, type FinanceRow, RollCallTable, type RollCallRow } from "
 import { usePolicy } from "@/lib/policy/use-policy"
 import { MemberPortrait } from "@/components/policy/imagery"
 import { H2, H3, Table } from "@/components/typeset"
+import { Chip } from "@/components/chip"
 import { DocsTableOfContents } from "@/components/docs-toc"
 
 // What congress.gov holds about a member, on the member's own page: the
@@ -101,11 +102,7 @@ export function MemberCongressProvider({
   // Aurora keys a member's positions by `people_id`; the committed record is
   // keyed by bioguide, because that is what congress.gov keys a member by.
   // Both are sent and each answer takes the one it knows.
-  const votes = usePolicy<{ memberVotes?: RawVote[]; votes?: RawVote[] }>(
-    on ? "member-votes" : null,
-    { state },
-    { member: peopleId, bioguide: bioguide ?? undefined }
-  )
+  const votes = usePolicy<{ memberVotes?: RawVote[]; votes?: RawVote[] }>(on ? "member-votes" : null, { state }, { member: peopleId, bioguide: bioguide ?? undefined })
   const value = React.useMemo<Value>(
     () => ({
       detail: detail.data ?? null,
@@ -130,19 +127,7 @@ const terms = (detail: Detail | null): Term[] => {
  * own photo until then — `MemberPortrait` only mounts a remote image after
  * hydration, so the seal stands in rather than a broken frame.
  */
-export function MemberOfficialPortrait({
-  name,
-  fallback,
-  state,
-  chamber,
-  size = 80,
-}: {
-  name: string
-  fallback: string | null
-  state: string
-  chamber: string | null
-  size?: number
-}) {
+export function MemberOfficialPortrait({ name, fallback, state, chamber, size = 80 }: { name: string; fallback: string | null; state: string; chamber: string | null; size?: number }) {
   const { detail } = use()
   const official = detail?.portraitUrl ?? detail?.member?.depiction?.imageUrl ?? null
   return <MemberPortrait name={name} photoUrl={official ?? fallback} state={state} chamber={chamber} size={size} />
@@ -164,8 +149,8 @@ export function MemberTerms() {
       <hr />
       <H2>Terms</H2>
       <p>
-        {who} has served <code>{inChamber.length}</code> {inChamber.length === 1 ? "term" : "terms"} in the {chamber}
-        {first ? <>, the first beginning in <code>{first}</code></> : null}.
+        <Chip>{who}</Chip> has served {inChamber.length} {inChamber.length === 1 ? "term" : "terms"} in the {chamber}
+        {first ? <>, the first beginning in {first}</> : null}.
       </p>
       <ul>
         {served.map((term, index) => (
@@ -194,9 +179,7 @@ export function MemberOffice() {
   const street = address?.officeAddress?.trim()
   if (!street) return null
 
-  const cityLine = [address?.city, [address?.district, address?.zipCode].filter(Boolean).join(" ")]
-    .filter(Boolean)
-    .join(", ")
+  const cityLine = [address?.city, [address?.district, address?.zipCode].filter(Boolean).join(" ")].filter(Boolean).join(", ")
 
   return (
     <address className="mt-1 text-sm leading-relaxed text-muted-foreground not-italic">
@@ -222,7 +205,9 @@ export type SenateLines = {
 // Class III in 2028, Class I in 2030, and so on.
 const CLASS_BASE: Record<string, number> = { I: 2024, II: 2020, III: 2022 }
 export function nextElection(cls: string | null | undefined, now = new Date().getFullYear()) {
-  const key = String(cls ?? "").replace(/^class\s+/i, "").toUpperCase()
+  const key = String(cls ?? "")
+    .replace(/^class\s+/i, "")
+    .toUpperCase()
   const base = CLASS_BASE[key]
   if (!base) return null
   let year = base
@@ -253,23 +238,23 @@ export function MemberContact({
   const lead =
     places.length > 1 ? (
       <p>
-        {short} has offices located in:{" "}
+        <Chip>{short}</Chip> has offices located in:{" "}
         {places.map((place, i) => (
           <React.Fragment key={place}>
             {i > 0 ? (i === places.length - 1 ? " and " : ", ") : ""}
-            <code>{place}</code>
+            {place}
           </React.Fragment>
         ))}
         .
       </p>
     ) : places.length === 1 ? (
       <p>
-        {short} has an office located in <code>{places[0]}</code>.
+        <Chip>{short}</Chip> has an office located in <Chip>{places[0]}</Chip>.
       </p>
     ) : senate?.class ? (
       <p>
-        {who} serves in Senate <code>{senate.class}</code>
-        {election ? <> and next stands for election in <code>{election}</code></> : null}.
+        <Chip>{who}</Chip> serves in Senate {senate.class}
+        {election ? <> and next stands for election in {election}</> : null}.
       </p>
     ) : null
   const lines = [
@@ -298,8 +283,6 @@ export function MemberContact({
     </>
   )
 }
-
-
 
 /**
  * The Copy button from the strip Brendan reworked on the shadcn page
@@ -335,8 +318,7 @@ export function MemberVotes({ menu }: { menu?: React.ReactNode }) {
     <>
       <H3>Roll Call</H3>
       <p>
-        {who} has <code>{fmtNumber(rows.length)}</code> recorded positions on House roll calls this Congress, <code>{fmtNumber(named)}</code> of them on
-        a named bill.
+        <Chip>{who}</Chip> has {fmtNumber(rows.length)} recorded positions on House roll calls this Congress, {fmtNumber(named)} of them on a named bill.
       </p>
       <RollCallTable rows={rows} menu={menu} />
     </>
@@ -352,8 +334,7 @@ export function MemberFinance({ totals }: { totals: FinanceRow[] }) {
     <>
       <H3>Finance</H3>
       <p>
-        {who} has raised <code>{fmtCompact(latest.receipts)}</code>, spent <code>{fmtCompact(latest.disbursements)}</code>, and holds{" "}
-        <code>{fmtCompact(latest.cash_on_hand_end)}</code> on hand.
+        <Chip>{who}</Chip> has raised {fmtCompact(latest.receipts)}, spent {fmtCompact(latest.disbursements)}, and holds {fmtCompact(latest.cash_on_hand_end)} on hand.
       </p>
       <FinanceTable rows={totals} />
     </>
@@ -396,7 +377,11 @@ export function MemberToc({
     // Sections at depth 2, their parts at depth 3, as shadcn's docs nest a
     // command's sub-commands. Record holds Bills, Roll Call and Votes; Contact
     // holds Offices and Staff (Brendan, 2026-09-05).
-    const items: [string, 2 | 3, string?][] = [["Summary", 2], ["Record", 2], ["Bills", 3]]
+    const items: [string, 2 | 3, string?][] = [
+      ["Summary", 2],
+      ["Record", 2],
+      ["Bills", 3],
+    ]
     if (committees) items.push(["Committees", 3])
     if (finance) items.push(["Finance", 3])
     if (votes.length) items.push(["Roll Call", 3])

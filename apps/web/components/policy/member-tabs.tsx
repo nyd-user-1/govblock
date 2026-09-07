@@ -15,10 +15,8 @@ export function MemberTabs({
 }: {
   /** What sits at the row's right end, inline with the tabs: the Sessions menu. */
   menu?: React.ReactNode
-  tabs: [
-    { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
-    { value: string; label: string; emoji: string; count: number; content: React.ReactNode },
-  ]
+  /** Two as a rule; a committee's bills take one per status. */
+  tabs: { value: string; label: string; emoji: string; count: number; content: React.ReactNode }[]
 }) {
   // The emoji are Brendan's, and they are emoji rather than icons on purpose
   // — they read at pill size and carry the states apart at a glance. The

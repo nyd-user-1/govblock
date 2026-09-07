@@ -54,3 +54,6 @@ export function fmtCompact(value: number | null | undefined, currency = true) {
 export function fmtBill(number: string | null | undefined) {
   return String(number ?? "").replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
 }
+
+/** "HD-NY-025" reads "NY-25": the chamber prefix and the zero padding go. */
+export const shortDistrict = (value: string | null | undefined) => (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")

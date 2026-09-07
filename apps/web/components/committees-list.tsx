@@ -5,6 +5,7 @@ import * as React from "react"
 import CODES from "@/lib/data/congress/committee-codes.json"
 import * as F from "@/lib/fixtures"
 import { committeeKey } from "@/lib/policy/congress"
+import { committeeSlug } from "@/lib/policy/committee-slug"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
@@ -15,14 +16,13 @@ import { ProjectCard, ProjectGrid } from "@/components/project-card"
 // Ported from livingston-v3 components/committees-list.tsx — two columns at a
 // 24px gap, cards all the same size: seal, name, bill count — with the search
 // field the bills page has, so the two directory pages read the same.
-type Committee = { committee_name: string; chamber: string; bills: number }
+type Committee = { committee_name: string; chamber: string; bills: number; slug?: string }
 
 // A federal committee has a page of its own, keyed by the system code
 // congress.gov gives it. `committees` does not carry the code yet, so the map
 // committed beside the fixtures supplies it; a committee without one keeps the
 // card's older destination, the bills before it.
-const codeFor = (chamber: string, name: string): string | undefined =>
-  (CODES as { byName: Record<string, string> }).byName[committeeKey(chamber, name)]
+const codeFor = (chamber: string, name: string): string | undefined => (CODES as { byName: Record<string, string> }).byName[committeeKey(chamber, name)]
 
 export function CommitteesList() {
   const { data, state, resolved } = useScoped<Committee[]>("committees", F.committeesAll)
@@ -60,16 +60,24 @@ export function CommitteesList() {
             <h3 className="mb-4 text-sm font-medium text-muted-foreground">{chamber}</h3>
             <ProjectGrid>
               {rows.map((committee) => {
+                // Every committee has a page now (2026-09-06): a federal one
+                // by its system code, New York's by the slug its site uses,
+                // any other state's by state, chamber and name.
                 const code = state === "US" ? codeFor(committee.chamber, committee.committee_name) : undefined
+                const href = code
+                  ? `/docs/committees/${code}`
+                  : state === "US"
+                    ? `/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`
+                    : `/docs/committees/${committee.slug ?? committeeSlug(state, committee.chamber, committee.committee_name)}`
                 return (
-                <ProjectCard
-                  key={`${committee.chamber}/${committee.committee_name}`}
-                  href={code ? `/docs/committees/${code}` : `/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
-                  title={committee.committee_name}
-                  media={<ChamberSeal state={state} chamber={committee.chamber} size={28} />}
-                  meta={`${fmtNumber(committee.bills)} Bills`}
-                  feedHref={`/docs/committee-feed.xml?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
-                />
+                  <ProjectCard
+                    key={`${committee.chamber}/${committee.committee_name}`}
+                    href={href}
+                    title={committee.committee_name}
+                    media={<ChamberSeal state={state} chamber={committee.chamber} size={28} />}
+                    meta={`${fmtNumber(committee.bills)} Bills`}
+                    feedHref={`/docs/committee-feed.xml?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`}
+                  />
                 )
               })}
             </ProjectGrid>

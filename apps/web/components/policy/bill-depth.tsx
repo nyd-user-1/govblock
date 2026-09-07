@@ -2,7 +2,6 @@
 
 import * as React from "react"
 
-
 import CODES from "@/lib/data/congress/committee-codes.json"
 import { fmtDate, fmtNumber } from "@/lib/format"
 import { committeeKey } from "@/lib/policy/congress"
@@ -17,6 +16,7 @@ import { ActionTable, type ActionTableRow } from "@/components/policy/bill-table
 import { CardBlock } from "@/components/policy/card-block"
 import { PreviewFrame } from "@/components/preview-frame"
 import { H2, H3 } from "@/components/typeset"
+import { Chip } from "@/components/chip"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The depth congress.gov shows on a bill and we did not: where the bill got to,
@@ -121,12 +121,7 @@ export function BillDepthProvider({
   const actions = useCongress<Action>(heldActions ? null : "actions", "actions", scope, { bill, limit: 500 }, undefined, state)
   // One row rather than a family. The scope is still checked: an answer that
   // does not name this bill is not this bill's record, whatever it holds.
-  const record = useCongressRecord<{ bill?: number; record?: BillRecord | null }>(
-    initial?.record ? null : "bill-record",
-    { bill },
-    (answer) => String(answer?.bill ?? "") === bill && !!answer?.record,
-    state
-  )
+  const record = useCongressRecord<{ bill?: number; record?: BillRecord | null }>(initial?.record ? null : "bill-record", { bill }, (answer) => String(answer?.bill ?? "") === bill && !!answer?.record, state)
 
   const heldCommittees = held(initial?.committees)
   const committees = useCongress<BillCommittee>(heldCommittees ? null : "bill-committees", "committees", scope, { bill }, undefined, state)
@@ -206,7 +201,11 @@ const SENATE = "Passed Senate"
 const REST = ["Conference", "To President", "Became Law"]
 function ladder(type: string | null | undefined, origin: string | null | undefined) {
   const t = String(type ?? "").toUpperCase()
-  const senateFirst = /^S/.test(t) || String(origin ?? "").toLowerCase().startsWith("senate")
+  const senateFirst =
+    /^S/.test(t) ||
+    String(origin ?? "")
+      .toLowerCase()
+      .startsWith("senate")
   const chambers = senateFirst ? [SENATE, HOUSE] : [HOUSE, SENATE]
   if (t === "HRES") return ["Introduced", HOUSE]
   if (t === "SRES") return ["Introduced", SENATE]
@@ -244,11 +243,7 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
 
   if (!c?.onCongress) return null
   if (!steps.length || !c.actions.length) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Progress not harvested for this bill yet.
-      </p>
-    )
+    return <p className="text-sm text-muted-foreground">Progress not harvested for this bill yet.</p>
   }
   const current = steps.filter((s) => s.done).at(-1)
 
@@ -257,24 +252,10 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
       <ol className="flex flex-wrap items-stretch gap-1">
         {steps.map((step) => (
           <li key={step.title} className="min-w-0 flex-1 basis-0">
-            <div
-              className={cn(
-                "h-1 rounded-full",
-                step.done ? "bg-foreground" : "bg-border"
-              )}
-            />
+            <div className={cn("h-1 rounded-full", step.done ? "bg-foreground" : "bg-border")} />
             <div className="mt-2 flex flex-col gap-0.5 pr-1">
-              <span
-                className={cn(
-                  "text-xs leading-tight font-medium",
-                  step.done ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {step.title}
-              </span>
-              {step.date && (
-                <span className="text-xs text-muted-foreground tabular-nums">{step.date}</span>
-              )}
+              <span className={cn("text-xs leading-tight font-medium", step.done ? "text-foreground" : "text-muted-foreground")}>{step.title}</span>
+              {step.date && <span className="text-xs text-muted-foreground tabular-nums">{step.date}</span>}
             </div>
           </li>
         ))}
@@ -283,12 +264,15 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
   )
 }
 
-
 /* ---- actions -------------------------------------------------------------- */
 
 export type HistoryRow = { date: string; chamber: string; action: string; sequence?: number }
 
-const norm = (value: unknown) => String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase()
+const norm = (value: unknown) =>
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
 
 /**
  * The roll call an action produced.
@@ -394,14 +378,16 @@ export function BillActionsBlock({ history, rollCalls = [], bill }: { history: H
       {rows.length ? (
         <>
           <p>
-            {bill} has taken <code>{fmtNumber(rows.length)}</code> {rows.length === 1 ? "action" : "actions"}
-            {first ? <> since <code>{fmtDate(first)}</code></> : null}
-            {latest && latest !== first ? <>, the latest on <code>{fmtDate(latest)}</code></> : null}.
+            <Chip>{bill}</Chip> has taken {fmtNumber(rows.length)} {rows.length === 1 ? "action" : "actions"}
+            {first ? <> since {fmtDate(first)}</> : null}
+            {latest && latest !== first ? <>, the latest on {fmtDate(latest)}</> : null}.
           </p>
           <ActionTable rows={rows} />
         </>
       ) : (
-        <p>No {title.toLowerCase()} on file for {bill} yet.</p>
+        <p>
+          No {title.toLowerCase()} on file for <Chip>{bill}</Chip> yet.
+        </p>
       )}
     </>
   )
@@ -512,11 +498,11 @@ export function BillCommitteesBlock({
     <>
       <H3>Committees</H3>
       <p>
-        {bill} went before <code>{cards.length}</code> {cards.length === 1 ? "committee" : "committees"}:{" "}
+        <Chip>{bill}</Chip> went before {cards.length} {cards.length === 1 ? "committee" : "committees"}:{" "}
         {names.map((name, i) => (
           <React.Fragment key={name}>
             {i > 0 ? (i === names.length - 1 ? " and " : ", ") : ""}
-            <code>{name}</code>
+            <Chip>{name}</Chip>
           </React.Fragment>
         ))}
         .
@@ -558,12 +544,7 @@ function ChipBlock({ file, chips, lit, chamber, state }: { file: string; chips: 
     setLimit({ closed: 3 * h + 2 * gap, open: 6 * h + 5 * gap })
   }, [chips])
   return (
-    <FileBlock
-      icon={<ChamberSeal state={state} chamber={chamber} size={16} />}
-      title={file}
-      text={() => chips.join("\n")}
-      limit={limit ?? { closed: 76, open: 160 }}
-    >
+    <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={file} text={() => chips.join("\n")} limit={limit ?? { closed: 76, open: 160 }}>
       <div ref={box} className="flex w-full flex-wrap gap-2">
         {chips.map((name) => (
           <Badge key={name} variant={name === lit ? "default" : "secondary"}>
@@ -594,13 +575,18 @@ export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: 
       <p>
         {area ? (
           <>
-            The Congressional Research Service files {bill} under <code>{area}</code>
-            {areas.length > 1 ? <>, one of its <code>{fmtNumber(areas.length)}</code> policy areas</> : null}
-            {subjects.length ? <>, and gives it <code>{fmtNumber(subjects.length)}</code> legislative {subjects.length === 1 ? "subject" : "subjects"}</> : null}.
+            The Congressional Research Service files <Chip>{bill}</Chip> under <Chip>{area}</Chip>
+            {areas.length > 1 ? <>, one of its {fmtNumber(areas.length)} policy areas</> : null}
+            {subjects.length ? (
+              <>
+                , and gives it {fmtNumber(subjects.length)} legislative {subjects.length === 1 ? "subject" : "subjects"}
+              </>
+            ) : null}
+            .
           </>
         ) : (
           <>
-            The Congressional Research Service gives {bill} <code>{fmtNumber(subjects.length)}</code> legislative {subjects.length === 1 ? "subject" : "subjects"}.
+            The Congressional Research Service gives <Chip>{bill}</Chip> {fmtNumber(subjects.length)} legislative {subjects.length === 1 ? "subject" : "subjects"}.
           </>
         )}
       </p>
@@ -609,7 +595,7 @@ export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: 
           <H3>CRS Subjects</H3>
           <p>
             CRS assigns every bill one policy area
-            {areas.length > 1 ? <> from its <code>{fmtNumber(areas.length)}</code></> : null}; {bill}&rsquo;s is <code>{area}</code>.
+            {areas.length > 1 ? <> from its {fmtNumber(areas.length)}</> : null}; <Chip>{bill}</Chip>&rsquo;s is <Chip>{area}</Chip>.
           </p>
           <ChipBlock file={chipFile(bill, "policy-areas")} chips={areas} lit={area} chamber={chamber} state={state} />
         </>
@@ -618,8 +604,17 @@ export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: 
         <>
           <H3>Legislative Subjects</H3>
           <p>
-            {bill} carries <code>{fmtNumber(subjects.length)}</code> of CRS&rsquo;s legislative {subjects.length === 1 ? "subject" : "subjects"}
-            {subjects.length > 1 ? <>, from <code>{subjects[0]}</code> to <code>{subjects[subjects.length - 1]}</code></> : <>: <code>{subjects[0]}</code></>}.
+            <Chip>{bill}</Chip> carries {fmtNumber(subjects.length)} of CRS&rsquo;s legislative {subjects.length === 1 ? "subject" : "subjects"}
+            {subjects.length > 1 ? (
+              <>
+                , from <Chip>{subjects[0]}</Chip> to <Chip>{subjects[subjects.length - 1]}</Chip>
+              </>
+            ) : (
+              <>
+                : <Chip>{subjects[0]}</Chip>
+              </>
+            )}
+            .
           </p>
           <ChipBlock file={chipFile(bill, "subjects")} chips={subjects} chamber={chamber} state={state} />
         </>
@@ -643,8 +638,8 @@ export function BillCostEstimates({ bill }: { bill: string }) {
     <>
       <H3>Cost estimate</H3>
       <p>
-        The Congressional Budget Office has filed <code>{rows.length}</code> {rows.length === 1 ? "estimate" : "estimates"} for {bill}
-        {rows[0].pubDate ? <>, the latest on <code>{fmtDate(easternDay(rows[0].pubDate))}</code></> : null}.
+        The Congressional Budget Office has filed {rows.length} {rows.length === 1 ? "estimate" : "estimates"} for <Chip>{bill}</Chip>
+        {rows[0].pubDate ? <>, the latest on {fmtDate(easternDay(rows[0].pubDate))}</> : null}.
       </p>
       <ul>
         {rows.map((row) => (
@@ -721,7 +716,9 @@ export function BillNotes({ bill }: { bill: string }) {
         <>
           <hr />
           <H2>Constitutional authority</H2>
-          <p>The clause the sponsor cites as Congress&rsquo;s power to enact {bill}, as entered in the Congressional Record.</p>
+          <p>
+            The clause the sponsor cites as Congress&rsquo;s power to enact <Chip>{bill}</Chip>, as entered in the Congressional Record.
+          </p>
           <div className="group/pre relative">
             <pre className="text-sm whitespace-pre-wrap">{stripTags(authority)}</pre>
             <CopyCorner text={stripTags(authority)} />
@@ -733,7 +730,7 @@ export function BillNotes({ bill }: { bill: string }) {
           <hr />
           <H2>Notes</H2>
           <p>
-            congress.gov carries <code>{notes.length}</code> {notes.length === 1 ? "note" : "notes"} on {bill}.
+            congress.gov carries {notes.length} {notes.length === 1 ? "note" : "notes"} on <Chip>{bill}</Chip>.
           </p>
           <ul>
             {notes.map((note, index) => (

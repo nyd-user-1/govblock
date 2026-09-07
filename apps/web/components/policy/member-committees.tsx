@@ -5,6 +5,7 @@ import { fmtNumber } from "@/lib/format"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { CardBlock } from "@/components/policy/card-block"
 import { H3 } from "@/components/typeset"
+import { Chip } from "@/components/chip"
 
 // A member's committees on the card /docs/committees uses — seal, name, bill
 // count — in that page's two-column grid. Brendan, 2026-09-05: "use the
@@ -48,11 +49,16 @@ export function MemberCommittees({
     <>
       <H3>Committees</H3>
       <p>
-        {who} sits on <code>{full.length}</code> {full.length === 1 ? "committee" : "committees"}
-        {subs.length ? <> and <code>{subs.length}</code> {subs.length === 1 ? "subcommittee" : "subcommittees"}</> : null}
+        <Chip>{who}</Chip> sits on {full.length} {full.length === 1 ? "committee" : "committees"}
+        {subs.length ? (
+          <>
+            {" "}
+            and {subs.length} {subs.length === 1 ? "subcommittee" : "subcommittees"}
+          </>
+        ) : null}
         {led.length ? (
           <>
-            , and is {led[0].title?.replace(/^Chairman$|^Chairwoman$/, "Chair")} of <code>{shortName(led[0])}</code>
+            , and is {led[0].title?.replace(/^Chairman$|^Chairwoman$/, "Chair")} of <Chip>{shortName(led[0])}</Chip>
           </>
         ) : null}
         .

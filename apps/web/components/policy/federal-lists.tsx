@@ -24,21 +24,7 @@ import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@
 // before the scope resolves, so the shared prerendered shell never flashes one
 // jurisdiction's content at a reader who asked for another.
 
-function Shell({
-  placeholder,
-  rows,
-  count,
-  filter,
-  children,
-  federal,
-}: {
-  placeholder: string
-  rows: unknown[]
-  count: number
-  filter: (query: string) => unknown[]
-  children: (shown: unknown[]) => React.ReactNode
-  federal: string
-}) {
+function Shell({ placeholder, rows, count, filter, children, federal }: { placeholder: string; rows: unknown[]; count: number; filter: (query: string) => unknown[]; children: (shown: unknown[]) => React.ReactNode; federal: string }) {
   const { state, resolved } = useJurisdiction()
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
@@ -73,13 +59,17 @@ function Shell({
 }
 
 const has = (query: string, ...values: (string | number | null | undefined)[]) =>
-  !query || values.some((value) => String(value ?? "").toLowerCase().includes(query))
+  !query ||
+  values.some((value) =>
+    String(value ?? "")
+      .toLowerCase()
+      .includes(query)
+  )
 
 // The families arrive in the order their table was last touched, which is not
 // an order anyone reads in. Each page sorts on the date it prints.
 const day = (value: unknown) => (value ? String(value).slice(0, 10) : "")
-const byDate = <T,>(rows: T[], date: (row: T) => unknown) =>
-  [...rows].sort((a, b) => day(date(b)).localeCompare(day(date(a))))
+const byDate = <T,>(rows: T[], date: (row: T) => unknown) => [...rows].sort((a, b) => day(date(b)).localeCompare(day(date(a))))
 
 // ---------------------------------------------------------------- nominations
 
@@ -105,13 +95,7 @@ export function NominationsList() {
     [rows]
   )
   return (
-    <Shell
-      placeholder="Search nominations by nominee, office or citation…"
-      rows={rows}
-      count={count}
-      filter={filter}
-      federal="The confirmation docket belongs to the Senate. It reads under the federal jurisdiction."
-    >
+    <Shell placeholder="Search nominations by nominee, office or citation…" rows={rows} count={count} filter={filter} federal="The confirmation docket belongs to the Senate. It reads under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Nomination[]).map((row) => {
@@ -119,8 +103,8 @@ export function NominationsList() {
             return (
               <RecordItem
                 key={row.citation}
-                external
-                href={`https://www.congress.gov/nomination/119th-congress/${row.number}${row.partNumber ? `/${Number(row.partNumber)}` : ""}`}
+                // A nomination has a page of its own now (2026-09-06), by citation.
+                href={`/docs/nominations/${encodeURIComponent(String(row.citation ?? `PN${row.number}`).toLowerCase())}`}
                 avatar={
                   seal ? (
                     <RecordAvatar src={seal.file} shape={seal.shape} alt="" />
@@ -132,11 +116,7 @@ export function NominationsList() {
                 }
                 title={row.citation ?? "—"}
                 lead={row.latestAction?.text}
-                meta={[
-                  row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
-                  row.organization,
-                  row.receivedDate ? `Received ${fmtDate(row.receivedDate)}` : null,
-                ]}
+                meta={[row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null, row.organization, row.receivedDate ? `Received ${fmtDate(row.receivedDate)}` : null]}
                 description={truncate(row.description ?? "", 240) || null}
               />
             )
@@ -163,17 +143,15 @@ type CrsReport = {
 export function ReportsList() {
   const { rows, count } = useCongress<CrsReport>("crs-reports", "CRSReports", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => byDate(rows.filter((row) => has(query, row.title, row.contentType, row.id)), (row) => row.publishDate),
+    (query: string) =>
+      byDate(
+        rows.filter((row) => has(query, row.title, row.contentType, row.id)),
+        (row) => row.publishDate
+      ),
     [rows]
   )
   return (
-    <Shell
-      placeholder="Search reports by title, kind or number…"
-      rows={rows}
-      count={count}
-      filter={filter}
-      federal="These are the research service's reports for the federal legislature. They read under the federal jurisdiction."
-    >
+    <Shell placeholder="Search reports by title, kind or number…" rows={rows} count={count} filter={filter} federal="These are the research service's reports for the federal legislature. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as CrsReport[]).map((row) => (
@@ -189,9 +167,7 @@ export function ReportsList() {
               meta={[
                 row.publishDate ? fmtDate(row.publishDate) : null,
                 row.status,
-                row.updateDate && row.updateDate.slice(0, 10) !== (row.publishDate ?? "").slice(0, 10)
-                  ? `Updated ${fmtDate(row.updateDate)}`
-                  : null,
+                row.updateDate && row.updateDate.slice(0, 10) !== (row.publishDate ?? "").slice(0, 10) ? `Updated ${fmtDate(row.updateDate)}` : null,
                 row.version ? `Version ${row.version}` : null,
               ]}
               description={truncate(row.title ?? "", 240) || null}
@@ -214,8 +190,7 @@ type Issue = {
   url?: string
 }
 
-const digestHref = (volume?: number, issue?: string) =>
-  `https://www.congress.gov/congressional-record/volume-${volume}/issue-${Number(issue)}`
+const digestHref = (volume?: number, issue?: string) => `https://www.congress.gov/congressional-record/volume-${volume}/issue-${Number(issue)}`
 
 // 119th, 1st, 2nd — the Congress and the session as they are written.
 const ordinal = (n: number) => {
@@ -227,17 +202,15 @@ const ordinal = (n: number) => {
 export function RecordList() {
   const { rows, count } = useCongress<Issue>("record-issues", "dailyCongressionalRecord", null, { limit: 250 })
   const filter = React.useCallback(
-    (query: string) => byDate(rows.filter((row) => has(query, row.issueDate, row.issueNumber, row.volumeNumber)), (row) => row.issueDate),
+    (query: string) =>
+      byDate(
+        rows.filter((row) => has(query, row.issueDate, row.issueNumber, row.volumeNumber)),
+        (row) => row.issueDate
+      ),
     [rows]
   )
   return (
-    <Shell
-      placeholder="Search issues by date or number…"
-      rows={rows}
-      count={count}
-      filter={filter}
-      federal="The daily proceedings are the federal legislature's. They read under the federal jurisdiction."
-    >
+    <Shell placeholder="Search issues by date or number…" rows={rows} count={count} filter={filter} federal="The daily proceedings are the federal legislature's. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Issue[]).map((row) => (
@@ -250,11 +223,7 @@ export function RecordList() {
               avatar={<RecordSeal state="US" />}
               title={row.issueDate ? fmtDate(row.issueDate) : "—"}
               lead={row.volumeNumber || row.issueNumber ? `Vol. ${row.volumeNumber ?? "—"}, No. ${row.issueNumber ?? "—"}` : null}
-              meta={[
-                row.congress ? `${ordinal(row.congress)} Congress` : null,
-                row.sessionNumber ? `${ordinal(row.sessionNumber)} Session` : null,
-                "Daily Digest",
-              ]}
+              meta={[row.congress ? `${ordinal(row.congress)} Congress` : null, row.sessionNumber ? `${ordinal(row.sessionNumber)} Session` : null, "Daily Digest"]}
             />
           ))}
         </CanonList>
@@ -285,13 +254,7 @@ export function LawsList() {
     [rows]
   )
   return (
-    <Shell
-      placeholder="Search laws by title, citation or bill…"
-      rows={rows}
-      count={count}
-      filter={filter}
-      federal="These are the public laws of the federal legislature. They read under the federal jurisdiction."
-    >
+    <Shell placeholder="Search laws by title, citation or bill…" rows={rows} count={count} filter={filter} federal="These are the public laws of the federal legislature. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Law[]).map((row) => {
@@ -310,10 +273,7 @@ export function LawsList() {
                 avatar={<RecordSeal state="US" chamber={chamber} />}
                 title={law?.number ? `${law.type ?? "Public Law"} ${law.number}` : `${row.type} ${row.number}`}
                 lead={lead}
-                meta={[
-                  row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
-                  `${row.type} ${row.number}`,
-                ]}
+                meta={[row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null, `${row.type} ${row.number}`]}
                 description={truncate(row.title ?? "", 240) || null}
               />
             )

@@ -6,6 +6,7 @@ import { PartyDot } from "@/components/policy/imagery"
 import { Figure } from "@/components/policy/pending-session"
 import { MemberOfficialPortrait } from "@/components/policy/member-congress"
 import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { Chip } from "@/components/chip"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
 // member page: every surface that named a member stopped at the name. This is
@@ -15,7 +16,6 @@ import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 // Server components, deliberately, as in v3: the path names exactly one
 // person, so a shared link, a crawler and a reader with slow JS all see who it
 // is. The portrait and the tabs are the client pieces.
-
 
 // "Rep. Alma Adams (D) has represented North Carolina's 12th Congressional
 // District for seven terms. This session, Rep. Adams has sponsored 26 bills,
@@ -76,10 +76,9 @@ export function MemberIntroduction({
     : `represents ${seat(state, chamber, member.district ? String(member.district) : null)}`
   return (
     <p>
-      {title} {name}
-      {party} {tenure}. This session, {title} {surname} has sponsored <Figure>{fmtNumber(counts.prime)}</Figure> {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
-      <Figure>{fmtNumber(counts.cosponsor)}</Figure> {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes <Figure>{fmtNumber(counts.aye)}</Figure> {counts.aye === 1 ? "time" : "times"}, and No{" "}
-      <Figure>{fmtNumber(counts.nay)}</Figure> {counts.nay === 1 ? "time" : "times"}.
+      <Chip>{`${title} ${name}${party}`}</Chip> {tenure}. This session, <Chip>{`${title} ${surname}`}</Chip> has sponsored <Figure>{fmtNumber(counts.prime)}</Figure> {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
+      <Figure>{fmtNumber(counts.cosponsor)}</Figure> {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes <Figure>{fmtNumber(counts.aye)}</Figure> {counts.aye === 1 ? "time" : "times"}, and No <Figure>{fmtNumber(counts.nay)}</Figure>{" "}
+      {counts.nay === 1 ? "time" : "times"}.
     </p>
   )
 }
@@ -106,15 +105,7 @@ export function MemberHeader({
   return (
     <>
       <RecordHeader
-        media={
-          <MemberOfficialPortrait
-            name={name}
-            fallback={member.photo_url ? String(member.photo_url) : null}
-            state={state}
-            chamber={chamber}
-            size={RECORD_MEDIA}
-          />
-        }
+        media={<MemberOfficialPortrait name={name} fallback={member.photo_url ? String(member.photo_url) : null} state={state} chamber={chamber} size={RECORD_MEDIA} />}
         title={`${honorific(role, chamber)} ${name}`}
         meta={[
           leadership ? <span className="font-medium text-foreground">{leadership}</span> : null,

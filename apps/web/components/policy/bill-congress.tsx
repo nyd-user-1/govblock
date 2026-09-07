@@ -10,12 +10,7 @@ import { usePolicy } from "@/lib/policy/use-policy"
 import { billRef, congressGovHref, day, stageRank, summaryBlocks, type SummaryBlock } from "@/lib/policy/congress"
 import { useCongress } from "@/lib/policy/use-congress"
 import { Button } from "@govblock/ui/components/nova/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@govblock/ui/components/nova/dropdown-menu"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { H2, H3 } from "@/components/typeset"
 import { useBillDepth } from "@/components/policy/bill-depth"
 import { VoteTable, type VoteTableRow } from "@/components/policy/bill-tables"
@@ -23,7 +18,9 @@ import { PagedList } from "@/components/policy/paged-list"
 import { RecordItem, RecordSeal } from "@/components/policy/record-item"
 import { PreviewFrame } from "@/components/preview-frame"
 import { FileBlock } from "@/components/file-block"
-import { ChamberSeal, MemberPortrait } from "@/components/policy/imagery"
+import { Chip } from "@/components/chip"
+import { ChamberSeal } from "@/components/policy/imagery"
+import { MemberCard, type MemberCardRow } from "@/components/policy/member-card"
 import { BillText } from "@/components/bill-text"
 import { DocsTableOfContents } from "@/components/docs-toc"
 
@@ -152,13 +149,7 @@ export type CongressInitial = {
 const Ctx = React.createContext<Congress | null>(null)
 const use = () => React.useContext(Ctx)
 
-export function BillCongressProvider({
-  billId,
-  billNumber,
-  state,
-  initial,
-  children,
-}: Bill & { initial?: CongressInitial; children: React.ReactNode }) {
+export function BillCongressProvider({ billId, billNumber, state, initial, children }: Bill & { initial?: CongressInitial; children: React.ReactNode }) {
   // The path names one bill, and a bill belongs to a jurisdiction of its own.
   // A federal bill's text versions and amendments are federal records whoever
   // is reading them, so this page reads in the bill's jurisdiction rather than
@@ -170,18 +161,8 @@ export function BillCongressProvider({
 
   // An amendment belongs on this page only if its own record says it amends
   // this bill; a law row only if it is this bill's row.
-  const amends = React.useCallback(
-    (row: Amendment) =>
-      !!ref &&
-      String(row.amendedBill?.type ?? "").toUpperCase() === ref.type &&
-      String(row.amendedBill?.number ?? "") === ref.number,
-    [ref]
-  )
-  const enacts = React.useCallback(
-    (row: LawBill) =>
-      !!ref && String(row.type ?? "").toUpperCase() === ref.type && String(row.number ?? "") === ref.number,
-    [ref]
-  )
+  const amends = React.useCallback((row: Amendment) => !!ref && String(row.amendedBill?.type ?? "").toUpperCase() === ref.type && String(row.amendedBill?.number ?? "") === ref.number, [ref])
+  const enacts = React.useCallback((row: LawBill) => !!ref && String(row.type ?? "").toUpperCase() === ref.type && String(row.number ?? "") === ref.number, [ref])
 
   // A family the page handed in is not fetched again; one it did not reads
   // through the route and then the committed record, as it always has.
@@ -212,9 +193,7 @@ export function BillCongressProvider({
       state,
       ready: on,
       onCongress: on,
-      versions: [...(hv ?? versions.rows)].sort(
-        (a, b) => stageRank(a.version) - stageRank(b.version) || day(a.date).localeCompare(day(b.date))
-      ),
+      versions: [...(hv ?? versions.rows)].sort((a, b) => stageRank(a.version) - stageRank(b.version) || day(a.date).localeCompare(day(b.date))),
       summaries: [...(hs ?? summaries.rows)].sort((a, b) => day(b.actionDate).localeCompare(day(a.actionDate))),
       amendments: ha ?? amendments.rows,
       amendmentTotal: ha ? (initial?.amendments?.count ?? ha.length) : amendments.count,
@@ -237,12 +216,10 @@ export const useBillCongress = () => React.useContext(Ctx)
 
 // `"False"` is a truthy string, and it is what the route sends. Every cosponsor
 // on a 338-name bill read "Yes" under Original until this existed.
-const truth = (value: boolean | string | null | undefined) =>
-  typeof value === "string" ? /^(true|t|1|yes)$/i.test(value.trim()) : !!value
+const truth = (value: boolean | string | null | undefined) => (typeof value === "string" ? /^(true|t|1|yes)$/i.test(value.trim()) : !!value)
 // The page's own rule: drop the chamber prefix and the zero padding, so
 // "HD-NY-025" reads "NY-25".
-const district = (value: string | null | undefined) =>
-  (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")
+const district = (value: string | null | undefined) => (value ?? "").replace(/^[A-Z]+-/, "").replace(/(^|-)0+(?=\d)/g, "$1")
 
 export type SponsorRow = {
   people_id: number
@@ -308,46 +285,43 @@ export function BillSummaryLead({ facts }: { facts: BillFacts }) {
   const law = c?.law?.number ? `${c.law.type ?? "Public Law"} ${c.law.number}` : null
   return (
     <p>
-      {facts.number}
+      <Chip>{facts.number}</Chip>
       {facts.title ? <>, {titleClause(facts.title)},</> : null} was introduced in {chamber}
       {introduced ? <> on {fmtDate(introduced)}</> : null}
       {who ? (
         <>
           {" "}
-          by{" "}
-          {prime?.people_id ? (
-            <Link href={memberHref(prime.people_id, c?.state ?? "US")} className="no-underline hover:underline">
-              {who}
-            </Link>
-          ) : (
-            who
-          )}
+          by <Chip>{who}</Chip>
         </>
       ) : null}
       {cosponsors ? (
         <>
           {" "}
-          with <code>{fmtNumber(cosponsors)}</code> {cosponsors === 1 ? "co-sponsor" : "co-sponsors"}
+          with {fmtNumber(cosponsors)} {cosponsors === 1 ? "co-sponsor" : "co-sponsors"}
         </>
       ) : null}
       .{" "}
-      {facts.committee ? <>It was referred to <code>{facts.committee}</code>, and </> : "It "}
+      {facts.committee ? (
+        <>
+          It was referred to <Chip>{facts.committee}</Chip>, and{" "}
+        </>
+      ) : (
+        "It "
+      )}
       {facts.lastActionDate ? (
         <>
-          last saw action on <code>{fmtDate(facts.lastActionDate)}</code>
+          last saw action on {fmtDate(facts.lastActionDate)}
           {facts.lastAction ? <>: {facts.lastAction.replace(/\.$/, "")}</> : null}.
         </>
       ) : facts.status ? (
-        <>
-          stands at <code>{facts.status}</code>.
-        </>
+        <>stands at {facts.status}.</>
       ) : (
         "has no recorded action yet."
       )}
       {law ? (
         <>
           {" "}
-          It is now <code>{law}</code>.
+          It is now <Chip>{law}</Chip>.
         </>
       ) : null}
     </p>
@@ -362,7 +336,12 @@ const usDate = (value: string) => {
 
 /** `hb6500/passed-senate.md`: the file name a stage's summary block wears. */
 const summaryFile = (number: string, stage: string) =>
-  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${stage.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "summary"}.md`
+  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${
+    stage
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "summary"
+  }.md`
 
 /** One summary as congress.gov prints it: "Shown Here:", the stage and its date, the bold title, paragraphs and bullets. */
 function SummaryBody({ stage, date, blocks }: { stage: string; date: string | null; blocks: SummaryBlock[] }) {
@@ -419,16 +398,12 @@ export function BillSummaries({ fallback, chamber }: { fallback: React.ReactNode
       <H3>CRS Summary</H3>
       <p>
         The summaries are the Congressional Research Service&rsquo;s, one per stage.{" "}
-        <a
-          href={congressGovHref("bill", billRef(c.billNumber)?.type ?? "HR", billRef(c.billNumber)?.number ?? "")}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={congressGovHref("bill", billRef(c.billNumber)?.type ?? "HR", billRef(c.billNumber)?.number ?? "")} target="_blank" rel="noopener noreferrer">
           Read them in full
         </a>
         .
       </p>
-      <div className="steps [counter-reset:step] md:ml-4 md:border-l md:pl-8 [&>h3]:step mb-0 pt-2">
+      <div className="steps mb-0 pt-2 [counter-reset:step] md:ml-4 md:border-l md:pl-8 [&>h3]:step">
         {c.summaries.map((summary, index) => {
           const stage = summary.actionDesc ?? "Summary"
           const blocks = summaryBlocks(summary.text)
@@ -438,20 +413,9 @@ export function BillSummaries({ fallback, chamber }: { fallback: React.ReactNode
             <React.Fragment key={`${stage}-${summary.actionDate}-${index}`}>
               <H3 id={`summary-${index + 1}`}>
                 {stage}
-                {summary.actionDate ? (
-                  <>
-                    {" "}
-                    <code>{fmtDate(summary.actionDate)}</code>
-                  </>
-                ) : null}
+                {summary.actionDate ? <> {fmtDate(summary.actionDate)}</> : null}
               </H3>
-              <FileBlock
-                icon={<ChamberSeal state={c.state} chamber={chamber} size={16} />}
-                title={summaryFile(c.billNumber, stage)}
-                text={() => plain}
-                collapsed="data-[state=closed]:max-h-[300px]"
-                className="mb-0 last:mb-12"
-              >
+              <FileBlock icon={<ChamberSeal state={c.state} chamber={chamber} size={16} />} title={summaryFile(c.billNumber, stage)} text={() => plain} collapsed="data-[state=closed]:max-h-[300px]" className="mb-0 last:mb-12">
                 <SummaryBody stage={stage} date={summary.actionDate ?? null} blocks={blocks} />
               </FileBlock>
             </React.Fragment>
@@ -473,30 +437,30 @@ export function BillRecordLead({ facts }: { facts: BillFacts }) {
   if (cosponsors)
     parts.push(
       <React.Fragment key="co">
-        <code>{fmtNumber(cosponsors)}</code> {cosponsors === 1 ? "co-sponsor" : "co-sponsors"}
+        {fmtNumber(cosponsors)} {cosponsors === 1 ? "co-sponsor" : "co-sponsors"}
       </React.Fragment>
     )
   if (facts.rollCalls)
     parts.push(
       <React.Fragment key="rc">
-        <code>{fmtNumber(facts.rollCalls)}</code> {facts.rollCalls === 1 ? "roll call" : "roll calls"}
+        {fmtNumber(facts.rollCalls)} {facts.rollCalls === 1 ? "roll call" : "roll calls"}
       </React.Fragment>
     )
   if (amendments)
     parts.push(
       <React.Fragment key="am">
-        <code>{fmtNumber(amendments)}</code> {amendments === 1 ? "amendment" : "amendments"}
+        {fmtNumber(amendments)} {amendments === 1 ? "amendment" : "amendments"}
       </React.Fragment>
     )
   if (!parts.length)
     return (
       <p>
-        {facts.number} has no co-sponsors and has not gone to a roll call.
+        <Chip>{facts.number}</Chip> has no co-sponsors and has not gone to a roll call.
       </p>
     )
   return (
     <p>
-      {facts.number} has{" "}
+      <Chip>{facts.number}</Chip> has{" "}
       {parts.map((part, i) => (
         <React.Fragment key={i}>
           {i > 0 ? (i === parts.length - 1 ? " and " : ", ") : ""}
@@ -509,49 +473,6 @@ export function BillRecordLead({ facts }: { facts: BillFacts }) {
 }
 
 /* ---- sponsors --------------------------------------------------------------- */
-
-type SponsorCardRow = {
-  id: string
-  name: string
-  href: string | null
-  photo: string | null
-  chamber: string | null
-  /** "Rep. · R–MO-8 · Sponsor" */
-  line: string
-  /** "Joined Dec 9, 2025 · Original", on a Congress bill. */
-  detail: string | null
-}
-
-/**
- * One sponsor on shadcn's registry card — the markup Brendan pasted on
- * 2026-09-05, class for class, with the member's portrait where a registry
- * shows its logo. The whole card links to the member's page.
- */
-function SponsorCard({ row, state }: { row: SponsorCardRow; state: string }) {
-  const className =
-    "flex w-full flex-col rounded-2xl bg-surface p-6 text-surface-foreground transition-colors hover:bg-surface/80 sm:p-10 items-start text-sm md:p-6"
-  const body = (
-    <>
-      <MemberPortrait name={row.name} photoUrl={row.photo} state={state} chamber={row.chamber} size={40} />
-      <div className="mt-4 font-medium">{row.name}</div>
-      <div className="text-muted-foreground">
-        <p>{row.line}</p>
-        {row.detail && <p>{row.detail}</p>}
-      </div>
-    </>
-  )
-  if (!row.href)
-    return (
-      <div data-not-typeset="true" className={className}>
-        {body}
-      </div>
-    )
-  return (
-    <Link data-not-typeset="true" className={className} href={row.href}>
-      {body}
-    </Link>
-  )
-}
 
 /**
  * The bill's sponsorship, once, as cards.
@@ -578,7 +499,7 @@ export function BillSponsorsBlock({ sponsors, state, bill }: { sponsors: Sponsor
 
   const cosponsors = c?.cosponsors ?? []
   const dated = !!(c?.onCongress && cosponsors.length)
-  const rows: SponsorCardRow[] = []
+  const rows: MemberCardRow[] = []
   const seat = (row: SponsorRow) => [honorific(row.role ?? "", row.chamber ?? ""), [row.party, district(row.district)].filter(Boolean).join("–")].filter(Boolean).join(" · ")
   if (prime) {
     const introduced = depth?.record?.introducedDate ?? null
@@ -610,9 +531,9 @@ export function BillSponsorsBlock({ sponsors, state, bill }: { sponsors: Sponsor
         photo: person?.photo_url ?? null,
         chamber: person?.chamber ?? null,
         line: [person ? honorific(person.role ?? "", person.chamber ?? "") : null, place, row.sponsorshipWithdrawnDate ? "Withdrawn" : "Co-sponsor"].filter(Boolean).join(" · "),
-        detail: [row.sponsorshipDate ? `Joined ${fmtDate(row.sponsorshipDate)}` : null, isOriginal ? "Original" : null, row.sponsorshipWithdrawnDate ? `Withdrawn ${fmtDate(row.sponsorshipWithdrawnDate)}` : null]
-          .filter(Boolean)
-          .join(" · ") || null,
+        detail:
+          [row.sponsorshipDate ? `Joined ${fmtDate(row.sponsorshipDate)}` : null, isOriginal ? "Original" : null, row.sponsorshipWithdrawnDate ? `Withdrawn ${fmtDate(row.sponsorshipWithdrawnDate)}` : null].filter(Boolean).join(" · ") ||
+          null,
       })
     }
   } else {
@@ -639,16 +560,16 @@ export function BillSponsorsBlock({ sponsors, state, bill }: { sponsors: Sponsor
           <p>
             {who ? (
               <>
-                {who} sponsors {bill}
+                <Chip>{who}</Chip> sponsors <Chip>{bill}</Chip>
                 {co ? (
                   <>
-                    , and <code>{fmtNumber(co)}</code> {co === 1 ? "member has" : "members have"} co-sponsored it
-                    {dated && original
-                      ? original === co
-                        ? <>{co === 1 ? "" : ", all of them"} from the day it was introduced</>
-                        : <>, <code>{fmtNumber(original)}</code> of them from the day it was introduced</>
-                      : null}
-                    {withdrawn ? <>; <code>{fmtNumber(withdrawn)}</code> {withdrawn === 1 ? "has" : "have"} since withdrawn</> : null}
+                    , and {fmtNumber(co)} {co === 1 ? "member has" : "members have"} co-sponsored it
+                    {dated && original ? original === co ? <>{co === 1 ? "" : ", all of them"} from the day it was introduced</> : <>, {fmtNumber(original)} of them from the day it was introduced</> : null}
+                    {withdrawn ? (
+                      <>
+                        ; {fmtNumber(withdrawn)} {withdrawn === 1 ? "has" : "have"} since withdrawn
+                      </>
+                    ) : null}
                   </>
                 ) : (
                   " alone"
@@ -657,16 +578,18 @@ export function BillSponsorsBlock({ sponsors, state, bill }: { sponsors: Sponsor
               </>
             ) : (
               <>
-                <code>{fmtNumber(rows.length)}</code> {rows.length === 1 ? "member put their name" : "members put their names"} to {bill}.
+                {fmtNumber(rows.length)} {rows.length === 1 ? "member put their name" : "members put their names"} to <Chip>{bill}</Chip>.
               </>
             )}
           </p>
           <PreviewFrame>
-            <PagedList items={rows} pageSize={10} grid render={(row) => <SponsorCard key={row.id} row={row} state={state} />} />
+            <PagedList items={rows} pageSize={10} grid render={(row) => <MemberCard key={row.id} row={row} state={state} />} />
           </PreviewFrame>
         </>
       ) : (
-        <p>No sponsor on file for {bill}.</p>
+        <p>
+          No sponsor on file for <Chip>{bill}</Chip>.
+        </p>
       )}
     </>
   )
@@ -707,14 +630,21 @@ export function BillVotesBlock({ rollCalls, bill, billNumber, state }: { rollCal
       {rows.length ? (
         <>
           <p>
-            {bill} went to <code>{fmtNumber(rows.length)}</code> {rows.length === 1 ? "roll call" : "roll calls"}
+            <Chip>{bill}</Chip> went to {fmtNumber(rows.length)} {rows.length === 1 ? "roll call" : "roll calls"}
             {chambers.length === 1 ? <> in the {chambers[0]}</> : chambers.length > 1 ? <> across both chambers</> : null}
-            {rows[0] ? <>, the latest on <code>{fmtDate(rows[0].date)}</code> at <code>{rows[0].yea}–{rows[0].nay}</code></> : null}.
+            {rows[0] ? (
+              <>
+                , the latest on {fmtDate(rows[0].date)} at {rows[0].yea}–{rows[0].nay}
+              </>
+            ) : null}
+            .
           </p>
           <VoteTable rows={rows} />
         </>
       ) : (
-        <p>{bill} has not gone to a roll call.</p>
+        <p>
+          <Chip>{bill}</Chip> has not gone to a roll call.
+        </p>
       )}
     </>
   )
@@ -737,8 +667,8 @@ export function BillAmendmentsBlock({ bill }: { bill: string }) {
     <>
       <H3>Amendments</H3>
       <p>
-        <code>{fmtNumber(c.amendmentTotal)}</code> {c.amendmentTotal === 1 ? "amendment has" : "amendments have"} been offered to {bill}
-        {c.amendments[0]?.latestAction?.actionDate ? <>, the latest acted on <code>{fmtDate(c.amendments[0].latestAction.actionDate)}</code></> : null}.
+        {fmtNumber(c.amendmentTotal)} {c.amendmentTotal === 1 ? "amendment has" : "amendments have"} been offered to <Chip>{bill}</Chip>
+        {c.amendments[0]?.latestAction?.actionDate ? <>, the latest acted on {fmtDate(c.amendments[0].latestAction.actionDate)}</> : null}.
       </p>
       {c.amendments.length ? (
         <PreviewFrame>
@@ -751,15 +681,11 @@ export function BillAmendmentsBlock({ bill }: { bill: string }) {
                 key={`${row.type}-${row.number}-${index}`}
                 stacked
                 hover="rail"
-                external
-                href={congressGovHref("amendment", row.type ?? "HAMDT", row.number ?? "", row.congress)}
+                // An amendment has a page of its own now (2026-09-06).
+                href={`/docs/amendments/${String(row.type ?? "HAMDT").toLowerCase()}-${row.number ?? ""}`}
                 avatar={<RecordSeal state="US" chamber={row.chamber ?? chamberOfType(row.type)} ordinal={index + 1} />}
                 title={`${row.type ?? ""} ${row.number ?? ""}`.trim()}
-                meta={[
-                  row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null,
-                  row.latestAction?.text ? truncate(row.latestAction.text, 80) : null,
-                  row.sponsors?.[0]?.fullName ?? null,
-                ]}
+                meta={[row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null, row.latestAction?.text ? truncate(row.latestAction.text, 80) : null, row.sponsors?.[0]?.fullName ?? null]}
                 description={row.purpose ?? row.description ?? ""}
               />
             )}
@@ -791,8 +717,8 @@ export function BillRelatedBlock({ bill }: { bill: string }) {
     <>
       <H3>Related bills</H3>
       <p>
-        <code>{fmtNumber(rows.length)}</code> {rows.length === 1 ? "bill is" : "bills are"} related to {bill}
-        {rows.length === 1 && relationOf(rows[0]) && !/^related bill$/i.test(relationOf(rows[0]) ?? "") ? <>, as <code>{relationOf(rows[0])}</code></> : null}.
+        {fmtNumber(rows.length)} {rows.length === 1 ? "bill is" : "bills are"} related to <Chip>{bill}</Chip>
+        {rows.length === 1 && relationOf(rows[0]) && !/^related bill$/i.test(relationOf(rows[0]) ?? "") ? <>, as {relationOf(rows[0])}</> : null}.
       </p>
       <PreviewFrame>
         <PagedList
@@ -828,8 +754,13 @@ export function BillReportsBlock({ bill }: { bill: string }) {
     <>
       <H3>Reports</H3>
       <p>
-        <code>{rows.length}</code> committee {rows.length === 1 ? "report has" : "reports have"} been filed on {bill}
-        {rows[0]?.citation ? <>, the latest <code>{rows[0].citation}</code></> : null}.
+        {rows.length} committee {rows.length === 1 ? "report has" : "reports have"} been filed on <Chip>{bill}</Chip>
+        {rows[0]?.citation ? (
+          <>
+            , the latest <Chip>{rows[0].citation}</Chip>
+          </>
+        ) : null}
+        .
       </p>
       <ul>
         {rows.map((report) => (
@@ -858,8 +789,8 @@ export function BillTitlesBlock({ bill }: { bill: string }) {
     <>
       <H3>Titles</H3>
       <p>
-        {bill} goes by <code>{fmtNumber(c.titles.length)}</code> {c.titles.length === 1 ? "title" : "titles"}
-        {short ? <>, <code>{fmtNumber(short)}</code> of them short titles</> : null}.
+        <Chip>{bill}</Chip> goes by {fmtNumber(c.titles.length)} {c.titles.length === 1 ? "title" : "titles"}
+        {short ? <>, {fmtNumber(short)} of them short titles</> : null}.
       </p>
       <ul>
         {c.titles.map((row, index) => (
@@ -880,7 +811,10 @@ export type HeldText = { document_id: number; version: string | null; chars: num
 
 /** `hb6500/enrolled-bill.txt`: the file name the block wears. */
 const fileName = (number: string, version: string | null | undefined) =>
-  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${String(version ?? "text").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.txt`
+  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${String(version ?? "text")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}.txt`
 
 /**
  * The text, in shadcn's file block, directly under the introduction's
@@ -929,7 +863,7 @@ export function BillTextBlock({
   if (!body && !chosen)
     return (
       <p>
-        No text on file for {bill} yet
+        No text on file for <Chip>{bill}</Chip> yet
         {source ? (
           <>
             {" "}
@@ -966,13 +900,7 @@ export function BillTextBlock({
   )
 
   return (
-    <FileBlock
-      icon={<ChamberSeal state={state} chamber={chamber} size={16} />}
-      title={fileName(billNumber, shown?.version)}
-      menu={menu || undefined}
-      text={() => body ?? ""}
-      collapsed="data-[state=closed]:max-h-96"
-    >
+    <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={fileName(billNumber, shown?.version)} menu={menu || undefined} text={() => body ?? ""} collapsed="data-[state=closed]:max-h-96">
       {body ? <BillText text={body} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground">Loading that version…</p>}
     </FileBlock>
   )
@@ -997,7 +925,11 @@ export function BillToc({
   const c = use()
   const depth = useBillDepth()
   const toc = React.useMemo(() => {
-    const items: [string, 2 | 3, string?][] = [["Summary", 2], ["Record", 2], ["Text", 3]]
+    const items: [string, 2 | 3, string?][] = [
+      ["Summary", 2],
+      ["Record", 2],
+      ["Text", 3],
+    ]
     if (depth?.onCongress) items.push(["Tracker", 3])
     if (c?.summaries.length) items.push(["CRS Summary", 3])
     items.push(["Sponsors", 3])

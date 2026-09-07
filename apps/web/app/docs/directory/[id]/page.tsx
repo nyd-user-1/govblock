@@ -5,7 +5,20 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { fmtNumber, honorific } from "@/lib/format"
-import { getCommittees, getFec, getMember, getMemberCareer, getMemberCommittees, getMemberDetail, getMemberDirectory, getMemberNeighbours, getMemberRecord, getMemberState, getSessionsWithTitles, latestSession } from "@/lib/policy/db-queries"
+import {
+  getCommittees,
+  getFec,
+  getMember,
+  getMemberCareer,
+  getMemberCommittees,
+  getMemberDetail,
+  getMemberDirectory,
+  getMemberNeighbours,
+  getMemberRecord,
+  getMemberState,
+  getSessionsWithTitles,
+  latestSession,
+} from "@/lib/policy/db-queries"
 import { congressName } from "@/lib/policy/congress"
 import { BackToTop } from "@/components/back-to-top"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -20,14 +33,10 @@ import { MemberTabs } from "@/components/policy/member-tabs"
 import { PreviewFrame } from "@/components/preview-frame"
 import { Figure, PendingSessionProvider } from "@/components/policy/pending-session"
 import { SessionsMenu } from "@/components/policy/sessions-menu"
-import {
-  MemberCongressProvider,
-  MemberContact,
-  MemberFinance,
-  MemberToc,
-  MemberVotes,
-} from "@/components/policy/member-congress"
+import { VoteRecordPdf } from "@/components/policy/vote-record-pdf"
+import { MemberCongressProvider, MemberContact, MemberFinance, MemberToc, MemberVotes } from "@/components/policy/member-congress"
 import { H2, H3 } from "@/components/typeset"
+import { Chip } from "@/components/chip"
 
 // A member's own page, keyed by `people_id` — globally unique, so the route
 // learns the jurisdiction from the person rather than the other way round.
@@ -39,11 +48,9 @@ import { H2, H3 } from "@/components/typeset"
 // a crawler and a reader with slow JS all see who it is. The portrait, the
 // terms and the floor votes arrive from congress.gov after that.
 
-
 // "Congress House" is not a thing anyone says, and it is the one place this
 // page would print the jurisdiction into a shell every reader shares.
-const chamberName = (state: string, chamber: string) =>
-  state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`
+const chamberName = (state: string, chamber: string) => (state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`)
 
 // Rendered per request: the Sessions menu writes `?session=`, and a page that
 // reads a search param cannot also be cached and pre-generated — in
@@ -82,7 +89,12 @@ async function load(id: string, wanted?: string) {
   const nameOf = (year: number) => {
     if (state === "US") return congressName(year)
     const row = sessions.find((r) => Number(r.session_id) === year)
-    return row?.title?.replace(/\s*(Regular|General)\s+Session$/i, "").replace(/\s*Session$/i, "").trim() || String(year)
+    return (
+      row?.title
+        ?.replace(/\s*(Regular|General)\s+Session$/i, "")
+        .replace(/\s*Session$/i, "")
+        .trim() || String(year)
+    )
   }
   const sessionName = nameOf(session)
   const sessionOptions = career.sessions.map((year) => ({ value: year, label: nameOf(year) }))
@@ -128,11 +140,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const biography = typeof member.bio_long === "string" ? member.bio_long : ""
   const fecIds = member.fec_candidate_ids
   const fecId = Array.isArray(fecIds) && fecIds.length ? String(fecIds[0]) : null
-  const description = [
-    member.leadership_title ? String(member.leadership_title) : null,
-    member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null,
-    chamberName(state, String(member.chamber ?? "")),
-  ]
+  const description = [member.leadership_title ? String(member.leadership_title) : null, member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null, chamberName(state, String(member.chamber ?? ""))]
     .filter(Boolean)
     .join(" · ")
   const markdown = [`# ${title}`, "", description, "", `${record.counts.prime} prime · ${record.counts.cosponsor} co-sponsored · ${record.counts.aye} aye · ${record.counts.nay} nay`].join("\n")
@@ -140,219 +148,179 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state} who={title}>
       <PendingSessionProvider>
-      <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="h-(--top-spacing) shrink-0" />
-          <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-            {/* The Copy Page control rides inside the header so the name
+        <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="h-(--top-spacing) shrink-0" />
+            <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+              {/* The Copy Page control rides inside the header so the name
                 top-aligns with it, the way /docs/bills does — it used to sit in
                 a row of its own with the portrait block below. */}
-            <MemberHeader
-              peopleId={peopleId}
-              state={state}
-              member={member}
-              action={
-                <div className="docs-nav flex items-center gap-2">
-                  <div className="hidden sm:block">
-                    <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
-                  </div>
-                  {/* The arrows the index pages carry beside Copy Page, walking to
-                      the previous and next sitting member (Brendan, 2026-09-05). */}
-                  {(neighbours.previous || neighbours.next) && (
-                    <div className="ml-auto flex gap-2">
-                      {neighbours.previous && (
-                        <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
-                          <Link href={`/docs/directory/${neighbours.previous.people_id}?state=${state}`}>
-                            <IconArrowLeft />
-                            <span className="sr-only">Previous</span>
-                          </Link>
-                        </Button>
-                      )}
-                      {neighbours.next && (
-                        <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
-                          <Link href={`/docs/directory/${neighbours.next.people_id}?state=${state}`}>
-                            <span className="sr-only">Next</span>
-                            <IconArrowRight />
-                          </Link>
-                        </Button>
-                      )}
+              <MemberHeader
+                peopleId={peopleId}
+                state={state}
+                member={member}
+                action={
+                  <div className="docs-nav flex items-center gap-2">
+                    <div className="hidden sm:block">
+                      <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
                     </div>
-                  )}
-                </div>
-              }
-            />
-            <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              {/* h1 the name, h2 Summary and Record, h3 the parts — the
+                    {/* The arrows the index pages carry beside Copy Page, walking to
+                      the previous and next sitting member (Brendan, 2026-09-05). */}
+                    {(neighbours.previous || neighbours.next) && (
+                      <div className="ml-auto flex gap-2">
+                        {neighbours.previous && (
+                          <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                            <Link href={`/docs/directory/${neighbours.previous.people_id}?state=${state}`}>
+                              <IconArrowLeft />
+                              <span className="sr-only">Previous</span>
+                            </Link>
+                          </Button>
+                        )}
+                        {neighbours.next && (
+                          <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                            <Link href={`/docs/directory/${neighbours.next.people_id}?state=${state}`}>
+                              <span className="sr-only">Next</span>
+                              <IconArrowRight />
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+              <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
+                {/* h1 the name, h2 Summary and Record, h3 the parts — the
                   standard on every detail page (Brendan, 2026-09-05). The
                   Summary sentence is this session's. */}
-              <H2>Summary</H2>
-              <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} />
+                <H2>Summary</H2>
+                <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} />
 
-              <hr />
-              <H2>Record</H2>
-              <p>
-                {title} is the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of{" "}
-                <Figure>{fmtNumber(record.counts.cosponsor)}</Figure> this session.
-              </p>
-              <H3>Bills</H3>
-              <PreviewFrame>
-                <MemberTabs
-                  menu={<SessionsMenu sessions={sessionOptions} current={session} />}
-                  tabs={[
-                    {
-                      value: "prime",
-                      label: "Sponsored",
-                      emoji: "😀",
-                      count: record.counts.prime,
-                      content: (
-                        <MemberFeed
-                          bills={record.prime}
-                          total={record.counts.prime}
-                          state={state}
-                          peopleId={peopleId}
-                          session={session}
-                          kind="prime"
-                          pageSize={5}
-                          empty={`${name} has sponsored nothing this session.`}
-                        />
-                      ),
-                    },
-                    {
-                      value: "cosponsor",
-                      label: "Co-Sponsored",
-                      emoji: "🤝",
-                      count: record.counts.cosponsor,
-                      content: (
-                        <MemberFeed
-                          bills={record.cosponsor}
-                          total={record.counts.cosponsor}
-                          state={state}
-                          peopleId={peopleId}
-                          session={session}
-                          kind="cosponsor"
-                          pageSize={5}
-                          empty={`${name} has co-sponsored nothing this session.`}
-                        />
-                      ),
-                    },
-                  ]}
-                />
-              </PreviewFrame>
+                <hr />
+                <H2>Record</H2>
+                <p>
+                  <Chip>{title}</Chip> is the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of <Figure>{fmtNumber(record.counts.cosponsor)}</Figure> this
+                  session.
+                </p>
+                <H3>Bills</H3>
+                <PreviewFrame>
+                  <MemberTabs
+                    menu={<SessionsMenu sessions={sessionOptions} current={session} />}
+                    tabs={[
+                      {
+                        value: "prime",
+                        label: "Sponsored",
+                        emoji: "😀",
+                        count: record.counts.prime,
+                        content: <MemberFeed bills={record.prime} total={record.counts.prime} state={state} peopleId={peopleId} session={session} kind="prime" pageSize={5} empty={`${name} has sponsored nothing this session.`} />,
+                      },
+                      {
+                        value: "cosponsor",
+                        label: "Co-Sponsored",
+                        emoji: "🤝",
+                        count: record.counts.cosponsor,
+                        content: (
+                          <MemberFeed bills={record.cosponsor} total={record.counts.cosponsor} state={state} peopleId={peopleId} session={session} kind="cosponsor" pageSize={5} empty={`${name} has co-sponsored nothing this session.`} />
+                        ),
+                      },
+                    ]}
+                  />
+                </PreviewFrame>
 
-              <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
-              <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
+                <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
+                <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
 
-              <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
+                <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
 
-              <H3>Votes</H3>
-              <p>
-                {title} has voted Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> this session.
-              </p>
-              <PreviewFrame>
-                <MemberTabs
-                  menu={<SessionsMenu sessions={sessionOptions} current={session} />}
-                  tabs={[
-                    {
-                      value: "aye",
-                      label: "Aye",
-                      emoji: "✅",
-                      count: record.counts.aye,
-                      content: (
-                        <MemberFeed
-                          bills={record.aye}
-                          total={record.counts.aye}
-                          vote="Aye"
-                          state={state}
-                          peopleId={peopleId}
-                          session={session}
-                          kind="aye"
-                          pageSize={5}
-                          empty="No recorded aye votes this session."
-                        />
-                      ),
-                    },
-                    {
-                      value: "nay",
-                      label: "Nay",
-                      emoji: "❌",
-                      count: record.counts.nay,
-                      content: (
-                        <MemberFeed
-                          bills={record.nay}
-                          total={record.counts.nay}
-                          vote="Nay"
-                          state={state}
-                          peopleId={peopleId}
-                          session={session}
-                          kind="nay"
-                          pageSize={5}
-                          empty="No recorded nay votes this session."
-                        />
-                      ),
-                    },
-                  ]}
-                />
-              </PreviewFrame>
+                <H3>Votes</H3>
+                <p>
+                  <Chip>{title}</Chip> has voted Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> this session.
+                </p>
+                <PreviewFrame>
+                  <MemberTabs
+                    // Their whole record as a PDF, at the block's top right beside the Sessions menu (Brendan, 2026-09-06).
+                    menu={
+                      <>
+                        <VoteRecordPdf peopleId={peopleId} state={state} who={title} seat={description} />
+                        <SessionsMenu sessions={sessionOptions} current={session} />
+                      </>
+                    }
+                    tabs={[
+                      {
+                        value: "aye",
+                        label: "Aye",
+                        emoji: "✅",
+                        count: record.counts.aye,
+                        content: <MemberFeed bills={record.aye} total={record.counts.aye} vote="Aye" state={state} peopleId={peopleId} session={session} kind="aye" pageSize={5} empty="No recorded aye votes this session." />,
+                      },
+                      {
+                        value: "nay",
+                        label: "Nay",
+                        emoji: "❌",
+                        count: record.counts.nay,
+                        content: <MemberFeed bills={record.nay} total={record.counts.nay} vote="Nay" state={state} peopleId={peopleId} session={session} kind="nay" pageSize={5} empty="No recorded nay votes this session." />,
+                      },
+                    ]}
+                  />
+                </PreviewFrame>
 
-              <MemberContact
-                senate={directory?.senate ?? null}
-                sub={!!(directory?.offices.length || directory?.staff.length)}
-                places={officePlaces(directory?.offices ?? [])}
-              />
-              {directory && <MemberOffices offices={directory.offices} />}
-              {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
+                <MemberContact senate={directory?.senate ?? null} sub={!!(directory?.offices.length || directory?.staff.length)} places={officePlaces(directory?.offices ?? [])} />
+                {directory && <MemberOffices offices={directory.offices} />}
+                {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
 
-              {biography && (
-                <>
-                  <hr />
-                  <H2>Biography</H2>
-                  <p>
-                    The official biography on file for {title}
-                    {member.bio_url ? <>, from <code>{String(member.bio_url).replace(/^https?:\/\//, "").split("/")[0]}</code></> : null}.
-                  </p>
-                  <p>{biography}</p>
-                </>
-              )}
-            </div>
-            {(neighbours.previous || neighbours.next) && (
-              <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-                {neighbours.previous && (
-                  <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                    <Link href={`/docs/directory/${neighbours.previous.people_id}?state=${state}`}>
-                      <IconArrowLeft /> {honorific(neighbours.previous.role ?? "", neighbours.previous.chamber ?? "")} {neighbours.previous.name}
-                    </Link>
-                  </Button>
-                )}
-                {neighbours.next && (
-                  <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                    <Link href={`/docs/directory/${neighbours.next.people_id}?state=${state}`}>
-                      {honorific(neighbours.next.role ?? "", neighbours.next.chamber ?? "")} {neighbours.next.name} <IconArrowRight />
-                    </Link>
-                  </Button>
+                {biography && (
+                  <>
+                    <hr />
+                    <H2>Biography</H2>
+                    <p>
+                      The official biography on file for <Chip>{title}</Chip>
+                      {member.bio_url ? (
+                        <>
+                          , from{" "}
+                          {
+                            String(member.bio_url)
+                              .replace(/^https?:\/\//, "")
+                              .split("/")[0]
+                          }
+                        </>
+                      ) : null}
+                      .
+                    </p>
+                    <p>{biography}</p>
+                  </>
                 )}
               </div>
-            )}
-            <BackToTop />
+              {(neighbours.previous || neighbours.next) && (
+                <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
+                  {neighbours.previous && (
+                    <Button variant="secondary" size="sm" className="shadow-none" asChild>
+                      <Link href={`/docs/directory/${neighbours.previous.people_id}?state=${state}`}>
+                        <IconArrowLeft /> {honorific(neighbours.previous.role ?? "", neighbours.previous.chamber ?? "")} {neighbours.previous.name}
+                      </Link>
+                    </Button>
+                  )}
+                  {neighbours.next && (
+                    <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
+                      <Link href={`/docs/directory/${neighbours.next.people_id}?state=${state}`}>
+                        {honorific(neighbours.next.role ?? "", neighbours.next.chamber ?? "")} {neighbours.next.name} <IconArrowRight />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              )}
+              <BackToTop />
+            </div>
+          </div>
+          <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+            <div className="h-(--top-spacing) shrink-0"></div>
+            <div className="scrollbar-none flex scroll-fade flex-col gap-8 overflow-y-auto px-8">
+              <MemberToc record={sessionName} finance={!!fec?.totals.length} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
+            </div>
+            <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+              <PublicRail />
+            </div>
           </div>
         </div>
-        <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-          <div className="h-(--top-spacing) shrink-0"></div>
-          <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-            <MemberToc
-              record={sessionName}
-              finance={!!fec?.totals.length}
-              committees={committees.length > 0}
-              contact={!!directory?.senate}
-              offices={!!directory?.offices.length}
-              staff={!!directory?.staff.length}
-              biography={!!biography}
-            />
-          </div>
-          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-            <PublicRail />
-          </div>
-        </div>
-      </div>
       </PendingSessionProvider>
     </MemberCongressProvider>
   )
