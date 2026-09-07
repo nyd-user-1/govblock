@@ -5,8 +5,6 @@ import { BadgeCheckIcon, BellIcon, Check, Copy, CreditCardIcon, Gift, LogOutIcon
 
 import { ADMIN_USER } from "@/components/admin/rail"
 import { useAdminNav } from "@/components/admin/nav"
-import { ModeSwitcher } from "@/components/mode-switcher"
-import { StateSwitcher } from "@/components/state-switcher"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -221,17 +219,13 @@ export function ReferDialog() {
   )
 }
 
-/** The topbar's right half, as the block shell's actions. */
+/** The topbar's right half, as the block shell's actions: the search and the bell (Brendan, 2026-09-06). The flag moved to the site header; the gift, the theme toggle and the profile are gone. */
 export function AdminTopbar() {
   return (
     <div className="flex items-center gap-1.5">
       <SearchButton />
-      <ReferDialog />
-      <StateSwitcher className="h-7" />
-      <ModeSwitcher className="size-7" />
-      <Notification1 />
       <div className="h-6.5 w-px bg-border max-sm:hidden" />
-      <Profile1 />
+      <Notification1 />
     </div>
   )
 }
