@@ -1,0 +1,24 @@
+# The Clerk's mail runner. AgentMail posts message.received here; the Worker
+# queues it in KV and a cron every two minutes runs the Clerk against the app
+# one round at a time (each round is one POST to /api/agents/chat, under the
+# thirty seconds Amplify allows) and replies on the same email thread.
+#
+# Deploy:   npx wrangler deploy
+# Secrets:  npx wrangler secret put AGENTMAIL_API_KEY
+#           npx wrangler secret put AGENTMAIL_WEBHOOK_SECRET
+name = "govblock-clerk-mail"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+[vars]
+APP_ORIGIN = "https://policy.nysgpt.com"
+CLERK_INBOX = "govblock-clerk@agentmail.to"
+AGENT = "bill-reader"
+MAX_ROUNDS = "12"
+
+[[kv_namespaces]]
+binding = "MAIL"
+id = "e86f5f4686c84acd936c4a7b3016452f"

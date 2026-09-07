@@ -1,0 +1,8 @@
+{
+  "name": "govblock-clerk-mail",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  }
+}
