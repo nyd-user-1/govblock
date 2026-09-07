@@ -7,11 +7,12 @@ import { Area, AreaChart, CartesianGrid, Label, PolarGrid, PolarRadiusAxis, Radi
 import { fmtCompact } from "@/lib/format"
 import { stateName } from "@/lib/filters"
 import { num, useProvenance, useStates, type Provenance } from "@/components/admin/data"
+import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
+import { ComponentActions } from "@/components/card-frame"
 import { FlagChip } from "@/components/policy/imagery"
-import { ProjectCard, ProjectGrid } from "@/components/project-card"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
+import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
 import { Checkbox } from "@govblock/ui/components/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
@@ -107,13 +108,15 @@ export function DatabasePage() {
   const refreshAll = () => setRefresh((r) => r + 1)
 
   const freshCount = p ? p.fresh.filter((f) => f.recent > 0).length : 0
+  // Label and value alone (Brendan, 2026-09-06: "remove all these change
+  // numbers — we don't have consistency yet").
   const tiles: DbStat[] = [
-    { title: "Jurisdictions", value: p ? num(p.totals.states) : <Skeleton className="h-7 w-12" />, change: "50 states, DC, Congress", direction: "neutral" },
-    { title: "Bills on File", value: p ? fmtCompact(p.totals.bills, false) : <Skeleton className="h-7 w-16" />, change: p ? `${num(p.totals.sessions)} sessions` : "", direction: "up" },
-    { title: "Texts on File", value: p ? fmtCompact(p.totals.texts, false) : <Skeleton className="h-7 w-16" />, change: p ? `${p.coverage.of ? Math.round((p.coverage.with_text / p.coverage.of) * 1000) / 10 : 0}% of 2025+` : "", direction: "up" },
-    { title: "Roll Calls", value: p ? fmtCompact(p.totals.rollcalls, false) : <Skeleton className="h-7 w-16" />, change: "with positions", direction: "up" },
-    { title: "Members", value: p ? num(p.totals.people) : <Skeleton className="h-7 w-16" />, change: p ? `${num(p.totals.committees)} committees` : "", direction: "up" },
-    { title: "Recent Updates", value: p ? num(freshCount) : <Skeleton className="h-7 w-12" />, change: p ? `of ${p.fresh.length}` : "", direction: freshCount < 10 ? "down" : "up" },
+    { title: "Jurisdictions", value: p ? num(p.totals.states) : <Skeleton className="h-7 w-12" /> },
+    { title: "Bills on File", value: p ? fmtCompact(p.totals.bills, false) : <Skeleton className="h-7 w-16" /> },
+    { title: "Texts on File", value: p ? fmtCompact(p.totals.texts, false) : <Skeleton className="h-7 w-16" /> },
+    { title: "Roll Calls", value: p ? fmtCompact(p.totals.rollcalls, false) : <Skeleton className="h-7 w-16" /> },
+    { title: "Members", value: p ? num(p.totals.people) : <Skeleton className="h-7 w-16" /> },
+    { title: "Recent Updates", value: p ? num(freshCount) : <Skeleton className="h-7 w-12" /> },
   ]
 
   const series = React.useMemo(() => {
@@ -169,11 +172,12 @@ export function DatabasePage() {
       <div className="mt-4 sm:mt-5">
         <Card>
           <CardHeader>
-            <CardTitle>Volume</CardTitle>
-            <CardAction className="flex items-center gap-2">
+            <CardAnchor>Volume</CardAnchor>
+            <CardAction>
+              <CardTools className="gap-2">
               <Select value={metric} onValueChange={(v) => v && setMetric(v as (typeof METRICS)[number]["value"])}>
                 <SelectTrigger className="h-8 w-32" size="sm" aria-label="What to count">
-                  <SelectValue />
+                  <SelectValue>{() => METRICS.find((m) => m.value === metric)?.label ?? metric}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {METRICS.map((m) => (
@@ -186,7 +190,7 @@ export function DatabasePage() {
               <span className="h-4 w-px bg-border" />
               <Select value={span} onValueChange={(v) => v && setSpan(v as (typeof SPANS)[number]["value"])}>
                 <SelectTrigger className="h-8 w-28" size="sm" aria-label="How far back">
-                  <SelectValue />
+                  <SelectValue>{() => SPANS.find((x) => x.value === span)?.label ?? span}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {SPANS.map((s) => (
@@ -196,6 +200,7 @@ export function DatabasePage() {
                   ))}
                 </SelectContent>
               </Select>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent>
@@ -220,8 +225,10 @@ export function DatabasePage() {
       <div className="mt-4 sm:mt-5">
         <Card className="gap-4">
           <CardHeader className="max-md:px-4">
-            <CardTitle>Feeds</CardTitle>
-            <CardAction>{refreshButton}</CardAction>
+            <CardAnchor>Feeds</CardAnchor>
+            <CardAction>
+              <CardTools>{refreshButton}</CardTools>
+            </CardAction>
           </CardHeader>
           <CardContent className="max-md:px-4">
             <Table>
@@ -237,13 +244,14 @@ export function DatabasePage() {
                   <TableHead>Last write</TableHead>
                   <TableHead>Rows</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-10 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!p
                   ? Array.from({ length: 6 }, (_, i) => (
                       <TableRow key={i}>
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={9}>
                           <Skeleton className="h-5 w-full" />
                         </TableCell>
                       </TableRow>
@@ -271,6 +279,9 @@ export function DatabasePage() {
                               {h.label}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-right">
+                            <ComponentActions className="justify-end" />
+                          </TableCell>
                         </TableRow>
                       )
                     })}
@@ -283,29 +294,36 @@ export function DatabasePage() {
       <div className="mt-4 sm:mt-5">
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle>Jurisdictions</CardTitle>
-            <CardAction>{refreshButton}</CardAction>
+            <CardAnchor>Jurisdictions</CardAnchor>
+            <CardAction>
+              <CardTools>{refreshButton}</CardTools>
+            </CardAction>
           </CardHeader>
           <CardContent>
-            <ProjectGrid className="gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
               {(states.data ?? []).map((s) => {
                 const f = p?.fresh.find((x) => x.state === s.state)
                 const dot = feedState(s.state, f?.pulled_at ?? null)
                 return (
-                  <div key={s.state} className="relative">
-                    <ProjectCard
-                      href={`/docs/datasets/${s.state.toLowerCase()}`}
-                      media={<FlagChip state={s.state} width={28} className="mt-0.5" />}
-                      title={stateName(s.state)}
-                      note={`${fmtCompact(s.bills, false)} bills · ${s.sessions} sessions`}
-                      meta={f?.pulled_at ? `pulled ${fmtWhen(f.pulled_at, false)}` : p ? "no pull on record" : "…"}
-                      className="h-[116px] p-4 hover:ring-1 hover:ring-foreground/10"
-                    />
-                    <span title={dot.label} className={cn("pointer-events-none absolute top-4 right-4 z-10 size-2 rounded-full", dot.tone, dot.blink && "animate-pulse")} />
-                  </div>
+                  <a
+                    key={s.state}
+                    href={`/docs/datasets/${s.state.toLowerCase()}`}
+                    title={dot.label}
+                    className="group/tile relative flex h-[132px] flex-col justify-between rounded-xl border bg-card p-4 no-underline transition-colors hover:bg-accent/40 hover:ring-1 hover:ring-foreground/10"
+                  >
+                    <div className="flex items-start justify-between">
+                      <FlagChip state={s.state} width={36} />
+                      <span className={cn("mt-1 size-2.5 rounded-full", dot.tone, dot.blink && "animate-pulse")} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{stateName(s.state)}</p>
+                      <p className="truncate text-xs text-muted-foreground">{`${fmtCompact(s.bills, false)} bills · ${s.sessions} sessions`}</p>
+                      <p className="truncate text-xs text-muted-foreground tabular-nums">{f?.pulled_at ? `pulled ${fmtWhen(f.pulled_at, false)}` : p ? "no pull on record" : "…"}</p>
+                    </div>
+                  </a>
                 )
               })}
-            </ProjectGrid>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -313,11 +331,13 @@ export function DatabasePage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Feed Health</CardTitle>
+            <CardAnchor>Feed Health</CardAnchor>
             <CardAction>
-              <Button variant="outline" size="sm" render={<a href="/docs/datasets" />}>
-                View Datasets
-              </Button>
+              <CardTools>
+                <Button variant="outline" size="sm" render={<a href="/docs/datasets" />}>
+                  View Datasets
+                </Button>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent>
@@ -359,17 +379,19 @@ export function DatabasePage() {
         </Card>
         <Card className="gap-3">
           <CardHeader>
-            <CardTitle>Quotas</CardTitle>
+            <CardAnchor>Quotas</CardAnchor>
             <CardAction>
-              <Select defaultValue="nightly">
-                <SelectTrigger className="h-7 w-24" size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nightly">Nightly</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                </SelectContent>
-              </Select>
+              <CardTools className="gap-2">
+                <Select defaultValue="nightly">
+                  <SelectTrigger className="h-7 w-24" size="sm">
+                    <SelectValue>{(v: unknown) => (v === "weekly" ? "Weekly" : "Nightly")}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nightly">Nightly</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
