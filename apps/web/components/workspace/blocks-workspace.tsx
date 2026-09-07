@@ -148,6 +148,7 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
         media: b.render(),
         bare: true,
         ownMenu: b.ownMenu,
+        docs: `/docs/blocks/${b.slug}`,
         title: b.title,
         defaultSize: b.size,
       })),

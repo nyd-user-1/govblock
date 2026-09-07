@@ -64,6 +64,8 @@ export type GridItem = {
   bare?: boolean
   /** A bare block with no ⋮ of its own gets one from the grid at its top right. */
   ownMenu?: boolean
+  /** The block's docs page, for the menu's Code item. */
+  docs?: string
 }
 
 /** A block's default size on this grid: what it needs on four columns, twice that on eight. */
@@ -82,6 +84,8 @@ type Metrics = { columns: number; columnWidth: number; rowHeight: number }
  * ComponentActions — reads this and becomes the grid's menu.
  */
 export type GridCell = {
+  /** The block's docs page, for the Code item. */
+  docs?: string
   size: Size
   color?: Color
   columns: Columns
@@ -106,6 +110,12 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
   const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, cell.size))?.label ?? ""
   return (
     <>
+      {cell.docs && (
+        <>
+          <DropdownMenuItem render={<a href={cell.docs} />}>Code</DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      )}
       <DropdownMenuItem onClick={() => cell.onRearranging(!cell.rearranging)}>{cell.rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
@@ -203,6 +213,12 @@ function CardActions({
       <DropdownMenuContent align="end" className="w-max min-w-52">
         {item.menu}
         {item.menu && <DropdownMenuSeparator />}
+        {item.docs && (
+          <>
+            <DropdownMenuItem render={<a href={item.docs} />}>Code</DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={() => onRearranging(!rearranging)}>{rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
@@ -342,7 +358,7 @@ function GridCard({
     open?.()
   }
 
-  const cell: GridCell = { size, color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
+  const cell: GridCell = { docs: item.docs, size, color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
   const dragProps = {
     draggable: rearranging,
     onDragStart: (e: React.DragEvent) => {

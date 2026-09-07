@@ -77,6 +77,7 @@ export const siteConfig = {
         { href: "/workspace/typeset", label: "Typeset", description: "Set a bill as a document and take the code." },
         { href: "/docs/api", label: "API", description: "Every number on the site, as JSON, one route per family." },
         { href: "/docs/datasets", label: "Datasets", description: "A session at a time, as a file." },
+        { href: "/docs/blocks", label: "Block docs", description: "Every block, with its source, its data and its props." },
         { href: "/calendar", label: "Calendar", description: "Hearings and sessions by day." },
         { href: "/changelog", label: "Changelog", description: "What shipped, and when." },
       ],
