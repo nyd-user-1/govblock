@@ -1,71 +1,26 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { CalendarDaysIcon, LayoutGridIcon } from "lucide-react"
 
-import { AccountFooter } from "@/components/admin/account-footer"
-import { CalendarPage } from "@/components/admin/pages/calendar"
 import { LegislativeFields } from "@/components/create/fields"
 import { LocksProvider } from "@/components/create/locks"
-import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
+import { CalendarBoard } from "@/components/policy/calendar-board"
+import { ShellFooterProvider } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
-import { dashboardHref } from "@/lib/workspace/dashboard"
 import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { writeUrlParams } from "@/lib/policy/url-state"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
 import { FieldGroup } from "@govblock/ui/components/nova/field"
-import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
-// /workspace/calendar (Brendan, 2026-09-07): the dashboard's Calendar page —
-// paceui's calendar app on the record's hearings, the month grid, the mini
-// calendar and the kinds of event in its own left column — as it is, placed
-// in the workspace's shell: the stage, the customizer of legislative fields,
-// the shell's footer with the hamburger and the mode. The rail wears the
-// dashboard rail's header and account block and starts closed; it holds the
-// two calendars, this one and the cards-and-table one beside it.
-
-function CalendarRail() {
-  const router = useRouter()
-  return (
-    <>
-      <SidebarHeader className="flex-row items-center gap-2.5 p-4">
-        <Link href="/workspace/calendar" className="flex items-center gap-2.5">
-          <p className="text-xl font-semibold">Calendar</p>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Calendars</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton isActive asChild>
-                  <Link href="/workspace/calendar">
-                    <CalendarDaysIcon />
-                    <span>The month</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/workspace/calendar-alt">
-                    <LayoutGridIcon />
-                    <span>Cards and table</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <AccountFooter go={(page) => router.push(dashboardHref(page))} />
-    </>
-  )
-}
+// /workspace/calendar-alt (Brendan, 2026-09-07): the calendar block from
+// /blocks/calendar as a page of the workspace, kept beside the calendar proper — not a dashboard — in
+// the frame the other pages draw: the stage on the left, the customizer on
+// the right, the shell's footer with the hamburger and the mode. The board
+// keeps its own rail (the committees that calendared something) and its
+// Card | List toggle. The customizer is the jurisdiction and the filters,
+// closed until the hamburger opens it.
 
 function CalendarCustomizer({ filters, setFilters }: { filters: ReturnType<typeof useScope>["filters"]; setFilters: (patch: Partial<Record<ScopeKey, string>>) => void }) {
   return (
@@ -82,9 +37,9 @@ function CalendarCustomizer({ filters, setFilters }: { filters: ReturnType<typeo
   )
 }
 
-function CalendarWorkspaceInner() {
+function CalendarAltWorkspaceInner() {
   const scope = useScope()
-  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:calendar:customizer", false)
+  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:calendar-alt:customizer", false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   return (
     <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]">
@@ -93,11 +48,7 @@ function CalendarWorkspaceInner() {
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
             <ShellFooterProvider footer={<WorkspaceFooter mode="calendar" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>
-              <BlockShell defaultOpen={false} rail={<CalendarRail />} sidebarWidth="250px" separatorClassName="mx-1" title="Calendar">
-                <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">
-                  <CalendarPage />
-                </div>
-              </BlockShell>
+              <CalendarBoard />
             </ShellFooterProvider>
           </div>
         </div>
@@ -118,10 +69,10 @@ function CalendarWorkspaceInner() {
 }
 
 /** The customizer's fields carry the designer's lock buttons, which read the locks context. */
-export function CalendarWorkspace() {
+export function CalendarAltWorkspace() {
   return (
     <LocksProvider>
-      <CalendarWorkspaceInner />
+      <CalendarAltWorkspaceInner />
     </LocksProvider>
   )
 }
