@@ -15,6 +15,8 @@ import {
 import { Icons } from "@/components/icons"
 import { useTheme } from "next-themes"
 
+import { isDark } from "@/lib/themes"
+
 import {
   Avatar,
   AvatarFallback,
@@ -91,15 +93,15 @@ export function UserMenu() {
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuCheckboxItem
-                checked={resolvedTheme === "light"}
-                onCheckedChange={() => setTheme("light")}
+                checked={!isDark(resolvedTheme)}
+                onCheckedChange={() => setTheme(resolvedTheme === "dark-2" ? "light-2" : "light")}
               >
                 <SunIcon />
                 Light
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={resolvedTheme === "dark"}
-                onCheckedChange={() => setTheme("dark")}
+                checked={isDark(resolvedTheme)}
+                onCheckedChange={() => setTheme(resolvedTheme === "light-2" ? "dark-2" : "dark")}
               >
                 <MoonIcon />
                 Dark

@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { FILTER_KEYS, readFilters, type Filters } from "@/lib/filters"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { PathScopeContext, useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { congressName } from "@/lib/policy/congress"
@@ -42,6 +42,7 @@ export type Scope = {
 
 export function useScope(): Scope {
   const { state, session, resolved } = useJurisdiction()
+  const path = React.useContext(PathScopeContext)
   const params = useUrlParams(SCOPE_KEYS)
   const filters = React.useMemo<ScopeFilters>(() => {
     const read = readFilters(params) as ScopeFilters
@@ -49,8 +50,10 @@ export function useScope(): Scope {
     read.state = state
     if (session) read.session = String(session)
     else delete read.session
+    // The chamber in the path is the chamber, whatever the query says.
+    if (path?.chamber) read.chamber = path.chamber
     return read
-  }, [params, state, session])
+  }, [params, state, session, path?.chamber])
   return React.useMemo(() => ({ state, session, resolved, filters }), [state, session, resolved, filters])
 }
 

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUpIcon, MenuIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowUpIcon } from "lucide-react"
 
 import { isFile, isSpecial, listing, locate, monthName, type Location, type Target } from "@/lib/create/path"
 import { decodePreset, DEFAULT_DESIGN, DESIGN_KEYS, DESIGN_OPTIONS, presetToParams, readDesign, type Design, type Preset } from "@/lib/create/preset"
@@ -13,19 +14,22 @@ import { useLocal } from "@/lib/policy/use-local"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
-import { Fab, FabButton } from "@/components/create/fab"
 import { FileActions, type BillView } from "@/components/create/file-actions"
-import { DatasetGrid } from "@/components/create/datasets"
 import { FileView } from "@/components/create/file-view"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
 import { PathBar, type Crumb } from "@/components/create/path-bar"
 import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
-import { StageSwitcher, type Stage } from "@/components/create/stage-switcher"
+import { type Stage } from "@/components/create/stage-switcher"
 import { legislatureName, Tree } from "@/components/create/tree"
 import { AdminStage } from "@/components/admin/admin-stage"
-import { BlockShell } from "@/components/policy/block-shell"
+import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
+import { chambersOf } from "@/lib/workspace/datasets"
+import { applyTarget, buildWorkspacePath, roomPath, WORKSPACE_DATA, type Room } from "@/lib/workspace/path"
+import { DatasetGrid, DatasetRail } from "@/components/workspace/dataset-grid"
+import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
+import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { FecExplorer } from "@/components/policy/fec-explorer"
 import { FormsList } from "@/components/policy/forms-list"
 import { blockComponents } from "@/registry/blocks"
@@ -45,8 +49,24 @@ import { cn } from "@govblock/ui/lib/utils"
 
 const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork", "all"] as const
 
-function DesignerInner() {
+// The workspace (Brendan, 2026-09-07): the same browser, with the location
+// in the path — /workspace/data/us/house/2025/bill/hb9329 — instead of the
+// query keys. The datasets grid is its root. A page under /workspace hands
+// the designer its route; the state, session and chamber in it reach every
+// hook through PathScopeContext, set by the route component.
+export type DesignerRoute =
+  | { datasets: true; room?: undefined }
+  | { datasets?: false; room: Room }
+  | { datasets?: false; room?: undefined; state: string; chamber: string; session: number | null; location: Location; /** A bill number or committee slug still resolving. */ pending?: boolean }
+
+function DesignerInner({ route }: { route?: DesignerRoute }) {
+  const router = useRouter()
   const params = useUrlParams(URL_KEYS)
+  const workspace = !!route
+  const routeNode = route && !route.datasets && !route.room ? route : null
+  const room = route?.room ?? null
+  // Documents is Forms with `all`; the room says so where the query used to.
+  const all = room === "documents" ? "1" : params.all
   const scope = useScope()
   const { locks } = useLocks()
   const sessionTitle = useSessionTitle(scope.state, scope.session)
@@ -62,25 +82,26 @@ function DesignerInner() {
   }, [isAdmin, setPanelOpen])
   // The look lives in the URL alone (Brendan, 2026-09-04: Canvas set the
   // cards look and a `look=table` left in the address bar overruled it).
-  const look: Look = params.look === "cards" ? "cards" : "table"
-  const setLook = React.useCallback((next: Look) => writeUrlParams({ look: next === "cards" ? "cards" : null }, { history: "replace" }), [])
+  // Cards are the default on every page (Brendan, 2026-09-07); `look=table` is the table.
+  const look: Look = params.look === "table" ? "table" : "cards"
+  const setLook = React.useCallback((next: Look) => writeUrlParams({ look: next === "table" ? "table" : null }, { history: "replace" }), [])
 
   const design = React.useMemo(() => readDesign(params), [params])
-  const location = React.useMemo<Location>(() => ({ at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [params.at, params.committee, params.member, params.bill, params.rollcall])
+  const location = React.useMemo<Location>(() => (routeNode ? routeNode.location : room ? { at: room === "documents" ? "forms" : room, committee: "", member: "", bill: "", rollcall: "" } : { at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [routeNode, room, params.at, params.committee, params.member, params.bill, params.rollcall])
   const node = React.useMemo(() => locate(location), [location])
 
   // Congress, current session, every time: a bare /create writes the state
   // in, so the remembered jurisdiction never decides what this page opens on.
-  // And it opens on the datasets (Brendan, 2026-09-05, create.html): the
-  // cards that entitle a reader to a dataset, open or locked — so a bare
-  // /create is `?state=US&at=datasets`. Read off the address bar
-  // itself — the first client render still carries the server's empty params,
-  // and a stale "" must not overwrite a real state.
+  // The datasets it used to open on live at /workspace/data now (Brendan,
+  // 2026-09-07). Read off the address bar itself — the first client render
+  // still carries the server's empty params, and a stale "" must not
+  // overwrite a real state.
   React.useEffect(() => {
+    if (workspace) return
     const live = new URLSearchParams(window.location.search)
     if (live.get("preset")) return
-    if (!live.get("state")) writeUrlParams({ state: "US", at: live.get("at") ?? "datasets" }, { history: "replace" })
-  }, [params.state, params.preset])
+    if (!live.get("state")) writeUrlParams({ state: "US" }, { history: "replace" })
+  }, [params.state, params.preset, workspace])
 
   // `?preset=` unpacks once, into the keys it stands for, and leaves.
   React.useEffect(() => {
@@ -93,7 +114,37 @@ function DesignerInner() {
   const { data: bill } = usePolicy<Bill>(node.kind === "bill" ? "bill" : null, { state: scope.state }, { id: node.kind === "bill" ? node.id : undefined })
   const { data: member } = usePolicy<Member>(location.member ? "member" : null, { state: scope.state, session: scope.filters.session }, { id: location.member || undefined })
 
+  // In the workspace a move is a path (Brendan, 2026-09-07); tabs, documents
+  // and forks stay in the query. "datasets" is the grid at the root.
+  const goPath = React.useCallback(
+    (target: Target) => {
+      if (target.at === "datasets") return router.push(WORKSPACE_DATA)
+      const toRoom = target.at ? roomPath(target.at, target.at === "forms" ? (all === "1" ? "1" : null) : null) : null
+      if (toRoom) return router.push(toRoom)
+      const state = target.state ?? routeNode?.state ?? scope.state
+      const changedState = !!target.state && target.state !== (routeNode?.state ?? scope.state)
+      const chamber = target.chamber ?? (changedState ? chambersOf(state)[0] : (routeNode?.chamber ?? scope.filters.chamber ?? chambersOf(state)[0]))
+      const session = "session" in target ? (target.session ? Number(target.session) : null) : changedState ? null : (routeNode?.session ?? scope.session)
+      const next = applyTarget(routeNode?.location ?? location, target)
+      const path = buildWorkspacePath({ state, chamber, session, location: next, number: target.number, slug: target.slug })
+      const query = new URLSearchParams(window.location.search)
+      for (const key of ["tab", "doc", "fork"] as const) {
+        if (key in target) {
+          if (target[key]) query.set(key, target[key]!)
+          else query.delete(key)
+        } else if (path !== window.location.pathname) query.delete(key)
+      }
+      if (!("tab" in target)) query.delete("tab")
+      if (!("doc" in target)) query.delete("doc")
+      const search = query.toString()
+      const href = search ? `${path}?${search}` : path
+      if (href === `${window.location.pathname}${window.location.search}`) return
+      router.push(href)
+    },
+    [router, routeNode, scope.state, scope.session, scope.filters.chamber, location, all]
+  )
   const go = React.useCallback((target: Target) => {
+    if (workspace) return goPath(target)
     const out: Record<string, string | null> = { tab: target.tab ?? null, doc: target.doc ?? null }
     for (const key of ["at", "committee", "member", "bill", "rollcall", "session", "state", "fork"] as const) if (key in target) out[key] = target[key] ?? null
     // Leaving a bill leaves its fork behind; moving within it keeps it.
@@ -101,8 +152,19 @@ function DesignerInner() {
     // Leaving Documents leaves its "all" behind.
     if ("at" in target && target.at !== "forms") out.all = null
     writeUrlParams(out, { history: "push" })
-  }, [])
-  const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
+  }, [workspace, goPath])
+  const setFilters = React.useCallback(
+    (patch: Partial<Record<ScopeKey, string>>) => {
+      // In the workspace the state, chamber and session are the path: a new one is a new page, at its root.
+      if (workspace && (patch.state !== undefined || patch.chamber !== undefined || patch.session !== undefined)) {
+        const { state, chamber, session, ...rest } = patch
+        if (Object.keys(rest).length) writeUrlParams(rest, { history: "replace" })
+        return goPath({ ...listing(null), ...(state !== undefined ? { state: state || null } : {}), ...(chamber !== undefined ? { chamber: chamber || null } : {}), ...(session !== undefined ? { session: session || null } : {}) })
+      }
+      writeUrlParams(patch, { history: "push" })
+    },
+    [workspace, goPath]
+  )
   const setDesign = React.useCallback((patch: Partial<Design>) => {
     const out: Record<string, string> = {}
     for (const [key, value] of Object.entries(patch)) out[key] = value === DEFAULT_DESIGN[key as keyof Design] ? "" : (value ?? "")
@@ -122,14 +184,22 @@ function DesignerInner() {
   const reset = React.useCallback(() => {
     const out: Record<string, string | null> = {}
     for (const key of [...DESIGN_KEYS, ...SCOPE_KEYS]) if (!locks.has(key)) out[key] = null
+    out.tab = null
+    out.doc = null
+    if (workspace) {
+      // The path stays; the query's filters and design go.
+      delete out.state
+      delete out.session
+      delete out.chamber
+      writeUrlParams(out, { history: "push" })
+      return
+    }
     // Reset lands on Congress unless the state is locked.
     if (!locks.has("state")) out.state = "US"
     out.at = null
     out.rollcall = null
-    out.tab = null
-    out.doc = null
     writeUrlParams(out, { history: "push" })
-  }, [locks])
+  }, [locks, workspace])
 
   const openPreset = React.useCallback(
     (preset: Preset) => {
@@ -145,9 +215,11 @@ function DesignerInner() {
   const memberLabel = member ? `${honorific(member.role, member.chamber)} ${member.name}` : location.member ? `Member ${location.member}` : ""
   const billLabel = bill ? `${bill.bill_number} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
   const crumbs = React.useMemo<Crumb[]>(() => {
-    if (node.kind === "datasets") return [{ label: "Create" }]
     const out: Crumb[] = [{ label: legislatureName(scope.state), go: listing("sessions") }]
+    // The workspace's path starts at Data (Brendan, 2026-09-07: one breadcrumb, one component).
+    if (workspace) out.unshift({ label: "Data", go: { at: "datasets" } })
     if (node.kind === "sessions") return out
+    if (workspace && !routeNode) return out
     out.push({ label: sessionTitle || String(scope.session ?? ""), go: listing(null) })
     const at = params.at.split("/").filter(Boolean).map(decodeURIComponent)
     if (location.committee) {
@@ -198,23 +270,25 @@ function DesignerInner() {
         break
     }
     return out
-  }, [scope.state, scope.session, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel])
+  }, [scope.state, scope.session, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel, workspace])
 
   // `?at=alaska` names a state, not a listing (Brendan, 2026-09-03: a typed
   // URL that says Alaska should show Alaska). Rewrite it to `state=AK`.
   React.useEffect(() => {
+    if (workspace) return
     const at = params.at.trim().toLowerCase()
     if (!at || /^(sessions|bills|committees|members|votes|forks|inbox|finance|forms|admin)(\/|$)/.test(at)) return
     const code = Object.entries(STATE_NAMES).find(([c, name]) => c.toLowerCase() === at || name.toLowerCase() === at)?.[0]
     if (code) writeUrlParams({ state: code, at: null, session: null }, { history: "replace" })
-  }, [params.at])
+  }, [params.at, workspace])
 
   // `..`: the crumb before the last one.
   const up: Target | null = crumbs.length >= 2 ? (crumbs[crumbs.length - 2].go ?? null) : null
 
   // The block's title is the path to where you are — the state short, as a
   // path segment, not the legislature's full name.
-  const header = <PathBar crumbs={node.kind === "datasets" ? crumbs : crumbs.map((c, i) => (i === 0 ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
+  const first = workspace ? 1 : 0
+  const header = route?.datasets ? <PathBar crumbs={[{ label: "Data" }]} folder onGo={go} /> : <PathBar crumbs={crumbs.map((c, i) => (i === first ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
 
   // Whether the folder's rows have scrolled under the header. Remembered per
   // location so a new folder starts at the top.
@@ -228,21 +302,32 @@ function DesignerInner() {
     </Button>
   )
 
-  const lookToggle = !isFile(node) && (
+  const toggleFor = (current: Look, set: (next: Look) => void) => (
     <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-      {(["table", "cards"] as Look[]).map((value) => (
-        <button key={value} type="button" data-active={look === value} onClick={() => setLook(value)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
-          {value === "table" ? "Table" : "Cards"}
+      {(["cards", "table"] as Look[]).map((value) => (
+        <button key={value} type="button" data-active={current === value} onClick={() => set(value)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
+          {value === "table" ? "Table" : "Card"}
         </button>
       ))}
     </div>
   )
+  const lookToggle = !isFile(node) && toggleFor(look, setLook)
+  const datasetsLook = look
+  const datasetsToggle = toggleFor(look, setLook)
 
   // What the stage shows, and how to switch it — one answer for the FAB's
   // switcher and the customizer's menu.
-  const stageNow: Stage = node.kind === "datasets" ? "canvas" : isSpecial(node) ? (node.kind === "forms" && params.all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode
+  const stageNow: Stage = isSpecial(node) ? (node.kind === "forms" && all === "1" ? "documents" : (node.kind as Stage)) : look === "cards" ? "canvas" : mode
   const pickStage = React.useCallback(
     (next: Stage) => {
+      if (workspace && next !== "state" && next !== "design" && next !== "canvas") {
+        router.push(next === "documents" ? "/workspace/documents" : next === "admin" ? "/workspace/dashboard" : `/workspace/${next}`)
+        return
+      }
+      if (workspace && room && next === "canvas") {
+        router.push(buildWorkspacePath({ state: scope.state, chamber: scope.filters.chamber ?? null, session: scope.session, location: { at: "bills", committee: "", member: "", bill: "", rollcall: "" } }))
+        return
+      }
       if (next === "state" || next === "design") {
         setMode(next)
         if (isSpecial(node)) writeUrlParams({ ...listing(null), look: null }, { history: "push" })
@@ -250,7 +335,7 @@ function DesignerInner() {
       } else if (next === "canvas") {
         // The large cards: the tree's records as cards. From the root or a
         // special view, Bills is where they are.
-        if (isSpecial(node) || node.kind === "root") writeUrlParams({ ...listing("bills"), look: "cards", all: null }, { history: "push" })
+        if (isSpecial(node) || node.kind === "root") writeUrlParams({ ...listing("bills"), look: null, all: null }, { history: "push" })
         else setLook("cards")
       } else if (next === "documents") {
         writeUrlParams({ ...listing("forms"), all: "1" }, { history: "push" })
@@ -258,13 +343,20 @@ function DesignerInner() {
         writeUrlParams({ ...listing("forms"), all: null }, { history: "push" })
       } else go(listing(next))
     },
-    [node, setMode, setLook, go]
+    [node, setMode, setLook, go, workspace, router, scope.state, scope.session, scope.filters.chamber, room]
   )
 
   const Inbox = blockComponents["sidebar-09"]
-  const stage = node.kind === "datasets" ? (
-    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} contentClassName="overflow-y-auto">
-      <DatasetGrid onGo={(target) => writeUrlParams({ ...listing(target.at ?? "bills"), state: target.state ?? null, session: target.session ?? null, chamber: target.chamber ?? null, look: "cards" }, { history: "push" })} />
+  const stage = route?.datasets ? (
+    <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto">
+      <DatasetGrid look={datasetsLook} />
+    </BlockShell>
+  ) : routeNode?.pending ? (
+    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header}>
+      <div className="flex flex-col gap-4 p-6">
+        <Skeleton className="h-6 w-1/3 rounded-lg" />
+        <Skeleton className="h-40 rounded-2xl" />
+      </div>
     </BlockShell>
   ) : isSpecial(node) ? (
     node.kind === "inbox" ? (
@@ -275,12 +367,12 @@ function DesignerInner() {
       <AdminStage page={node.page} onGo={(page) => writeUrlParams({ ...listing(page ? `admin/${page}` : "admin") }, { history: "push" })} />
     ) : (
       <BlockShell
-        title={params.all === "1" ? "Documents" : "Forms"}
+        title={all === "1" ? "Documents" : "Forms"}
         rail={
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupLabel>
-                {params.all === "1" ? "Documents" : "Forms"} · {stateName(scope.state)}
+                {all === "1" ? "Documents" : "Forms"} · {stateName(scope.state)}
               </SidebarGroupLabel>
             </SidebarGroup>
           </SidebarContent>
@@ -308,16 +400,11 @@ function DesignerInner() {
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col">
             <RevealFx key={stageKey} translateY={8} className="flex h-full min-h-0 flex-1 flex-col bg-background">
-              {stage}
+              {/* The FAB is gone (Brendan, 2026-09-07): every stage's shell
+                  wears the footer, which summons the customizer and picks the mode. */}
+              <ShellFooterProvider footer={<WorkspaceFooter mode={room ?? "data"} panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>{stage}</ShellFooterProvider>
             </RevealFx>
           </div>
-
-          <Fab className="absolute bottom-3 left-3">
-            <FabButton aria-label={panelOpen ? "Hide the customizer" : "Show the customizer"} aria-pressed={panelOpen} tip="Customizer" onClick={() => setPanelOpen((open) => !open)}>
-              <MenuIcon className="size-4" />
-            </FabButton>
-            <StageSwitcher stage={stageNow} onStage={pickStage} />
-          </Fab>
         </div>
         <div
           aria-hidden={!panelOpen}
@@ -335,10 +422,10 @@ function DesignerInner() {
   )
 }
 
-export function Designer() {
+export function Designer({ route }: { route?: DesignerRoute }) {
   return (
     <LocksProvider>
-      <DesignerInner />
+      <DesignerInner route={route} />
     </LocksProvider>
   )
 }

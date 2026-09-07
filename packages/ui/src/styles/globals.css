@@ -3,7 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "./typeset.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Two darks and two lights (Brendan, 2026-09-07): `.dark` is the original,
+   `.dark-2` the lighter one that lifts off pure black; `.light-2` is its
+   rough mirror, the page a shade off white. The `dark:` variant covers both darks. */
+@custom-variant dark (&:is(.dark *, .dark-2 *));
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
@@ -86,15 +89,12 @@
     --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
-    /* Brendan, 2026-09-07: "the dark mode black bg is too black" — #151515
-       for the page, the card a step above it, the chips a step above that.
-       The palette before this is kept whole in apps/web/styles/original-dark-mode.css. */
-    --background: oklch(0.2 0 0);
+.dark, .dark-2 {
+    --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.235 0 0);
+    --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.235 0 0);
+    --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.424 0.199 265.638);
     --primary-foreground: oklch(0.97 0.014 254.604);
@@ -113,7 +113,7 @@
     --chart-3: oklch(0.577 0.245 27.325);
     --chart-4: oklch(0.505 0.213 27.518);
     --chart-5: oklch(0.444 0.177 26.899);
-    --sidebar: oklch(0.2 0 0);
+    --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.623 0.214 259.815);
     --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
@@ -121,6 +121,24 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Dark Mode 2 — the page #151515 (oklch 0.2), the card a step above it. */
+.dark-2 {
+    color-scheme: dark;
+    --background: oklch(0.2 0 0);
+    --card: oklch(0.235 0 0);
+    --popover: oklch(0.235 0 0);
+    --sidebar: oklch(0.2 0 0);
+}
+
+/* Light Mode 2 — the page a shade off white, the card a step above it. */
+.light-2 {
+    color-scheme: light;
+    --background: oklch(0.955 0 0);
+    --card: oklch(0.985 0 0);
+    --popover: oklch(0.985 0 0);
+    --sidebar: oklch(0.95 0 0);
 }
 
 @layer base {
@@ -152,11 +170,19 @@
   --selection-foreground: oklch(1 0 0);
 }
 
-.dark {
-  --surface: oklch(0.269 0 0);
+.dark, .dark-2 {
+  --surface: oklch(0.2 0 0);
   --surface-foreground: var(--foreground);
   --selection: oklch(0.922 0 0);
   --selection-foreground: oklch(0.205 0 0);
+}
+
+.dark-2 {
+  --surface: oklch(0.269 0 0);
+}
+
+.light-2 {
+  --surface: oklch(0.925 0 0);
 }
 
 /* The home grid is drawn in the neutral theme: black primary, grey charts. */
@@ -296,7 +322,7 @@
   --code-number: oklch(0.56 0 0);
 }
 
-.dark {
+.dark, .dark-2 {
   --code: var(--surface);
   --code-foreground: var(--surface-foreground);
   --code-highlight: oklch(0.27 0 0);

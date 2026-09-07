@@ -25,11 +25,22 @@ import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from "@govbloc
 // the sidebar `fixed` against the viewport, which is wrong inside a container —
 // and why the trigger's collapse is done here, by width, not by the primitive.
 
+// The footer a page sets once for every shell inside it (Brendan,
+// 2026-09-07: the FAB is gone; the footer is how the customizer is summoned
+// and the mode chosen, on every stage). A shell with its own `footer` prop
+// keeps it; the rest read this.
+const ShellFooterContext = React.createContext<React.ReactNode>(null)
+
+export function ShellFooterProvider({ footer, children }: { footer: React.ReactNode; children: React.ReactNode }) {
+  return <ShellFooterContext.Provider value={footer}>{children}</ShellFooterContext.Provider>
+}
+
 export function BlockShell({
   rail,
   title,
   actions,
   children,
+  footer,
   sidebarWidth = "calc(var(--spacing) * 64)",
   className,
   headerClassName,
@@ -44,6 +55,13 @@ export function BlockShell({
   /** Right-aligned in the header. */
   actions?: React.ReactNode
   children: React.ReactNode
+  /**
+   * The bar across the bottom of the pane (Brendan, 2026-09-07): the
+   * customizer's hamburger and the mode, where the floating pill used to
+   * hold them. Every shell wears the same one, so a reader always knows how
+   * to summon the customizer and which mode they are in.
+   */
+  footer?: React.ReactNode
   sidebarWidth?: string
   className?: string
   /** For the shadow a header wears while rows pass under it. */
@@ -54,6 +72,8 @@ export function BlockShell({
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = React.useState(defaultOpen)
+  const shared = React.useContext(ShellFooterContext)
+  const foot = footer ?? shared
   return (
     <SidebarProvider
       open={open}
@@ -65,11 +85,13 @@ export function BlockShell({
       <Sidebar
         collapsible="none"
         data-state={open ? "expanded" : "collapsed"}
-        className={cn("h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 ease-linear", !open && "w-0!")}
+        // The rail scrolls without a scrollbar (Brendan, 2026-09-07).
+        className={cn("h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 ease-linear **:data-[slot=sidebar-content]:no-scrollbar", !open && "w-0!")}
       >
         {rail}
       </Sidebar>
-      <SidebarInset className={cn("m-2 min-h-0 min-w-0 overflow-hidden rounded-xl shadow-sm", open ? "ml-0" : "ml-2")}>
+      {/* Brendan, 2026-09-07: a gap-4 between the rail and the card while the rail is open. */}
+      <SidebarInset className={cn("m-2 min-h-0 min-w-0 overflow-hidden rounded-xl shadow-sm", open ? "ml-4" : "ml-2")}>
         <header className={cn("relative z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-shadow", headerClassName)}>
           <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <SidebarTrigger className="-ml-1" />
@@ -79,6 +101,11 @@ export function BlockShell({
           </div>
         </header>
         <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}>{children}</div>
+        {foot && (
+          <footer data-slot="block-shell-footer" className="relative z-10 flex h-(--header-height) shrink-0 items-center border-t">
+            <div className="flex w-full min-w-0 items-center gap-1 px-4 lg:gap-2 lg:px-6">{foot}</div>
+          </footer>
+        )}
       </SidebarInset>
     </SidebarProvider>
   )

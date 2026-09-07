@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 
+import { useAccount } from "@/lib/auth/use-account"
 import { Button } from "@govblock/ui/components/nova/button"
 
 // The header's account affordance — and the reason it is a client component
@@ -30,50 +30,9 @@ import { Button } from "@govblock/ui/components/nova/button"
 // truth until proven otherwise, and it means the usual reader sees no skeleton
 // and nothing shifts under them.
 
-type Account = { name?: string | null; email?: string | null; image?: string | null } | null
-
-const CACHE_KEY = "govblock:account"
-
-function cached(): Account {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY)
-    return raw ? (JSON.parse(raw) as Account) : null
-  } catch {
-    return null
-  }
-}
-
 export function AccountAffordance() {
-  const [account, setAccount] = useState<Account>(null)
-
-  // Paint from the tab's cache first so a signed-in reader does not watch their
-  // own avatar appear on every load, then confirm against the server — the
-  // cache can be stale (an expired session, a sign-out in another tab) and the
-  // server's answer always wins.
-  useEffect(() => {
-    setAccount(cached())
-    let live = true
-    fetch("/api/auth/session", { credentials: "same-origin" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((session: { user?: NonNullable<Account> } | null) => {
-        if (!live) return
-        const user = session?.user ?? null
-        setAccount(user)
-        try {
-          if (user) sessionStorage.setItem(CACHE_KEY, JSON.stringify(user))
-          else sessionStorage.removeItem(CACHE_KEY)
-        } catch {
-          // Storage refused. The affordance still works; it just re-fetches.
-        }
-      })
-      .catch(() => {
-        // No session endpoint — sign-in is not configured on this deployment.
-        // /auth says so in words; the header stays a door to it.
-      })
-    return () => {
-      live = false
-    }
-  }, [])
+  // The session, over the wire, cached in the tab: lib/auth/use-account.ts.
+  const { account } = useAccount()
 
   const label = account?.name ?? account?.email ?? null
 

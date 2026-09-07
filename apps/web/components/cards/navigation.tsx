@@ -51,7 +51,7 @@ export function NavigationCard() {
       label: "Data",
       items: [
         { name: "Charts", href: "/charts", icon: IconChartBar },
-        { name: "Create", href: scoped("/create"), icon: IconLayoutGrid },
+        { name: "Data", href: "/workspace/data", icon: IconLayoutGrid },
         { name: "Calendar", href: "/calendar", icon: IconCalendarEvent },
         { name: "Typeset", href: scoped("/typeset"), icon: IconTypography },
       ],

@@ -67,7 +67,7 @@ function Shell({ id, media, title, description, meta, actions, children }: { id:
 }
 
 export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; onOpen: (open: Open) => void }) {
-  const go: Target = { bill: String(bill.bill_id), rollcall: null }
+  const go: Target = { bill: String(bill.bill_id), rollcall: null, number: bill.bill_number }
   return (
     <Shell
       id={`bill-${bill.bill_id}`}
@@ -85,7 +85,7 @@ export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; o
 
 export function MemberCard({ member, state, onOpen }: { member: Member; state: string; onOpen: (open: Open) => void }) {
   const label = `${honorific(member.role, member.chamber)} ${member.name}`
-  const go: Target = { member: String(member.people_id), bill: null, rollcall: null }
+  const go: Target = { member: String(member.people_id), bill: null, rollcall: null, slug: member.name }
   return (
     <Shell
       id={`member-${member.people_id}`}

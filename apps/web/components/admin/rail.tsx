@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BadgeCheckIcon, BellIcon, ChevronRightIcon, ChevronsUpDownIcon, CreditCardIcon, LogOutIcon, Settings2Icon, UserIcon } from "lucide-react"
+import { BadgeCheckIcon, BellIcon, ChevronRightIcon, ChevronsUpDownIcon, CreditCardIcon, LogOutIcon, UserIcon } from "lucide-react"
 
 import { ADMIN_MENU, type MenuItem } from "@/components/admin/items"
 import { useAdminNav } from "@/components/admin/nav"
@@ -93,10 +93,8 @@ export function AdminRail() {
   return (
     <>
       <SidebarHeader className="flex-row items-center gap-2.5 p-4">
+        {/* Brendan, 2026-09-07: the word alone, no blue tile before it. */}
         <button type="button" className="flex items-center gap-2.5" onClick={() => go("")}>
-          <div className="flex size-7.5 items-center justify-center rounded-md bg-primary text-xl font-medium text-primary-foreground">
-            <Settings2Icon className="size-4.5" />
-          </div>
           <p className="text-xl font-semibold">Admin</p>
         </button>
       </SidebarHeader>
@@ -107,7 +105,7 @@ export function AdminRail() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="border-t p-1">
+      <SidebarFooter className="p-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

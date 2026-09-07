@@ -1,0 +1,95 @@
+"use client"
+
+import * as React from "react"
+import { useRouter } from "next/navigation"
+import { ArchiveIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LandmarkIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
+
+import { Button } from "@govblock/ui/components/ny4/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
+import { Separator } from "@govblock/ui/components/ny4/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
+import { cn } from "@govblock/ui/lib/utils"
+
+// The footer every shell wears (Brendan, 2026-09-07): the two things the
+// floating pill used to hold, fixed to the bottom of the pane instead — the
+// customizer's hamburger, then the mode you are in, with the chevrons the
+// inbox's rail footer wears. The modes are the workspace's rooms: Data,
+// Create, Typeset, Charts, Dashboards. Only Data has moved under /workspace so
+// far; the rest go where they live today.
+
+export type Workspace = "data" | "dashboards" | "inbox" | "finance" | "forms" | "documents" | "typeset" | "charts"
+
+export const WORKSPACES: { key: Workspace; label: string; href: string; icon: typeof DatabaseIcon }[] = [
+  { key: "data", label: "Data", href: "/workspace/data", icon: DatabaseIcon },
+  { key: "dashboards", label: "Dashboards", href: "/workspace/dashboard", icon: LayoutDashboardIcon },
+  { key: "inbox", label: "Agentic Inbox", href: "/workspace/inbox", icon: InboxIcon },
+  { key: "finance", label: "Finance", href: "/workspace/finance", icon: LandmarkIcon },
+  { key: "forms", label: "Forms", href: "/workspace/forms", icon: FileTextIcon },
+  { key: "documents", label: "Documents", href: "/workspace/documents", icon: ArchiveIcon },
+  { key: "typeset", label: "Typeset", href: "/typeset", icon: TypeIcon },
+  { key: "charts", label: "Charts", href: "/charts/area", icon: ChartAreaIcon },
+]
+
+/** The three links at the footer's right edge, on every shell. */
+export function ShellFooterLinks() {
+  return (
+    <div className="ml-auto flex shrink-0 items-center gap-4 text-sm">
+      <a href="/docs" className="not-hover:text-muted-foreground">
+        About
+      </a>
+      <a href="/docs/api" className="not-hover:text-muted-foreground">
+        API
+      </a>
+      <a href="/docs/datasets" className="not-hover:text-muted-foreground">
+        Datasets
+      </a>
+    </div>
+  )
+}
+
+export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: { mode: Workspace; panelOpen: boolean; onTogglePanel: () => void; className?: string }) {
+  const router = useRouter()
+  const current = WORKSPACES.find((w) => w.key === mode) ?? WORKSPACES[0]
+  return (
+    <div className={cn("flex min-w-0 flex-1 items-center gap-1 lg:gap-2", className)}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button variant="ghost" size="icon" className="-ml-1 size-7 cursor-pointer" aria-label={panelOpen ? "Hide the customizer" : "Show the customizer"} aria-pressed={panelOpen} onClick={onTogglePanel}>
+              <MenuIcon className="size-4" />
+            </Button>
+          }
+        />
+        <TooltipContent side="top" sideOffset={10}>
+          Customizer
+        </TooltipContent>
+      </Tooltip>
+      <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="flex h-7 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent data-[state=open]:bg-accent"
+            aria-label="Which workspace you are in"
+          >
+            {current.label}
+            <ChevronsUpDown className="size-3.5 opacity-70" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-max min-w-44 rounded-lg">
+          {WORKSPACES.map((w) => {
+            const Icon = w.icon
+            return (
+              <DropdownMenuItem key={w.key} className="whitespace-nowrap" onClick={() => w.key !== mode && router.push(w.href)}>
+                <Icon />
+                {w.label}
+                {w.key === mode && <CheckIcon className="ml-auto size-4" />}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ShellFooterLinks />
+    </div>
+  )
+}

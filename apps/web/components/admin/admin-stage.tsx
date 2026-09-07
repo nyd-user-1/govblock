@@ -4,7 +4,7 @@ import * as React from "react"
 
 import { AdminTopbar } from "@/components/admin/blocks/layout"
 import { AdminNavProvider } from "@/components/admin/nav"
-import { AdminCrumb, AdminFooter } from "@/components/admin/page-title"
+import { AdminCrumb } from "@/components/admin/page-title"
 import { AdminRail } from "@/components/admin/rail"
 import { AdminPage, adminTitle } from "@/components/admin/pages"
 import { BlockShell } from "@/components/policy/block-shell"
@@ -23,7 +23,7 @@ import { BlockShell } from "@/components/policy/block-shell"
 // the rule after the sidebar trigger runs tight; the first block sits flush
 // under the header; the footer is the header's twin; and the customizer
 // leaves the screen (that part lives in the designer). 2026-09-07: the
-// footer is the shell's, below the card, not a row inside it.
+// footer is the designer's, set once for every stage's shell.
 
 const PARENTS: Record<string, { label: string; page: string }[]> = {
   "apps/users/create": [{ label: "Members", page: "apps/users" }],
@@ -31,15 +31,23 @@ const PARENTS: Record<string, { label: string; page: string }[]> = {
   committee: [{ label: "Committee", page: "committee" }],
 }
 
-export function AdminStage({ page, onGo }: { page: string; onGo: (page: string) => void }) {
+export function AdminStage({
+  page,
+  onGo,
+  title,
+  content,
+}: {
+  page: string
+  onGo: (page: string) => void
+  /** The crumb's last word, where the stage shows something other than a page (the workspace's dashboards menu, 2026-09-07). */ title?: string
+  /** What the stage shows in place of the page. */ content?: React.ReactNode
+}) {
   const nav = React.useMemo(() => ({ page, go: onGo }), [page, onGo])
   const links = PARENTS[page] ?? (page.startsWith("settings/") ? undefined : page.startsWith("components/") ? [{ label: "Components", page: "components/charts" }] : undefined)
   return (
     <AdminNavProvider value={nav}>
-      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={adminTitle(page)} links={links} />} actions={<AdminTopbar />} footer={<AdminFooter />}>
-        <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">
-          <AdminPage page={page} />
-        </div>
+      <BlockShell rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb title={title ?? adminTitle(page)} links={links} />} actions={<AdminTopbar />}>
+        <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">{content ?? <AdminPage page={page} />}</div>
       </BlockShell>
     </AdminNavProvider>
   )

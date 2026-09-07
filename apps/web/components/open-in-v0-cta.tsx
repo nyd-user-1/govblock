@@ -12,15 +12,15 @@ export function OpenInV0Cta({ className }: React.ComponentProps<"div">) {
   return (
     <div className={cn("group relative flex flex-col gap-2 rounded-2xl bg-surface p-6 text-sm text-surface-foreground", className)}>
       <div className="text-base leading-tight font-semibold text-balance">Build with GovBlocks</div>
-      <Link href="/create" className="flex flex-col rounded-md p-2 text-left no-underline hover:bg-muted">
+      <Link href="/workspace/data" className="flex flex-col rounded-md p-2 text-left no-underline hover:bg-muted">
         <span className="font-medium">Data Block</span>
         <span className="text-xs text-muted-foreground">Portable data by state, session, committee and member</span>
       </Link>
-      <Link href="/create?mode=design" className="flex flex-col rounded-md p-2 text-left no-underline hover:bg-muted">
+      <Link href="/workspace/data?mode=design" className="flex flex-col rounded-md p-2 text-left no-underline hover:bg-muted">
         <span className="font-medium">Design Block</span>
         <span className="text-xs text-muted-foreground">Portable, reusable design components for building</span>
       </Link>
-      <Button variant="outline" size="sm" className="mt-2 w-fit" nativeButton={false} render={<Link href="/auth?next=/create" />}>
+      <Button variant="outline" size="sm" className="mt-2 w-fit" nativeButton={false} render={<Link href="/auth?next=/workspace/data" />}>
         Sign In
       </Button>
     </div>

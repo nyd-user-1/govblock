@@ -21,7 +21,7 @@ export default function IndexPage() {
           Open Source. Open Code. Open Data.
         </PageHeaderDescription>
         <PageActions>
-          <Button render={<Link href="/create" />} nativeButton={false} className="h-[31px] rounded-lg">
+          <Button render={<Link href="/workspace/data" />} nativeButton={false} className="h-[31px] rounded-lg">
             Build Your Own <IconArrowRight data-icon="inline-end" />
           </Button>
         </PageActions>

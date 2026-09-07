@@ -20,7 +20,6 @@
 //   at=votes/2026-05               a month: Floor · Committee
 //   at=votes/2026-05/floor         that month's floor roll calls
 //   rollcall=1707303               one roll call: the tally and every position
-//   at=datasets                    what /create opens on: the datasets as cards, open or locked
 //   at=forks                       the reader's forks of bills, across jurisdictions
 //   bill=…&fork=12                 a bill seen through the reader's fork: its commits on top
 //   at=admin, at=admin/logs, …    the Admin experience: paceui's dashboard, a page per rail entry
@@ -29,7 +28,6 @@
 // menu: inbox, finance, forms, admin.
 
 export type Node =
-  | { kind: "datasets" }
   | { kind: "sessions" }
   | { kind: "root" }
   | { kind: "forks" }
@@ -52,7 +50,9 @@ export type Node =
 export type Location = { at: string; committee: string; member: string; bill: string; rollcall: string }
 
 /** What a click writes: keys to set, `null` to clear, absent to leave alone. */
-export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc" | "fork" | "state", string | null>>
+// `number` and `slug` are hints for the workspace paths (a bill's number, a
+// member's name), which /create's query keys ignore.
+export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc" | "fork" | "state" | "number" | "slug", string | null>>
 
 export const ROOT_FOLDERS = [
   { key: "bills", label: "Bills", go: { at: "bills" } as Target },
@@ -62,11 +62,11 @@ export const ROOT_FOLDERS = [
   { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
 ] as const
 
-const SPECIAL = new Set(["inbox", "finance", "forms", "datasets"])
+const SPECIAL = new Set(["inbox", "finance", "forms"])
 
 /** The node the URL names. A record beats a listing: a bill is a bill wherever it was reached from. */
 export function locate(loc: Location): Node {
-  if (SPECIAL.has(loc.at)) return { kind: loc.at as "inbox" | "finance" | "forms" | "datasets" }
+  if (SPECIAL.has(loc.at)) return { kind: loc.at as "inbox" | "finance" | "forms" }
   // The Admin experience: `at=admin` is its Sales page, `at=admin/<page>` the rest.
   if (loc.at === "admin" || loc.at.startsWith("admin/")) return { kind: "admin", page: loc.at.slice(6) }
   if (loc.bill && /^\d+$/.test(loc.bill)) return { kind: "bill", id: Number(loc.bill) }

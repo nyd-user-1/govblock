@@ -165,6 +165,12 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
 
 const JurisdictionContext = React.createContext<Jurisdiction | null>(null)
 
+// A page whose jurisdiction is in its path (Brendan, 2026-09-07:
+// /workspace/data/us/house/2025/…) sets this over its stage, and every hook
+// under it reads the path's state and session rather than the URL's keys.
+export type PathScope = { state: string; session: number | null; chamber: string | null; sessions: SessionRow[] }
+export const PathScopeContext = React.createContext<PathScope | null>(null)
+
 // Nothing below reads `useSearchParams()`, so the provider can wrap the app
 // directly: no Suspense boundary, no prerender bail-out, and every page keeps
 // its static HTML.
@@ -186,5 +192,7 @@ export function useJurisdiction(): Jurisdiction {
   // Both hooks always run (no conditional hooks); the standalone one holds
   // its fetch while the provider's value is available.
   const own = useJurisdictionValue(shared === null)
-  return shared ?? own
+  const path = React.useContext(PathScopeContext)
+  const base = shared ?? own
+  return React.useMemo(() => (path ? { ...base, state: path.state, session: path.session, isDefaultSession: false, resolved: true, sessions: path.sessions } : base), [base, path])
 }

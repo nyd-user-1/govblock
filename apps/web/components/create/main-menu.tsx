@@ -4,6 +4,8 @@ import * as React from "react"
 import { CheckIcon, MenuIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 
+import { flipTheme } from "@/lib/themes"
+
 import { Picker, PickerContent, PickerGroup, PickerItem, PickerSeparator, PickerShortcut, PickerTrigger } from "@/components/create/picker"
 import { STAGE_GROUPS, STAGE_ICON, STAGE_LABEL, type Stage } from "@/components/create/stage-switcher"
 
@@ -38,7 +40,7 @@ export function MainMenu({
     () => /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent),
     () => false
   )
-  const toggleTheme = React.useCallback(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"), [resolvedTheme, setTheme])
+  const toggleTheme = React.useCallback(() => setTheme(flipTheme(resolvedTheme)), [resolvedTheme, setTheme])
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {

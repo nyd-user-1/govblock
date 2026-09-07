@@ -182,7 +182,7 @@ export function UsersPage() {
                               <UserIcon />
                               View profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem render={<a href={`/create?state=${members.scope.state}&member=${m.people_id}`} />} className="whitespace-nowrap">
+                            <DropdownMenuItem render={<a href={`/workspace/data/${members.scope.state.toLowerCase()}/${(m.chamber || "house").toLowerCase()}/member/${m.people_id}`} />} className="whitespace-nowrap">
                               <ExternalLinkIcon />
                               Open in Create
                             </DropdownMenuItem>

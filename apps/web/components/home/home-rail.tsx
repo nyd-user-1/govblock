@@ -70,7 +70,7 @@ export function HomeRail() {
     item("agents", "/agents", "Agents", glyph(Bot), [
       { key: "agents", href: "/agents", label: "Agents", active: pathname.startsWith("/agents") },
       { key: "agent", href: "/agent", label: "Ask", active: pathname === "/agent" },
-      { key: "create", href: "/create", label: "Create", active: pathname.startsWith("/create") },
+      { key: "data", href: "/workspace/data", label: "Data", active: pathname.startsWith("/workspace/data") },
       { key: "blocks", href: "/blocks", label: "Blocks", active: pathname.startsWith("/blocks") },
     ]),
     item("data", "/docs/api", "Data", glyph(Database), [

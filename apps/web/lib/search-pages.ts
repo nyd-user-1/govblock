@@ -14,7 +14,7 @@ export const SEARCH_PAGES: { name: string; href: string; group: string }[] = [
   { name: "Blocks", href: "/blocks", group: "Pages" },
   { name: "Calendar", href: "/calendar", group: "Pages" },
   { name: "Typeset", href: "/typeset", group: "Pages" },
-  { name: "Create", href: "/create", group: "Pages" },
+  { name: "Data", href: "/workspace/data", group: "Pages" },
 ]
 
 export function matchPages(term: string, limit = 6) {

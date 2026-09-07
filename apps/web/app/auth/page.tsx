@@ -23,7 +23,7 @@ const description = "Sign in so what you connect follows you instead of this bro
  * exist yet, not a considered destination. When one exists, this constant is
  * the only thing that changes.
  */
-const HOME = "/create"
+const HOME = "/workspace/data"
 
 export const metadata = { title, description }
 export const dynamic = "force-dynamic"

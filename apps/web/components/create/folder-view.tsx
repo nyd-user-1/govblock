@@ -8,10 +8,11 @@ import { partyName, stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
 import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use-folder"
-import { BillCard, CommitteeCard, MemberCard } from "@/components/create/entity-card"
 import { ago } from "@/components/create/timeline"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
-import { EditDetailsDialog, ProjectCard, ProjectGrid, useProjectDetails, type ProjectDetails } from "@/components/project-card"
+import { EditDetailsDialog, useProjectDetails, type ProjectDetails } from "@/components/project-card"
+import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
+import { DropdownMenuItem } from "@govblock/ui/components/dropdown-menu"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 import { cn } from "@govblock/ui/lib/utils"
@@ -239,34 +240,72 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                 <CornerLeftUpIcon className="size-4" /> ..
               </button>
             )}
-            <ProjectGrid className="xl:grid-cols-3">
-              {rows.map((row) => {
-                if (row.record?.kind === "bill") return <BillCard key={row.key} bill={row.record.bill} state={state} onOpen={(open) => onGo({ ...open.go, tab: undefined } as Target)} />
-                if (row.record?.kind === "member") return <MemberCard key={row.key} member={row.record.member} state={state} onOpen={(open) => onGo(open.go)} />
-                if (row.record?.kind === "committee") return <CommitteeCard key={row.key} committee={row.record.committee} state={state} onOpen={(open) => onGo(open.go)} />
+            {/* The standard grid (Brendan, 2026-09-07): every listing's rows as the workspace's cards. */}
+            <WorkspaceGrid
+              storageKey={`govblock:workspace:${state}:${scopeKey}`}
+              className="p-0"
+              loading={folder.loading}
+              items={rows.map((row): GridItem => {
+                if (row.record?.kind === "bill") {
+                  const b = row.record.bill
+                  const go: Target = { bill: String(b.bill_id), rollcall: null, number: b.bill_number }
+                  return {
+                    key: row.key,
+                    media: <ChamberSeal state={state} chamber={b.body} size={96} />,
+                    title: `${b.bill_number} · ${truncate(b.title, 90)}`,
+                    description: b.description && b.description !== b.title ? truncate(b.description, 140) : null,
+                    meta: [b.status_desc || "Introduced", b.last_action_date ? fmtDate(b.last_action_date) : null, b.committee, b.sponsor].filter(Boolean).join(" · "),
+                    actions: [
+                      { label: "Open Bill", onClick: () => onGo(go) },
+                      { label: "Typeset", onClick: () => onGo({ ...go, tab: "typeset" }) },
+                    ],
+                  }
+                }
+                if (row.record?.kind === "member") {
+                  const m = row.record.member
+                  const go: Target = { member: String(m.people_id), bill: null, rollcall: null, slug: m.name }
+                  return {
+                    key: row.key,
+                    media: <RowAvatar avatar={row.avatar} size={96} />,
+                    title: row.name,
+                    description: [m.chamber, m.district ? m.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(m.party)].filter(Boolean).join(" · "),
+                    meta: m.leadership_title ?? null,
+                    actions: [
+                      { label: "Open Member", onClick: () => onGo(go) },
+                      { label: "Record", onClick: () => onGo({ ...go, tab: "votes" }) },
+                    ],
+                  }
+                }
+                if (row.record?.kind === "committee") {
+                  const c = row.record.committee
+                  const go: Target = { committee: c.committee_name, at: null, member: null, bill: null, rollcall: null }
+                  return {
+                    key: row.key,
+                    media: <ChamberSeal state={state} chamber={c.chamber} size={96} />,
+                    title: c.committee_name,
+                    description: `${c.chamber} committee`,
+                    meta: `${fmtNumber(c.bills)} bills before it`,
+                    actions: [
+                      { label: "Open Committee", onClick: () => onGo(go) },
+                      { label: "Calendar", onClick: () => onGo({ ...go, tab: "calendar" }) },
+                    ],
+                  }
+                }
                 const detail = details[row.key] ?? {}
-                return (
-                  <ProjectCard
-                    key={row.key}
-                    href="#"
-                    onOpen={() => onGo(row.go)}
-                    title={detail.label || row.name}
-                    note={detail.note}
-                    media={<RowAvatar avatar={row.avatar} />}
-                    meta={[row.description ? truncate(row.description, 90) : null, row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · ")}
-                    menu={{ pinned: pinned.includes(row.key), onPin: () => togglePin(row.key), onEdit: () => setEditing(row.key), feedHref: `/docs/feed.xml?state=${state}&at=${encodeURIComponent(row.key)}` }}
-                    className="cursor-pointer"
-                  />
-                )
+                return {
+                  key: row.key,
+                  media: row.avatar.kind === "folder" ? <FolderIcon className="size-12 text-muted-foreground" /> : <RowAvatar avatar={row.avatar} size={96} />,
+                  title: detail.label || row.name,
+                  description: row.description ? truncate(row.description, 90) : null,
+                  meta: [detail.note, row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
+                  actions: [
+                    { label: "Open", onClick: () => onGo(row.go) },
+                    { label: pinned.includes(row.key) ? "Unpin" : "Pin", onClick: () => togglePin(row.key) },
+                  ],
+                  menu: <DropdownMenuItem onClick={() => setEditing(row.key)}>Edit details</DropdownMenuItem>,
+                }
               })}
-            </ProjectGrid>
-            {folder.loading && (
-              <ProjectGrid className="mt-6 xl:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-2xl" />
-                ))}
-              </ProjectGrid>
-            )}
+            />
           </div>
         ) : (
           <div className="m-4 overflow-hidden rounded-lg border">
