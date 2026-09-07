@@ -336,7 +336,12 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const id = int(sp.get("id") ?? f.bill ?? null, 0)
       if (!id) throw new Error("bill id required")
-      const doc = await getBillText(id, int(sp.get("document"), 0) || undefined)
+      // `chars` asks for a window rather than the document: the longest bills
+      // here are six million characters and the Data API refuses a result over
+      // 1 MB, so a caller that only needs to read some of it says so and gets
+      // `full_chars` back to page through the rest with `from`.
+      const chars = int(sp.get("chars"), 0)
+      const doc = await getBillText(id, int(sp.get("document"), 0) || undefined, chars ? { chars: Math.min(chars, 200_000), from: int(sp.get("from"), 0) || 0 } : undefined)
       // `format=raw` is GitHub's Raw button: the text itself, as text.
       if (sp.get("format") === "raw") return new Response(doc?.text ?? "", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": CACHE } })
       return doc

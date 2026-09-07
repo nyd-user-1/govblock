@@ -57,6 +57,15 @@ function trim<T>(rows: T[] | undefined, n: number) {
   return Array.isArray(rows) ? rows.slice(0, n) : []
 }
 
+/** The last n, for the lists the record keeps oldest-first. */
+function tail<T>(rows: T[] | undefined, n: number) {
+  return Array.isArray(rows) ? rows.slice(Math.max(0, rows.length - n)) : []
+}
+
+function size(rows: unknown) {
+  return Array.isArray(rows) ? rows.length : 0
+}
+
 /** A bill number with the spaces and punctuation people add taken back out. */
 function plain(value: unknown) {
   return typeof value === "string" ? value.replace(/[^a-z0-9]/gi, "").toUpperCase() : ""
@@ -145,16 +154,31 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
         }
       }
 
+      // A round is capped at eight thousand characters of tool result, and H.R.
+      // 1's record is forty-five kilobytes — so what is cut matters. The
+      // history and the roll calls are kept oldest-first by the record, and the
+      // old code took the head of them: the model was handed January's actions
+      // on a bill that moved in September, and never saw where it had got to.
+      // Both are read from the end now, with their true lengths beside them and
+      // the tool that holds the rest named.
       return {
         ...b,
-        sponsors: trim(b.sponsors as unknown[], 12),
-        history: trim(b.history as unknown[], 25),
-        rollCalls: trim(b.rollCalls as unknown[], 10),
-        referrals: trim(b.referrals as unknown[], 10),
-        progress: trim(b.progress as unknown[], 15),
-        documents: trim(b.documents as unknown[], 8),
+        counts: {
+          history: size(b.history),
+          rollCalls: size(b.rollCalls),
+          sponsors: size(b.sponsors),
+          sameAs: size(b.sameAs),
+        },
+        more: size(b.history) > 15 ? "Only the most recent actions are here; bill_status has the whole history." : null,
+        sponsors: trim(b.sponsors as unknown[], 10),
+        history: tail(b.history as unknown[], 15),
+        rollCalls: tail(b.rollCalls as unknown[], 6),
+        referrals: trim(b.referrals as unknown[], 8),
+        progress: trim(b.progress as unknown[], 12),
+        sameAs: trim(b.sameAs as unknown[], 4),
+        documents: trim(b.documents as unknown[], 4),
         subjects: trim(b.subjects as unknown[], 15),
-        texts: trim(b.texts as unknown[], 8),
+        texts: trim(b.texts as unknown[], 6),
         hearings: trim(b.hearings as unknown[], 5),
       }
     },
@@ -162,23 +186,37 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
 
   get_bill_text: {
     description:
-      "The text of a bill as filed. Long — call it only when the question turns on the wording, and quote rather than summarise from memory.",
+      "An excerpt of a bill's text as filed. Call it when the question turns on the wording, and quote rather than summarise from memory. It answers with a window, not the document: `full_chars` says how long the whole text is, and from_char reads the next window. The record holds bills of six million characters, so read the part you need.",
     properties: {
       bill_id: { type: "integer", description: "The numeric bill id." },
       jurisdiction: JURISDICTION,
+      from_char: {
+        type: "integer",
+        description: "Where to start, in characters. Default 0. Pass the previous call's from_char plus the excerpt's length to read on.",
+      },
     },
     required: ["bill_id"],
-    request: (input) => query("text", input, ["id"]),
+    // The window is what survives the round anyway: a tool result is capped at
+    // eight thousand characters before it reaches the model, so asking the
+    // database for sixty thousand spent the time and the 1 MB result budget on
+    // text that was then thrown away — and failed outright on the long bills,
+    // which are the ones worth reading (503, "the result exceeds the size
+    // limit"). Six thousand fits the cap with the envelope around it.
+    request: (input) => query("text", { ...input, chars: "6000" }, ["id", "chars", "from"]),
     shape: (data) => {
       const t = data as Record<string, unknown> | null
       if (!t) return null
       const text = typeof t.text === "string" ? t.text : ""
+      const full = Number(t.full_chars) || text.length
+      const from = Number(t.from) || 0
       return {
-        ...t,
-        // 60k characters is about 15k tokens — enough for any single bill this
-        // record holds, and a ceiling on a runaway federal omnibus.
-        text: text.slice(0, 60_000),
-        truncated: text.length > 60_000,
+        document_id: t.document_id,
+        version: t.version,
+        full_chars: full,
+        from_char: from,
+        excerpt_chars: text.length,
+        more: from + text.length < full ? `${(full - from - text.length).toLocaleString()} characters remain; call again with from_char ${from + text.length}.` : null,
+        text,
       }
     },
   },
@@ -338,7 +376,13 @@ export function normalise(name: ToolName, input: Record<string, unknown>): Recor
   for (const [key, value] of Object.entries(input ?? {})) {
     if (value === undefined || value === null) continue
     const mapped =
-      key === "bill_id" || key === "people_id" ? "id" : key === "bill_number" ? "number" : key
+      key === "bill_id" || key === "people_id"
+        ? "id"
+        : key === "bill_number"
+          ? "number"
+          : key === "from_char"
+            ? "from"
+            : key
     out[mapped] = String(value)
   }
   if (name === "get_bill" && !out.id && !out.number) delete out.id

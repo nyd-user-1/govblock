@@ -614,25 +614,56 @@ export async function getBill(billId: number) {
   }
 }
 
-export async function getBillText(billId: number, documentId?: number) {
+/**
+ * One version of a bill's text.
+ *
+ * `excerpt` slices in the database rather than here, and that is not an
+ * optimisation: the Data API caps a result at 1 MB and the record holds bills
+ * of six million characters, so a whole-text read of the longest ones fails
+ * outright (bill 1137434: 503, "the result exceeds the size limit"). A caller
+ * that only needs a window — every agent, which has a thirty-second round and
+ * an eight-kilobyte tool result — asks for one and is told how much more there
+ * is.
+ */
+export async function getBillText(billId: number, documentId?: number, excerpt?: { chars: number; from?: number }) {
   const params: unknown[] = [billId]
   const doc = documentId ? `and t.document_id = $${params.push(documentId)}` : ""
+  // The shim binds a JS integer as bigint and substr(text, bigint, bigint) is
+  // not a function Postgres has — the same ::int the texts loader carries.
+  const from = Math.max(0, Math.floor(excerpt?.from ?? 0))
+  const body = excerpt
+    ? `substr(t.text, $${params.push(from + 1)}::int, $${params.push(Math.max(1, Math.floor(excerpt.chars)))}::int) as text, length(t.text) as full_chars`
+    : `t.text, length(t.text) as full_chars`
   const row = await one<{
     document_id: number
     version: string | null
     chars: number
     fetched_at: string | null
     text: string
+    full_chars: number
     document_desc: string | null
   }>(
-    `select t.document_id, t.version, t.chars, t.fetched_at, t.text, d.document_desc
+    `select t.document_id, t.version, t.chars, t.fetched_at, ${body}, d.document_desc
      from "BillTexts" t left join "Documents" d on d.document_id = t.document_id and d.document_type = 'text'
      where t.bill_id = $1 and t.text is not null ${doc} order by t.document_id desc limit 1`,
     params
   )
   if (!row) return null
   const text = cleanBillText(row.text)
-  return { ...row, document_id: n(row.document_id), text, chars: text.length }
+  const full = n(row.full_chars) || text.length
+  if (!excerpt) return { ...row, document_id: n(row.document_id), text, chars: text.length, full_chars: full }
+  return {
+    ...row,
+    document_id: n(row.document_id),
+    text,
+    // `chars` stays what it has always been — the length of the text in hand —
+    // and `full_chars` is the document, so a reader can tell an excerpt from
+    // the whole thing and ask for the next window with `from`.
+    chars: text.length,
+    full_chars: full,
+    from,
+    truncated: from + text.length < full,
+  }
 }
 
 export async function getBillVotes(billId: number) {
