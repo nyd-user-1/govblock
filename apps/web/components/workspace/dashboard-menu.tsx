@@ -82,10 +82,8 @@ function DashboardCards({ entries, search }: { entries: Entry[]; search: string 
           badge: <Dot tag={entry.tag} />,
           media: <DashboardSketch spec={record.spec} />,
           title: adminTitle(entry.page),
-          actions: [
-            { label: "Explore", onClick: explore },
-            { label: "Share", onClick: share, title: "Copy the link" },
-          ],
+          // No buttons (Brendan, 2026-09-07): the card itself opens the dashboard.
+          onOpen: explore,
           menu: (
             <>
               <DropdownMenuItem onClick={explore}>Explore</DropdownMenuItem>
@@ -102,7 +100,7 @@ function DashboardCards({ entries, search }: { entries: Entry[]; search: string 
 export function DashboardMenu() {
   const raw = useUrlSearch()
   const search = typeof raw === "string" ? raw : ""
-  const groups = React.useMemo(sections, [])
+  const groups = React.useMemo(() => sections(), [])
   return (
     <div className="flex flex-col gap-8">
       {groups.map((group) => (
