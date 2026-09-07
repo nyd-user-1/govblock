@@ -5,8 +5,6 @@ import { X } from "lucide-react"
 
 import { findAddress, isPerson, matchAddresses, nameOf, type Address } from "@/lib/agents/inbox"
 import { agent as findAgent } from "@/lib/agents/registry"
-import { MODELS } from "@/lib/agents/models"
-import { cn } from "@/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
 import {
@@ -21,9 +19,11 @@ import {
 // by name, address or speciality.
 //
 // Cc means what it means: every agent on the line runs the task and replies on
-// the thread, so three recipients is three runs and three times the Bedrock
-// bill. That is said on the surface rather than discovered on the invoice. Bcc
-// is the same run whose recipient line the thread does not show.
+// the thread. Bcc is the same run whose recipient line the thread does not
+// show. The bottom bar says nothing about models or runs (Brendan,
+// 2026-09-07: "remove this 'One run on Claude'"): mail does not tell you what
+// the other end will do with your message, and the thread's header carries the
+// bill once there is one.
 
 export type Draft = { to: string[]; cc: string[]; bcc: string[]; subject: string; body: string }
 
@@ -204,8 +204,6 @@ export function Compose({
   const [showCc, setShowCc] = React.useState(false)
   const [showBcc, setShowBcc] = React.useState(false)
   const everyone = [...draft.to, ...draft.cc, ...draft.bcc]
-  const agents = everyone.filter((slug) => !isPerson(slug))
-  const people = everyone.filter(isPerson)
   const first = findAgent(draft.to.find((slug) => !isPerson(slug)) ?? "")
 
   const editor = useTaskEditor({
@@ -213,12 +211,6 @@ export function Compose({
     onChange: (body) => onChange({ ...draft, body }),
     placeholder: placeholder ?? (inline ? "Reply…" : (first?.placeholder ?? "What should it do?")),
   })
-
-  // n agents is n runs. Say what that costs before it is spent.
-  const estimate = agents
-    .map((slug) => findAgent(slug))
-    .filter(Boolean)
-    .map((definition) => MODELS[definition!.tier].label)
 
   return (
     <form
@@ -331,14 +323,6 @@ export function Compose({
         <Button type="button" variant="ghost" size="sm" onClick={onDiscard}>
           {inline ? "Cancel" : "Discard"}
         </Button>
-        <span className={cn("ml-auto text-xs text-muted-foreground", !everyone.length && "hidden")}>
-          {agents.length === 1 && `One run on ${estimate[0]}.`}
-          {agents.length > 1 &&
-            `${agents.length} agents means ${agents.length} runs — ${estimate.join(", ")} — and ${agents.length}× the cost.`}
-          {people.length > 0 &&
-            ` ${people.map(nameOf).join(", ")} ${people.length === 1 ? "is" : "are"} recorded on the thread; ${people.length === 1 ? "he gets" : "they get"} it when notifications exist.`}
-          {!agents.length && !people.length && "Kept in this browser, not on a server."}
-        </span>
       </div>
     </form>
   )

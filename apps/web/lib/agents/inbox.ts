@@ -197,12 +197,25 @@ export function threadCost(thread: Thread) {
   return thread.messages.reduce((total, message) => total + (message.run?.usd ?? 0), 0)
 }
 
-export function reply(thread: Thread, from: string, run: RunState, status: ThreadStatus): Thread {
-  const at = Date.now()
-  const existing = thread.messages.find((message) => message.from === from)
-  const next: Message = existing ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true } : { id: id(), from, at, body: run.text, run, unread: true }
+/** A fresh id for the message one run will write. */
+export function messageId() {
+  return id()
+}
 
-  const messages = existing ? thread.messages.map((message) => (message.from === from ? next : message)) : [...thread.messages, next]
+/**
+ * An agent's reply, written by one run. `messageId` names the message that run
+ * owns: the first call appends it, every call after updates it as the run
+ * streams. A second run on the same thread — a reply to your reply — writes a
+ * second message, the way a second email does. (Until 2026-09-07 the agent
+ * had one message per thread and each run overwrote the last, which is a
+ * chat transcript's habit, not mail's.)
+ */
+export function reply(thread: Thread, from: string, run: RunState, status: ThreadStatus, messageId: string): Thread {
+  const at = Date.now()
+  const existing = thread.messages.find((message) => message.id === messageId)
+  const next: Message = existing ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true } : { id: messageId, from, at, body: run.text, run, unread: true }
+
+  const messages = existing ? thread.messages.map((message) => (message.id === messageId ? next : message)) : [...thread.messages, next]
 
   return {
     ...thread,
@@ -213,17 +226,34 @@ export function reply(thread: Thread, from: string, run: RunState, status: Threa
   }
 }
 
+/** The replies since the last thing you wrote: the round now owed. */
+function latestRound(thread: Thread) {
+  let from = 0
+  thread.messages.forEach((message, index) => {
+    if (message.from === "you") from = index + 1
+  })
+  return thread.messages.slice(from).filter((message) => message.from !== "you")
+}
+
 /**
- * What a thread's status is once several recipients have run.
+ * What a thread's status is once its recipients have run.
  *
- * Running while any of them still is; failed only when every one of them
- * failed, because one agent tripping is not the thread failing.
+ * Running while any run is still going or any recipient has yet to answer the
+ * latest message; failed only when every reply in that round failed, because
+ * one agent tripping is not the thread failing.
  */
 export function settle(thread: Thread): ThreadStatus {
   const replies = thread.messages.filter((message) => message.from !== "you")
   if (!replies.length) return thread.status
-  if (replies.length < runners(thread).length) return "running"
-  return replies.every((message) => message.run?.failed) ? "failed" : "delivered"
+  if (replies.some((message) => message.run && !message.run.done)) return "running"
+  const round = latestRound(thread)
+  if (round.length < runners(thread).length) return "running"
+  return round.every((message) => message.run?.failed) ? "failed" : "delivered"
+}
+
+/** A reply that has actually arrived: it says something, or its run is over. */
+export function arrived(message: Message) {
+  return message.from !== "you" && Boolean(message.body || message.run?.done)
 }
 
 export function inFolder(thread: Thread, folder: Folder) {
@@ -237,10 +267,10 @@ export function inFolder(thread: Thread, folder: Folder) {
     case "sent":
       return thread.status !== "draft"
     case "inbox":
-      // A thread reaches the inbox when the agent has replied to it — the same
-      // rule mail follows, and the reason a running task sits in Sent until it
-      // has something to say.
-      return thread.messages.some((message) => message.from !== "you")
+      // A thread reaches the inbox when a reply has arrived — the same rule
+      // mail follows, and the reason a running task sits in Sent until it has
+      // something to say.
+      return thread.messages.some(arrived)
   }
 }
 
