@@ -53,7 +53,7 @@ export function NavigationCard() {
         { name: "Charts", href: "/charts", icon: IconChartBar },
         { name: "Data", href: "/workspace/data", icon: IconLayoutGrid },
         { name: "Calendar", href: "/calendar", icon: IconCalendarEvent },
-        { name: "Typeset", href: scoped("/typeset"), icon: IconTypography },
+        { name: "Typeset", href: "/workspace/typeset", icon: IconTypography },
       ],
     },
     {

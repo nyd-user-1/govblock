@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ArchiveIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LandmarkIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
 
 import { readSort, SORTS } from "@/lib/workspace/sort"
+import { AssistToggle } from "@/components/assist-panel"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
@@ -28,7 +29,7 @@ export const WORKSPACES: { key: Workspace; label: string; href: string; icon: ty
   { key: "finance", label: "Finance", href: "/workspace/finance", icon: LandmarkIcon },
   { key: "forms", label: "Forms", href: "/workspace/forms", icon: FileTextIcon },
   { key: "documents", label: "Documents", href: "/workspace/documents", icon: ArchiveIcon },
-  { key: "typeset", label: "Typeset", href: "/typeset", icon: TypeIcon },
+  { key: "typeset", label: "Typeset", href: "/workspace/typeset", icon: TypeIcon },
   { key: "charts", label: "Charts", href: "/charts/area", icon: ChartAreaIcon },
 ]
 
@@ -60,9 +61,9 @@ function FilterChip() {
 }
 
 /** The three links at the footer's right edge, on every shell. */
-export function ShellFooterLinks() {
+export function ShellFooterLinks({ className }: { className?: string }) {
   return (
-    <div className="ml-auto flex shrink-0 items-center gap-4 text-sm">
+    <div className={cn("ml-auto flex shrink-0 items-center gap-4 text-sm", className)}>
       <a href="/docs" className="not-hover:text-muted-foreground">
         About
       </a>
@@ -76,7 +77,7 @@ export function ShellFooterLinks() {
   )
 }
 
-export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: { mode: Workspace; panelOpen: boolean; onTogglePanel: () => void; className?: string }) {
+export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className, children }: { mode: Workspace; panelOpen: boolean; onTogglePanel: () => void; className?: string; /** The page's own controls, after the mode switcher: typeset's pages. */ children?: React.ReactNode }) {
   const router = useRouter()
   const current = WORKSPACES.find((w) => w.key === mode) ?? WORKSPACES[0]
   return (
@@ -118,6 +119,12 @@ export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      {children && (
+        <>
+          <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+          {children}
+        </>
+      )}
       {/* The Filter chip belongs to the Data pages alone (Brendan, 2026-09-07). */}
       {mode === "data" && (
         <>
@@ -125,7 +132,10 @@ export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: {
           <FilterChip />
         </>
       )}
-      <ShellFooterLinks />
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        <AssistToggle />
+        <ShellFooterLinks className="ml-0" />
+      </div>
     </div>
   )
 }

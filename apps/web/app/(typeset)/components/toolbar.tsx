@@ -21,6 +21,25 @@ import {
 
 type ItemValue = TypesetSearchParams["item"]
 
+/** The numbered pages, 01–05 (and the dev fixtures in development). */
+export function TypesetPages() {
+  return (
+    <>
+      {CONTENT_OPTIONS.map((option, index) => (
+        <ItemPill key={option.value} value={option.value} label={option.label} number={index + 1} />
+      ))}
+      {process.env.NODE_ENV === "development" && DEV_CONTENT_OPTIONS.length > 0 ? (
+        <div className="hidden items-center gap-1 md:flex">
+          <div className="mx-0.5 h-4 w-px bg-border" />
+          {DEV_CONTENT_OPTIONS.map((option, index) => (
+            <ItemPill key={option.value} value={option.value} label={option.label} number={CONTENT_OPTIONS.length + index + 1} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 export function TypesetToolbar() {
   return (
     <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center justify-center gap-1.5">
@@ -88,7 +107,7 @@ function ItemPill({
   )
 }
 
-function OpenInNewTab() {
+export function OpenInNewTab() {
   const [params] = useTypesetSearchParams()
   const href = serializeTypesetSearchParams(
     `/preview/typeset/${params.item}`,

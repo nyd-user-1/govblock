@@ -9,6 +9,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
 import { EMBED_SCRIPT, EMBED_STYLE, SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/policy/scope-script"
 import { ScopeReady } from "@/components/scope-ready"
+import { AssistPanelProvider } from "@/lib/assist-panel"
+import { AssistPanel, AssistShell } from "@/components/assist-panel"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -45,12 +47,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider>
           <TooltipProvider delay={0}>
             <JurisdictionProvider>
+            <AssistPanelProvider>
             <ScopeReady />
             <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden has-data-[slot=inbox]:h-svh has-data-[slot=inbox]:overflow-hidden">
               <SiteHeader />
-              <main data-scope-content className="flex min-h-0 flex-1 flex-col">{children}</main>
+              {/* The chat drawer is part of this shell (Brendan, 2026-09-07): it
+                  lives outside the routed pages and survives every navigation. */}
+              <AssistShell>
+                <main data-scope-content className="flex min-h-0 flex-1 flex-col">{children}</main>
+              </AssistShell>
               <SiteFooter />
             </div>
+            <AssistPanel />
+            </AssistPanelProvider>
             </JurisdictionProvider>
           </TooltipProvider>
         </ThemeProvider>

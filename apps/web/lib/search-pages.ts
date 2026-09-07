@@ -13,7 +13,7 @@ export const SEARCH_PAGES: { name: string; href: string; group: string }[] = [
   { name: "News", href: "/newsroom", group: "Pages" },
   { name: "Blocks", href: "/blocks", group: "Pages" },
   { name: "Calendar", href: "/calendar", group: "Pages" },
-  { name: "Typeset", href: "/typeset", group: "Pages" },
+  { name: "Typeset", href: "/workspace/typeset", group: "Pages" },
   { name: "Data", href: "/workspace/data", group: "Pages" },
 ]
 

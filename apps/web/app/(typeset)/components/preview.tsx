@@ -29,7 +29,9 @@ function isSameParams(a: TypesetSearchParams | null, b: TypesetSearchParams) {
   )
 }
 
-export function TypesetPreview() {
+// `bare` (Brendan, 2026-09-07): inside the workspace shell the iframe fills the
+// pane and the pages sit in the footer, so no frame and no floating pill.
+export function TypesetPreview({ bare = false }: { bare?: boolean } = {}) {
   const [params] = useTypesetSearchParams()
   const override = usePreviewOverrideValue()
   const { shuffle, reset } = useShuffle()
@@ -132,14 +134,14 @@ export function TypesetPreview() {
   }, [shuffle, reset, goBack, goForward, toggleTheme])
 
   return (
-    <div className="relative isolate flex size-full min-h-0 flex-1 overflow-hidden rounded-2xl bg-background ring-1 ring-foreground/10">
+    <div className={bare ? "relative isolate flex size-full min-h-0 flex-1 overflow-hidden bg-background" : "relative isolate flex size-full min-h-0 flex-1 overflow-hidden rounded-2xl bg-background ring-1 ring-foreground/10"}>
       <iframe
         ref={iframeRef}
         src={previewUrl}
         title="typeset preview"
         className="size-full"
       />
-      <TypesetToolbar />
+      {!bare && <TypesetToolbar />}
     </div>
   )
 }
