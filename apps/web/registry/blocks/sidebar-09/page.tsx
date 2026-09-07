@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Copy, ExternalLink, PenSquare, Reply as ReplyIcon, Ro
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
 import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
+import { FEATURED } from "@/lib/agents/featured"
 import { sampleThreads } from "@/lib/agents/sample"
 import { cn } from "@/lib/utils"
 import { ADMIN_USER } from "@/components/admin/account-footer"
@@ -132,7 +133,11 @@ export default function Page() {
     // An inbox that has never held anything shows the fifty placeholders
     // (Brendan, 2026-09-07); one that was cleared stays empty.
     const kept = loadThreads()
-    const stored = kept.length || window.localStorage.getItem(CLEARED) ? kept : sampleThreads()
+    const base = kept.length || window.localStorage.getItem(CLEARED) ? kept : sampleThreads()
+    // The Clerk's real deliveries arrive in any inbox that has not been
+    // cleared, once each: a stable id means one that was trashed stays trashed.
+    const missing = window.localStorage.getItem(CLEARED) ? [] : FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
+    const stored = missing.length ? [...missing, ...base].sort((a, b) => b.updatedAt - a.updatedAt) : base
     // A run that was in flight when the tab closed did not survive it. Say so
     // on that reply — and only that one; earlier replies on the thread stand —
     // rather than leave a spinner that will never stop.
