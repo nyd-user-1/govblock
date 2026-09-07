@@ -59,11 +59,15 @@ async function cf<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body.result
 }
 
-/** The customer code that fronts every player URL: read off a video, or set by hand. */
-function customerCode(videos: StreamVideo[]) {
+/** The customer code that fronts every player URL: set by hand, else read off a video's preview or a live input's WebRTC address. */
+function customerCode(videos: StreamVideo[], live: LiveInput[]) {
   if (process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE) return process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE
-  const m = /customer-([a-z0-9]+)\.cloudflarestream\.com/.exec(videos.find((v) => v.preview)?.preview ?? "")
-  return m?.[1] ?? null
+  const urls = [...videos.map((v) => v.preview), ...live.map((l) => l.webRtcUrl ?? "")]
+  for (const u of urls) {
+    const m = /customer-([a-z0-9]+)\.cloudflarestream\.com/.exec(u ?? "")
+    if (m) return m[1]
+  }
+  return null
 }
 
 /** Whether the token can reach Stream at all, and what to do if not. */
@@ -129,5 +133,5 @@ export async function getStream() {
   const state = await status()
   if (!state.ok) return { ...state, videos: [] as StreamVideo[], live: [] as LiveInput[], customer: null as string | null, account: ACCOUNT ?? null }
   const [videos, live] = await Promise.all([listVideos(), listLiveInputs()])
-  return { ...state, videos, live, customer: customerCode(videos), account: ACCOUNT ?? null }
+  return { ...state, videos, live, customer: customerCode(videos, live), account: ACCOUNT ?? null }
 }
