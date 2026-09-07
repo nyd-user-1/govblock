@@ -14,6 +14,8 @@ import type { SessionRow } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { accessTo, DATASETS, LAYOUT_KEY, type Access, type Dataset } from "@/lib/workspace/datasets"
 import { buildWorkspacePath } from "@/lib/workspace/path"
+import { readSort, sortRows } from "@/lib/workspace/sort"
+import { useUrlParams } from "@/lib/policy/url-state"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -138,9 +140,12 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
       return next
     })
 
+  const { sort: sortParam } = useUrlParams(["sort"] as const)
+  const sort = readSort(sortParam)
+  const ordered = React.useMemo(() => sortRows(DATASETS, sort, { name: (d) => d.title, kind: (d) => ({ congress: "0", state: "1", department: "2" })[d.group], time: () => null }), [sort])
   const items = React.useMemo<GridItem[]>(
     () =>
-      DATASETS.map((d) => {
+      ordered.map((d) => {
         const access = accessTo(d, { signedIn, home })
         const locked = access === "locked"
         const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : null
@@ -166,15 +171,15 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
           ),
         }
       }),
-    [signedIn, home, chosen, router]
+    [ordered, signedIn, home, chosen, router]
   )
 
-  if (look === "table") return <DatasetTable chosen={chosen} />
-  return <WorkspaceGrid storageKey={LAYOUT_KEY} items={items} />
+  if (look === "table") return <DatasetTable chosen={chosen} rows={ordered} />
+  return <WorkspaceGrid storageKey={LAYOUT_KEY} items={items} keepOrder={!!sort} />
 }
 
 /** The datasets as the standard table: the seal and name, the jurisdiction, the plan. */
-function DatasetTable({ chosen }: { chosen: Record<string, number> }) {
+function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: Dataset[] }) {
   const router = useRouter()
   const { signedIn } = useAccount()
   const { state: home } = useJurisdiction()
@@ -192,7 +197,7 @@ function DatasetTable({ chosen }: { chosen: Record<string, number> }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {DATASETS.map((d) => {
+          {rows.map((d) => {
             const access = accessTo(d, { signedIn, home })
             const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : null
             const open = access === "open" && !!path

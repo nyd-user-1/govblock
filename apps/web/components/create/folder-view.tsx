@@ -8,6 +8,8 @@ import { partyName, stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
 import { useFolder, type Avatar as AvatarSpec, type Row } from "@/lib/policy/use-folder"
+import { useUrlParams } from "@/lib/policy/url-state"
+import { readSort, sortRows } from "@/lib/workspace/sort"
 import { ago } from "@/components/create/timeline"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { EditDetailsDialog, useProjectDetails, type ProjectDetails } from "@/components/project-card"
@@ -186,13 +188,17 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
   const { pinned, togglePin, details, setDetails } = useProjectDetails(`tree:${state}:${scopeKey}`)
   const [editing, setEditing] = React.useState<string | null>(null)
 
+  const { sort: sortParam } = useUrlParams(["sort"] as const)
+  const sort = readSort(sortParam)
   const rows = React.useMemo(() => {
     const rank = (p: string) => {
       const index = pinned.indexOf(p)
       return index < 0 ? Infinity : index
     }
-    return [...folder.rows].sort((a, b) => rank(a.key) - rank(b.key))
-  }, [folder.rows, pinned])
+    const pinnedFirst = [...folder.rows].sort((a, b) => rank(a.key) - rank(b.key))
+    // The footer's Filter chip: folders before records when by type; the newest activity first when by time.
+    return sortRows(pinnedFirst, sort, { name: (r) => r.name, kind: (r) => (r.kind === "folder" ? "0" : `1-${r.record?.kind ?? "z"}`), time: (r) => r.date })
+  }, [folder.rows, pinned, sort])
 
   // A committee's tabs are its two folders and its calendar; Bills and Members
   // are the same places the tree shows, so the tab writes the same key.

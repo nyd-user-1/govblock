@@ -4,6 +4,8 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { ArchiveIcon, ChartAreaIcon, CheckIcon, ChevronsUpDown, DatabaseIcon, FileTextIcon, InboxIcon, LandmarkIcon, LayoutDashboardIcon, MenuIcon, TypeIcon } from "lucide-react"
 
+import { readSort, SORTS } from "@/lib/workspace/sort"
+import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Separator } from "@govblock/ui/components/ny4/separator"
@@ -29,6 +31,33 @@ export const WORKSPACES: { key: Workspace; label: string; href: string; icon: ty
   { key: "typeset", label: "Typeset", href: "/typeset", icon: TypeIcon },
   { key: "charts", label: "Charts", href: "/charts/area", icon: ChartAreaIcon },
 ]
+
+/** The Filter chip: the same trigger as the mode switcher, ordering the page's rows. */
+function FilterChip() {
+  const { sort } = useUrlParams(["sort"] as const)
+  const current = readSort(sort)
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="flex h-7 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent data-[state=open]:bg-accent" aria-label="How the rows are ordered">
+          {current ? SORTS.find((s) => s.value === current)?.label : "Filter"}
+          <ChevronsUpDown className="size-3.5 opacity-70" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-max min-w-44 rounded-lg">
+        {SORTS.map((s) => (
+          <DropdownMenuItem key={s.value} className="whitespace-nowrap" onClick={() => writeUrlParams({ sort: s.value }, { history: "replace" })}>
+            {s.label}
+            {current === s.value && <CheckIcon className="ml-auto size-4" />}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuItem className="whitespace-nowrap" disabled={!current} onClick={() => writeUrlParams({ sort: null }, { history: "replace" })}>
+          Clear
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 /** The three links at the footer's right edge, on every shell. */
 export function ShellFooterLinks() {
@@ -89,6 +118,8 @@ export function WorkspaceFooter({ mode, panelOpen, onTogglePanel, className }: {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
+      <FilterChip />
       <ShellFooterLinks />
     </div>
   )

@@ -273,14 +273,14 @@ function GridCard({
   )
 }
 
-export function WorkspaceGrid({ storageKey, items, loading, children, className }: { storageKey: string; items: GridItem[]; /** A trailing row of skeletons while more arrive. */ loading?: boolean; children?: React.ReactNode; className?: string }) {
+export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children, className }: { storageKey: string; items: GridItem[]; /** A trailing row of skeletons while more arrive. */ loading?: boolean; /** The items' own order stands (the footer's Filter chip is sorting them); the reader's saved order waits. */ keepOrder?: boolean; children?: React.ReactNode; className?: string }) {
   const [saved, setLayout] = useLocal<Partial<Layout>>(storageKey, {})
   const layout = React.useMemo(() => readLayout(saved), [saved])
   const grid = React.useRef<HTMLDivElement>(null)
   const [rearranging, setRearranging] = React.useState(false)
   const [dragging, setDragging] = React.useState<string | null>(null)
 
-  const cards = React.useMemo(() => arrange(layout, items), [layout, items])
+  const cards = React.useMemo(() => (keepOrder ? arrange({ ...layout, order: [] }, items) : arrange(layout, items)), [layout, items, keepOrder])
 
   // Read at the moment of a drag, so a window that changed width since mount still measures true.
   const metrics = React.useCallback((): Metrics => {
