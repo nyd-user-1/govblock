@@ -68,12 +68,20 @@ export type GridItem = {
   docs?: string
 }
 
-/** A block's default size on this grid: what it needs on four columns, twice that on eight. */
-function sizeFor(item: GridItem, columns: Columns, saved?: Size): Size {
-  if (saved) return saved
-  const base = item.defaultSize ?? DEFAULT_SIZE
-  if (columns === 4) return base
+/**
+ * A block's default size on this grid. A block that declares the size it
+ * needs keeps its pixel size on eight columns, so it doubles; a card that
+ * declares none (a dataset, a bill, a member) is half the size there, which
+ * is what eight columns is for (Brendan, 2026-09-07).
+ */
+function defaultFor(item: GridItem, columns: Columns): Size {
+  const base = item.defaultSize
+  if (!base || columns === 4) return base ?? DEFAULT_SIZE
   return { cols: Math.min(8, base.cols * 2) as Size["cols"], rows: Math.min(4, base.rows * 2) as Size["rows"] }
+}
+
+function sizeFor(item: GridItem, columns: Columns, saved?: Size): Size {
+  return saved ?? defaultFor(item, columns)
 }
 
 type Metrics = { columns: number; columnWidth: number; rowHeight: number }
@@ -87,6 +95,8 @@ export type GridCell = {
   /** The block's docs page, for the Code item. */
   docs?: string
   size: Size
+  /** The size the block has by default on this grid; Reset returns to it. */
+  base: Size
   color?: Color
   columns: Columns
   rearranging: boolean
@@ -106,7 +116,7 @@ export function useGridCell(): GridCell | null {
 
 /** The grid's menu items, for a bare block's own ⋮. */
 export function GridCellItems({ cell }: { cell: GridCell }) {
-  const changed = !sameSize(cell.size, DEFAULT_SIZE) || !!cell.color
+  const changed = !sameSize(cell.size, cell.base) || !!cell.color
   const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, cell.size))?.label ?? ""
   return (
     <>
@@ -164,7 +174,7 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
       <DropdownMenuItem
         disabled={!changed}
         onClick={() => {
-          cell.onSize(DEFAULT_SIZE)
+          cell.onSize(cell.base)
           cell.onColor(null)
         }}
       >
@@ -203,7 +213,8 @@ function CardActions({
   onResetLayout: () => void
   onDelete: () => void
 }) {
-  const changed = !sameSize(size, DEFAULT_SIZE) || !!color
+  const base = defaultFor(item, columns)
+  const changed = !sameSize(size, base) || !!color
   const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, size))?.label ?? ""
   return (
     <DropdownMenu>
@@ -267,7 +278,7 @@ function CardActions({
         <DropdownMenuItem
           disabled={!changed}
           onClick={() => {
-            onSize(DEFAULT_SIZE)
+            onSize(base)
             onColor(null)
           }}
         >
@@ -358,7 +369,7 @@ function GridCard({
     open?.()
   }
 
-  const cell: GridCell = { docs: item.docs, size, color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
+  const cell: GridCell = { docs: item.docs, size, base: defaultFor(item, columns), color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
   const dragProps = {
     draggable: rearranging,
     onDragStart: (e: React.DragEvent) => {
