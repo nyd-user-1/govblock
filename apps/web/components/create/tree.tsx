@@ -6,6 +6,7 @@ import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, FolderOpen
 import { keyOf, locate, ROOT_FOLDERS, type Location, type Node, type Target } from "@/lib/create/path"
 import { partyName, stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
+import { PathScopeContext } from "@/lib/policy/jurisdiction"
 import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import { useFolder, type Row } from "@/lib/policy/use-folder"
 import { useSnapshot } from "@/lib/policy/use-policy"
@@ -152,6 +153,7 @@ export function ancestorsOf(loc: Location, node: Node, chamber = ""): string[] {
 export function Tree({ scope, location, node, onGo }: { scope: Scope; location: Location; node: Node; onGo: (go: Target) => void }) {
   const { state, session, resolved } = scope
   const sessionTitle = useSessionTitle(state, session)
+  const year = React.useContext(PathScopeContext)?.year ?? session
   const [opened, setOpened] = React.useState<Set<string>>(() => new Set())
   const [closed, setClosed] = React.useState<Set<string>>(() => new Set())
   const [query, setQuery] = React.useState("")
@@ -250,7 +252,7 @@ export function Tree({ scope, location, node, onGo }: { scope: Scope; location: 
             {/* The repository's name: the session. The organization above it
                 is a click away on the label. */}
             <SidebarGroupLabel className="cursor-pointer" onClick={() => onGo({ at: null, committee: null, member: null, bill: null, rollcall: null })} title={`${legislatureName(state)} · ${sessionTitle}`}>
-              {session ? String(session) : "…"}
+              {year ? String(year) : "…"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

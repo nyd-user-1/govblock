@@ -168,7 +168,8 @@ const JurisdictionContext = React.createContext<Jurisdiction | null>(null)
 // A page whose jurisdiction is in its path (Brendan, 2026-09-07:
 // /workspace/data/us/house/2025/…) sets this over its stage, and every hook
 // under it reads the path's state and session rather than the URL's keys.
-export type PathScope = { state: string; session: number | null; chamber: string | null; sessions: SessionRow[] }
+/** `session` is the dataset's key (the year its session began); `year` is the year the path names and the pages show. */
+export type PathScope = { state: string; session: number | null; year: number | null; chamber: string | null; sessions: SessionRow[] }
 export const PathScopeContext = React.createContext<PathScope | null>(null)
 
 // Nothing below reads `useSearchParams()`, so the provider can wrap the app

@@ -8,6 +8,7 @@ import { isFile, isSpecial, listing, locate, monthName, type Location, type Targ
 import { decodePreset, DEFAULT_DESIGN, DESIGN_KEYS, DESIGN_OPTIONS, presetToParams, readDesign, type Design, type Preset } from "@/lib/create/preset"
 import { STATE_NAMES, stateName } from "@/lib/filters"
 import { honorific, truncate } from "@/lib/format"
+import { PathScopeContext } from "@/lib/policy/jurisdiction"
 import { SCOPE_KEYS, useScope, useSessionTitle, type ScopeKey } from "@/lib/policy/scope"
 import type { Bill, Member } from "@/lib/policy/types"
 import { useLocal } from "@/lib/policy/use-local"
@@ -70,6 +71,9 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   const scope = useScope()
   const { locks } = useLocks()
   const sessionTitle = useSessionTitle(scope.state, scope.session)
+  // The year the path names, where the workspace has one; the dataset's key otherwise.
+  const pathScope = React.useContext(PathScopeContext)
+  const year = pathScope?.year ?? scope.session
   const [picked, setMode] = React.useState<Mode | null>(null)
   const mode: Mode = picked ?? (params.mode === "design" ? "design" : "state")
   const [panelOpen, setPanelOpen] = useLocal("govblock:create:customizer", true)
@@ -221,7 +225,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
     if (node.kind === "sessions") return out
     if (workspace && !routeNode) return out
     // The year, not the session's name (Brendan, 2026-09-07: "by year is 10000% required"). The record keys each dataset by the year its session began.
-    out.push({ label: String(scope.session ?? sessionTitle ?? ""), go: listing(null) })
+    out.push({ label: String(year ?? sessionTitle ?? ""), go: listing(null) })
     const at = params.at.split("/").filter(Boolean).map(decodeURIComponent)
     if (location.committee) {
       out.push({ label: "Committees", go: listing("committees") })
@@ -271,7 +275,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
         break
     }
     return out
-  }, [scope.state, scope.session, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel, workspace])
+  }, [scope.state, scope.session, year, sessionTitle, node, location, params.at, params.tab, memberLabel, billLabel, workspace])
 
   // `?at=alaska` names a state, not a listing (Brendan, 2026-09-03: a typed
   // URL that says Alaska should show Alaska). Rewrite it to `state=AK`.

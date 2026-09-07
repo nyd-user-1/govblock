@@ -46,7 +46,8 @@ function RowAvatar({ avatar, size = 28 }: { avatar: AvatarSpec; size?: number })
       return (
         <span className="relative shrink-0">
           <MemberPortrait name={avatar.name} photoUrl={avatar.photoUrl} state={avatar.state} chamber={avatar.chamber} size={size} />
-          <PartyDot party={avatar.party} serving={avatar.serving} className="absolute -right-0.5 -bottom-0.5 size-2.5 ring-2 ring-card" />
+          {/* On the circle's lower-right point (Brendan, 2026-09-07): a large portrait's dot sits in from the box's corner, a small one's on it. */}
+          <PartyDot party={avatar.party} serving={avatar.serving} className={cn("absolute ring-2 ring-card", size >= 64 ? "right-2 bottom-2 size-3.5" : "-right-0.5 -bottom-0.5 size-2.5")} />
         </span>
       )
     default:

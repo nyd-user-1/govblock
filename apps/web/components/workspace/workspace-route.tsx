@@ -22,19 +22,19 @@ export function WorkspaceRoute({ segments }: { segments: string[] }) {
   const node = parsed.kind === "node" ? parsed : null
 
   const { data: sessions } = usePolicy<SessionRow[]>(node ? "sessions" : null, { state: node?.state })
-  // A year in the path is the dataset whose span covers it: 2026 reads the
-  // 119th Congress, keyed 2025, since two-year legislatures are keyed by the
-  // year they began. Absent, the newest year with bills.
-  const session = React.useMemo(() => {
-    if (!node) return null
+  // The year is the path's, or this calendar year while the newest dataset
+  // still covers it (a session runs two years). The dataset read is the one
+  // whose span covers that year: 2026 reads the 119th Congress, keyed 2025.
+  const { year, session } = React.useMemo(() => {
+    if (!node) return { year: null, session: null }
     const rows = sessions ?? []
-    if (node.session) {
-      if (!rows.length || rows.some((r) => Number(r.session_id) === node.session)) return node.session
-      const covering = rows.map((r) => Number(r.session_id)).filter((y) => y <= node.session!).sort((a, b) => b - a)[0]
-      return covering ?? node.session
-    }
-    const pick = rows.find((r) => Number(r.bills) > 0) ?? rows[0]
-    return pick ? Number(pick.session_id) : null
+    const keys = rows.map((r) => Number(r.session_id)).sort((a, b) => b - a)
+    const newest = (rows.find((r) => Number(r.bills) > 0) ?? rows[0])?.session_id
+    const today = new Date().getFullYear()
+    const year = node.session ?? (newest ? (today <= Number(newest) + 1 ? today : Number(newest)) : null)
+    if (!year) return { year: null, session: null }
+    const covering = keys.find((k) => k <= year)
+    return { year, session: rows.length ? (covering ?? year) : year }
   }, [node, sessions])
 
   const wantsBill = !!node?.billNumber && !!session
@@ -57,8 +57,9 @@ export function WorkspaceRoute({ segments }: { segments: string[] }) {
   const location = { ...node.location }
   if (bill && wantsBill) location.bill = String(bill.bill_id)
   if (committee && wantsCommittee) location.committee = committee.committee_name
-  const scope: PathScope = { state: node.state, session, chamber: node.chamber, sessions: sessions ?? [] }
-  const route: DesignerRoute = { state: node.state, chamber: node.chamber, session, location, pending }
+  const scope: PathScope = { state: node.state, session, year, chamber: node.chamber, sessions: sessions ?? [] }
+  // The designer builds paths with the year; the hooks read the dataset's key.
+  const route: DesignerRoute = { state: node.state, chamber: node.chamber, session: year, location, pending }
 
   return (
     <PathScopeContext.Provider value={scope}>
