@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { BuildingIcon, LandmarkIcon, LockIcon, LockOpenIcon, MapIcon } from "lucide-react"
+import { BuildingIcon, CheckIcon, LandmarkIcon, LockIcon, MapIcon } from "lucide-react"
 
 import { useAccount } from "@/lib/auth/use-account"
 import { stateName } from "@/lib/filters"
@@ -86,13 +86,18 @@ function FileItems({ dataset, chosen, disabled }: { dataset: Dataset; chosen?: n
   )
 }
 
-/** The lock, and what it means for this reader. */
+/** The mark, and what it means for this reader: a green check on what is open (Brendan, 2026-09-07), the lock on what waits. */
 function Plan({ dataset, access, signedIn, home }: { dataset: Dataset; access: Access; signedIn: boolean; home: string }) {
-  const Icon = access === "open" ? LockOpenIcon : LockIcon
-  const title = dataset.group === "congress" ? "Open to everyone" : dataset.group === "state" && dataset.state === home ? (signedIn ? `Yours: ${stateName(home)} is your home state` : `Sign in to open ${stateName(home)}, your home state`) : "Waits on a paid plan"
+  const title = dataset.group === "congress" ? "Open to everyone" : dataset.group === "department" && access === "open" ? "Open: its forms and filings are on file" : dataset.group === "state" && dataset.state === home ? (signedIn ? `Yours: ${stateName(home)} is your home state` : `Sign in to open ${stateName(home)}, your home state`) : "Waits on a paid plan"
+  if (access === "open")
+    return (
+      <span title={title}>
+        <CheckIcon className="size-4 text-emerald-500" aria-label="Open" />
+      </span>
+    )
   return (
     <span title={title}>
-      <Icon className="size-4" aria-label={access === "open" ? "Open" : "Locked"} />
+      <LockIcon className="size-4" aria-label="Locked" />
     </span>
   )
 }
@@ -130,7 +135,7 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
       ordered.map((d) => {
         const access = accessTo(d, { signedIn, home })
         const locked = access === "locked"
-        const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : null
+        const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : (d.href ?? null)
         const explore = () => path && router.push(path)
         return {
           key: `dataset-${d.key}`,
@@ -179,7 +184,7 @@ function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: 
         <TableBody>
           {rows.map((d) => {
             const access = accessTo(d, { signedIn, home })
-            const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : null
+            const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : (d.href ?? null)
             const open = access === "open" && !!path
             return (
               <TableRow key={d.key} className={cn("group/row", open && "cursor-pointer")} onClick={() => open && router.push(path!)}>
@@ -194,7 +199,7 @@ function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: 
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
-                    {access === "open" ? <LockOpenIcon className="size-3.5" aria-hidden /> : <LockIcon className="size-3.5" aria-hidden />}
+                    {access === "open" ? <CheckIcon className="size-3.5 text-emerald-500" aria-hidden /> : <LockIcon className="size-3.5" aria-hidden />}
                     {access === "open" ? "Open" : "Locked"}
                   </span>
                 </TableCell>

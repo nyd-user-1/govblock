@@ -22,6 +22,8 @@ export type Dataset = {
   seal: { kind: "chamber"; state: string; chamber: string } | { kind: "image"; src: string }
   /** Where the card belongs: the two houses of Congress, a state's chambers, or a federal department. */
   group: "congress" | "state" | "department"
+  /** A department whose forms or filings are on file is open to everyone (Brendan, 2026-09-07); Explore goes here. */
+  href?: string
 }
 
 const chamberTitle = (state: string, chamber: string) => {
@@ -47,15 +49,27 @@ export function chambersOf(state: string): string[] {
   return [lowerChamber(state), "Senate"]
 }
 
+// The departments whose forms are on file (lib/data/departments.ts names the
+// agency codes the Forms table files under), each open, Explore going to its
+// forms; the FEC's filings are the finance explorer. Their seals are
+// public/seals'.
+const forms = (code: string) => `/workspace/forms?department=${encodeURIComponent(code)}`
+const dept = (key: string, title: string, seal: string, href: string): Dataset => ({ key, title, seal: { kind: "image", src: seal }, group: "department", href })
+
 const DEPARTMENTS: Dataset[] = [
-  { key: "fec", title: "Federal Election Commission", seal: { kind: "image", src: "/seals/federal-election-commission.png" }, group: "department" },
-  { key: "hud", title: "Housing & Urban Development", seal: { kind: "image", src: "/seals/department-of-housing-and-urban-development.png" }, group: "department" },
-  { key: "irs", title: "Internal Revenue Service", seal: { kind: "image", src: "/chambers/us.png" }, group: "department" },
-  { key: "opm", title: "Office of Personnel Management", seal: { kind: "image", src: "/seals/office-of-personnel-management.png" }, group: "department" },
-  { key: "sba", title: "Small Business Administration", seal: { kind: "image", src: "/seals/small-business-administration.png" }, group: "department" },
-  { key: "ssa", title: "Social Security Administration", seal: { kind: "image", src: "/seals/social-security-administration.png" }, group: "department" },
-  { key: "gsa", title: "General Services Administration", seal: { kind: "image", src: "/seals/general-services-administration.png" }, group: "department" },
-  { key: "dol", title: "Department of Labor", seal: { kind: "image", src: "/seals/department-of-labor.png" }, group: "department" },
+  dept("fec", "Federal Election Commission", "/seals/federal-election-commission.png", "/workspace/dashboard/finance"),
+  dept("hud", "Housing & Urban Development", "/seals/department-of-housing-and-urban-development.png", forms("HUD")),
+  dept("irs", "Internal Revenue Service", "/chambers/us.png", forms("IRS")),
+  dept("opm", "Office of Personnel Management", "/seals/office-of-personnel-management.png", forms("OPM")),
+  dept("sba", "Small Business Administration", "/seals/small-business-administration.png", forms("SBA")),
+  dept("ssa", "Social Security Administration", "/seals/social-security-administration.png", forms("SSA")),
+  dept("gsa", "General Services Administration", "/seals/general-services-administration.png", forms("GSA")),
+  dept("dol", "Department of Labor", "/seals/department-of-labor.png", forms("DOL")),
+  dept("usda", "Department of Agriculture", "/seals/department-of-agriculture.png", forms("USDA-FNS")),
+  dept("ed", "Department of Education", "/seals/department-of-education.png", forms("ED")),
+  dept("hhs", "Health & Human Services", "/seals/department-of-health-and-human-services.png", forms("CMS")),
+  dept("dhs", "Homeland Security", "/seals/department-of-homeland-security.png", forms("USCIS")),
+  dept("va", "Veterans Affairs", "/seals/department-of-veterans-affairs.png", forms("VA")),
 ]
 
 export const DATASETS: Dataset[] = [
@@ -90,6 +104,7 @@ export type Access = "open" | "locked"
 /** Whether this reader may open the dataset. */
 export function accessTo(dataset: Dataset, reader: { signedIn: boolean; home: string }): Access {
   if (dataset.group === "congress") return "open"
+  if (dataset.group === "department" && dataset.href) return "open"
   if (dataset.group === "state" && reader.signedIn && dataset.state === reader.home) return "open"
   return "locked"
 }
