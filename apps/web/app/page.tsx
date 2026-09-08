@@ -18,8 +18,10 @@ export default function IndexPage() {
           Open Source. Open Code. Open Data.
         </PageHeaderDescription>
         <PageActions>
-          {/* Same width as /home: the account search in a max-w-5xl column. */}
-          <div className="mx-auto w-full max-w-5xl px-4 md:px-6">
+          {/* Same width as /home: the account search in a max-w-5xl column.
+              text-left undoes PageHeader's text-center so the result rows read
+              left-aligned like /home, not centered. */}
+          <div className="mx-auto w-full max-w-5xl px-4 text-left md:px-6">
             <HomeSearch />
           </div>
         </PageActions>

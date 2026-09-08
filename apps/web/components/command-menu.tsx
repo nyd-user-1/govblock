@@ -3,8 +3,11 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
-import { memberHref, stateName } from "@/lib/filters"
+import { History } from "lucide-react"
+
+import { memberHref } from "@/lib/filters"
 import { FlagChip } from "@/components/policy/imagery"
+import { useRecents } from "@/components/home/recents"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { policyUrl } from "@/lib/policy/use-policy"
 import { matchPages, SEARCH_PAGES } from "@/lib/search-pages"
@@ -215,7 +218,10 @@ export function CommandMenu() {
   const { state } = useJurisdiction()
   const [open, setOpen] = React.useState(false)
   const [term, setTerm] = React.useState("")
-  const search = useSiteSearch({ active: open, term })
+  const recents = useRecents(5)
+  const lead = recents[0] ? `recent-${recents[0].href}` : undefined
+  const search = useSiteSearch({ active: open, term, lead })
+  const showRecents = search.query.length < 2 && recents.length > 0
 
   React.useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -236,8 +242,6 @@ export function CommandMenu() {
     },
     [router]
   )
-
-  const here = stateName(state) || "this jurisdiction"
 
   return (
     <>
@@ -260,11 +264,22 @@ export function CommandMenu() {
         <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0" showCloseButton={false}>
           <Command shouldFilter={false} value={search.selected} onValueChange={search.setSelected}>
             <CommandInput
-              placeholder={`Search ${here}...`}
+              placeholder="Search"
               value={term}
               onValueChange={setTerm}
             />
             <CommandList>
+              {showRecents && (
+                <CommandGroup heading="Recents">
+                  {recents.map((recent) => (
+                    <CommandItem key={recent.href} value={`recent-${recent.href}`} onSelect={() => go(recent.href)}>
+                      <History className="text-muted-foreground" />
+                      <span className="shrink-0 font-medium">{recent.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{recent.group}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
               <SearchResults search={search} state={state} go={go} />
             </CommandList>
           </Command>
