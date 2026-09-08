@@ -4,6 +4,8 @@ import { IconArrowLeft } from "@tabler/icons-react"
 
 import { fmtNumber } from "@/lib/format"
 import { fieldName, getForm } from "@/lib/policy/forms-queries"
+import { FORMS } from "@/lib/forms/programs"
+import { Chip } from "@/components/chip"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
 import { agencyName, FormSeal } from "@/components/policy/forms-seal"
@@ -62,6 +64,9 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
   const captured = monthYear(form.archived)
   const fromArchive = form.status === "fetched-archive"
 
+  // The two forms the Filer fills, by number however the harvest spelled it.
+  const fillable = FORMS.find((f) => f.code.replace(/[^a-z0-9]/gi, "").toLowerCase() === form.number.replace(/[^a-z0-9]/gi, "").toLowerCase())
+
   const facts: [string, React.ReactNode][] = []
   if (form.pages) facts.push(["Pages", fmtNumber(form.pages)])
   if (size(form.bytes)) facts.push(["Size", size(form.bytes)])
@@ -91,8 +96,7 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
             <div className="not-typeset flex items-center gap-3">
               <FormSeal gov={form.gov} agency={form.agency} size={40} />
               <span className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{form.number}</span> · {agencyName(form.gov, form.agency)} ·{" "}
-                {form.gov}
+                <Chip>{form.number}</Chip> · {agencyName(form.gov, form.agency)} · {form.gov}
               </span>
             </div>
             <div className="flex items-center justify-between md:items-start">
@@ -102,6 +106,11 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
                   <DocsCopyPage page={markdown} url={`https://govblock.app/docs/forms/${form.id}`} />
                 </div>
                 <div className="ml-auto flex gap-2">
+                  {fillable && (
+                    <Button size="sm" className="shadow-none" asChild>
+                      <Link href={`/chat?form=${fillable.id}`}>Fill this form</Link>
+                    </Button>
+                  )}
                   <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
                     <Link href={`/docs/forms?state=${scope}`}>
                       <IconArrowLeft />

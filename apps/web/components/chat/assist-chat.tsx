@@ -15,7 +15,7 @@ import { emptyRun, runAgent, type ClientResult, type RunState, type Step } from 
 import { agent as agentBySlug, maxRounds } from "@/lib/agents/registry"
 import { labelFor } from "@/lib/forms/keys"
 import { isFormId, type FormId } from "@/lib/forms/programs"
-import { mergeProfile, recallActiveForm, rememberActiveForm, type Values } from "@/lib/forms/profile"
+import { loadProfile, mergeProfile, recallActiveForm, rememberActiveForm, type Values } from "@/lib/forms/profile"
 import { saveFormToInbox } from "@/lib/chat/save-to-inbox"
 import type { Filled } from "@/lib/forms/fill"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -109,12 +109,16 @@ export function AssistChat({
       const history: Turn[] = [...turns, { role: "user", text: trimmed }]
       setTurns([...history, { role: "assistant", run: emptyRun() }])
 
+      // The Filer is told which keys the profile already holds — keys, never
+      // values — on the first turn, the way a surface's framing rides.
+      const known = definition.clientTools?.includes("ask") ? Object.keys(loadProfile().values).filter((k) => loadProfile().values[k]) : []
+      const framing = [system, known.length ? `Already in the applicant's profile (keys only): ${known.join(", ")}.` : ""].filter(Boolean).join("\n\n")
       let framed = false
       const wire = history.map((turn) => {
         if (turn.role === "user") {
           const first = !framed
           framed = true
-          return { role: "user" as const, text: first && system ? `${system}\n\n${turn.text}` : turn.text }
+          return { role: "user" as const, text: first && framing ? `${framing}\n\n${turn.text}` : turn.text }
         }
         return { role: "assistant" as const, text: turn.run.text }
       })

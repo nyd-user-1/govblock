@@ -6,8 +6,8 @@ import { ExternalLinkIcon, PlusIcon, XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { displayValue, keyDef, normaliseKey, optionParts, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
-import { type FormId } from "@/lib/forms/programs"
-import { markDone, mergeProfile, rowCount, valueFor, valuesFor, type Values } from "@/lib/forms/profile"
+import { askedSections, formById, type FormId } from "@/lib/forms/programs"
+import { markDone, mergeProfile, rowCount, sectionKnown, valueFor, valuesFor, type Values } from "@/lib/forms/profile"
 import { keyOnRow, plainKeys, rowKeys, type AskInput, type AskResult, type ChatField } from "@/lib/chat/form-tools"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
@@ -207,13 +207,13 @@ export function AskWidget({
   const openFields = showKnown || editing ? allFields : allFields.filter((f) => !isKnown(f))
 
   const submit = () => {
-    const next: Record<string, string> = {}
+    const problems: Record<string, string> = {}
     for (const f of allFields) {
       const p = problem(f, values[f.key] ?? "")
-      if (p) next[f.key] = p
+      if (p) problems[f.key] = p
     }
-    setErrors(next)
-    if (Object.keys(next).length) return
+    setErrors(problems)
+    if (Object.keys(problems).length) return
     const merged: Values = {}
     for (const f of allFields) merged[f.key] = (values[f.key] ?? "").trim()
     mergeProfile(merged)
@@ -221,7 +221,23 @@ export function AskWidget({
     const answeredKeys: CanonicalKey[] = []
     const skipped: CanonicalKey[] = []
     for (const f of allFields) (merged[f.key] ? answeredKeys : skipped).push(f.key)
-    const result: AskResult = { section: input.section, answered: answeredKeys, skipped }
+    // The next section still open, from the profile as it now stands — so
+    // the model can go on without holding the schema or a tally.
+    let next: Extract<AskResult, { section: string }>["next"] = null
+    const program = form ? formById(form) : undefined
+    if (program) {
+      const now = valuesFor(form!)
+      const order = askedSections(program)
+      const at = order.findIndex((s) => s.n === input.section)
+      for (const s of order.slice(at + 1)) {
+        const open = sectionKnown(s, now).open
+        if (open.length) {
+          next = { section: s.n, title: s.title, open }
+          break
+        }
+      }
+    }
+    const result: AskResult = { section: input.section, answered: answeredKeys, skipped, next }
     setDone(result)
     setEditing(false)
     if (!done) onSubmit(result)

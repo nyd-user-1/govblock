@@ -850,7 +850,7 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
 
   form_schema: {
     description:
-      "The sections of one of the two New York forms, in the order to ask them, with each section's keys — label, kind, options — and whether the applicant's profile already holds a value for each. Call it once, first.",
+      "The sections of one of the two New York forms, in the order to ask them, with each section's keys — label, kind, fixed values, and the repeat for a section with rows. Call it once, first. Which keys the applicant's profile already holds is said on the first turn and in every ask receipt.",
     properties: {
       form: { type: "string", description: "Which form.", enum: ["ldss-2921", "ocfs-6025"] },
     },

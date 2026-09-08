@@ -1,6 +1,7 @@
 import type { ModelTier } from "@/lib/agents/models"
 import { isReportType } from "@/lib/agents/report-modes"
 import type { ToolName } from "@/lib/agents/tools"
+import { FORMS, sectionLabel } from "@/lib/forms/programs"
 
 // Four specialists over one record. They differ in three things and nothing
 // else: which tools they hold, which model tier answers, and what their system
@@ -398,6 +399,80 @@ written, which is why writing each section as you go is not just tidier but the
 only way the whole thing arrives. Then say in one line where it went.`,
   },
 ]
+
+// The two forms' sections and keys, in the order to ask them, for the Filer's
+// prompt. The keys are the vocabulary the ask tool accepts; their labels,
+// kinds and fixed values come back from form_schema, and the widget settles
+// them from the vocabulary whatever the model wrote.
+const FORM_OUTLINE = FORMS.map((form) =>
+  [
+    `${form.code} — ${form.title} (${form.pages} pages; about ${form.minutes} minutes). Sections, in order:`,
+    ...form.sections.map((s) => `  ${s.consent ? "READ-ONLY " : ""}${sectionLabel(form, s.n)} (p.${s.pages.join(", ")})${s.keys.length ? `: ${s.keys.join(", ")}` : ""}`),
+  ].join("\n")
+).join("\n\n")
+
+AGENTS.push({
+  slug: "form-filler",
+  name: "Filer",
+  speciality: "Fills two New York applications — the common benefits application and the child-care application — into the forms' own fields.",
+  reads: "The applicant's profile in this browser: what has already been answered, on either form, so a section that is known is not asked again.",
+  can: "Walk through LDSS-2921 (SNAP, Public Assistance, Medicaid, child care, emergency assistance) or OCFS-6025 (child care assistance) one section at a time, keep every answer in the applicant's profile, show every answer for review, write them into the PDF's own fields, and hand the file over — download, email, or the inbox.",
+  tier: "grounded",
+  tools: ["form_schema", "ask", "review", "fill_form", "remember"],
+  clientTools: ["ask", "review", "fill_form", "remember"],
+  maxRounds: 64,
+  placeholder: "Say which form to fill, or what you are applying for…",
+  starters: ["Apply for SNAP or Public Assistance (LDSS-2921)", "Apply for child care assistance (OCFS-6025)"],
+  system: `You are the Filer on govblock. You fill two New York State forms and nothing
+else: LDSS-2921, the Application for Certain Benefits and Services (SNAP,
+Public Assistance, Medicaid, child care, emergency assistance), and OCFS-6025,
+the Application for Child Care Assistance. You are the form's interface, not an
+adviser and not the decision: the county social services district decides, and
+the applicant always has the right to apply.
+
+The applicant's answers live in their browser, never in this conversation. You
+sequence; the widgets collect. You never see, restate, tally or guess a value —
+not a name, a Social Security number, a dollar figure or a date. A receipt
+tells you which keys were answered and which were skipped; that is all you
+need.
+
+How a form goes:
+
+1. If the applicant has not said which form, ask in one sentence: the common
+   application, or the child-care one. "SNAP", "food stamps", "cash", "Medicaid"
+   and "emergency" mean LDSS-2921; "child care", "day care" and "CCAP" mean
+   OCFS-6025. Someone who needs both starts with LDSS-2921.
+2. Call form_schema once for that form. It gives every section in order with
+   its keys, labels, kinds and fixed values.
+3. Ask one section at a time with ask, in the form's order, one call per
+   round, alone. Give it the section's number and title from form_schema and
+   only that section's keys. Keys the profile already holds arrive prefilled and
+   folded; include them anyway so the applicant can confirm. A section whose
+   keys are all known can be skipped: say so in one line and go on. The
+   receipt's \`next\` names the next section still open; ask that one.
+   For a repeating section (household members, incomes, resources) pass the
+   repeat from form_schema; the widget adds rows. Write one plain sentence of
+   intro when the section needs one, in ordinary words, never the form's
+   bureaucratic wording.
+4. A READ-ONLY section is consent text: say in one plain sentence what it says,
+   do not call ask for it, and go on.
+5. When the applicant states a fact in conversation — a county, a household
+   size, an employer — call remember with it, keyed by the vocabulary, then
+   continue.
+6. After the last section, call review. When it confirms, call fill_form. Then
+   say in one sentence where the file went: it is on the delivery card, to
+   download, email, or save to the inbox, and nothing has been filed with any
+   agency.
+7. A question off the form gets a brief answer and a return to the section.
+   Never say you cannot fill the form; the browser fills it when you call
+   fill_form. Nothing is submitted anywhere by any of this.
+
+Voice: plain, third person about the product, no "I", no cheerleading, no
+emoji, no restating what a widget already shows. One or two sentences between
+calls. Accept "skip" and "don't know"; nothing is final until it is reviewed.
+
+${FORM_OUTLINE}`,
+})
 
 export function agent(slug: string) {
   return AGENTS.find((a) => a.slug === slug)

@@ -2,6 +2,8 @@ import "server-only"
 
 import { DEFINITIONS, normalise, type ToolName } from "@/lib/agents/tools"
 import { deliver } from "@/lib/agents/connections"
+import { keyDef } from "@/lib/forms/keys"
+import { formById } from "@/lib/forms/programs"
 import { postToDiscord } from "@/lib/agents/connections/discord"
 import { postToSlack } from "@/lib/agents/connections/slack"
 
@@ -85,6 +87,33 @@ export async function runTool(
       summary: result.ok
         ? `delivered to ${result.where}${result.ref ? ` · id ${result.ref}` : ""}`
         : `not delivered — ${result.error}`,
+      ms: Date.now() - started,
+    }
+  }
+
+  // The Filer's schema: the form's sections in order, each with its keys as
+  // the vocabulary defines them. Data, not a route. Whether the profile holds
+  // a value is the browser's knowledge, and it rides on the first turn and in
+  // every ask receipt rather than here.
+  if (name === "form_schema") {
+    const form = formById(String(rawInput.form ?? ""))
+    if (!form)
+      return { ok: false, payload: { error: "form must be ldss-2921 or ocfs-6025" }, summary: "unknown form", ms: Date.now() - started }
+    const sections = form.sections.map((s) => ({
+      section: s.n,
+      title: s.title,
+      pages: s.pages,
+      ...(s.consent ? { consent: true } : {}),
+      ...(s.repeat ? { repeat: { key: s.repeat.key, label: s.repeat.label, min: 1, max: s.repeat.max } } : {}),
+      keys: s.keys.map((key) => {
+        const def = keyDef(key)
+        return { key, label: def?.label ?? key, kind: def?.kind ?? "text", ...(def?.options ? { options: def.options.map((o) => o.split("|")[0]) } : {}), ...(def?.multi ? { multi: true } : {}) }
+      }),
+    }))
+    return {
+      ok: true,
+      payload: { form: form.id, code: form.code, title: form.title, sections },
+      summary: `${sections.length} sections`,
       ms: Date.now() - started,
     }
   }

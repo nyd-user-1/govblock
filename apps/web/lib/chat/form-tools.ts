@@ -31,7 +31,9 @@ export type AskInput = {
   repeat?: { key: string; label: string; min: number; max: number }
 }
 
-export type AskResult = { section: string; answered: CanonicalKey[]; skipped: CanonicalKey[] } | { error: string }
+export type AskResult =
+  | { section: string; answered: CanonicalKey[]; skipped: CanonicalKey[]; next: { section: string; title: string; open: CanonicalKey[] } | null }
+  | { error: string }
 export type ReviewResult = { confirmed: boolean; sections: number; answered: number }
 export type FillResult = { ok: boolean; filename?: string; pages?: number; bytes?: number; filled?: number; unmapped?: CanonicalKey[]; error?: string }
 export type RememberResult = { kept: CanonicalKey[]; rejected: CanonicalKey[] }
