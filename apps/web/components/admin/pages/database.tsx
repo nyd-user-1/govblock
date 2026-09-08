@@ -231,6 +231,10 @@ export function DatabasePage() {
             </CardAction>
           </CardHeader>
           <CardContent className="max-md:px-4">
+            {/* The standing direction for the pipeline (Brendan, 2026-09-08). */}
+            <p className="mb-4 rounded-lg border-l-2 border-primary bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">The direction:</span> every jurisdiction moves to its own source of record — Congress on congress.gov and govinfo, Indiana on the MyIGA API — with LegiScan kept as a supplement and a fallback, not the source. The Jurisdictions card&rsquo;s dot marks which are first-party today; the goal is all 52.
+            </p>
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/60">
