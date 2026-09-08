@@ -54,7 +54,15 @@ export type KeyDef = {
   tone?: "caution" | "info"
   /** Only OCFS-6025 asks it; absent means LDSS-2921 does (and OCFS may). */
   ocfs?: true
+  /**
+   * The key applies only while another key holds one of these values — a
+   * `…Detail` beside an "other", the other adult's block beside "spouse". A
+   * list is any-of. Closed, the key is neither asked nor counted as open.
+   */
+  gate?: Gate | Gate[]
 }
+
+export type Gate = { key: CanonicalKey; is: string }
 
 export const YN = ["yes|Yes", "no|No"]
 const SEX = ["M|Male", "F|Female", "X|X"]
@@ -107,11 +115,11 @@ const PERIODS = ["weekly|Weekly", "biweekly|Every two weeks", "twiceMonthly|Twic
 
 const DAYS = ["sun|Sunday", "mon|Monday", "tue|Tuesday", "wed|Wednesday", "thu|Thursday", "fri|Friday", "sat|Saturday"] as const
 
-/** The seven day cells of one of OCFS-6025's weekly schedule rows. */
-function schedule(prefix: string, whose: string): KeyDef[] {
+/** The seven day cells of one of OCFS-6025's weekly schedule rows, asked while `gate` holds. */
+function schedule(prefix: string, whose: string, gate: Gate): KeyDef[] {
   return DAYS.map((day) => {
     const [value, label] = day.split("|")
-    return { key: `${prefix}.${value}`, label, what: `${whose} hours on ${label}, or off`, kind: "text", ocfs: true }
+    return { key: `${prefix}.${value}`, label, what: `${whose} hours on ${label}, or off`, kind: "text", ocfs: true, gate }
   })
 }
 
@@ -121,9 +129,9 @@ export const KEYS: KeyDef[] = [
     "MedicaidAndPA|Medicaid + Public Assistance", "Services|Services including Foster Care", "ChildCare|Child Care Assistance", "Emergency|Emergency Assistance only",
   ] },
   { key: "language.read", label: "Language you read", what: "language they read", kind: "select", options: LANGUAGE },
-  { key: "language.readDetail", label: "Language you read", what: "the language, when it is not English or Spanish", kind: "text" },
+  { key: "language.readDetail", label: "Language you read", what: "the language, when it is not English or Spanish", kind: "text", gate: { key: "language.read", is: "other" } },
   { key: "language.speak", label: "Language you speak", what: "language they speak", kind: "select", options: LANGUAGE },
-  { key: "language.speakDetail", label: "Language you speak", what: "the language, when it is not English or Spanish", kind: "text" },
+  { key: "language.speakDetail", label: "Language you speak", what: "the language, when it is not English or Spanish", kind: "text", gate: { key: "language.speak", is: "other" } },
   { key: "interpreter", label: "Interpreter", what: "whether they want an interpreter", kind: "yesno", options: YN },
   { key: "urgent", label: "Urgent", what: "anything urgent that applies", kind: "checkbox", multi: true, options: [
     "pregnant|Pregnant", "domesticViolence|Victim of domestic violence", "establishParentage|Need to establish parentage", "needChildSupport|Need child support",
@@ -131,7 +139,7 @@ export const KEYS: KeyDef[] = [
     "noIncome|No income", "seriousMedical|Serious medical problem", "pendingEviction|Pending eviction", "noFood|No food", "needFosterCare|Need foster care",
     "needChildCare|Need child care", "problemsWithEnglish|Problems with English", "reasonableAccommodations|Reasonable accommodations", "other|Other", "none|None of these",
   ] },
-  { key: "urgent.otherDetail", label: "Other urgent need", what: "what the urgent need is, when it is not in the list", kind: "text" },
+  { key: "urgent.otherDetail", label: "Other urgent need", what: "what the urgent need is, when it is not in the list", kind: "text", gate: { key: "urgent", is: "other" } },
   { key: "applicant.firstName", label: "First name", what: "first name", kind: "text" },
   { key: "applicant.middleInitial", label: "Middle initial", what: "middle initial", kind: "text" },
   { key: "applicant.lastName", label: "Last name", what: "last name", kind: "text" },
@@ -147,14 +155,14 @@ export const KEYS: KeyDef[] = [
   { key: "address.zip", label: "ZIP", what: "ZIP", kind: "text" },
   { key: "address.county", label: "County", what: "county", kind: "text" },
   { key: "mailing.same", label: "Mailing address", what: "whether mail goes to the home address", kind: "radio", options: ["yes|Same as home", "no|A different address"] },
-  { key: "mailing.street", label: "Mailing street", what: "mailing street, only if different", kind: "text" },
-  { key: "mailing.apt", label: "Mailing apt", what: "mailing apartment", kind: "text" },
-  { key: "mailing.city", label: "Mailing city", what: "mailing city", kind: "text" },
-  { key: "mailing.county", label: "Mailing county", what: "mailing county", kind: "text" },
-  { key: "mailing.state", label: "Mailing state", what: "mailing state", kind: "text" },
-  { key: "mailing.zip", label: "Mailing ZIP", what: "mailing ZIP", kind: "text" },
+  { key: "mailing.street", label: "Mailing street", what: "mailing street, only if different", kind: "text", gate: { key: "mailing.same", is: "no" } },
+  { key: "mailing.apt", label: "Mailing apt", what: "mailing apartment", kind: "text", gate: { key: "mailing.same", is: "no" } },
+  { key: "mailing.city", label: "Mailing city", what: "mailing city", kind: "text", gate: { key: "mailing.same", is: "no" } },
+  { key: "mailing.county", label: "Mailing county", what: "mailing county", kind: "text", gate: { key: "mailing.same", is: "no" } },
+  { key: "mailing.state", label: "Mailing state", what: "mailing state", kind: "text", gate: { key: "mailing.same", is: "no" } },
+  { key: "mailing.zip", label: "Mailing ZIP", what: "mailing ZIP", kind: "text", gate: { key: "mailing.same", is: "no" } },
   { key: "applicant.maritalStatus", label: "Marital status", what: "marital status", kind: "select", options: ["single|Single", "married|Married", "separated|Separated", "divorced|Divorced", "widowed|Widowed", "other|Something else"] },
-  { key: "applicant.maritalStatusDetail", label: "Marital status", what: "their words, when none of the fixed values fit", kind: "text" },
+  { key: "applicant.maritalStatusDetail", label: "Marital status", what: "their words, when none of the fixed values fit", kind: "text", gate: { key: "applicant.maritalStatus", is: "other" } },
   { key: "household.count", label: "People in home", what: "how many people live there, including them", kind: "number" },
   { key: "household[n].firstName", label: "First name", what: "each other person's first name", kind: "text" },
   { key: "household[n].lastName", label: "Last name", what: "last name", kind: "text" },
@@ -164,52 +172,52 @@ export const KEYS: KeyDef[] = [
   { key: "household[n].relationship", label: "Relationship", what: "relationship to the applicant", kind: "text" },
   { key: "household[n].buysFoodTogether", label: "Buys food together", what: "whether they buy food or prepare meals with the applicant", kind: "yesno", options: YN },
   { key: "raceEthnicity.provide", label: "Share race and ethnicity", what: "whether they want to answer the optional race and ethnicity question", kind: "yesno", options: YN },
-  { key: "applicant.race", label: "Race and ethnicity", what: "the applicant's race and ethnicity, in their words — optional", kind: "text" },
-  { key: "household[n].race", label: "Race and ethnicity", what: "that person's race and ethnicity — optional", kind: "text" },
+  { key: "applicant.race", label: "Race and ethnicity", what: "the applicant's race and ethnicity, in their words — optional", kind: "text", gate: { key: "raceEthnicity.provide", is: "yes" } },
+  { key: "household[n].race", label: "Race and ethnicity", what: "that person's race and ethnicity — optional", kind: "text", gate: { key: "raceEthnicity.provide", is: "yes" } },
   { key: "applicant.citizenship", label: "Citizenship", what: "the applicant's citizenship or immigration status", kind: "select", options: CITIZENSHIP },
-  { key: "applicant.citizenshipDetail", label: "Immigration status", what: "the status in their words, when it is `other`", kind: "text" },
+  { key: "applicant.citizenshipDetail", label: "Immigration status", what: "the status in their words, when it is `other`", kind: "text", gate: { key: "applicant.citizenship", is: "other" } },
   { key: "household[n].citizenship", label: "Citizenship", what: "citizenship or immigration status", kind: "select", options: CITIZENSHIP },
-  { key: "household[n].citizenshipDetail", label: "Immigration status", what: "the status in their words, when it is `other`", kind: "text" },
+  { key: "household[n].citizenshipDetail", label: "Immigration status", what: "the status in their words, when it is `other`", kind: "text", gate: { key: "household[n].citizenship", is: "other" } },
   { key: "childSupport.absentParent", label: "Parent absent from home", what: "whether a child's parent is absent from the home", kind: "yesno", options: YN },
-  { key: "childSupport.absentParent.firstName", label: "First name", what: "the absent parent's first name", kind: "text" },
-  { key: "childSupport.absentParent.lastName", label: "Last name", what: "the absent parent's last name", kind: "text" },
-  { key: "childSupport.absentParent.dob", label: "Date of birth", what: "the absent parent's date of birth, YYYY-MM-DD, if known", kind: "date" },
-  { key: "childSupport.absentParent.lastAddress", label: "Last address", what: "the absent parent's last known address", kind: "text" },
-  { key: "childSupport.absentParent.forChild", label: "For which child", what: "which child or children the absent parent is a parent of", kind: "text" },
+  { key: "childSupport.absentParent.firstName", label: "First name", what: "the absent parent's first name", kind: "text", gate: { key: "childSupport.absentParent", is: "yes" } },
+  { key: "childSupport.absentParent.lastName", label: "Last name", what: "the absent parent's last name", kind: "text", gate: { key: "childSupport.absentParent", is: "yes" } },
+  { key: "childSupport.absentParent.dob", label: "Date of birth", what: "the absent parent's date of birth, YYYY-MM-DD, if known", kind: "date", gate: { key: "childSupport.absentParent", is: "yes" } },
+  { key: "childSupport.absentParent.lastAddress", label: "Last address", what: "the absent parent's last known address", kind: "text", gate: { key: "childSupport.absentParent", is: "yes" } },
+  { key: "childSupport.absentParent.forChild", label: "For which child", what: "which child or children the absent parent is a parent of", kind: "text", gate: { key: "childSupport.absentParent", is: "yes" } },
   { key: "taxes.files", label: "Files taxes", what: "whether they file a tax return", kind: "yesno", options: YN },
   // Section 11 asks the filing status by name; livingston asked only whether they file.
-  { key: "taxes.status", label: "Filing status", what: "how they file, as the form lists it", kind: "select", options: ["single|Single", "jointly|Married filing jointly", "separately|Married filing separately", "headOfHousehold|Head of household (with qualifying individual)", "widow|Qualifying widow(er) with dependent child", "dependent|Claimed as a dependent, and filing"] },
-  { key: "taxes.dependents", label: "Dependents claimed", what: "who they claim as a dependent", kind: "text" },
+  { key: "taxes.status", label: "Filing status", what: "how they file, as the form lists it", kind: "select", options: ["single|Single", "jointly|Married filing jointly", "separately|Married filing separately", "headOfHousehold|Head of household (with qualifying individual)", "widow|Qualifying widow(er) with dependent child", "dependent|Claimed as a dependent, and filing"], gate: { key: "taxes.files", is: "yes" } },
+  { key: "taxes.dependents", label: "Dependents claimed", what: "who they claim as a dependent", kind: "text", gate: { key: "taxes.files", is: "yes" } },
   { key: "spouse.absent", label: "Spouse absent", what: "whether a spouse is absent from the home", kind: "yesno", options: YN },
   { key: "spouse.deceased", label: "Spouse deceased", what: "whether a spouse has died", kind: "yesno", options: YN },
-  { key: "spouse.firstName", label: "First name", what: "the spouse's first name", kind: "text" },
-  { key: "spouse.lastName", label: "Last name", what: "the spouse's last name", kind: "text" },
+  { key: "spouse.firstName", label: "First name", what: "the spouse's first name", kind: "text", gate: [{ key: "spouse.absent", is: "yes" }, { key: "spouse.deceased", is: "yes" }] },
+  { key: "spouse.lastName", label: "Last name", what: "the spouse's last name", kind: "text", gate: [{ key: "spouse.absent", is: "yes" }, { key: "spouse.deceased", is: "yes" }] },
   { key: "child.absent", label: "Child living elsewhere", what: "whether a child of theirs lives elsewhere", kind: "yesno", options: YN },
   { key: "teenParent", label: "Teen parent", what: "whether a parent in the home is under 18", kind: "yesno", options: YN },
   { key: "income.hasAny", label: "Any income", what: "whether anyone in the home has any money coming in", kind: "yesno", options: YN },
-  { key: "income[n].source", label: "Income source", what: "kind of income", kind: "select", options: INCOME_SOURCES },
-  { key: "income[n].sourceDetail", label: "Income source", what: "what the income is, in their words, when it is `other`", kind: "text" },
-  { key: "income[n].who", label: "Whose income", what: "whose income it is", kind: "text" },
-  { key: "income[n].amount", label: "Amount", what: "amount in dollars, digits only", kind: "money" },
-  { key: "income[n].period", label: "How often", what: "how often it comes", kind: "select", options: PERIODS },
-  { key: "income[n].periodDetail", label: "How often", what: "how often, in their words, when it is `other`", kind: "text" },
+  { key: "income[n].source", label: "Income source", what: "kind of income", kind: "select", options: INCOME_SOURCES, gate: { key: "income.hasAny", is: "yes" } },
+  { key: "income[n].sourceDetail", label: "Income source", what: "what the income is, in their words, when it is `other`", kind: "text", gate: { key: "income[n].source", is: "other" } },
+  { key: "income[n].who", label: "Whose income", what: "whose income it is", kind: "text", gate: { key: "income.hasAny", is: "yes" } },
+  { key: "income[n].amount", label: "Amount", what: "amount in dollars, digits only", kind: "money", gate: { key: "income.hasAny", is: "yes" } },
+  { key: "income[n].period", label: "How often", what: "how often it comes", kind: "select", options: PERIODS, gate: { key: "income.hasAny", is: "yes" } },
+  { key: "income[n].periodDetail", label: "How often", what: "how often, in their words, when it is `other`", kind: "text", gate: { key: "income[n].period", is: "other" } },
   { key: "stepparent.income", label: "Stepparent income", what: "a stepparent's income, if one lives in the home — amount, or none", kind: "money" },
   { key: "sponsor.income", label: "Sponsor income", what: "an immigration sponsor's income, if that applies — amount, or none", kind: "money" },
   { key: "employment.status", label: "Employment status", what: "employment status", kind: "select", options: ["employed|Employed", "self-employed|Self-employed", "unemployed|Unemployed", "unable to work|Unable to work", "other|Something else"] },
-  { key: "employment.statusDetail", label: "Employment status", what: "their situation in their words, when it is `other`", kind: "text" },
-  { key: "employment.employer", label: "Employer", what: "employer name", kind: "text" },
-  { key: "employment.lastWorked", label: "Last worked", what: "when they last worked, YYYY-MM-DD", kind: "date" },
-  { key: "employment.lastEmployer", label: "Last employer", what: "the last employer, if not working now", kind: "text" },
-  { key: "employment.endReason", label: "Why it ended", what: "why the last job ended", kind: "text" },
+  { key: "employment.statusDetail", label: "Employment status", what: "their situation in their words, when it is `other`", kind: "text", gate: { key: "employment.status", is: "other" } },
+  { key: "employment.employer", label: "Employer", what: "employer name", kind: "text", gate: { key: "employment.status", is: "employed|self-employed" } },
+  { key: "employment.lastWorked", label: "Last worked", what: "when they last worked, YYYY-MM-DD", kind: "date", gate: { key: "employment.status", is: "unemployed|unable to work|other" } },
+  { key: "employment.lastEmployer", label: "Last employer", what: "the last employer, if not working now", kind: "text", gate: { key: "employment.status", is: "unemployed|unable to work|other" } },
+  { key: "employment.endReason", label: "Why it ended", what: "why the last job ended", kind: "text", gate: { key: "employment.status", is: "unemployed|unable to work|other" } },
   { key: "employment.lookingForWork", label: "Looking for work", what: "whether they are looking for work", kind: "yesno", options: YN },
   { key: "employment.inTraining", label: "In training", what: "whether they are in a training program", kind: "yesno", options: YN },
   { key: "education.highestGrade", label: "Highest grade", what: "highest level of education completed", kind: "select", options: EDUCATION },
-  { key: "education.highestGradeDetail", label: "Highest grade", what: "the last grade completed, or their words when it is `other`", kind: "text" },
+  { key: "education.highestGradeDetail", label: "Highest grade", what: "the last grade completed, or their words when it is `other`", kind: "text", gate: { key: "education.highestGrade", is: "lessThanHighSchool|other" } },
   { key: "education.currentSchool", label: "School or training now", what: "any school or training they are in now, or none", kind: "text" },
   { key: "resources.hasAny", label: "Any resources", what: "whether anyone in the home has savings, accounts, vehicles or property", kind: "yesno", options: YN },
-  { key: "resources[n].kind", label: "Resource", what: "kind of resource", kind: "select", options: RESOURCE_KINDS },
-  { key: "resources[n].kindDetail", label: "Resource", what: "what it is, in their words, when it is `other`", kind: "text" },
-  { key: "resources[n].value", label: "Value", what: "value in dollars, digits only", kind: "money" },
+  { key: "resources[n].kind", label: "Resource", what: "kind of resource", kind: "select", options: RESOURCE_KINDS, gate: { key: "resources.hasAny", is: "yes" } },
+  { key: "resources[n].kindDetail", label: "Resource", what: "what it is, in their words, when it is `other`", kind: "text", gate: { key: "resources[n].kind", is: "other" } },
+  { key: "resources[n].value", label: "Value", what: "value in dollars, digits only", kind: "money", gate: { key: "resources.hasAny", is: "yes" } },
   { key: "medical.insurance", label: "Health insurance", what: "current health insurance, or none", kind: "text" },
   { key: "medical.pregnant", label: "Pregnant", what: "who is pregnant, or no", kind: "text" },
   { key: "medical.disabled", label: "Disabled", what: "who is disabled, or no", kind: "text" },
@@ -217,11 +225,11 @@ export const KEYS: KeyDef[] = [
   { key: "medical.longTermCare", label: "Long-term care", what: "who needs long-term care, or no", kind: "text" },
   { key: "medical.retroactive", label: "Retroactive Medicaid", what: "whether they want Medicaid for bills from the last three months", kind: "yesno", options: YN },
   { key: "shelter.type", label: "Housing", what: "how they are housed and what they pay for", kind: "select", options: SHELTER_TYPES },
-  { key: "shelter.typeDetail", label: "Housing", what: "their situation in their words — e.g. staying with a relative — when it is `other` or `none`", kind: "text" },
-  { key: "shelter.amount", label: "Rent / mortgage", what: "monthly rent or mortgage in dollars, digits only", kind: "money" },
-  { key: "shelter.payee", label: "Paid to", what: "who the rent or mortgage is paid to", kind: "text" },
-  { key: "shelter.heatIncluded", label: "Heat included", what: "whether heat is included in the rent", kind: "yesno", options: YN },
-  { key: "utilities.heatCost", label: "Heating cost", what: "monthly heating cost in dollars", kind: "money" },
+  { key: "shelter.typeDetail", label: "Housing", what: "their situation in their words — e.g. staying with a relative — when it is `other` or `none`", kind: "text", gate: { key: "shelter.type", is: "other|none" } },
+  { key: "shelter.amount", label: "Rent / mortgage", what: "monthly rent or mortgage in dollars, digits only", kind: "money", gate: { key: "shelter.type", is: "rent|mortgage|roomAndBoard|trailerLot" } },
+  { key: "shelter.payee", label: "Paid to", what: "who the rent or mortgage is paid to", kind: "text", gate: { key: "shelter.type", is: "rent|mortgage|roomAndBoard|trailerLot" } },
+  { key: "shelter.heatIncluded", label: "Heat included", what: "whether heat is included in the rent", kind: "yesno", options: YN, gate: { key: "shelter.type", is: "rent|mortgage|roomAndBoard|trailerLot" } },
+  { key: "utilities.heatCost", label: "Heating cost", what: "monthly heating cost in dollars", kind: "money", gate: { key: "shelter.heatIncluded", is: "no" } },
   { key: "utilities.shutoffNotice", label: "Shut-off notice", what: "whether they have had a shut-off notice", kind: "yesno", options: YN },
   { key: "expenses.childCare", label: "Child care paid", what: "monthly child or dependent care paid", kind: "money" },
   { key: "expenses.childSupportPaid", label: "Child support paid", what: "monthly child support they pay out", kind: "money" },
@@ -240,15 +248,15 @@ export const KEYS: KeyDef[] = [
   { key: "applicant.aliases", label: "Other names used", what: "any other names they have used — optional", kind: "text", ocfs: true },
   { key: "applicant.phoneType", label: "Phone type", what: "what kind of phone that is", kind: "radio", options: ["cell|Cell", "home|Home or landline", "work|Work"], ocfs: true },
   { key: "contact.preferred", label: "Preferred contact", what: "how they would rather be contacted — optional", kind: "radio", options: ["phone|Phone", "email|Email", "other|Another way"], ocfs: true },
-  { key: "contact.preferredDetail", label: "Preferred contact", what: "the other way, in their words", kind: "text", ocfs: true },
+  { key: "contact.preferredDetail", label: "Preferred contact", what: "the other way, in their words", kind: "text", ocfs: true, gate: { key: "contact.preferred", is: "other" } },
   { key: "applicant.genderIdentity", label: "Gender identity", what: "gender identity, in their words — optional", kind: "text", ocfs: true },
   { key: "household[n].genderIdentity", label: "Gender identity", what: "that person's gender identity — optional", kind: "text", ocfs: true },
   { key: "household[n].needsCare", label: "Needs child care", what: "whether this child needs child care", kind: "yesno", options: YN, ocfs: true },
-  { key: "household[n].specialNeeds", label: "Special needs", what: "whether this child has special needs", kind: "yesno", options: YN, ocfs: true },
-  { key: "household[n].bothParents", label: "Both parents at home", what: "whether both of this child's parents live in the home", kind: "yesno", options: YN, ocfs: true },
+  { key: "household[n].specialNeeds", label: "Special needs", what: "whether this child has special needs", kind: "yesno", options: YN, ocfs: true, gate: { key: "household[n].needsCare", is: "yes" } },
+  { key: "household[n].bothParents", label: "Both parents at home", what: "whether both of this child's parents live in the home", kind: "yesno", options: YN, ocfs: true, gate: { key: "household[n].needsCare", is: "yes" } },
   { key: "absentParent[n].child", label: "Child", what: "a child under 19 who needs care and whose other parent does not live in the home", kind: "text", ocfs: true },
   { key: "absentParent[n].available", label: "Parent available to provide care", what: "whether that parent is available to provide care", kind: "yesno", options: YN, ocfs: true },
-  { key: "absentParent[n].reason", label: "If not, why", what: "why that parent cannot provide care", kind: "text", ocfs: true },
+  { key: "absentParent[n].reason", label: "If not, why", what: "why that parent cannot provide care", kind: "text", ocfs: true, gate: { key: "absentParent[n].available", is: "no" } },
   { key: "benefits.receiving", label: "Benefits received now", what: "benefits the applicant or an adult applying with them receives now", kind: "checkbox", multi: true, ocfs: true, options: [
     "medicaid|Medicaid", "snap|SNAP", "housing|Housing vouchers or assistance", "heap|HEAP", "wic|WIC", "headstart|Head Start or Early Head Start", "tanf|Cash Assistance from TANF", "none|None of these",
   ] },
@@ -256,52 +264,70 @@ export const KEYS: KeyDef[] = [
   { key: "military.active", label: "Active duty", what: "whether a parent is on active duty in the U.S. military", kind: "yesno", options: YN, ocfs: true },
   { key: "military.reserve", label: "National Guard or Reserve", what: "whether a parent is in the National Guard or a Military Reserve Unit", kind: "yesno", options: YN, ocfs: true },
   { key: "otherFunding.has", label: "Other child care funding", what: "whether they receive or applied for other child care funding", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherFunding.agency", label: "Agency", what: "the agency that funding comes from", kind: "text", ocfs: true },
+  { key: "otherFunding.agency", label: "Agency", what: "the agency that funding comes from", kind: "text", ocfs: true, gate: { key: "otherFunding.has", is: "yes" } },
   { key: "care.reason", label: "Why child care is needed", what: "the reason child care is needed, in a phrase", kind: "textarea", ocfs: true },
   { key: "employment.startingNewJob", label: "Starting a new job", what: "whether they are about to start a new job", kind: "yesno", options: YN, ocfs: true },
-  { key: "employment.newJobStartDate", label: "Start date", what: "when the new job starts, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "employment.hoursPerWeek", label: "Hours worked per week", what: "total hours worked per week", kind: "number", ocfs: true },
-  { key: "employment.scheduleChanges", label: "Schedule changes weekly", what: "whether the work schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  { key: "employment.multipleJobs", label: "More than one job", what: "whether they have more than one job", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("employment.schedule", "work"),
-  { key: "training.startingSoon", label: "Starting training", what: "whether they are about to start a training program for work", kind: "yesno", options: YN, ocfs: true },
-  { key: "training.startDate", label: "Start date", what: "when the training starts, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "training.name", label: "Training program", what: "the training program's name or facility", kind: "text", ocfs: true },
-  { key: "training.hoursPerWeek", label: "Hours of training per week", what: "total hours of training per week", kind: "number", ocfs: true },
-  { key: "training.scheduleChanges", label: "Schedule changes weekly", what: "whether the training schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("training.schedule", "training"),
+  { key: "employment.newJobStartDate", label: "Start date", what: "when the new job starts, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "employment.startingNewJob", is: "yes" } },
+  { key: "employment.hoursPerWeek", label: "Hours worked per week", what: "total hours worked per week", kind: "number", ocfs: true, gate: { key: "employment.status", is: "employed|self-employed" } },
+  { key: "employment.scheduleChanges", label: "Schedule changes weekly", what: "whether the work schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "employment.status", is: "employed|self-employed" } },
+  { key: "employment.multipleJobs", label: "More than one job", what: "whether they have more than one job", kind: "yesno", options: YN, ocfs: true, gate: { key: "employment.status", is: "employed|self-employed" } },
+  ...schedule("employment.schedule", "work", { key: "employment.status", is: "employed|self-employed" }),
+  { key: "training.startingSoon", label: "Starting training", what: "whether they are about to start a training program for work", kind: "yesno", options: YN, ocfs: true, gate: { key: "employment.inTraining", is: "yes" } },
+  { key: "training.startDate", label: "Start date", what: "when the training starts, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "employment.inTraining", is: "yes" } },
+  { key: "training.name", label: "Training program", what: "the training program's name or facility", kind: "text", ocfs: true, gate: { key: "employment.inTraining", is: "yes" } },
+  { key: "training.hoursPerWeek", label: "Hours of training per week", what: "total hours of training per week", kind: "number", ocfs: true, gate: { key: "employment.inTraining", is: "yes" } },
+  { key: "training.scheduleChanges", label: "Schedule changes weekly", what: "whether the training schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "employment.inTraining", is: "yes" } },
+  ...schedule("training.schedule", "training", { key: "employment.inTraining", is: "yes" }),
   { key: "college.attending", label: "In college or classes", what: "whether they need care because they are going to college or taking classes", kind: "yesno", options: YN, ocfs: true },
-  { key: "college.startingSoon", label: "Starting college", what: "whether they are about to start college or classes", kind: "yesno", options: YN, ocfs: true },
-  { key: "college.startDate", label: "Start date", what: "when classes start, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "college.hoursPerWeek", label: "Hours of classes per week", what: "total hours of classes per week", kind: "number", ocfs: true },
-  { key: "college.scheduleChanges", label: "Schedule changes weekly", what: "whether the class schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("college.schedule", "class"),
+  { key: "college.startingSoon", label: "Starting college", what: "whether they are about to start college or classes", kind: "yesno", options: YN, ocfs: true, gate: { key: "college.attending", is: "yes" } },
+  { key: "college.startDate", label: "Start date", what: "when classes start, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "college.attending", is: "yes" } },
+  { key: "college.hoursPerWeek", label: "Hours of classes per week", what: "total hours of classes per week", kind: "number", ocfs: true, gate: { key: "college.attending", is: "yes" } },
+  { key: "college.scheduleChanges", label: "Schedule changes weekly", what: "whether the class schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "college.attending", is: "yes" } },
+  ...schedule("college.schedule", "class", { key: "college.attending", is: "yes" }),
   { key: "otherAdult.who", label: "The other adult applying", what: "who the other adult applying with them is, if any", kind: "radio", options: ["spouse|Spouse", "otherParent|Other parent", "otherAdult|Other adult", "none|Nobody else"], ocfs: true },
-  { key: "otherAdult.multipleJobs", label: "More than one job", what: "whether the other adult has more than one job", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.working", label: "Working", what: "whether the other adult is working", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.startingNewJob", label: "Starting a new job", what: "whether the other adult is about to start a new job", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.newJobStartDate", label: "Start date", what: "when that job starts, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "otherAdult.lookingForWork", label: "Looking for work", what: "whether the other adult is looking for work", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.employer", label: "Employer", what: "the other adult's employer", kind: "text", ocfs: true },
-  { key: "otherAdult.hoursPerWeek", label: "Hours worked per week", what: "the other adult's hours worked per week", kind: "number", ocfs: true },
-  { key: "otherAdult.scheduleChanges", label: "Schedule changes weekly", what: "whether the other adult's work schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("otherAdult.schedule", "the other adult's work"),
-  { key: "otherAdult.training.inTraining", label: "In training", what: "whether the other adult is in a training program for work", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.training.startingSoon", label: "Starting training", what: "whether the other adult is about to start training", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.training.startDate", label: "Start date", what: "when that training starts, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "otherAdult.training.name", label: "Training program", what: "the other adult's training program or facility", kind: "text", ocfs: true },
-  { key: "otherAdult.training.hoursPerWeek", label: "Hours of training per week", what: "the other adult's hours of training per week", kind: "number", ocfs: true },
-  { key: "otherAdult.training.scheduleChanges", label: "Schedule changes weekly", what: "whether that training schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("otherAdult.training.schedule", "the other adult's training"),
-  { key: "otherAdult.college.attending", label: "In college or classes", what: "whether the other adult is going to college or taking classes", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.college.startingSoon", label: "Starting college", what: "whether the other adult is about to start college or classes", kind: "yesno", options: YN, ocfs: true },
-  { key: "otherAdult.college.startDate", label: "Start date", what: "when those classes start, YYYY-MM-DD", kind: "date", ocfs: true },
-  { key: "otherAdult.college.name", label: "School or college", what: "the other adult's school or college", kind: "text", ocfs: true },
-  { key: "otherAdult.college.hoursPerWeek", label: "Hours of classes per week", what: "the other adult's hours of classes per week", kind: "number", ocfs: true },
-  { key: "otherAdult.college.scheduleChanges", label: "Schedule changes weekly", what: "whether that class schedule changes week to week", kind: "yesno", options: YN, ocfs: true },
-  ...schedule("otherAdult.college.schedule", "the other adult's class"),
+  { key: "otherAdult.multipleJobs", label: "More than one job", what: "whether the other adult has more than one job", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.working", label: "Working", what: "whether the other adult is working", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.startingNewJob", label: "Starting a new job", what: "whether the other adult is about to start a new job", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.newJobStartDate", label: "Start date", what: "when that job starts, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "otherAdult.startingNewJob", is: "yes" } },
+  { key: "otherAdult.lookingForWork", label: "Looking for work", what: "whether the other adult is looking for work", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.employer", label: "Employer", what: "the other adult's employer", kind: "text", ocfs: true, gate: { key: "otherAdult.working", is: "yes" } },
+  { key: "otherAdult.hoursPerWeek", label: "Hours worked per week", what: "the other adult's hours worked per week", kind: "number", ocfs: true, gate: { key: "otherAdult.working", is: "yes" } },
+  { key: "otherAdult.scheduleChanges", label: "Schedule changes weekly", what: "whether the other adult's work schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.working", is: "yes" } },
+  ...schedule("otherAdult.schedule", "the other adult's work", { key: "otherAdult.working", is: "yes" }),
+  { key: "otherAdult.training.inTraining", label: "In training", what: "whether the other adult is in a training program for work", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.training.startingSoon", label: "Starting training", what: "whether the other adult is about to start training", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.training.inTraining", is: "yes" } },
+  { key: "otherAdult.training.startDate", label: "Start date", what: "when that training starts, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "otherAdult.training.inTraining", is: "yes" } },
+  { key: "otherAdult.training.name", label: "Training program", what: "the other adult's training program or facility", kind: "text", ocfs: true, gate: { key: "otherAdult.training.inTraining", is: "yes" } },
+  { key: "otherAdult.training.hoursPerWeek", label: "Hours of training per week", what: "the other adult's hours of training per week", kind: "number", ocfs: true, gate: { key: "otherAdult.training.inTraining", is: "yes" } },
+  { key: "otherAdult.training.scheduleChanges", label: "Schedule changes weekly", what: "whether that training schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.training.inTraining", is: "yes" } },
+  ...schedule("otherAdult.training.schedule", "the other adult's training", { key: "otherAdult.training.inTraining", is: "yes" }),
+  { key: "otherAdult.college.attending", label: "In college or classes", what: "whether the other adult is going to college or taking classes", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.who", is: "spouse|otherParent|otherAdult" } },
+  { key: "otherAdult.college.startingSoon", label: "Starting college", what: "whether the other adult is about to start college or classes", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.college.attending", is: "yes" } },
+  { key: "otherAdult.college.startDate", label: "Start date", what: "when those classes start, YYYY-MM-DD", kind: "date", ocfs: true, gate: { key: "otherAdult.college.attending", is: "yes" } },
+  { key: "otherAdult.college.name", label: "School or college", what: "the other adult's school or college", kind: "text", ocfs: true, gate: { key: "otherAdult.college.attending", is: "yes" } },
+  { key: "otherAdult.college.hoursPerWeek", label: "Hours of classes per week", what: "the other adult's hours of classes per week", kind: "number", ocfs: true, gate: { key: "otherAdult.college.attending", is: "yes" } },
+  { key: "otherAdult.college.scheduleChanges", label: "Schedule changes weekly", what: "whether that class schedule changes week to week", kind: "yesno", options: YN, ocfs: true, gate: { key: "otherAdult.college.attending", is: "yes" } },
+  ...schedule("otherAdult.college.schedule", "the other adult's class", { key: "otherAdult.college.attending", is: "yes" }),
   { key: "attestation.ccap", label: "Attestation", what: "whether they attest that the child-care application is correct and complete — asked last", kind: "attest", always: true, tone: "caution", href: "/forms/OCFS-6025.pdf#page=5", options: ["yes|I attest", "no|Not yet"], ocfs: true },
 ]
+
+/**
+ * Does a key apply, given the answers so far? Open when it has no gate, or
+ * any gate's key holds one of its values (row keys gate on their own row).
+ */
+export function gateOpen(key: string, values: Record<string, string>): boolean {
+  const def = keyDef(key)
+  if (!def?.gate) return true
+  const row = rowOf(key)
+  const gates = Array.isArray(def.gate) ? def.gate : [def.gate]
+  return gates.some((g) => {
+    const at = row !== undefined ? g.key.replace("[n]", `[${row}]`) : g.key
+    const held = values[at] ?? ""
+    const alts = g.is.split("|")
+    const parts = keyDef(at)?.multi ? splitMulti(held) : [held.trim()]
+    return parts.some((p) => alts.includes(p))
+  })
+}
 
 /** `household[3].dob` → `household[n].dob`, so a row key matches its entry. */
 export const normaliseKey = (key: string) => key.replace(/\[\d+\]/g, "[n]")

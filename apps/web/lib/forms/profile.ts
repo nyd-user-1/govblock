@@ -1,4 +1,4 @@
-import { atRow, keyDef, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
+import { atRow, gateOpen, keyDef, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
 import { askedSections, type FormId, type FormSection, type ProgramForm } from "@/lib/forms/programs"
 
 // The browser is the ledger, and the ledger is a profile.
@@ -188,7 +188,7 @@ export function sectionKnown(section: FormSection, values: Values): { known: Can
     const def = keyDef(key)
     const value = values[key]
     if (!def?.always && value && value !== "skip" && value !== "unknown") known.push(key)
-    else open.push(key)
+    else if (gateOpen(key, values)) open.push(key)
   }
   return { known, open }
 }

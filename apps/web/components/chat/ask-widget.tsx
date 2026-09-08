@@ -5,7 +5,7 @@ import Link from "next/link"
 import { ExternalLinkIcon, PlusIcon, XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { displayValue, keyDef, normaliseKey, optionParts, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
+import { displayValue, gateOpen, keyDef, normaliseKey, optionParts, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
 import { askedSections, formById, type FormId } from "@/lib/forms/programs"
 import { markDone, mergeProfile, rowCount, sectionKnown, valueFor, valuesFor, type Values } from "@/lib/forms/profile"
 import { keyOnRow, plainKeys, rowKeys, type AskInput, type AskResult, type ChatField } from "@/lib/chat/form-tools"
@@ -74,7 +74,7 @@ function problem(f: ChatField, v: string): string | null {
 
 type Control = { field: ChatField; id: string; value: string; set: (v: string) => void; error?: string }
 
-function Control({ field: f, id, value: v, set, error }: Control) {
+export function Control({ field: f, id, value: v, set, error }: Control) {
   const opts = (f.options ?? []).map(optionParts)
   const invalid = error ? true : undefined
   if (f.kind === "textarea") return <Textarea id={id} rows={2} value={v} placeholder={f.placeholder} aria-invalid={invalid} onChange={(e) => set(e.target.value)} />
@@ -203,24 +203,27 @@ export function AskWidget({
   }
 
   const isKnown = (f: ChatField) => !keyDef(f.key)?.always && Boolean(known(f.key))
-  const knownFields = allFields.filter(isKnown)
-  const openFields = showKnown || editing ? allFields : allFields.filter((f) => !isKnown(f))
+  // A gated field shows while its parent answer calls for it: the "other"
+  // detail beside an "other", the address that differs beside "different".
+  const applies = (f: ChatField) => gateOpen(f.key, { ...(form ? valuesFor(form) : {}), ...values })
+  const knownFields = allFields.filter((f) => isKnown(f) && applies(f))
+  const openFields = (showKnown || editing ? allFields : allFields.filter((f) => !isKnown(f))).filter(applies)
 
   const submit = () => {
     const problems: Record<string, string> = {}
-    for (const f of allFields) {
+    for (const f of allFields.filter(applies)) {
       const p = problem(f, values[f.key] ?? "")
       if (p) problems[f.key] = p
     }
     setErrors(problems)
     if (Object.keys(problems).length) return
     const merged: Values = {}
-    for (const f of allFields) merged[f.key] = (values[f.key] ?? "").trim()
+    for (const f of allFields) merged[f.key] = applies(f) ? (values[f.key] ?? "").trim() : ""
     mergeProfile(merged)
     if (form) markDone(form, input.section)
     const answeredKeys: CanonicalKey[] = []
     const skipped: CanonicalKey[] = []
-    for (const f of allFields) (merged[f.key] ? answeredKeys : skipped).push(f.key)
+    for (const f of allFields.filter(applies)) (merged[f.key] ? answeredKeys : skipped).push(f.key)
     // The next section still open, from the profile as it now stands — so
     // the model can go on without holding the schema or a tally.
     let next: Extract<AskResult, { section: string }>["next"] = null
@@ -308,7 +311,7 @@ export function AskWidget({
 
   // Submitted: a read-only summary, with Edit.
   if (done && !editing) {
-    const lines = allFields.filter((f) => (values[f.key] ?? "").trim())
+    const lines = allFields.filter((f) => applies(f) && (values[f.key] ?? "").trim())
     return (
       <div data-slot="ask-widget" className="rounded-lg border bg-muted/30 p-3 text-sm">
         <div className="mb-1 flex items-center justify-between gap-2">
