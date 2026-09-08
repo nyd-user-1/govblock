@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { History } from "lucide-react"
 
-import { memberHref } from "@/lib/filters"
+import { memberHref, stateName } from "@/lib/filters"
 import { FlagChip } from "@/components/policy/imagery"
 import { useRecents } from "@/components/home/recents"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -140,8 +140,8 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
             >
               <FlagChip state={bill.state ?? state} width={20} />
-              <span className="shrink-0 font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
+              <span className="w-28 shrink-0 truncate font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{bill.title}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -155,12 +155,12 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               onSelect={() => go(memberHref(member.people_id, member.state))}
             >
               <FlagChip state={member.state} width={20} />
-              <span className="shrink-0 font-medium">
+              <span className="w-44 shrink-0 truncate font-medium">
                 {member.name}
                 {member.active ? "" : " (Ret.)"}
               </span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                {[member.party, member.chamber].filter(Boolean).join(" · ")}
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">
+                {[member.party, member.chamber, stateName(member.state) || member.state].filter(Boolean).join(" · ")}
               </span>
             </CommandItem>
           ))}
@@ -177,9 +177,9 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               }
             >
               <FlagChip state={committee.state ?? state} width={20} />
-              <span className="shrink-0 font-medium">{committee.committee}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                {committee.bills} bills
+              <span className="w-52 shrink-0 truncate font-medium">{committee.committee}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">
+                {[committee.chamber, `${committee.bills} bills`].filter(Boolean).join(" · ")}
               </span>
             </CommandItem>
           ))}
@@ -189,8 +189,8 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
         <CommandGroup heading="Pages">
           {pages.map((page) => (
             <CommandItem key={page.href} value={`page-${page.href}`} onSelect={() => go(page.href)}>
-              <span className="shrink-0 font-medium">{page.name}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">{page.group}</span>
+              <span className="w-28 shrink-0 truncate font-medium">{page.name}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{page.group}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -261,14 +261,14 @@ export function CommandMenu() {
           <DialogTitle>Search</DialogTitle>
           <DialogDescription>Search bills, members, committees and pages...</DialogDescription>
         </DialogHeader>
-        <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0" showCloseButton={false}>
+        <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 sm:max-w-[62rem]" showCloseButton={false}>
           <Command shouldFilter={false} value={search.selected} onValueChange={search.setSelected}>
             <CommandInput
               placeholder="Search"
               value={term}
               onValueChange={setTerm}
             />
-            <CommandList>
+            <CommandList className="max-h-[30rem]">
               {showRecents && (
                 <CommandGroup heading="Recents">
                   {recents.map((recent) => (
