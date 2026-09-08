@@ -1798,6 +1798,7 @@ export const US_ONLY = [
   // US bill; "FecTotals" holds 5,517 rows across 726 members, all US. Measured
   // 2026-09-01 before either was exposed on the route.
   "lobbying",
+  "lobbying-firms",
   "fec",
   // The committee page's paged families (2026-09-06).
   "committee-nominations",

@@ -236,6 +236,37 @@ export async function getLobbyingOverview(limit = 25) {
   return { totals: totals ?? null, firms, clients, lobbyists, sectors }
 }
 
+/**
+ * The register's registrants, paged and searchable — the list /docs/lobbying is
+ * built on, in the shape /docs/bills and /docs/directory are built on: fifty at
+ * a time from the server, the search run there too, because 6,473 registrants
+ * do not filter usefully fifty rows at a time.
+ */
+export async function getLobbyingFirms(limit = 50, offset = 0, term = "") {
+  const q1 = String(term ?? "").trim()
+  const where = q1 ? `and registrant_name ilike $3` : ""
+  const params: unknown[] = q1 ? [limit, offset, `%${q1}%`] : [limit, offset]
+  const [rows, count] = await Promise.all([
+    q<LobbyingFirm & { first_year: number | null; last_year: number | null; top_client: string | null }>(
+      `select registrant_name registrant, max(registrant_id)::int registrant_id, count(*)::int filings,
+              count(distinct client_name)::int clients, sum(income)::float income,
+              min(filing_year)::int first_year, max(filing_year)::int last_year,
+              (array_agg(client_name order by income desc nulls last))[1] top_client
+         from "LobbyingFilings"
+        where coalesce(registrant_name, '') <> '' ${where}
+        group by 1 order by sum(income) desc nulls last, count(*) desc, 1
+        limit $1 offset $2`,
+      params
+    ),
+    one<{ total: number }>(
+      `select count(distinct registrant_name)::int total from "LobbyingFilings"
+        where coalesce(registrant_name, '') <> '' ${q1 ? "and registrant_name ilike $1" : ""}`,
+      q1 ? [`%${q1}%`] : []
+    ),
+  ])
+  return { rows, total: n(count?.total) }
+}
+
 export type LobbyingHit = { kind: "firm" | "client" | "lobbyist"; name: string; filings: number; detail: string | null }
 
 /** The explorer's search: registrants, clients and named lobbyists by name. */

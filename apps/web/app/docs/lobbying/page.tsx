@@ -1,225 +1,80 @@
 import Link from "next/link"
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
-import { fmtCompact, fmtNumber, truncate } from "@/lib/format"
-import { getLobbyingOverview, searchLobbying } from "@/lib/policy/lobbying-queries"
-import { DocsPage } from "@/components/docs-page"
-import { DocsTableOfContents } from "@/components/docs-toc"
-import { LobbyingSearch } from "@/components/policy/lobbying-search"
-import { TableBlock } from "@/components/policy/table-block"
-import { H2, Table } from "@/components/typeset"
+import { DocsCopyPage } from "@/components/docs-copy-page"
+import { PublicRail } from "@/components/block-card"
+import { LobbyingList } from "@/components/policy/lobbying-list"
+import { Button } from "@govblock/ui/components/ny4/button"
 
-// The federal lobbying register, on the Bulk Datasets page's shape: what the
-// register holds, then the firms, the clients, the lobbyists and the sectors,
-// each row opening its own page. Search reads the same three lists by name.
+// The lobbying register, on the bills board's page (app/docs/bills/page.tsx):
+// the title, Copy Page, the description, the shared search field and the record
+// list. One list, paged, the way Bills and Members are one list.
 //
-// Every figure is the filings' own. A quarterly LDA filing reports one
-// registrant's income from one client for everything they worked that quarter;
-// the statute asks for no breakdown by issue or by bill, so nothing here is
-// apportioned and the page says so rather than implying a precision the law
-// does not require.
-
+// A registrant's own page carries what it filed on — the clients, the
+// lobbyists, the issues and the bills.
 const title = "Lobbying"
-const description = "Who is paid to be heard in Washington, on whose behalf, on what, and what it was reported to be worth."
+const description = "Every firm registered to lobby Congress, and who it is paid to speak for."
+const previous = { name: "Finance", url: "/docs/money" }
+const next = { name: "Roll call votes", url: "/docs/roll-call-votes" }
 
 export const metadata = { title, description }
-export const revalidate = 3600
 
-const money = (value: number | null | undefined) => (value == null ? "—" : fmtCompact(value))
-const href = (kind: string, name: string) => `/docs/lobbying/${kind}s/${encodeURIComponent(name)}`
-
-type Props = { searchParams: Promise<{ q?: string }> }
-
-export default async function LobbyingPage({ searchParams }: Props) {
-  const term = String((await searchParams).q ?? "").trim()
-  const [{ totals, firms, clients, lobbyists, sectors }, hits] = await Promise.all([
-    getLobbyingOverview().catch(() => ({ totals: null, firms: [], clients: [], lobbyists: [], sectors: [] })),
-    term ? searchLobbying(term).catch(() => []) : Promise.resolve([]),
-  ])
-  const toc = [
-    { title: "Firms", url: "#firms", depth: 2 },
-    { title: "Clients", url: "#clients", depth: 2 },
-    { title: "Lobbyists", url: "#lobbyists", depth: 2 },
-    { title: "Sectors", url: "#sectors", depth: 2 },
-  ]
-
+export default function LobbyingPage() {
   return (
-    <DocsPage
-      title={title}
-      description={description}
-      slug="/docs/lobbying"
-      previous={{ name: "Finance", url: "/docs/money" }}
-      next={{ name: "Roll call votes", url: "/docs/roll-call-votes" }}
-      rail={<DocsTableOfContents toc={toc} />}
-    >
-      <p>
-        Every firm that lobbies Congress files quarterly under the Lobbying Disclosure Act, naming the client, the issues, the
-        lobbyists and the bills. The register holds{" "}
-        <code>{fmtNumber(totals?.filings ?? 0)}</code> filings from <code>{fmtNumber(totals?.registrants ?? 0)}</code> registrants
-        for <code>{fmtNumber(totals?.clients ?? 0)}</code> clients, naming{" "}
-        <code>{fmtNumber(totals?.lobbyists ?? 0)}</code> lobbyists and <code>{fmtNumber(totals?.bills ?? 0)}</code> bills
-        {totals?.first_year ? `, ${totals.first_year} to ${totals.last_year}` : ""}.
-      </p>
-      <p>
-        A filing&rsquo;s income is what one registrant reported from one client for everything they worked that quarter. The LDA
-        asks for no breakdown by issue or by bill, so no figure here is divided between them: a total under a firm is the sum of
-        its filings, not a price for any one thing it did.
-      </p>
-
-      <LobbyingSearch term={term} />
-      {term && (
-        <>
-          <p>
-            {hits.length ? (
-              <>
-                <code>{fmtNumber(hits.length)}</code> {hits.length === 1 ? "match" : "matches"} for &ldquo;{term}&rdquo;.
-              </>
-            ) : (
-              <>Nothing in the register matches &ldquo;{term}&rdquo;.</>
-            )}
-          </p>
-          {hits.length > 0 && (
-            <TableBlock rows={hits.length}>
-            <Table>
-              <thead>
-                <tr>
-                  <th className="w-[44%]">Name</th>
-                  <th className="w-[14%]">Kind</th>
-                  <th className="w-[28%]">Business</th>
-                  <th className="w-[14%] pr-8 text-right">Filings</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hits.map((hit) => (
-                  <tr key={`${hit.kind}-${hit.name}`}>
-                    <td>
-                      <Link href={href(hit.kind, hit.name)}>{hit.name}</Link>
-                    </td>
-                    <td className="capitalize">{hit.kind}</td>
-                    <td>{truncate(hit.detail ?? "", 70) || "—"}</td>
-                    <td className="pr-8 text-right tabular-nums">{fmtNumber(hit.filings)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            </TableBlock>
-          )}
-        </>
-      )}
-
-      <hr />
-      <H2 id="firms">Firms</H2>
-      <p>Registrants by reported income across every filing they have made.</p>
-      <TableBlock rows={firms.length}>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[52%]">Registrant</th>
-            <th className="w-[14%] text-right">Clients</th>
-            <th className="w-[16%] text-right">Filings</th>
-            <th className="w-[18%] pr-8 text-right">Reported</th>
-          </tr>
-        </thead>
-        <tbody>
-          {firms.map((row) => (
-            <tr key={row.registrant}>
-              <td>
-                <Link href={href("firm", row.registrant)}>{row.registrant}</Link>
-              </td>
-              <td className="text-right tabular-nums">{fmtNumber(row.clients)}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.filings)}</td>
-              <td className="pr-8 text-right tabular-nums">{money(row.income)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      </TableBlock>
-
-      <H2 id="clients">Clients</H2>
-      <p>Who is paying, by what their filings report.</p>
-      <TableBlock rows={clients.length}>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[34%]">Client</th>
-            <th className="w-[30%]">Business</th>
-            <th className="w-[10%] text-right">Firms</th>
-            <th className="w-[10%] text-right">Filings</th>
-            <th className="w-[16%] pr-8 text-right">Reported</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clients.map((row) => (
-            <tr key={row.client}>
-              <td>
-                <Link href={href("client", row.client)}>{row.client}</Link>
-              </td>
-              <td>{truncate(row.description ?? "", 80) || "—"}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.firms)}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.filings)}</td>
-              <td className="pr-8 text-right tabular-nums">{money(row.income)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      </TableBlock>
-
-      <H2 id="lobbyists">Lobbyists</H2>
-      <p>Named on the filings themselves, by how many name them.</p>
-      <TableBlock rows={lobbyists.length}>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[54%]">Lobbyist</th>
-            <th className="w-[14%] text-right">Firms</th>
-            <th className="w-[14%] text-right">Clients</th>
-            <th className="w-[18%] pr-8 text-right">Filings</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lobbyists.map((row) => (
-            <tr key={row.lobbyist}>
-              <td>
-                <Link href={href("lobbyist", row.lobbyist)}>{row.lobbyist}</Link>
-              </td>
-              <td className="text-right tabular-nums">{fmtNumber(row.firms)}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.clients)}</td>
-              <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      </TableBlock>
-
-      <H2 id="sectors">Sectors</H2>
-      <p>
-        The LDA&rsquo;s own issue codes, which is the only sector a filing declares: <code>{sectors.length}</code> of them in use.
-      </p>
-      <TableBlock rows={sectors.length}>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[14%]">Code</th>
-            <th className="w-[42%]">Issue</th>
-            <th className="w-[14%] text-right">Clients</th>
-            <th className="w-[14%] text-right">Firms</th>
-            <th className="w-[16%] pr-8 text-right">Filings</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sectors.map((row) => (
-            <tr key={row.issue_code}>
-              <td>
-                <code>{row.issue_code}</code>
-              </td>
-              <td>{row.issue ?? "—"}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.clients)}</td>
-              <td className="text-right tabular-nums">{fmtNumber(row.registrants)}</td>
-              <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      </TableBlock>
-    </DocsPage>
+    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="h-(--top-spacing) shrink-0" />
+        <div className="mx-auto flex w-full min-w-0 max-w-160 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between md:items-start">
+                <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
+                <div className="docs-nav flex items-center gap-2">
+                  <div className="hidden sm:block">
+                    <DocsCopyPage page={`# ${title}\n\n${description}`} url="https://govblock.app/docs/lobbying" />
+                  </div>
+                  <div className="ml-auto flex gap-2">
+                    <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                      <Link href={previous.url}>
+                        <IconArrowLeft />
+                        <span className="sr-only">Previous</span>
+                      </Link>
+                    </Button>
+                    <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
+                      <Link href={next.url}>
+                        <span className="sr-only">Next</span>
+                        <IconArrowRight />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>
+            </div>
+          </div>
+          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
+            <LobbyingList />
+          </div>
+          <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
+            <Button variant="secondary" size="sm" className="shadow-none" asChild>
+              <Link href={previous.url}>
+                <IconArrowLeft /> {previous.name}
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
+              <Link href={next.url}>
+                {next.name} <IconArrowRight />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+        <div className="h-(--top-spacing) shrink-0"></div>
+        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
+          <PublicRail />
+        </div>
+      </div>
+    </div>
   )
 }
