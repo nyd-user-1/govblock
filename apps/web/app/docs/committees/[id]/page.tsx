@@ -6,6 +6,7 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
+import { getLobbyingOnBills, referredKeys } from "@/lib/policy/lobbying-queries"
 import { type BillRow, getCommittees, getSessionsWithTitles, latestSession } from "@/lib/policy/db-queries"
 import {
   getCommitteeBillsByStatus,
@@ -52,6 +53,7 @@ import {
   CommitteeToc,
 } from "@/components/policy/committee-page"
 import { CommitteeVideo } from "@/components/policy/committee-video"
+import { LobbyingScopeBlock } from "@/components/policy/lobbying-scope"
 import { H2 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
@@ -119,7 +121,7 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
   const f = { state, session }
   const code = committee.id
 
-  const [statuses, recent, counts, roster, hearings, meetings, reports, prints, nominations, communications, neighbours, calendar, video] = await Promise.all([
+  const [statuses, recent, counts, roster, hearings, meetings, reports, prints, nominations, communications, neighbours, calendar, video, lobbying] = await Promise.all([
     safe(() => getCommitteeStatuses(f, legiscanName), [] as { status: string; bills: number }[]),
     safe(() => getCommitteeBillsByStatus(f, legiscanName, null, 25, 0), { rows: [] as BillRow[], total: 0 }),
     safe(() => getCommittees(f), [] as { committee_name: string; chamber: string; bills: number }[]),
@@ -135,6 +137,9 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
     // before the committee feed the Upcoming tab.
     safe(() => getStateCommitteeCalendar(f, legiscanName), []),
     federal ? latestHearing(code).catch(() => ({ kind: "unmapped" as const })) : Promise.resolve({ kind: "unmapped" as const }),
+    // Lobbying on the bills referred to this room. Federal only: the LDA is a
+    // federal statute and its filings cite congress.gov's own bills.
+    federal ? referredKeys(code).then((keys) => getLobbyingOnBills(keys)).catch(() => null) : Promise.resolve(null),
   ])
 
   // The bills, a tab per status: the 25 newest split by status are each
@@ -176,6 +181,7 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
   if (reports.length || prints.length) parts.push("Reports")
   if (nominations.total) parts.push("Nominations")
   if (communications.total) parts.push("Communications")
+  if (lobbying) parts.push("Lobbying")
 
   return (
     <PendingSessionProvider>
@@ -269,6 +275,7 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
               <CommitteeReports reports={reports} prints={prints} who={who} />
               <CommitteeNominations rows={nominations.rows} total={nominations.total} code={code} who={who} state={state} />
               <CommitteeCommunications rows={communications.rows} total={communications.total} code={code} who={who} state={state} />
+              <LobbyingScopeBlock data={lobbying} who={who} what="referred to" />
 
               <CommitteeHistory record={record} />
               {ny && (ny.address || ny.chair_email) && (

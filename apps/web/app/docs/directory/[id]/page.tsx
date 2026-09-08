@@ -20,6 +20,7 @@ import {
   latestSession,
 } from "@/lib/policy/db-queries"
 import { congressName } from "@/lib/policy/congress"
+import { getLobbyingOnBills, getRevolvingDoor, sponsoredKeys } from "@/lib/policy/lobbying-queries"
 import { BackToTop } from "@/components/back-to-top"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DocsCopyPage } from "@/components/docs-copy-page"
@@ -35,6 +36,7 @@ import { Figure, PendingSessionProvider } from "@/components/policy/pending-sess
 import { SessionsMenu } from "@/components/policy/sessions-menu"
 import { VoteRecordPdf } from "@/components/policy/vote-record-pdf"
 import { MemberCongressProvider, MemberContact, MemberFinance, MemberToc, MemberVotes } from "@/components/policy/member-congress"
+import { LobbyingScopeBlock } from "@/components/policy/lobbying-scope"
 import { H2, H3 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
@@ -74,7 +76,10 @@ async function load(id: string, wanted?: string) {
   // The directories are federal too: the House Telephone Directory for a
   // representative's offices and staff, senate.gov's contact record for a
   // senator. A state seat has neither.
-  const [member, record, fec, directory, career, sessions, neighbours] = await Promise.all([
+  // Lobbying on the bills this member wrote. Federal, like the FEC totals: the
+  // LDA is a federal statute and its filings cite congress.gov's own bills.
+  const keys = state === "US" ? await sponsoredKeys(peopleId).catch(() => []) : []
+  const [member, record, fec, directory, career, sessions, neighbours, lobbying, revolving] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 20),
     state === "US" ? getFec(peopleId) : Promise.resolve(null),
@@ -82,6 +87,8 @@ async function load(id: string, wanted?: string) {
     careerAhead ?? getMemberCareer(peopleId, state),
     state === "US" ? Promise.resolve([]) : getSessionsWithTitles(state),
     getMemberNeighbours({ state, session }, peopleId),
+    keys.length ? getLobbyingOnBills(keys).catch(() => null) : Promise.resolve(null),
+    keys.length ? getRevolvingDoor(keys).catch(() => []) : Promise.resolve([]),
   ])
   if (!member) return null
   // The record's heading is the session's name: "119th Congress", or a
@@ -111,7 +118,7 @@ async function load(id: string, wanted?: string) {
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours }
+  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
 }
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }
@@ -132,7 +139,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const { id } = await params
   const data = await load(id, (await searchParams).session)
   if (!data) notFound()
-  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours } = data
+  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving } = data
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}`.trim()
@@ -229,6 +236,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
                 <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
                 <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
+                <LobbyingScopeBlock data={lobbying} revolving={revolving} who={title} what="sponsored by" />
 
                 <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
 
@@ -314,7 +322,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
           <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
             <div className="h-(--top-spacing) shrink-0"></div>
             <div className="scrollbar-none flex scroll-fade flex-col gap-8 overflow-y-auto px-8">
-              <MemberToc record={sessionName} finance={!!fec?.totals.length} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
+              <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
             </div>
             <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
               <PublicRail />

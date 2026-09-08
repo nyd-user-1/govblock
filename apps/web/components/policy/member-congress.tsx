@@ -357,6 +357,7 @@ const asRow = (vote: Vote): RollCallRow => ({
 export function MemberToc({
   record,
   finance,
+  lobbying = false,
   committees = false,
   contact,
   offices = false,
@@ -366,6 +367,8 @@ export function MemberToc({
   /** The record section's heading: the session's name. */
   record: string
   finance: boolean
+  /** Whether any LDA filing names a bill this member sponsored. */
+  lobbying?: boolean
   committees?: boolean
   contact: boolean
   offices?: boolean
@@ -384,6 +387,7 @@ export function MemberToc({
     ]
     if (committees) items.push(["Committees", 3])
     if (finance) items.push(["Finance", 3])
+    if (lobbying) items.push(["Lobbying", 3])
     if (votes.length) items.push(["Roll Call", 3])
     items.push(["Votes", 3])
     if (contact || offices || staff) items.push(["Contact", 2])
@@ -391,6 +395,6 @@ export function MemberToc({
     if (staff) items.push(["Staff", 3])
     if (biography) items.push(["Biography", 2])
     return items.map(([title, depth, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
-  }, [record, finance, committees, contact, offices, staff, biography, detail, votes])
+  }, [record, finance, lobbying, committees, contact, offices, staff, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }
