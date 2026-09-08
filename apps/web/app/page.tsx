@@ -1,10 +1,7 @@
-import Link from "next/link"
-import { IconArrowRight } from "@tabler/icons-react"
-
 import { Announcement } from "@/components/announcement"
 import { CardsDemo } from "@/components/cards"
+import { HomeSearch } from "@/components/home/home-search"
 import { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading } from "@/components/page-header"
-import { Button } from "@govblock/ui/components/nova/button"
 
 // Ported from livingston-v3 app/(app)/(root)/page.tsx.
 const title = "The Foundation for Civic Engagement"
@@ -21,9 +18,9 @@ export default function IndexPage() {
           Open Source. Open Code. Open Data.
         </PageHeaderDescription>
         <PageActions>
-          <Button render={<Link href="/workspace/data" />} nativeButton={false} className="h-[31px] rounded-lg">
-            Build Your Own <IconArrowRight data-icon="inline-end" />
-          </Button>
+          <div className="mx-auto w-full max-w-xl">
+            <HomeSearch />
+          </div>
         </PageActions>
       </PageHeader>
       <div className="container-wrapper flex-1 p-0">
