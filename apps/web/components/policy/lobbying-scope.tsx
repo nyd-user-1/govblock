@@ -1,8 +1,12 @@
 import Link from "next/link"
 
 import { fmtNumber, truncate } from "@/lib/format"
-import type { RevolvingDoorRow, ScopedLobbying } from "@/lib/policy/lobbying-queries"
+import type {
+  RevolvingDoorRow,
+  ScopedLobbying,
+} from "@/lib/policy/lobbying-queries"
 import { Chip } from "@/components/chip"
+import { TableBlock } from "@/components/policy/table-block"
 import { H3, Table } from "@/components/typeset"
 
 // Lobbying on a set of bills, for the member page and the committee page. The
@@ -33,109 +37,152 @@ export function LobbyingScopeBlock({
     <>
       <H3 id="lobbying">Lobbying</H3>
       <p>
-        <code>{fmtNumber(data.clients)}</code> {data.clients === 1 ? "client" : "clients"} and{" "}
-        <code>{fmtNumber(data.firms)}</code> {data.firms === 1 ? "firm" : "firms"} named{" "}
-        <code>{fmtNumber(data.bills)}</code> of the bills {what} <Chip>{who}</Chip> in{" "}
-        <code>{fmtNumber(data.filings)}</code> quarterly {data.filings === 1 ? "filing" : "filings"} under the Lobbying
+        <code>{fmtNumber(data.clients)}</code>{" "}
+        {data.clients === 1 ? "client" : "clients"} and{" "}
+        <code>{fmtNumber(data.firms)}</code>{" "}
+        {data.firms === 1 ? "firm" : "firms"} named{" "}
+        <code>{fmtNumber(data.bills)}</code> of the bills {what}{" "}
+        <Chip>{who}</Chip> in <code>{fmtNumber(data.filings)}</code> quarterly{" "}
+        {data.filings === 1 ? "filing" : "filings"} under the Lobbying
         Disclosure Act.
       </p>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[52%]">Client</th>
-            <th className="w-[24%] text-right">Bills</th>
-            <th className="w-[24%] pr-8 text-right">Filings</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.topClients.map((row) => (
-            <tr key={row.client}>
-              <td>
-                <Link href={`/docs/lobbying/clients/${encodeURIComponent(row.client)}`}>{row.client}</Link>
-              </td>
-              <td className="text-right tabular-nums">{fmtNumber(row.bills)}</td>
-              <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
+      <TableBlock rows={data.topClients.length}>
+        <Table>
+          <thead>
+            <tr>
+              <th className="w-[52%]">Client</th>
+              <th className="w-[24%] text-right">Bills</th>
+              <th className="w-[24%] pr-8 text-right">Filings</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
-      <p>Registrants filing on those bills, and the bills they named most.</p>
-      <Table>
-        <thead>
-          <tr>
-            <th className="w-[52%]">Registrant</th>
-            <th className="w-[24%] text-right">Bills</th>
-            <th className="w-[24%] pr-8 text-right">Filings</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.topFirms.map((row) => (
-            <tr key={row.registrant}>
-              <td>
-                <Link href={`/docs/lobbying/firms/${encodeURIComponent(row.registrant)}`}>{row.registrant}</Link>
-              </td>
-              <td className="text-right tabular-nums">{fmtNumber(row.bills)}</td>
-              <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
+          </thead>
+          <tbody>
+            {data.topClients.map((row) => (
+              <tr key={row.client}>
+                <td>
+                  <Link
+                    href={`/docs/lobbying/clients/${encodeURIComponent(row.client)}`}
+                  >
+                    {row.client}
+                  </Link>
+                </td>
+                <td className="text-right tabular-nums">
+                  {fmtNumber(row.bills)}
+                </td>
+                <td className="pr-8 text-right tabular-nums">
+                  {fmtNumber(row.filings)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </TableBlock>
+      <TableBlock rows={data.topFirms.length}>
+        <Table>
+          <thead>
+            <tr>
+              <th className="w-[52%]">Registrant</th>
+              <th className="w-[24%] text-right">Bills</th>
+              <th className="w-[24%] pr-8 text-right">Filings</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {data.topFirms.map((row) => (
+              <tr key={row.registrant}>
+                <td>
+                  <Link
+                    href={`/docs/lobbying/firms/${encodeURIComponent(row.registrant)}`}
+                  >
+                    {row.registrant}
+                  </Link>
+                </td>
+                <td className="text-right tabular-nums">
+                  {fmtNumber(row.bills)}
+                </td>
+                <td className="pr-8 text-right tabular-nums">
+                  {fmtNumber(row.filings)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </TableBlock>
       {data.topBills.length > 0 && (
         <>
           <p>The bills most often named.</p>
-          <Table>
-            <thead>
-              <tr>
-                <th className="w-[16%]">Bill</th>
-                <th className="w-[64%]">Title</th>
-                <th className="w-[20%] pr-8 text-right">Filings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.topBills.map((row) => (
-                <tr key={row.congress_key}>
-                  <td className="whitespace-nowrap">
-                    {row.bill_id ? <Link href={`/docs/bills/${row.bill_id}`}>{row.citation}</Link> : row.citation}
-                  </td>
-                  <td>{truncate(row.title ?? "", 100) || "—"}</td>
-                  <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
+          <TableBlock rows={data.topBills.length}>
+            <Table>
+              <thead>
+                <tr>
+                  <th className="w-[16%]">Bill</th>
+                  <th className="w-[64%]">Title</th>
+                  <th className="w-[20%] pr-8 text-right">Filings</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {data.topBills.map((row) => (
+                  <tr key={row.congress_key}>
+                    <td className="whitespace-nowrap">
+                      {row.bill_id ? (
+                        <Link href={`/docs/bills/${row.bill_id}`}>
+                          {row.citation}
+                        </Link>
+                      ) : (
+                        row.citation
+                      )}
+                    </td>
+                    <td>{truncate(row.title ?? "", 100) || "—"}</td>
+                    <td className="pr-8 text-right tabular-nums">
+                      {fmtNumber(row.filings)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableBlock>
         </>
       )}
       {revolving && revolving.length > 0 && (
         <>
           <p>
-            <code>{fmtNumber(revolving.length)}</code> of the lobbyists named on those filings share a name with someone in the
-            congressional record — a former member, or a name in the House staff directory. This is a{" "}
-            <strong>name match</strong>, not a verified identity: we hold today&rsquo;s House roster and no employment history at
-            all, and the Senate publishes no staff directory, so the names are shown rather than only counted.
+            <code>{fmtNumber(revolving.length)}</code> of the lobbyists named on
+            those filings share a name with someone in the congressional record
+            — a former member, or a name in the House staff directory. This is a{" "}
+            <strong>name match</strong>, not a verified identity: we hold
+            today&rsquo;s House roster and no employment history at all, and the
+            Senate publishes no staff directory, so the names are shown rather
+            than only counted.
           </p>
-          <Table>
-            <thead>
-              <tr>
-                <th className="w-[52%]">Lobbyist</th>
-                <th className="w-[28%]">In the record as</th>
-                <th className="w-[20%] pr-8 text-right">Filings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {revolving.map((row) => (
-                <tr key={row.name}>
-                  <td>
-                    <Link href={`/docs/lobbying/lobbyists/${encodeURIComponent(row.name)}`}>{row.name}</Link>
-                  </td>
-                  <td>
-                    {row.was}
-                    {row.party ? ` (${row.party})` : ""}
-                  </td>
-                  <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
+          <TableBlock rows={revolving.length}>
+            <Table>
+              <thead>
+                <tr>
+                  <th className="w-[52%]">Lobbyist</th>
+                  <th className="w-[28%]">In the record as</th>
+                  <th className="w-[20%] pr-8 text-right">Filings</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {revolving.map((row) => (
+                  <tr key={row.name}>
+                    <td>
+                      <Link
+                        href={`/docs/lobbying/lobbyists/${encodeURIComponent(row.name)}`}
+                      >
+                        {row.name}
+                      </Link>
+                    </td>
+                    <td>
+                      {row.was}
+                      {row.party ? ` (${row.party})` : ""}
+                    </td>
+                    <td className="pr-8 text-right tabular-nums">
+                      {fmtNumber(row.filings)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableBlock>
         </>
       )}
     </>
