@@ -5,16 +5,11 @@ import { notFound } from "next/navigation"
 import { memberHref } from "@/lib/filters"
 import { fmtDate, fmtNumber } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
-import {
-  chamberName,
-  getRollCallVote,
-  parseSessionSlug,
-  sessionName,
-} from "@/lib/policy/roll-call-queries"
+import { chamberName, getRollCallVote, parseSessionSlug, sessionName } from "@/lib/policy/roll-call-queries"
 import { Chip } from "@/components/chip"
 import { DocsPage } from "@/components/docs-page"
-import { TableBlock } from "@/components/policy/table-block"
 import { DocsTableOfContents } from "@/components/docs-toc"
+import { TableBlock } from "@/components/policy/table-block"
 import { H2, Table } from "@/components/typeset"
 
 // One roll call, member by member — congress.gov's vote page. The tally by
@@ -34,12 +29,7 @@ async function load(session: string, roll: string) {
   const scope = parseSessionSlug(session)
   const number = Number(roll)
   if (!scope || !Number.isInteger(number) || number <= 0) return null
-  const found = await getRollCallVote(
-    scope.chamber,
-    scope.congress,
-    scope.session,
-    number
-  ).catch(() => null)
+  const found = await getRollCallVote(scope.chamber, scope.congress, scope.session, number).catch(() => null)
   return found ? { ...found, scope } : null
 }
 
@@ -67,24 +57,10 @@ export default async function RollCallVotePage({ params }: Props) {
   return (
     <DocsPage
       title={`${chamber} roll call ${vote.roll}`}
-      description={
-        vote.question ??
-        vote.description ??
-        `${chamber} vote ${vote.roll}, ${sessionName(vote.session)} of the ${congress}.`
-      }
+      description={vote.question ?? vote.description ?? `${chamber} vote ${vote.roll}, ${sessionName(vote.session)} of the ${congress}.`}
       slug={`/docs/roll-call-votes/${slug}/${vote.roll}`}
-      previous={
-        vote.roll > 1
-          ? {
-              name: `Roll ${vote.roll - 1}`,
-              url: `/docs/roll-call-votes/${slug}/${vote.roll - 1}`,
-            }
-          : { name: chamber, url: `/docs/roll-call-votes/${slug}` }
-      }
-      next={{
-        name: `Roll ${vote.roll + 1}`,
-        url: `/docs/roll-call-votes/${slug}/${vote.roll + 1}`,
-      }}
+      previous={vote.roll > 1 ? { name: `Roll ${vote.roll - 1}`, url: `/docs/roll-call-votes/${slug}/${vote.roll - 1}` } : { name: chamber, url: `/docs/roll-call-votes/${slug}` }}
+      next={{ name: `Roll ${vote.roll + 1}`, url: `/docs/roll-call-votes/${slug}/${vote.roll + 1}` }}
       rail={
         <DocsTableOfContents
           toc={[
@@ -97,8 +73,7 @@ export default async function RollCallVotePage({ params }: Props) {
     >
       <H2 id="result">Result</H2>
       <p>
-        The {chamber} answered{" "}
-        <strong>{vote.question ?? "the question"}</strong>
+        The {chamber} answered <strong>{vote.question ?? "the question"}</strong>
         {vote.citation ? (
           <>
             {" "}
@@ -114,25 +89,18 @@ export default async function RollCallVotePage({ params }: Props) {
         ) : (
           ""
         )}
-        {vote.date ? ` on ${fmtDate(vote.date.slice(0, 10))}` : ""}:{" "}
-        <strong>{vote.result ?? "—"}</strong>, {vote.yea ?? 0} to{" "}
-        {vote.nay ?? 0}
+        {vote.date ? ` on ${fmtDate(vote.date.slice(0, 10))}` : ""}: <strong>{vote.result ?? "—"}</strong>,{" "}
+        {vote.yea ?? 0} to {vote.nay ?? 0}
         {vote.present ? `, ${vote.present} present` : ""}
-        {vote.not_voting
-          ? `, ${vote.not_voting} ${vote.chamber === "senate" ? "absent" : "not voting"}`
-          : ""}
-        . Roll <code>{vote.roll}</code> of the {sessionName(vote.session)},{" "}
-        {congress}.
+        {vote.not_voting ? `, ${vote.not_voting} ${vote.chamber === "senate" ? "absent" : "not voting"}` : ""}. Roll{" "}
+        <code>{vote.roll}</code> of the {sessionName(vote.session)}, {congress}.
       </p>
-      {vote.description && vote.description !== vote.question && (
-        <p>{vote.description}</p>
-      )}
+      {vote.description && vote.description !== vote.question && <p>{vote.description}</p>}
 
       <H2 id="by-party">By party</H2>
       <p>
-        <code>{fmtNumber(total)}</code> {total === 1 ? "member" : "members"}{" "}
-        answered the roll, in {byParty.length}{" "}
-        {byParty.length === 1 ? "party" : "parties"}.
+        <code>{fmtNumber(total)}</code> {total === 1 ? "member" : "members"} answered the roll, in{" "}
+        {byParty.length} {byParty.length === 1 ? "party" : "parties"}.
       </p>
       <Table>
         <thead>
@@ -155,9 +123,7 @@ export default async function RollCallVotePage({ params }: Props) {
                   {p.counts[cast] ?? 0}
                 </td>
               ))}
-              <td className="pr-8 text-right tabular-nums">
-                {Object.values(p.counts).reduce((sum, v) => sum + v, 0)}
-              </td>
+              <td className="pr-8 text-right tabular-nums">{Object.values(p.counts).reduce((sum, v) => sum + v, 0)}</td>
             </tr>
           ))}
         </tbody>
@@ -169,52 +135,40 @@ export default async function RollCallVotePage({ params }: Props) {
                 {byParty.reduce((sum, p) => sum + (p.counts[cast] ?? 0), 0)}
               </td>
             ))}
-            <td className="pr-8 text-right font-medium tabular-nums">
-              {fmtNumber(total)}
-            </td>
+            <td className="pr-8 text-right font-medium tabular-nums">{fmtNumber(total)}</td>
           </tr>
         </tfoot>
       </Table>
 
       <H2 id="members">Members</H2>
-      <p>As the clerk read the roll.</p>
+      <p>Every member of the {chamber} who answered, as the clerk read the roll.</p>
       <TableBlock rows={positions.length}>
-        <Table>
-          <thead>
-            <tr>
-              <th className="w-[46%]">Member</th>
-              <th className="w-[14%]">Party</th>
-              <th className="w-[14%]">State</th>
-              <th className="w-[26%] pr-8 text-right">Vote</th>
+      <Table>
+        <thead>
+          <tr>
+            <th className="w-[46%]">Member</th>
+            <th className="w-[14%]">Party</th>
+            <th className="w-[14%]">State</th>
+            <th className="w-[26%] pr-8 text-right">Vote</th>
+          </tr>
+        </thead>
+        <tbody>
+          {positions.map((p) => (
+            <tr key={`${p.bioguide_id ?? p.name}-${p.state}`}>
+              <td>{p.people_id ? <Link href={memberHref(p.people_id, "US")}>{p.name}</Link> : p.name}</td>
+              <td>{p.party ?? "—"}</td>
+              <td>{p.state ?? "—"}</td>
+              <td className="pr-8 text-right">{p.vote_cast ?? "—"}</td>
             </tr>
-          </thead>
-          <tbody>
-            {positions.map((p) => (
-              <tr key={`${p.bioguide_id ?? p.name}-${p.state}`}>
-                <td>
-                  {p.people_id ? (
-                    <Link href={memberHref(p.people_id, "US")}>{p.name}</Link>
-                  ) : (
-                    p.name
-                  )}
-                </td>
-                <td>{p.party ?? "—"}</td>
-                <td>{p.state ?? "—"}</td>
-                <td className="pr-8 text-right">{p.vote_cast ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+          ))}
+        </tbody>
+      </Table>
       </TableBlock>
       <hr />
       <p>
         Source:{" "}
         {scope.chamber === "house" ? (
-          <a
-            href={`https://clerk.house.gov/Votes/${String(vote.date ?? "").slice(0, 4)}${String(vote.roll).padStart(3, "0")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href={`https://clerk.house.gov/Votes/${String(vote.date ?? "").slice(0, 4)}${String(vote.roll).padStart(3, "0")}`} target="_blank" rel="noopener noreferrer">
             clerk.house.gov
           </a>
         ) : (
