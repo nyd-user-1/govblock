@@ -206,9 +206,11 @@ Executive Summary. The report someone reads instead of the report.
   comparison across jurisdictions, a chronology of what passed.
 - "What is not here" — two or three lines on the limits of what was read.
 
-No sections, no method essay, no narrative. Every bullet must be able to stand
-alone if it were quoted on its own, which means no "as noted above" and no
-pronoun whose subject is in a different bullet.
+No sections, no method essay, no narrative, and nothing at all after "What is
+not here" — a run that keeps going writes a Traditional Report under the wrong
+name, which is the one way this format fails. Every bullet must stand alone if
+it were quoted on its own: no "as noted above", and no pronoun whose subject is
+in a different bullet.
 `.trim()
 
 const TALKING_POINTS = `
