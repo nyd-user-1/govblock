@@ -68,11 +68,14 @@ Voice, in every format:
   model, the company that made it, or any tool vendor as the author of a
   finding — a source is named for what it returned, not credited with the
   thinking.
-- No title or heading opens with "The". "Money behind the 2024 campaigns", not
-  "The money behind the 2024 campaigns".
+- No title or heading opens with "The" — check every one before you write it.
+  "Money behind the 2024 campaigns", not "The money behind the 2024 campaigns";
+  "Reform's structural position", not "The reform movement's structural
+  position".
 - Headings are plain subjects. No "X, explained", no comma-tails, no hedges, no
   question marks in a section title.
-- No stat tiles, no boxed figures, no callouts, no emoji, no horizontal rules. A
+- No stat tiles, no boxed figures, no callouts, no emoji, and no rules of dashes
+  between sections — a heading is the break, and a line above it is furniture. A
   number lands once, in the sentence or the table where it hits hardest, and is
   not repeated in the takeaways and the body and a tile.
 - Do not caption what the structure already says. A table with a Source column
@@ -280,7 +283,7 @@ export function reportPace(round: number, ceiling: number) {
   if (left <= 3)
     return `Round ${round} of ${ceiling}, with ${left} after it. Stop gathering. Write the rest of the report now, from what you have, and say plainly what is missing.`
   if (round >= 4)
-    return `Round ${round} of ${ceiling}. Gathering time is over: write a finished section of the report in this round, and read only what that section needs.`
+    return `Round ${round} of ${ceiling}. Stop gathering: write a finished section of the report in this round. You may call for what that one section needs and nothing else, and only if it cannot be written without it. Searching for one more angle instead of writing is how this run ends with nothing delivered.`
   return `Round ${round} of ${ceiling}. Gather broadly now — parallel calls — because from round four on you are writing.`
 }
 

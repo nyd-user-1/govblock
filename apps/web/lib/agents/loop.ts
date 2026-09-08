@@ -141,7 +141,16 @@ export async function* runStep({
   // is written across several bounded rounds rather than one that never
   // arrives. Asking it to continue is how: prefill is not available on these
   // models, so the instruction goes in as a turn of its own.
-  if (result.stopReason === "max_tokens") {
+  //
+  // Only when the round asked for nothing. A round can both write and call —
+  // report mode says so in as many words — and one that was cut off after
+  // asking for tools still has to have those calls answered: every toolUse
+  // block must be paired with a toolResult in the next message or Converse
+  // refuses the whole conversation. Measured on a Trace Report, which died at
+  // round four with exactly that. So a cut round holding calls falls through to
+  // the tool path below, and the instruction to continue rides along with the
+  // results.
+  if (result.stopReason === "max_tokens" && !calls.length) {
     yield { t: "continue" }
     messages.push({
       role: "user",
@@ -164,7 +173,7 @@ export async function* runStep({
     }
   }
 
-  if (result.stopReason !== "tool_use" || !calls.length) {
+  if (!calls.length) {
     return {
       messages,
       done: true,
@@ -210,15 +219,30 @@ export async function* runStep({
     }
   }
 
+  const cut = result.stopReason === "max_tokens"
+  if (cut) yield { t: "continue" }
+
   messages.push({
     role: "user",
-    content: outcomes.map(({ call, outcome }) => ({
-      toolResult: {
-        toolUseId: call.toolUseId,
-        content: [{ text: resultText(outcome.payload) }],
-        status: outcome.ok ? ("success" as const) : ("error" as const),
-      },
-    })),
+    content: [
+      ...outcomes.map(({ call, outcome }) => ({
+        toolResult: {
+          toolUseId: call.toolUseId,
+          content: [{ text: resultText(outcome.payload) }],
+          status: outcome.ok ? ("success" as const) : ("error" as const),
+        },
+      })),
+      // A toolResult must be paired, and a cut sentence must be finished. Both,
+      // in one turn: the results first, as Converse requires, then the same
+      // instruction the no-calls case gets on its own.
+      ...(cut
+        ? [
+            {
+              text: "You also reached the length limit for that message. After acting on these results, continue your writing from exactly where you stopped, mid-sentence if that is where it was. Do not repeat anything you have already written and do not summarise it.",
+            },
+          ]
+        : []),
+    ],
   })
 
   return {
