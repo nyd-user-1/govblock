@@ -166,7 +166,7 @@ Six derived layers, in rough order of cost to rebuild:
 | Layer | What it is | Cost to rebuild |
 | --- | --- | --- |
 | **`RecipCode`** | 2 chars: `<Party><Status>` for candidates, `<Party>P` for party committees, `O<BLIO>` for outside spending, `P<BLIO>` otherwise. `BLIO` = Business / Labor / Ideological / Other. | Trivial — it is a lookup, fully documented. |
-| **`CID`** | A candidate id stable across cycles, where FEC's `FECCandID` is not. | Easy — we already do this with `people_id` in the `Fec*` tables. |
+| **`CID`** | A candidate id stable across cycles, where FEC's `FECCandID` is not. | Easy — we already do this with `people_id` in the `Fec*` tables, and `unitedstates/congress-legislators` (`legislators-current.json`, CC0, confirmed live 2026-09-08) publishes the bioguide ↔ FEC ↔ ICPSR ↔ **OpenSecrets CID** crosswalk outright. Our `congress_members` is 555 rows with 555 non-null `bioguide_id`, so the join is clean. See `federal-resources-inventory.md` `MEM-03`. |
 | **`RealCode` / `catcode` / `PrimCode`** | 5-char industry code, three levels (Sector → Industry → Business Classification), 19 sectors. | **Medium as a taxonomy, hard as an assignment.** The taxonomy is published in full on followthemoney.org/our-data/about-our-data; the tree is copyable in an afternoon. Assigning a code to each of millions of employer strings is the actual work — and it is now a very good LLM job, which it was not when they built it by hand. |
 | **`OrgName` / `UltOrg`** | Standardised employer name, and its ultimate parent. | **Hard.** Entity resolution over dirty free-text employers, plus a corporate-parent graph. Same shape as the org-matching we already do for LDA registrants and clients. |
 | **`ContribID`** | A 12-char person id clustering an individual's donations across committees and cycles. | **Hard.** FEC ships no such key. Name+ZIP+employer clustering, and it is where every wrong answer comes from. |
@@ -254,12 +254,18 @@ a tractable batch job. Do it once, apply it to lobbying *and* FEC contributions.
 `pas2`, `oth`, `cn`, `cm`, `oppexp` bulk files are free, versioned by cycle, and
 need no key. That converts our finance block from "this member's donors" into
 "who funds what," and it is the input the coding layer in step 2 wants. Budget
-for size: `indiv` is the big one.
+for size: `indiv` is the big one. **Runs on an AWS box in the Aurora region** —
+zips to S3, unpack and load on EC2 or Batch over a direct connection, never the
+Data API and never this laptop.
 
 **4. Personal financial disclosures — House first.** The Clerk publishes annual
-ZIPs of XML plus PDFs; the Senate is mostly scans. Do the House, say so plainly
-on the page, and leave the Senate for later. This is genuinely net-new and there
-is no free competitor since the API shut off.
+ZIPs of XML plus PDFs at `disclosures-clerk.house.gov/FinancialDisclosure`; the
+Senate is mostly scans. Do the House, say so plainly on the page, and leave the
+Senate for later. This is genuinely net-new and there is no free competitor since
+the API shut off. Pair it with `disclosures-clerk.house.gov/PostEmploymentNotification`,
+which is the **revolving door filed at source** — better than name-matching
+`house_staff` against `LobbyingActivities` and cheaper than either. Both are
+inventoried as `DISC-01`/`DISC-02`.
 
 **5. State campaign finance — pilot, don't boil the ocean.** This is the biggest
 gap in the world right now and the biggest trap. Start with the states that
