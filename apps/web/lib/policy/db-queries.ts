@@ -1799,6 +1799,8 @@ export const US_ONLY = [
   // 2026-09-01 before either was exposed on the route.
   "lobbying",
   "lobbying-firms",
+  "lobbying-clients",
+  "lobbying-lobbyists",
   "fec",
   // The committee page's paged families (2026-09-06).
   "committee-nominations",

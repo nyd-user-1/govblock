@@ -1,6 +1,5 @@
-import { type Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 
 import { fmtCompact, fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { type EntityKind, getLobbyingEntity } from "@/lib/policy/lobbying-queries"
@@ -16,60 +15,34 @@ import { H2, Table } from "@/components/typeset"
 //
 // Three kinds, one page. The three differ only in which side of a filing they
 // sit on, and writing three pages for that would be three places to fix a
-// column.
+// column. Each kind has its own route, because each also has a board beside it
+// at /docs/lobbying/<kind> and Next will not match a static segment and a
+// dynamic one at the same level.
 
-export const revalidate = 3600
-export const dynamicParams = true
-
-const KINDS: Record<string, EntityKind> = { firms: "firm", clients: "client", lobbyists: "lobbyist" }
-
-// What the other side of a filing is called, for each kind.
+/** What the other side of a filing is called, for each kind. */
 const COUNTERPARTY: Record<EntityKind, { heading: string; column: string; sentence: string }> = {
   firm: { heading: "Clients", column: "Client", sentence: "who it filed for" },
   client: { heading: "Firms", column: "Registrant", sentence: "it has hired" },
   lobbyist: { heading: "Firms", column: "Registrant", sentence: "they have filed under" },
 }
 
+/** The segment each kind sits under. */
+export const PATHS: Record<EntityKind, string> = { firm: "firms", client: "clients", lobbyist: "lobbyists" }
+
 const money = (value: number | null | undefined) => (value == null ? "—" : fmtCompact(value))
 
-export async function generateStaticParams() {
-  return []
-}
-
-async function load(kindParam: string, nameParam: string) {
-  const kind = KINDS[String(kindParam ?? "").toLowerCase()]
-  if (!kind) return null
-  const name = decodeURIComponent(nameParam ?? "")
-  if (!name.trim()) return null
+export async function LobbyingEntity({ kind, name }: { kind: EntityKind; name: string }) {
   const entity = await getLobbyingEntity(kind, name).catch(() => null)
-  return entity
-}
-
-type Props = { params: Promise<{ kind: string; name: string }> }
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { kind, name } = await params
-  const entity = await load(kind, name)
-  if (!entity) return { title: "Lobbying" }
-  return {
-    title: entity.name,
-    description: `${fmtNumber(entity.filings)} federal lobbying filings, ${entity.first_year} to ${entity.last_year}.`,
-  }
-}
-
-export default async function LobbyingEntityPage({ params }: Props) {
-  const { kind: kindParam, name: nameParam } = await params
-  const entity = await load(kindParam, nameParam)
   if (!entity) notFound()
   const words = COUNTERPARTY[entity.kind]
   const years = entity.first_year === entity.last_year ? String(entity.last_year ?? "") : `${entity.first_year} to ${entity.last_year}`
-  const otherHref = (name: string) => `/docs/lobbying/${entity.kind === "firm" ? "clients" : "firms"}/${encodeURIComponent(name)}`
+  const otherHref = (other: string) => `/docs/lobbying/${entity.kind === "firm" ? "clients" : "firms"}/${encodeURIComponent(other)}`
 
   return (
     <DocsPage
       title={entity.name}
       description={`${fmtNumber(entity.filings)} federal lobbying ${entity.filings === 1 ? "filing" : "filings"}${years ? `, ${years}` : ""}.`}
-      slug={`/docs/lobbying/${kindParam}/${nameParam}`}
+      slug={`/docs/lobbying/${PATHS[kind]}/${encodeURIComponent(name)}`}
       previous={{ name: "Lobbying", url: "/docs/lobbying" }}
       next={{ name: "Finance", url: "/docs/money" }}
       rail={

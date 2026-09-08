@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillDiff } from "@/lib/policy/bill-diff"
-import { getLobbyingFirms } from "@/lib/policy/lobbying-queries"
+import { getLobbyingClients, getLobbyingFirms, getLobbyingLobbyists } from "@/lib/policy/lobbying-queries"
 import { getBillTexts } from "@/lib/policy/texts"
 import { findCongressCommittee, getCommitteeBillsByStatus, getCommitteeCommunicationRows, getCommitteeNominationRows, getCommitteeRail, getCommitteeRoster as getCongressCommitteeRoster, getCongressHearingList, getHearingIndex, getHearingTranscript, getMemberRail, getMemberVoteRecord, getNominationList, getRecordArticles } from "@/lib/policy/committee-queries"
 import { resolveCommittee } from "@/lib/policy/committee-resolve"
@@ -511,6 +511,12 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const id = int(sp.get("bill") ?? sp.get("id") ?? f.bill ?? null, 0)
       if (!id) throw new Error("bill id required")
       return getLobbying(id)
+    }
+    case "lobbying-clients": {
+      return getLobbyingClients(Math.min(int(sp.get("limit"), 50), 200), int(sp.get("offset"), 0) || 0, sp.get("q") ?? "")
+    }
+    case "lobbying-lobbyists": {
+      return getLobbyingLobbyists(Math.min(int(sp.get("limit"), 50), 200), int(sp.get("offset"), 0) || 0, sp.get("q") ?? "")
     }
     case "lobbying-firms": {
       // The register's own list, for /docs/lobbying: paged and searched on the

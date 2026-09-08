@@ -267,6 +267,61 @@ export async function getLobbyingFirms(limit = 50, offset = 0, term = "") {
   return { rows, total: n(count?.total) }
 }
 
+/** The clients board, same shape as the registrants'. */
+export async function getLobbyingClients(limit = 50, offset = 0, term = "") {
+  const t = String(term ?? "").trim()
+  const like = `%${t}%`
+  const [rows, count] = await Promise.all([
+    q<LobbyingClient & { first_year: number | null; top_firm: string | null }>(
+      `select client_name client, max(client_id)::int client_id, max(client_state) client_state,
+              max(client_description) description, count(*)::int filings,
+              count(distinct registrant_name)::int firms, sum(income)::float income,
+              max(url) url, max(document_url) document_url,
+              min(filing_year)::int first_year, max(filing_year)::int last_year,
+              (array_agg(registrant_name order by income desc nulls last))[1] top_firm
+         from "LobbyingFilings"
+        where coalesce(client_name, '') <> '' ${t ? "and client_name ilike $3" : ""}
+        group by 1 order by sum(income) desc nulls last, count(*) desc, 1
+        limit $1 offset $2`,
+      t ? [limit, offset, like] : [limit, offset]
+    ),
+    one<{ total: number }>(
+      `select count(distinct client_name)::int total from "LobbyingFilings"
+        where coalesce(client_name, '') <> '' ${t ? "and client_name ilike $1" : ""}`,
+      t ? [like] : []
+    ),
+  ])
+  return { rows, total: n(count?.total) }
+}
+
+/**
+ * The lobbyists board. Slower than the other two by the shape of the data —
+ * the names are an array on each activity, so every page unnests 677,465 rows —
+ * but measured at under four seconds, which the route can carry.
+ */
+export async function getLobbyingLobbyists(limit = 50, offset = 0, term = "") {
+  const t = String(term ?? "").trim()
+  const like = `%${t}%`
+  const [rows, count] = await Promise.all([
+    q<LobbyingPerson & { top_firm: string | null }>(
+      `select upper(l) lobbyist, count(distinct a.filing_uuid)::int filings,
+              count(distinct f.registrant_name)::int firms, count(distinct f.client_name)::int clients,
+              (array_agg(f.registrant_name order by f.income desc nulls last))[1] top_firm
+         from "LobbyingActivities" a join "LobbyingFilings" f using (filing_uuid), unnest(a.lobbyists) l
+        where l <> '' ${t ? "and l ilike $3" : ""}
+        group by 1 order by 2 desc, 1 limit $1 offset $2`,
+      t ? [limit, offset, like] : [limit, offset]
+    ),
+    one<{ total: number }>(
+      `select count(*)::int total from (
+         select distinct upper(l) from "LobbyingActivities", unnest(lobbyists) l
+          where l <> '' ${t ? "and l ilike $1" : ""}) named`,
+      t ? [like] : []
+    ),
+  ])
+  return { rows, total: n(count?.total) }
+}
+
 export type LobbyingHit = { kind: "firm" | "client" | "lobbyist"; name: string; filings: number; detail: string | null }
 
 /** The explorer's search: registrants, clients and named lobbyists by name. */
