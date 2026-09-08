@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { BookOpen, BookUser, ClipboardList, Coins, FileText, Gavel, Handshake, Inbox, Landmark, Library, ListChecks, type LucideIcon, Mic, Newspaper, Radar, Receipt, Scale, ScrollText, Stamp, Tags, UserCheck, Users } from "lucide-react"
 
+import { NAV_ICONS as ICONS } from "@/components/page-icon"
 import { hasItems, type NavItem } from "@/lib/config"
 import { cn } from "@govblock/ui/lib/utils"
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@govblock/ui/components/ny4/navigation-menu"
@@ -15,32 +15,6 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 // all. Each panel line carries the sentence that says what the page is for,
 // because the nav is the only place most people will read it.
 
-// The only place a lucide name becomes a component. `lib/config.ts` stays data,
-// and an icon that is not in this map simply does not draw — a panel line
-// without one is the layout every panel had until today.
-const ICONS: Record<string, LucideIcon> = {
-  BookOpen,
-  BookUser,
-  ClipboardList,
-  Coins,
-  FileText,
-  Gavel,
-  Handshake,
-  Inbox,
-  Landmark,
-  Library,
-  ListChecks,
-  Mic,
-  Newspaper,
-  Radar,
-  Receipt,
-  Scale,
-  ScrollText,
-  Stamp,
-  Tags,
-  UserCheck,
-  Users,
-}
 
 // Two columns is the panel this nav has always drawn. Records runs four
 // across and four down (Brendan, 2026-09-06) — so the width follows the
@@ -71,12 +45,22 @@ export function MainNav({ items, className, ...props }: React.ComponentProps<"na
                       return (
                         <li key={entry.href}>
                           <NavigationMenuLink asChild data-active={pathname === entry.href || undefined}>
-                            <Link href={entry.href} className={cn(Icon && "flex-row items-start gap-2.5")}>
-                              {Icon && <Icon aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />}
+                            {/* Brendan, 2026-09-08: the panel rows read blue,
+                                and hovering one tints it and draws its edge.
+                                The border is always there and transparent, so
+                                a row does not move by a pixel on hover. */}
+                            <Link
+                              href={entry.href}
+                              className={cn(
+                                "rounded-md border border-transparent text-primary transition-colors hover:border-primary/20 hover:bg-primary/8 focus-visible:border-primary/20 focus-visible:bg-primary/8 data-[active]:border-primary/20 data-[active]:bg-primary/8",
+                                Icon && "flex-row items-start gap-2.5"
+                              )}
+                            >
+                              {Icon && <Icon aria-hidden className="mt-0.5 shrink-0 text-primary" />}
                               {/* The description aligns under the title, not
                                   under the icon — shadcn's feature grids. */}
                               <span className="flex min-w-0 flex-col gap-1">
-                                <span className="font-medium">{entry.label}</span>
+                                <span className="font-medium text-primary">{entry.label}</span>
                                 {entry.description && <span className="text-xs leading-snug text-muted-foreground">{entry.description}</span>}
                               </span>
                             </Link>
@@ -89,8 +73,17 @@ export function MainNav({ items, className, ...props }: React.ComponentProps<"na
               </NavigationMenuItem>
             ) : (
               <NavigationMenuItem key={item.href}>
-                <NavigationMenuLink asChild data-active={pathname === item.href || undefined} className={cn(navigationMenuTriggerStyle(), "flex-row")}>
-                  <Link href={item.href}>{item.label}</Link>
+                <NavigationMenuLink asChild data-active={pathname === item.href || undefined} className={cn(navigationMenuTriggerStyle(), "flex-row gap-1.5")}>
+                  <Link href={item.href}>
+                    {item.label}
+                    {/* A flat entry can carry an icon as well; Creators does,
+                        because the page it opens is video and the icon says so
+                        before the word is read. */}
+                    {(() => {
+                      const Flat = "icon" in item && item.icon ? ICONS[item.icon] : undefined
+                      return Flat ? <Flat aria-hidden className="size-4" /> : null
+                    })()}
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             )

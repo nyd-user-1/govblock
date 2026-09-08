@@ -12,6 +12,8 @@ import { FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { useRecents } from "@/components/home/recents"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { policyUrl } from "@/lib/policy/use-policy"
+import { PageIcon } from "@/components/page-icon"
+import { districtLabel, legislativeBody } from "@/lib/legislative-body"
 import { matchPages, SEARCH_PAGES } from "@/lib/search-pages"
 import {
   Command,
@@ -150,12 +152,13 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
           {bills.map((bill) => (
             <CommandItem
               key={`bill-${bill.bill_id}`}
+              className="group/row"
               value={`bill-${bill.bill_id}`}
               onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
             >
               <FlagChip state={bill.state ?? state} width={20} />
               <span className="w-28 shrink-0 truncate font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
-              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{bill.title}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{bill.title}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -165,6 +168,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
           {members.map((member) => (
             <CommandItem
               key={`member-${member.people_id}`}
+              className="group/row"
               value={`member-${member.people_id}`}
               onSelect={() => go(memberHref(member.people_id, member.state))}
             >
@@ -186,8 +190,10 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
                 {member.name}
                 {member.active ? "" : " (Ret.)"}
               </span>
-              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">
-                {[member.party, member.chamber, stateName(member.state) || member.state, shortDistrict(member.district)]
+              {/* Right-aligned so the members section ends on the same edge
+                  the bills section does, instead of trailing off mid-row. */}
+              <span className="min-w-0 flex-1 truncate pl-2 text-right text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
+                {[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
@@ -200,6 +206,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
           {committees.map((committee) => (
             <CommandItem
               key={`committee-${committee.committee}`}
+              className="group/row"
               value={`committee-${committee.committee}`}
               onSelect={() =>
                 go(`/docs/bills?state=${committee.state ?? state}&committee=${encodeURIComponent(committee.committee)}`)
@@ -207,7 +214,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
             >
               <FlagChip state={committee.state ?? state} width={20} />
               <span className="w-52 shrink-0 truncate font-medium">{committee.committee}</span>
-              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
                 {[committee.chamber, `${committee.bills} bills`].filter(Boolean).join(" · ")}
               </span>
             </CommandItem>
@@ -217,9 +224,12 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
       {pages.length > 0 && (
         <CommandGroup heading="Pages">
           {pages.map((page) => (
-            <CommandItem key={page.href} value={`page-${page.href}`} onSelect={() => go(page.href)}>
+            <CommandItem key={page.href} className="group/row" value={`page-${page.href}`} onSelect={() => go(page.href)}>
+              {/* The same icon and sentence the nav panel gives this page, so
+                  a row found by search reads like the row found by menu. */}
+              <PageIcon name={page.icon} />
               <span className="w-28 shrink-0 truncate font-medium">{page.name}</span>
-              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{page.group}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{page.description ?? page.group}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -242,7 +252,13 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
   )
 }
 
-export function CommandMenu() {
+/**
+ * `trigger={false}` mounts the dialog and its ⌘K listener without the search
+ * box. The header stopped drawing a box on 2026-09-08 — the hero carries the
+ * search now — but the shortcut belongs to the whole site, so it still lives
+ * up here, silently.
+ */
+export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
   const router = useRouter()
   const { state } = useJurisdiction()
   const [open, setOpen] = React.useState(false)
@@ -274,6 +290,7 @@ export function CommandMenu() {
 
   return (
     <>
+      {trigger ? (
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
@@ -285,6 +302,7 @@ export function CommandMenu() {
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogHeader className="sr-only">
           <DialogTitle>Search</DialogTitle>

@@ -13,16 +13,17 @@ export function SiteHeader() {
     <header data-slot="site-header" className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden">
       <div className="container-wrapper px-6 3xl:fixed:px-0">
         <div className="flex h-(--header-height) items-center **:data-[slot=separator]:h-4! 3xl:fixed:container">
-          {/* The jurisdiction switcher leads the nav, the flag alone (Brendan,
-              2026-09-06). It still opens the picker and still sets the scope. */}
           <nav className="hidden items-center gap-0 lg:flex">
-            <StateSwitcher compact className="hidden md:flex" />
             <MainNav items={siteConfig.navItems} className="flex" />
           </nav>
           <div className="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
-            <div className="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
-              <CommandMenu />
-            </div>
+            {/* The jurisdiction switcher sits where the search box used to
+                (Brendan, 2026-09-08). The hero carries the search now, and a
+                second box beside it was the same question asked twice; the
+                flag is the one control the header still owes a reader. */}
+            <StateSwitcher compact className="hidden md:flex" />
+            {/* No box, but ⌘K is the site's shortcut and still opens here. */}
+            <CommandMenu trigger={false} />
             <Separator orientation="vertical" className="ml-2 hidden lg:block" />
             <ModeSwitcher />
             <div className="flex items-center gap-2 group-has-data-[slot=designer]/layout:hidden">

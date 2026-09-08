@@ -1,4 +1,3 @@
-import { Announcement } from "@/components/announcement"
 import { CardsDemo } from "@/components/cards"
 import { HomeSearch } from "@/components/home/home-search"
 import { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading } from "@/components/page-header"
@@ -10,10 +9,12 @@ export default function IndexPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader className="md:**:[.container]:pb-8 lg:**:[.container]:pb-12">
-        <Announcement />
-        <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
+        {/* The root page's own size: 6rem, two lines, and nothing above it.
+            The chip that sat there went on 2026-09-08 — the headline is the
+            page's first word now. */}
+        <PageHeaderHeading className="max-w-5xl xl:text-[6rem]">{title}</PageHeaderHeading>
         <PageHeaderDescription>
-          One view over all 50 states and Congress.
+          All 50 States and Congress.
           <br />
           Open Source. Open Code. Open Data.
         </PageHeaderDescription>

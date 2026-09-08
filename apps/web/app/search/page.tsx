@@ -8,6 +8,7 @@ import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
 import { portraitFor } from "@/lib/imagery"
 import { fmtBill, fmtDate, truncate } from "@/lib/format"
+import { districtLabel, legislativeBody } from "@/lib/legislative-body"
 import { isFiltered, readFilters, SearchFilters, sectionId, type SearchFilterState, writeFilters } from "@/components/search-filters"
 import { Highlight, Mark } from "@/components/search-highlight"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
@@ -262,7 +263,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
                   </span>
                 }
                 title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
-                meta={[stateName(member.state), member.party, member.chamber, member.district]}
+                meta={[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]}
               />
             ))}
           </Section>

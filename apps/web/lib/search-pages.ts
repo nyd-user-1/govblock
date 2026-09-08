@@ -1,25 +1,20 @@
-// The pages search can land on — the header menu and /search share this list.
-// Only routes that exist today; /charts/area and /changelog are not ported yet
-// and a search result must never 404.
-export const SEARCH_PAGES: { name: string; href: string; group: string }[] = [
-  { name: "Home", href: "/", group: "Pages" },
-  { name: "Bills", href: "/docs/bills", group: "Docs" },
-  { name: "Committees", href: "/docs/committees", group: "Docs" },
-  { name: "Members", href: "/docs/directory", group: "Docs" },
-  { name: "Laws", href: "/docs/laws", group: "Docs" },
-  { name: "Nominations", href: "/docs/nominations", group: "Docs" },
-  { name: "The Record", href: "/docs/record", group: "Docs" },
-  { name: "Reports", href: "/docs/reports", group: "Docs" },
-  { name: "News", href: "/newsroom", group: "Pages" },
-  { name: "Blocks", href: "/workspace/blocks", group: "Pages" },
-  { name: "Block docs", href: "/docs/blocks", group: "Pages" },
-  { name: "Calendar", href: "/calendar", group: "Pages" },
-  { name: "Typeset", href: "/workspace/typeset", group: "Pages" },
-  { name: "Data", href: "/workspace/data", group: "Pages" },
-]
+import { hasItems, siteConfig } from "@/lib/config"
+
+// The pages search can land on. Built from the nav rather than typed out
+// again: a page's icon, its sentence and the menu it lives under are already
+// decided in `lib/config.ts`, and a second list would drift from it within a
+// week. The group is the panel a page sits in, which tells a reader where to
+// find it next time without opening anything.
+export type SearchPage = { name: string; href: string; group: string; description?: string; icon?: string }
+
+export const SEARCH_PAGES: SearchPage[] = siteConfig.navItems.flatMap((item) =>
+  hasItems(item)
+    ? item.items.map((entry) => ({ name: entry.label, href: entry.href, group: item.label, description: entry.description, icon: entry.icon }))
+    : [{ name: item.label, href: item.href, group: "Pages", icon: item.icon }]
+).filter((page, index, all) => all.findIndex((other) => other.href === page.href) === index)
 
 export function matchPages(term: string, limit = 6) {
   const t = term.trim().toLowerCase()
   if (!t) return []
-  return SEARCH_PAGES.filter((p) => p.name.toLowerCase().includes(t)).slice(0, limit)
+  return SEARCH_PAGES.filter((p) => p.name.toLowerCase().includes(t) || (p.description ?? "").toLowerCase().includes(t)).slice(0, limit)
 }
