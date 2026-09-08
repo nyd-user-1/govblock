@@ -426,7 +426,27 @@ export async function fillForm(spec: FormSpec, values: Values, base?: ArrayBuffe
     for (const widget of text.acroField.getWidgets()) widget.dict.set(PDFName.of("DA"), PDFString.of("/Helv 0 Tf 0 g"))
   }
   form.updateFieldAppearances(font)
-  acro.set(PDFName.of("NeedAppearances"), PDFBool.True)
+  // The state's OCFS-6025 ships every checkbox with an /On and an /Off
+  // appearance that are both empty streams. pdf-lib sees the keys, decides the
+  // box needs no update, and leaves the empty stream in place — so the value
+  // is set and no viewer draws a mark. Regenerate every box and radio
+  // outright, and give each widget the check character (/MK /CA "4",
+  // ZapfDingbats) a viewer that redraws for itself would use.
+  for (const field of form.getFields()) {
+    const kind = field.constructor.name
+    if (kind !== "PDFCheckBox" && kind !== "PDFRadioGroup") continue
+    for (const widget of field.acroField.getWidgets()) {
+      const mk = (widget.dict.lookup(PDFName.of("MK")) as PDFDict | undefined) ?? doc.context.obj({})
+      mk.set(PDFName.of("CA"), PDFString.of("4"))
+      widget.dict.set(PDFName.of("MK"), mk)
+    }
+    ;(field as PDFCheckBox | PDFRadioGroup).updateAppearances()
+  }
+  // Every field now carries a correct appearance stream, so viewers must use
+  // them. With NeedAppearances on, iOS and Google's viewer redraw text with
+  // their own sizing and clip a three-digit area code to two, and draw
+  // nothing for a box whose base appearance was empty.
+  acro.set(PDFName.of("NeedAppearances"), PDFBool.False)
 
   const bytes = await doc.save({ updateFieldAppearances: false })
   const blob = new Blob([bytes as BlobPart], { type: "application/pdf" })
