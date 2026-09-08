@@ -5,7 +5,9 @@ import { SearchIcon } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 import { honorific } from "@/lib/format"
-import { num, useActivity, useMembers, useSeats } from "@/components/admin/data"
+import { num, useActivity, useMemberRecord, useMembers, useSeats } from "@/components/admin/data"
+import { useUrlParams } from "@/lib/policy/url-state"
+import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { StatCustomer } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
@@ -29,13 +31,21 @@ import { cn } from "@govblock/ui/lib/utils"
 
 const monthLabel = (ym: string) => new Date(`${ym}-15T12:00:00`).toLocaleDateString("en-US", { month: "short" })
 
-/** The member the page is about, until it reads one off the URL. */
+/** What the crumb says before a member is picked. */
 export const MEMBER = "Senator Peter Parker"
 
 export function MemberPage() {
   const members = useMembers()
   const seats = useSeats()
   const activity = useActivity()
+  // The member the page is about: the one the crumb's switcher wrote into `of`.
+  // Nothing picked reads as the roster, which is what the page was before it
+  // could be pointed at anyone (Brendan, 2026-09-08).
+  const { of } = useUrlParams(["of"])
+  const peopleId = Number(of) || null
+  const subject = (members.data ?? []).find((m) => m.people_id === peopleId) ?? null
+  const record = useMemberRecord(subject ? peopleId : null)
+  const counts = record.data?.counts
   const [query, setQuery] = React.useState("")
 
   const all = members.data ?? []
@@ -45,7 +55,37 @@ export function MemberPage() {
   const leaders = sitting.filter((m) => m.leadership_title).length
   const senate = seats.data?.filter((s) => s.chamber === "Senate").reduce((a, s) => a + s.seats, 0) ?? 0
 
-  const stats = [
+  // Picked, the four tiles are that member's own record: what they wrote, what
+  // they signed, and how they voted. Unpicked, they are the roster the page
+  // showed before it could be pointed at anyone.
+  const mine = [
+    {
+      title: "Bills Sponsored",
+      value: counts ? num(counts.sponsor) : <Skeleton className="h-7 w-16" />,
+      trend: counts ? `${num(counts.cosponsor)} cosponsored` : "",
+      note: "Introduced by this member this session",
+    },
+    {
+      title: "Cosponsored",
+      value: counts ? num(counts.cosponsor) : <Skeleton className="h-7 w-16" />,
+      trend: subject?.district ?? "",
+      note: "Signed onto another member's bill",
+    },
+    {
+      title: "Voted Yes",
+      value: counts ? num(counts.aye) : <Skeleton className="h-7 w-16" />,
+      trend: counts && counts.aye + counts.nay ? `${Math.round((counts.aye / (counts.aye + counts.nay)) * 100)}% of votes cast` : "",
+      note: "Recorded ayes this session",
+    },
+    {
+      title: "Voted No",
+      value: counts ? num(counts.nay) : <Skeleton className="h-7 w-16" />,
+      trend: subject?.party ?? "",
+      note: "Recorded nays this session",
+    },
+  ]
+
+  const roster = [
     {
       title: "Members on Record",
       value: members.data ? num(all.length) : <Skeleton className="h-7 w-16" />,
@@ -71,6 +111,7 @@ export function MemberPage() {
       note: "Members with a leadership title",
     },
   ]
+  const stats = subject ? mine : roster
 
   const count = (name: RegExp) => activity.data?.statuses.filter((s) => name.test(s.status)).reduce((a, s) => a + s.bills, 0) ?? 0
   const funnel = [
@@ -115,7 +156,20 @@ export function MemberPage() {
 
   return (
     <div>
-      <PageTitle title={MEMBER} />
+      <PageTitle
+        title={subject ? `${honorific(subject.role, subject.chamber)} ${subject.name}` : MEMBER}
+        endContent={
+          subject ? (
+            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="relative flex shrink-0">
+                <MemberPortrait name={subject.name} photoUrl={subject.photo_url} state="US" chamber={subject.chamber} size={24} />
+                <PartyDot party={subject.party} serving={subject.active} className="absolute -right-0.5 -bottom-0.5 ring-2 ring-background" />
+              </span>
+              {[subject.chamber, subject.district, subject.party].filter(Boolean).join(" · ")}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <StatCustomer key={s.title} {...s} />

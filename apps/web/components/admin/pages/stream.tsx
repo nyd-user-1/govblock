@@ -57,6 +57,40 @@ type Payload = {
   account: string | null
 }
 
+// Placeholder rows, so the Library reads as a library before an account is
+// wired to it — the same courtesy the Agentic Inbox does its thread list. Only
+// when the real library is empty, and deterministic: fixed uids, fixed dates,
+// fixed lengths, so the page does not shuffle under a reader between renders.
+// `placeholder: true` is what the rest of the page reads to keep Play, Copy
+// embed and Delete off a row that is not really there.
+const PLACEHOLDER_VIDEOS: (Video & { placeholder: true })[] = [
+  ["Ways and Means markup — H.R. 1", 5_412, "2026-09-03"],
+  ["Judiciary oversight hearing — FBI", 8_930, "2026-09-02"],
+  ["Energy and Commerce — data privacy", 6_147, "2026-08-28"],
+  ["Appropriations — Defense subcommittee", 11_205, "2026-08-27"],
+  ["Rules Committee — H.Res. 1009", 2_388, "2026-08-21"],
+  ["Senate Finance — nomination hearing", 7_016, "2026-08-19"],
+  ["Agriculture — farm bill roundtable", 4_502, "2026-08-14"],
+  ["Homeland Security — border briefing", 9_240, "2026-08-12"],
+  ["Veterans' Affairs — benefits backlog", 3_875, "2026-08-07"],
+  ["Foreign Affairs — Indo-Pacific posture", 10_133, "2026-08-05"],
+].map(([name, duration, day], i) => ({
+  uid: `placeholder-${String(i + 1).padStart(2, "0")}`,
+  name: name as string,
+  state: "ready",
+  readyToStream: true,
+  duration: duration as number,
+  created: `${day as string}T14:00:00Z`,
+  size: (duration as number) * 180_000,
+  thumbnail: "",
+  preview: "",
+  hls: null,
+  width: 1920,
+  height: 1080,
+  requireSignedURLs: false,
+  placeholder: true,
+}))
+
 const fmtDuration = (s: number) => {
   const m = Math.floor(s / 60),
     r = Math.round(s % 60)
@@ -128,8 +162,11 @@ export function StreamPage() {
     }
   }
 
-  const videos = data?.videos ?? [],
-    live = data?.live ?? []
+  // The account's own videos where there are any; the placeholders where there
+  // are not, so the table is never an empty box with a sentence in it.
+  const held = data?.videos ?? []
+  const videos: (Video & { placeholder?: true })[] = held.length ? held : PLACEHOLDER_VIDEOS
+  const live = data?.live ?? []
   const ready = videos.filter((v) => v.readyToStream).length
   const minutes = videos.reduce((a, v) => a + v.duration, 0) / 60
   const customer = data?.customer
@@ -236,7 +273,7 @@ export function StreamPage() {
                         </TableRow>
                       ))
                     : videos.map((v) => (
-                        <TableRow key={v.uid} className={cn("cursor-pointer", selected === v.uid && "bg-muted/50")} onClick={() => setSelected(v.uid)}>
+                        <TableRow key={v.uid} className={cn(!v.placeholder && "cursor-pointer", selected === v.uid && "bg-muted/50")} onClick={() => !v.placeholder && setSelected(v.uid)}>
                           <TableCell>
                             {v.thumbnail ? (
                               <img src={v.thumbnail} alt="" className="h-9 w-14 rounded object-cover" />
@@ -265,6 +302,7 @@ export function StreamPage() {
                                 variant="ghost"
                                 size="icon-sm"
                                 aria-label="Play"
+                                disabled={v.placeholder}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setSelected(v.uid)
@@ -272,7 +310,7 @@ export function StreamPage() {
                               >
                                 <PlayIcon className="size-3.5" />
                               </Button>
-                              {embed(v.uid) && (
+                              {!v.placeholder && embed(v.uid) && (
                                 <span onClick={(e) => e.stopPropagation()}>
                                   <Copy text={`<iframe src="${embed(v.uid)}" title="${v.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
                                 </span>
@@ -282,7 +320,7 @@ export function StreamPage() {
                                 size="icon-sm"
                                 aria-label="Delete"
                                 className="text-destructive"
-                                disabled={busy === v.uid}
+                                disabled={v.placeholder || busy === v.uid}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (window.confirm(`Delete "${v.name}" from Stream? This cannot be undone.`)) void act({ action: "delete-video", uid: v.uid }, v.uid)
@@ -294,10 +332,10 @@ export function StreamPage() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  {!pending && !videos.length && (
+                  {!pending && !held.length && (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                        {data?.ok ? "No videos yet. Import one from a URL on the right." : "The library appears once Stream is reachable."}
+                      <TableCell colSpan={6} className="py-3 text-center text-xs text-muted-foreground">
+                        {data?.ok ? "Placeholders. Import a video from a URL on the right." : "Placeholders. The account's own library appears once Stream is reachable."}
                       </TableCell>
                     </TableRow>
                   )}

@@ -155,8 +155,19 @@ export const useActivity = (extra: Extra = {}) => useRecord<Activity>("activity"
 export const useAdopted = (extra: Extra = {}) => useRecord<AdoptedRow[]>("adopted", extra)
 export const useSponsors = (limit = 8, extra: Extra = {}) => useRecord<Sponsor[]>("sponsors", { limit, ...extra })
 export const useCommittees = (extra: Extra = {}) => useRecord<Committee[]>("committees", extra)
+/** One committee's own record — its bills by status, its newest bills, its sittings. */
+export type CommitteeRecord = {
+  statuses: { status: string; bills: number }[]
+  bills: { bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action: string | null; last_action_date: string | null; sponsor: string | null }[]
+  hearings: { date: string; time: string; description: string; bill_id: number; bill_number: string; title: string }[]
+}
+export const useCommittee = (name: string | null) => useRecord<CommitteeRecord>(name ? "committee" : null, { name: name ?? undefined })
 export const useRollCalls = (limit = 120) => useRecord<RollCall[]>("rollcalls", { limit })
 export const useMembers = () => useRecord<Member[]>("members")
+/** One member's own record — sponsored, cosponsored, aye and nay — for the member dashboard. */
+export type MemberRecordCounts = { sponsor: number; cosponsor: number; aye: number; nay: number }
+export const useMemberRecord = (peopleId: number | null) =>
+  useRecord<{ counts: MemberRecordCounts }>(peopleId ? "record" : null, { id: peopleId ?? undefined, limit: 1 })
 export const useSeats = (extra: Extra = {}) => useRecord<Seat[]>("seats", extra)
 export const useBills = (limit = 20) => useRecord<{ rows: BillRow[]; total: number }>("bills", { limit })
 // The hearings route is a Congress dataset and answers no other state; ask

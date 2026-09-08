@@ -4,6 +4,11 @@ import * as React from "react"
 import { CalendarIcon, FilterIcon, MicIcon, PlusIcon, Share2Icon, TagIcon, UserIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
+import { useCommittee, useCommittees } from "@/components/admin/data"
+import { fmtBill, fmtDate, fmtNumber, truncate } from "@/lib/format"
+import { useUrlParams } from "@/lib/policy/url-state"
+import { useScope } from "@/lib/policy/scope"
+import { ChamberSeal } from "@/components/policy/imagery"
 import { StatEducation } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
@@ -102,19 +107,87 @@ function BillCard() {
   )
 }
 
+/** How many of a committee's bills got out of it. */
+const passageRate = (statuses: { status: string; bills: number }[]) => {
+  const total = statuses.reduce((a, s) => a + s.bills, 0)
+  if (!total) return null
+  const passed = statuses.filter((s) => /passed|engrossed|enrolled|adopted|chaptered|became law/i.test(s.status)).reduce((a, s) => a + s.bills, 0)
+  return { total, passed, pct: Math.round((passed / total) * 1000) / 10 }
+}
+
 export function CommitteePage() {
+  // The committee the page is about: the one the crumb's switcher wrote into
+  // `of`. Its own record drives the tiles, the bills and the sittings; the
+  // charts stay the mock's until an attendance record exists to draw
+  // (Brendan, 2026-09-08).
+  const { of } = useUrlParams(["of"])
+  const { state } = useScope()
+  const committees = useCommittees()
+  const chosen = (committees.data ?? []).find((c) => (c.slug ?? c.committee_name) === of || c.committee_name === of) ?? null
+  const record = useCommittee(chosen?.committee_name ?? null)
+  const held = record.data
+  const rate = held ? passageRate(held.statuses) : null
+  const upcoming = held?.hearings?.[0] ?? null
+  const dash = "—"
+
   return (
     <div>
-      <PageTitle title="Labor" />
+      <PageTitle
+        title={chosen?.committee_name ?? "Labor"}
+        endContent={
+          chosen ? (
+            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ChamberSeal state={state} chamber={chosen.chamber} size={24} />
+              {[chosen.chamber, `${fmtNumber(chosen.bills)} bills`].filter(Boolean).join(" · ")}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="mt-4 grid gap-6 sm:mt-5 xl:grid-cols-[1fr_auto]">
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 2xl:grid-cols-3">
-            <StatEducation title="Membership" period="Current Session" value="39" badge="+6%" note="vs last session" />
-            <StatEducation title="Active Bills" period="Current Session" value="342" badge="+24" note="new this quarter" />
-            <StatEducation title="Passage Rate" period="All Bills" value="89.4%" badge="+5.7%" note="vs last session" />
-            <StatEducation title="Passage Rate" period="All Bills" value="89.4%" badge="+5.7%" note="vs last session" />
-            <StatEducation title="Passage Rate" period="All Bills" value="89.4%" badge="+5.7%" note="vs last session" />
-            <StatEducation title="Passage Rate" period="All Bills" value="89.4%" badge="+5.7%" note="vs last session" />
+            <StatEducation
+              title="Bills Referred"
+              period="Current Session"
+              value={chosen ? fmtNumber(chosen.bills) : "342"}
+              badge={chosen?.chamber ?? "+24"}
+              note={chosen ? "Sent to this committee" : "new this quarter"}
+            />
+            <StatEducation
+              title="Passage Rate"
+              period="All Bills"
+              value={rate ? `${rate.pct}%` : chosen ? dash : "89.4%"}
+              badge={rate ? fmtNumber(rate.passed) : "+5.7%"}
+              note={rate ? "Reported out or passed" : "vs last session"}
+            />
+            <StatEducation
+              title="Statuses"
+              period="Current Session"
+              value={held ? fmtNumber(held.statuses.length) : chosen ? dash : "39"}
+              badge={held?.statuses[0]?.status ?? "+6%"}
+              note={held ? "Distinct stages its bills are at" : "vs last session"}
+            />
+            <StatEducation
+              title="Sittings"
+              period="Current Session"
+              value={held ? fmtNumber(held.hearings.length) : chosen ? dash : "89.4%"}
+              badge={upcoming ? fmtDate(upcoming.date, false) : "+5.7%"}
+              note={held ? "Calendared before it" : "vs last session"}
+            />
+            <StatEducation
+              title="In Committee"
+              period="Current Session"
+              value={held ? fmtNumber(held.statuses.find((s) => /committee/i.test(s.status))?.bills ?? 0) : chosen ? dash : "89.4%"}
+              badge={rate ? `${fmtNumber(rate.total)} in all` : "+5.7%"}
+              note={held ? "Still before it" : "vs last session"}
+            />
+            <StatEducation
+              title="Newest Bill"
+              period="Current Session"
+              value={held?.bills[0] ? fmtBill(held.bills[0].bill_number, state) : chosen ? dash : "89.4%"}
+              badge={held?.bills[0]?.last_action_date ? fmtDate(held.bills[0].last_action_date, false) : "+5.7%"}
+              note={held?.bills[0] ? truncate(held.bills[0].title, 40) : "vs last session"}
+            />
           </div>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 2xl:grid-cols-3">
             <AttendanceCard title="Attendance" series={["majority", "minority"]} />
@@ -137,7 +210,10 @@ export function CommitteePage() {
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="grid gap-2 text-sm">
-                {activeBills.map((r) => (
+                {(held?.bills.length
+                  ? held.bills.map((b, i) => ({ key: i, member: b.sponsor ?? "—", bill: fmtBill(b.bill_number, state) }))
+                  : activeBills
+                ).map((r) => (
                   <div key={r.key} className="flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="flex items-center gap-2 text-muted-foreground">
                       <UserIcon className="size-4" />
@@ -190,12 +266,20 @@ export function CommitteePage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2 text-sm">
-              {[
-                { k: "Date", v: "28 Jun 26", icon: CalendarIcon },
-                { k: "Chair", v: "Rep. Smith", icon: UserIcon },
-                { k: "Topic", v: "Workforce Training", icon: TagIcon },
-                { k: "Speaker", v: "Alex River", icon: MicIcon },
-              ].map((r) => (
+              {(upcoming
+                ? [
+                    { k: "Date", v: fmtDate(upcoming.date), icon: CalendarIcon },
+                    { k: "Time", v: upcoming.time || "—", icon: MicIcon },
+                    { k: "Bill", v: fmtBill(upcoming.bill_number, state), icon: TagIcon },
+                    { k: "Sponsor", v: truncate(upcoming.description ?? "", 28) || "—", icon: UserIcon },
+                  ]
+                : [
+                    { k: "Date", v: "28 Jun 26", icon: CalendarIcon },
+                    { k: "Chair", v: "Rep. Smith", icon: UserIcon },
+                    { k: "Topic", v: "Workforce Training", icon: TagIcon },
+                    { k: "Speaker", v: "Alex River", icon: MicIcon },
+                  ]
+              ).map((r) => (
                 <div key={r.k} className="flex items-center justify-between rounded-md border px-3 py-2">
                   <span className="flex items-center gap-2 text-muted-foreground">
                     <r.icon className="size-4" />
