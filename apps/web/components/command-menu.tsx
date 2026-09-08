@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation"
 import { History } from "lucide-react"
 
 import { memberHref, stateName } from "@/lib/filters"
-import { FlagChip } from "@/components/policy/imagery"
+import { portraitFor } from "@/lib/imagery"
+import { shortDistrict } from "@/lib/format"
+import { FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { useRecents } from "@/components/home/recents"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { policyUrl } from "@/lib/policy/use-policy"
@@ -43,7 +45,19 @@ import { fmtBill } from "@/lib/format"
 type SearchPayload = {
   q: string
   bills: { bill_id: number; bill_number: string; title: string; state?: string }[]
-  members: { people_id: number; name: string; party: string; chamber: string; state: string; active: boolean }[]
+  // district and the two photo columns are what let a member row draw a face
+  // rather than a flag; the route has carried them since the directory did.
+  members: {
+    people_id: number
+    name: string
+    party: string
+    chamber: string
+    district: string | null
+    state: string
+    photo_url: string | null
+    bioguide_id: string | null
+    active: boolean
+  }[]
   committees: { committee: string; bills: number; chamber: string; state?: string }[]
 }
 
@@ -154,13 +168,28 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               value={`member-${member.people_id}`}
               onSelect={() => go(memberHref(member.people_id, member.state))}
             >
-              <FlagChip state={member.state} width={20} />
+              {/* A person gets a face. Where there is no photograph on file
+                  MemberPortrait draws the chamber's seal, and a jurisdiction
+                  with no seal keeps its flag — so the fallback is the flag
+                  that was here, in the circle the rest of the column is. */}
+              <span className="relative shrink-0">
+                <MemberPortrait
+                  name={member.name}
+                  photoUrl={portraitFor(member)}
+                  state={member.state}
+                  chamber={member.chamber}
+                  size={24}
+                />
+                <PartyDot party={member.party} serving={member.active} className="absolute -right-0.5 -bottom-0.5 ring-2 ring-popover" />
+              </span>
               <span className="w-44 shrink-0 truncate font-medium">
                 {member.name}
                 {member.active ? "" : " (Ret.)"}
               </span>
               <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">
-                {[member.party, member.chamber, stateName(member.state) || member.state].filter(Boolean).join(" · ")}
+                {[member.party, member.chamber, stateName(member.state) || member.state, shortDistrict(member.district)]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </CommandItem>
           ))}

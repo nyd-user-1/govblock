@@ -6,10 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { SearchDirectory } from "@/components/directory-search"
 import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
+import { portraitFor } from "@/lib/imagery"
 import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { isFiltered, readFilters, SearchFilters, sectionId, type SearchFilterState, writeFilters } from "@/components/search-filters"
 import { Highlight, Mark } from "@/components/search-highlight"
-import { ChamberSeal, FlagChip, MemberPortrait } from "@/components/policy/imagery"
+import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
@@ -44,6 +45,8 @@ type SearchPayload = {
     chamber: string
     district: string
     state: string
+    photo_url: string | null
+    bioguide_id: string | null
     active: boolean
   }[]
   committees: { committee: string; bills: number; chamber: string; state: string }[]
@@ -244,7 +247,20 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
               <RecordItem
                 key={member.people_id}
                 href={memberHref(member.people_id, member.state)}
-                avatar={<MemberPortrait name={member.name} state={member.state} chamber={member.chamber} size={36} />}
+                avatar={
+                  // The route has always carried the photograph; this page drew
+                  // the seal because it never asked for it.
+                  <span className="relative block">
+                    <MemberPortrait
+                      name={member.name}
+                      photoUrl={portraitFor(member)}
+                      state={member.state}
+                      chamber={member.chamber}
+                      size={36}
+                    />
+                    <PartyDot party={member.party} serving={member.active} className="absolute right-0 bottom-0 size-2.5 ring-2 ring-background" />
+                  </span>
+                }
                 title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
                 meta={[stateName(member.state), member.party, member.chamber, member.district]}
               />
