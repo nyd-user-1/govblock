@@ -37,7 +37,7 @@ export function BarChartCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Bills by party</CardTitle>
+        <CardTitle className="text-base">Bills by party</CardTitle>
         <CardDescription className="line-clamp-2 text-sm leading-snug">Bills introduced by each party's members, month by month, for the last six months of the session.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">

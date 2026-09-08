@@ -151,42 +151,36 @@ export function CommitteePage() {
               period="Current Session"
               value={chosen ? fmtNumber(chosen.bills) : "342"}
               badge={chosen?.chamber ?? "+24"}
-              note={chosen ? "Sent to this committee" : "new this quarter"}
             />
             <StatEducation
               title="Passage Rate"
               period="All Bills"
               value={rate ? `${rate.pct}%` : chosen ? dash : "89.4%"}
               badge={rate ? fmtNumber(rate.passed) : "+5.7%"}
-              note={rate ? "Reported out or passed" : "vs last session"}
             />
             <StatEducation
               title="Statuses"
               period="Current Session"
               value={held ? fmtNumber(held.statuses.length) : chosen ? dash : "39"}
               badge={held?.statuses[0]?.status ?? "+6%"}
-              note={held ? "Distinct stages its bills are at" : "vs last session"}
             />
             <StatEducation
               title="Sittings"
               period="Current Session"
               value={held ? fmtNumber(held.hearings.length) : chosen ? dash : "89.4%"}
               badge={upcoming ? fmtDate(upcoming.date, false) : "+5.7%"}
-              note={held ? "Calendared before it" : "vs last session"}
             />
             <StatEducation
               title="In Committee"
               period="Current Session"
               value={held ? fmtNumber(held.statuses.find((s) => /committee/i.test(s.status))?.bills ?? 0) : chosen ? dash : "89.4%"}
               badge={rate ? `${fmtNumber(rate.total)} in all` : "+5.7%"}
-              note={held ? "Still before it" : "vs last session"}
             />
             <StatEducation
               title="Newest Bill"
               period="Current Session"
               value={held?.bills[0] ? fmtBill(held.bills[0].bill_number, state) : chosen ? dash : "89.4%"}
               badge={held?.bills[0]?.last_action_date ? fmtDate(held.bills[0].last_action_date, false) : "+5.7%"}
-              note={held?.bills[0] ? truncate(held.bills[0].title, 40) : "vs last session"}
             />
           </div>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 2xl:grid-cols-3">

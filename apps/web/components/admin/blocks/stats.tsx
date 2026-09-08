@@ -127,8 +127,8 @@ export function StatOrder({ label, value, target, change }: { label: string; val
   )
 }
 
-/** Education: title and period, an options menu, a value with a badge and a note. */
-export function StatEducation({ title, period, value, badge, note, options = ["View details", "Export"] }: { title: string; period: string; value: React.ReactNode; badge: string; note: string; options?: string[] }) {
+/** Education: title and period, an options menu, a value with a badge, and a note only where one adds something the number does not. */
+export function StatEducation({ title, period, value, badge, note, options = ["View details", "Export"] }: { title: string; period: string; value: React.ReactNode; badge: string; note?: string; options?: string[] }) {
   return (
     <Card className="gap-3">
       <CardHeader className="gap-1">
@@ -159,7 +159,7 @@ export function StatEducation({ title, period, value, badge, note, options = ["V
           <TrendingUpIcon className="size-3" />
           {badge}
         </Badge>
-        <span className="mb-1 text-xs text-muted-foreground">{note}</span>
+        {note ? <span className="mb-1 text-xs text-muted-foreground">{note}</span> : null}
       </CardContent>
     </Card>
   )

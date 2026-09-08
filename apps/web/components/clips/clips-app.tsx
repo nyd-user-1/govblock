@@ -246,6 +246,10 @@ export function ClipsApp() {
 
         <main className="min-w-0">
           <div className="flex h-14 items-center gap-2">
+            {/* The count leads and the layout toggle sits beside it, at the
+                left of the column, where a reader's eye starts (Brendan,
+                2026-09-08). */}
+            <span className="text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
             <div className="flex items-center rounded-full bg-muted p-0.5">
               <button type="button" onClick={() => setView("feed")} className={cn("flex size-8 items-center justify-center rounded-full", view === "feed" ? "bg-background shadow-sm" : "text-muted-foreground")} aria-label="Feed">
                 <PlaySquareIcon className="size-4" />
@@ -274,8 +278,7 @@ export function ClipsApp() {
                 )}
               </SelectContent>
             </Select>
-            <span className="hidden text-sm font-medium lg:inline">{creatorLabel}</span>
-            <span className="ml-auto text-xs text-muted-foreground tabular-nums">{clips.length} clips</span>
+            <span className="ml-auto hidden text-sm font-medium lg:inline">{creatorLabel}</span>
           </div>
 
           {creator === "you" && ready && !signedIn ? (

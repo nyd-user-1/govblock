@@ -26,7 +26,10 @@ export function SiteHeader() {
             <CommandMenu trigger={false} />
             <Separator orientation="vertical" className="ml-2 hidden lg:block" />
             <ModeSwitcher />
-            <div className="flex items-center gap-2 group-has-data-[slot=designer]/layout:hidden">
+            {/* The account stays on every page. It used to hide wherever a
+                designer was mounted, which took Sign In off the workspace —
+                the pages where signing in is the point (Brendan, 2026-09-08). */}
+            <div className="flex items-center gap-2">
               <Separator orientation="vertical" />
               {/* The right side ends on the account: the primary Sign In,
                   or the avatar once signed in. The New button went with it
