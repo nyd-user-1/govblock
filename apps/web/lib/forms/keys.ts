@@ -177,6 +177,8 @@ export const KEYS: KeyDef[] = [
   { key: "childSupport.absentParent.lastAddress", label: "Last address", what: "the absent parent's last known address", kind: "text" },
   { key: "childSupport.absentParent.forChild", label: "For which child", what: "which child or children the absent parent is a parent of", kind: "text" },
   { key: "taxes.files", label: "Files taxes", what: "whether they file a tax return", kind: "yesno", options: YN },
+  // Section 11 asks the filing status by name; livingston asked only whether they file.
+  { key: "taxes.status", label: "Filing status", what: "how they file, as the form lists it", kind: "select", options: ["single|Single", "jointly|Married filing jointly", "separately|Married filing separately", "headOfHousehold|Head of household (with qualifying individual)", "widow|Qualifying widow(er) with dependent child", "dependent|Claimed as a dependent, and filing"] },
   { key: "taxes.dependents", label: "Dependents claimed", what: "who they claim as a dependent", kind: "text" },
   { key: "spouse.absent", label: "Spouse absent", what: "whether a spouse is absent from the home", kind: "yesno", options: YN },
   { key: "spouse.deceased", label: "Spouse deceased", what: "whether a spouse has died", kind: "yesno", options: YN },
