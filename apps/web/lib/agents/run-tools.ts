@@ -111,7 +111,10 @@ export async function runTool(
   }
 
   const path = definition.request(input)
-  const url = `${origin()}/api/policy/${path}`
+  // A leading slash means the tool named the whole path — web_search does,
+  // because a web search is not a resource of the legislative record. Everything
+  // else is a /api/policy resource and says only its name.
+  const url = path.startsWith("/") ? `${origin()}${path}` : `${origin()}/api/policy/${path}`
 
   try {
     const response = await fetch(url, {

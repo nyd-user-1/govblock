@@ -27,6 +27,8 @@ export type ToolName =
   | "top_sponsors"
   | "get_lobbying"
   | "get_fec"
+  | "web_search"
+  | "read_page"
   | "post_to_slack"
   | "post_to_discord"
   | "deliver_report"
@@ -320,6 +322,50 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       const d = data as { totals?: unknown[]; contributions?: unknown[] } | null
       if (!d) return null
       return { totals: trim(d.totals, 8), contributions: trim(d.contributions, 12) }
+    },
+  },
+
+  web_search: {
+    description:
+      "Search the web, for the things this record does not hold: money in state ballot-measure campaigns, a legislature's own press release, reporting on a bill, an official page. Returns titles, links and short snippets — enough to cite and link, not the page itself. The record still outranks it: where a row and a search result disagree, the row is right. Six results by default; keep the query specific.",
+    properties: {
+      q: { type: "string", description: "The search query, as you would type it into a search engine." },
+      limit: { type: "integer", description: "1–10, default 6." },
+    },
+    required: ["q"],
+    // The one tool whose path is not a /api/policy resource — see the note on
+    // the leading slash in run-tools.
+    request: (input) => {
+      const sp = new URLSearchParams({ q: input.q ?? "", limit: String(Math.min(Number(input.limit) || 6, 10)) })
+      return `/api/agents/search?${sp.toString()}`
+    },
+    shape: (data) => {
+      const d = data as { provider?: string; results?: unknown[] } | null
+      if (!d) return null
+      return { provider: d.provider, results: trim(d.results, 10) }
+    },
+  },
+
+  read_page: {
+    description:
+      "Read one web page the search results pointed you at, as text. Use it when a snippet is not enough — a disclosure filing, a committee's own page, a table of figures. It gets through pages that refuse an ordinary fetch, which is most of the campaign-finance sources. Returns an excerpt with the page's full length; ask for a page you have a URL for, never a guessed one.",
+    properties: {
+      url: { type: "string", description: "The full http(s) URL, as a search result gave it." },
+    },
+    required: ["url"],
+    request: (input) => `/api/agents/search?${new URLSearchParams({ url: input.url ?? "", chars: "6000" }).toString()}`,
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      const full = Number(d.full_chars) || 0
+      const chars = Number(d.chars) || 0
+      return {
+        url: d.url,
+        chars,
+        full_chars: full,
+        more: full > chars ? `${(full - chars).toLocaleString()} characters of this page were not read.` : null,
+        text: d.text,
+      }
     },
   },
 
