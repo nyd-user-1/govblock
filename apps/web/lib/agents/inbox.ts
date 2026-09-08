@@ -88,8 +88,16 @@ export function matchAddresses(query: string) {
   return ADDRESSES.filter((a) => a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.speciality.toLowerCase().includes(q))
 }
 
-/** A file delivered with a message — the report's PDF, chiefly. */
-export type Attached = { name: string; meta?: string; href: string }
+/**
+ * A file delivered with a message — the report's PDF, chiefly.
+ *
+ * `href` is a link to something that exists. `build` says the opposite: the
+ * file is set in the browser out of the message it rides on, when someone asks
+ * for it. A report's PDF is the second kind, because this host cannot render
+ * one and a blob URL does not survive a reload — so the card promises a file it
+ * can actually produce rather than a link that would be dead by morning.
+ */
+export type Attached = { name: string; meta?: string; href: string; build?: "report-pdf" }
 
 export type Message = {
   id: string

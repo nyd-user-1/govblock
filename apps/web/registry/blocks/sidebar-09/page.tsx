@@ -15,7 +15,8 @@ import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BlockShell } from "@/components/policy/block-shell"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
-import { isTrace } from "@/lib/agents/report-modes"
+import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
+import { attachmentMeta, reportFor, save } from "@/lib/agents/report-pdf"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
 import { ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
@@ -206,6 +207,33 @@ export default function Page() {
         const next = reply(current, slug, finished, "running", id)
         return { ...next, status: settle(next) }
       })
+
+      // A report arrives with the paper version attached. It is set here, once,
+      // so the card can say how many pages it runs to — the file itself is made
+      // again when someone asks for it, because nothing that big belongs in
+      // this browser's five megabytes. A build that fails attaches nothing: a
+      // card promising a file that will not open is worse than no card.
+      if (!isReportType(reportType) || finished.failed || !finished.text.trim()) return
+      try {
+        const at = Date.now()
+        const built = await reportFor(`${threadId}:${id}`, {
+          subject,
+          reportType,
+          body: reportBody(finished.text, reportType),
+          steps: finished.steps,
+          at,
+        })
+        patch(threadId, (current) => ({
+          ...current,
+          messages: current.messages.map((message) =>
+            message.id === id
+              ? { ...message, attachments: [{ name: built.filename, meta: attachmentMeta(built), href: "", build: "report-pdf" as const }] }
+              : message
+          ),
+        }))
+      } catch {
+        // No attachment, and the report itself is on the thread regardless.
+      }
     },
     [patch]
   )
@@ -328,6 +356,26 @@ export default function Page() {
     setDraftId(thread.id)
     setComposing(true)
   }
+
+  // Handing over the paper version: built from the message on the thread, so the
+  // file and the page cannot say different things.
+  const [pdfError, setPdfError] = React.useState<string | null>(null)
+  const openPdf = React.useCallback(async (thread: Thread, message: Message) => {
+    setPdfError(null)
+    try {
+      save(
+        await reportFor(`${thread.id}:${message.id}`, {
+          subject: thread.subject,
+          reportType: thread.reportType,
+          body: message.body,
+          steps: message.run?.steps,
+          at: message.at,
+        })
+      )
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : "Could not set the PDF")
+    }
+  }, [])
 
   // The latest finished reply is what Copy and Save to Drive act on.
   const latestReply = open ? [...open.messages].reverse().find((message) => message.from !== "you" && message.body && !message.run?.failed) : undefined
@@ -614,7 +662,12 @@ export default function Page() {
                                     </details>
                                   )}
 
-                                  {message.attachments?.length ? <AttachmentGroup items={message.attachments} /> : null}
+                                  {message.attachments?.length ? (
+                                    <div className="flex flex-col gap-1.5">
+                                      <AttachmentGroup items={message.attachments} onBuild={() => void openPdf(open, message)} />
+                                      {pdfError && <p className="text-destructive text-xs">{pdfError}</p>}
+                                    </div>
+                                  ) : null}
                                 </div>
                               </article>
                             )
