@@ -73,6 +73,8 @@ export const ADMIN_MENU: MenuItem[] = [
       // The list is the roster, at /workspace/dashboard/roster (Brendan, 2026-09-07).
       { label: "Roster", page: "roster" },
       { label: "Create", page: "apps/users/create" },
+      // Who is being asked onto the platform, and how far each of them got.
+      { label: "Invitees", page: "invitees", tag: "new" },
     ],
   },
   { label: "Page", isTitle: true },

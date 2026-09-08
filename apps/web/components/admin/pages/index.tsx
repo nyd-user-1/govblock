@@ -15,6 +15,7 @@ import { DatabasePage } from "./database"
 import { EducationPage } from "./education"
 import { EmailPage } from "./email"
 import { FinancePage } from "./finance"
+import { InviteesPage } from "./invitees"
 import { LogsPage } from "./logs"
 import { MEMBER, MemberPage } from "./member"
 import { MenuPage } from "./menu"
@@ -50,6 +51,7 @@ const TITLES: Record<string, string> = {
   crypto: "Crypto Wallet",
   database: "Data Pipeline",
   finance: "Finance",
+  invitees: "Invitees",
   skeleton: "Dashboard Skeleton",
   "apps/email": "Email",
   "apps/chat": "Chat",
@@ -108,6 +110,8 @@ export function AdminPage({ page }: { page: string }) {
       return <DatabasePage />
     case "finance":
       return <FinancePage />
+    case "invitees":
+      return <InviteesPage />
     case "skeleton":
       return <SkeletonPage />
     case "apps/email":
