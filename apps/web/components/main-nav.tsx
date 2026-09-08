@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ArrowRightIcon } from "lucide-react"
 
 
 import { NAV_ICONS as ICONS } from "@/components/page-icon"
@@ -19,12 +20,16 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 // Two columns is the panel this nav has always drawn. Records runs four
 // across and four down (Brendan, 2026-09-06) — so the width follows the
 // column count rather than a fixed `w-[26rem]`.
+// Two columns is the panel this nav has always drawn; the width follows the
+// column count. Each column after the first carries a hairline on its left and
+// the room to sit off it, so the panel reads as columns rather than a wrapped
+// list (Brendan, 2026-09-08).
 const GRID: Record<number, string> = {
-  2: "w-[26rem] md:grid-cols-2",
-  3: "w-[42rem] md:grid-cols-3",
-  4: "w-[54rem] md:grid-cols-4",
-  5: "w-[64rem] md:grid-cols-5",
-  6: "w-[76rem] md:grid-cols-6",
+  2: "w-[30rem] md:grid-cols-2 [&>li:not(:nth-child(2n+1))]:ml-4 [&>li:not(:nth-child(2n+1))]:border-l [&>li:not(:nth-child(2n+1))]:border-border/60 [&>li:not(:nth-child(2n+1))]:pl-4",
+  3: "w-[48rem] md:grid-cols-3 [&>li:not(:nth-child(3n+1))]:ml-4 [&>li:not(:nth-child(3n+1))]:border-l [&>li:not(:nth-child(3n+1))]:border-border/60 [&>li:not(:nth-child(3n+1))]:pl-4",
+  4: "w-[60rem] md:grid-cols-4 [&>li:not(:nth-child(4n+1))]:ml-4 [&>li:not(:nth-child(4n+1))]:border-l [&>li:not(:nth-child(4n+1))]:border-border/60 [&>li:not(:nth-child(4n+1))]:pl-4",
+  5: "w-[70rem] md:grid-cols-5",
+  6: "w-[82rem] md:grid-cols-6",
 }
 
 export function MainNav({ items, className, ...props }: React.ComponentProps<"nav"> & { items: readonly NavItem[] }) {
@@ -38,29 +43,31 @@ export function MainNav({ items, className, ...props }: React.ComponentProps<"na
             hasItems(item) ? (
               <NavigationMenuItem key={item.label}>
                 <NavigationMenuTrigger data-active={item.items.some((entry) => pathname === entry.href) || undefined}>{item.label}</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className={cn("grid gap-1 p-2", GRID[item.columns ?? 2] ?? GRID[2])}>
+                <NavigationMenuContent className="p-0!">
+                  <ul className={cn("grid gap-y-1 p-2", GRID[item.columns ?? 2] ?? GRID[2])}>
                     {item.items.map((entry) => {
                       const Icon = entry.icon ? ICONS[entry.icon] : undefined
                       return (
                         <li key={entry.href}>
                           <NavigationMenuLink asChild data-active={pathname === entry.href || undefined}>
-                            {/* Brendan, 2026-09-08: the panel rows read blue,
-                                and hovering one tints it and draws its edge.
-                                The border is always there and transparent, so
-                                a row does not move by a pixel on hover. */}
+                            {/* A row sits in the page's own ink and only
+                                answers on hover: the name turns blue, the icon
+                                turns red, and the tint and edge arrive under
+                                both (Brendan, 2026-09-08). The border is always
+                                there and transparent, so nothing moves by a
+                                pixel when it lights up. */}
                             <Link
                               href={entry.href}
                               className={cn(
-                                "rounded-md border border-transparent text-primary transition-colors hover:border-primary/20 hover:bg-primary/8 focus-visible:border-primary/20 focus-visible:bg-primary/8 data-[active]:border-primary/20 data-[active]:bg-primary/8",
+                                "group/row rounded-md border border-transparent transition-colors hover:border-primary/20 hover:bg-primary/8 hover:text-primary focus-visible:border-primary/20 focus-visible:bg-primary/8 focus-visible:text-primary data-[active]:border-primary/20 data-[active]:bg-primary/8 data-[active]:text-primary",
                                 Icon && "flex-row items-start gap-2.5"
                               )}
                             >
-                              {Icon && <Icon aria-hidden className="mt-0.5 shrink-0 text-primary" />}
+                              {Icon && <Icon aria-hidden className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover/row:text-red-600 group-focus-visible/row:text-red-600" />}
                               {/* The description aligns under the title, not
                                   under the icon — shadcn's feature grids. */}
                               <span className="flex min-w-0 flex-col gap-1">
-                                <span className="font-medium text-primary">{entry.label}</span>
+                                <span className="font-medium">{entry.label}</span>
                                 {entry.description && <span className="text-xs leading-snug text-muted-foreground">{entry.description}</span>}
                               </span>
                             </Link>
@@ -69,6 +76,17 @@ export function MainNav({ items, className, ...props }: React.ComponentProps<"na
                       )
                     })}
                   </ul>
+                  {/* One line out of the panel, the width of it: where the
+                      whole section is explained rather than one page of it. */}
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={item.href}
+                      className="group/foot flex h-9 flex-row items-center justify-between rounded-none rounded-b-md border-t bg-muted/40 px-4 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground"
+                    >
+                      Learn more about the GovBlocks {item.label}
+                      <ArrowRightIcon aria-hidden className="size-4 transition-transform group-hover/foot:translate-x-0.5" />
+                    </Link>
+                  </NavigationMenuLink>
                 </NavigationMenuContent>
               </NavigationMenuItem>
             ) : (

@@ -10,9 +10,10 @@ import { honorific } from "@/lib/format"
 import { portraitFor } from "@/lib/imagery"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Members — the headshot grid. Real portraits where the jurisdiction publishes
 // them; the chamber's seal where none exists.
@@ -45,14 +46,10 @@ export function MembersCard() {
     const without = sitting.filter((r) => !photoOf(r))
     return [...withFace, ...without].slice(0, 12)
   }, [sitting, photoOf])
-  const withPhoto = rows.filter((r) => photoOf(r)).length
   return (
     <CardFrame id="members">
       <CardHeader>
-        <CardTitle>Members</CardTitle>
-        <CardDescription>
-          {sitting.length} members · {withPhoto} of {rows.length} shown with a portrait
-        </CardDescription>
+        <CardAnchor>Members</CardAnchor>
         <CardAction>
           <ComponentActions rows={rows} id="members" />
         </CardAction>

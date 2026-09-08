@@ -8,7 +8,8 @@ import { congressName } from "@/lib/policy/congress"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/chart"
 
 // Adopted Bills — the finance demo's Stock Performance chart, made real
@@ -39,8 +40,7 @@ export function AdoptedBillsCard() {
   return (
     <CardFrame id="stock">
       <CardHeader>
-        <CardTitle>Adopted Bills</CardTitle>
-        <CardDescription>{pending && !rows.length ? "By session" : chosen ? `By session · ${fmtNumber(chosen.adopted)} ${current ? "so far this session" : `in the ${chosen.session}`}` : "By session"}</CardDescription>
+        <CardAnchor>Adopted Bills</CardAnchor>
         <CardAction>
           <ComponentActions rows={rows} id="adopted" />
         </CardAction>

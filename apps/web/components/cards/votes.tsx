@@ -9,7 +9,8 @@ import { fmtBill, fmtDate, fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
 // Votes — the latest roll calls with their aye/nay split. Each row is the
@@ -35,8 +36,7 @@ export function VotesCard() {
   return (
     <CardFrame id="votes">
       <CardHeader>
-        <CardTitle>Votes</CardTitle>
-        <CardDescription>The latest roll calls</CardDescription>
+        <CardAnchor>Votes</CardAnchor>
         <CardAction>
           <ComponentActions />
         </CardAction>

@@ -3,7 +3,8 @@
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { CardFoot } from "@/components/card-foot"
 
 // Model bills — bills whose text is shared with bills in other states.
@@ -14,8 +15,7 @@ export function ModelBillsCard() {
   return (
     <CardFrame id="model-bills">
       <CardHeader>
-        <CardTitle>Model bills</CardTitle>
-        <CardDescription>Text shared across states — all 52 jurisdictions</CardDescription>
+        <CardAnchor>Model bills</CardAnchor>
         <CardAction>
           <ComponentActions />
         </CardAction>

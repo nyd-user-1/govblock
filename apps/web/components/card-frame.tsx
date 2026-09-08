@@ -12,17 +12,17 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/button"
 import { Card } from "@govblock/ui/components/card"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@govblock/ui/components/dropdown-menu"
+  Menu as DropdownMenu,
+  MenuItem as DropdownMenuItem,
+  MenuPanel as DropdownMenuContent,
+  MenuRadioGroup as DropdownMenuRadioGroup,
+  MenuRadioItem as DropdownMenuRadioItem,
+  MenuSeparator as DropdownMenuSeparator,
+  MenuSubmenu as DropdownMenuSub,
+  MenuSubmenuPanel as DropdownMenuSubContent,
+  MenuSubmenuTrigger as DropdownMenuSubTrigger,
+  MenuTrigger as DropdownMenuTrigger,
+} from "@govblock/ui/components/animate-ui/components/base/menu"
 
 // Ported from livingston-v3 components/create/card-frame.tsx. The card chrome,
 // once, for every card: CardFrame is the Card primitive with a component id;
@@ -153,9 +153,7 @@ export function ComponentActions({ className, children, rows, id }: { className?
     <div className={cn("flex items-center gap-1", className)}>
       {children}
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Component options" />}
-        >
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Component options" />}>
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">

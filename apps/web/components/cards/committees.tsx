@@ -10,7 +10,8 @@ import { fmtNumber, truncate } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
 // Committees — each with its bill count; the footer picks the chamber
@@ -36,8 +37,7 @@ export function CommitteesCard() {
   return (
     <CardFrame id="committees">
       <CardHeader>
-        <CardTitle>Committees</CardTitle>
-        <CardDescription>Where the bills are, and when they moved</CardDescription>
+        <CardAnchor>Committees</CardAnchor>
         <CardAction>
           <ComponentActions rows={committees} id="committees" />
         </CardAction>

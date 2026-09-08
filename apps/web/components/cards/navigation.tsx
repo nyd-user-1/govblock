@@ -17,7 +17,8 @@ import {
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import {
   Sidebar,
   SidebarContent,
@@ -68,8 +69,7 @@ export function NavigationCard() {
   return (
     <CardFrame id="nav">
       <CardHeader>
-        <CardTitle>Navigation</CardTitle>
-        <CardDescription>Everything else, scoped to where you are</CardDescription>
+        <CardAnchor>Navigation</CardAnchor>
         <CardAction>
           <ComponentActions />
         </CardAction>

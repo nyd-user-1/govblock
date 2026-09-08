@@ -4,7 +4,9 @@ import * as React from "react"
 
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { Button } from "@govblock/ui/components/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { Card, CardAction, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { ComponentActions } from "@/components/card-frame"
 import { Checkbox } from "@govblock/ui/components/checkbox"
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@govblock/ui/components/field"
 import { Input } from "@govblock/ui/components/input"
@@ -59,9 +61,11 @@ export function NotificationSettings() {
   return (
     <Card>
       <form onSubmit={submit}>
-        <CardHeader>
-          <CardTitle>Subscribe</CardTitle>
-          <CardDescription>Bills, votes and hearings, in your inbox.</CardDescription>
+        <CardHeader className="pb-2">
+          <CardAnchor>Subscribe</CardAnchor>
+          <CardAction>
+            <ComponentActions id="subscribe" />
+          </CardAction>
         </CardHeader>
         <CardContent>
           <FieldGroup>
@@ -82,7 +86,7 @@ export function NotificationSettings() {
             ))}
           </FieldGroup>
         </CardContent>
-        <CardFooter className="flex-col items-stretch gap-2">
+        <CardFooter className="mt-4 flex-col items-stretch gap-2">
           {mode === "button" ? (
             <Button type="button" className="w-full" onClick={() => setMode("input")}>
               Subscribe

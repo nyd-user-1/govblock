@@ -10,7 +10,8 @@ import { fmtNumber } from "@/lib/format"
 import { lowerChamber } from "@/lib/filters"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Progress } from "@govblock/ui/components/progress"
 
 // Bills — where this session's bills stand. Every status is a link into the
@@ -65,8 +66,7 @@ export function BillsCard() {
   return (
     <CardFrame id="bills-status">
       <CardHeader>
-        <CardTitle>Total Bills</CardTitle>
-        <CardDescription>{fmtNumber(total)} per session</CardDescription>
+        <CardAnchor>Total Bills</CardAnchor>
         <CardAction>
           <ComponentActions rows={rows} id="bills" />
         </CardAction>

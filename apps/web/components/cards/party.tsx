@@ -10,7 +10,8 @@ import { fmtNumber } from "@/lib/format"
 import { partyColor } from "@/lib/imagery"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { PartyDot } from "@/components/policy/imagery"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { CardFoot } from "@/components/card-foot"
 import { ToggleGroup, ToggleGroupItem } from "@govblock/ui/components/toggle-group"
 
@@ -28,10 +29,7 @@ export function PartyCard() {
   return (
     <CardFrame id="party">
       <CardHeader>
-        <CardTitle>Party</CardTitle>
-        <CardDescription>
-          {fmtNumber(total)} seats in the {active}
-        </CardDescription>
+        <CardAnchor>Party</CardAnchor>
         <CardAction>
           <ComponentActions rows={seats} id="party" />
         </CardAction>

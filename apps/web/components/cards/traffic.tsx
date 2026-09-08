@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { PARTY_BLUE, PARTY_RED } from "@/lib/imagery"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { CardFoot } from "@/components/card-foot"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/chart"
 
 // Bills by party — the bar card the finance demo used for desktop and mobile
@@ -38,7 +38,6 @@ export function BarChartCard() {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Bills by party</CardTitle>
-        <CardDescription className="line-clamp-2 text-sm leading-snug">Bills introduced by each party's members, month by month, for the last six months of the session.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">
         <ChartContainer config={chartConfig} className="max-h-[180px] w-full">

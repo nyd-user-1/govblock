@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@floating-ui/react": "^0.27.20",
     "@shadcn/react": "^0.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "lucide-react": "^1.38.0",
+    "motion": "^13.2.0",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
     "react": "19.2.4",
@@ -42,8 +44,14 @@
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./postcss.config": "./postcss.config.mjs",
-    "./lib/*": "./src/lib/*.ts",
+    "./lib/*": [
+      "./src/lib/*.ts",
+      "./src/lib/*.tsx"
+    ],
     "./components/*": "./src/components/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts"
+    "./hooks/*": [
+      "./src/hooks/*.ts",
+      "./src/hooks/*.tsx"
+    ]
   }
 }

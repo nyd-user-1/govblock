@@ -10,8 +10,9 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardFoot } from "@/components/card-foot"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
 import { Badge } from "@govblock/ui/components/badge"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 
 // Topics — LegiScan's subject tags where the jurisdiction has them, the
 // committee a bill sits in where it does not. The substitution prints itself
@@ -22,8 +23,7 @@ export function TopicsCard() {
   return (
     <CardFrame id="subjects">
       <CardHeader>
-        <CardTitle>Topics</CardTitle>
-        <CardDescription>What this session is about</CardDescription>
+        <CardAnchor>Topics</CardAnchor>
         <CardAction>
           <ComponentActions rows={rows} id="topics" />
         </CardAction>

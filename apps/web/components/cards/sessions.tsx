@@ -7,7 +7,8 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CardFoot } from "@/components/card-foot"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govblock/ui/components/item"
 
 // Sessions — the picker. Choosing one scopes every other card; the current
@@ -35,8 +36,7 @@ export function SessionsCard() {
   return (
     <CardFrame id="sessions">
       <CardHeader>
-        <CardTitle>Sessions</CardTitle>
-        <CardDescription>Showing the most recent session with bills</CardDescription>
+        <CardAnchor>Sessions</CardAnchor>
         <CardAction>
           <ComponentActions rows={sessions} id="sessions" />
         </CardAction>

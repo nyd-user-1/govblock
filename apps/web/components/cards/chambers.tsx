@@ -9,7 +9,8 @@ import { useScoped } from "@/lib/policy/use-scoped"
 import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
 // Chambers — each chamber and who sits in it (Brendan, 2026-09-01: the row is
@@ -29,8 +30,7 @@ export function ChambersCard({ compact = false }: { compact?: boolean }) {
   return (
     <CardFrame id="chambers" size={compact ? "sm" : "default"}>
       <CardHeader>
-        <CardTitle>Chambers</CardTitle>
-        <CardDescription>Bills before each chamber, and who sits in it</CardDescription>
+        <CardAnchor>Chambers</CardAnchor>
         <CardAction>
           <ComponentActions rows={chambers} id="chambers" />
         </CardAction>

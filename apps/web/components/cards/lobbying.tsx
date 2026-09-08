@@ -3,7 +3,8 @@
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { CardFoot } from "@/components/card-foot"
 
 // Lobbying — registrations, clients and reported spend, and who spends most.
@@ -15,8 +16,7 @@ export function LobbyingCard() {
   return (
     <CardFrame id="lobbying">
       <CardHeader>
-        <CardTitle>Lobbying</CardTitle>
-        <CardDescription>Federal registrations — the Senate LDA, nationwide</CardDescription>
+        <CardAnchor>Lobbying</CardAnchor>
         <CardAction>
           <ComponentActions />
         </CardAction>

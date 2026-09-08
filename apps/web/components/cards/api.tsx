@@ -6,8 +6,9 @@ import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
 import { CopyButton } from "@/components/copy-button"
+import { CardAnchor } from "@/components/admin/blocks/card-tools"
 import { Button } from "@govblock/ui/components/button"
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
 import { CardFoot } from "@/components/card-foot"
 
 // API — the same numbers this page renders, as JSON, for the scope in the
@@ -19,8 +20,7 @@ export function ApiCard() {
   return (
     <CardFrame id="api">
       <CardHeader>
-        <CardTitle>API</CardTitle>
-        <CardDescription>Every number on this page, as JSON</CardDescription>
+        <CardAnchor>API</CardAnchor>
         <CardAction>
           <ComponentActions />
         </CardAction>
