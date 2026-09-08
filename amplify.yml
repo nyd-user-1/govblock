@@ -82,6 +82,14 @@ applications:
               done
               echo "resend env present: $(grep -c '^RESEND_' .env.production) of 2"
             - pnpm -C ../.. exec turbo build --filter=web
+            # Amplify caps a build output at 220 MB and job 237 came in at
+            # 246 MB. Turbopack writes a source map beside every server chunk —
+            # 905 files, 74 MB, two fifths of .next/server. A debugger reads
+            # them; the running app never does, so they do not travel.
+            - |
+              before=$(du -sm .next | cut -f1)
+              find .next/server -name '*.map' -delete
+              echo "server source maps dropped: ${before}M -> $(du -sm .next | cut -f1)M"
             # Amplify packages <appRoot>/node_modules; prove next resolves there.
             - node -e "console.log('next at', require.resolve('next/package.json'))"
       artifacts:
