@@ -33,6 +33,20 @@ export function TableBlock({ children, rows }: { children: React.ReactNode; rows
 
   React.useEffect(() => setText(tableText(ref.current)), [open, children])
 
+  // The header's own height, published to the scroller as --thead-h so the
+  // scrollbar track can start below it. Measured rather than guessed: a header
+  // wraps to two lines on a narrow column, and the number has to follow.
+  React.useLayoutEffect(() => {
+    const box = ref.current
+    const head = box?.querySelector("thead")
+    if (!box || !head) return
+    const set = () => box.style.setProperty("--thead-h", `${head.getBoundingClientRect().height}px`)
+    set()
+    const watch = new ResizeObserver(set)
+    watch.observe(head)
+    return () => watch.disconnect()
+  }, [children])
+
   return (
     <div className="group relative flex flex-col gap-2 rounded-2xl bg-surface p-6 text-sm text-surface-foreground">
       <CopyButton
@@ -45,7 +59,13 @@ export function TableBlock({ children, rows }: { children: React.ReactNode; rows
         data-open={open}
         // Shorter than the rows it holds in both states, so the list scrolls
         // whether or not See more has been pressed.
-        className="max-h-[22rem] overflow-y-auto overscroll-contain data-[open=true]:max-h-[38rem] data-[open=false]:[&_tbody_tr:nth-child(n+11)]:hidden"
+        //
+        // The header row is frozen and the rows run under it: sticky on the th
+        // rather than the thead, opaque so nothing shows through, and carrying
+        // the rule itself — typeset draws that line as the first body row's top
+        // border, which would have scrolled away with it. The scrollbar track is
+        // inset by the header's height so it belongs to the rows.
+        className="max-h-[22rem] overflow-y-auto overscroll-contain data-[open=true]:max-h-[38rem] data-[open=false]:[&_tbody_tr:nth-child(n+11)]:hidden [&::-webkit-scrollbar-track]:mt-(--thead-h) [&_tbody_tr:first-child_td]:border-t-0 [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:border-b [&_thead_th]:border-(--typeset-rule) [&_thead_th]:bg-surface"
       >
         {children}
       </div>
