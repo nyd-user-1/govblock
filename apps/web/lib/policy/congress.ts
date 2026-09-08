@@ -86,6 +86,17 @@ export function billCitation(billNumber: string | null | undefined, state?: stri
   return (match && citationOf(BILL_TYPE[match[1]] ?? match[1], match[2])) ?? bare.replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
 }
 
+/**
+ * The congress_bills key a LegiScan bill number and session sit under:
+ * ("HB1", 2025) -> "119-HR-1". Federal lobbying is re-keyed on the same
+ * expression, in sql/002_lobbying_congress_key.sql, so the two always join.
+ */
+export function billCongressKey(billNumber: string | null | undefined, session: number | string | null | undefined) {
+  const match = /^([A-Z]+)0*(\d+)$/.exec(String(billNumber ?? "").toUpperCase())
+  const type = match && BILL_TYPE[match[1]]
+  return type ? congressKey(congressOf(session), type, match[2]) : null
+}
+
 export type BillRef = { type: string; number: string }
 
 export function billRef(billNumber: string | null | undefined): BillRef | null {

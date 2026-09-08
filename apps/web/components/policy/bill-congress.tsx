@@ -916,11 +916,14 @@ export function BillTextBlock({
 export function BillToc({
   session,
   committees,
+  lobbying = false,
 }: {
   /** The record section's heading: the session's name. */
   session: string
   /** Whether LegiScan's referrals give a state bill a Committees block. */
   committees: boolean
+  /** Whether any LDA filing names this bill. */
+  lobbying?: boolean
 }) {
   const c = use()
   const depth = useBillDepth()
@@ -941,12 +944,13 @@ export function BillToc({
     if (c?.related.length) items.push(["Related bills", 3])
     if (c?.titles.length) items.push(["Titles", 3])
     if (depth?.cbo.length) items.push(["Cost estimate", 3])
+    if (lobbying) items.push(["Lobbying", 2], ["Clients", 3], ["Firms", 3], ["Lobbyists", 3], ["Filings", 3])
     if (depth?.policyArea || depth?.subjects.length) items.push(["Classification", 2])
     if (depth?.policyArea) items.push(["CRS Subjects", 3])
     if (depth?.subjects.length) items.push(["Legislative Subjects", 3])
     if (depth?.record?.constitutionalAuthorityStatementText) items.push(["Constitutional authority", 2])
     if (depth?.record?.notes?.length) items.push(["Notes", 2])
     return items.map(([title, d, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth: d }))
-  }, [session, committees, c, depth])
+  }, [session, committees, lobbying, c, depth])
   return <DocsTableOfContents toc={toc} />
 }

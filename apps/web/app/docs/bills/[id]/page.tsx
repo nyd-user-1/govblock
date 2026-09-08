@@ -24,7 +24,8 @@ import {
   getTitles,
 } from "@/lib/policy/db-queries"
 import { fmtBill } from "@/lib/format"
-import { congressName } from "@/lib/policy/congress"
+import { billCongressKey, congressName } from "@/lib/policy/congress"
+import { getBillLobbying } from "@/lib/policy/lobbying-queries"
 import { stateName } from "@/lib/filters"
 import { BackToTop } from "@/components/back-to-top"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -59,6 +60,7 @@ import {
   BillTracker,
   type DepthInitial,
 } from "@/components/policy/bill-depth"
+import { BillLobbyingBlock } from "@/components/policy/bill-lobbying"
 import { H2, H3 } from "@/components/typeset"
 
 // A bill's own page, on the member page's design (2026-09-05): the session's
@@ -166,13 +168,18 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   const bill = await getBill(Number(id))
   if (!bill) notFound()
   const federal = bill.state === "US"
-  const [held, { congress, depth }, neighbours, committeeCounts, sessions] = await Promise.all([
+  // The LDA is a federal statute, so lobbying is asked for only under Congress,
+  // and on congress.gov's own key rather than the mirror's id — see
+  // docs/federal-sources.md and sql/002_lobbying_congress_key.sql.
+  const congressKey = federal ? billCongressKey(bill.bill_number, bill.session_id) : null
+  const [held, { congress, depth }, neighbours, committeeCounts, sessions, lobbying] = await Promise.all([
     getBillText(Number(id)),
     federal ? loadCongress(bill.bill_id) : Promise.resolve<{ congress: CongressInitial; depth: DepthInitial }>({ congress: {}, depth: {} }),
     getBillNeighbours(bill.bill_id).catch(() => ({ previous: null, next: null })),
     getCommittees({ state: bill.state, session: bill.session_id }).catch(() => []),
     // A New York row carries no session title of its own; the session list does.
     !federal && !bill.session_title ? getSessionsWithTitles(bill.state).catch(() => []) : Promise.resolve([]),
+    federal ? getBillLobbying({ congressKey, billId: bill.bill_id }).catch(() => null) : Promise.resolve(null),
   ])
   const text = held?.text ?? null
   // Congress is cited the way congress.gov writes it: getBill carries the
@@ -292,6 +299,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 <BillTitlesBlock bill={number} />
                 <BillCostEstimates bill={number} />
 
+                <BillLobbyingBlock bill={number} data={lobbying} />
+
                 <BillSubjects bill={number} chamber={chamber} state={bill.state} />
                 <BillNotes bill={number} />
 
@@ -336,7 +345,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
           <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
             <div className="h-(--top-spacing) shrink-0"></div>
             <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-              <BillToc session={session} committees={bill.referrals.length > 0} />
+              <BillToc session={session} committees={bill.referrals.length > 0} lobbying={!!lobbying?.summary.filings} />
             </div>
             <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
               <PublicRail />
