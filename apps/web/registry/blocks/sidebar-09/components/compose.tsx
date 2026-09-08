@@ -5,6 +5,7 @@ import { ChevronDownIcon, X } from "lucide-react"
 
 import { findAddress, isPerson, matchAddresses, nameOf, type Address } from "@/lib/agents/inbox"
 import { agent as findAgent } from "@/lib/agents/registry"
+import { DEFAULT_REPORT_TYPE, REPORT_TYPES } from "@/lib/agents/report-modes"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
@@ -29,10 +30,10 @@ import {
 export type Draft = { to: string[]; cc: string[]; bcc: string[]; subject: string; body: string; reportType?: string }
 
 // The report the Clerk should write. Picked from the subject line; absent means
-// the default, a Traditional Report (Brendan, 2026-09-08). More can be added
-// here without touching the composer.
-export const REPORT_TYPES = ["Traditional Report", "Trace Report", "Memo", "Executive Summary", "Talking Points", "Root Cause Analysis"] as const
-export const DEFAULT_REPORT_TYPE = REPORT_TYPES[0]
+// the default, a Traditional Report (Brendan, 2026-09-08). The list and what
+// each name instructs the agent to do live together in lib/agents/report-modes,
+// so adding a format is one file and the composer picks it up.
+export { REPORT_TYPES, DEFAULT_REPORT_TYPE }
 
 export const EMPTY_DRAFT: Draft = { to: [], cc: [], bcc: [], subject: "", body: "" }
 

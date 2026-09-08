@@ -61,6 +61,7 @@ export async function runAgent({
   turns,
   jurisdiction,
   subject,
+  reportType,
   maxRounds,
   onUpdate,
   signal,
@@ -70,6 +71,8 @@ export async function runAgent({
   jurisdiction?: string
   /** The inbox's subject line, which becomes the report's title. */
   subject?: string
+  /** Which report format was picked, if this run came from the inbox. */
+  reportType?: string
   maxRounds: number
   /** Called after every event, with the run so far. */
   onUpdate: (run: RunState) => void
@@ -79,6 +82,14 @@ export async function runAgent({
   const began = Date.now()
   let carry: unknown = null
   let continuing = false
+  // A Trace Report is a rendering of the run, and the run's prose is half of
+  // it: what the Clerk reasoned between one call and the next is the part the
+  // steps cannot carry. So in this one mode each round's prose is kept in the
+  // steps as a note, in order, beside the calls it sits between — which is
+  // exactly the trace. Every other run leaves `steps` as it was, tool calls
+  // only, because the chat panel counts and renders them.
+  const tracing = reportType === "Trace Report"
+  let note: number | null = null
 
   const push = () => onUpdate({ ...run, steps: [...run.steps], ms: Date.now() - began })
 
@@ -88,8 +99,10 @@ export async function runAgent({
       let roundText = 0
 
       // A round that was cut off mid-sentence continues in the next one; the
-      // paragraph break between rounds must not land inside a word.
+      // paragraph break between rounds must not land inside a word, and the
+      // continuation belongs to the same note — one stage of the trace, not two.
       if (continuing) roundText = 1
+      else note = null
       continuing = false
 
       const response = await fetch("/api/agents/chat", {
@@ -97,11 +110,12 @@ export async function runAgent({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(
           carry
-            ? { agent, jurisdiction, subject, state: carry }
+            ? { agent, jurisdiction, subject, reportType, state: carry }
             : {
                 agent,
                 jurisdiction,
                 subject,
+                reportType,
                 turns: turns.map(({ role, text }) => ({ role, text })),
               }
         ),
@@ -136,6 +150,17 @@ export async function runAgent({
             if (run.text && roundText === 0) run.text += "\n\n"
             roundText += 1
             run.text += String(event.v)
+            if (tracing) {
+              if (note === null) {
+                note = run.steps.length
+                run.steps = [...run.steps, { kind: "note", text: String(event.v) }]
+              } else {
+                const at = note
+                run.steps = run.steps.map((step, i) =>
+                  i === at && step.kind === "note" ? { ...step, text: step.text + String(event.v) } : step
+                )
+              }
+            }
           } else if (event.t === "tool") {
             run.steps = [
               ...run.steps,

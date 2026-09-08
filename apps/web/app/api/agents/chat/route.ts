@@ -6,6 +6,7 @@ import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedroc
 import { runStep } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
 import { agent, maxRounds } from "@/lib/agents/registry"
+import { reportMode } from "@/lib/agents/report-modes"
 import { liveTools } from "@/lib/agents/connections"
 
 // The one route behind every agent on /agents. A specialist answering a
@@ -15,9 +16,15 @@ import { liveTools } from "@/lib/agents/connections"
 //
 // **Contract.** POST JSON, get newline-delimited JSON back, one event per line:
 //
-//   request   { agent: slug, jurisdiction?: "NY",
+//   request   { agent: slug, jurisdiction?: "NY", subject?, reportType?,
 //               turns:  [{ role: "user" | "assistant", text }]   // first call
 //               state?: { messages: Message[] } }                // every call after
+//
+// `reportType` is the format picked in the inbox's subject line. It names a
+// mode in lib/agents/report-modes, whose instructions go into the system
+// prompt after the agent's own — which is where they have to be, because what
+// they mostly do is suspend the ground rules that keep an answer short. Absent
+// or unrecognised, nothing changes and the agent behaves as it does on /agents.
 //
 //   events    { t: "open",  model, label }
 //             { t: "text",  v }                       // a fragment of the answer
@@ -89,6 +96,7 @@ export async function POST(request: Request) {
     turns?: ChatTurn[]
     jurisdiction?: string
     subject?: string
+    reportType?: string
     state?: { messages?: Message[] }
   }
   try {
@@ -162,7 +170,12 @@ export async function POST(request: Request) {
         `Not connected: ${live.missing.join(", ")} — you have no tool for ${live.missing.length === 1 ? "it" : "them"}, so do not claim to have posted there.`
       )
   }
-  const systemSuffix = notes.length ? notes.join(" ") : undefined
+  // The request's notes are sentences and read as a paragraph; a report mode is
+  // a document of its own and gets the blank line it needs. It goes last so it
+  // is the final word on how to write.
+  const mode = reportMode(body.reportType)
+  const parts = [notes.length ? notes.join(" ") : "", mode ?? ""].filter(Boolean)
+  const systemSuffix = parts.length ? parts.join("\n\n") : undefined
 
   const model = MODELS[definition.tier]
 

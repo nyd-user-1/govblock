@@ -97,6 +97,11 @@ function turnsFor(thread: Thread, slug: string): RunTurn[] {
   return turns
 }
 
+/** How many calls a run made. A Trace Report's steps also carry its prose. */
+function calls(message: Message) {
+  return (message.run?.steps ?? []).filter((step) => step.kind === "tool").length
+}
+
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Tooltip>
@@ -182,7 +187,7 @@ export default function Page() {
   // hook behind every send: the message is on the thread already, in Sent, and
   // the reply arrives on it whether or not anyone is looking.
   const dispatch = React.useCallback(
-    async (threadId: string, slug: string, turns: RunTurn[], subject: string) => {
+    async (threadId: string, slug: string, turns: RunTurn[], subject: string, reportType?: string) => {
       const definition = findAgent(slug)
       if (!definition) return
       const id = messageId()
@@ -191,6 +196,7 @@ export default function Page() {
         agent: definition.slug,
         maxRounds: maxRounds(definition),
         subject,
+        reportType,
         turns,
         onUpdate: (run) => patch(threadId, (current) => reply(current, slug, run, "running", id)),
       })
@@ -240,7 +246,7 @@ export default function Page() {
       // Every recipient runs the task — that is what Cc means here. They run
       // together; each one's reply lands on the thread as it finishes.
       const turns: RunTurn[] = [{ role: "user", text: draft.body }]
-      await Promise.all(recipients.map((slug) => dispatch(thread.id, slug, turns, thread.subject)))
+      await Promise.all(recipients.map((slug) => dispatch(thread.id, slug, turns, thread.subject, thread.reportType)))
     },
     [announce, dispatch, selected]
   )
@@ -256,7 +262,7 @@ export default function Page() {
       setReplying(false)
       announce(thread.id)
 
-      await Promise.all(runners(thread).map((slug) => dispatch(thread.id, slug, turnsFor(next, slug), thread.subject)))
+      await Promise.all(runners(thread).map((slug) => dispatch(thread.id, slug, turnsFor(next, slug), thread.subject, thread.reportType)))
     },
     [announce, dispatch, patch]
   )
@@ -585,11 +591,11 @@ export default function Page() {
                                     </div>
                                   )}
 
-                                  {(message.run?.steps.length ?? 0) > 0 && (
+                                  {calls(message) > 0 && (
                                     <details className="rounded-lg border p-3">
                                       <summary className="cursor-pointer text-sm text-muted-foreground">
-                                        {message.run!.steps.length} tool call
-                                        {message.run!.steps.length === 1 ? "" : "s"}
+                                        {calls(message)} tool call
+                                        {calls(message) === 1 ? "" : "s"}
                                         {message.run!.done ? "" : " so far"}
                                       </summary>
                                       <div className="pt-3">
