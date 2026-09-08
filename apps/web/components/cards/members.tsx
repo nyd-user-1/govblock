@@ -54,7 +54,7 @@ export function MembersCard() {
           {sitting.length} members · {withPhoto} of {rows.length} shown with a portrait
         </CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={rows} id="members" />
         </CardAction>
       </CardHeader>
       <CardContent>

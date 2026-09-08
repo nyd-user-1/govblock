@@ -68,7 +68,7 @@ export function BillsCard() {
         <CardTitle>Total Bills</CardTitle>
         <CardDescription>{fmtNumber(total)} per session</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={rows} id="bills" />
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 **:data-[slot=progress-indicator]:bg-chart-2">

@@ -38,7 +38,7 @@ export function SessionsCard() {
         <CardTitle>Sessions</CardTitle>
         <CardDescription>Showing the most recent session with bills</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={sessions} id="sessions" />
         </CardAction>
       </CardHeader>
       <CardContent>

@@ -32,7 +32,7 @@ export function ChambersCard({ compact = false }: { compact?: boolean }) {
         <CardTitle>Chambers</CardTitle>
         <CardDescription>Bills before each chamber, and who sits in it</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={chambers} id="chambers" />
         </CardAction>
       </CardHeader>
       <CardContent>

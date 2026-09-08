@@ -25,7 +25,7 @@ export function TopicsCard() {
         <CardTitle>Topics</CardTitle>
         <CardDescription>What this session is about</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={rows} id="topics" />
         </CardAction>
       </CardHeader>
       <CardContent>
