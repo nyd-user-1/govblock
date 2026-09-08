@@ -65,6 +65,8 @@ export type StreamEvent =
   | { t: "reasoning"; v: string }
   | { t: "tool"; id: string; name: string; input: unknown }
   | { t: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number }
+  /** A client-side tool call: the browser answers it (lib/agents/loop.ts). */
+  | { t: "ask"; id: string; name: string; input: unknown }
   | { t: "step"; n: number; of: number; label: string }
   | { t: "continue" }
   | { t: "done"; stopReason: string; usage: Usage; usd: number; ms: number }

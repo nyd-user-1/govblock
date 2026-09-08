@@ -45,12 +45,22 @@ export type ToolName =
   | "post_to_slack"
   | "post_to_discord"
   | "deliver_report"
+  | "form_schema"
+  | "ask"
+  | "review"
+  | "fill_form"
+  | "remember"
 
 // Converse types a tool's input schema as DocumentType — JSON, all the way
 // down — so `Record<string, unknown>` will not go in. Naming the two shapes a
 // JSON-Schema property can actually take here is both what the API wants and a
 // check that no tool grows a parameter the model cannot be told the type of.
-type SchemaProperty = { type: "string" | "integer" | "boolean"; description: string }
+// The Filer's `ask` hands the browser a list of fields, so an array of objects
+// is the one nested shape allowed; it is spelled out rather than opened up.
+type SchemaProperty =
+  | { type: "string" | "integer" | "boolean"; description: string; enum?: string[] }
+  | { type: "array"; description: string; items: { type: "string" } | { type: "object"; properties: Record<string, SchemaProperty>; required?: string[] } }
+  | { type: "object"; description: string; properties?: Record<string, SchemaProperty>; required?: string[]; additionalProperties?: { type: "string" } }
 type Schema = { type: "object"; properties: Record<string, SchemaProperty>; required: string[] }
 
 type Definition = {
@@ -828,6 +838,91 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       },
     },
     required: ["text"],
+  },
+
+  // ---- the Filer's tools ---------------------------------------------
+  //
+  // form_schema runs here (lib/agents/run-tools.ts). The other four are
+  // client-side: the model calls them and the browser answers, because the
+  // answers are the applicant's values and the model is never their ledger —
+  // an SSN goes from the widget into the profile and from the profile into
+  // the PDF, and the conversation carries a receipt. See lib/agents/loop.ts.
+
+  form_schema: {
+    description:
+      "The sections of one of the two New York forms, in the order to ask them, with each section's keys — label, kind, options — and whether the applicant's profile already holds a value for each. Call it once, first.",
+    properties: {
+      form: { type: "string", description: "Which form.", enum: ["ldss-2921", "ocfs-6025"] },
+    },
+    required: ["form"],
+  },
+
+  ask: {
+    description:
+      "Ask the applicant one section's questions as a widget in the chat. The browser renders the fields, collects the answers into the applicant's profile, and returns a receipt: which keys were answered and which were skipped. Call it alone, one section at a time, with only that section's keys from form_schema; a key the form does not have is refused. Keys the profile already knows arrive prefilled — include them so the applicant can confirm or edit, or leave them out to ask only the gap.",
+    properties: {
+      section: { type: "string", description: "The section's number or slug from form_schema." },
+      title: { type: "string", description: "The section's title, as form_schema gave it." },
+      intro: { type: "string", description: "One plain sentence above the fields, optional." },
+      fields: {
+        type: "array",
+        description: "The fields to show, in the form's order.",
+        items: {
+          type: "object",
+          properties: {
+            key: { type: "string", description: "A key from form_schema. Row keys carry their row: household[1].dob." },
+            label: { type: "string", description: "What the applicant sees. Defaults to the key's own label." },
+            kind: { type: "string", description: "text, textarea, number, money, date, tel, email, ssn, select, radio, checkbox, yesno or attest. Defaults to the key's own kind." },
+            hint: { type: "string", description: "A short clarifier under the field, optional." },
+            required: { type: "boolean", description: "Blocks submit until answered. Default false." },
+          },
+          required: ["key"],
+        },
+      },
+      repeat: {
+        type: "object",
+        description: "For a section that repeats per person or per income: the row prefix and how many rows may be added.",
+        properties: {
+          key: { type: "string", description: "The row prefix: household, income, resources, absentParent." },
+          label: { type: "string", description: "What one row is: Person, Income." },
+          min: { type: "integer", description: "Rows shown at first. Default 1." },
+          max: { type: "integer", description: "Rows the paper form has room for." },
+        },
+        required: ["key", "label", "max"],
+      },
+    },
+    required: ["section", "title", "fields"],
+  },
+
+  review: {
+    description:
+      "Show every answer given for the form, grouped by section and editable, and wait for the applicant to confirm. Call it once, after the last section, before fill_form. Returns whether it was confirmed and how many answers there are.",
+    properties: {
+      form: { type: "string", description: "Which form.", enum: ["ldss-2921", "ocfs-6025"] },
+    },
+    required: ["form"],
+  },
+
+  fill_form: {
+    description:
+      "Write the applicant's answers into the form's own PDF fields in the browser and show the delivery card — download, email, save to the inbox. Call it once, after review confirms. Returns the filename, page count, how many fields were filled, and any keys the form had no field for.",
+    properties: {
+      form: { type: "string", description: "Which form.", enum: ["ldss-2921", "ocfs-6025"] },
+    },
+    required: ["form"],
+  },
+
+  remember: {
+    description:
+      "Keep facts the applicant states in conversation — a county, a household size, an employer — in their profile, so no later section asks for them. Values are keys from form_schema; unknown keys are rejected and reported back. Returns which keys were kept.",
+    properties: {
+      values: {
+        type: "object",
+        description: "Key → value, in the form's own vocabulary: dates YYYY-MM-DD, phones as ten digits, money as digits, fixed values by their value not their label.",
+        additionalProperties: { type: "string" },
+      },
+    },
+    required: ["values"],
   },
 }
 

@@ -21,6 +21,12 @@ export type AgentDefinition = {
   can: string
   tier: ModelTier
   tools: ToolName[]
+  /**
+   * Tools the browser answers rather than the server: the model calls one,
+   * the round ends with `waiting`, the client renders it as a widget and
+   * resumes the run with its result. See lib/agents/loop.ts.
+   */
+  clientTools?: ToolName[]
   /** Connections it needs; an unconnected one is named on the card. */
   connections?: string[]
   /** True for the ones that plan and act across steps rather than answering. */

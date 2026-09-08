@@ -22,6 +22,14 @@ export type Step =
       ms?: number
     }
   | { kind: "note"; text: string }
+  /**
+   * A call the browser answers — the Filer's `ask`, `review`, `fill_form`,
+   * `remember`. The chat draws it as a widget; `answer` is set once the widget
+   * has returned its result and the run has been resumed with it.
+   */
+  | { kind: "ask"; id: string; name: string; input: unknown; answer?: unknown }
+
+export type Waiting = { id: string; name: string }
 
 export type RunState = {
   text: string
@@ -36,6 +44,10 @@ export type RunState = {
   cached: number
   done: boolean
   failed: boolean
+  /** Client-side calls the run is stopped on; absent once it is moving again. */
+  waiting?: Waiting[]
+  /** The conversation to resume from while `waiting`; dropped when the run ends. */
+  carry?: { messages: unknown[] }
 }
 
 export function emptyRun(): RunState {
@@ -56,6 +68,27 @@ export function emptyRun(): RunState {
 
 export type RunTurn = { role: "user" | "assistant"; text: string }
 
+/** What a widget hands back for one client-side call. */
+export type ClientResult = { id: string; result: unknown }
+
+/**
+ * The conversation a waiting run resumes with: each answer as a toolResult
+ * on the trailing user turn, which the server built to hold this round's
+ * server-side results — or which is created here when there were none.
+ * Converse pairs every toolUse with a toolResult in the very next message;
+ * this is where the browser keeps that promise.
+ */
+function answered(run: RunState, results: ClientResult[]) {
+  const messages = [...((run.carry?.messages ?? []) as { role?: string; content?: unknown[] }[])]
+  const blocks = results.map(({ id, result }) => ({
+    toolResult: { toolUseId: id, content: [{ text: JSON.stringify(result ?? {}) }], status: "success" as const },
+  }))
+  const last = messages.at(-1)
+  if (last?.role === "user") messages[messages.length - 1] = { ...last, content: [...(last.content ?? []), ...blocks] }
+  else messages.push({ role: "user", content: blocks })
+  return { messages }
+}
+
 export async function runAgent({
   agent,
   turns,
@@ -65,6 +98,7 @@ export async function runAgent({
   maxRounds,
   onUpdate,
   signal,
+  resume,
 }: {
   agent: string
   turns: RunTurn[]
@@ -77,10 +111,25 @@ export async function runAgent({
   /** Called after every event, with the run so far. */
   onUpdate: (run: RunState) => void
   signal?: AbortSignal
+  /** A run stopped on client-side calls, continued with their results. */
+  resume?: { run: RunState; results: ClientResult[] }
 }): Promise<RunState> {
-  const run = emptyRun()
+  const run: RunState = resume
+    ? {
+        ...resume.run,
+        steps: resume.run.steps.map((step) => {
+          if (step.kind !== "ask") return step
+          const hit = resume.results.find((r) => r.id === step.id)
+          return hit ? { ...step, answer: hit.result } : step
+        }),
+        waiting: undefined,
+        done: false,
+        failed: false,
+      }
+    : emptyRun()
   const began = Date.now()
-  let carry: unknown = null
+  const before = resume?.run.ms ?? 0
+  let carry: unknown = resume ? answered(resume.run, resume.results) : null
   let continuing = false
   // A Trace Report is a rendering of the run, and the run's prose is half of
   // it: what the Clerk reasoned between one call and the next is the part the
@@ -91,10 +140,10 @@ export async function runAgent({
   const tracing = reportType === "Trace Report"
   let note: number | null = null
 
-  const push = () => onUpdate({ ...run, steps: [...run.steps], ms: Date.now() - began })
+  const push = () => onUpdate({ ...run, steps: [...run.steps], ms: before + (Date.now() - began) })
 
   try {
-    while (!run.done && run.rounds < maxRounds) {
+    while (!run.done && !run.waiting && run.rounds < maxRounds) {
       run.rounds += 1
       let roundText = 0
 
@@ -177,11 +226,22 @@ export async function runAgent({
                   }
                 : step
             )
+          } else if (event.t === "ask") {
+            // The call was announced as a tool step when it streamed; it is a
+            // widget now, under the same id.
+            const ask = { kind: "ask" as const, id: String(event.id), name: String(event.name), input: event.input }
+            run.steps = run.steps.some((step) => step.kind === "tool" && step.id === ask.id)
+              ? run.steps.map((step) => (step.kind === "tool" && step.id === ask.id ? ask : step))
+              : [...run.steps, ask]
           } else if (event.t === "continue") {
             continuing = true
           } else if (event.t === "state") {
             carry = { messages: event.messages }
             run.done = Boolean(event.done)
+            if (Array.isArray(event.waiting) && event.waiting.length) {
+              run.waiting = event.waiting as Waiting[]
+              run.carry = { messages: event.messages as unknown[] }
+            }
           } else if (event.t === "open") {
             if (!run.model) run.model = String(event.label)
           } else if (event.t === "done") {
@@ -212,7 +272,7 @@ export async function runAgent({
       }
     }
 
-    if (!run.done) {
+    if (!run.done && !run.waiting) {
       run.failed = true
       run.done = true
       run.text +=
@@ -225,7 +285,10 @@ export async function runAgent({
       (run.text ? "\n\n" : "") + (error instanceof Error ? error.message : String(error))
   }
 
-  run.ms = Date.now() - began
+  run.ms = before + (Date.now() - began)
+  // The conversation is only kept while a widget is open; a finished run's
+  // history is the model's business, not this browser's storage.
+  if (!run.waiting) delete run.carry
   push()
   return run
 }

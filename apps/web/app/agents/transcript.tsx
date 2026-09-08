@@ -178,6 +178,8 @@ export function Prose({ text }: { text: string }) {
 
 export function StepLine({ step }: { step: Step }) {
   if (step.kind === "note") return <div className="text-xs text-muted-foreground">{step.text}</div>
+  // A client-side call is drawn as its widget by the chat, not as a line here.
+  if (step.kind === "ask") return null
   const args = Object.entries((step.input ?? {}) as Record<string, unknown>)
     .map(([key, value]) => `${key}: ${String(value)}`)
     .join(", ")
@@ -198,7 +200,7 @@ export function StepLine({ step }: { step: Step }) {
 }
 
 export function RunSteps({ steps }: { steps: Step[] }) {
-  if (!steps.length) return null
+  if (!steps.some((step) => step.kind !== "ask")) return null
   return (
     <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-3">
       {steps.map((step, i) => (

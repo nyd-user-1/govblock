@@ -30,7 +30,10 @@ import { liveTools } from "@/lib/agents/connections"
 //             { t: "text",  v }                       // a fragment of the answer
 //             { t: "tool",  id, name, input }         // a call the model made
 //             { t: "tool_result", id, name, ok, summary, ms }
-//             { t: "state", messages, done }          // send `messages` back if !done
+//             { t: "ask",   id, name, input }         // a call the browser answers
+//             { t: "state", messages, done, waiting? } // send `messages` back if !done;
+//                     `waiting` lists the client-side calls whose toolResult
+//                     the browser appends to the last user turn before it does
 //             { t: "done",  stopReason, usage, usd, ms }   // usage carries
 //                     inputTokens, outputTokens, cacheReadInputTokens and
 //                     cacheWriteInputTokens — the three input counts are
@@ -86,7 +89,7 @@ function rateLimited(request: Request) {
 
 const encoder = new TextEncoder()
 
-function line(event: StreamEvent | { t: "state"; messages: Message[]; done: boolean }) {
+function line(event: StreamEvent | { t: "state"; messages: Message[]; done: boolean; waiting?: { id: string; name: string }[] }) {
   return encoder.encode(JSON.stringify(event) + "\n")
 }
 
@@ -211,11 +214,11 @@ export async function POST(request: Request) {
           next = await step.next()
         }
         const result = next.value
-        controller.enqueue(line({ t: "state", messages: result.messages, done: result.done }))
+        controller.enqueue(line({ t: "state", messages: result.messages, done: result.done, ...(result.waiting ? { waiting: result.waiting } : {}) }))
         controller.enqueue(
           line({
             t: "done",
-            stopReason: result.done ? "answered" : `${result.toolCalls} tool calls`,
+            stopReason: result.done ? "answered" : result.waiting ? "waiting" : `${result.toolCalls} tool calls`,
             usage: {
               inputTokens: result.inputTokens,
               outputTokens: result.outputTokens,

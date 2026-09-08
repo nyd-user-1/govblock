@@ -85,6 +85,11 @@ export type StepResult = {
   messages: Message[]
   /** True when the model stopped wanting tools — no further round to run. */
   done: boolean
+  /**
+   * Client-side calls this round made and the browser must answer before
+   * the next round: each one's toolResult goes into the trailing user turn.
+   */
+  waiting?: { id: string; name: string }[]
   usd: number
   ms: number
   inputTokens: number
@@ -197,8 +202,18 @@ export async function* runStep({
     .flatMap((message) => (message.content ?? []).map((block) => block.text).filter(Boolean))
     .join("\n\n")
 
+  // A client-side tool is one the browser answers — the Filer's `ask`, whose
+  // result is the applicant's own values and has no business on this server.
+  // Its calls are not run here: the round ends with `waiting`, the browser
+  // renders the widget, and resumes with the toolResult appended to the user
+  // turn built below — so every toolUse is still paired in the very next
+  // message, as Converse requires, and the server holds nothing between.
+  const clientTools = new Set(definition.clientTools ?? [])
+  const served = calls.filter((call) => !clientTools.has(call.name as ToolName))
+  const asked = calls.filter((call) => clientTools.has(call.name as ToolName))
+
   const outcomes = await Promise.all(
-    calls.map(async (call) => ({
+    served.map(async (call) => ({
       call,
       outcome: await runTool(
         call.name as ToolName,
@@ -219,35 +234,41 @@ export async function* runStep({
     }
   }
 
+  for (const call of asked) {
+    yield { t: "ask", id: call.toolUseId ?? "", name: call.name ?? "", input: call.input ?? {} }
+  }
+
   const cut = result.stopReason === "max_tokens"
   if (cut) yield { t: "continue" }
 
-  messages.push({
-    role: "user",
-    content: [
-      ...outcomes.map(({ call, outcome }) => ({
-        toolResult: {
-          toolUseId: call.toolUseId,
-          content: [{ text: resultText(outcome.payload) }],
-          status: outcome.ok ? ("success" as const) : ("error" as const),
-        },
-      })),
-      // A toolResult must be paired, and a cut sentence must be finished. Both,
-      // in one turn: the results first, as Converse requires, then the same
-      // instruction the no-calls case gets on its own.
-      ...(cut
-        ? [
-            {
-              text: "You also reached the length limit for that message. After acting on these results, continue your writing from exactly where you stopped, mid-sentence if that is where it was. Do not repeat anything you have already written and do not summarise it.",
-            },
-          ]
-        : []),
-    ],
-  })
+  // The user turn holding the server-side results. When every call this
+  // round was the browser's there is nothing to put in it yet, and the
+  // browser creates it; a turn with no content would be refused.
+  const content = [
+    ...outcomes.map(({ call, outcome }) => ({
+      toolResult: {
+        toolUseId: call.toolUseId,
+        content: [{ text: resultText(outcome.payload) }],
+        status: outcome.ok ? ("success" as const) : ("error" as const),
+      },
+    })),
+    // A toolResult must be paired, and a cut sentence must be finished. Both,
+    // in one turn: the results first, as Converse requires, then the same
+    // instruction the no-calls case gets on its own.
+    ...(cut
+      ? [
+          {
+            text: "You also reached the length limit for that message. After acting on these results, continue your writing from exactly where you stopped, mid-sentence if that is where it was. Do not repeat anything you have already written and do not summarise it.",
+          },
+        ]
+      : []),
+  ]
+  if (content.length) messages.push({ role: "user", content })
 
   return {
     messages,
     done: false,
+    ...(asked.length ? { waiting: asked.map((call) => ({ id: call.toolUseId ?? "", name: call.name ?? "" })) } : {}),
     usd: result.usd,
     ms: Date.now() - started,
     inputTokens: result.usage.inputTokens,
