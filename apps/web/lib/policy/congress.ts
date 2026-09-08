@@ -32,12 +32,21 @@ export const BILL_TYPE: Record<string, string> = {
 /** congress.gov's type -> the prefix LegiScan's `Bills` spells it with. */
 export const LEGISCAN_PREFIX_BY_TYPE: Record<string, string> = { HR: "HB", HRES: "HR", S: "SB", SRES: "SR", HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR" }
 
-/** Every spelling a citation arrives in -> congress.gov's own type. */
+/**
+ * Every spelling a citation arrives in -> congress.gov's own type.
+ *
+ * Written out rather than spread from BILL_TYPE, because the two schemes
+ * collide on exactly the keys that matter: LegiScan's `HR` is a house
+ * resolution and congress.gov's is a house bill, and `SR`/`S` likewise.
+ * Spreading BILL_TYPE over this once let LegiScan win, and "H.R. 155" answered
+ * with H.Res. 155 — the original defect, reintroduced by a shorthand
+ * (found 2026-09-07 against the dev server). Only LegiScan's non-colliding
+ * spellings are borrowed, so a number copied out of a search result still lands.
+ */
 export const CITATION_TYPE: Record<string, string> = {
   HR: "HR", HRES: "HRES", HJRES: "HJRES", HCONRES: "HCONRES",
   S: "S", SRES: "SRES", SJRES: "SJRES", SCONRES: "SCONRES",
-  // LegiScan's spellings too, so a number copied out of a search result lands.
-  ...BILL_TYPE,
+  HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES",
 }
 
 /** How congress.gov prints it: H.R. 155, H.Res. 155, S.J.Res. 12. */

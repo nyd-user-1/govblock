@@ -543,8 +543,8 @@ export async function getBill(billId: number) {
     // days ahead of the mirror's, which is the same reason getBills coalesces
     // it on the bills board.
     bill.state === "US"
-      ? one<{ bill_type: string; number: string; latest_action: string | null; latest_action_date: string | null; introduced_date: string | null; policy_area: string | null; popular_title: string | null }>(
-          `select bill_type, number, latest_action, latest_action_date, introduced_date, policy_area, popular_title
+      ? one<{ bill_type: string; number: string; latest_action: string | null; latest_action_date: string | null; introduced_date: string | null; policy_area: string | null; popular_title: string | null; display_title: string | null }>(
+          `select bill_type, number, latest_action, latest_action_date, introduced_date, policy_area, popular_title, display_title
              from congress_bills where bill_id = $1`,
           [billId]
         )
@@ -561,6 +561,14 @@ export async function getBill(billId: number) {
           ? citationOf(congress.bill_type, congress.number)
           : citationOf(BILL_TYPE[String(bill.bill_number).replace(/[0-9].*$/, "")] ?? "", String(bill.bill_number).replace(/^[A-Z]+/, ""))
         : null,
+    // congress.gov's title, not the mirror's. LegiScan had H.R. 1 titled "FEHB
+    // Protection Act of 2025" — a short title congress.gov files for one
+    // subtitle of the act — and the agent read it out under that name. The
+    // popular title is the one people write; the display title is the official
+    // one; the mirror is the fallback for the congresses we have not harvested.
+    // Same coalesce as lib/policy/queries.ts, which is the page's read.
+    title: congress ? (congress.popular_title ?? congress.display_title ?? bill.title) : bill.title,
+    description: bill.description ?? congress?.display_title ?? null,
     popular_title: congress?.popular_title ?? null,
     policy_area: congress?.policy_area ?? null,
     introduced_date: congress?.introduced_date ?? null,
