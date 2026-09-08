@@ -158,7 +158,7 @@ export const useCommittees = (extra: Extra = {}) => useRecord<Committee[]>("comm
 /** One committee's own record — its bills by status, its newest bills, its sittings. */
 export type CommitteeRecord = {
   statuses: { status: string; bills: number }[]
-  bills: { bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action: string | null; last_action_date: string | null; sponsor: string | null }[]
+  bills: { bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action: string | null; last_action_date: string | null; sponsor: string | null; sponsor_party: string | null; sponsor_id: number | null }[]
   hearings: { date: string; time: string; description: string; bill_id: number; bill_number: string; title: string }[]
 }
 export const useCommittee = (name: string | null) => useRecord<CommitteeRecord>(name ? "committee" : null, { name: name ?? undefined })

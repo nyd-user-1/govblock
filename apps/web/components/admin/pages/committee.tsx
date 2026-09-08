@@ -8,11 +8,12 @@ import { useCommittee, useCommittees } from "@/components/admin/data"
 import { fmtBill, fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { useScope } from "@/lib/policy/scope"
-import { ChamberSeal } from "@/components/policy/imagery"
+import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
+import { partyColor } from "@/lib/imagery"
+import { useScoped } from "@/lib/policy/use-scoped"
 import { StatEducation } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
-import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@govblock/ui/components/nova/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/nova/chart"
@@ -29,9 +30,18 @@ const attendance = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => 
   majority: 20 + Math.round(Math.random() * 10),
   minority: 8 + Math.round(Math.random() * 8),
 }))
-const attendanceConfig: ChartConfig = {
-  majority: { label: "Majority", color: "var(--chart-1)" },
-  minority: { label: "Minority", color: "var(--chart-3)" },
+// Majority and minority are parties, and the site draws a party in its own
+// colour everywhere else (Brendan, 2026-09-08: "red or blue based on majority
+// minority"). Which party holds the chamber is read from the seat count, not
+// assumed, so a chamber that flips repaints itself.
+function attendanceColours(seats: { chamber: string; party: string; seats: number }[] | null, chamber: string | null): ChartConfig {
+  const room = (chamber ?? "").toLowerCase()
+  const held = (seats ?? []).filter((row) => !room || row.chamber.toLowerCase() === room)
+  const ordered = [...held].sort((a, b) => b.seats - a.seats)
+  return {
+    majority: { label: "Majority", color: partyColor(ordered[0]?.party ?? "R") },
+    minority: { label: "Minority", color: partyColor(ordered[1]?.party ?? "D") },
+  }
 }
 const sessions = [
   { time: "9:00", m: "AM", title: "User Research and Persona Development Workshop" },
@@ -39,9 +49,9 @@ const sessions = [
   { time: "1:00", m: "PM", title: "Interactive Prototyping and Micro-animations in Figma" },
 ]
 const subcommittees = Array.from({ length: 11 }, (_, i) => ({ ...sessions[i % 3], key: i }))
-const activeBills = Array.from({ length: 16 }, (_, i) => ({ key: i, member: "Rep. Smith", bill: "HR 10234" }))
+const activeBills = Array.from({ length: 16 }, (_, i) => ({ key: i, member: "Rep. Smith", party: null as string | null, bill: "HR 10234" }))
 
-function AttendanceCard({ title, series }: { title: string; series: ("majority" | "minority")[] }) {
+function AttendanceCard({ title, series, config }: { title: string; series: ("majority" | "minority")[]; config: ChartConfig }) {
   return (
     <Card>
       <CardHeader className="gap-4">
@@ -50,15 +60,15 @@ function AttendanceCard({ title, series }: { title: string; series: ("majority" 
           <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
             {series.map((s) => (
               <span key={s} className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full" style={{ background: attendanceConfig[s].color }} />
-                {attendanceConfig[s].label}
+                <span className="size-2 rounded-full" style={{ background: config[s].color }} />
+                {config[s].label}
               </span>
             ))}
           </span>
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={attendanceConfig} className="aspect-video w-full">
+        <ChartContainer config={config} className="aspect-video w-full">
           <BarChart data={attendance}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
@@ -80,18 +90,6 @@ function BillCard() {
         <div>
           <p className="text-lg font-semibold">HR 10345</p>
           <p className="line-clamp-2 text-sm text-muted-foreground">Insert bill description here, talk about the bill a bit. Two lines is usually enough, in most cases I&apos;ll say truncate at two lines...</p>
-        </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div>
-            <p className="mb-2 text-xs text-muted-foreground">Co-Sponsors</p>
-            <div className="flex -space-x-2">
-              {["SC", "MA", "DP", "CK"].map((i) => (
-                <Avatar key={i} className="ring-2 ring-background">
-                  <AvatarFallback className="text-xs">{i}</AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
-          </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="lg" className="gap-1.5">
@@ -127,7 +125,17 @@ export function CommitteePage() {
   const record = useCommittee(chosen?.committee_name ?? null)
   const held = record.data
   const rate = held ? passageRate(held.statuses) : null
-  const upcoming = held?.hearings?.[0] ?? null
+  // "Upcoming" means the next sitting on or after today; where a committee has
+  // none scheduled the card shows its most recent one and says so, rather than
+  // an invented date (Brendan, 2026-09-08). Sub-committee sittings arrive in
+  // the same list, so both are covered by reading it whole.
+  const sittings = React.useMemo(() => [...(held?.hearings ?? [])].sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")), [held])
+  const today = new Date().toISOString().slice(0, 10)
+  const next = sittings.find((h) => (h.date ?? "") >= today) ?? null
+  const upcoming = next ?? sittings[sittings.length - 1] ?? null
+  const sittingLabel = next ? "Upcoming Hearing" : upcoming ? "Most Recent Hearing" : "Hearings"
+  const { data: seats } = useScoped<{ chamber: string; party: string; seats: number }[]>("seats", null as unknown as { chamber: string; party: string; seats: number }[])
+  const colours = React.useMemo(() => attendanceColours(seats ?? null, chosen?.chamber ?? null), [seats, chosen?.chamber])
   const dash = "—"
 
   return (
@@ -184,9 +192,9 @@ export function CommitteePage() {
             />
           </div>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 2xl:grid-cols-3">
-            <AttendanceCard title="Attendance" series={["majority", "minority"]} />
-            <AttendanceCard title="Majority" series={["majority"]} />
-            <AttendanceCard title="Minority" series={["minority"]} />
+            <AttendanceCard title="Attendance" series={["majority", "minority"]} config={colours} />
+            <AttendanceCard title="Majority" series={["majority"]} config={colours} />
+            <AttendanceCard title="Minority" series={["minority"]} config={colours} />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {[0, 1, 2].map((i) => (
@@ -205,12 +213,19 @@ export function CommitteePage() {
             <CardContent className="grid gap-4">
               <div className="grid gap-2 text-sm">
                 {(held?.bills.length
-                  ? held.bills.map((b, i) => ({ key: i, member: b.sponsor ?? "—", bill: fmtBill(b.bill_number, state) }))
+                  ? held.bills.map((b, i) => ({ key: i, member: b.sponsor ?? "—", party: b.sponsor_party, bill: fmtBill(b.bill_number, state) }))
                   : activeBills
                 ).map((r) => (
                   <div key={r.key} className="flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="flex items-center gap-2 text-muted-foreground">
-                      <UserIcon className="size-4" />
+                      {r.member && r.member !== "—" ? (
+                        <span className="relative shrink-0">
+                          <MemberPortrait name={r.member} photoUrl={null} state={state} chamber={chosen?.chamber ?? null} size={20} />
+                          <PartyDot party={r.party ?? null} className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-card" />
+                        </span>
+                      ) : (
+                        <UserIcon className="size-4" />
+                      )}
                       {r.member}
                     </span>
                     <span className="font-medium">{r.bill}</span>
@@ -234,11 +249,22 @@ export function CommitteePage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {subcommittees.map((s) => (
+              {/* The committee's own sittings and its sub-committees', newest
+                  first, from the record. The mock rows below are what a
+                  committee with nothing on file still draws. */}
+              {(sittings.length
+                ? [...sittings].reverse().map((h, i) => ({
+                    key: i,
+                    time: h.time ? h.time.slice(0, 5) : fmtDate(h.date, false),
+                    m: h.time ? "" : "",
+                    title: h.description || h.title || fmtBill(h.bill_number, state),
+                  }))
+                : subcommittees
+              ).map((s) => (
                 <div key={s.key} className="flex gap-3 rounded-lg border p-3">
                   <div className="flex flex-col items-center leading-none">
                     <span className="text-lg font-semibold">{s.time}</span>
-                    <span className="text-[10px] text-muted-foreground">{s.m}</span>
+                    {s.m ? <span className="text-[10px] text-muted-foreground">{s.m}</span> : null}
                   </div>
                   <p className="line-clamp-2 text-sm">{s.title}</p>
                 </div>
@@ -252,8 +278,8 @@ export function CommitteePage() {
         </Card>
         <Card className="gap-4">
           <CardHeader className="gap-1">
-            <CardAnchor>Upcoming Hearing</CardAnchor>
-            <CardDescription>Describe the upcoming hearing and allow people to register/add it to their calendar...</CardDescription>
+            <CardAnchor>{sittingLabel}</CardAnchor>
+            <CardDescription>{next ? "The next sitting on the calendar." : upcoming ? "Nothing is scheduled; this is the last one held." : "No sitting is on the record for this committee."}</CardDescription>
             <CardAction>
               <CardTools />
             </CardAction>
