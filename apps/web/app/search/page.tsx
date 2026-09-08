@@ -210,7 +210,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
                 // jurisdiction, and which one a row came from is the first thing
                 // a reader needs.
                 avatar={<FlagChip state={bill.state} width={36} />}
-                title={fmtBill(bill.bill_number)}
+                title={fmtBill(bill.bill_number, bill.state)}
                 lead={bill.last_action}
                 meta={[
                   bill.last_action_date ? fmtDate(bill.last_action_date) : null,
@@ -227,7 +227,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
                 key={`${text.bill_id}-${text.document_id}`}
                 href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}
                 avatar={<FlagChip state={text.state} width={36} />}
-                title={fmtBill(text.bill_number)}
+                title={fmtBill(text.bill_number, text.state)}
                 lead={text.title}
                 meta={[stateName(text.state)]}
                 // The match itself is the description, highlights kept.

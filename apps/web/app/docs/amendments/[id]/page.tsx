@@ -4,8 +4,8 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { memberHref } from "@/lib/filters"
-import { fmtBill, fmtDate, fmtNumber, honorific, shortDistrict } from "@/lib/format"
-import { congressGovHref } from "@/lib/policy/congress"
+import { fmtDate, fmtNumber, honorific, shortDistrict } from "@/lib/format"
+import { citationOf, congressGovHref } from "@/lib/policy/congress"
 import { getAmendment, getAmendmentActions, getAmendmentCosponsors, getAmendmentNeighbours, getAmendmentTexts, getPeopleByBioguide } from "@/lib/policy/committee-queries"
 import { BackToTop } from "@/components/back-to-top"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -34,9 +34,9 @@ async function safe<T>(read: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-// congress.gov's bill type → the prefix our bill numbers carry, so "S 2" prints as "SB 2".
-const OUR_PREFIX: Record<string, string> = { HR: "HB", S: "SB", HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR", HRES: "HR", SRES: "SR" }
-const billLabel = (type: string | null, number: string | null) => (type && number ? fmtBill(`${OUR_PREFIX[type.toUpperCase()] ?? type.toUpperCase()}${number}`) : null)
+// An amendment amends a federal bill, so the bill it names is cited the way
+// congress.gov cites it: "S. 2", never LegiScan's "SB 2".
+const billLabel = (type: string | null, number: string | null) => citationOf(type, number)
 
 type Props = { params: Promise<{ id: string }> }
 

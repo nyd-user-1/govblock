@@ -14,6 +14,9 @@ import { cleanBillText } from "@/lib/policy/texts"
 import { actionOfRecord } from "@/lib/policy/date-of-record"
 
 import { n, one, q } from "@/lib/policy/db"
+// Citation is one implementation, in the client-safe module: the page prints
+// through billCitation, the server joins through these. See congress.ts.
+import { BILL_TYPE, LEGISCAN_PREFIX_BY_TYPE, citationOf, congressCitation, congressKey, congressOf } from "@/lib/policy/congress"
 import { DEFAULT_STATE, type Filters } from "@/lib/filters"
 
 // Calendar rows carry a few impossible dates (2106-…); cap at a year out.
@@ -352,44 +355,9 @@ export async function getBillByNumber(state: string, session: number, number: st
  * house bill — because that is what a person typing it means.
  * ------------------------------------------------------------------------- */
 
-// congress.gov's bill type <- our bill_number prefix, the same table the sync
-// and api/bill-text.ts carry, so the three agree on what a bill is called.
-const CONGRESS_TYPE_BY_PREFIX: Record<string, string> = { HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES", HR: "HRES", SR: "SRES" }
-
-/** Every spelling a citation arrives in -> congress.gov's own type. */
-const CITATION_TYPE: Record<string, string> = {
-  HR: "HR", HRES: "HRES", HJRES: "HJRES", HCONRES: "HCONRES",
-  S: "S", SRES: "SRES", SJRES: "SJRES", SCONRES: "SCONRES",
-  // LegiScan's spellings, so a number copied out of a search result still lands.
-  HB: "HR", SB: "S", HJR: "HJRES", SJR: "SJRES", HCR: "HCONRES", SCR: "SCONRES",
-}
-
-/** congress.gov's type -> the prefix "Bills" spells it with. */
-const LEGISCAN_PREFIX_BY_TYPE: Record<string, string> = { HR: "HB", HRES: "HR", S: "SB", SRES: "SR", HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR" }
-
-/** How congress.gov prints it: H.R. 155, H.Res. 155, S.J.Res. 12. */
-const CITATION_LABEL: Record<string, string> = {
-  HR: "H.R.", HRES: "H.Res.", HJRES: "H.J.Res.", HCONRES: "H.Con.Res.",
-  S: "S.", SRES: "S.Res.", SJRES: "S.J.Res.", SCONRES: "S.Con.Res.",
-}
-
-export function citationOf(type: string | null, number: string | null) {
-  const label = CITATION_LABEL[String(type ?? "").toUpperCase()]
-  return label && number ? `${label} ${number}` : null
-}
-
-/** A typed citation -> the type and number congress.gov files it under. */
-export function congressCitation(raw: string) {
-  const match = String(raw ?? "").toUpperCase().replace(/\s+/g, "").match(/^([A-Z.]+?)\.?(\d+)$/)
-  if (!match) return null
-  const type = CITATION_TYPE[match[1].replace(/\./g, "")]
-  return type ? { type, number: String(Number(match[2])) } : null
-}
-
-/** The congress a LegiScan session_id sits in: 2025 -> the 119th. */
-export function congressOf(session: number) {
-  return Math.floor((n(session) - 1789) / 2) + 1
-}
+// The two schemes live in congress.ts, which the browser reads too. Named here
+// so the route and the agent tools keep importing them from one place.
+export { citationOf, congressCitation, congressKey, congressOf }
 
 /**
  * One US bill by the number a reader typed, in the order that gets it right:
@@ -591,7 +559,7 @@ export async function getBill(billId: number) {
       bill.state === "US"
         ? congress
           ? citationOf(congress.bill_type, congress.number)
-          : citationOf(CONGRESS_TYPE_BY_PREFIX[String(bill.bill_number).replace(/[0-9].*$/, "")] ?? "", String(bill.bill_number).replace(/^[A-Z]+/, ""))
+          : citationOf(BILL_TYPE[String(bill.bill_number).replace(/[0-9].*$/, "")] ?? "", String(bill.bill_number).replace(/^[A-Z]+/, ""))
         : null,
     popular_title: congress?.popular_title ?? null,
     policy_area: congress?.policy_area ?? null,
@@ -1888,7 +1856,7 @@ export async function getLaws(limit = 250, offset = 0, billId?: number) {
     const prefix = String(bill.bill_number)
       .replace(/[0-9].*$/, "")
       .toUpperCase()
-    const key = `${Math.floor((n(bill.session_id) - 1789) / 2) + 1}-${CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix}-${String(bill.bill_number).replace(/^[A-Z]+/, "")}`
+    const key = congressKey(congressOf(bill.session_id), BILL_TYPE[prefix] ?? prefix, String(bill.bill_number).replace(/^[A-Z]+/, ""))
     const rows = await q<{ payload: unknown }>(`select payload from congress_laws where key = $1`, [key])
     return { bill: billId, count: rows.length, bills: rows.map((r) => r.payload) }
   }
@@ -2225,7 +2193,7 @@ export async function getHouseVotes(limit = 50, offset = 0, billId?: number, fro
     const rows = await q<{ payload: unknown } & TallyRow>(
       `select payload, ${TALLY_COLUMNS} from congress_house_votes
         where legislation_type = $1 and legislation_number = $2 order by start_date desc`,
-      [CONGRESS_TYPE_BY_PREFIX[prefix] ?? prefix, number]
+      [BILL_TYPE[prefix] ?? prefix, number]
     )
     return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) }
   }

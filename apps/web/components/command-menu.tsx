@@ -137,7 +137,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
             >
               <FlagChip state={bill.state ?? state} width={20} />
-              <span className="shrink-0 font-medium">{fmtBill(bill.bill_number)}</span>
+              <span className="shrink-0 font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
               <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
             </CommandItem>
           ))}

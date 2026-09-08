@@ -235,7 +235,7 @@ function BillRows({ rows, total, state, more, empty }: { rows: BillRow[]; total:
           hover="rail"
           href={`/docs/bills/${bill.bill_id}`}
           avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
-          title={fmtBill(bill.bill_number)}
+          title={fmtBill(bill.bill_number, state)}
           lead={bill.last_action}
           meta={[bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.status_desc || "Introduced", bill.sponsor]}
           description={truncate(bill.title, 240)}
@@ -306,6 +306,8 @@ function eastern(iso: string | null): { date: string; time: string | null } {
 /** What the calendar needs of a meeting; the witnesses and papers stay on the meeting's own page. */
 export type MeetingLite = Pick<MeetingRow, "event_id" | "date" | "title" | "type" | "committee_code" | "committee_name">
 
+// Federal by construction — the committee page renders it only under Congress —
+// so a calendared bill is cited the way congress.gov cites it.
 export function CommitteeMeetings({ meetings, hearings, calendar, who }: { meetings: MeetingLite[]; hearings: HearingRow[]; calendar: CalendarRow[]; who: string }) {
   const now = today()
   // Every meeting on its date in the home page's Calendar card, as Brendan
@@ -339,7 +341,7 @@ export function CommitteeMeetings({ meetings, hearings, calendar, who }: { meeti
       time: c.time,
       description: c.description ?? who,
       href: `/docs/bills/${c.bill_id}`,
-      badge: fmtBill(c.bill_number),
+      badge: fmtBill(c.bill_number, "US"),
       committee: who,
       action: day(c.date) < now ? ("open" as const) : ("calendar" as const),
     })),
@@ -379,7 +381,7 @@ export function CommitteeCalendar({ rows, who, state, chamber }: { rows: Calenda
               hover="rail"
               href={`/docs/bills/${row.bill_id}`}
               avatar={<RecordSeal state={state} chamber={chamber} ordinal={index + 1} />}
-              title={fmtBill(row.bill_number)}
+              title={fmtBill(row.bill_number, state)}
               lead={row.description}
               meta={[row.date ? fmtDate(row.date) : null, row.time]}
               description={truncate(row.title, 240)}
@@ -414,7 +416,7 @@ export function CommitteeReports({ reports, prints, who }: { reports: ReportRow[
               </a>
             </td>
             <td>{truncate(r.title ?? "", 140) || "—"}</td>
-            <td className="whitespace-nowrap">{r.bill_id ? <Link href={`/docs/bills/${r.bill_id}`}>{fmtBill(r.bill_number)}</Link> : "—"}</td>
+            <td className="whitespace-nowrap">{r.bill_id ? <Link href={`/docs/bills/${r.bill_id}`}>{fmtBill(r.bill_number, "US")}</Link> : "—"}</td>
             <td className="pr-8 text-right whitespace-nowrap tabular-nums">{r.issued ? fmtDate(r.issued) : "—"}</td>
           </tr>
         ))}

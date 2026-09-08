@@ -65,14 +65,14 @@ const daysFromToday = (days: number) => {
 }
 
 // A row from congress.gov's meetings carries its own page and no bill.
-const rowOf = (h: Hearing & { href?: string | null; type?: string | null }): Row => ({
+const rowOf = (h: Hearing & { href?: string | null; type?: string | null }, state: string): Row => ({
   id: `${h.href ?? h.bill_id}-${h.date}-${h.time ?? ""}`,
   date: h.date,
   time: h.time,
   description: h.description,
   href: h.href ?? `/docs/bills/${h.bill_id}`,
   external: false,
-  badge: h.bill_number ? fmtBill(h.bill_number) : (h.type ?? null),
+  badge: h.bill_number ? fmtBill(h.bill_number, state) : (h.type ?? null),
   committee: h.committee ?? null,
   action: h.date < key(new Date()) ? "open" : "calendar",
 })
@@ -212,8 +212,8 @@ export function CalendarCard({
     if (events) return [...events].map((e) => ({ ...e, external: !!e.external, badge: e.badge ?? null, committee: e.committee ?? null, action: e.action ?? "calendar" })).sort((a, b) => stamp(a).localeCompare(stamp(b)))
     const all = data?.rows ?? []
     const rows = committee ? all.filter((h) => (h.committee ?? h.description).toLowerCase().includes(committee.toLowerCase())) : all
-    return [...rows].sort((a, b) => stamp(a).localeCompare(stamp(b))).map(rowOf)
-  }, [data, committee, events])
+    return [...rows].sort((a, b) => stamp(a).localeCompare(stamp(b))).map((h) => rowOf(h, state))
+  }, [data, committee, events, state])
   const days = React.useMemo(() => [...new Set(hearings.map((h) => h.date))].sort(), [hearings])
   const initial = React.useMemo(() => {
     const today = key(new Date())

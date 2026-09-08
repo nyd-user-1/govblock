@@ -45,12 +45,12 @@ export const CALENDARS: CalendarKind[] = [
   { key: "Sessions", label: "Floor Sessions", tone: "bg-violet-500", has: (e) => e.type === "Session" },
 ]
 
-function group(rows: Hearing[] | undefined): Event[] {
+function group(rows: Hearing[] | undefined, state: string): Event[] {
   const byKey = new Map<string, Event>()
   for (const r of rows ?? []) {
     const key = `${r.date}|${r.time}|${r.description}`
     const e = byKey.get(key) ?? { date: r.date, time: r.time, type: r.type || "Hearing", title: r.committee ?? r.description, bills: [], committee: r.committee, chamber: r.body }
-    e.bills.push(fmtBill(r.bill_number))
+    e.bills.push(fmtBill(r.bill_number, state))
     byKey.set(key, e)
   }
   return [...byKey.values()].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
@@ -78,7 +78,7 @@ export function useCalendar(kinds: CalendarKind[]) {
   const from = iso(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 20))
   const to = iso(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 12))
   const hearings = useHearings(from, to)
-  const all = React.useMemo(() => group(hearings.data), [hearings.data])
+  const all = React.useMemo(() => group(hearings.data, hearings.scope.state), [hearings.data, hearings.scope.state])
   // An event shows while every calendar that claims it is on; one no calendar claims always shows.
   const events = React.useMemo(() => all.filter((e) => kinds.every((k) => !k.has(e) || (on[k.key] ?? true))), [all, kinds, on])
   const byDate = React.useMemo(() => {

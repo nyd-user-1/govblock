@@ -7,8 +7,18 @@
 
 export const CONGRESS = 119
 
+/* ---- how Congress is cited -------------------------------------------------
+ * One home for the two numbering schemes, because they collide. LegiScan
+ * numbers every jurisdiction in a universal scheme where HB is a house bill
+ * and HR a house resolution; congress.gov runs the other way round, so H.R.
+ * 155 is the Let America Vote Act and H.Res. 155 is a Ukraine measure. Every
+ * surface that prints, parses or joins a federal bill number reads these
+ * tables — db-queries re-exports them for the server, format.ts calls them for
+ * the page — so there is one answer to "what is this bill called".
+ * ------------------------------------------------------------------------- */
+
 /** LegiScan's US bill numbers carry its own prefixes: `HB10160` is H.R. 10160. */
-const BILL_TYPE: Record<string, string> = {
+export const BILL_TYPE: Record<string, string> = {
   HB: "HR",
   SB: "S",
   HR: "HRES",
@@ -17,6 +27,63 @@ const BILL_TYPE: Record<string, string> = {
   SJR: "SJRES",
   HCR: "HCONRES",
   SCR: "SCONRES",
+}
+
+/** congress.gov's type -> the prefix LegiScan's `Bills` spells it with. */
+export const LEGISCAN_PREFIX_BY_TYPE: Record<string, string> = { HR: "HB", HRES: "HR", S: "SB", SRES: "SR", HJRES: "HJR", SJRES: "SJR", HCONRES: "HCR", SCONRES: "SCR" }
+
+/** Every spelling a citation arrives in -> congress.gov's own type. */
+export const CITATION_TYPE: Record<string, string> = {
+  HR: "HR", HRES: "HRES", HJRES: "HJRES", HCONRES: "HCONRES",
+  S: "S", SRES: "SRES", SJRES: "SJRES", SCONRES: "SCONRES",
+  // LegiScan's spellings too, so a number copied out of a search result lands.
+  ...BILL_TYPE,
+}
+
+/** How congress.gov prints it: H.R. 155, H.Res. 155, S.J.Res. 12. */
+export const CITATION_LABEL: Record<string, string> = {
+  HR: "H.R.", HRES: "H.Res.", HJRES: "H.J.Res.", HCONRES: "H.Con.Res.",
+  S: "S.", SRES: "S.Res.", SJRES: "S.J.Res.", SCONRES: "S.Con.Res.",
+}
+
+/** "H.R. 155" from congress.gov's own type and number. */
+export function citationOf(type: string | null | undefined, number: string | number | null | undefined) {
+  const label = CITATION_LABEL[String(type ?? "").toUpperCase()]
+  return label && (number ?? "") !== "" ? `${label} ${number}` : null
+}
+
+/**
+ * A typed citation -> the type and number congress.gov files it under.
+ * Punctuation is what disambiguates, so the parse happens before it is
+ * stripped: `H.R.` and `H.Res.` differ by two characters and one bill. A bare
+ * `HR155` is read as congress.gov reads it — a house bill — because that is
+ * what a person typing it means.
+ */
+export function congressCitation(raw: string | null | undefined) {
+  const match = String(raw ?? "").toUpperCase().replace(/\s+/g, "").match(/^([A-Z.]+?)\.?0*(\d+)$/)
+  if (!match) return null
+  const type = CITATION_TYPE[match[1].replace(/\./g, "")]
+  return type ? { type, number: String(Number(match[2])) } : null
+}
+
+/** The congress a session year sits in: 2025 -> the 119th. */
+export function congressOf(session: number | string | null | undefined) {
+  return Math.floor((Number(session ?? 0) - 1789) / 2) + 1
+}
+
+/** congress_bills' primary key, and the key lobbying is re-keyed onto. */
+export const congressKey = (congress: number, type: string, number: string | number) => `${congress}-${String(type).toUpperCase()}-${number}`
+
+/**
+ * A bill number as its own legislature writes it. Under Congress that is
+ * congress.gov's citation — `HB1` reads `H.R. 1` — and everywhere else it is
+ * the record's own spelling with the zero padding taken off.
+ */
+export function billCitation(billNumber: string | null | undefined, state?: string | null) {
+  const bare = String(billNumber ?? "")
+  if (String(state ?? "").toUpperCase() !== "US") return bare.replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
+  const match = /^([A-Z]+)0*(\d+)$/.exec(bare.toUpperCase())
+  return (match && citationOf(BILL_TYPE[match[1]] ?? match[1], match[2])) ?? bare.replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
 }
 
 export type BillRef = { type: string; number: string }
@@ -206,7 +273,7 @@ export const parentCode = (code: string | null | undefined) => String(code ?? ""
  * anyone calls it. The first Congress sat in 1789 and each sits for two years.
  */
 export function congressName(year: number) {
-  const n = Math.floor((year - 1789) / 2) + 1
+  const n = congressOf(year)
   const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th"
   return `${n}${suffix} Congress`
 }

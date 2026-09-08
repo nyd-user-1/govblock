@@ -1,3 +1,5 @@
+import { billCitation } from "@/lib/policy/congress"
+
 // Ported from livingston-v3 lib/policy/format.ts — only what the home page uses.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -50,9 +52,17 @@ export function fmtCompact(value: number | null | undefined, currency = true) {
   return currency ? `$${formatted}` : formatted
 }
 
-/** `HB6500` → `HB 6500`: the prefix and the number with a space between, leading zeros dropped, as the rail prints a bill number. */
-export function fmtBill(number: string | null | undefined) {
-  return String(number ?? "").replace(/^([A-Z]+)0*(\d+)/, "$1 $2")
+/**
+ * `HB6500` → `HB 6500`: the prefix and the number with a space between, leading
+ * zeros dropped, as the rail prints a bill number.
+ *
+ * Under Congress the record's spelling is not the citation. LegiScan files
+ * H.R. 1 as `HB1` and H.Res. 1 as `HR1`; congress.gov, the news and the reader
+ * all write the other one. Pass the jurisdiction and a federal number prints
+ * as congress.gov prints it — one implementation, in lib/policy/congress.
+ */
+export function fmtBill(number: string | null | undefined, state?: string | null) {
+  return billCitation(number, state)
 }
 
 /** "HD-NY-025" reads "NY-25": the chamber prefix and the zero padding go. */

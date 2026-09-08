@@ -185,7 +185,7 @@ export function MeetingBills({ meeting, held }: { meeting: MeetingRow; held: Rec
           const row = held[number]
           return (
             <li key={`${number}-${i}`}>
-              {row ? <Link href={`/docs/bills/${row.bill_id}`}>{fmtBill(number)}</Link> : fmtBill(number)}
+              {row ? <Link href={`/docs/bills/${row.bill_id}`}>{fmtBill(number, "US")}</Link> : fmtBill(number, "US")}
               {b.title || row?.title ? ` — ${truncate(b.title ?? row?.title ?? "", 140)}` : ""}
             </li>
           )

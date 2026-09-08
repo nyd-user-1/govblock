@@ -167,7 +167,7 @@ export function SubjectBills({
             hover="rail"
             href={`/docs/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
-            title={fmtBill(bill.bill_number)}
+            title={fmtBill(bill.bill_number, state)}
             lead={bill.last_action}
             meta={[
               bill.last_action_date ? fmtDate(bill.last_action_date) : null,

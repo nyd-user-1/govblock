@@ -290,7 +290,7 @@ export function OrdersPage() {
                             <TableCell>
                               <Checkbox aria-label={`Select ${b.bill_number}`} />
                             </TableCell>
-                            <TableCell className="font-mono text-xs whitespace-nowrap">{fmtBill(b.bill_number)}</TableCell>
+                            <TableCell className="font-mono text-xs whitespace-nowrap">{fmtBill(b.bill_number, bills.scope.state)}</TableCell>
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="font-medium whitespace-nowrap">{b.sponsor ?? "—"}</span>
@@ -332,7 +332,7 @@ export function OrdersPage() {
                       .map((b) => (
                         <Card key={b.bill_id} className="gap-1 py-3">
                           <CardContent className="flex flex-col gap-1 px-3">
-                            <span className="font-mono text-xs">{fmtBill(b.bill_number)}</span>
+                            <span className="font-mono text-xs">{fmtBill(b.bill_number, bills.scope.state)}</span>
                             <span className="line-clamp-2 text-sm">{b.title}</span>
                             <span className="text-xs text-muted-foreground">{b.sponsor ?? "—"}</span>
                           </CardContent>

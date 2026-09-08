@@ -91,7 +91,7 @@ export function RollCallPage() {
       id: String(b.bill_id),
       timestamp: b.last_action_date,
       method: b.body === "Senate" ? "SEN" : b.body === "House" ? "HSE" : b.body === "Assembly" ? "ASM" : (b.body ?? "").slice(0, 3).toUpperCase(),
-      path: `${fmtBill(b.bill_number)} · ${b.title}`,
+      path: `${fmtBill(b.bill_number, stream.scope.state)} · ${b.title}`,
       status: (b.status_desc || "—").slice(0, 10),
       latency: b.last_action ? b.last_action.slice(0, 18) : "",
       bad: /veto|fail|died/i.test(b.status_desc ?? ""),
@@ -102,7 +102,7 @@ export function RollCallPage() {
     rollcalls.data?.slice(0, 5).map((r) => ({
       id: String(r.roll_call_id),
       method: r.chamber === "S" || r.chamber === "Senate" ? "SEN" : r.chamber === "H" || r.chamber === "House" ? "HSE" : r.chamber === "A" ? "ASM" : r.chamber,
-      path: `${fmtBill(r.bill_number)} · ${r.description}`,
+      path: `${fmtBill(r.bill_number, rollcalls.scope.state)} · ${r.description}`,
       status: r.yea > r.nay ? "Passed" : "Failed",
       bad: r.yea <= r.nay,
       time: fmtDate(r.date),

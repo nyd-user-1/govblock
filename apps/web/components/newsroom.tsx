@@ -39,7 +39,7 @@ function Byline({ bill, state }: { bill: BillRow; state: string }) {
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
       <img src={chamberImage(state, bill.body)} alt="" aria-hidden="true" width={16} height={16} className="size-4 rounded-[2px] object-contain" />
-      <span className="font-mono">{fmtBill(bill.bill_number)}</span>
+      <span className="font-mono">{fmtBill(bill.bill_number, state)}</span>
       {bill.last_action_date && <span>· {fmtDate(bill.last_action_date)}</span>}
       {bill.committee && <span>· {bill.committee}</span>}
       {bill.sponsor && <span>· {bill.sponsor}</span>}
@@ -136,7 +136,7 @@ export function NewsroomPage({
                     return (
                       <Link key={call.roll_call_id} href={`/docs/bills/${call.bill_id}`} className="flex flex-col gap-1.5 no-underline">
                         <span className="text-sm font-medium">
-                          {fmtBill(call.bill_number)} · {truncate(call.description ?? "", 40)}
+                          {fmtBill(call.bill_number, state)} · {truncate(call.description ?? "", 40)}
                         </span>
                         <span className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <span className="h-full" style={{ width: `${(call.yea / total) * 100}%`, background: "var(--chart-2)" }} />
@@ -164,7 +164,7 @@ export function NewsroomPage({
                       <span className="text-sm font-medium">{truncate(hearing.description ?? "", 44)}</span>
                       <span className="text-xs text-muted-foreground">
                         {fmtDate(hearing.date, false)}
-                        {hearing.time ? ` · ${hearing.time}` : ""} · {fmtBill(hearing.bill_number)}
+                        {hearing.time ? ` · ${hearing.time}` : ""} · {fmtBill(hearing.bill_number, state)}
                       </span>
                     </Link>
                   ))}
@@ -185,7 +185,7 @@ export function NewsroomPage({
                     </Link>
                     {desk.bills.slice(0, 2).map((bill) => (
                       <Link key={bill.bill_id} href={`/docs/bills/${bill.bill_id}`} className="text-xs text-muted-foreground no-underline hover:underline">
-                        {fmtBill(bill.bill_number)} · {truncate(bill.title, 56)}
+                        {fmtBill(bill.bill_number, desk.state)} · {truncate(bill.title, 56)}
                       </Link>
                     ))}
                   </div>

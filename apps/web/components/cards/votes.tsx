@@ -49,7 +49,7 @@ export function VotesCard() {
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>{fmtBill(row.bill_number)}</ItemTitle>
+                <ItemTitle>{fmtBill(row.bill_number, state)}</ItemTitle>
                 <ItemDescription>
                   {fmtDate(row.date, false)} · {row.chamber}
                 </ItemDescription>

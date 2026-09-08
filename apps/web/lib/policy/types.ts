@@ -54,6 +54,14 @@ export type RollCall = {
 }
 
 export type Bill = BillRow & {
+  /** How the jurisdiction cites it: "H.R. 1" under Congress, "A 7380" in Albany. */
+  citation: string | null
+  /** congress.gov's own type and number, where the federal row carries them. */
+  congress_type?: string | null
+  congress_number?: string | null
+  popular_title?: string | null
+  policy_area?: string | null
+  introduced_date?: string | null
   state: string
   session_id: number
   session_title: string | null

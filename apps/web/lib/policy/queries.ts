@@ -1,5 +1,6 @@
 import { BILLS, TEXTS } from "@/lib/data"
 import type { Filters } from "@/lib/filters"
+import { billCitation, citationOf } from "@/lib/policy/congress"
 import { sql } from "@/lib/policy/db"
 import type { Bill, BillText } from "@/lib/policy/types"
 
@@ -14,6 +15,15 @@ export type Resolved = Omit<Filters, "state" | "session"> & { state: string; ses
 
 export async function resolve(filters: Filters): Promise<Resolved> {
   return { ...filters, state: filters.state || "US", session: Number(filters.session) || 2025 }
+}
+
+/**
+ * A bill as its own legislature cites it. congress.gov's type and number where
+ * the row carries them, else the mirror's prefix translated — the same map, in
+ * lib/policy/congress, that the agent tools and every list read.
+ */
+function cited(bill: Bill): Bill {
+  return { ...bill, citation: citationOf(bill.congress_type, bill.congress_number) ?? billCitation(bill.bill_number, bill.state) }
 }
 
 export function billsOnFile(): Bill[] {
@@ -52,7 +62,17 @@ export async function getBill(billId: number): Promise<Bill | null> {
   if (sql) {
     try {
       const rows = (await sql`select
-  b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date,
+  b.bill_id, b.bill_number, b.status_desc,
+  -- Under Congress the record is congress.gov's, not the LegiScan mirror's.
+  -- The mirror had H.R. 1 titled "FEHB Protection Act of 2025" (found
+  -- 2026-09-07) and its action sat days behind; congress.gov carries the
+  -- popular title everyone writes, the official title and the current action.
+  -- See docs/federal-sources.md.
+  case when b.state = 'US' then coalesce(cb.popular_title, cb.display_title, b.title) else b.title end as title,
+  case when b.state = 'US' then coalesce(b.description, cb.display_title) else b.description end as description,
+  coalesce(cb.latest_action, b.last_action) as last_action,
+  coalesce(cb.latest_action_date::text, b.last_action_date::text) as last_action_date,
+  cb.policy_area, cb.introduced_date, cb.bill_type as congress_type, cb.number as congress_number,
   b.committee, b.body, b.url, b.state_link, b.text_chars,
   b.state, b.session_id, b.session_title, b.status_date, b.bill_type,
   sp.name as sponsor, sp.party as sponsor_party, sp.people_id as sponsor_id,
@@ -93,16 +113,18 @@ export async function getBill(billId: number): Promise<Bill | null> {
       'location', c.location) order by c.date, c.time)
     from "Calendar" c where c.bill_id = b.bill_id), '[]') as hearings
   from "Bills" b
+  left join congress_bills cb on cb.bill_id = b.bill_id
   left join lateral (
     select p.name, p.party, p.people_id from "Sponsors" s join "People" p using (people_id)
     where s.bill_id = b.bill_id and s.sponsor_type_id = 1 order by s.position limit 1) sp on true
         where b.bill_id = ${billId}`) as unknown as Bill[]
-      if (rows[0]) return rows[0]
+      if (rows[0]) return cited(rows[0])
     } catch (error) {
       console.error("bill: database unavailable, serving snapshot", error)
     }
   }
-  return ((BILLS as Record<string, unknown>)[String(billId)] as Bill | undefined) ?? null
+  const held = ((BILLS as Record<string, unknown>)[String(billId)] as Bill | undefined) ?? null
+  return held ? cited(held) : null
 }
 
 export async function getBillText(billId: number, documentId?: number): Promise<BillText | null> {

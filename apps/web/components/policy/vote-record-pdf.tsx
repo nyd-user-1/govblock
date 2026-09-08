@@ -82,7 +82,7 @@ export function VoteRecordPdf({ peopleId, state, who, seat }: { peopleId: number
           startY: y + 8,
           margin: { left: margin, right: margin },
           head: [["Date", "Bill", "Title", "Question", "Vote", "Tally"]],
-          body: mine.map((r) => [r.date ? fmtDate(r.date) : "—", fmtBill(r.bill_number), r.title || "—", r.description || "—", r.vote, r.yea != null && r.nay != null ? `${r.yea}–${r.nay}` : "—"]),
+          body: mine.map((r) => [r.date ? fmtDate(r.date) : "—", fmtBill(r.bill_number, state), r.title || "—", r.description || "—", r.vote, r.yea != null && r.nay != null ? `${r.yea}–${r.nay}` : "—"]),
           styles: { fontSize: 7.5, cellPadding: 3, overflow: "linebreak", valign: "top" },
           headStyles: { fillColor: [24, 24, 27], textColor: 255, fontStyle: "bold" },
           alternateRowStyles: { fillColor: [247, 247, 248] },

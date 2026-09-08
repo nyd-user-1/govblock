@@ -173,7 +173,7 @@ export function DirectoryRail() {
   const billItem = (bill: RailBill, prefix = ""): RailItem => ({
     key: `${prefix}${bill.bill_id}`,
     href: `/docs/bills/${bill.bill_id}`,
-    label: fmtBill(bill.bill_number),
+    label: fmtBill(bill.bill_number, state),
     // The day it last moved, written out (Brendan, 2026-09-03).
     detail: bill.last_action_date ? fmtLongDate(bill.last_action_date) : null,
     tooltip: bill.title,

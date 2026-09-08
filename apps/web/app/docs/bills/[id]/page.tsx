@@ -158,7 +158,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const bill = await getBill(Number(id))
   if (!bill) return { title: "Bill" }
-  return { title: fmtBill(bill.bill_number), description: bill.description || bill.title }
+  return { title: bill.citation ?? fmtBill(bill.bill_number, bill.state), description: bill.description || bill.title }
 }
 
 export default async function BillRoute({ params }: { params: Promise<{ id: string }> }) {
@@ -175,7 +175,9 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
     !federal && !bill.session_title ? getSessionsWithTitles(bill.state).catch(() => []) : Promise.resolve([]),
   ])
   const text = held?.text ?? null
-  const number = fmtBill(bill.bill_number)
+  // Congress is cited the way congress.gov writes it: getBill carries the
+  // citation off congress_bills, and the mirror's prefix is only the fallback.
+  const number = bill.citation ?? fmtBill(bill.bill_number, bill.state)
   const summary = bill.description || bill.title
   const sessionTitle = bill.session_title ?? sessions.find((r) => Number(r.session_id) === bill.session_id)?.title ?? null
   const session = sessionName(bill.state, bill.session_id, sessionTitle)
@@ -223,7 +225,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                         header pages to the next document. */}
                     {neighbours.previous ? (
                       <Button variant="secondary" size="icon" className={arrow} asChild>
-                        <Link href={`/docs/bills/${neighbours.previous.bill_id}`} title={fmtBill(neighbours.previous.bill_number)}>
+                        <Link href={`/docs/bills/${neighbours.previous.bill_id}`} title={fmtBill(neighbours.previous.bill_number, bill.state)}>
                           <IconArrowLeft />
                           <span className="sr-only">Previous bill</span>
                         </Link>
@@ -235,7 +237,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                     )}
                     {neighbours.next ? (
                       <Button variant="secondary" size="icon" className={arrow} asChild>
-                        <Link href={`/docs/bills/${neighbours.next.bill_id}`} title={fmtBill(neighbours.next.bill_number)}>
+                        <Link href={`/docs/bills/${neighbours.next.bill_id}`} title={fmtBill(neighbours.next.bill_number, bill.state)}>
                           <IconArrowRight />
                           <span className="sr-only">Next bill</span>
                         </Link>
@@ -315,14 +317,14 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                   {neighbours.previous && (
                     <Button variant="secondary" size="sm" className="shadow-none" asChild>
                       <Link href={`/docs/bills/${neighbours.previous.bill_id}`}>
-                        <IconArrowLeft /> {fmtBill(neighbours.previous.bill_number)}
+                        <IconArrowLeft /> {fmtBill(neighbours.previous.bill_number, bill.state)}
                       </Link>
                     </Button>
                   )}
                   {neighbours.next && (
                     <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
                       <Link href={`/docs/bills/${neighbours.next.bill_id}`}>
-                        {fmtBill(neighbours.next.bill_number)} <IconArrowRight />
+                        {fmtBill(neighbours.next.bill_number, bill.state)} <IconArrowRight />
                       </Link>
                     </Button>
                   )}

@@ -113,7 +113,7 @@ export function DocumentsTree() {
                   <SidebarMenuItem key={`change-${row.document_id}`}>
                     <SidebarMenuButton isActive={current?.document_id === row.document_id} onClick={() => choose(row)} title={`${row.bill_number} — ${row.title}`} className="justify-between gap-2">
                       <span className="truncate font-mono text-xs">
-                        {fmtBill(row.bill_number)}
+                        {fmtBill(row.bill_number, state)}
                         {row.version ? ` · ${row.version}` : ""}
                       </span>
                       <span className={cn("shrink-0 text-xs", amended ? "text-amber-600" : "text-emerald-600")}>{amended ? "M" : "U"}</span>
@@ -154,7 +154,7 @@ export function DocumentsTree() {
                             <SidebarMenuItem key={bill_id}>
                               <SidebarMenuButton isActive={!billOpen && current?.bill_id === bill_id} onClick={() => (v.length > 1 ? toggleBill(bill_id) : choose(head))} title={`${head.bill_number} — ${head.title}`} className="gap-1.5">
                                 <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-                                <span className="truncate font-mono text-xs">{fmtBill(head.bill_number)}</span>
+                                <span className="truncate font-mono text-xs">{fmtBill(head.bill_number, state)}</span>
                                 <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{v.length}</span>
                               </SidebarMenuButton>
                               {billOpen && (
@@ -204,7 +204,7 @@ export function DocumentsTree() {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>{current ? `${fmtBill(current.bill_number)} · ${current.version ?? "Original"}` : "—"}</BreadcrumbPage>
+              <BreadcrumbPage>{current ? `${fmtBill(current.bill_number, state)} · ${current.version ?? "Original"}` : "—"}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
