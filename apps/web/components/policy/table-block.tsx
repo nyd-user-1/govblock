@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { cn } from "@govblock/ui/lib/utils"
 import { fmtNumber } from "@/lib/format"
 import { Button } from "@govblock/ui/components/nova/button"
 import { CopyButton } from "@/components/copy-button"
@@ -57,15 +58,37 @@ export function TableBlock({ children, rows }: { children: React.ReactNode; rows
       <div
         ref={ref}
         data-open={open}
-        // Shorter than the rows it holds in both states, so the list scrolls
-        // whether or not See more has been pressed.
-        //
-        // The header row is frozen and the rows run under it: sticky on the th
-        // rather than the thead, opaque so nothing shows through, and carrying
-        // the rule itself — typeset draws that line as the first body row's top
-        // border, which would have scrolled away with it. The scrollbar track is
-        // inset by the header's height so it belongs to the rows.
-        className="max-h-[22rem] overflow-y-auto overscroll-contain data-[open=true]:max-h-[38rem] data-[open=false]:[&_tbody_tr:nth-child(n+11)]:hidden [&::-webkit-scrollbar-track]:mt-(--thead-h) [&_tbody_tr:first-child_td]:border-t-0 [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:border-b [&_thead_th]:border-(--typeset-rule) [&_thead_th]:bg-surface"
+        className={cn(
+          // The scroller is typeset's own `.typeset-scroll` div, not this one.
+          // It carries `overflow-x: auto`, which makes it the sticky header's
+          // nearest scrolling ancestor — so a header stuck to anything outside
+          // it never froze at all (found 2026-09-08). Constrain that div and the
+          // header sticks to the box it actually scrolls in.
+          //
+          // Shorter than the rows it holds in both states, so the list scrolls
+          // whether or not See more has been pressed.
+          "[&>.typeset-scroll]:max-h-[22rem] [&>.typeset-scroll]:overflow-y-auto [&>.typeset-scroll]:overscroll-contain",
+          "data-[open=true]:[&>.typeset-scroll]:max-h-[38rem]",
+          "data-[open=false]:[&_tbody_tr:nth-child(n+11)]:hidden",
+          // The scrollbar belongs to the rows: its track starts a header's
+          // height down, so it cannot run up beside the copy button. Drawn
+          // rather than left to the browser, because typeset ships that div
+          // with `scrollbar-none` and Chrome only honours a track margin once
+          // some ::-webkit-scrollbar rule has claimed the scrollbar.
+          "[&>.typeset-scroll]:[scrollbar-width:thin]",
+          "[&_.typeset-scroll::-webkit-scrollbar]:w-1.5",
+          "[&_.typeset-scroll::-webkit-scrollbar-track]:mt-(--thead-h)",
+          "[&_.typeset-scroll::-webkit-scrollbar-track]:bg-transparent",
+          "[&_.typeset-scroll::-webkit-scrollbar-thumb]:rounded-full",
+          "[&_.typeset-scroll::-webkit-scrollbar-thumb]:bg-border",
+          // The frozen header. Sticky on the th rather than the thead, opaque so
+          // rows pass behind it, and carrying the rule itself — typeset draws
+          // that line as the first body row's top border, which scrolls away
+          // with the row.
+          "[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-surface",
+          "[&_thead_th]:border-b [&_thead_th]:border-(--typeset-rule)",
+          "[&_tbody_tr:first-child_td]:border-t-0"
+        )}
       >
         {children}
       </div>
