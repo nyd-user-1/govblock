@@ -610,19 +610,64 @@ export type BillRollCall = {
 }
 
 /** Every roll call the bill went to, in either chamber, as a data table. */
-export function BillVotesBlock({ rollCalls, bill, billNumber, state }: { rollCalls: BillRollCall[]; bill: string; billNumber: string; state: string }) {
-  const rows: VoteTableRow[] = rollCalls.map((rc) => ({
-    id: String(rc.roll_call_id),
-    date: rc.date ?? null,
-    chamber: rc.chamber ?? "",
-    question: rc.description ?? "",
-    yea: rc.yea ?? 0,
-    nay: rc.nay ?? 0,
-    nv: rc.nv ?? 0,
-    absent: rc.absent ?? 0,
-    // LegiScan's own page for the roll call, which lists every position.
-    href: `https://legiscan.com/${state}/rollcall/${billNumber}/id/${rc.roll_call_id}`,
-  }))
+/** A federal roll call as the page draws it: our own record, both chambers. */
+export type FederalRollCall = {
+  chamber: string
+  congress: number
+  session: number
+  roll: number
+  question: string | null
+  description: string | null
+  date: string | null
+  yea: number | null
+  nay: number | null
+  present: number | null
+  not_voting: number | null
+}
+
+export function BillVotesBlock({
+  rollCalls,
+  federal,
+  bill,
+  billNumber,
+  state,
+}: {
+  rollCalls: BillRollCall[]
+  /**
+   * Congress's own roll calls, House and Senate. LegiScan mirrors House votes
+   * only and links out to legiscan.com for the positions; ours hold both
+   * chambers and every position on a page of our own, so under Congress they
+   * are the record and the mirror's rows are not drawn at all.
+   */
+  federal?: FederalRollCall[] | null
+  bill: string
+  billNumber: string
+  state: string
+}) {
+  const rows: VoteTableRow[] = federal?.length
+    ? federal.map((rc) => ({
+        id: `${rc.chamber}-${rc.congress}-${rc.session}-${rc.roll}`,
+        date: rc.date ? rc.date.slice(0, 10) : null,
+        chamber: rc.chamber === "senate" ? "Senate" : "House",
+        question: rc.question ?? rc.description ?? "",
+        yea: rc.yea ?? 0,
+        nay: rc.nay ?? 0,
+        nv: rc.not_voting ?? 0,
+        absent: rc.present ?? 0,
+        href: `/docs/roll-call-votes/${rc.chamber}-${rc.congress}-${rc.session}/${rc.roll}`,
+      }))
+    : rollCalls.map((rc) => ({
+        id: String(rc.roll_call_id),
+        date: rc.date ?? null,
+        chamber: rc.chamber ?? "",
+        question: rc.description ?? "",
+        yea: rc.yea ?? 0,
+        nay: rc.nay ?? 0,
+        nv: rc.nv ?? 0,
+        absent: rc.absent ?? 0,
+        // LegiScan's own page for the roll call, which lists every position.
+        href: `https://legiscan.com/${state}/rollcall/${billNumber}/id/${rc.roll_call_id}`,
+      }))
   const chambers = [...new Set(rows.map((r) => r.chamber).filter(Boolean))]
   return (
     <>

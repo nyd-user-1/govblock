@@ -27,8 +27,8 @@ export const siteConfig = {
     {
       label: "Records",
       href: "/docs/bills",
-      // Thirteen entries, four across and four down (Brendan, 2026-09-06:
-      // "3-4 cols with 3+ rows"). Row one is what every jurisdiction has, row
+      // Fifteen entries, four across (Brendan, 2026-09-06: "3-4 cols with 3+
+      // rows"). Row one is what every jurisdiction has, row
       // two what the legislature produces, row three the paperwork and the
       // money, and the news last. This list is also the docs rail's Records
       // section — `components/directory-rail.tsx` reads it — so the panel and
@@ -45,10 +45,12 @@ export const siteConfig = {
         { href: "/docs/hearings", label: "Hearings", description: "Every hearing of the Congress, with its transcript.", icon: "Mic" },
         { href: "/docs/nominations", label: "Nominations", description: "Nominations before the Senate.", icon: "UserCheck" },
         { href: "/docs/laws", label: "Laws", description: "What passed, and the bill it began as.", icon: "Scale" },
+        { href: "/docs/roll-call-votes", label: "Roll calls", description: "Every recorded vote, and how each member answered.", icon: "ListChecks" },
         { href: "/docs/subjects", label: "Subjects", description: "How a bill is filed, and every bill under each term.", icon: "Tags" },
         { href: "/docs/reports", label: "Reports", description: "Committee reports and CRS research.", icon: "BookOpen" },
         { href: "/docs/record", label: "The Record", description: "The Congressional Record, issue by issue.", icon: "ScrollText" },
         { href: "/docs/money", label: "Finance", description: "Lobbying and campaign money, where the record holds it.", icon: "Coins" },
+        { href: "/docs/lobbying", label: "Lobbying", description: "Who is paid to be heard, on what, and for whom.", icon: "Handshake" },
         { href: "/docs/forms", label: "Forms", description: "Government forms for benefits, grants and programs.", icon: "ClipboardList" },
         { href: "/newsroom", label: "News", description: "What the legislature did, newest first.", icon: "Newspaper" },
       ],

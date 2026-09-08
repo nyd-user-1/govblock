@@ -26,6 +26,7 @@ import {
 import { fmtBill } from "@/lib/format"
 import { billCongressKey, congressName } from "@/lib/policy/congress"
 import { getBillLobbying } from "@/lib/policy/lobbying-queries"
+import { getBillRollCalls } from "@/lib/policy/roll-call-queries"
 import { stateName } from "@/lib/filters"
 import { BackToTop } from "@/components/back-to-top"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -172,7 +173,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   // and on congress.gov's own key rather than the mirror's id — see
   // docs/federal-sources.md and sql/002_lobbying_congress_key.sql.
   const congressKey = federal ? billCongressKey(bill.bill_number, bill.session_id) : null
-  const [held, { congress, depth }, neighbours, committeeCounts, sessions, lobbying] = await Promise.all([
+  const [held, { congress, depth }, neighbours, committeeCounts, sessions, lobbying, federalVotes] = await Promise.all([
     getBillText(Number(id)),
     federal ? loadCongress(bill.bill_id) : Promise.resolve<{ congress: CongressInitial; depth: DepthInitial }>({ congress: {}, depth: {} }),
     getBillNeighbours(bill.bill_id).catch(() => ({ previous: null, next: null })),
@@ -180,6 +181,9 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
     // A New York row carries no session title of its own; the session list does.
     !federal && !bill.session_title ? getSessionsWithTitles(bill.state).catch(() => []) : Promise.resolve([]),
     federal ? getBillLobbying({ congressKey, billId: bill.bill_id }).catch(() => null) : Promise.resolve(null),
+    // Both chambers, from our own record: the mirror carries House votes only
+    // and sends the reader to legiscan.com for the positions.
+    federal ? getBillRollCalls(bill.bill_id, congressKey).catch(() => []) : Promise.resolve([]),
   ])
   const text = held?.text ?? null
   // Congress is cited the way congress.gov writes it: getBill carries the
@@ -293,7 +297,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 <BillCommitteesBlock bill={number} state={bill.state} referrals={bill.referrals} counts={committeeCounts} />
                 <BillReportsBlock bill={number} />
                 <BillActionsBlock history={bill.history} rollCalls={bill.rollCalls} bill={number} />
-                <BillVotesBlock rollCalls={bill.rollCalls} bill={number} billNumber={bill.bill_number} state={bill.state} />
+                <BillVotesBlock rollCalls={bill.rollCalls} federal={federalVotes} bill={number} billNumber={bill.bill_number} state={bill.state} />
                 <BillAmendmentsBlock bill={number} />
                 <BillRelatedBlock bill={number} />
                 <BillTitlesBlock bill={number} />

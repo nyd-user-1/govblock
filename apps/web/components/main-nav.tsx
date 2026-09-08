@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { BookOpen, BookUser, ClipboardList, Coins, FileText, Gavel, Inbox, Landmark, Library, type LucideIcon, Mic, Newspaper, Radar, Receipt, Scale, ScrollText, Stamp, Tags, UserCheck, Users } from "lucide-react"
+import { BookOpen, BookUser, ClipboardList, Coins, FileText, Gavel, Handshake, Inbox, Landmark, Library, ListChecks, type LucideIcon, Mic, Newspaper, Radar, Receipt, Scale, ScrollText, Stamp, Tags, UserCheck, Users } from "lucide-react"
 
 import { hasItems, type NavItem } from "@/lib/config"
 import { cn } from "@govblock/ui/lib/utils"
@@ -25,9 +25,11 @@ const ICONS: Record<string, LucideIcon> = {
   Coins,
   FileText,
   Gavel,
+  Handshake,
   Inbox,
   Landmark,
   Library,
+  ListChecks,
   Mic,
   Newspaper,
   Radar,

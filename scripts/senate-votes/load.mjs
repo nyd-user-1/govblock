@@ -179,7 +179,15 @@ function parseVote(xml, congress, session, number, url) {
   const docType = tag(doc, "document_type")
   const docNumber = tag(doc, "document_number")
   // A nomination (PN) or a treaty is not a bill; only a bill citation gets a key.
-  const cite = docType && docType.toUpperCase() !== "PN" ? citation(`${docType}${docNumber ?? ""}`) : null
+  //
+  // A vote on an amendment names the amendment as its document — document_type
+  // "S.Amdt." with no number — and puts the bill it amends in the amendment
+  // block. That bill is the one a reader is looking for: 24 of the Senate's
+  // votes on H.R. 1 were votes on amendments to it, and without this they had
+  // no bill at all (found 2026-09-07 against LegiScan's own count).
+  const cite =
+    (docType && docType.toUpperCase() !== "PN" && docNumber ? citation(`${docType}${docNumber}`) : null) ??
+    citation(tag(amendment, "amendment_to_document_number"))
   const members = [...block(xml, "members").matchAll(/<member>([\s\S]*?)<\/member>/g)].map((m) => m[1])
   return {
     key: `${congress}-${session}-${Number(number)}`,
