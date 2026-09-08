@@ -33,6 +33,12 @@ export type ToolName =
   | "transcripts"
   | "nominations"
   | "roster"
+  | "votes"
+  | "roll_call"
+  | "sponsors"
+  | "cosponsors"
+  | "bill_status"
+  | "bill_amendments"
   | "web_search"
   | "read_page"
   | "post_to_slack"
@@ -116,6 +122,43 @@ function query(resource: string, input: Record<string, string>, keys: string[]) 
       sp.set(key === "jurisdiction" ? "state" : key, String(value))
   }
   return `${resource}?${sp.toString()}`
+}
+
+/** A roll call as a list of them reads: the tally and what it was on. */
+const ROLL_CALL_ROW = ["roll_call_id", "date", "chamber", "description", "yea", "nay", "nv", "absent", "total", "bill_number", "title"]
+
+/**
+ * A vote's two sides, the way a person reads one.
+ *
+ * The whole list is 434 names and 26 kB against a round budget of eight, and
+ * nobody asks for it. What is asked is who broke ranks — so the smaller side is
+ * named in full, along with everyone who did not vote, and the larger side is a
+ * count. That is the same answer in a twentieth of the room.
+ */
+function sides(
+  rows: Record<string, unknown>[],
+  cast: (row: Record<string, unknown>) => string,
+  name: (row: Record<string, unknown>) => string,
+  where: (row: Record<string, unknown>) => string
+) {
+  const groups = new Map<string, string[]>()
+  for (const row of rows) {
+    const key = cast(row) || "Unrecorded"
+    groups.set(key, [...(groups.get(key) ?? []), `${name(row)} (${where(row).replace(/^-|-$/g, "")})`])
+  }
+  const counts = Object.fromEntries([...groups].map(([key, list]) => [key, list.length]))
+  const yeas = groups.get("Yea") ?? groups.get("Yea ") ?? groups.get("Aye") ?? groups.get("Yeas") ?? []
+  const nays = groups.get("Nay") ?? groups.get("No") ?? groups.get("Nays") ?? []
+  const named: Record<string, string[]> = {}
+  // Everything that is not one of the two big sides is short and goes in whole.
+  for (const [key, list] of groups) if (list !== yeas && list !== nays && list.length <= 40) named[key] = list
+  const smaller = yeas.length <= nays.length ? { key: "Yea", list: yeas, other: "Nay", n: nays.length } : { key: "Nay", list: nays, other: "Yea", n: yeas.length }
+  if (smaller.list.length) named[smaller.key] = smaller.list.slice(0, 250)
+  return {
+    counts,
+    positions: named,
+    not_listed: smaller.n ? `the ${smaller.n} who voted ${smaller.other} are counted, not named` : null,
+  }
 }
 
 /** A calendar row as an answer needs it: when, who, what, and which bill. */
@@ -492,6 +535,173 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       if (Array.isArray(data)) return { source: "derived from committee votes", members: slim(data, MEMBER_ROW, 40) }
       const d = data as { committee?: string; chamber?: string; source?: string; members?: unknown[] } | null
       return d ? { committee: d.committee, chamber: d.chamber, source: d.source, members: slim(d.members, MEMBER_ROW, 60) } : null
+    },
+  },
+
+  votes: {
+    description:
+      "The recorded votes on a bill, or the ones a chamber took in a window. Tallies and results, not who voted which way — roll_call is that, one vote at a time. For Congress this is the House's roll calls, which is what congress.gov publishes; the Senate's are not in this record.",
+    properties: {
+      bill_id: { type: "integer", description: "A bill's numeric id, for the votes on that bill." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1', 'A07380'." },
+      jurisdiction: JURISDICTION,
+      from: { type: "string", description: "Start date, YYYY-MM-DD — for a chamber's votes rather than a bill's." },
+      to: { type: "string", description: "End date, YYYY-MM-DD." },
+      limit: { type: "integer", description: "1–50, default 20." },
+    },
+    request: (input) => {
+      const federal = (input.jurisdiction || "US").toUpperCase() === "US"
+      if (federal) return query("house-votes", input, ["id", "number", "from", "to", "limit"])
+      // A state's roll calls: the bill's own, or the session's most recent.
+      return input.id ? query("votes", input, ["id"]) : query("rollcalls", input, ["limit"])
+    },
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      if (Array.isArray(d)) return { count: d.length, votes: slim(d, ROLL_CALL_ROW, 20, { description: 90, title: 80 }) }
+      const federal = d.houseRollCallVotes as Record<string, unknown>[] | undefined
+      if (federal) {
+        return {
+          count: d.count,
+          votes: trim(federal, 20).map((v) => ({
+            vote: v.identifier,
+            date: v.startDate,
+            question: v.voteQuestion,
+            result: v.result,
+            bill: `${v.legislationType ?? ""} ${v.legislationNumber ?? ""}`.trim() || null,
+            tally: v.tally,
+          })),
+        }
+      }
+      return { count: size(d.rollCalls), votes: slim(d.rollCalls, ROLL_CALL_ROW, 20, { description: 90 }) }
+    },
+  },
+
+  roll_call: {
+    description:
+      "One vote, member by member. Give it the vote's id — a state roll_call_id from `votes`, or a House vote identifier like '11922026295'. It answers with the tally and then the names, in full for the smaller side and for anyone who did not vote, and as a count for the larger: a list of 434 names is the answer to no question anyone asks, and who broke ranks is.",
+    properties: {
+      vote_id: { type: "string", description: "The roll call's id, as `votes` gives it." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["vote_id"],
+    request: (input) =>
+      (input.jurisdiction || "US").toUpperCase() === "US"
+        ? query("member-votes", { ...input, vote: input.vote_id }, ["vote"])
+        : query("rollcall", { ...input, id: input.vote_id }, ["id"]),
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      // Congress: positions carry vote_cast; a state's carry vote_desc.
+      const federal = d.memberVotes as Record<string, unknown>[] | undefined
+      if (federal) {
+        const header = (d.rollCall ?? {}) as Record<string, unknown>
+        return {
+          vote: d.vote,
+          question: header.voteQuestion,
+          result: header.result,
+          date: header.startDate,
+          bill: `${header.legislationType ?? ""} ${header.legislationNumber ?? ""}`.trim() || null,
+          tally: header.tally,
+          ...sides(federal, (r) => String(r.vote_cast ?? ""), (r) => `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim(), (r) => `${r.vote_party ?? ""}-${r.vote_state ?? ""}`),
+        }
+      }
+      const rollCall = d.rollCall as Record<string, unknown> | undefined
+      const votes = (d.votes ?? []) as Record<string, unknown>[]
+      return {
+        vote: rollCall?.roll_call_id,
+        question: rollCall?.description,
+        date: rollCall?.date,
+        chamber: rollCall?.chamber,
+        bill: rollCall?.bill_number,
+        tally: rollCall ? { yea: rollCall.yea, nay: rollCall.nay, notVoting: rollCall.nv, absent: rollCall.absent, total: rollCall.total } : null,
+        ...sides(votes, (r) => String(r.vote_desc ?? ""), (r) => String(r.name ?? ""), (r) => `${r.party ?? ""}-${r.district ?? ""}`),
+      }
+    },
+  },
+
+  sponsors: {
+    description:
+      "Who put a bill forward — the primary sponsor or sponsors, with party and district. A narrower read than get_bill when that is the whole question.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1', 'A07380'." },
+      jurisdiction: JURISDICTION,
+    },
+    request: (input) => query("bill-sponsorship", input, ["id", "number"]),
+    shape: (data) => {
+      const d = data as { sponsors?: unknown[]; cosponsor_count?: number; source?: string } | null
+      if (!d) return null
+      return { source: d.source, cosponsor_count: d.cosponsor_count, sponsors: slim(d.sponsors, MEMBER_ROW, 12) }
+    },
+  },
+
+  cosponsors: {
+    description:
+      "Who signed on to a bill and when. Under Congress each cosponsor carries the date they joined and whether they were there at introduction — which is how a bill picking up support after a hearing shows itself. For a state the record has the names but no dates.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1', 'A07380'." },
+      jurisdiction: JURISDICTION,
+      limit: { type: "integer", description: "How many to list, newest first. Default 40." },
+    },
+    request: (input) => query("bill-sponsorship", input, ["id", "number"]),
+    shape: (data, input) => {
+      const d = data as { cosponsors?: unknown[]; cosponsor_count?: number; source?: string } | null
+      if (!d) return null
+      const cap = Math.min(Number(input.limit) || 40, 60)
+      return {
+        source: d.source,
+        count: d.cosponsor_count,
+        listed: Math.min(cap, d.cosponsor_count ?? 0),
+        cosponsors: slim(d.cosponsors, ["name", "party", "state", "district", "joined", "original", "withdrawn", "people_id"], cap),
+      }
+    },
+  },
+
+  bill_status: {
+    description:
+      "Where a bill stands and every step that got it there, compactly — newest first, so the first line is the answer to 'where is it'. Under Congress each action carries the committee that took it. Use this rather than get_bill when the question is the history and not the bill.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1', 'A07380'." },
+      jurisdiction: JURISDICTION,
+      limit: { type: "integer", description: "How many actions, newest first. Default 25." },
+    },
+    request: (input) => query("bill-status", { ...input, limit: input.limit ?? "25" }, ["id", "number", "limit"]),
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      return {
+        bill_number: d.bill_number,
+        citation: d.citation,
+        title: d.title,
+        status: d.status,
+        committee: d.committee,
+        last_action: d.last_action,
+        last_action_date: d.last_action_date,
+        source: d.source,
+        count: d.count,
+        progress: trim(d.progress as unknown[], 12),
+        actions: slim(d.actions, ["date", "action", "type", "committee"], 25, { action: 200 }),
+      }
+    },
+  },
+
+  bill_amendments: {
+    description:
+      "The amendments offered to a bill: who offered each, what it would do, and where it got to. Congress only — this record holds no state amendment table, and the tool says so rather than answering a state with an empty list.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1'." },
+      jurisdiction: JURISDICTION,
+      limit: { type: "integer", description: "1–100, default 20." },
+    },
+    request: (input) => query("bill-amendments", { ...input, limit: input.limit ?? "20" }, ["id", "number", "limit"]),
+    shape: (data) => {
+      const d = data as { count?: number; amendments?: unknown[] } | null
+      if (!d) return null
+      return { count: d.count, amendments: slim(d.amendments, ["amendment", "chamber", "sponsor", "purpose", "latest_action", "latest_action_date", "cosponsors"], 20, { purpose: 200, latest_action: 120 }) }
     },
   },
 

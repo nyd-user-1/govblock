@@ -12,6 +12,9 @@ import {
   getAmendments,
   getBill,
   getBillByNumber,
+  getBillAmendments,
+  getBillSponsorship,
+  getBillStatus,
   getBillVotes,
   getBills,
   getCalendar,
@@ -78,6 +81,7 @@ import {
   latestHearingDate,
   NY_ONLY,
   resolve,
+  type Resolved,
   searchAll,
   US_ONLY,
 } from "@/lib/policy/db-queries"
@@ -104,6 +108,28 @@ function today(offsetDays = 0) {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() + offsetDays)
   return d.toISOString().slice(0, 10)
+}
+
+/**
+ * The bill a request is about, by id or by the number someone typed.
+ *
+ * The cases below are read by tools rather than by pages, and a tool is given
+ * whatever the reader wrote — "H.R. 155" as often as an id. Pages keep passing
+ * ids and never reach the second half of this.
+ */
+async function billFrom(f: Resolved, sp: URLSearchParams) {
+  const id = int(sp.get("bill") ?? sp.get("id") ?? f.bill ?? null, 0)
+  if (id) return id
+  const number = sp.get("number")
+  if (!number) throw new Error("bill id or number required")
+  if (f.state === "US") {
+    const found = await getUsBill(f.session, number)
+    if (found?.bill_id) return found.bill_id
+    throw new Error(found ? `congress.gov holds ${number} but the record's fuller mirror does not yet, so there is nothing further to read on it.` : `No bill numbered "${number}" in ${stateName(f.state)} ${f.session}.`)
+  }
+  const bare = await getBillByNumber(f.state, f.session, number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase())
+  if (!bare) throw new Error(`No bill numbered "${number}" in ${stateName(f.state)} ${f.session}.`)
+  return Number(bare.bill_id)
 }
 
 async function dispatch(resource: string, sp: URLSearchParams) {
@@ -379,6 +405,24 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       if (!id) throw new Error("bill id required")
       return getBillVotes(id)
     }
+    // The three the agents ask of one bill. Each takes `bill=` as an id or
+    // `number=` as a citation, and answers from whichever family holds the
+    // fuller record for that jurisdiction.
+    case "bill-sponsorship": {
+      const f = await resolve(filters)
+      return getBillSponsorship(await billFrom(f, sp), f.state)
+    }
+    case "bill-status": {
+      const f = await resolve(filters)
+      const answer = await getBillStatus(await billFrom(f, sp), int(sp.get("limit"), 40))
+      if (!answer) throw new Error("no such bill")
+      return answer
+    }
+    case "bill-amendments": {
+      const f = await resolve(filters)
+      if (f.state !== "US") throw new Error(`Amendments are a Congress dataset. This record holds none for ${stateName(f.state)}.`)
+      return getBillAmendments(await billFrom(f, sp), int(sp.get("limit"), 25))
+    }
     case "hearings": {
       const f = await resolve(filters)
       return getHearings(f.state, f.session, sp.get("from") ?? today(-30), sp.get("to") ?? today(60), sp.get("committee") ?? f.committee, int(sp.get("limit"), 3000))
@@ -528,8 +572,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       if (!id) throw new Error("bill id required")
       return getCboEstimates(id)
     }
-    case "house-votes":
-      return getHouseVotes(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
+    case "house-votes": {
+      // `bill=` may be a number as well as an id, so a tool can ask for
+      // "H.R. 1's votes" without a round trip through get_bill first.
+      const f = await resolve(filters)
+      const bill = sp.get("bill") || sp.get("id") || sp.get("number") ? await billFrom(f, sp).catch(() => 0) : 0
+      return getHouseVotes(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, bill || undefined, sp.get("from"), sp.get("to"))
+    }
     case "member-votes":
       return getMemberVotes({ vote: sp.get("vote") ?? undefined, member: int(sp.get("member"), 0) || undefined, limit: int(sp.get("limit"), 500), offset: int(sp.get("offset"), 0) || 0 })
     case "crs-reports":

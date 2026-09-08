@@ -1831,6 +1831,7 @@ export const US_ONLY = [
   // The congress.gov families the agents' tools read.
   "hearings-held",
   "transcript",
+  "bill-amendments",
 ] as const
 
 /** The payload as the API returned it, newest first, for a whole family. */
@@ -1990,6 +1991,144 @@ export async function getTextVersions(billId: number) {
   )
 }
 
+/* ---- what the agents ask of one bill -------------------------------------
+ * Sponsorship, status and amendments, each answered for whichever family
+ * holds them: congress.gov under US, LegiScan everywhere else. The pages ask
+ * these questions one family at a time because a page knows which one it is
+ * on; a tool is handed a jurisdiction and has to branch.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Who put a bill forward and who signed on.
+ *
+ * Under Congress the cosponsors come from BILLSTATUS with the date each one
+ * joined and whether they were there at introduction — 174,000 rows, so always
+ * by bill. Elsewhere `"Sponsors"` carries both in one table, separated by
+ * sponsor_type_id: 1 is the primary, everything else cosponsored.
+ */
+export async function getBillSponsorship(billId: number, state: string) {
+  const [rows, congress] = await Promise.all([
+    q<{ people_id: number; name: string; party: string | null; role: string | null; district: string | null; chamber: string | null; type: number; position: number }>(
+      `select p.people_id, p.name, p.party, p.role, p.district, p.chamber, s.sponsor_type_id as type, s.position
+         from "Sponsors" s join "People" p using (people_id) where s.bill_id = $1 order by s.sponsor_type_id, s.position`,
+      [billId]
+    ),
+    state === "US"
+      ? q<{ name: string | null; party: string | null; state: string | null; district: string | null; joined: string | null; original: string | null; withdrawn: string | null; people_id: number | null }>(
+          // No district column on this table; BILLSTATUS keeps it in the payload.
+          `select c.full_name as name, c.party, c.state, c.payload->>'district' as district,
+                  c.sponsorship_date as joined, c.is_original_cosponsor as original,
+                  c.sponsorship_withdrawn_date as withdrawn, c.people_id
+             from congress_cosponsors c where c.bill_id = $1
+            order by c.sponsorship_date nulls last, c.full_name`,
+          [billId]
+        ).catch(() => [])
+      : Promise.resolve([]),
+  ])
+  const primary = rows.filter((r) => n(r.type) === 1).map((r) => ({ ...r, people_id: n(r.people_id) }))
+  const legiscanCo = rows.filter((r) => n(r.type) !== 1).map((r) => ({ ...r, people_id: n(r.people_id), joined: null as string | null }))
+  // congress.gov's list is the better one where it exists — it carries the date
+  // each cosponsor signed on, which LegiScan's does not record at all.
+  const cosponsors: Record<string, unknown>[] = congress.length
+    ? congress.map((c) => ({ ...c, people_id: c.people_id == null ? null : n(c.people_id), original: c.original === "true" || c.original === "True" }))
+    : legiscanCo
+  return {
+    bill_id: billId,
+    source: congress.length ? "congress.gov" : "legiscan",
+    sponsors: primary,
+    cosponsor_count: cosponsors.length,
+    cosponsors,
+  }
+}
+
+/**
+ * Where a bill has got to and how it got there.
+ *
+ * congress.gov's actions are the fuller record for Congress — they carry the
+ * committee and the roll call on each step — and `"History Table"` is what
+ * every other jurisdiction has. Newest first either way: the question is
+ * almost always "where is it now".
+ */
+export async function getBillStatus(billId: number, limit = 40) {
+  const bill = await one<{ bill_id: number; bill_number: string; title: string; state: string; session_id: number; status_desc: string | null; last_action: string | null; last_action_date: string | null; committee: string | null }>(
+    `select bill_id, bill_number, title, state, session_id, status_desc, last_action, last_action_date, committee from "Bills" where bill_id = $1`,
+    [billId]
+  )
+  if (!bill) return null
+  const cap = Math.min(Math.max(1, limit), 250)
+  const [history, progress, congress, current] = await Promise.all([
+    q<{ date: string; chamber: string; action: string }>(`select date, chamber, action from "History Table" where bill_id = $1 order by date desc, sequence desc limit $2`, [billId, cap]),
+    q<{ date: string; event: string }>(`select date, event from "Progress" where bill_id = $1 order by seq`, [billId]),
+    bill.state === "US"
+      ? q<{ action_date: string | null; text: string | null; action_type: string | null; committee_names: string | null }>(
+          `select action_date, text, action_type, committee_names from congress_bill_actions where bill_id = $1
+            order by action_date desc nulls last, sequence desc limit $2`,
+          [billId, cap]
+        ).catch(() => [])
+      : Promise.resolve([]),
+    bill.state === "US"
+      ? one<{ latest_action: string | null; latest_action_date: string | null; bill_type: string; number: string }>(`select latest_action, latest_action_date, bill_type, number from congress_bills where bill_id = $1`, [billId])
+      : Promise.resolve(null),
+  ])
+  const actions = congress.length
+    ? congress.map((a) => ({ date: a.action_date, action: a.text, type: a.action_type, committee: a.committee_names }))
+    : history.map((h) => ({ date: h.date, action: h.action, type: h.chamber, committee: null }))
+  return {
+    bill_id: n(bill.bill_id),
+    bill_number: bill.bill_number,
+    citation: bill.state === "US" && current ? citationOf(current.bill_type, current.number) : null,
+    title: bill.title,
+    state: bill.state,
+    status: bill.status_desc,
+    committee: bill.committee,
+    last_action: current?.latest_action ?? bill.last_action,
+    last_action_date: current?.latest_action_date ?? bill.last_action_date,
+    source: congress.length ? "congress.gov" : "legiscan",
+    count: actions.length,
+    progress,
+    actions,
+  }
+}
+
+/**
+ * The amendments offered to a bill, with who offered them and where each got
+ * to. Congress only — the record holds no state amendment table, and saying so
+ * is better than an empty list that reads as "none were offered".
+ */
+export async function getBillAmendments(billId: number, limit = 25) {
+  const rows = await q<{
+    key: string
+    amendment_type: string | null
+    number: string | null
+    purpose: string | null
+    description: string | null
+    sponsor_name: string | null
+    latest_action: string | null
+    latest_action_date: string | null
+    cosponsors_count: string | null
+    chamber: string | null
+  }>(
+    `select key, amendment_type, number, purpose, description, sponsor_name, latest_action, latest_action_date, cosponsors_count, chamber
+       from congress_amendments where amended_bill_id = $1
+      order by latest_action_date desc nulls last, number desc limit $2`,
+    [billId, Math.min(Math.max(1, limit), 100)]
+  )
+  const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments where amended_bill_id = $1`, [billId])
+  return {
+    bill_id: billId,
+    count: n(total?.n),
+    amendments: rows.map((r) => ({
+      amendment: `${r.amendment_type ?? ""} ${r.number ?? ""}`.trim(),
+      chamber: r.chamber,
+      sponsor: r.sponsor_name,
+      purpose: r.purpose ?? r.description,
+      latest_action: r.latest_action,
+      latest_action_date: r.latest_action_date,
+      cosponsors: r.cosponsors_count == null ? null : n(r.cosponsors_count),
+    })),
+  }
+}
+
 /* ---- BILLSTATUS families (summaries, titles, related bills) --------------- */
 
 /** Every CRS summary the bill has carried, oldest first — the sequence is the point. */
@@ -2075,7 +2214,7 @@ const withTally = (row: { payload: unknown } & TallyRow) => ({
 })
 
 /** House roll calls. With `bill=`, only the ones on that bill's legislation. */
-export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
+export async function getHouseVotes(limit = 50, offset = 0, billId?: number, from?: string | null, to?: string | null) {
   if (billId) {
     const bill = await one<{ bill_number: string }>(`select bill_number from "Bills" where bill_id = $1 and state = 'US'`, [billId])
     if (!bill) return { bill: billId, count: 0, houseRollCallVotes: [] }
@@ -2090,12 +2229,17 @@ export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
     )
     return { bill: billId, count: rows.length, houseRollCallVotes: rows.map(withTally) }
   }
+  const params: unknown[] = []
+  const where: string[] = []
+  if (from) where.push(`left(start_date, 10) >= $${params.push(from)}`)
+  if (to) where.push(`left(start_date, 10) <= $${params.push(to)}`)
+  const clause = where.length ? `where ${where.join(" and ")}` : ""
   const rows = await q<{ payload: unknown } & TallyRow>(
-    `select payload, ${TALLY_COLUMNS} from congress_house_votes
-      order by update_date desc nulls last, key limit $1 offset $2`,
-    [limit, offset]
+    `select payload, ${TALLY_COLUMNS} from congress_house_votes ${clause}
+      order by start_date desc nulls last, key limit $${params.push(limit)} offset $${params.push(offset)}`,
+    params
   )
-  return { count: await congressCount("congress_house_votes"), houseRollCallVotes: rows.map(withTally) }
+  return { count: await congressCount("congress_house_votes", clause, params.slice(0, params.length - 2)), houseRollCallVotes: rows.map(withTally) }
 }
 
 /**
@@ -2106,12 +2250,17 @@ export async function getHouseVotes(limit = 50, offset = 0, billId?: number) {
  */
 export async function getMemberVotes({ vote, member, limit = 500, offset = 0 }: { vote?: string; member?: number; limit?: number; offset?: number }) {
   if (vote) {
-    const rows = await q(
-      `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
-         from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`,
-      [vote]
-    )
-    return { vote, count: rows.length, memberVotes: rows }
+    // The tally and the question ride with the positions: a list of 434 names
+    // with no result on it is not a roll call, it is a list of names.
+    const [rows, header] = await Promise.all([
+      q(
+        `select bioguide_id, people_id, vote_cast, vote_party, vote_state, first_name, last_name
+           from congress_house_vote_positions where vote_identifier = $1 order by last_name, first_name`,
+        [vote]
+      ),
+      one<{ payload: unknown } & TallyRow>(`select payload, ${TALLY_COLUMNS} from congress_house_votes where key = $1 or identifier = $1`, [vote]),
+    ])
+    return { vote, count: rows.length, rollCall: header ? withTally(header) : null, memberVotes: rows }
   }
   if (member) {
     // The roll call names its bill the congress.gov way (HR 1501); our Bills
