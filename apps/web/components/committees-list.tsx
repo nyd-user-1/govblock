@@ -9,6 +9,7 @@ import { committeeSlug } from "@/lib/policy/committee-slug"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
+import { matchesQuery } from "@/lib/search-match"
 import { SearchDirectory } from "@/components/directory-search"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { ProjectCard, ProjectGrid } from "@/components/project-card"
@@ -30,8 +31,8 @@ export function CommitteesList() {
 
   const committees = React.useMemo(() => {
     const rows = data ?? []
-    const q = query.trim().toLowerCase()
-    return q ? rows.filter((c) => c.committee_name.toLowerCase().includes(q)) : rows
+    const q = query.trim()
+    return q ? rows.filter((c) => matchesQuery(q, c.committee_name, c.chamber)) : rows
   }, [data, query])
 
   const groups = React.useMemo(() => {

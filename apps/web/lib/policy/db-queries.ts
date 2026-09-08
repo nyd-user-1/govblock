@@ -2530,7 +2530,12 @@ export type SearchOptions = { text?: boolean; all?: boolean; perState?: number }
 
 export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
   const like = `%${term}%`
-  const numberLike = `${term.replace(/\s+/g, "")}%`
+  // The number a reader types is not the number on file. "HR119" is stored bare,
+  // and it is typed "hr 119", "H.R. 119" and "hr119" — so every character that is
+  // not a letter or a digit comes out of the term before it meets the column,
+  // not just the spaces. Squeezing spaces alone left "H.R. 119" searching for
+  // `H.R.119%` and finding nothing (Brendan, 2026-09-08).
+  const numberLike = `${term.replace(/[^\p{L}\p{N}]+/gu, "")}%`
   // Two rows a jurisdiction: enough that a reader sees the answer is national,
   // few enough that 51 other jurisdictions cannot bury the one they are in.
   const perState = options.all ? (options.perState ?? 2) : 0

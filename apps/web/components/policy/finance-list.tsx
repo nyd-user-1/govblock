@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import useSWR from "@/lib/policy/swr"
+import { matchesQuery } from "@/lib/search-match"
 import { stateName } from "@/lib/filters"
 import { fmtCompact, fmtNumber } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -42,8 +43,7 @@ const PARTY = (party: string | null) => {
   return p.startsWith("DEM") ? "Democratic" : p.startsWith("REP") ? "Republican" : p ? "Other" : null
 }
 const STANDING: Record<string, string> = { I: "Incumbent", C: "Challenger", O: "Open seat" }
-const has = (query: string, ...values: (string | null | undefined)[]) =>
-  !query || values.some((value) => (value ?? "").toLowerCase().includes(query))
+const has = (query: string, ...values: (string | null | undefined)[]) => matchesQuery(query, ...values)
 
 // `NY-25` for a House seat, the state for a Senate seat, and the office for
 // the one that belongs to no state.
@@ -61,7 +61,7 @@ export function FinanceList() {
     resolved ? `/api/fec/candidates?state=${state}&cycle=${CYCLE}&limit=${HELD}&sort=receipts&dir=desc` : null
   )
   const rows = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     return (data?.rows ?? []).filter((row) => has(q, row.name, row.office, row.state, stateName(row.state), PARTY(row.party), STANDING[row.ici ?? ""]))
   }, [data, query])
 

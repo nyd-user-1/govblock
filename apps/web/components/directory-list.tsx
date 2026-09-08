@@ -5,7 +5,8 @@ import * as React from "react"
 import members from "@/lib/data/members-us.json"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { memberHref, partyName, stateName } from "@/lib/filters"
-import { honorific } from "@/lib/format"
+import { honorific, shortDistrict } from "@/lib/format"
+import { matchesQuery } from "@/lib/search-match"
 import { portraitFor } from "@/lib/imagery"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
@@ -21,8 +22,13 @@ import { RecordItem, RecordList } from "@/components/policy/record-item"
 
 type Member = (typeof members)[number]
 
+// The whole roster is already on the client, so this page has no reason to ask
+// the search route — it would see fewer members, not more. What it borrows is
+// the route's idea of a match (lib/search-match.ts): word by word, and with the
+// punctuation squeezed out of both sides, so "ny 12", "NY-12" and "ny12" all
+// reach the same member and a middle name nobody typed stops mattering.
 const matches = (m: Member, q: string) =>
-  m.name.toLowerCase().includes(q) || (m.district ?? "").toLowerCase().includes(q) || partyName(m.party).toLowerCase().includes(q) || (m.chamber ?? "").toLowerCase().includes(q)
+  matchesQuery(q, m.name, m.district, shortDistrict(m.district), partyName(m.party), m.chamber)
 
 export function DirectoryList() {
   const { data, state, resolved } = useScoped<Member[]>("members", members)
@@ -35,7 +41,7 @@ export function DirectoryList() {
   const sitting = React.useMemo(() => (data ?? []).filter((m) => m.active), [data])
 
   const rows = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     return q ? sitting.filter((m) => matches(m, q)) : sitting
   }, [sitting, query])
   React.useEffect(() => setPage(1), [state])

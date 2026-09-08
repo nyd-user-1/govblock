@@ -7,6 +7,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useCongress } from "@/lib/policy/use-congress"
 import { congressGovHref } from "@/lib/policy/congress"
 import { agencySeal, CRS_SEAL } from "@/lib/seals"
+import { matchesQuery } from "@/lib/search-match"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 // `RecordList` is aliased: this file already exports a `RecordList` — the
@@ -58,13 +59,10 @@ function Shell({ placeholder, rows, count, filter, children, federal }: { placeh
   )
 }
 
-const has = (query: string, ...values: (string | number | null | undefined)[]) =>
-  !query ||
-  values.some((value) =>
-    String(value ?? "")
-      .toLowerCase()
-      .includes(query)
-  )
+// The four federal families match the way the rest of the site does: "hr 119",
+// "H.R. 119" and "hr119" are one query, so a law filed as HR119 is found under
+// all three rather than under whichever one happens to carry no space.
+const has = (query: string, ...values: (string | number | null | undefined)[]) => matchesQuery(query, ...values)
 
 // The families arrive in the order their table was last touched, which is not
 // an order anyone reads in. Each page sorts on the date it prints.

@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { type Department, departmentsOf } from "@/lib/data/departments"
+import { matchesQuery } from "@/lib/search-match"
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { agencySeal } from "@/lib/seals"
@@ -22,8 +23,8 @@ export function DepartmentsList() {
   const [query, setQuery] = React.useState("")
   const departments = React.useMemo(() => {
     const rows = departmentsOf(state)
-    const term = query.trim().toLowerCase()
-    return term ? rows.filter((d) => d.name.toLowerCase().includes(term)) : rows
+    const term = query.trim()
+    return term ? rows.filter((d) => matchesQuery(term, d.name, d.kind)) : rows
   }, [state, query])
   const groups = React.useMemo(() => {
     const order: Department["kind"][] = ["Department", "Agency", "Authority"]

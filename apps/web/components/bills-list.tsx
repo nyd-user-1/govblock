@@ -4,8 +4,10 @@ import * as React from "react"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
+import { usePolicy } from "@/lib/policy/use-policy"
 import { stateName } from "@/lib/filters"
 import { fmtBill, fmtDate, truncate } from "@/lib/format"
+import { matchesQuery } from "@/lib/search-match"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
@@ -22,34 +24,51 @@ import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-i
 // already links to carries the text timeline.
 //
 // Fifty to a page, paged on the server: the route answers `limit` and `offset`
-// and the total, so a jurisdiction's whole session is reachable. Search filters
-// the page in hand.
+// and the total, so a jurisdiction's whole session is reachable.
+//
+// Typing does not filter that page — it searches the session. The field used to
+// run `includes(query)` over the fifty rows in hand, which meant "hr 119"
+// answered "No bills for Congress matching 'hr 119'" while ⌘K on the same word
+// found the bills at once: the space was in the query and not in the number,
+// and page two onwards was never looked at (Brendan, 2026-09-08). It now asks
+// /api/policy/search, the route the whole site searches through, scoped to the
+// jurisdiction. The old filter stays as what is on screen while that answer is
+// in flight, matching the same way the route does.
 
 
 type Bill = (typeof F.recentBills)[number] & { sponsor?: string | null; last_action?: string | null }
 
 export function BillsList() {
   const [page, setPage] = React.useState(1)
-  const { data, state } = useScoped<{ rows: Bill[]; total: number }>(
+  const { data, state, session, resolved } = useScoped<{ rows: Bill[]; total: number }>(
     "bills",
     { rows: F.recentBills, total: F.recentBills.length },
     { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }
   )
   const [query, setQuery] = React.useState("")
+  const [typed, setTyped] = React.useState("")
   React.useEffect(() => setPage(1), [state])
 
-  const bills = React.useMemo(() => {
-    const rows = data?.rows ?? []
-    if (!query.trim()) return rows
-    const q = query.toLowerCase()
-    return rows.filter(
-      (bill) =>
-        bill.bill_number.toLowerCase().includes(q) ||
-        bill.title.toLowerCase().includes(q) ||
-        (bill.committee ?? "").toLowerCase().includes(q) ||
-        (bill.sponsor ?? "").toLowerCase().includes(q)
-    )
-  }, [data, query])
+  React.useEffect(() => {
+    const handle = setTimeout(() => setTyped(query.trim()), 250)
+    return () => clearTimeout(handle)
+  }, [query])
+
+  const searching = query.trim().length >= 2
+  const { data: found } = usePolicy<{ bills: Bill[] }>(
+    resolved && typed.length >= 2 ? "search" : null,
+    { state, session: session ? String(session) : undefined },
+    { q: typed, limit: 20 }
+  )
+
+  const rows = React.useMemo(() => data?.rows ?? [], [data])
+  const here = React.useMemo(
+    () => (searching ? rows.filter((bill) => matchesQuery(query, bill.bill_number, bill.title, bill.committee, bill.sponsor)) : rows),
+    [rows, query, searching]
+  )
+  // The session's answer once it lands; the page in hand until then, so a
+  // keystroke never blanks the list.
+  const bills = searching ? (typed === query.trim() && found ? found.bills : here) : rows
   const pages = pageCount(data?.total ?? 0)
   const current = Math.min(page, pages)
 
@@ -65,7 +84,7 @@ export function BillsList() {
           <RecordItem
             key={bill.bill_id}
             href={`/docs/bills/${bill.bill_id}`}
-            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={(current - 1) * PAGE_SIZE + index + 1} />}
+            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={searching ? index + 1 : (current - 1) * PAGE_SIZE + index + 1} />}
             title={fmtBill(bill.bill_number, state)}
             lead={bill.last_action}
             meta={[
@@ -84,7 +103,7 @@ export function BillsList() {
           </p>
         )}
       </RecordList>
-      <ListPager page={current} pages={pages} onPage={setPage} />
+      {!searching && <ListPager page={current} pages={pages} onPage={setPage} />}
     </>
   )
 }
