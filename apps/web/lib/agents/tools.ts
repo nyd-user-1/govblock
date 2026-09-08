@@ -39,6 +39,7 @@ export type ToolName =
   | "cosponsors"
   | "bill_status"
   | "bill_amendments"
+  | "bill_diff"
   | "web_search"
   | "read_page"
   | "post_to_slack"
@@ -702,6 +703,40 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       const d = data as { count?: number; amendments?: unknown[] } | null
       if (!d) return null
       return { count: d.count, amendments: slim(d.amendments, ["amendment", "chamber", "sponsor", "purpose", "latest_action", "latest_action_date", "cosponsors"], 20, { purpose: 200, latest_action: 120 }) }
+    },
+  },
+
+  bill_diff: {
+    description:
+      "What changed between two versions of a bill — Introduced against Engrossed, the Senate's substitute against what it replaced. It answers with the shape of the change, not a raw diff: how many lines moved, which sections they moved in, and a line or two from the first places it happened. That is deliberate — a real diff of a bill runs to hundreds of kilobytes. Defaults to the two most recent versions; get_bill's `texts` lists them, and `versions` comes back with the answer so you can ask for a different pair. To read any passage in full, use get_bill_text.",
+    properties: {
+      bill_id: { type: "integer", description: "The numeric bill id." },
+      bill_number: { type: "string", description: "Or the bill's number: 'H.R. 1', 'A07380'." },
+      jurisdiction: JURISDICTION,
+      from_version: { type: "string", description: "The earlier version, by name ('Introduced') or document_id. Defaults to the one before the latest." },
+      to_version: { type: "string", description: "The later version, by name ('Engrossed') or document_id. Defaults to the latest." },
+      limit: { type: "integer", description: "How many changed places to show, 1–40. Default 10." },
+    },
+    request: (input) => query("bill-diff", { ...input, from: input.from_version, to: input.to_version, limit: input.limit ?? "10" }, ["id", "number", "from", "to", "limit"]),
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      if (d.note && !d.lines) return { versions: d.versions, note: d.note }
+      const version = (v: unknown) => {
+        const x = (v ?? {}) as Record<string, unknown>
+        return { version: x.version, date: x.date, chars: x.chars, truncated: x.truncated || undefined }
+      }
+      return {
+        bill_number: d.bill_number,
+        from: version(d.from),
+        to: version(d.to),
+        lines: d.lines,
+        places: d.places,
+        sections: trim(d.sections as unknown[], 12),
+        changes: trim(d.changes as unknown[], 10),
+        versions: slim(d.versions, ["version", "chars"], 10),
+        note: d.note,
+      }
     },
   },
 

@@ -99,6 +99,7 @@ export const AGENTS: AgentDefinition[] = [
       "cosponsors",
       "bill_status",
       "bill_amendments",
+      "bill_diff",
       "web_search",
       "read_page",
     ],

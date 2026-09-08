@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
+import { getBillDiff } from "@/lib/policy/bill-diff"
 import { getBillTexts } from "@/lib/policy/texts"
 import { findCongressCommittee, getCommitteeBillsByStatus, getCommitteeCommunicationRows, getCommitteeNominationRows, getCommitteeRail, getCommitteeRoster as getCongressCommitteeRoster, getCongressHearingList, getHearingIndex, getHearingTranscript, getMemberRail, getMemberVoteRecord, getNominationList, getRecordArticles } from "@/lib/policy/committee-queries"
 import { resolveCommittee } from "@/lib/policy/committee-resolve"
@@ -417,6 +418,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const answer = await getBillStatus(await billFrom(f, sp), int(sp.get("limit"), 40))
       if (!answer) throw new Error("no such bill")
       return answer
+    }
+    // What changed between two versions of a bill. The shape of the change
+    // rather than a unified diff: a real one is hundreds of kilobytes against
+    // a round budget of eight.
+    case "bill-diff": {
+      const f = await resolve(filters)
+      return getBillDiff(await billFrom(f, sp), { from: sp.get("from"), to: sp.get("to"), limit: int(sp.get("limit"), 12) })
     }
     case "bill-amendments": {
       const f = await resolve(filters)
