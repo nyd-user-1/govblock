@@ -1344,6 +1344,95 @@ export async function getRecentHearings(state: string, session: number, from: st
   }
 }
 
+/**
+ * What is on a jurisdiction's calendar in a window.
+ *
+ * Two sources, because Congress keeps two. `"Calendar"` is LegiScan's, for all
+ * 52 and with the bill on each row — which is what makes "when is this bill
+ * heard" answerable at all. Under Congress the committee meetings congress.gov
+ * publishes ride beside it: they carry the witnesses and the room, they list
+ * the meetings that are not about a single bill, and they are days fresher.
+ * Merged, sorted by date, and the rows say which source each came from so a
+ * reader is never told a meeting has a bill it does not.
+ */
+export async function getCalendar(
+  f: Resolved,
+  { from, to, committee, bill, limit = 40 }: { from: string; to: string; committee?: string | null; bill?: number | null; limit?: number }
+) {
+  const cap = Math.min(Math.max(1, limit), 200)
+  const params: unknown[] = [from, to, f.state, f.session]
+  const where = [`c.date >= $1 and c.date <= $2 and b.state = $3 and b.session_id = $4`]
+  if (committee) where.push(`c.description ilike $${params.push(`%${committee}%`)}`)
+  if (bill) where.push(`c.bill_id = $${params.push(bill)}`)
+  const sittings = await q<{ date: string; time: string | null; type: string; description: string; location: string | null; bill_id: number; bill_number: string; title: string }>(
+    `select c.date, c.time, c.type, c.description, c.location, b.bill_id, b.bill_number, b.title
+       from "Calendar" c join "Bills" b using (bill_id)
+      where ${where.join(" and ")}
+      order by c.date, c.time, c.description limit $${params.push(cap)}`,
+    params
+  )
+  type CalendarRow = {
+    date: string
+    time: string | null
+    type: string
+    what: string
+    chamber: string | null
+    committee: string | null
+    location: string | null
+    bill_id: number | null
+    bill_number: string | null
+    title: string
+    source: string
+  }
+  const rows: CalendarRow[] = sittings.map((r) => ({
+    date: r.date,
+    time: r.time && r.time !== "00:00" ? r.time : null,
+    type: r.type,
+    what: r.description,
+    ...parseHearing(r.description),
+    location: r.location || null,
+    bill_id: n(r.bill_id),
+    bill_number: r.bill_number,
+    title: r.title,
+    source: "legiscan",
+  }))
+
+  if (f.state === "US") {
+    const p: unknown[] = [from, to]
+    const filter = committee ? `and (m.payload->'committees'->0->>'name' ilike $${p.push(`%${committee}%`)} or m.payload->'committees'->0->>'systemCode' = $${p.push(String(committee).toLowerCase())})` : ""
+    const meetings = await q<{ event_id: string; date: string | null; title: string | null; type: string | null; committee: string | null; chamber: string | null; room: string | null }>(
+      `select m.event_id, to_char((m.meeting_date::timestamptz) at time zone 'America/New_York', 'YYYY-MM-DD HH24:MI') as date,
+              m.title, m.payload->>'type' as type, m.payload->'committees'->0->>'name' as committee, m.chamber,
+              m.payload->'location'->>'room' as room
+         from congress_committee_meetings m
+        where m.meeting_date is not null and left(m.meeting_date, 10) >= $1 and left(m.meeting_date, 10) <= $2 ${filter}
+        order by m.meeting_date limit $${p.push(cap)}`,
+      p
+    ).catch(() => [])
+    for (const m of meetings) {
+      const [date, time] = String(m.date ?? "").split(" ")
+      rows.push({
+        date,
+        time: time && time !== "00:00" ? time : null,
+        type: m.type ?? "Meeting",
+        what: m.title ?? m.type ?? "Meeting",
+        chamber: m.chamber,
+        committee: m.committee,
+        location: m.room || null,
+        // A congress.gov meeting is not filed against one bill; saying so beats
+        // implying it has none.
+        bill_id: null,
+        bill_number: null,
+        title: m.title ?? "",
+        source: `congress.gov/${m.event_id}`,
+      })
+    }
+  }
+
+  rows.sort((a, b) => `${a.date} ${a.time ?? ""}`.localeCompare(`${b.date} ${b.time ?? ""}`))
+  return { state: f.state, session: f.session, from, to, count: rows.length, rows: rows.slice(0, cap) }
+}
+
 export async function latestHearingDate(state: string, session: number) {
   const row = await one<{ date: string }>(
     `select max(c.date) as date from "Calendar" c join "Bills" b using (bill_id)
@@ -1700,7 +1789,12 @@ export const US_ONLY = [
   "member-detail",
   "committee-detail",
   "committee-meetings",
-  "hearings",
+  // `hearings` was in this list and should never have been: the case reads
+  // "Calendar" joined to that jurisdiction's own bills, so the gate was
+  // telling all 51 other jurisdictions that their own sittings were
+  // Congress's. The calendar page asks for them by scope and got a 503 for
+  // every state (found 2026-09-07). The congress.gov hearing volumes are
+  // `hearings-held`, which is US-only below.
   "nominations",
   "crs-reports",
   "record-issues",
@@ -1734,6 +1828,9 @@ export const US_ONLY = [
   "committee-communications",
   "hearing-index",
   "department-nominations",
+  // The congress.gov families the agents' tools read.
+  "hearings-held",
+  "transcript",
 ] as const
 
 /** The payload as the API returned it, newest first, for a whole family. */

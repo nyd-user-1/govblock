@@ -27,6 +27,12 @@ export type ToolName =
   | "top_sponsors"
   | "get_lobbying"
   | "get_fec"
+  | "calendar"
+  | "committee_agenda"
+  | "hearings"
+  | "transcripts"
+  | "nominations"
+  | "roster"
   | "web_search"
   | "read_page"
   | "post_to_slack"
@@ -64,6 +70,34 @@ function tail<T>(rows: T[] | undefined, n: number) {
   return Array.isArray(rows) ? rows.slice(Math.max(0, rows.length - n)) : []
 }
 
+/** YYYY-MM-DD, `offset` days from today — for the tools that take a window. */
+function day(offset = 0) {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + offset)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * The columns a model needs of a row, and not the ones it does not.
+ *
+ * Trimming by row alone was not enough: a committee's calendar came back at
+ * 15 kB of thirty rows against a round budget of eight, because every row
+ * carried a photograph's URL or a bill's whole title. Picking columns is what
+ * makes a list of forty affordable.
+ */
+function slim<K extends string>(rows: unknown, keys: K[], n: number, clip: Partial<Record<K, number>> = {}) {
+  return trim(rows as Record<string, unknown>[], n).map((row) => {
+    const out: Record<string, unknown> = {}
+    for (const key of keys) {
+      const value = row?.[key]
+      if (value === undefined || value === null || value === "") continue
+      const max = clip[key]
+      out[key] = max && typeof value === "string" ? value.slice(0, max) : value
+    }
+    return out
+  })
+}
+
 function size(rows: unknown) {
   return Array.isArray(rows) ? rows.length : 0
 }
@@ -83,6 +117,11 @@ function query(resource: string, input: Record<string, string>, keys: string[]) 
   }
   return `${resource}?${sp.toString()}`
 }
+
+/** A calendar row as an answer needs it: when, who, what, and which bill. */
+const CALENDAR_ROW = ["date", "time", "type", "committee", "chamber", "what", "title", "bill_number", "bill_id", "location", "source"]
+/** A member as an answer names them. Photographs are for pages, not for prose. */
+const MEMBER_ROW = ["people_id", "name", "party", "role", "chamber", "district", "title", "side", "rank", "votes", "last_vote", "bioguide_id"]
 
 export const DEFINITIONS: Record<ToolName, Definition> = {
   list_jurisdictions: {
@@ -227,7 +266,9 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
     description: "The sitting members of a jurisdiction, with party, chamber and district.",
     properties: { jurisdiction: JURISDICTION },
     request: (input) => query("members", input, []),
-    shape: (data) => trim(data as unknown[], 60),
+    // Sixty members with their photographs came to 19 kB against a round budget
+    // of eight; the columns below are the ones an answer is written from.
+    shape: (data) => slim(data, MEMBER_ROW, 60),
   },
 
   get_member: {
@@ -322,6 +363,135 @@ export const DEFINITIONS: Record<ToolName, Definition> = {
       const d = data as { totals?: unknown[]; contributions?: unknown[] } | null
       if (!d) return null
       return { totals: trim(d.totals, 8), contributions: trim(d.contributions, 12) }
+    },
+  },
+
+  calendar: {
+    description:
+      "What a legislature has scheduled: sittings, hearings and committee meetings in a date window, with the bill each is on where the record files one. Defaults to the next six weeks. For Congress it merges LegiScan's calendar with the committee meetings congress.gov publishes, which carry the room and the witnesses.",
+    properties: {
+      jurisdiction: JURISDICTION,
+      from: { type: "string", description: "Start date, YYYY-MM-DD. Defaults to today." },
+      to: { type: "string", description: "End date, YYYY-MM-DD. Defaults to six weeks out." },
+      committee: { type: "string", description: "Narrow to one committee by name, as list_committees gives it." },
+      limit: { type: "integer", description: "1–200, default 40." },
+    },
+    request: (input) => query("calendar", input, ["from", "to", "committee", "limit"]),
+    shape: (data) => {
+      const d = data as { rows?: unknown[]; count?: number; from?: string; to?: string } | null
+      if (!d) return null
+      return { from: d.from, to: d.to, count: d.count, rows: slim(d.rows, CALENDAR_ROW, 25, { what: 110, title: 90 }) }
+    },
+  },
+
+  committee_agenda: {
+    description:
+      "What one committee has scheduled — the same calendar as `calendar`, asked of a single committee. Use it when the question is about a committee rather than about a jurisdiction's week.",
+    properties: {
+      committee: { type: "string", description: "The committee's name: 'House Judiciary', 'Ways and Means', 'Assembly Health'." },
+      jurisdiction: JURISDICTION,
+      from: { type: "string", description: "Start date, YYYY-MM-DD. Defaults to today." },
+      to: { type: "string", description: "End date, YYYY-MM-DD. Defaults to six weeks out." },
+    },
+    required: ["committee"],
+    request: (input) => query("calendar", input, ["from", "to", "committee"]),
+    shape: (data) => {
+      const d = data as { rows?: unknown[]; count?: number } | null
+      return d ? { count: d.count, rows: slim(d.rows, CALENDAR_ROW, 20, { what: 110, title: 90 }) } : null
+    },
+  },
+
+  hearings: {
+    description:
+      "Hearings held. For Congress these are the volumes congress.gov has published — date, committee, title, and has_text, which says whether the transcript is on file here and so whether `transcripts` can quote it. For a state the record holds no transcripts at all, and this answers with the hearings its calendar carries.",
+    properties: {
+      jurisdiction: JURISDICTION,
+      committee: { type: "string", description: "Narrow to one committee by name." },
+      q: { type: "string", description: "A phrase in the hearing's title." },
+      from: { type: "string", description: "Start date, YYYY-MM-DD." },
+      to: { type: "string", description: "End date, YYYY-MM-DD." },
+      limit: { type: "integer", description: "1–100, default 20." },
+    },
+    // Two different things wear the word "hearing": a volume congress.gov
+    // printed, and a sitting a state put on its calendar. Congress has both and
+    // the published one is the better answer; a state has only the second.
+    request: (input) =>
+      (input.jurisdiction || "US").toUpperCase() === "US"
+        ? query("hearings-held", input, ["committee", "q", "from", "to", "limit"])
+        : query("calendar", { ...input, from: input.from ?? day(-365), to: input.to ?? day(45) }, ["committee", "from", "to", "limit"]),
+    shape: (data) => {
+      const d = data as { rows?: unknown[]; count?: number; committee?: string | null } | null
+      if (!d) return null
+      return {
+        committee: d.committee ?? null,
+        count: d.count,
+        rows: slim(d.rows, ["jacket", "date", "chamber", "committee_name", "title", "has_text", "citation", "what", "committee", "bill_number", "type"], 20, { title: 120, what: 110 }),
+      }
+    },
+  },
+
+  transcripts: {
+    description:
+      "The words said at a federal hearing. Give it a hearing's jacket number, from `hearings`, and a search term: the excerpt opens where the term appears, which is what you want of a transcript that runs to a hundred thousand characters. With a term and no hearing it searches the Congressional Record instead — and the Record's own text is not held here, so that answers with citations and congress.gov links, which read_page can then open. Congress only.",
+    properties: {
+      hearing: { type: "string", description: "The jacket number, as `hearings` gives it in `jacket`." },
+      q: { type: "string", description: "A phrase to find. The excerpt opens where it first appears." },
+      from_char: { type: "integer", description: "Where to start instead, in characters — to read on from a previous excerpt." },
+      jurisdiction: JURISDICTION,
+    },
+    request: (input) => query("transcript", { ...input, chars: "6000" }, ["hearing", "q", "from", "chars", "limit"]),
+    shape: (data) => {
+      const d = data as Record<string, unknown> | null
+      if (!d) return null
+      if (Array.isArray(d.articles)) return { note: d.note, count: d.count, articles: trim(d.articles as unknown[], 15) }
+      const chars = Number(d.chars) || 0
+      const from = Number(d.from) || 0
+      const shown = Number(d.excerpt_chars) || 0
+      return {
+        hearing: d.jacket_number,
+        title: d.title,
+        date: d.hearing_date,
+        chamber: d.chamber,
+        url: d.url,
+        chars,
+        from_char: from,
+        note: d.note ?? null,
+        more: from + shown < chars ? `Read on with from_char ${from + shown}.` : null,
+        text: d.text,
+      }
+    },
+  },
+
+  nominations: {
+    description:
+      "Presidential nominations and where each one has got to — the position, the department, the date it was received and the latest action. Congress only; there is no state equivalent in this record. Filter by the committee it was referred to, or by a phrase in the nominee's name or the post.",
+    properties: {
+      q: { type: "string", description: "A phrase in the nominee's name, the post or the department." },
+      committee: { type: "string", description: "The Senate committee it was referred to." },
+      congress: { type: "integer", description: "Which Congress. Default 119, which is all the record holds." },
+      limit: { type: "integer", description: "1–50, default 20." },
+      jurisdiction: JURISDICTION,
+    },
+    request: (input) => query("nominations", input, ["q", "committee", "congress", "limit"]),
+    shape: (data) => {
+      const d = data as { count?: number; nominations?: unknown[] } | null
+      return d ? { count: d.count, nominations: trim(d.nominations, 20) } : null
+    },
+  },
+
+  roster: {
+    description:
+      "Who sits on a committee. For Congress this is the published roster, in rank order, with the chair and the ranking member named as such. For a state nothing publishes one, so it is derived from who has actually cast votes in that committee this session — a real roster, but read it as 'who voted here', and the vote count beside each member is why they are on the list.",
+    properties: {
+      committee: { type: "string", description: "The committee's name: 'House Judiciary', 'Ways and Means', 'Health'." },
+      jurisdiction: JURISDICTION,
+    },
+    required: ["committee"],
+    request: (input) => query("roster", { ...input, name: input.committee }, ["name"]),
+    shape: (data) => {
+      if (Array.isArray(data)) return { source: "derived from committee votes", members: slim(data, MEMBER_ROW, 40) }
+      const d = data as { committee?: string; chamber?: string; source?: string; members?: unknown[] } | null
+      return d ? { committee: d.committee, chamber: d.chamber, source: d.source, members: slim(d.members, MEMBER_ROW, 60) } : null
     },
   },
 

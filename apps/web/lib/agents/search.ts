@@ -140,6 +140,22 @@ function exa(key: string): Provider {
       }))
       return { provider: "exa", query, count: results.length, results }
     },
+    // Exa reads a page through /contents rather than a second product, so the
+    // seam holds: the tool is the same, the key chooses the implementation.
+    async extract(url, chars) {
+      const response = await fetch("https://api.exa.ai/contents", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key },
+        body: JSON.stringify({ urls: [url], text: { maxCharacters: chars } }),
+        signal: AbortSignal.timeout(DEADLINE),
+      })
+      if (!response.ok) throw new Error(`Exa contents answered ${response.status}`)
+      const body = (await response.json()) as { results?: { url?: string; text?: string }[] }
+      const hit = body.results?.[0]
+      if (!hit?.text) throw new Error(`Could not read ${url}. The page returned nothing.`)
+      const text = hit.text.slice(0, chars)
+      return { provider: "exa", url: String(hit.url ?? url), chars: text.length, full_chars: hit.text.length, truncated: hit.text.length > text.length, text }
+    },
   }
 }
 

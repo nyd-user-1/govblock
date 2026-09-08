@@ -962,3 +962,158 @@ export async function getMemberVoteRecord(peopleId: number, state: string, limit
     nay: r.nay == null ? null : n(r.nay),
   }))
 }
+
+/* ---- what the agents ask for --------------------------------------------
+ * The tools in lib/agents read the same routes the pages do, so what they
+ * needed and the pages did not is a handful of filtered lists: a committee
+ * found by the name a person would type rather than by its system code, and
+ * the three families read across the whole Congress rather than one
+ * committee's slice of them.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A federal committee by the name someone would say.
+ *
+ * The pages address a committee by its system code because a URL has one to
+ * hand. A model has "House Judiciary", "the Judiciary Committee", "Ways and
+ * Means" — so the chamber is read off the front of the string where it is
+ * there, the boilerplate is dropped, and what is left is matched against the
+ * committee's own name. Parents before subcommittees, then shortest name, so
+ * "Judiciary" is the committee and not one of its six subcommittees.
+ */
+export async function findCongressCommittee(name: string) {
+  const raw = String(name ?? "").trim()
+  if (!raw) return null
+  // A system code is already the answer.
+  if (/^[a-z]{4}\d{2}$/i.test(raw)) return one<{ code: string; name: string; chamber: string | null; parent: string | null }>(`select system_code as code, name, chamber, parent from congress_committees where system_code = $1`, [raw.toLowerCase()])
+  const chamber = raw.match(/\b(house|senate|joint)\b/i)?.[1]
+  const core = raw
+    .replace(/\b(the|committee|subcommittee|on|house|senate|joint|permanent|select|special|u\.?s\.?|united states)\b/gi, " ")
+    .replace(/[^a-z0-9& ]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!core) return null
+  return one<{ code: string; name: string; chamber: string | null; parent: string | null }>(
+    `select system_code as code, name, chamber, parent from congress_committees
+      where name ilike $1 ${chamber ? "and chamber ilike $2" : ""}
+      order by (parent is null) desc, length(name), name
+      limit 1`,
+    chamber ? [`%${core}%`, chamber] : [`%${core}%`]
+  )
+}
+
+/**
+ * The hearings congress.gov has published, filtered the way a question comes:
+ * a committee, a window, a phrase in the title. `has_text` is whether we hold
+ * the transcript — 934 of the 940 do — because "there was a hearing" and "you
+ * can read what was said" are different answers.
+ */
+export async function getCongressHearingList({ committee, from, to, q: term, limit = 25 }: { committee?: string | null; from?: string | null; to?: string | null; q?: string | null; limit?: number }) {
+  const params: unknown[] = []
+  const where = [`h.payload->>'title' is not null`]
+  if (committee) where.push(`exists (select 1 from jsonb_array_elements(coalesce(h.payload->'committees', '[]'::jsonb)) c where ${roomWhere(committee, "c->>'systemCode'")})`)
+  const date = `coalesce(h.payload->'dates'->0->>'date', h.payload->>'date', h.hearing_date)`
+  if (from) where.push(`${date} >= $${params.push(from)}`)
+  if (to) where.push(`${date} <= $${params.push(to)}`)
+  if (term) where.push(`h.payload->>'title' ilike $${params.push(`%${term}%`)}`)
+  const rows = await q<Omit<HearingRow, "has_text">>(
+    `select ${HEARING_COLUMNS} from congress_hearings h where ${where.join(" and ")}
+      order by ${date} desc nulls last, h.key desc limit $${params.push(Math.min(limit, 100))}`,
+    params
+  )
+  const held = await hearingTextKeys(rows.map((r) => r.key))
+  return { count: rows.length, rows: rows.map((r) => ({ ...r, has_text: held.has(r.key) })) }
+}
+
+/**
+ * A hearing's transcript, as a window on it.
+ *
+ * The same rule the bill texts learned: the Data API refuses a result over
+ * 1 MB and a hearing runs to a hundred thousand characters, so the slice
+ * happens in SQL. With a search term the window opens where the term is —
+ * which is the question someone actually has of a transcript, and the
+ * alternative is reading four rounds of opening statements to reach it.
+ */
+export async function getHearingTranscript(id: string, { chars = 6000, from = 0, q: term }: { chars?: number; from?: number; q?: string | null } = {}) {
+  const row = await one<{
+    key: string
+    jacket_number: string | null
+    title: string | null
+    chamber: string | null
+    hearing_date: string | null
+    committee_code: string | null
+    url: string | null
+    chars: number | null
+    at: number | null
+  }>(
+    `select key, jacket_number, title, chamber, hearing_date, committee_code, url, length(text) as chars,
+            ${term ? `position($2 in lower(text))` : `0`} as at
+       from congress_hearing_texts where (key = $1 or jacket_number = $1) and text is not null limit 1`,
+    term ? [id, String(term).toLowerCase()] : [id]
+  )
+  if (!row) return null
+  const found = n(row.at)
+  if (term && !found) return { ...row, chars: n(row.chars), found: false, from: 0, excerpt_chars: 0, text: "", note: `"${term}" does not appear in this transcript.` }
+  // Open a little before the hit so the window starts on a sentence rather than
+  // mid-word, and honour an explicit `from` over both.
+  const start = Math.max(0, from || (found ? found - 400 : 0))
+  const body = await one<{ text: string }>(`select substr(text, $2::int, $3::int) as text from congress_hearing_texts where key = $1`, [row.key, start + 1, Math.min(Math.max(500, chars), 20_000)])
+  const text = body?.text ?? ""
+  return { ...row, chars: n(row.chars), found: term ? true : null, from: start, excerpt_chars: text.length, truncated: start + text.length < n(row.chars), text }
+}
+
+/**
+ * The Congressional Record, which we hold as citations and not as prose.
+ *
+ * `congress_record_articles` carries the section, the title, the pages and
+ * congress.gov's own links for 91,174 articles back to the 112th — and its
+ * `text` column is the list of those links, not the speech. So this answers
+ * where a thing was said and hands over the link to read it, which read_page
+ * can then open. Saying that plainly is the point; a search over 91,000
+ * headers that quietly returned no prose would read as "nothing was said".
+ */
+export async function getRecordArticles({ q: term, limit = 15 }: { q: string; limit?: number }) {
+  const rows = await q<{ key: string; section: string | null; title: string | null; start_page: string | null; congress: number; links: unknown }>(
+    `select key, section, title, start_page, congress, text as links from congress_record_articles
+      where title ilike $1 order by key desc limit $2`,
+    [`%${term}%`, Math.min(limit, 50)]
+  )
+  return {
+    count: rows.length,
+    note: "The Record's own text is not held here — these are the citations and congress.gov's links to each article. Use read_page on a link to read one.",
+    articles: rows.map((r) => {
+      const links = asJson<{ type?: string; url?: string }[]>(r.links, [])
+      return {
+        title: r.title,
+        section: r.section,
+        page: r.start_page,
+        congress: n(r.congress),
+        url: links.find((l) => /text/i.test(String(l.type)))?.url ?? links[0]?.url ?? null,
+      }
+    }),
+  }
+}
+
+/**
+ * Presidential nominations, filtered. Federal by definition — there is no
+ * state equivalent in this record, and the route says so under any other
+ * jurisdiction.
+ */
+export async function getNominationList({ committee, q: term, congress = CONGRESS, limit = 20, offset = 0 }: { committee?: string | null; q?: string | null; congress?: number; limit?: number; offset?: number }) {
+  const params: unknown[] = [congress]
+  const where = [`n.congress = $1`]
+  if (term) where.push(`(n.description ilike $${params.push(`%${term}%`)} or n.organization ilike $${params.length})`)
+  if (committee) where.push(`exists (select 1 from congress_nomination_committees c where c.parent_key = n.key and (lower(c.system_code) = $${params.push(committee.toLowerCase())} or c.name ilike $${params.push(`%${committee}%`)}))`)
+  const clause = where.join(" and ")
+  const [rows, total] = await Promise.all([
+    q<{ key: string; citation: string | null; number: string | null; description: string | null; organization: string | null; received: string | null; latest_action: string | null; latest_action_date: string | null }>(
+      `select n.key, n.citation, n.number, n.description, n.organization, n.received_date as received, n.latest_action, n.latest_action_date
+         from congress_nominations n where ${clause}
+        order by n.latest_action_date desc nulls last, n.key desc
+        limit $${params.push(Math.min(limit, 50))} offset $${params.push(Math.max(0, offset))}`,
+      params
+    ),
+    one<{ n: number }>(`select count(*)::int as n from congress_nominations n where ${clause}`, params.slice(0, params.length - 2)),
+  ])
+  return { congress, count: n(total?.n), nominations: rows }
+}

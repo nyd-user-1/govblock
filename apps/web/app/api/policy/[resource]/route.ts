@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillTexts } from "@/lib/policy/texts"
-import { getCommitteeBillsByStatus, getCommitteeCommunicationRows, getCommitteeNominationRows, getCommitteeRail, getHearingIndex, getMemberRail, getMemberVoteRecord } from "@/lib/policy/committee-queries"
+import { findCongressCommittee, getCommitteeBillsByStatus, getCommitteeCommunicationRows, getCommitteeNominationRows, getCommitteeRail, getCommitteeRoster as getCongressCommitteeRoster, getCongressHearingList, getHearingIndex, getHearingTranscript, getMemberRail, getMemberVoteRecord, getNominationList, getRecordArticles } from "@/lib/policy/committee-queries"
 import { resolveCommittee } from "@/lib/policy/committee-resolve"
 import { departmentsOf, findDepartment } from "@/lib/data/departments"
 import { getBillsByParty, getMetric, type MetricKey } from "@/lib/policy/metrics"
@@ -14,6 +14,7 @@ import {
   getBillByNumber,
   getBillVotes,
   getBills,
+  getCalendar,
   getBillText,
   getCommittee,
   getCommitteeBills,
@@ -201,6 +202,15 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const name = sp.get("name") ?? f.committee
       if (!name) throw new Error("committee name required")
+      // Congress publishes its rosters, so under US the answer is the published
+      // one — with the chair and the ranking member named as such. Everywhere
+      // else the roster is derived from who voted, because nothing in the
+      // source publishes one (see getCommitteeRoster in db-queries).
+      if (f.state === "US") {
+        const found = await findCongressCommittee(name)
+        if (!found) throw new Error(`No committee matching "${name}" in Congress. list_committees gives the names.`)
+        return { committee: found.name, code: found.code, chamber: found.chamber, source: "congress.gov", members: await getCongressCommitteeRoster(found.code) }
+      }
       return getCommitteeRoster(f, name)
     }
     case "committee-bills": {
@@ -373,6 +383,44 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       return getHearings(f.state, f.session, sp.get("from") ?? today(-30), sp.get("to") ?? today(60), sp.get("committee") ?? f.committee, int(sp.get("limit"), 3000))
     }
+    // What is scheduled, in a window: LegiScan's "Calendar" for all 52 with the
+    // bill on each row, and under Congress the committee meetings congress.gov
+    // publishes beside it. The default window runs from today so the answer is
+    // "what is coming" rather than "what happened"; pass `from` to look back.
+    case "calendar": {
+      const f = await resolve(filters)
+      return getCalendar(f, {
+        from: sp.get("from") ?? today(),
+        to: sp.get("to") ?? today(45),
+        committee: sp.get("committee") ?? f.committee,
+        bill: int(sp.get("bill"), 0) || null,
+        limit: int(sp.get("limit"), 40),
+      })
+    }
+    // The hearings congress.gov has published, with whether we hold the
+    // transcript. Its sibling `hearings` is the state calendar's, which is a
+    // different thing: a sitting that was scheduled, not a volume that was
+    // printed.
+    case "hearings-held": {
+      const committee = sp.get("committee")
+      const found = committee ? await findCongressCommittee(committee) : null
+      if (committee && !found) throw new Error(`No committee matching "${committee}" in Congress. list_committees gives the names.`)
+      return { committee: found?.name ?? null, ...(await getCongressHearingList({ committee: found?.code, from: sp.get("from"), to: sp.get("to"), q: sp.get("q"), limit: int(sp.get("limit"), 25) })) }
+    }
+    // A hearing's transcript, or the Congressional Record's citations. The two
+    // sit under one resource because they answer the same question — what was
+    // said — and differ only in whether we hold the words.
+    case "transcript": {
+      const hearing = sp.get("hearing") ?? sp.get("id")
+      const term = sp.get("q")
+      if (hearing) {
+        const doc = await getHearingTranscript(hearing, { chars: int(sp.get("chars"), 6000), from: int(sp.get("from"), 0) || 0, q: term })
+        if (!doc) throw new Error(`No transcript on file for hearing "${hearing}". hearings gives the jacket numbers, and has_text says which have one.`)
+        return doc
+      }
+      if (!term) throw new Error("a hearing jacket number or a search term is required")
+      return getRecordArticles({ q: term, limit: int(sp.get("limit"), 15) })
+    }
     case "hearings-recent": {
       const f = await resolve(filters)
       return getRecentHearings(f.state, f.session, sp.get("from") ?? today(-30), sp.get("to") ?? today(60), int(sp.get("limit"), 200))
@@ -496,8 +544,22 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       return getCommitteeReports(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
     case "laws":
       return getLaws(int(sp.get("limit"), 250), int(sp.get("offset"), 0) || 0, int(sp.get("bill"), 0) || undefined)
-    case "nominations":
-      return getNominations(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+    case "nominations": {
+      // The family list when nothing is asked of it, so the pages that page
+      // through it are unchanged; filtered when a question is.
+      const committee = sp.get("committee")
+      const term = sp.get("q")
+      if (!committee && !term && !sp.get("congress")) return getNominations(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
+      const found = committee ? await findCongressCommittee(committee) : null
+      if (committee && !found) throw new Error(`No committee matching "${committee}" in Congress.`)
+      return getNominationList({
+        committee: found?.code ?? committee,
+        q: term,
+        congress: int(sp.get("congress"), 119),
+        limit: int(sp.get("limit"), 20),
+        offset: int(sp.get("offset"), 0) || 0,
+      })
+    }
     case "committee-meetings":
       return getCommitteeMeetings(int(sp.get("limit"), 50), int(sp.get("offset"), 0) || 0)
     case "hearings-congress":
