@@ -21,7 +21,7 @@ Nearly a thousand bills in 52 legislatures since 2009, and just thirteen became 
 
 Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf), ten pages, and was mailed to you from govblock-clerk@agentmail.to.
 
-## The short version
+## Executive summary
 
 - Since 2009 the record holds **339 bills** in 43 states, the District of Columbia and Congress that would open, half-open or close a primary: 277 that widen who may vote and 62 that narrow it. A further 481 bills concern ranked-choice voting, the reform most often bundled with an open primary.
 - **13 of them passed.** Most of the rest never left committee. The pattern is the same in nearly every state: the bill is filed, referred, and refiled the next session.
@@ -31,7 +31,7 @@ Every bill to open, half-open or close a primary in all 50 states, the District 
 - In Congress the idea has never left committee: the Open Our Democracy Act (2014, 2015), the CLEAN Elections Act (four Congresses) and the Let America Vote Act, H.R. 155 of the 119th Congress, sponsored by Rep. Brian Fitzpatrick with five cosponsors and referred on January 3, 2025.
 - **Where the fight was expensive, it was the 2024 ballot measures, not the bills.** Reform was bankrolled by a small set of national donors and their vehicles — Unite America, Article IV, the Arnold network's Action Now, and Katherine Gehl — and still lost almost everywhere. Nevada's Question 3 drew about $29M, Colorado's Proposition 131 about $15M, and Alaska's defenders of reform outspent a shoestring repeal a hundred to one and won by 664 votes.
 
-## What the record shows
+## State by state
 
 | State | Primary today | Widen | Narrow | RCV | Sessions |
 |---|---|---|---|---|---|
@@ -82,7 +82,7 @@ Every bill to open, half-open or close a primary in all 50 states, the District 
 
 States with no qualifying bill since 2009: Iowa, Kansas, Massachusetts, Minnesota, Nevada, North Dakota, Utah.
 
-## What passed
+## Bills that passed
 
 - **California SCA4** (2009-2010 Regular Session): Elections: open primaries. — Signed by Governor, 2009-02-19
 - **South Dakota HB1054** (2010 Regular Session): Provide independent voters voting absentee the appropriate ballot during a primary election and to declare an emergency. — Signed by Governor, 2010-03-29
@@ -98,7 +98,7 @@ States with no qualifying bill since 2009: Iowa, Kansas, Massachusetts, Minnesot
 - **New Mexico SB16** (2025 Regular Session): Non-major Party Voters In Primary Elections — Signed by Governor, 2025-04-07
 - **Maine LD390** (2025-2026 Regular Session): An Act to Establish a Primary Election Period for Unenrolled Candidates in Order to Receive Campaign Contributions in Am — Passed, 2025-05-27
 
-## The money behind the 2024 campaigns
+## Money behind the 2024 campaigns
 
 The bills carry no campaign money; the ballot measures do, and 2024 was the expensive year. OpenSecrets counted more than $417M across all 2024 ballot measures. Primary reform was funded by one national donor network — Unite America (Denver; co-chairs Kent Thiry and Kathryn Murdoch, board including Kenneth Griffin), Article IV (Arlington VA), the Arnolds' Action Now Initiative (Houston), and Katherine Gehl's Institute for Political Innovation — and lost almost everywhere.
 
@@ -108,7 +108,7 @@ The bills carry no campaign money; the ballot measures do, and 2024 was the expe
 
 Reform is a top-down, donor-funded movement spending out-of-state money and losing at the ballot box; Alaska is the mirror image, where the funded side was defending reform and barely held. None of this is in GovBlock's database; it was read from OpenSecrets and state newsrooms. Sources: [OpenSecrets/IVN](https://ivn.us/posts/more-400-million-raised-2024-ballot-measures-opensecrets-reports-2024-10-31), [Sentinel Colorado](https://sentinelcolorado.com/nation-world/prop-131-part-of-a-national-push-to-ease-polarization-by-ditching-partisan-primaries/), [Nevada Independent](https://thenevadaindependent.com/article/question-3-backers-promote-ranked-choice-voting-with-major-out-of-state-money), [Colorado Newsline](https://coloradonewsline.com/2024/10/25/colorado-proposition-131-debate/), [Alaska Beacon](https://alaskabeacon.com/briefs/alaska-ranked-choice-voting-repeal-effort-outraised-a-hundredfold-campaign-finance-filings-show/).
 
-## Method
+## Method and gaps
 
 The GovBlock record, all 52 jurisdictions from 2009 (some from 2007), titles and summaries searched for open, top-two, top-four, nonpartisan, blanket and semi-open primaries, unaffiliated and independent voters in primaries, closed primaries and crossover rules, and ranked-choice voting. 947 bills matched; 339 bear on who may vote, 481 are ranked-choice bills. Only titles and summaries were searched, so the count is a floor. Louisiana's 2024 special session holds one bill in the record, so its closed-primary act is described from the bills implementing it. H.R. 155's status was read from congress.gov today.
 `
