@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { copyFromUrl, createLiveInput, deleteLiveInput, deleteVideo, getStream } from "@/lib/policy/stream"
+import { copyFromUrl, createLiveInput, deleteLiveInput, deleteVideo, getStream } from "@/lib/policy/cloudflare-stream"
 
 // Cloudflare Stream for the Admin experience's Stream page. GET is the
 // library, the live inputs and whether the token can reach Stream. POST
