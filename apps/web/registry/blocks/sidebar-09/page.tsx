@@ -4,7 +4,7 @@ import * as React from "react"
 import { ArrowLeft, Check, Copy, ExternalLink, PenSquare, Reply as ReplyIcon, RotateCcw, Star, Trash2, UserRound } from "lucide-react"
 
 import { agent as findAgent, maxRounds } from "@/lib/agents/registry"
-import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
+import { findAddress, isPerson, isUnread, loadThreads, messageId, nameOf, newThread, reply, running, runners, saveThreads, settle, shownRecipients, threadCost, when, type Attached, type Folder, type Message, type Thread } from "@/lib/agents/inbox"
 import { emptyRun, runAgent, type RunTurn } from "@/lib/agents/run-client"
 import { FEATURED } from "@/lib/agents/featured"
 import { sampleThreads } from "@/lib/agents/sample"
@@ -358,11 +358,18 @@ export default function Page() {
   }
 
   // Handing over the paper version: built from the message on the thread, so the
-  // file and the page cannot say different things.
+  // file and the page cannot say different things. A filled form is built the
+  // same way, from the values the message carries.
   const [pdfError, setPdfError] = React.useState<string | null>(null)
-  const openPdf = React.useCallback(async (thread: Thread, message: Message) => {
+  const openPdf = React.useCallback(async (thread: Thread, message: Message, build: Attached["build"] = "report-pdf") => {
     setPdfError(null)
     try {
+      if (build === "form-pdf" && message.form) {
+        const [{ fillForm }, { specFor }] = await Promise.all([import("@/lib/forms/fill"), import("@/components/chat/delivery-card")])
+        const filled = await fillForm(await specFor(message.form.id), message.form.values)
+        save({ blob: filled.blob, pages: filled.pages, bytes: filled.bytes.length, filename: filled.filename })
+        return
+      }
       save(
         await reportFor(`${thread.id}:${message.id}`, {
           subject: thread.subject,
@@ -664,7 +671,7 @@ export default function Page() {
 
                                   {message.attachments?.length ? (
                                     <div className="flex flex-col gap-1.5">
-                                      <AttachmentGroup items={message.attachments} onBuild={() => void openPdf(open, message)} />
+                                      <AttachmentGroup items={message.attachments} onBuild={(item) => void openPdf(open, message, item.build)} />
                                       {pdfError && <p className="text-destructive text-xs">{pdfError}</p>}
                                     </div>
                                   ) : null}

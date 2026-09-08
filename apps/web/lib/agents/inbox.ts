@@ -97,7 +97,7 @@ export function matchAddresses(query: string) {
  * one and a blob URL does not survive a reload — so the card promises a file it
  * can actually produce rather than a link that would be dead by morning.
  */
-export type Attached = { name: string; meta?: string; href: string; build?: "report-pdf" }
+export type Attached = { name: string; meta?: string; href: string; build?: "report-pdf" | "form-pdf" }
 
 export type Message = {
   id: string
@@ -110,6 +110,12 @@ export type Message = {
   run?: RunState
   /** Files that ride with the message: the report as a PDF, and the like. */
   attachments?: Attached[]
+  /**
+   * A filled form's making: the form and the values it was filled from, at
+   * fill time — so a `form-pdf` attachment builds the file that was
+   * delivered, even after the profile has changed.
+   */
+  form?: { id: "ldss-2921" | "ocfs-6025"; values: Record<string, string> }
 }
 
 export type ThreadStatus = "draft" | "running" | "delivered" | "failed"

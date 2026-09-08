@@ -16,6 +16,7 @@ import { agent as agentBySlug, maxRounds } from "@/lib/agents/registry"
 import { labelFor } from "@/lib/forms/keys"
 import { isFormId, type FormId } from "@/lib/forms/programs"
 import { mergeProfile, recallActiveForm, rememberActiveForm, type Values } from "@/lib/forms/profile"
+import { saveFormToInbox } from "@/lib/chat/save-to-inbox"
 import type { Filled } from "@/lib/forms/fill"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -53,7 +54,7 @@ export function AssistChat({
   compact = false,
   starters = [],
   seed,
-  onSaveToInbox,
+  onSaveToInbox = saveFormToInbox,
 }: {
   chatId: string
   system?: string
@@ -65,8 +66,8 @@ export function AssistChat({
   starters?: string[]
   /** A first message sent on mount when the transcript is empty (`/chat?form=…`). */
   seed?: string
-  /** Writes a delivered thread for a filled form; the delivery card offers it when given. */
-  onSaveToInbox?: (form: FormId, built: Filled, values: Values) => string | undefined
+  /** Writes a delivered thread for a filled form; the Agentic Inbox's store by default. */
+  onSaveToInbox?: ((form: FormId, built: Filled, values: Values) => string | undefined) | null
 }) {
   const storageKey = `govblock:panel:${chatId}`
   const definition = agentBySlug(agentSlug)
