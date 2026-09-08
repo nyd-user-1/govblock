@@ -4,6 +4,7 @@ import * as React from "react"
 import { CheckIcon, CopyIcon, CreditCardIcon, KeyIcon, PlusIcon, RefreshCwIcon, ShieldCheckIcon, UploadIcon, MonitorIcon, SmartphoneIcon, LaptopIcon } from "lucide-react"
 
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
+import { Applicant } from "@/components/admin/pages/applicant"
 import { useAdminNav } from "@/components/admin/nav"
 import { ADMIN_USER } from "@/components/admin/rail"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
@@ -25,6 +26,7 @@ import { cn } from "@govblock/ui/lib/utils"
 
 export const SETTINGS_TABS = [
   { page: "settings/profile", label: "My profile" },
+  { page: "settings/applicant", label: "Applicant" },
   { page: "settings/plan", label: "Plan" },
   { page: "settings/billing", label: "Billing" },
   { page: "settings/notifications", label: "Notifications" },
@@ -713,6 +715,7 @@ export function SettingsPage({ page }: { page: string }) {
       <p className="text-lg font-medium sm:text-xl">Settings</p>
       <Tabs page={current} />
       {current === "settings/profile" && <Profile />}
+      {current === "settings/applicant" && <Applicant />}
       {current === "settings/plan" && <Plan />}
       {current === "settings/billing" && <Billing />}
       {current === "settings/notifications" && <Notifications />}

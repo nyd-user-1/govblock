@@ -84,6 +84,7 @@ export const ADMIN_MENU: MenuItem[] = [
     tag: "new",
     items: [
       { label: "My profile", page: "settings/profile" },
+      { label: "Applicant", page: "settings/applicant" },
       { label: "Plan", page: "settings/plan" },
       { label: "Billing", page: "settings/billing" },
       { label: "Notifications", page: "settings/notifications" },
