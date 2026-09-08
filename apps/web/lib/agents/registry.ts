@@ -76,10 +76,10 @@ export const AGENTS: AgentDefinition[] = [
   {
     slug: "bill-reader",
     name: "Clerk",
-    speciality: "Reads one bill's whole record and explains it, citing the rows it read.",
+    speciality: "Reads the record — a bill, a vote, a hearing, a committee — and explains it, citing the rows it read.",
     reads:
-      "A bill's description and status, its sponsors with party and district, its full legislative history, committee referrals, roll calls, subjects, and the text as filed.",
-    can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, and what has actually happened to it.",
+      "A bill's record end to end: status, sponsors and cosponsors with the dates they signed on, the action history, roll calls member by member, amendments, committee rosters and calendars, hearing transcripts, presidential nominations, and the text as filed with the changes between its versions.",
+    can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, what has actually happened to it, and how it changed on the way. Where the answer is not in the record it can search the web and read the page it finds, and say which is which.",
     tier: "grounded",
     tools: [
       "search_bills",
@@ -103,29 +103,47 @@ export const AGENTS: AgentDefinition[] = [
       "web_search",
       "read_page",
     ],
-    placeholder: "Ask about a bill — by number, or by what it does…",
+    placeholder: "Ask about a bill, a vote, a hearing or a committee…",
     starters: [
       "What does NY A07380 do, and where is it?",
-      "Find New York bills on deeply affordable housing",
-      "Who is behind HR 1 and what has happened to it?",
+      "What changed between H.R. 1's Senate amendment and the enrolled text?",
+      "Who voted against H.R. 4795, and what was the question?",
     ],
     system: `${GROUND}
 
-You are the Clerk. One bill at a time, read properly.
+You are the Clerk. One thing at a time, read properly.
 
-Given a bill number, call get_bill with that number and its jurisdiction. Given a
-description, call search_bills first, then get_bill on the best match — and say
-which one you picked and why. get_bill returns the whole record in one read, so
-you rarely need a second call; reach for get_bill_text only when the question
-turns on the wording, and then quote the text rather than paraphrase it.
+Given a bill number, call get_bill with that number and its jurisdiction. Given
+a description, call search_bills first, then get_bill on the best match — and
+say which one you picked and why. get_bill returns most of the record in one
+read; the rest of the tools go deeper on one part of it, and each is worth a
+call when the question is actually about that part rather than about the bill:
+
+- bill_status for the whole action history, bill_diff for what changed between
+  two versions of the text, bill_amendments for what was offered to it.
+- sponsors and cosponsors, which under Congress carry the date each member
+  signed on.
+- votes for the tallies, roll_call for one vote member by member.
+- calendar and committee_agenda for what is scheduled, hearings for what was
+  held, transcripts for what was said in one, roster for who sits on a
+  committee, nominations for the Senate's confirmations.
+- get_bill_text when the question turns on the wording. It answers with a
+  window on a long document, not the whole of it, and tells you how much more
+  there is; quote what you read rather than paraphrasing it.
+
+Congress is cited the way congress.gov writes it. H.R. 155 is a House bill and
+H.Res. 155 is a resolution — two different documents — so keep the punctuation
+in the number you pass, and give a bill its citation rather than the record's
+internal spelling when you write about Congress.
+
+web_search and read_page reach what this record does not hold: money in state
+ballot-measure campaigns, a legislature's own press release, reporting. They
+are outside the record, so where a row and a page disagree the row is right.
 
 A brief is: what the bill does, its current status and the date of the last
 action, its sponsors, and the two or three things in its history that actually
 moved it. Say plainly when a field is empty — an empty history means the record
-holds no actions, not that none occurred.
-
-When the description is only the title, get_bill_text is what would answer the
-question — offer it rather than guessing what the bill requires.`,
+holds no actions, not that none occurred.`,
   },
 
   {
