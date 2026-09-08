@@ -7,7 +7,8 @@ import { SearchDirectory } from "@/components/directory-search"
 import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
 import { fmtBill, fmtDate, truncate } from "@/lib/format"
-import { isFiltered, readFilters, SearchFilters, type SearchFilterState, writeFilters } from "@/components/search-filters"
+import { isFiltered, readFilters, SearchFilters, sectionId, type SearchFilterState, writeFilters } from "@/components/search-filters"
+import { Highlight, Mark } from "@/components/search-highlight"
 import { ChamberSeal, FlagChip, MemberPortrait } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -67,9 +68,7 @@ function Snippet({ text }: { text: string }) {
     <span className="min-w-0 flex-1 text-muted-foreground">
       {pieces.map((piece, i) =>
         i % 2 ? (
-          <mark key={i} className="rounded-[2px] bg-primary/15 px-0.5 text-foreground">
-            {piece}
-          </mark>
+          <Mark key={i}>{piece}</Mark>
         ) : (
           <React.Fragment key={i}>{piece}</React.Fragment>
         )
@@ -81,10 +80,12 @@ function Snippet({ text }: { text: string }) {
 // The section's bordered box and its `divide-y` are gone: the canon puts a 1 px
 // rule on the item itself, and a box around a list of ruled items draws the same
 // line twice and boxes it as well.
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+function Section({ id, title, count, children }: { id: string; title: string; count: number; children: React.ReactNode }) {
   if (!count) return null
   return (
-    <section className="flex flex-col">
+    // scroll-mt clears the sticky header, so the rail's jump lands on the
+    // heading rather than a hand's width above it.
+    <section id={id} className="flex scroll-mt-[calc(var(--header-height)+2rem)] flex-col">
       <h2 className="text-sm font-medium text-muted-foreground">
         {title} <span className="tabular-nums">({count})</span>
       </h2>
@@ -175,6 +176,9 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
   const shownTopics = shown("topics") ? topics : []
   const shownPages = shown("pages") ? pages : []
   const total = bills.length + members.length + committees.length + texts.length + shownTopics.length + shownPages.length
+  // What the reader typed, for the marks below. The Text group gets its
+  // highlights from ts_headline; every other group has to find its own.
+  const hit = debounced.trim()
   const held = raw.bills.length + raw.members.length + raw.committees.length + raw.texts.length + topics.length + pages.length
 
   return (
@@ -201,7 +205,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
         </p>
       ) : (
         <>
-          <Section title="Bills" count={bills.length}>
+          <Section id={sectionId("bills")} title="Bills" count={bills.length}>
             {bills.map((bill) => (
               <RecordItem
                 key={bill.bill_id}
@@ -210,24 +214,24 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
                 // jurisdiction, and which one a row came from is the first thing
                 // a reader needs.
                 avatar={<FlagChip state={bill.state} width={36} />}
-                title={fmtBill(bill.bill_number, bill.state)}
+                title={<Highlight text={fmtBill(bill.bill_number, bill.state)} query={hit} />}
                 lead={bill.last_action}
                 meta={[
                   bill.last_action_date ? fmtDate(bill.last_action_date) : null,
                   bill.status_desc,
                   bill.committee ? `${bill.committee} Committee` : null,
                 ]}
-                description={truncate(bill.title, 240)}
+                description={<Highlight text={truncate(bill.title, 240)} query={hit} />}
               />
             ))}
           </Section>
-          <Section title="Text" count={texts.length}>
+          <Section id={sectionId("texts")} title="Text" count={texts.length}>
             {texts.map((text) => (
               <RecordItem
                 key={`${text.bill_id}-${text.document_id}`}
                 href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}
                 avatar={<FlagChip state={text.state} width={36} />}
-                title={fmtBill(text.bill_number, text.state)}
+                title={<Highlight text={fmtBill(text.bill_number, text.state)} query={hit} />}
                 lead={text.title}
                 meta={[stateName(text.state)]}
                 // The match itself is the description, highlights kept.
@@ -235,24 +239,24 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
               />
             ))}
           </Section>
-          <Section title="Members" count={members.length}>
+          <Section id={sectionId("members")} title="Members" count={members.length}>
             {members.map((member) => (
               <RecordItem
                 key={member.people_id}
                 href={memberHref(member.people_id, member.state)}
                 avatar={<MemberPortrait name={member.name} state={member.state} chamber={member.chamber} size={36} />}
-                title={`${member.name}${member.active ? "" : " (Ret.)"}`}
+                title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
                 meta={[stateName(member.state), member.party, member.chamber, member.district]}
               />
             ))}
           </Section>
-          <Section title="Committees" count={committees.length}>
+          <Section id={sectionId("committees")} title="Committees" count={committees.length}>
             {committees.map((committee) => (
               <RecordItem
                 key={`${committee.state}-${committee.committee}`}
                 href={`/docs/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
                 avatar={<ChamberSeal state={committee.state} chamber={committee.chamber} size={36} />}
-                title={committee.committee}
+                title={<Highlight text={committee.committee} query={hit} />}
                 meta={[
                   stateName(committee.state),
                   committee.chamber,
@@ -261,19 +265,19 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
               />
             ))}
           </Section>
-          <Section title="Topics" count={shownTopics.length}>
+          <Section id={sectionId("topics")} title="Topics" count={shownTopics.length}>
             {shownTopics.map((topic) => (
               <RecordItem
                 key={topic.value}
                 href={`/docs/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
-                title={topic.value}
+                title={<Highlight text={topic.value} query={hit} />}
                 meta={[`${topic.count} bills`]}
               />
             ))}
           </Section>
-          <Section title="Pages" count={shownPages.length}>
+          <Section id={sectionId("pages")} title="Pages" count={shownPages.length}>
             {shownPages.map((page) => (
-              <RecordItem key={page.href} href={page.href} title={page.name} meta={[page.group]} />
+              <RecordItem key={page.href} href={page.href} title={<Highlight text={page.name} query={hit} />} meta={[page.group]} />
             ))}
           </Section>
         </>

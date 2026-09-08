@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import { ArrowRight } from "lucide-react"
+
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -35,6 +37,9 @@ export const SECTIONS: { key: string; label: string }[] = [
 
 export const EMPTY_FILTERS: SearchFilterState = { show: [], scope: "all", chamber: "", status: [] }
 
+/** The id /search hangs on a section, and the rail jumps to. */
+export const sectionId = (key: string) => `results-${key}`
+
 export function readFilters(params: URLSearchParams): SearchFilterState {
   const list = (key: string) => (params.get(key) ?? "").split(",").map((s) => s.trim()).filter(Boolean)
   return {
@@ -67,9 +72,10 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-function Check({ id, label, count, checked, onChange }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void }) {
-  return (
-    <FieldLabel htmlFor={id} className="w-full">
+function Check({ id, label, count, checked, onChange, onJump }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void }) {
+  const row = (
+    // Full width on its own; sharing the row with the arrow, it yields the 20 px.
+    <FieldLabel htmlFor={id} className={onJump ? "min-w-0 flex-1" : "w-full"}>
       <Field orientation="horizontal" className="items-center gap-2 py-0.5">
         <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} />
         <FieldContent className="min-w-0">
@@ -80,6 +86,26 @@ function Check({ id, label, count, checked, onChange }: { id: string; label: str
         </FieldContent>
       </Field>
     </FieldLabel>
+  )
+  if (!onJump) return row
+  // The tick and the jump are two things, so they are two controls. The button
+  // sits outside the FieldLabel on purpose: inside it, every click on the arrow
+  // would also toggle the box the label points at.
+  return (
+    <div className="flex w-full items-center gap-1">
+      {row}
+      <button
+        type="button"
+        onClick={onJump}
+        disabled={!count}
+        aria-label={`Go to ${label}`}
+        className="group/jump -mr-1 flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
+      >
+        {/* Right, until it is pointed at: then it turns up and out, which is
+            the arrow the record items already use for "this goes somewhere". */}
+        <ArrowRight className="size-3.5 transition-transform duration-200 group-hover/jump:-rotate-45 group-focus-visible/jump:-rotate-45 motion-reduce:transition-none" />
+      </button>
+    </div>
   )
 }
 
@@ -103,6 +129,21 @@ export function SearchFilters({
 }) {
   const toggle = (list: string[], value: string, on: boolean) => (on ? [...new Set([...list, value])] : list.filter((v) => v !== value))
   const showing = (key: string) => filters.show.length === 0 || filters.show.includes(key)
+
+  // Jumping to a section the reader has hidden means showing it again — the
+  // ask was to go there, and there is nothing there to go to otherwise. The
+  // scroll waits a frame for that section to render.
+  const jump = (key: string) => {
+    if (!showing(key)) {
+      const current = filters.show.length ? filters.show : SECTIONS.map((s) => s.key)
+      const next = toggle(current, key, true)
+      onChange({ ...filters, show: next.length === SECTIONS.length ? [] : next })
+    }
+    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    requestAnimationFrame(() =>
+      document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })
+    )
+  }
   return (
     <div className="flex flex-col gap-6 text-sm">
       <div className="flex items-center">
@@ -122,6 +163,7 @@ export function SearchFilters({
             label={section.label}
             count={counts[section.key]}
             checked={showing(section.key)}
+            onJump={() => jump(section.key)}
             onChange={(on) => {
               // Unticking the only unticked box empties the list, which means all.
               const current = filters.show.length ? filters.show : SECTIONS.map((s) => s.key)
