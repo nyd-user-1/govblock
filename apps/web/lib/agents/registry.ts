@@ -1,4 +1,5 @@
 import type { ModelTier } from "@/lib/agents/models"
+import { isReportType } from "@/lib/agents/report-modes"
 import type { ToolName } from "@/lib/agents/tools"
 
 // Four specialists over one record. They differ in three things and nothing
@@ -399,6 +400,13 @@ export function agent(slug: string) {
 /** A chat's round budget unless the agent asks for more. */
 export const DEFAULT_MAX_ROUNDS = 12
 
-export function maxRounds(definition: AgentDefinition) {
-  return definition.maxRounds ?? DEFAULT_MAX_ROUNDS
+// A report is a different job from a chat: several rounds of reading and then a
+// section written in every round after. Measured on the Clerk, twelve rounds
+// ran out in the middle of a money table — the gathering is honest work and the
+// writing is the rest of it, and a chat's budget is not both.
+export const REPORT_MAX_ROUNDS = 18
+
+export function maxRounds(definition: AgentDefinition, reportType?: unknown) {
+  const own = definition.maxRounds ?? DEFAULT_MAX_ROUNDS
+  return isReportType(reportType) ? Math.max(own, REPORT_MAX_ROUNDS) : own
 }

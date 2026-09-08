@@ -6,7 +6,7 @@ import { toMessages, type ChatTurn, type StreamEvent } from "@/lib/agents/bedroc
 import { runStep } from "@/lib/agents/loop"
 import { MODELS } from "@/lib/agents/models"
 import { agent, maxRounds } from "@/lib/agents/registry"
-import { reportMode } from "@/lib/agents/report-modes"
+import { reportMode, reportPace } from "@/lib/agents/report-modes"
 import { liveTools } from "@/lib/agents/connections"
 
 // The one route behind every agent on /agents. A specialist answering a
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     // One assistant turn is one round already run. The client is told the
     // agent's ceiling; this is the same one, enforced where it cannot be
     // edited.
-    const ceiling = maxRounds(definition)
+    const ceiling = maxRounds(definition, body.reportType)
     if (messages.filter((m) => m.role === "assistant").length >= ceiling)
       return NextResponse.json(
         { error: `this conversation has already run ${ceiling} rounds` },
@@ -177,6 +177,27 @@ export async function POST(request: Request) {
   const parts = [notes.length ? notes.join(" ") : "", mode ?? ""].filter(Boolean)
   const systemSuffix = parts.length ? parts.join("\n\n") : undefined
 
+  // Where the round budget stands, said in the conversation rather than in the
+  // system prompt — measured, twice, that the system prompt is not enough: told
+  // there in as many words to stop gathering and write, the Clerk spent all
+  // twelve rounds searching and delivered an empty report. As a turn it is read.
+  // One assistant turn already taken is one round already run.
+  const round = messages.filter((message) => message.role === "assistant").length + 1
+  const ceiling = maxRounds(definition, body.reportType)
+  const last = messages.at(-1)
+  if (mode && last?.role === "user") {
+    messages = [
+      ...messages.slice(0, -1),
+      { ...last, content: [...(last.content ?? []), { text: reportPace(round, ceiling) }] },
+    ]
+  }
+
+  // Withholding the tools on the last round would be the firmest way to make a
+  // run stop reading and write. It is not available: Converse rejects a
+  // conversation that already holds toolUse blocks when no toolConfig comes
+  // with it — "The toolConfig field must be defined when using toolUse and
+  // toolResult content blocks", measured against this route. So the last round
+  // is steered by what it is told, not by what it is denied.
   const model = MODELS[definition.tier]
 
   const stream = new ReadableStream<Uint8Array>({

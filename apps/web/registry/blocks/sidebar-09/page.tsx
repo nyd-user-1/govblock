@@ -15,7 +15,9 @@ import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BlockShell } from "@/components/policy/block-shell"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
+import { isTrace } from "@/lib/agents/report-modes"
 import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
+import { TraceReport } from "@/registry/blocks/sidebar-09/components/trace-report"
 import { ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { useLocal } from "@/lib/policy/use-local"
 import { Progress } from "@govblock/ui/components/progress"
@@ -194,7 +196,7 @@ export default function Page() {
       patch(threadId, (current) => reply(current, slug, emptyRun(), "running", id))
       const finished = await runAgent({
         agent: definition.slug,
-        maxRounds: maxRounds(definition),
+        maxRounds: maxRounds(definition, reportType),
         subject,
         reportType,
         turns,
@@ -545,6 +547,7 @@ export default function Page() {
                         <div className="divide-y">
                           {open.messages.map((message) => {
                             const mine = message.from === "you"
+                            const trace = isTrace(open.reportType)
                             const name = mine ? ADMIN_USER.name : nameOf(message.from)
                             const email = mine ? ADMIN_USER.email : findAddress(message.from)?.email
                             const to = mine ? shownRecipients(open).join(", ") || open.agentName : "me"
@@ -571,10 +574,17 @@ export default function Page() {
                                       <Prose text={message.body} />
                                     </div>
                                   ) : (
-                                    message.body && (
+                                    (message.body || (trace && calls(message) > 0)) && (
                                       <div className="rounded-lg bg-muted/60 p-4">
                                         <div className={cn("text-sm whitespace-pre-wrap", message.run?.failed && "text-destructive")}>
-                                          <Prose text={message.body} />
+                                          {/* A Trace Report is the run, laid out — the steps are its
+                                              sections. Every other format is markdown and renders as
+                                              markdown, here and in the PDF alike. */}
+                                          {trace && message.run && !message.run.failed ? (
+                                            <TraceReport steps={message.run.steps} body={message.body} running={!message.run.done} />
+                                          ) : (
+                                            <Prose text={message.body} />
+                                          )}
                                         </div>
                                       </div>
                                     )

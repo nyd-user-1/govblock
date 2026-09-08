@@ -1,4 +1,5 @@
 import { AGENTS, type AgentDefinition } from "@/lib/agents/registry"
+import { reportBody } from "@/lib/agents/report-modes"
 import { emptyRun, type RunState } from "@/lib/agents/run-client"
 
 // The Agentic Inbox's store, which is this browser's localStorage and nothing
@@ -221,7 +222,11 @@ export function messageId() {
 export function reply(thread: Thread, from: string, run: RunState, status: ThreadStatus, messageId: string): Thread {
   const at = Date.now()
   const existing = thread.messages.find((message) => message.id === messageId)
-  const next: Message = existing ? { ...existing, at, body: run.text, run, unread: existing.unread ?? true } : { id: messageId, from, at, body: run.text, run, unread: true }
+  // A report's body starts at its headline; what the Clerk wrote on the way
+  // there stays on the run, where it belongs, rather than on top of the
+  // document someone is about to copy or print.
+  const body = reportBody(run.text, thread.reportType)
+  const next: Message = existing ? { ...existing, at, body, run, unread: existing.unread ?? true } : { id: messageId, from, at, body, run, unread: true }
 
   const messages = existing ? thread.messages.map((message) => (message.id === messageId ? next : message)) : [...thread.messages, next]
 
