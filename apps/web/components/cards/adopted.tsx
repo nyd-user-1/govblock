@@ -42,7 +42,7 @@ export function AdoptedBillsCard() {
         <CardTitle>Adopted Bills</CardTitle>
         <CardDescription>{pending && !rows.length ? "By session" : chosen ? `By session · ${fmtNumber(chosen.adopted)} ${current ? "so far this session" : `in the ${chosen.session}`}` : "By session"}</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={rows} id="adopted" />
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

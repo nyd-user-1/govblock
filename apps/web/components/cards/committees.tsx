@@ -39,7 +39,7 @@ export function CommitteesCard() {
         <CardTitle>Committees</CardTitle>
         <CardDescription>Where the bills are, and when they moved</CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={committees} id="committees" />
         </CardAction>
       </CardHeader>
       <CardContent>

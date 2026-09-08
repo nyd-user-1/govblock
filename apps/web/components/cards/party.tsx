@@ -33,7 +33,7 @@ export function PartyCard() {
           {fmtNumber(total)} seats in the {active}
         </CardDescription>
         <CardAction>
-          <ComponentActions />
+          <ComponentActions rows={seats} id="party" />
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

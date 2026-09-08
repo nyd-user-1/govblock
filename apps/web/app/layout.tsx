@@ -11,6 +11,7 @@ import { EMBED_SCRIPT, EMBED_STYLE, SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/poli
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
 import { AssistPanel, AssistShell } from "@/components/assist-panel"
+import { CardGateProvider } from "@/components/card-gate"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider>
           <TooltipProvider delay={0}>
             <JurisdictionProvider>
+            <CardGateProvider>
             <AssistPanelProvider>
             <ScopeReady />
             <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden has-data-[slot=inbox]:h-svh has-data-[slot=inbox]:overflow-hidden">
@@ -60,6 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
             <AssistPanel />
             </AssistPanelProvider>
+            </CardGateProvider>
             </JurisdictionProvider>
           </TooltipProvider>
         </ThemeProvider>
