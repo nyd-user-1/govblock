@@ -2,6 +2,7 @@ import {
   ActivityIcon,
   CalendarIcon,
   ChartAreaIcon,
+  ClapperboardIcon,
   CoinsIcon,
   FileTextIcon,
   GraduationCapIcon,
@@ -62,6 +63,9 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Calendar", icon: CalendarIcon, page: "apps/calendar", tag: "coming-soon" },
   // Cloudflare Stream: the library, a player, imports, live inputs (2026-09-06).
   { label: "Stream", icon: VideoIcon, page: "apps/stream", tag: "new" },
+  // Committee video, on shadcn v3's Music example (2026-09-08). Placeholder
+  // rows until congress.gov/committees/video is wired.
+  { label: "Videos", icon: ClapperboardIcon, page: "videos", tag: "new" },
   {
     label: "Users",
     icon: UsersIcon,

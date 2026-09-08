@@ -25,6 +25,7 @@ import { SettingsPage } from "./settings"
 import { SkeletonPage } from "./skeleton"
 import { StreamPage } from "./stream"
 import { UsersCreatePage } from "./users-create"
+import { VideosPage } from "./videos"
 import { UsersPage } from "./users"
 
 // Which of paceui's pages the URL names. Every entry in the rail resolves
@@ -54,6 +55,7 @@ const TITLES: Record<string, string> = {
   "apps/chat": "Chat",
   "apps/calendar": "Calendar",
   "apps/stream": "Stream",
+  videos: "Videos",
   roster: "Roster",
   "apps/users/create": "Create User",
   "components/charts": "Charts",
@@ -116,6 +118,8 @@ export function AdminPage({ page }: { page: string }) {
       return <CalendarPage />
     case "apps/stream":
       return <StreamPage />
+    case "videos":
+      return <VideosPage />
     case "roster":
       return <UsersPage />
     case "apps/users/create":
