@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { X } from "lucide-react"
+import { ChevronDownIcon, X } from "lucide-react"
 
 import { findAddress, isPerson, matchAddresses, nameOf, type Address } from "@/lib/agents/inbox"
 import { agent as findAgent } from "@/lib/agents/registry"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/ny4/input"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import {
   TaskSurface,
   TaskToolbar,
@@ -25,7 +26,13 @@ import {
 // the other end will do with your message, and the thread's header carries the
 // bill once there is one.
 
-export type Draft = { to: string[]; cc: string[]; bcc: string[]; subject: string; body: string }
+export type Draft = { to: string[]; cc: string[]; bcc: string[]; subject: string; body: string; reportType?: string }
+
+// The report the Clerk should write. Picked from the subject line; absent means
+// the default, a Traditional Report (Brendan, 2026-09-08). More can be added
+// here without touching the composer.
+export const REPORT_TYPES = ["Traditional Report", "Trace Report", "Memo", "Executive Summary", "Talking Points", "Root Cause Analysis"] as const
+export const DEFAULT_REPORT_TYPE = REPORT_TYPES[0]
 
 export const EMPTY_DRAFT: Draft = { to: [], cc: [], bcc: [], subject: "", body: "" }
 
@@ -270,8 +277,28 @@ export function Compose({
               value={draft.subject}
               onChange={(event) => onChange({ ...draft, subject: event.target.value })}
               placeholder="What the report is about"
-              className="w-full flex-1 border-0 shadow-none focus-visible:ring-0"
+              className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
             />
+            {/* The kind of report to write. Its own control on the subject line,
+                because "what is this report about" is also "what shape should it
+                take"; unset means a Traditional Report. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="sm" className="shrink-0 gap-1 text-muted-foreground">
+                  {draft.reportType ?? DEFAULT_REPORT_TYPE}
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-max min-w-44">
+                <DropdownMenuRadioGroup value={draft.reportType ?? DEFAULT_REPORT_TYPE} onValueChange={(value) => onChange({ ...draft, reportType: value })}>
+                  {REPORT_TYPES.map((type) => (
+                    <DropdownMenuRadioItem key={type} value={type} className="whitespace-nowrap">
+                      {type}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </>
       )}

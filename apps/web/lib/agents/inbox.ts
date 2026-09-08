@@ -87,6 +87,9 @@ export function matchAddresses(query: string) {
   return ADDRESSES.filter((a) => a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.speciality.toLowerCase().includes(q))
 }
 
+/** A file delivered with a message — the report's PDF, chiefly. */
+export type Attached = { name: string; meta?: string; href: string }
+
 export type Message = {
   id: string
   /** "you" is the reader; an agent replies by its slug. */
@@ -96,6 +99,8 @@ export type Message = {
   unread?: boolean
   /** Present on an agent's reply: the run that produced it. */
   run?: RunState
+  /** Files that ride with the message: the report as a PDF, and the like. */
+  attachments?: Attached[]
 }
 
 export type ThreadStatus = "draft" | "running" | "delivered" | "failed"
@@ -116,6 +121,8 @@ export type Thread = {
   createdAt: number
   updatedAt: number
   status: ThreadStatus
+  /** Which report format was asked for; absent means the default (Traditional). */
+  reportType?: string
   starred?: boolean
   trashed?: boolean
   /** Where the report was delivered, if a connection took it. */
@@ -152,7 +159,7 @@ function id() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function newThread({ to, cc = [], bcc = [], subject, body, status }: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; status: ThreadStatus }): Thread {
+export function newThread({ to, cc = [], bcc = [], subject, body, status, reportType }: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; status: ThreadStatus; reportType?: string }): Thread {
   const at = Date.now()
   const first = to[0] ?? ""
   return {
@@ -166,6 +173,7 @@ export function newThread({ to, cc = [], bcc = [], subject, body, status }: { to
     createdAt: at,
     updatedAt: at,
     status,
+    reportType,
     messages: [{ id: id(), from: "you", at, body }],
   }
 }

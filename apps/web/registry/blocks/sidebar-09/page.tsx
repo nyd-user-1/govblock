@@ -15,6 +15,7 @@ import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BlockShell } from "@/components/policy/block-shell"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
+import { AttachmentGroup } from "@/registry/blocks/sidebar-09/components/attachment"
 import { ThreadList, type ListTab, type Split } from "@/registry/blocks/sidebar-09/components/thread-list"
 import { useLocal } from "@/lib/policy/use-local"
 import { Progress } from "@govblock/ui/components/progress"
@@ -133,11 +134,20 @@ export default function Page() {
     // An inbox that has never held anything shows the fifty placeholders
     // (Brendan, 2026-09-07); one that was cleared stays empty.
     const kept = loadThreads()
-    const base = kept.length || window.localStorage.getItem(CLEARED) ? kept : sampleThreads()
-    // The Clerk's real deliveries arrive in any inbox that has not been
-    // cleared, once each: a stable id means one that was trashed stays trashed.
-    const missing = window.localStorage.getItem(CLEARED) ? [] : FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
-    const stored = missing.length ? [...missing, ...base].sort((a, b) => b.updatedAt - a.updatedAt) : base
+    const cleared = Boolean(window.localStorage.getItem(CLEARED))
+    const base = kept.length || cleared ? kept : sampleThreads()
+    // The Clerk's featured deliveries arrive in any inbox that has not been
+    // cleared. They are authored, not user data, so a stored copy is refreshed
+    // to its current definition on load — only the reader's own flags (starred,
+    // trashed) are kept — otherwise an edit to a featured report would never
+    // reach a browser that saw the old one. A cleared inbox stays cleared.
+    const authored = new Map(FEATURED.map((thread) => [thread.id, thread]))
+    const overlaid = base.map((thread) => {
+      const fresh = authored.get(thread.id)
+      return fresh ? { ...fresh, starred: thread.starred ?? fresh.starred, trashed: thread.trashed ?? fresh.trashed } : thread
+    })
+    const missing = cleared ? [] : FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
+    const stored = missing.length ? [...missing, ...overlaid].sort((a, b) => b.updatedAt - a.updatedAt) : overlaid
     // A run that was in flight when the tab closed did not survive it. Say so
     // on that reply — and only that one; earlier replies on the thread stand —
     // rather than leave a spinner that will never stop.
@@ -213,6 +223,7 @@ export default function Page() {
         bcc: draft.bcc,
         subject: draft.subject,
         body: draft.body,
+        reportType: draft.reportType,
         // Addressed only to people: it is sent, and it sits in Sent. Nothing
         // runs and nothing replies.
         status: recipients.length ? "running" : "delivered",
@@ -286,6 +297,7 @@ export default function Page() {
       bcc: draft.bcc,
       subject: draft.subject,
       body: draft.body,
+      reportType: draft.reportType,
       status: "draft",
     })
     setThreads((current) => [thread, ...current.filter((entry) => entry.id !== draftId)])
@@ -303,6 +315,7 @@ export default function Page() {
       bcc: thread.bcc ?? [],
       subject: thread.subject === "(no subject)" ? "" : thread.subject,
       body: thread.messages[0]?.body ?? "",
+      reportType: thread.reportType,
     })
     setDraftId(thread.id)
     setComposing(true)
@@ -508,7 +521,10 @@ export default function Page() {
                     the "this came from a model" cue. */}
                       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                         <div className="flex items-start gap-4 px-6 pt-5 pb-2">
-                          <h2 className="min-w-0 flex-1 text-xl font-medium">{open.subject}</h2>
+                          <div className="min-w-0 flex-1">
+                            <h2 className="text-xl font-medium">{open.subject}</h2>
+                            {open.reportType && <span className="mt-1.5 inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{open.reportType}</span>}
+                          </div>
                           <div className="ml-auto shrink-0 pt-1 text-right text-xs text-muted-foreground">
                             {open.trashed && <div>in trash</div>}
                             {open.deliveredTo && <div>delivered to {open.deliveredTo}</div>}
@@ -581,6 +597,8 @@ export default function Page() {
                                       </div>
                                     </details>
                                   )}
+
+                                  {message.attachments?.length ? <AttachmentGroup items={message.attachments} /> : null}
                                 </div>
                               </article>
                             )

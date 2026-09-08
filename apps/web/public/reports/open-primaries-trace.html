@@ -1,0 +1,137 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Open primaries — how this report was built</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#111;max-width:820px;margin:0 auto;padding:40px 28px 90px;line-height:1.5}
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.mark{width:22px;height:22px;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.mark i{background:#0f2a4a;border-radius:2px}.mark i:nth-child(4){background:#b3261e}
+.brand b{font-size:14pt}.brand span{margin-left:auto;color:#666;font-size:9pt;text-align:right}
+h1{font-size:23pt;letter-spacing:-.02em;margin:14px 0 4px}
+.deck{color:#444;font-size:12pt;margin:0 0 8px}
+.trace-note{color:#666;font-size:10pt;margin:0 0 26px}
+.steps{position:relative}
+.step{position:relative;padding-left:44px;padding-bottom:26px;border-left:2px solid #e4e4e7;margin-left:20px}
+.step:last-child{border-left:2px solid transparent}
+.num{position:absolute;left:-15px;top:-2px;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid #e4e4e7;display:flex;align-items:center;justify-content:center;font-size:11pt;color:#555}
+/* facepile: tool + Claude, overlapping */
+.who{display:flex;align-items:center;gap:9px;margin-bottom:2px}
+.pile{display:inline-flex}
+.av{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;margin-left:-9px}
+.av:first-child{margin-left:0}
+.exa{background:#1f4fff}.tav{background:#12a150}.db{background:#0f2a4a}.cg{background:#6b4bb3}.claude{background:#d97706}
+.who b{font-size:12.5pt}.who .x{color:#999;font-weight:400;font-size:11pt}
+.role{color:#666;font-size:10pt;margin:1px 0 8px}
+details{background:#f7f7f8;border:1px solid #ececee;border-radius:8px;padding:8px 12px;margin:7px 0}
+details.reason{background:#fff7ed;border-color:#fed7aa}
+summary{cursor:pointer;font-size:9.5pt;color:#555}
+details.reason summary{color:#b45309}
+details pre{margin:8px 0 0;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:8.5pt;color:#333}
+.reason p{margin:8px 0 0;font-size:9.5pt;color:#7c2d12}
+.out{background:#fff;border:1px solid #e4e4e7;border-radius:8px;padding:10px 13px;margin-top:8px;font-size:10pt}
+.out h4{margin:0 0 6px;font-size:10pt}.out ul{margin:4px 0;padding-left:18px}.out li{margin:3px 0}
+.out .by{font-size:8px;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:1px 7px;margin-left:6px}
+a{color:#1f4fff;text-decoration:none}
+table{width:100%;border-collapse:collapse;font-size:9pt;margin:6px 0}
+th{text-align:left;border-bottom:1.5px solid #111;padding:3px 6px}
+td{border-bottom:.5px solid #ddd;padding:3px 6px;vertical-align:top}
+.tag{font-size:8px;background:#eee;border-radius:8px;padding:1px 6px;color:#555}
+.final{border:2px solid #0f2a4a;border-radius:10px;padding:16px 18px;margin-top:8px;background:#fbfcfe}
+.final h3{margin:0 0 8px}
+.kt{background:#f4f6f9;border-left:3px solid #0f2a4a;padding:8px 12px;border-radius:6px;margin:10px 0}.kt b{display:block}
+.legend{font-size:9pt;color:#666;margin:0 0 22px;padding:8px 12px;background:#f7f7f8;border-radius:8px}
+</style></head><body>
+<div class="brand"><div class="mark"><i></i><i></i><i></i><i></i></div><b>GovBlock</b><span>Clerk · trace report · Sep 7, 2026</span></div>
+<h1>Who's paying to blow up the party primary?</h1>
+<p class="deck">A report that shows its work: each source paired with Claude, in order, then the finished findings.</p>
+<p class="legend"><b>How to read this.</b> Every step is a source <b>paired with Claude</b> — the tool retrieves, Claude reasons over what it found. First dropdown is what the source returned; second (amber) is Claude's reasoning over it; then Claude's output. The last step is Claude alone, synthesizing everything above.</p>
+
+<div class="steps">
+
+<div class="step"><div class="num">1</div>
+  <div class="who"><span class="pile"><span class="av exa">E</span><span class="av claude">C</span></span><b>Exa</b> <span class="x">×</span> <b>Claude</b></div>
+  <p class="role">Exa searched for who funds open-primary ballot measures; Claude read the results.</p>
+  <details><summary>What Exa returned</summary><pre>neural search "who funds open primaries ballot measures 2024 top donors amounts"
+→ Colorado Sun, "final spending number for Proposition 131" (Dec 17, 2024)
+→ Nevada Independent, "Dark money dominated donations…"
+→ Colorado Newsline, "voters reject sweeping overhaul backed by wealthy donors"
+→ Alaska Beacon, "repeal effort outraised a hundredfold"</pre></details>
+  <details class="reason"><summary>Claude's reasoning over the results</summary><p>The Colorado Sun's December piece has final totals, more authoritative than October figures. The Nevada Independent frames it as out-of-state "dark money." Common thread across all four: a national donor network, and reform losing. Prefer the year-end numbers; treat the recurring names as the story.</p></details>
+  <div class="out"><h4>Output <span class="by">Claude, from Exa</span></h4>
+    <p>Current, credible sourcing found for Colorado, Nevada and Alaska, with final (not mid-campaign) spending for Prop 131.</p></div>
+</div>
+
+<div class="step"><div class="num">2</div>
+  <div class="who"><span class="pile"><span class="av tav">T</span><span class="av claude">C</span></span><b>Tavily</b> <span class="x">×</span> <b>Claude</b></div>
+  <p class="role">Tavily read the blocked and key sources and drafted a summary; Claude reasoned over it.</p>
+  <details><summary>What Tavily returned (its own summary + a deep read)</summary><pre>include_answer: "Prop 131 primarily funded by Kent Thiry; NV Q3 by Article IV
+  and Unite America; Thiry donated $6.7M to support Prop 131." (Tavily's synthesis)
+extract (advanced): opensecrets.org/ballot-measures → 26,117 chars
+  (a plain fetch of this page 403s; extract read it anyway)</pre></details>
+  <details class="reason"><summary>Claude's reasoning over the results</summary><p>Tavily's own summary is a machine synthesis, not mine — treat it as a lead, not a fact. Its $6.7M Thiry figure conflicts with the $1.5M my earlier sourcing had. Don't pick one blindly; carry both and reconcile at the money tables. The OpenSecrets extract is raw and trustworthy for committee names.</p></details>
+  <div class="out"><h4>Output <span class="by">Claude, over Tavily</span></h4>
+    <p>Network confirmed: Unite America (co-chairs Kent Thiry and Kathryn Murdoch; board incl. Kenneth Griffin), Article IV, the Arnolds' Action Now, Katherine Gehl's Institute for Political Innovation. Thiry figure flagged for reconciliation.</p></div>
+</div>
+
+<div class="step"><div class="num">3</div>
+  <div class="who"><span class="pile"><span class="av db">DB</span><span class="av claude">C</span></span><b>GovBlock record</b> <span class="x">×</span> <b>Claude</b></div>
+  <p class="role">The record returned every primary-access bill; Claude classified them.</p>
+  <details><summary>What the record returned</summary><pre>SELECT … FROM "Bills" WHERE (title||' '||description) ~* '…primar…'
+  across 50 states + DC + US, 2009–2026  → 947 rows</pre></details>
+  <details class="reason"><summary>Claude's reasoning over the rows</summary><p>Sort each bill by its language into widen / narrow / ranked-choice; set aside 46 incidental matches. Count what passed carefully — many "HR" rows are resolutions, not bills, so read the status, not the number.</p></details>
+  <div class="out"><h4>Output <span class="by">Claude, over the record</span></h4><ul>
+    <li>947 matched; 339 bear on who may vote (277 widen, 62 narrow)</li>
+    <li>481 concern ranked-choice voting</li>
+    <li><b>13 became law</b></li></ul></div>
+</div>
+
+<div class="step"><div class="num">4</div>
+  <div class="who"><span class="pile"><span class="av cg">↑</span><span class="av claude">C</span></span><b>congress.gov</b> <span class="x">×</span> <b>Claude</b></div>
+  <p class="role">congress.gov returned H.R. 155's status; Claude read its history.</p>
+  <details><summary>What congress.gov returned</summary><pre>GET /bill/119/hr/155 + /actions
+→ Let America Vote Act; sponsor Fitzpatrick; 5 cosponsors; referred 2025-01-03</pre></details>
+  <details class="reason"><summary>Claude's reasoning</summary><p>Third Congress for this idea under different names (Open Our Democracy, CLEAN Elections). Never reported out of committee. The federal story is "perennially introduced, never moves."</p></details>
+  <div class="out"><h4>Output <span class="by">Claude, over congress.gov</span></h4>
+    <p>H.R. 155 would condition federal election funds on states admitting unaffiliated voters to primaries. Referred Jan 3, 2025; no further action.</p></div>
+</div>
+
+<div class="step"><div class="num">5</div>
+  <div class="who"><span class="pile"><span class="av claude">C</span></span><b>Claude</b> — synthesis</div>
+  <p class="role">Claude alone, stitching every step above into the report and reconciling the figures.</p>
+  <details class="reason"><summary>Claude's reasoning</summary><p>Thiry $6.7M (Tavily) vs $1.5M (Newsline): almost certainly $1.5M direct to one Colorado committee and ~$6.7M total across the national effort — both right at different scopes. Present all three money reads as tables so the reader sees the reconciliation, not a single cherry-picked number.</p></details>
+  <div class="final">
+    <h3>Report</h3>
+    <div class="kt"><b>Key takeaways</b><ul>
+      <li><b>Almost nothing passes.</b> 947 bills since 2009; 13 laws.</li>
+      <li><b>The money is a network, not a movement.</b> Unite America, Action Now, Gehl, Griffin — ~$29M in Nevada, ~$15M in Colorado. Both lost.</li>
+      <li><b>Voters keep saying no.</b> Every 2024 measure to open a primary failed except DC; Alaska's reform side outspent a repeal 100:1 and won by 664 votes.</li></ul></div>
+
+    <h4>Money · Table 1 — as Tavily sourced it</h4>
+    <table><tr><th>Entity</th><th>Amount</th><th>Source</th><th>Date</th></tr>
+    <tr><td>Kent Thiry → Prop 131</td><td>$6.7M</td><td>Tavily answer (synthesized)</td><td>2024 cycle</td></tr>
+    <tr><td>Unite America → NV Q3</td><td>$9.6M</td><td>Nevada Independent</td><td>Oct 2024</td></tr></table>
+
+    <h4>Money · Table 2 — as Exa sourced it</h4>
+    <table><tr><th>Entity</th><th>Amount</th><th>Source</th><th>Date</th></tr>
+    <tr><td>Prop 131, total raised</td><td>~$15M (final)</td><td>Colorado Sun, "final spending number"</td><td>Dec 17, 2024</td></tr>
+    <tr><td>Kent Thiry → Colorado Voters First</td><td>$1.5M direct</td><td>Colorado Newsline</td><td>Oct 2024</td></tr>
+    <tr><td>Katherine Gehl → NV Q3</td><td>$5M</td><td>Nevada Independent</td><td>2024</td></tr></table>
+
+    <h4>Money · Table 3 — reconciled</h4>
+    <table><tr><th>Entity</th><th>Amount</th><th>Note</th></tr>
+    <tr><td>Kent Thiry</td><td>$1.5M direct, ~$6.7M total</td><td>$1.5M to one Colorado committee; ~$6.7M across the national effort. Both right at different scopes.</td></tr>
+    <tr><td>Nevada Question 3</td><td>~$29M raised</td><td>Unite America $9.6M, Gehl $5M, Griffin $3M, Action Now $3M, Murdoch $2.5M. Failed.</td></tr>
+    <tr><td>Colorado Proposition 131</td><td>~$15M</td><td>Final total; Unite America the largest donor. Failed 55–45.</td></tr>
+    <tr><td>Alaska Measure 2</td><td>$12M vs $120K</td><td>Reform defenders outspent the repeal ~100:1; repeal failed by 664 votes.</td></tr></table>
+
+    <h4>Sources</h4><ul style="font-size:9pt;color:#444">
+      <li>Colorado Sun, final spending on Prop 131 <span class="tag">Exa</span></li>
+      <li>Nevada Independent, dark money on Question 3 <span class="tag">Exa</span></li>
+      <li>Colorado Newsline, who funded Prop 131 <span class="tag">Exa</span></li>
+      <li>OpenSecrets ballot-measures <span class="tag">Tavily extract</span></li>
+      <li>GovBlock record, 947 bills <span class="tag">database</span></li>
+      <li>congress.gov, H.R. 155 <span class="tag">congress.gov</span></li></ul>
+  </div>
+</div>
+
+</div>
+</body></html>

@@ -9,9 +9,9 @@ import { nameOf, type Thread } from "@/lib/agents/inbox"
 // text went to Brendan by mail from govblock-clerk@agentmail.to. These are not
 // placeholders: the ids are stable so a reader who trashes one keeps it trashed.
 
-const OPEN_PRIMARIES = `# Who's paying to blow up the party primary?
+const OPEN_PRIMARIES = `# Open primaries: 947 bills, 13 laws, and the 2024 money
 
-Nearly a thousand bills in 52 legislatures since 2009, and just thirteen became law. Then a handful of billionaires poured tens of millions into 2024 ballot measures to throw the primaries open, and voters said no almost everywhere. The whole fight, on the record.
+Every bill to open, half-open or close a primary across all 50 states, the District of Columbia and Congress since 2009, and who funded the 2024 ballot campaigns.
 
 ## Key takeaways
 
@@ -19,7 +19,7 @@ Nearly a thousand bills in 52 legislatures since 2009, and just thirteen became 
 - **The money is a network, not a movement.** Unite America, the Arnolds' Action Now, Katherine Gehl and Kenneth Griffin bankrolled the 2024 ballot measures, about $29M in Nevada and $15M in Colorado. Both lost.
 - **Voters keep saying no.** Every 2024 measure to open a primary failed except in DC; in Alaska the reform side outspent a repeal a hundred to one and won by only 664 votes.
 
-Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf), ten pages, and was mailed to you from govblock-clerk@agentmail.to.
+Every bill to open, half-open or close a primary in all 50 states, the District of Columbia and Congress, from the 2009 sessions to this week. The full report, with the current-law table for every state, the complete list of what passed, the bills that would narrow a primary, and the method, is attached as a PDF and is at [/reports/open-primaries-2026-09-07.pdf](/reports/open-primaries-2026-09-07.pdf).
 
 ## Executive summary
 
@@ -135,10 +135,11 @@ export const FEATURED: Thread[] = [
     to: ["bill-reader"],
     cc: [],
     bcc: [],
-    subject: "Who's paying to blow up the party primary?",
+    subject: "Open primaries: 947 bills, 13 laws, and the 2024 money",
     createdAt: AT - 41 * 60_000,
     updatedAt: AT,
     status: "delivered",
+    reportType: "Traditional Report",
     starred: true,
     deliveredTo: "brendan.stanton@gmail.com",
     messages: [
@@ -154,10 +155,11 @@ export const FEATURED: Thread[] = [
         at: AT,
         body: OPEN_PRIMARIES,
         unread: true,
+        attachments: [{ name: "open-primaries-2026-09-07.pdf", meta: "PDF · 10 pages · 264 KB", href: "/reports/open-primaries-2026-09-07.pdf" }],
         run: {
           ...emptyRun(),
           text: OPEN_PRIMARIES,
-          model: "Claude Fable 5.1",
+          model: "",
           rounds: 11,
           ms: 41 * 60_000,
           done: true,
@@ -197,7 +199,7 @@ export const FEATURED: Thread[] = [
         run: {
           ...emptyRun(),
           text: HR155,
-          model: "Claude Fable 5.1",
+          model: "",
           rounds: 3,
           ms: 95_000,
           done: true,
@@ -205,6 +207,50 @@ export const FEATURED: Thread[] = [
             { kind: "tool", id: "h1", name: "congress_gov", input: { bill: "119/hr/155" }, summary: "title, sponsor, 5 cosponsors, latest action", ok: true, ms: 1100 },
             { kind: "tool", id: "h2", name: "congress_gov", input: { bill: "119/hr/155", part: "actions" }, summary: "2 actions, both 2025-01-03", ok: true, ms: 900 },
             { kind: "tool", id: "h3", name: "search_bills", input: { state: "US", terms: "Let America Vote, CLEAN Elections, Open Our Democracy" }, summary: "7 predecessors, 113th to 118th, none reported", ok: true, ms: 2600 },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: "featured-trace-2026-09-08",
+    agent: "bill-reader",
+    agentName: nameOf("bill-reader"),
+    to: ["bill-reader"],
+    cc: [],
+    bcc: [],
+    subject: "Open primary initiatives and funding",
+    reportType: "Trace Report",
+    createdAt: AT - 20 * 60_000,
+    updatedAt: AT + 60_000,
+    status: "delivered",
+    messages: [
+      { id: "featured-trace-you", from: "you", at: AT - 20 * 60_000, body: "Same question, but I want to see the work: a Trace Report on open primary initiatives and their funding." },
+      {
+        id: "featured-trace-clerk",
+        from: "bill-reader",
+        at: AT + 60_000,
+        body: `## Trace Report \u2014 open primary initiatives and funding
+
+Collected from the record, congress.gov, and current reporting, in stages, then synthesized. Open the attached trace to see each source, what it returned, the reasoning over it, and the reconciled findings.
+
+- 947 bills since 2009; 13 became law.
+- 2024 ballot money was one donor network \u2014 Unite America, the Arnolds' Action Now, Katherine Gehl, Kenneth Griffin \u2014 about $29M in Nevada and $15M in Colorado. Both lost.
+- Every 2024 measure to open a primary failed except the District of Columbia.`,
+        unread: true,
+        attachments: [{ name: "open-primaries-trace.html", meta: "Trace Report \u00b7 opens in the browser", href: "/reports/open-primaries-trace.html" }],
+        run: {
+          ...emptyRun(),
+          text: "Trace Report delivered.",
+          model: "",
+          rounds: 5,
+          ms: 20 * 60_000,
+          done: true,
+          steps: [
+            { kind: "tool", id: "t1", name: "web_search", input: { q: "who funds open primaries ballot measures 2024" }, summary: "Colorado Sun, Nevada Independent, Alaska Beacon \u2014 freshest first", ok: true, ms: 9000 },
+            { kind: "tool", id: "t2", name: "read_page", input: { url: "opensecrets.org/ballot-measures" }, summary: "26,117 chars read where a plain fetch 403s", ok: true, ms: 7000 },
+            { kind: "tool", id: "t3", name: "search_bills", input: { scope: "50 states + DC + US, 2009-2026" }, summary: "947 matched; 339 on access; 13 passed", ok: true, ms: 12000 },
+            { kind: "tool", id: "t4", name: "congress_gov", input: { bill: "119/hr/155" }, summary: "Let America Vote Act; referred 2025-01-03", ok: true, ms: 1400 },
           ],
         },
       },
