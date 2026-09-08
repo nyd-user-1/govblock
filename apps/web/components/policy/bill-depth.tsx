@@ -167,14 +167,33 @@ export function BillDepthProvider({
  *   1000 · 1025   Introduced in House      →  Introduced
  *   10000 · 10025 Introduced in Senate     →  Introduced
  *   8000          Passed/agreed to in House →  Passed House
+ *   9000          Failed of passage in House → Failed in House
  *   17000         Passed/agreed to in Senate → Passed Senate
+ *   18000         Failed of passage in Senate → Failed in Senate
+ *   19500 · 20500 Resolving differences     →  Conference
  *   28000 · E20000 Presented to President   →  To President
+ *   33000         Failed in House over veto →  Vetoed
  *   36000 · E40000 Became Public/Private Law → Became Law
  *
- * Conference and Vetoed have no single code and are taken from the action's
- * `type`, which BILLSTATUS publishes for every action. congress.gov labels the
- * conference step "Resolving Differences", since a difference can also be
- * settled by amendment exchange; Brendan chose "Conference" (2026-09-05).
+ * Three gaps closed after auditing congress_bill_actions against congress.gov's
+ * own taxonomy (2026-09-07, docs/action-taxonomy-audit.md):
+ *
+ *  - **Failure was not a stage.** 9000 and 18000 mapped to nothing, so a bill
+ *    the House voted down drew exactly the tracker of one still sitting in
+ *    committee. A failed stage is now drawn as failed and the ladder stops
+ *    there, which is what congress.gov does.
+ *  - **Vetoed was computed and discarded.** STAGE_BY_TYPE set it, `ladder`
+ *    never listed it, so the two vetoed bills of the 119th showed "To
+ *    President" reached and nothing after it. It is the failed reading of
+ *    "Became Law" now.
+ *  - **Conference was read off the type alone**, and BILLSTATUS types 19500 and
+ *    20500 "NotUsed" although their text is "Resolving differences -- House
+ *    actions": 17 of the 59 conference actions in the 119th carry that type and
+ *    were invisible. The code is read first now, the type after.
+ *
+ * congress.gov labels the conference step "Resolving Differences", since a
+ * difference can also be settled by amendment exchange; Brendan chose
+ * "Conference" (2026-09-05).
  */
 const STAGE_BY_CODE: Record<string, string> = {
   "1000": "Introduced",
@@ -182,15 +201,28 @@ const STAGE_BY_CODE: Record<string, string> = {
   "10000": "Introduced",
   "10025": "Introduced",
   "8000": "Passed House",
+  "9000": "Failed in House",
   "17000": "Passed Senate",
+  "18000": "Failed in Senate",
+  "19500": "Conference",
+  "20500": "Conference",
   "28000": "To President",
   E20000: "To President",
+  "33000": "Vetoed",
   "36000": "Became Law",
   E40000: "Became Law",
 }
 const STAGE_BY_TYPE: Record<string, string> = {
   ResolvingDifferences: "Conference",
   Veto: "Vetoed",
+}
+
+// How a rung fails. A measure reaches a step or it fails at it; it never does
+// both, and the failure is the stage a reader came for.
+const FAILURE_OF: Record<string, string> = {
+  "Passed House": "Failed in House",
+  "Passed Senate": "Failed in Senate",
+  "Became Law": "Vetoed",
 }
 
 // Which steps a measure can reach at all. A simple resolution never leaves its
@@ -237,8 +269,18 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
       reached.set("Introduced", day(c.record.introducedDate))
     }
     const rungs = ladder(c.record?.type, c.record?.originChamber)
-    const last = rungs.map((r) => reached.has(r)).lastIndexOf(true)
-    return rungs.map((title, i) => ({ title, date: reached.get(title) ?? null, done: i <= last && last >= 0 }))
+    // A rung the measure failed at is drawn under the name of the failure, and
+    // the ladder stops there: nothing after a bill the House voted down is true.
+    const step = (title: string) => {
+      const failure = FAILURE_OF[title]
+      const failedOn = failure ? reached.get(failure) : undefined
+      return failedOn !== undefined && !reached.has(title)
+        ? { title: failure as string, date: failedOn ?? null, failed: true }
+        : { title, date: reached.get(title) ?? null, failed: false }
+    }
+    const drawn = rungs.map(step)
+    const last = drawn.map((r) => r.failed || reached.has(r.title)).lastIndexOf(true)
+    return drawn.map((row, i) => ({ ...row, done: !row.failed && i <= last && last >= 0 }))
   }, [c])
 
   if (!c?.onCongress) return null
@@ -252,9 +294,9 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
       <ol className="flex flex-wrap items-stretch gap-1">
         {steps.map((step) => (
           <li key={step.title} className="min-w-0 flex-1 basis-0">
-            <div className={cn("h-1 rounded-full", step.done ? "bg-foreground" : "bg-border")} />
+            <div className={cn("h-1 rounded-full", step.failed ? "bg-destructive" : step.done ? "bg-foreground" : "bg-border")} />
             <div className="mt-2 flex flex-col gap-0.5 pr-1">
-              <span className={cn("text-xs leading-tight font-medium", step.done ? "text-foreground" : "text-muted-foreground")}>{step.title}</span>
+              <span className={cn("text-xs leading-tight font-medium", step.failed ? "text-destructive" : step.done ? "text-foreground" : "text-muted-foreground")}>{step.title}</span>
               {step.date && <span className="text-xs text-muted-foreground tabular-nums">{step.date}</span>}
             </div>
           </li>
