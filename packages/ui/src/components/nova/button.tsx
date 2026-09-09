@@ -1,4 +1,8 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
+import { motion } from "motion/react"
+
+import { usePress } from "@govblock/ui/lib/use-press"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@govblock/ui/lib/utils"
@@ -44,12 +48,35 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // @animbits/buttons-press, on the primary button only (Brendan, 2026-09-08:
+  // "use this on all blue buttons"). The hook is theirs; what it returns is a
+  // pair of motion props, so the button has to render as a motion element for
+  // them to land. Where a caller hands their own element in — a Link, most
+  // often — motion is wrapped around that element's type instead, so a blue
+  // button that navigates presses like a blue button that submits.
+  const press = usePress({ pressScale: 0.96 })
+  const pressed = variant === "default"
+  const Given = (render as React.ReactElement<Record<string, unknown>> | undefined)?.type
+  const Motion = React.useMemo(
+    () => (pressed && Given && typeof Given !== "string" ? motion.create(Given as React.ComponentType<Record<string, unknown>>) : null),
+    [pressed, Given]
+  )
+  const element = React.useMemo(() => {
+    if (!pressed) return render
+    if (!render) return <motion.button {...press} />
+    const given = render as React.ReactElement<Record<string, unknown>>
+    if (typeof given.type === "string") return React.cloneElement(given, press as Record<string, unknown>)
+    return Motion ? <Motion {...given.props} {...press} /> : render
+  }, [pressed, render, Motion, press])
+
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      render={element}
       {...props}
     />
   )
