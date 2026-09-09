@@ -5,7 +5,7 @@ import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardContent } from "@govblock/ui/components/nova/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@govblock/ui/components/nova/field"
 import { Input } from "@govblock/ui/components/nova/input"
-import { SealCarousel } from "@/components/seal-carousel"
+import ParticleMark from "@/components/flag-particles"
 
 // shadcn's login-04, class for class (Brendan, 2026-09-07: "just go with
 // this"): the form on the left, the image on the right, the terms under the
@@ -87,8 +87,11 @@ export function LoginForm({
             </FieldGroup>
           </form>
           <div className="relative hidden bg-muted md:block">
-            {/* The fifty state seals, one after another, where the block shows its placeholder (Brendan, 2026-09-07). */}
-            <SealCarousel className="absolute inset-0" />
+            {/* The flag, drawn as 45,000 particles that scatter under the
+                pointer and spring back (Brendan, 2026-09-09). It was tried on
+                the root page first and did not sit right there; beside a sign-in
+                form, filling its own half of the card, it does. */}
+            <ParticleMark className="absolute inset-0" />
           </div>
         </CardContent>
       </Card>

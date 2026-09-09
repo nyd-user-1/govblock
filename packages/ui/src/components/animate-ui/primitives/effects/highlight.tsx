@@ -122,7 +122,7 @@ function Highlight<T extends React.ElementType = 'div'>({
   ...props
 }: HighlightProps<T>) {
   const {
-    as: Component = 'div',
+    as: ComponentProp = 'div',
     children,
     value,
     defaultValue,
@@ -138,6 +138,12 @@ function Highlight<T extends React.ElementType = 'div'>({
     exitDelay = 200,
     mode = 'children',
   } = props;
+
+  // `as` is a generic React.ElementType and TypeScript will not verify the
+  // props of a value typed that loosely — it reports LibraryManagedAttributes
+  // against `never`. The runtime value is always a real element type, so it is
+  // read through the concrete alias. Vendored file: this is the only edit.
+  const Component = ComponentProp as unknown as React.FC<React.ComponentProps<'div'>>;
 
   const localRef = React.useRef<HTMLDivElement>(null);
   React.useImperativeHandle(ref, () => localRef.current as HTMLDivElement);
@@ -415,7 +421,13 @@ function HighlightItem<T extends React.ElementType>({
     setActiveClassName,
   } = useHighlight();
 
-  const Component = as ?? 'div';
+  // `as` is a generic React.ElementType, and TypeScript will not verify the
+  // props of a value typed that loosely — it reports LibraryManagedAttributes
+  // against `never`. The runtime value is always a real element type, so it is
+  // read through the concrete alias here rather than every call site being
+  // widened. Vendored file: the narrowing is the only edit.
+  const ComponentProp = as ?? 'div';
+  const Component = ComponentProp as unknown as React.FC<React.ComponentProps<'div'>>;
   const element = children as React.ReactElement<ExtendedChildProps>;
   const childValue =
     id ?? value ?? element.props?.['data-value'] ?? element.props?.id ?? itemId;
