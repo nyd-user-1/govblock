@@ -25,11 +25,13 @@ const nextConfig: NextConfig = {
   // wandering through ten of them holds ten module graphs at once. Two routes
   // and fifteen seconds is the setting for reading and editing one page at a
   // time. What it costs is a recompile when you go back to a page you left
-  // sitting — worth measuring rather than trusting, because the handler is
+  // sitting, which is why the age is thirty seconds and not the fifteen this
+  // started at (Brendan, 2026-09-09) — worth measuring rather than trusting,
+  // because the handler is
   // wired into Turbopack's hot reloader but how much it frees on the Rust side
   // is not something this note can promise.
   onDemandEntries: {
-    maxInactiveAge: 15 * 1000,
+    maxInactiveAge: 30 * 1000,
     pagesBufferLength: 2,
   },
   // The in-memory response cache, 50 MB by default. Small next to the rest, and
