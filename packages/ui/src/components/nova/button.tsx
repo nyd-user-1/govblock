@@ -1,8 +1,4 @@
-import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { motion } from "motion/react"
-
-import { usePress } from "@govblock/ui/lib/use-press"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@govblock/ui/lib/utils"
@@ -12,7 +8,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        // @animbits/buttons-press, on the blue button (Brendan, 2026-09-08).
+        // Their numbers — 0.96 over 100ms, ease-in-out — driven by CSS rather
+        // than their motion hook, because this Button is Base UI's and it owns
+        // the element it renders. Handing it a motion element made Base UI
+        // think a custom render had been supplied and warn that the button was
+        // no longer a native one, and building a motion component during a
+        // server render threw outright. CSS reaches all 143 blue buttons,
+        // including the twelve that are links, and cannot do either.
+        // `usePress` and `PressButton` stay in the kit for a plain button that
+        // wants the motion version.
+        default:
+          "bg-primary text-primary-foreground transition-transform duration-100 ease-in-out hover:bg-primary/80 active:scale-[0.96]",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
@@ -48,35 +55,12 @@ function Button({
   className,
   variant = "default",
   size = "default",
-  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  // @animbits/buttons-press, on the primary button only (Brendan, 2026-09-08:
-  // "use this on all blue buttons"). The hook is theirs; what it returns is a
-  // pair of motion props, so the button has to render as a motion element for
-  // them to land. Where a caller hands their own element in — a Link, most
-  // often — motion is wrapped around that element's type instead, so a blue
-  // button that navigates presses like a blue button that submits.
-  const press = usePress({ pressScale: 0.96 })
-  const pressed = variant === "default"
-  const Given = (render as React.ReactElement<Record<string, unknown>> | undefined)?.type
-  const Motion = React.useMemo(
-    () => (pressed && Given && typeof Given !== "string" ? motion.create(Given as React.ComponentType<Record<string, unknown>>) : null),
-    [pressed, Given]
-  )
-  const element = React.useMemo(() => {
-    if (!pressed) return render
-    if (!render) return <motion.button {...press} />
-    const given = render as React.ReactElement<Record<string, unknown>>
-    if (typeof given.type === "string") return React.cloneElement(given, press as Record<string, unknown>)
-    return Motion ? <Motion {...given.props} {...press} /> : render
-  }, [pressed, render, Motion, press])
-
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      render={element}
       {...props}
     />
   )
