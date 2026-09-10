@@ -4,10 +4,30 @@ import * as React from "react"
 import { EllipsisVerticalIcon, GripVerticalIcon } from "lucide-react"
 
 import { useLocal } from "@/lib/policy/use-local"
-import { arrange, COLORS, DEFAULT_SIZE, readLayout, reorder, sameSize, SIZE_CHOICES, type Color, type Columns, type Layout, type Size } from "@/lib/workspace/datasets"
+import {
+  arrange,
+  COLORS,
+  DEFAULT_SIZE,
+  readLayout,
+  reorder,
+  sameSize,
+  SIZE_CHOICES,
+  type Color,
+  type Columns,
+  type Layout,
+  type Size,
+} from "@/lib/workspace/datasets"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Button as MenuButton } from "@govblock/ui/components/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@govblock/ui/components/card"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@govblock/ui/components/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,10 +53,28 @@ import { cn } from "@govblock/ui/lib/utils"
 // changes per kind is the media, the text, the two buttons and the first
 // group of menu items, never the chrome.
 
-const COLS: Record<Size["cols"], string> = { 1: "", 2: "md:col-span-2", 3: "md:col-span-2 xl:col-span-3", 4: "md:col-span-2 xl:col-span-4", 6: "md:col-span-2 xl:col-span-6", 8: "md:col-span-2 xl:col-span-8" }
-const ROWS: Record<Size["rows"], string> = { 1: "", 2: "row-span-2", 3: "row-span-3", 4: "row-span-4" }
+const COLS: Record<Size["cols"], string> = {
+  1: "",
+  2: "md:col-span-2",
+  3: "md:col-span-2 xl:col-span-3",
+  4: "md:col-span-2 xl:col-span-4",
+  6: "md:col-span-2 xl:col-span-6",
+  8: "md:col-span-2 xl:col-span-8",
+}
+const ROWS: Record<Size["rows"], string> = {
+  1: "",
+  2: "row-span-2",
+  3: "row-span-3",
+  4: "row-span-4",
+}
 
-export type GridAction = { label: string; onClick?: () => void; disabled?: boolean; title?: string; /** A menu in place of a plain button: the trigger is rendered by the item. */ render?: React.ReactNode }
+export type GridAction = {
+  label: string
+  onClick?: () => void
+  disabled?: boolean
+  title?: string
+  /** A menu in place of a plain button: the trigger is rendered by the item. */ render?: React.ReactNode
+}
 
 export type GridItem = {
   key: string
@@ -77,7 +115,10 @@ export type GridItem = {
 function defaultFor(item: GridItem, columns: Columns): Size {
   const base = item.defaultSize
   if (!base || columns === 4) return base ?? DEFAULT_SIZE
-  return { cols: Math.min(8, base.cols * 2) as Size["cols"], rows: Math.min(4, base.rows * 2) as Size["rows"] }
+  return {
+    cols: Math.min(8, base.cols * 2) as Size["cols"],
+    rows: Math.min(4, base.rows * 2) as Size["rows"],
+  }
 }
 
 function sizeFor(item: GridItem, columns: Columns, saved?: Size): Size {
@@ -117,20 +158,28 @@ export function useGridCell(): GridCell | null {
 /** The grid's menu items, for a bare block's own ⋮. */
 export function GridCellItems({ cell }: { cell: GridCell }) {
   const changed = !sameSize(cell.size, cell.base) || !!cell.color
-  const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, cell.size))?.label ?? ""
+  const sizeValue =
+    SIZE_CHOICES.find((c) => sameSize(c.size, cell.size))?.label ?? ""
   return (
     <>
       {cell.docs && (
         <>
-          <DropdownMenuItem render={<a href={cell.docs} />}>Code</DropdownMenuItem>
+          <DropdownMenuItem render={<a href={cell.docs} />}>
+            Code
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
         </>
       )}
-      <DropdownMenuItem onClick={() => cell.onRearranging(!cell.rearranging)}>{cell.rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => cell.onRearranging(!cell.rearranging)}>
+        {cell.rearranging ? "Done rearranging" : "Rearrange"}
+      </DropdownMenuItem>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="w-max min-w-44">
-          <DropdownMenuRadioGroup value={String(cell.columns)} onValueChange={(value) => cell.onColumns(Number(value) as Columns)}>
+          <DropdownMenuRadioGroup
+            value={String(cell.columns)}
+            onValueChange={(value) => cell.onColumns(Number(value) as Columns)}
+          >
             <DropdownMenuRadioItem value="4" className="whitespace-nowrap">
               4 columns
             </DropdownMenuRadioItem>
@@ -151,7 +200,11 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
             }}
           >
             {SIZE_CHOICES.map((c) => (
-              <DropdownMenuRadioItem key={c.label} value={c.label} className="whitespace-nowrap">
+              <DropdownMenuRadioItem
+                key={c.label}
+                value={c.label}
+                className="whitespace-nowrap"
+              >
                 {c.label}
               </DropdownMenuRadioItem>
             ))}
@@ -161,10 +214,23 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
       <DropdownMenuSub>
         <DropdownMenuSubTrigger>Color</DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="w-max min-w-44">
-          <DropdownMenuRadioGroup value={cell.color ?? ""} onValueChange={(value) => cell.onColor((value as Color) || null)}>
+          <DropdownMenuRadioGroup
+            value={cell.color ?? ""}
+            onValueChange={(value) => cell.onColor((value as Color) || null)}
+          >
             {COLORS.map((c) => (
-              <DropdownMenuRadioItem key={c.value} value={c.value} className="whitespace-nowrap">
-                <span className={cn("mr-1 inline-block size-3.5 rounded-full", c.swatch)} aria-hidden />
+              <DropdownMenuRadioItem
+                key={c.value}
+                value={c.value}
+                className="whitespace-nowrap"
+              >
+                <span
+                  className={cn(
+                    "mr-1 inline-block size-3.5 rounded-full",
+                    c.swatch
+                  )}
+                  aria-hidden
+                />
                 {c.label}
               </DropdownMenuRadioItem>
             ))}
@@ -180,7 +246,9 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
       >
         Reset Component
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={cell.onResetLayout}>Reset layout</DropdownMenuItem>
+      <DropdownMenuItem onClick={cell.onResetLayout}>
+        Reset layout
+      </DropdownMenuItem>
       <DropdownMenuItem variant="destructive" onClick={cell.onDelete}>
         Delete Component
       </DropdownMenuItem>
@@ -215,10 +283,19 @@ function CardActions({
 }) {
   const base = defaultFor(item, columns)
   const changed = !sameSize(size, base) || !!color
-  const sizeValue = SIZE_CHOICES.find((c) => sameSize(c.size, size))?.label ?? ""
+  const sizeValue =
+    SIZE_CHOICES.find((c) => sameSize(c.size, size))?.label ?? ""
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<MenuButton variant="ghost" size="icon-sm" aria-label="Card options" />}>
+      <DropdownMenuTrigger
+        render={
+          <MenuButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Card options"
+          />
+        }
+      >
         <EllipsisVerticalIcon />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-max min-w-52">
@@ -226,15 +303,22 @@ function CardActions({
         {item.menu && <DropdownMenuSeparator />}
         {item.docs && (
           <>
-            <DropdownMenuItem render={<a href={item.docs} />}>Code</DropdownMenuItem>
+            <DropdownMenuItem render={<a href={item.docs} />}>
+              Code
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem onClick={() => onRearranging(!rearranging)}>{rearranging ? "Done rearranging" : "Rearrange"}</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onRearranging(!rearranging)}>
+          {rearranging ? "Done rearranging" : "Rearrange"}
+        </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Grid</DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-max min-w-44">
-            <DropdownMenuRadioGroup value={String(columns)} onValueChange={(value) => onColumns(Number(value) as Columns)}>
+            <DropdownMenuRadioGroup
+              value={String(columns)}
+              onValueChange={(value) => onColumns(Number(value) as Columns)}
+            >
               <DropdownMenuRadioItem value="4" className="whitespace-nowrap">
                 4 columns
               </DropdownMenuRadioItem>
@@ -255,7 +339,11 @@ function CardActions({
               }}
             >
               {SIZE_CHOICES.map((c) => (
-                <DropdownMenuRadioItem key={c.label} value={c.label} className="whitespace-nowrap">
+                <DropdownMenuRadioItem
+                  key={c.label}
+                  value={c.label}
+                  className="whitespace-nowrap"
+                >
                   {c.label}
                 </DropdownMenuRadioItem>
               ))}
@@ -265,10 +353,23 @@ function CardActions({
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Color</DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-max min-w-44">
-            <DropdownMenuRadioGroup value={color ?? ""} onValueChange={(value) => onColor((value as Color) || null)}>
+            <DropdownMenuRadioGroup
+              value={color ?? ""}
+              onValueChange={(value) => onColor((value as Color) || null)}
+            >
               {COLORS.map((c) => (
-                <DropdownMenuRadioItem key={c.value} value={c.value} className="whitespace-nowrap">
-                  <span className={cn("mr-1 inline-block size-3.5 rounded-full", c.swatch)} aria-hidden />
+                <DropdownMenuRadioItem
+                  key={c.value}
+                  value={c.value}
+                  className="whitespace-nowrap"
+                >
+                  <span
+                    className={cn(
+                      "mr-1 inline-block size-3.5 rounded-full",
+                      c.swatch
+                    )}
+                    aria-hidden
+                  />
                   {c.label}
                 </DropdownMenuRadioItem>
               ))}
@@ -284,7 +385,9 @@ function CardActions({
         >
           Reset Component
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onResetLayout}>Reset layout</DropdownMenuItem>
+        <DropdownMenuItem onClick={onResetLayout}>
+          Reset layout
+        </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onClick={onDelete}>
           Delete Component
         </DropdownMenuItem>
@@ -345,8 +448,17 @@ function GridCard({
     const move = (e: PointerEvent) => {
       const { columns, columnWidth, rowHeight } = metrics()
       if (!columnWidth || !rowHeight) return
-      const cols = Math.max(1, Math.min(columns, Math.round(start.cols + (e.clientX - startX) / columnWidth))) as Size["cols"]
-      const rows = Math.max(1, Math.min(4, Math.round(start.rows + (e.clientY - startY) / rowHeight))) as Size["rows"]
+      const cols = Math.max(
+        1,
+        Math.min(
+          columns,
+          Math.round(start.cols + (e.clientX - startX) / columnWidth)
+        )
+      ) as Size["cols"]
+      const rows = Math.max(
+        1,
+        Math.min(4, Math.round(start.rows + (e.clientY - startY) / rowHeight))
+      ) as Size["rows"]
       if (cols !== size.cols || rows !== size.rows) onSize({ cols, rows })
     }
     const up = () => {
@@ -361,31 +473,74 @@ function GridCard({
   // The card itself is the first button (Brendan, 2026-09-07): a click
   // anywhere that is not a button, a menu or the corner opens the record.
   const primary = item.actions?.[0]
-  const open = item.onOpen ?? (primary && !primary.disabled ? primary.onClick : undefined)
+  const open =
+    item.onOpen ?? (primary && !primary.disabled ? primary.onClick : undefined)
   const openable = !!open && !rearranging
   const onCardClick = (e: React.MouseEvent) => {
     if (!openable) return
-    if ((e.target as HTMLElement).closest("button, a, input, [role=menuitem], [role=menu]")) return
+    if (
+      (e.target as HTMLElement).closest(
+        "button, a, input, [role=menuitem], [role=menu]"
+      )
+    )
+      return
     open?.()
   }
 
-  const cell: GridCell = { docs: item.docs, size, base: defaultFor(item, columns), color, columns, rearranging, onSize, onColor, onColumns, onRearranging, onResetLayout, onDelete }
+  const cell: GridCell = {
+    docs: item.docs,
+    size,
+    base: defaultFor(item, columns),
+    color,
+    columns,
+    rearranging,
+    onSize,
+    onColor,
+    onColumns,
+    onRearranging,
+    onResetLayout,
+    onDelete,
+  }
+  // Rearrange mode makes the whole cell draggable. The grip makes one cell
+  // draggable for as long as it is held, so a block can be moved without
+  // finding a menu first (Brendan, 2026-09-10) — `draggable` has to be true
+  // before the drag starts, which is what pressing the grip sets.
+  const [byHandle, setByHandle] = React.useState(false)
+  const handleProps = {
+    onPointerDown: () => setByHandle(true),
+    onPointerUp: () => setByHandle(false),
+  }
+
   const dragProps = {
-    draggable: rearranging,
+    draggable: rearranging || byHandle,
     onDragStart: (e: React.DragEvent) => {
       e.dataTransfer.effectAllowed = "move"
       e.dataTransfer.setData("text/plain", item.key)
       onDragStart()
     },
     onDragEnter,
-    onDragOver: (e: React.DragEvent) => rearranging && e.preventDefault(),
+    onDragOver: (e: React.DragEvent) => (rearranging || byHandle) && e.preventDefault(),
     onDrop: (e: React.DragEvent) => e.preventDefault(),
-    onDragEnd,
+    onDragEnd: () => {
+      setByHandle(false)
+      onDragEnd()
+    },
   }
   const corner = (
-    <button type="button" aria-label="Drag to resize" title="Drag to resize" onPointerDown={onHandle} className="absolute right-1 bottom-1 z-10 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground">
+    <button
+      type="button"
+      aria-label="Drag to resize"
+      title="Drag to resize"
+      onPointerDown={onHandle}
+      className="absolute right-1 bottom-1 z-10 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground"
+    >
       <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
-        <path d="M14 2 2 14M14 8l-6 6M14 14h0" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        <path
+          d="M14 2 2 14M14 8l-6 6M14 14h0"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          fill="none"
+        />
       </svg>
     </button>
   )
@@ -397,9 +552,16 @@ function GridCard({
           data-component={item.key}
           data-group={item.group}
           {...dragProps}
-          style={paint ? ({ "--primary": paint.primary, "--primary-foreground": paint.foreground } as React.CSSProperties) : undefined}
+          style={
+            paint
+              ? ({
+                  "--primary": paint.primary,
+                  "--primary-foreground": paint.foreground,
+                } as React.CSSProperties)
+              : undefined
+          }
           className={cn(
-            "relative h-full min-h-0 rounded-[min(var(--radius-4xl),24px)] transition-shadow **:data-[slot=card]:h-full hover:ring-1 hover:ring-foreground/50",
+            "group/cell relative h-full min-h-0 rounded-[min(var(--radius-4xl),24px)] transition-shadow hover:ring-1 hover:ring-foreground/50 **:data-[slot=card]:h-full",
             COLS[size.cols],
             ROWS[size.rows],
             rearranging && "cursor-grab select-none active:cursor-grabbing",
@@ -407,15 +569,39 @@ function GridCard({
             resizing && "ring-2 ring-ring/40"
           )}
         >
-          <div className="h-full min-h-0 overflow-hidden rounded-[min(var(--radius-4xl),24px)]">{item.media}</div>
-          {rearranging && (
-            <span aria-hidden className="absolute top-2 left-2 z-10 flex size-7 items-center justify-center rounded-full bg-background/80 text-muted-foreground/70 shadow-sm" title="Drag to move">
-              <GripVerticalIcon className="size-4" />
-            </span>
-          )}
+          <div className="h-full min-h-0 overflow-hidden rounded-[min(var(--radius-4xl),24px)]">
+            {item.media}
+          </div>
+          <span
+            {...handleProps}
+            aria-hidden
+            className={cn(
+              "absolute top-2 left-2 z-10 flex size-7 cursor-grab items-center justify-center rounded-full bg-background/80 text-muted-foreground/70 shadow-sm transition-opacity active:cursor-grabbing",
+              // Always there while rearranging; otherwise it waits for the
+              // pointer, so a catalogue of blocks is not a field of handles.
+              rearranging
+                ? "opacity-100"
+                : "opacity-0 group-hover/cell:opacity-100 focus-visible:opacity-100"
+            )}
+            title="Drag to move"
+          >
+            <GripVerticalIcon className="size-4" />
+          </span>
           {item.ownMenu === false && (
             <div className="absolute top-3 right-3 z-10">
-              <CardActions item={item} size={size} color={color} columns={columns} rearranging={rearranging} onSize={onSize} onColor={onColor} onColumns={onColumns} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
+              <CardActions
+                item={item}
+                size={size}
+                color={color}
+                columns={columns}
+                rearranging={rearranging}
+                onSize={onSize}
+                onColor={onColor}
+                onColumns={onColumns}
+                onRearranging={onRearranging}
+                onResetLayout={onResetLayout}
+                onDelete={onDelete}
+              />
             </div>
           )}
           {corner}
@@ -426,7 +612,14 @@ function GridCard({
 
   const button = (action: GridAction, index: number) =>
     action.render ?? (
-      <Button key={action.label} variant={index === 0 ? "default" : "outline"} className="min-w-0 flex-1 rounded-2xl" disabled={action.disabled} title={action.title} onClick={action.onClick}>
+      <Button
+        key={action.label}
+        variant={index === 0 ? "default" : "outline"}
+        className="min-w-0 flex-1 rounded-2xl"
+        disabled={action.disabled}
+        title={action.title}
+        onClick={action.onClick}
+      >
         {action.label}
       </Button>
     )
@@ -435,21 +628,31 @@ function GridCard({
     <Card
       data-component={item.key}
       data-group={item.group}
-      draggable={rearranging}
+      draggable={rearranging || byHandle}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = "move"
         e.dataTransfer.setData("text/plain", item.key)
         onDragStart()
       }}
       onDragEnter={onDragEnter}
-      onDragOver={(e) => rearranging && e.preventDefault()}
+      onDragOver={(e) => (rearranging || byHandle) && e.preventDefault()}
       onDrop={(e) => e.preventDefault()}
-      onDragEnd={onDragEnd}
+      onDragEnd={() => {
+        setByHandle(false)
+        onDragEnd()
+      }}
       onClick={onCardClick}
-      style={paint ? ({ "--primary": paint.primary, "--primary-foreground": paint.foreground } as React.CSSProperties) : undefined}
+      style={
+        paint
+          ? ({
+              "--primary": paint.primary,
+              "--primary-foreground": paint.foreground,
+            } as React.CSSProperties)
+          : undefined
+      }
       className={cn(
         // A 1px border on hover (Brendan, 2026-09-07); transparent otherwise so nothing shifts.
-        "relative h-full min-h-0 overflow-hidden border border-transparent transition-colors hover:border-foreground/50",
+        "group/cell relative h-full min-h-0 overflow-hidden border border-transparent transition-colors hover:border-foreground/50",
         // Half the card, half the padding (Brendan, 2026-09-07): the card's own spacing token, halved, so its padding and gaps follow.
         compact && "[--card-spacing:--spacing(2.5)]",
         COLS[size.cols],
@@ -462,46 +665,132 @@ function GridCard({
     >
       <CardHeader className="items-center">
         {/* The badge sits in line with the ⋮, at the left. */}
-        <div className="flex h-7 items-center text-muted-foreground">{item.badge}</div>
+        <div className="flex h-7 items-center text-muted-foreground">
+          {item.badge}
+        </div>
         <CardTitle className="sr-only">{item.title}</CardTitle>
         <CardAction className="flex items-center gap-1 self-center">
-          {rearranging && (
-            <span aria-hidden className="flex size-7 items-center justify-center text-muted-foreground/70" title="Drag to move">
-              <GripVerticalIcon className="size-4" />
-            </span>
-          )}
-          <CardActions item={item} size={size} color={color} columns={columns} rearranging={rearranging} onSize={onSize} onColor={onColor} onColumns={onColumns} onRearranging={onRearranging} onResetLayout={onResetLayout} onDelete={onDelete} />
+          <span
+            {...handleProps}
+            aria-hidden
+            className={cn(
+              "flex size-7 cursor-grab items-center justify-center text-muted-foreground/70 transition-opacity active:cursor-grabbing",
+              rearranging ? "opacity-100" : "opacity-0 group-hover/cell:opacity-100"
+            )}
+            title="Drag to move"
+          >
+            <GripVerticalIcon className="size-4" />
+          </span>
+          <CardActions
+            item={item}
+            size={size}
+            color={color}
+            columns={columns}
+            rearranging={rearranging}
+            onSize={onSize}
+            onColor={onColor}
+            onColumns={onColumns}
+            onRearranging={onRearranging}
+            onResetLayout={onResetLayout}
+            onDelete={onDelete}
+          />
         </CardAction>
       </CardHeader>
-      <CardContent className={cn("flex min-h-0 flex-1 flex-col items-center justify-center text-center", compact ? "gap-2" : "gap-4", item.fill && "justify-start")}>
-        <div className={cn("flex items-center justify-center rounded-2xl bg-muted/60", compact ? "p-2" : "p-4", item.fill && "min-h-0 w-full flex-1 overflow-hidden p-0 text-left [&>*]:h-full [&>*]:w-full")} style={compact && !item.fill ? ({ zoom: 0.6 } as React.CSSProperties) : undefined}>
+      <CardContent
+        className={cn(
+          "flex min-h-0 flex-1 flex-col items-center justify-center text-center",
+          compact ? "gap-2" : "gap-4",
+          item.fill && "justify-start"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-2xl bg-muted/60",
+            compact ? "p-2" : "p-4",
+            item.fill &&
+              "min-h-0 w-full flex-1 overflow-hidden p-0 text-left [&>*]:h-full [&>*]:w-full"
+          )}
+          style={
+            compact && !item.fill
+              ? ({ zoom: 0.6 } as React.CSSProperties)
+              : undefined
+          }
+        >
           {item.media}
         </div>
         <div className="flex min-w-0 flex-col gap-1.5">
-          <div className={cn("cn-font-heading font-medium text-balance", compact ? "text-sm" : "text-lg")}>{item.title}</div>
-          {!compact && item.description && <CardDescription className="text-pretty">{item.description}</CardDescription>}
-          {!compact && item.meta && <p className="text-xs text-muted-foreground">{item.meta}</p>}
+          <div
+            className={cn(
+              "cn-font-heading font-medium text-balance",
+              compact ? "text-sm" : "text-lg"
+            )}
+          >
+            {item.title}
+          </div>
+          {!compact && item.description && (
+            <CardDescription className="text-pretty">
+              {item.description}
+            </CardDescription>
+          )}
+          {!compact && item.meta && (
+            <p className="text-xs text-muted-foreground">{item.meta}</p>
+          )}
         </div>
       </CardContent>
-      {item.actions && <CardFooter className="flex items-center gap-2">{item.actions.map(button)}</CardFooter>}
+      {item.actions && (
+        <CardFooter className="flex items-center gap-2">
+          {item.actions.map(button)}
+        </CardFooter>
+      )}
       {/* The corner: drag it right to widen the card, down to make it taller, back to shrink it. */}
-      <button type="button" aria-label="Drag to resize" title="Drag to resize" onPointerDown={onHandle} className="absolute right-1 bottom-1 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground">
+      <button
+        type="button"
+        aria-label="Drag to resize"
+        title="Drag to resize"
+        onPointerDown={onHandle}
+        className="absolute right-1 bottom-1 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground"
+      >
         <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
-          <path d="M14 2 2 14M14 8l-6 6M14 14h0" stroke="currentColor" strokeWidth="1.2" fill="none" />
+          <path
+            d="M14 2 2 14M14 8l-6 6M14 14h0"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            fill="none"
+          />
         </svg>
       </button>
     </Card>
   )
 }
 
-export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children, className }: { storageKey: string; items: GridItem[]; /** A trailing row of skeletons while more arrive. */ loading?: boolean; /** The items' own order stands (the footer's Filter chip is sorting them); the reader's saved order waits. */ keepOrder?: boolean; children?: React.ReactNode; className?: string }) {
+export function WorkspaceGrid({
+  storageKey,
+  items,
+  loading,
+  keepOrder,
+  children,
+  className,
+}: {
+  storageKey: string
+  items: GridItem[]
+  /** A trailing row of skeletons while more arrive. */ loading?: boolean
+  /** The items' own order stands (the footer's Filter chip is sorting them); the reader's saved order waits. */ keepOrder?: boolean
+  children?: React.ReactNode
+  className?: string
+}) {
   const [saved, setLayout] = useLocal<Partial<Layout>>(storageKey, {})
   const layout = React.useMemo(() => readLayout(saved), [saved])
   const grid = React.useRef<HTMLDivElement>(null)
   const [rearranging, setRearranging] = React.useState(false)
   const [dragging, setDragging] = React.useState<string | null>(null)
 
-  const cards = React.useMemo(() => (keepOrder ? arrange({ ...layout, order: [] }, items) : arrange(layout, items)), [layout, items, keepOrder])
+  const cards = React.useMemo(
+    () =>
+      keepOrder
+        ? arrange({ ...layout, order: [] }, items)
+        : arrange(layout, items),
+    [layout, items, keepOrder]
+  )
   const columns: Columns = layout.columns === 8 ? 8 : 4
 
   // Read at the moment of a drag, so a window that changed width since mount still measures true.
@@ -509,13 +798,20 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
     const el = grid.current
     if (!el) return { columns: 4, columnWidth: 0, rowHeight: 0 }
     const style = getComputedStyle(el)
-    const columns = style.gridTemplateColumns.split(" ").filter(Boolean).length || 1
+    const columns =
+      style.gridTemplateColumns.split(" ").filter(Boolean).length || 1
     const gap = parseFloat(style.rowGap) || 0
-    return { columns, columnWidth: el.clientWidth / columns, rowHeight: (parseFloat(style.gridAutoRows) || 352) + gap }
+    return {
+      columns,
+      columnWidth: el.clientWidth / columns,
+      rowHeight: (parseFloat(style.gridAutoRows) || 352) + gap,
+    }
   }, [])
 
-  const patch = (change: (current: Layout) => Partial<Layout>) => setLayout((raw) => ({ ...readLayout(raw), ...change(readLayout(raw)) }))
-  const setSize = (key: string, size: Size) => patch((c) => ({ sizes: { ...c.sizes, [key]: size } }))
+  const patch = (change: (current: Layout) => Partial<Layout>) =>
+    setLayout((raw) => ({ ...readLayout(raw), ...change(readLayout(raw)) }))
+  const setSize = (key: string, size: Size) =>
+    patch((c) => ({ sizes: { ...c.sizes, [key]: size } }))
   const setColumns = (columns: Columns) => patch(() => ({ columns }))
   const setColor = (key: string, color: Color | null) =>
     patch((c) => {
@@ -524,25 +820,47 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
       else delete colors[key]
       return { colors }
     })
-  const remove = (key: string) => patch((c) => ({ hidden: [...c.hidden.filter((k) => k !== key), key] }))
+  const remove = (key: string) =>
+    patch((c) => ({ hidden: [...c.hidden.filter((k) => k !== key), key] }))
   const resetLayout = () => {
     patch(() => ({ order: [], sizes: {}, hidden: [], colors: {}, columns: 4 }))
     setRearranging(false)
   }
-  const moveBefore = (key: string, before: string) => patch((c) => ({ order: reorder(arrange(c, items), key, before) }))
+  const moveBefore = (key: string, before: string) =>
+    patch((c) => ({ order: reorder(arrange(c, items), key, before) }))
 
   return (
-    <div className={cn("p-6", className)}>
+    // The home well's field under every grid (Brendan, 2026-09-09): the cards
+    // are white on white without it in light mode, and the ring alone is too
+    // faint to draw a card. Dark mode never needed it — card and panel differ.
+    <div
+      className={cn("min-h-full bg-muted p-6 dark:bg-background", className)}
+    >
       {rearranging && (
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-dashed px-4 py-2 text-sm text-muted-foreground">
           Drag a card onto another to move it there.
-          <Button variant="outline" size="sm" className="ml-auto" onClick={() => setRearranging(false)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={() => setRearranging(false)}
+          >
             Done
           </Button>
         </div>
       )}
       {children}
-      <div ref={grid} data-slot="workspace-grid" data-columns={columns} className={cn("grid grid-cols-1 gap-6", columns === 8 ? "auto-rows-[11rem] md:grid-cols-4 xl:grid-cols-8" : "auto-rows-[22rem] md:grid-cols-2 xl:grid-cols-4")}>
+      <div
+        ref={grid}
+        data-slot="workspace-grid"
+        data-columns={columns}
+        className={cn(
+          "grid grid-cols-1 gap-6",
+          columns === 8
+            ? "auto-rows-[11rem] md:grid-cols-4 xl:grid-cols-8"
+            : "auto-rows-[22rem] md:grid-cols-2 xl:grid-cols-4"
+        )}
+      >
         {cards.map((item) => (
           <GridCard
             key={item.key}
@@ -560,13 +878,27 @@ export function WorkspaceGrid({ storageKey, items, loading, keepOrder, children,
             onResetLayout={resetLayout}
             onDelete={() => remove(item.key)}
             onDragStart={() => setDragging(item.key)}
-            onDragEnter={() => dragging && dragging !== item.key && moveBefore(dragging, item.key)}
+            onDragEnter={() =>
+              dragging &&
+              dragging !== item.key &&
+              moveBefore(dragging, item.key)
+            }
             onDragEnd={() => setDragging(null)}
           />
         ))}
-        {loading && Array.from({ length: 4 }, (_, i) => <div key={`skeleton-${i}`} className="h-full animate-pulse rounded-xl bg-muted/60" />)}
+        {loading &&
+          Array.from({ length: 4 }, (_, i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="h-full animate-pulse rounded-xl bg-muted/60"
+            />
+          ))}
       </div>
-      {!cards.length && !loading && <p className="py-12 text-center text-sm text-muted-foreground">Nothing here.</p>}
+      {!cards.length && !loading && (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          Nothing here.
+        </p>
+      )}
     </div>
   )
 }
