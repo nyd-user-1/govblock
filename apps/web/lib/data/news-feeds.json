@@ -1,0 +1,1213 @@
+[
+  {
+    "state": "AK",
+    "name": "Alaska Public Media",
+    "url": "https://alaskapublic.org/news.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AK",
+    "name": "Anchorage Daily News",
+    "url": "https://adn.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AK",
+    "name": "Alaska Beacon",
+    "url": "https://alaskabeacon.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "AL",
+    "name": "Alabama Daily News",
+    "url": "https://www.aldailynews.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AL",
+    "name": "Alabama Political Reporter",
+    "url": "https://www.alreporter.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AL",
+    "name": "Alabama Reflector",
+    "url": "https://alabamareflector.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "AR",
+    "name": "Arkansas Times",
+    "url": "https://arktimes.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AR",
+    "name": "Arkansas Times — Arkansas Blog",
+    "url": "https://arktimes.com/arkansas-blog/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AR",
+    "name": "Arkansas Advocate",
+    "url": "https://arkansasadvocate.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "AZ",
+    "name": "Arizona Capitol Times",
+    "url": "https://azcapitoltimes.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "AZ",
+    "name": "AZ Family",
+    "url": "https://azfamily.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "AZ",
+    "name": "AZ FREE NEWS",
+    "url": "https://azfreenews.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "AZ",
+    "name": "Arizona Mirror",
+    "url": "https://azmirror.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "CA",
+    "name": "KPBS Homepage",
+    "url": "https://www.kpbs.org/index.rss",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "CA",
+    "name": "KQED News",
+    "url": "https://ww2.kqed.org/news/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "CA",
+    "name": "LAist",
+    "url": "https://laist.com/index.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "CA",
+    "name": "CalMatters",
+    "url": "https://calmatters.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "CO",
+    "name": "Colorado Public Radio",
+    "url": "https://www.cpr.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "CO",
+    "name": "The Colorado Sun",
+    "url": "https://coloradosun.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "CO",
+    "name": "Colorado Newsline",
+    "url": "https://coloradonewsline.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "CT",
+    "name": "CT News Junkie",
+    "url": "https://ctnewsjunkie.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "CT",
+    "name": "Hartford Business Journal",
+    "url": "https://hartfordbusiness.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "CT",
+    "name": "senatedems.ct.gov",
+    "url": "https://www.senatedems.ct.gov/feed",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "CT",
+    "name": "wshu.org",
+    "url": "https://www.wshu.org/index.rss",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "CT",
+    "name": "CT Mirror",
+    "url": "https://ctmirror.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "DC",
+    "name": "Heritage Review",
+    "url": "https://heritagereview.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "DC",
+    "name": "Washington City Paper",
+    "url": "https://washingtoncitypaper.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "DC",
+    "name": "The 51st",
+    "url": "https://51st.news/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "DE",
+    "name": "Delaware Public Media",
+    "url": "https://www.delawarepublic.org/politics-government.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "DE",
+    "name": "Spotlight Delaware",
+    "url": "https://spotlightdelaware.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "FL",
+    "name": "Florida Politics",
+    "url": "https://floridapolitics.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "FL",
+    "name": "WUSF",
+    "url": "https://www.wusf.org/politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "FL",
+    "name": "Florida Phoenix",
+    "url": "https://floridaphoenix.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "GA",
+    "name": "Office of the Governor",
+    "url": "https://gov.georgia.gov/rss.xml",
+    "kind": "governor",
+    "active": true
+  },
+  {
+    "state": "GA",
+    "name": "Georgia Public Broadcasting",
+    "url": "https://www.gpb.org/feeds/news",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "GA",
+    "name": "Georgia Recorder",
+    "url": "https://georgiarecorder.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "HI",
+    "name": "Hawaii Public Radio",
+    "url": "https://www.hawaiipublicradio.org/government-politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "HI",
+    "name": "Hawaii Tribune-Herald",
+    "url": "https://www.hawaiitribune-herald.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "HI",
+    "name": "Honolulu Civil Beat",
+    "url": "https://www.civilbeat.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "IA",
+    "name": "Iowa Starting Line",
+    "url": "https://iowastartingline.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "IA",
+    "name": "KCRG",
+    "url": "https://kcrg.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "IA",
+    "name": "qctimes.com",
+    "url": "http://qctimes.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "IA",
+    "name": "Iowa Capital Dispatch",
+    "url": "https://iowacapitaldispatch.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "ID",
+    "name": "Boise State Public Radio",
+    "url": "https://www.boisestatepublicradio.org/index.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "ID",
+    "name": "Idaho Ed News",
+    "url": "https://www.idahoednews.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "ID",
+    "name": "Idaho Capital Sun",
+    "url": "https://idahocapitalsun.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "IL",
+    "name": "Illinois Times",
+    "url": "https://illinoistimes.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "IL",
+    "name": "WBEZ",
+    "url": "https://www.wbez.org/rss/index.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "IL",
+    "name": "Capitol News Illinois",
+    "url": "https://capitolnewsillinois.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "IN",
+    "name": "Indiana Public Media",
+    "url": "https://indianapublicmedia.org/index.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "IN",
+    "name": "Mirror Indy",
+    "url": "https://mirrorindy.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "IN",
+    "name": "Indiana Capital Chronicle",
+    "url": "https://indianacapitalchronicle.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "KS",
+    "name": "KCUR",
+    "url": "https://www.kcur.org/feeds/all.rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "KS",
+    "name": "The Beacon — Kansas",
+    "url": "https://thebeaconnews.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "KS",
+    "name": "Kansas Reflector",
+    "url": "https://kansasreflector.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "KY",
+    "name": "Louisville Public Media",
+    "url": "https://lpm.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "KY",
+    "name": "Northern Kentucky Tribune",
+    "url": "https://www.nkytribune.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "KY",
+    "name": "Kentucky Lantern",
+    "url": "https://kentuckylantern.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "LA",
+    "name": "Verite News",
+    "url": "https://veritenews.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "LA",
+    "name": "WWNO",
+    "url": "https://www.wwno.org/politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "LA",
+    "name": "Louisiana Illuminator",
+    "url": "https://lailluminator.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MA",
+    "name": "MassLive",
+    "url": "https://masslive.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MA",
+    "name": "WBUR",
+    "url": "https://wbur.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MA",
+    "name": "CommonWealth Beacon",
+    "url": "https://commonwealthbeacon.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MD",
+    "name": "The Baltimore Banner",
+    "url": "https://www.thebaltimorebanner.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MD",
+    "name": "thebanner.com",
+    "url": "https://thebanner.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "MD",
+    "name": "The Southern Maryland Chronicle",
+    "url": "https://southernmarylandchronicle.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "MD",
+    "name": "Maryland Matters",
+    "url": "https://marylandmatters.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "ME",
+    "name": "Maine Public",
+    "url": "https://www.mainepublic.org/politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "ME",
+    "name": "The Maine Monitor",
+    "url": "https://www.themainemonitor.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "ME",
+    "name": "Maine Morning Star",
+    "url": "https://mainemorningstar.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MI",
+    "name": "Bridge Michigan",
+    "url": "https://www.bridgemi.com/rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MI",
+    "name": "Michigan Public",
+    "url": "https://michiganpublic.org/index.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MI",
+    "name": "Michigan Advance",
+    "url": "https://michiganadvance.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MN",
+    "name": "MinnPost",
+    "url": "https://www.minnpost.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MN",
+    "name": "MPR News",
+    "url": "https://mprnews.org/feed/homepage",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MN",
+    "name": "Minnesota Reformer",
+    "url": "https://minnesotareformer.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MO",
+    "name": "St. Louis Public Radio",
+    "url": "https://www.stlpr.org/government-politics-issues.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MO",
+    "name": "www.stltoday.com",
+    "url": "http://www.stltoday.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "MO",
+    "name": "Missouri Independent",
+    "url": "https://missouriindependent.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MS",
+    "name": "Magnolia Tribune",
+    "url": "https://magnoliatribune.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MS",
+    "name": "Mississippi Free Press",
+    "url": "https://www.mississippifreepress.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MS",
+    "name": "Mississippi Today",
+    "url": "https://mississippitoday.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "MT",
+    "name": "Montana Free Press",
+    "url": "https://montanafreepress.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MT",
+    "name": "Montana Public Radio",
+    "url": "https://www.mtpr.org/montana-politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "MT",
+    "name": "Daily Montanan",
+    "url": "https://dailymontanan.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NC",
+    "name": "The Assembly",
+    "url": "https://www.theassemblync.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NC",
+    "name": "WUNC",
+    "url": "https://www.wunc.org/politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NC",
+    "name": "NC Newsline",
+    "url": "https://ncnewsline.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "ND",
+    "name": "InForum",
+    "url": "https://www.inforum.com/index.rss",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "ND",
+    "name": "KNOX News Radio 1310",
+    "url": "https://knoxradio.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "ND",
+    "name": "North Dakota News Cooperative",
+    "url": "https://newscoopnd.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "ND",
+    "name": "Valley News Live",
+    "url": "https://valleynewslive.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "ND",
+    "name": "WDAY Radio",
+    "url": "https://www.wdayradionow.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "ND",
+    "name": "North Dakota Monitor",
+    "url": "https://northdakotamonitor.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NE",
+    "name": "Flatwater Free Press",
+    "url": "https://flatwaterfreepress.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NE",
+    "name": "KOLN",
+    "url": "https://1011now.com/arc/outboundfeeds/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "NE",
+    "name": "omaha.com",
+    "url": "http://omaha.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc&k%5B%5D=%23topstory",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "NE",
+    "name": "Nebraska Examiner",
+    "url": "https://nebraskaexaminer.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NH",
+    "name": "InDepthNH",
+    "url": "https://indepthnh.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NH",
+    "name": "NHPR",
+    "url": "https://nhpr.org/rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NH",
+    "name": "New Hampshire Bulletin",
+    "url": "https://newhampshirebulletin.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NJ",
+    "name": "New Jersey Globe",
+    "url": "https://newjerseyglobe.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NJ",
+    "name": "NJ Spotlight News",
+    "url": "https://www.njspotlightnews.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NJ",
+    "name": "New Jersey Monitor",
+    "url": "https://newjerseymonitor.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NM",
+    "name": "KUNM",
+    "url": "https://www.kunm.org/local-news.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NM",
+    "name": "Santa Fe New Mexican",
+    "url": "https://www.santafenewmexican.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NM",
+    "name": "Source New Mexico",
+    "url": "https://sourcenm.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NV",
+    "name": "Nevada Public Radio",
+    "url": "https://knpr.org/politics.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NV",
+    "name": "The Nevada Independent",
+    "url": "https://thenevadaindependent.com/feed",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NV",
+    "name": "Nevada Current",
+    "url": "https://nevadacurrent.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "NY",
+    "name": "City Limits",
+    "url": "https://citylimits.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NY",
+    "name": "Gothamist",
+    "url": "https://gothamist.com/feed",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "NY",
+    "name": "New York Focus",
+    "url": "https://nysfocus.com/feed.xml",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "OH",
+    "name": "Lawyers, Guns & Money",
+    "url": "https://lawyersgunsmoneyblog.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "OH",
+    "name": "Signal Ohio",
+    "url": "https://signalcleveland.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "OH",
+    "name": "The Highland County Press",
+    "url": "https://highlandcountypress.com/rss.xml",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "OH",
+    "name": "Ohio Capital Journal",
+    "url": "https://ohiocapitaljournal.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "OK",
+    "name": "NonDoc",
+    "url": "https://nondoc.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "OK",
+    "name": "Oklahoma Watch",
+    "url": "https://oklahomawatch.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "OK",
+    "name": "Oklahoma Voice",
+    "url": "https://oklahomavoice.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "OR",
+    "name": "Portland Mercury",
+    "url": "https://www.portlandmercury.com/portland/Rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "OR",
+    "name": "Salem Reporter",
+    "url": "https://www.salemreporter.com/feed",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "OR",
+    "name": "Oregon Capital Chronicle",
+    "url": "https://oregoncapitalchronicle.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "PA",
+    "name": "WESA",
+    "url": "https://www.wesa.fm/politics-government.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "PA",
+    "name": "WHYY",
+    "url": "https://whyy.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "PA",
+    "name": "Pennsylvania Capital-Star",
+    "url": "https://penncapital-star.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "RI",
+    "name": "The Public's Radio",
+    "url": "https://thepublicsradio.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "RI",
+    "name": "Uprise RI",
+    "url": "https://upriseri.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "RI",
+    "name": "Rhode Island Current",
+    "url": "https://rhodeislandcurrent.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "SC",
+    "name": "FITSNews",
+    "url": "https://www.fitsnews.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "SC",
+    "name": "South Carolina Public Radio",
+    "url": "https://www.southcarolinapublicradio.org/sc-news.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "SC",
+    "name": "SC Daily Gazette",
+    "url": "https://scdailygazette.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "SD",
+    "name": "KELOLAND",
+    "url": "https://www.keloland.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "SD",
+    "name": "South Dakota News Watch",
+    "url": "https://www.sdnewswatch.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "SD",
+    "name": "South Dakota Searchlight",
+    "url": "https://southdakotasearchlight.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "TN",
+    "name": "Tennessee Holler",
+    "url": "https://tnholler.com/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "TN",
+    "name": "WPLN",
+    "url": "https://wpln.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "TN",
+    "name": "Tennessee Lookout",
+    "url": "https://tennesseelookout.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "TX",
+    "name": "Community Impact Newspaper",
+    "url": "https://communityimpact.com/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "TX",
+    "name": "Texas Standard",
+    "url": "https://www.texasstandard.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "TX",
+    "name": "The Texas Tribune",
+    "url": "https://www.texastribune.org/feeds/main/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "Congress.gov — Bills",
+    "url": "https://www.congress.gov/rss/most-viewed-bills.xml",
+    "kind": "legislature",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "Roll Call",
+    "url": "https://rollcall.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "The Hill — House",
+    "url": "https://thehill.com/homenews/house/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "The Hill — Senate",
+    "url": "https://thehill.com/homenews/senate/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "Government Executive",
+    "url": "https://www.govexec.com/rss/all/",
+    "kind": "wire",
+    "active": true
+  },
+  {
+    "state": "US",
+    "name": "Stateline",
+    "url": "https://stateline.org/feed/",
+    "kind": "wire",
+    "active": true
+  },
+  {
+    "state": "UT",
+    "name": "Office of the Governor",
+    "url": "https://governor.utah.gov/feed/",
+    "kind": "governor",
+    "active": true
+  },
+  {
+    "state": "UT",
+    "name": "KUER",
+    "url": "https://www.kuer.org/politics-government.rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "UT",
+    "name": "Utah News Dispatch",
+    "url": "https://utahnewsdispatch.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "VA",
+    "name": "Cardinal News",
+    "url": "https://cardinalnews.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "VA",
+    "name": "VPM",
+    "url": "https://www.vpm.org/feed",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "VA",
+    "name": "Virginia Mercury",
+    "url": "https://virginiamercury.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "VT",
+    "name": "Seven Days",
+    "url": "https://www.sevendaysvt.com/vermont/Rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "VT",
+    "name": "Vermont Public",
+    "url": "https://vermontpublic.org/feeds/rss",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "VT",
+    "name": "VTDigger",
+    "url": "https://vtdigger.org/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "WA",
+    "name": "Cascade PBS",
+    "url": "https://cascadepbs.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WA",
+    "name": "Florida Times",
+    "url": "https://floridatimes.com/rss",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WA",
+    "name": "The Seattle Times",
+    "url": "https://www.seattletimes.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WA",
+    "name": "The Urbanist",
+    "url": "https://www.theurbanist.org/rss/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WA",
+    "name": "The Urbanist",
+    "url": "https://theurbanist.org/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WA",
+    "name": "Washington State Standard",
+    "url": "https://washingtonstatestandard.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "WI",
+    "name": "Wisconsin Public Radio",
+    "url": "https://www.wpr.org/feed",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WI",
+    "name": "Wisconsin Watch",
+    "url": "https://wisconsinwatch.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WI",
+    "name": "Wisconsin Examiner",
+    "url": "https://wisconsinexaminer.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "WV",
+    "name": "Mountain State Spotlight",
+    "url": "https://mountainstatespotlight.org/feed/",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WV",
+    "name": "The Intelligencer",
+    "url": "https://theintelligencer.net/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WV",
+    "name": "The Intermountain",
+    "url": "https://theintermountain.com/feed/",
+    "kind": "local",
+    "active": false
+  },
+  {
+    "state": "WV",
+    "name": "West Virginia Watch",
+    "url": "https://westvirginiawatch.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  },
+  {
+    "state": "WY",
+    "name": "Cowboy State Daily",
+    "url": "https://cowboystatedaily.com/rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WY",
+    "name": "Wyoming Public Media",
+    "url": "https://www.wyomingpublicmedia.org/rss.xml",
+    "kind": "local",
+    "active": true
+  },
+  {
+    "state": "WY",
+    "name": "WyoFile",
+    "url": "https://wyofile.com/feed/",
+    "kind": "statehouse",
+    "active": true
+  }
+]

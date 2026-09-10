@@ -1,0 +1,434 @@
+[
+  {
+    "state": "AK",
+    "name": "Alaska Public Media",
+    "url": "https://alaskapublic.org/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "AK",
+    "name": "Anchorage Daily News — Politics",
+    "url": "https://www.adn.com/arc/outboundfeeds/rss/category/politics/",
+    "kind": "local",
+    "active": true,
+    "status": "ok"
+  },
+  {
+    "state": "AZ",
+    "name": "KJZZ",
+    "url": "https://www.kjzz.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "CA",
+    "name": "LAist — Politics",
+    "url": "https://laist.com/index.xml",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "CT",
+    "name": "Connecticut Public",
+    "url": "https://www.ctpublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "DE",
+    "name": "Delaware Call",
+    "url": "https://www.delawarecall.com/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "fetch failed"
+  },
+  {
+    "state": "DE",
+    "name": "Delaware Public Media",
+    "url": "https://www.delawarepublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "DC",
+    "name": "DCist",
+    "url": "https://dcist.com/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "FL",
+    "name": "WUSF",
+    "url": "https://www.wusf.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "HI",
+    "name": "Hawaii Public Radio",
+    "url": "https://www.hawaiipublicradio.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "GA",
+    "name": "Atlanta Civic Circle",
+    "url": "https://atlantaciviccircle.org/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "ok"
+  },
+  {
+    "state": "ID",
+    "name": "Boise State Public Radio",
+    "url": "https://www.boisestatepublicradio.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "IL",
+    "name": "Illinois Times",
+    "url": "https://www.illinoistimes.com/illinois/Rss.xml",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "IA",
+    "name": "Iowa Public Radio",
+    "url": "https://www.iowapublicradio.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "IN",
+    "name": "Indiana Public Broadcasting",
+    "url": "https://www.indianapublicmedia.org/news/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "IL",
+    "name": "WBEZ",
+    "url": "https://www.wbez.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "KS",
+    "name": "KCUR",
+    "url": "https://www.kcur.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "not a feed"
+  },
+  {
+    "state": "KY",
+    "name": "Louisville Public Media",
+    "url": "https://www.lpm.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 500"
+  },
+  {
+    "state": "LA",
+    "name": "WWNO",
+    "url": "https://www.wwno.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "ME",
+    "name": "Maine Public",
+    "url": "https://www.mainepublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "MD",
+    "name": "WYPR",
+    "url": "https://www.wypr.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "MA",
+    "name": "WBUR",
+    "url": "https://www.wbur.org/rss/news",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "IA",
+    "name": "Des Moines Register — Politics",
+    "url": "https://rssfeeds.desmoinesregister.com/desmoinesregister/politics",
+    "kind": "local",
+    "active": true,
+    "status": "not a feed"
+  },
+  {
+    "state": "MI",
+    "name": "Michigan Public",
+    "url": "https://www.michiganpublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "MA",
+    "name": "MassLive — Politics",
+    "url": "https://www.masslive.com/arc/outboundfeeds/rss/category/news/politics/",
+    "kind": "local",
+    "active": true,
+    "status": "ok"
+  },
+  {
+    "state": "MN",
+    "name": "MPR News",
+    "url": "https://www.mprnews.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "MO",
+    "name": "The Beacon — Missouri",
+    "url": "https://missouri.thebeaconnews.org/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "fetch failed"
+  },
+  {
+    "state": "MO",
+    "name": "St. Louis Public Radio",
+    "url": "https://www.stlpr.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "MT",
+    "name": "Montana Public Radio",
+    "url": "https://www.mtpr.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "NV",
+    "name": "Nevada Public Radio",
+    "url": "https://knpr.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "NH",
+    "name": "NHPR",
+    "url": "https://www.nhpr.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "NE",
+    "name": "Nebraska Public Media",
+    "url": "https://nebraskapublicmedia.org/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "NM",
+    "name": "KUNM",
+    "url": "https://www.kunm.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "NY",
+    "name": "Spectrum News — NY State of Politics",
+    "url": "https://spectrumlocalnews.com/services/contentfeed.nys|politics.landing.rss",
+    "kind": "local",
+    "active": true,
+    "status": "not a feed"
+  },
+  {
+    "state": "NC",
+    "name": "WUNC",
+    "url": "https://www.wunc.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "ND",
+    "name": "Prairie Public",
+    "url": "https://news.prairiepublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "OH",
+    "name": "Statehouse News Bureau",
+    "url": "https://www.statenews.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "OR",
+    "name": "Willamette Week",
+    "url": "https://www.wweek.com/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "OR",
+    "name": "OPB",
+    "url": "https://www.opb.org/feeds/news/rss/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "PA",
+    "name": "Spotlight PA",
+    "url": "https://www.spotlightpa.org/feeds/rss.xml",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "PA",
+    "name": "WESA",
+    "url": "https://www.wesa.fm/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "SC",
+    "name": "South Carolina Public Radio",
+    "url": "https://www.southcarolinapublicradio.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "SC",
+    "name": "Post and Courier",
+    "url": "https://www.postandcourier.com/search/?f=rss&t=article&c=news/politics&l=50&s=start_time&sd=desc",
+    "kind": "local",
+    "active": true,
+    "status": "http 429"
+  },
+  {
+    "state": "SD",
+    "name": "SDPB",
+    "url": "https://www.sdpb.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "TX",
+    "name": "Houston Chronicle — Politics",
+    "url": "https://www.houstonchronicle.com/rss/feed/Texas-Politics-Policy-591.php",
+    "kind": "local",
+    "active": true,
+    "status": "http 403"
+  },
+  {
+    "state": "UT",
+    "name": "KUER",
+    "url": "https://www.kuer.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "VT",
+    "name": "Vermont Public",
+    "url": "https://www.vermontpublic.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "UT",
+    "name": "Salt Lake Tribune",
+    "url": "https://www.sltrib.com/feeds/rss/news/politics/",
+    "kind": "local",
+    "active": true,
+    "status": "not a feed"
+  },
+  {
+    "state": "WA",
+    "name": "Cascade PBS",
+    "url": "https://www.cascadepbs.org/feeds/news.rss",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "WV",
+    "name": "West Virginia Public Broadcasting",
+    "url": "https://wvpublic.org/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "ok"
+  },
+  {
+    "state": "WY",
+    "name": "Wyoming Public Media",
+    "url": "https://www.wyomingpublicmedia.org/feed",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "WY",
+    "name": "Cowboy State Daily",
+    "url": "https://cowboystatedaily.com/feed/",
+    "kind": "local",
+    "active": true,
+    "status": "http 404"
+  },
+  {
+    "state": "CA",
+    "name": "Sacramento Bee — Capitol Alert",
+    "url": "https://www.sacbee.com/news/politics-government/capitol-alert/?widgetName=rssfeed&widgetContentId=712015&getXmlFeed=true",
+    "kind": "local",
+    "active": true,
+    "status": "timeout"
+  },
+  {
+    "state": "WA",
+    "name": "The Olympian — Politics",
+    "url": "https://www.theolympian.com/news/politics-government/?widgetName=rssfeed&widgetContentId=712015&getXmlFeed=true",
+    "kind": "local",
+    "active": true,
+    "status": "timeout"
+  }
+]
