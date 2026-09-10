@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { stateName } from "@/lib/filters"
+import type { NewsStory } from "@/lib/policy/news"
 import { fmtBill, fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { chamberImage } from "@/lib/imagery"
 import { FlagChip } from "@/components/policy/imagery"
@@ -30,15 +31,39 @@ export type Newsroom = {
   passed: BillRow[]
   committee: BillRow[]
   introduced: BillRow[]
-  rollCalls: { roll_call_id: number; date: string; chamber: string | null; description: string; yea: number; nay: number; bill_id: number; bill_number: string; title: string }[]
-  hearings: { date: string; time: string | null; description: string; bill_id: number; bill_number: string; committee: string | null }[]
+  rollCalls: {
+    roll_call_id: number
+    date: string
+    chamber: string | null
+    description: string
+    yea: number
+    nay: number
+    bill_id: number
+    bill_number: string
+    title: string
+  }[]
+  hearings: {
+    date: string
+    time: string | null
+    description: string
+    bill_id: number
+    bill_number: string
+    committee: string | null
+  }[]
   since: string
 }
 
 function Byline({ bill, state }: { bill: BillRow; state: string }) {
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-      <img src={chamberImage(state, bill.body)} alt="" aria-hidden="true" width={16} height={16} className="size-4 rounded-[2px] object-contain" />
+      <img
+        src={chamberImage(state, bill.body)}
+        alt=""
+        aria-hidden="true"
+        width={16}
+        height={16}
+        className="size-4 rounded-[2px] object-contain"
+      />
       <span className="font-mono">{fmtBill(bill.bill_number, state)}</span>
       {bill.last_action_date && <span>· {fmtDate(bill.last_action_date)}</span>}
       {bill.committee && <span>· {bill.committee}</span>}
@@ -47,24 +72,55 @@ function Byline({ bill, state }: { bill: BillRow; state: string }) {
   )
 }
 
-function Story({ bill, state, size = "default" }: { bill: BillRow; state: string; size?: "default" | "lead" }) {
+function Story({
+  bill,
+  state,
+  size = "default",
+}: {
+  bill: BillRow
+  state: string
+  size?: "default" | "lead"
+}) {
   return (
     <article className="flex flex-col gap-1.5">
-      <Link href={`/docs/bills/${bill.bill_id}`} className="no-underline hover:underline">
-        <h3 className={size === "lead" ? "cn-font-heading text-2xl leading-tight font-semibold text-balance md:text-3xl" : "cn-font-heading text-base leading-snug font-medium text-balance"}>
+      <Link
+        href={`/docs/bills/${bill.bill_id}`}
+        className="no-underline hover:underline"
+      >
+        <h3
+          className={
+            size === "lead"
+              ? "cn-font-heading text-2xl leading-tight font-semibold text-balance md:text-3xl"
+              : "cn-font-heading text-base leading-snug font-medium text-balance"
+          }
+        >
           {size === "lead" ? bill.title : truncate(bill.title, 120)}
         </h3>
       </Link>
-      {size === "lead" && bill.last_action && <p className="text-sm text-muted-foreground">{bill.last_action}</p>}
+      {size === "lead" && bill.last_action && (
+        <p className="text-sm text-muted-foreground">{bill.last_action}</p>
+      )}
       <Byline bill={bill} state={state} />
     </article>
   )
 }
 
-function Section({ title, bills, state, empty }: { title: string; bills: BillRow[]; state: string; empty: string }) {
+function Section({
+  title,
+  bills,
+  state,
+  empty,
+}: {
+  title: string
+  bills: BillRow[]
+  state: string
+  empty: string
+}) {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="cn-font-heading text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">{title}</h2>
+      <h2 className="cn-font-heading text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+        {title}
+      </h2>
       {bills.length ? (
         <div className="flex flex-col gap-5">
           {bills.map((bill) => (
@@ -79,7 +135,9 @@ function Section({ title, bills, state, empty }: { title: string; bills: BillRow
 }
 
 const Heading = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="cn-font-heading text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">{children}</h2>
+  <h2 className="cn-font-heading text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+    {children}
+  </h2>
 )
 
 export function NewsroomPage({
@@ -87,11 +145,14 @@ export function NewsroomPage({
   state,
   session,
   others,
+  headlines = [],
 }: {
   data: Newsroom
   state: string
   session: number
   others: { state: string; session: number; bills: BillRow[] }[]
+  /** The press on this desk, from news_stories (2026-09-09). */
+  headlines?: NewsStory[]
 }) {
   return (
     <div className="container-wrapper flex-1 px-4 py-10 md:px-6">
@@ -101,8 +162,13 @@ export function NewsroomPage({
             <FlagChip state={state} />
             {stateName(state)} · {session} session
           </span>
-          <h1 className="cn-font-heading text-4xl font-semibold tracking-tight">News</h1>
-          <p className="max-w-2xl text-pretty text-muted-foreground">What the legislature did, newest first. Every headline is the bill it names.</p>
+          <h1 className="cn-font-heading text-4xl font-semibold tracking-tight">
+            News
+          </h1>
+          <p className="max-w-2xl text-pretty text-muted-foreground">
+            What the legislature did, newest first. Every headline is the bill
+            it names.
+          </p>
         </header>
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -115,18 +181,75 @@ export function NewsroomPage({
                 <Story bill={data.lead} state={state} size="lead" />
               </section>
             ) : (
-              <p className="text-sm text-muted-foreground">Nothing has moved in {stateName(state)} this session yet.</p>
+              <p className="text-sm text-muted-foreground">
+                Nothing has moved in {stateName(state)} this session yet.
+              </p>
             )}
-            <Section title="Signed and vetoed" bills={data.enacted} state={state} empty="Nothing has been signed or vetoed yet." />
+            <Section
+              title="Signed and vetoed"
+              bills={data.enacted}
+              state={state}
+              empty="Nothing has been signed or vetoed yet."
+            />
             <Separator />
-            <Section title="Passed a chamber" bills={data.passed} state={state} empty="No bill has passed a chamber in the last fortnight." />
+            <Section
+              title="Passed a chamber"
+              bills={data.passed}
+              state={state}
+              empty="No bill has passed a chamber in the last fortnight."
+            />
             <Separator />
-            <Section title="In committee" bills={data.committee} state={state} empty="No committee action in the last fortnight." />
+            <Section
+              title="In committee"
+              bills={data.committee}
+              state={state}
+              empty="No committee action in the last fortnight."
+            />
             <Separator />
-            <Section title="Newly introduced" bills={data.introduced} state={state} empty="No new bills in the last fortnight." />
+            <Section
+              title="Newly introduced"
+              bills={data.introduced}
+              state={state}
+              empty="No new bills in the last fortnight."
+            />
           </div>
 
           <aside className="flex flex-col gap-10">
+            <section className="flex flex-col gap-4">
+              <Heading>In the press</Heading>
+              {headlines.length ? (
+                <div className="flex flex-col gap-3">
+                  {headlines.map((story) => (
+                    <Link
+                      key={story.id}
+                      href={`/news/${state.toLowerCase()}/${story.id}`}
+                      className="flex flex-col no-underline"
+                    >
+                      <span className="text-sm font-medium">
+                        {truncate(story.title, 90)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {story.source_name ?? "Source"}
+                        {story.published_at
+                          ? ` · ${fmtDate(story.published_at, false)}`
+                          : ""}
+                      </span>
+                    </Link>
+                  ))}
+                  <Link
+                    href={`/news/${state.toLowerCase()}`}
+                    className="text-xs text-muted-foreground no-underline hover:underline"
+                  >
+                    All {stateName(state)} headlines
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nothing from the press on file yet.
+                </p>
+              )}
+            </section>
+
             <section className="flex flex-col gap-4">
               <Heading>Roll calls</Heading>
               {data.rollCalls.length ? (
@@ -134,16 +257,34 @@ export function NewsroomPage({
                   {data.rollCalls.map((call) => {
                     const total = Math.max(call.yea + call.nay, 1)
                     return (
-                      <Link key={call.roll_call_id} href={`/docs/bills/${call.bill_id}`} className="flex flex-col gap-1.5 no-underline">
+                      <Link
+                        key={call.roll_call_id}
+                        href={`/docs/bills/${call.bill_id}`}
+                        className="flex flex-col gap-1.5 no-underline"
+                      >
                         <span className="text-sm font-medium">
-                          {fmtBill(call.bill_number, state)} · {truncate(call.description ?? "", 40)}
+                          {fmtBill(call.bill_number, state)} ·{" "}
+                          {truncate(call.description ?? "", 40)}
                         </span>
                         <span className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <span className="h-full" style={{ width: `${(call.yea / total) * 100}%`, background: "var(--chart-2)" }} />
-                          <span className="h-full" style={{ width: `${(call.nay / total) * 100}%`, background: "var(--chart-5)" }} />
+                          <span
+                            className="h-full"
+                            style={{
+                              width: `${(call.yea / total) * 100}%`,
+                              background: "var(--chart-2)",
+                            }}
+                          />
+                          <span
+                            className="h-full"
+                            style={{
+                              width: `${(call.nay / total) * 100}%`,
+                              background: "var(--chart-5)",
+                            }}
+                          />
                         </span>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {fmtNumber(call.yea)}–{fmtNumber(call.nay)} · {fmtDate(call.date, false)}
+                          {fmtNumber(call.yea)}–{fmtNumber(call.nay)} ·{" "}
+                          {fmtDate(call.date, false)}
                           {call.chamber ? ` · ${call.chamber}` : ""}
                         </span>
                       </Link>
@@ -151,7 +292,9 @@ export function NewsroomPage({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No recorded votes yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No recorded votes yet.
+                </p>
               )}
             </section>
 
@@ -160,17 +303,26 @@ export function NewsroomPage({
               {data.hearings.length ? (
                 <div className="flex flex-col gap-3">
                   {data.hearings.map((hearing, index) => (
-                    <Link key={`${hearing.bill_id}-${index}`} href={`/docs/bills/${hearing.bill_id}`} className="flex flex-col no-underline">
-                      <span className="text-sm font-medium">{truncate(hearing.description ?? "", 44)}</span>
+                    <Link
+                      key={`${hearing.bill_id}-${index}`}
+                      href={`/docs/bills/${hearing.bill_id}`}
+                      className="flex flex-col no-underline"
+                    >
+                      <span className="text-sm font-medium">
+                        {truncate(hearing.description ?? "", 44)}
+                      </span>
                       <span className="text-xs text-muted-foreground">
                         {fmtDate(hearing.date, false)}
-                        {hearing.time ? ` · ${hearing.time}` : ""} · {fmtBill(hearing.bill_number, state)}
+                        {hearing.time ? ` · ${hearing.time}` : ""} ·{" "}
+                        {fmtBill(hearing.bill_number, state)}
                       </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nothing is calendared ahead.</p>
+                <p className="text-sm text-muted-foreground">
+                  Nothing is calendared ahead.
+                </p>
               )}
             </section>
 
@@ -179,13 +331,21 @@ export function NewsroomPage({
               <div className="flex flex-col gap-4">
                 {others.map((desk) => (
                   <div key={desk.state} className="flex flex-col gap-1.5">
-                    <Link href={`/newsroom?state=${desk.state}`} className="flex items-center gap-2 text-sm font-medium no-underline hover:underline">
+                    <Link
+                      href={`/newsroom?state=${desk.state}`}
+                      className="flex items-center gap-2 text-sm font-medium no-underline hover:underline"
+                    >
                       <FlagChip state={desk.state} />
                       {stateName(desk.state)}
                     </Link>
                     {desk.bills.slice(0, 2).map((bill) => (
-                      <Link key={bill.bill_id} href={`/docs/bills/${bill.bill_id}`} className="text-xs text-muted-foreground no-underline hover:underline">
-                        {fmtBill(bill.bill_number, desk.state)} · {truncate(bill.title, 56)}
+                      <Link
+                        key={bill.bill_id}
+                        href={`/docs/bills/${bill.bill_id}`}
+                        className="text-xs text-muted-foreground no-underline hover:underline"
+                      >
+                        {fmtBill(bill.bill_number, desk.state)} ·{" "}
+                        {truncate(bill.title, 56)}
                       </Link>
                     ))}
                   </div>
