@@ -20,7 +20,6 @@ const DENSITY               = 45000
 const PARTICLE_SIZE         = 4
 const COLOR_MODE: 'Original' | 'Mono' = 'Original'
 const MONO_COLOR            = '#A8B94D'
-const BG_COLOR              = '#121212'
 const IDLE_AMP              = 0
 const IDLE_FREQ             = 0
 const HOVER_INFLUENCE_RADIUS = 0.7
@@ -261,10 +260,10 @@ function Field({ src }: { src: string }) {
 }
 
 function Scene({ src }: { src: string }) {
-  // Canvas is opaque (alpha: false) + the chosen bg as clear-colour. A
-  // transparent WebGL canvas takes the OS's wide-gamut composite path on
-  // macOS, which screen recorders clip back to sRGB — recordings end up
-  // duller than the live view. Forcing opaque keeps one sRGB path.
+  // The LAB shipped this opaque (alpha: false, BG_COLOR as clear colour) so
+  // screen recordings stayed sRGB. Here the canvas sits in a themed panel and
+  // paints no background of its own — a transparent clear, and the panel's
+  // token shows through in both modes (Brendan, 2026-09-09).
   // preserveDrawingBuffer lets WebCodecs / canvas.toBlob read pixels after
   // compositing — without it captures come out black.
   return (
@@ -273,9 +272,9 @@ function Scene({ src }: { src: string }) {
       camera={{ position: [0, 0, 4.5], fov: 38 }}
       onCreated={({ camera, gl }) => {
         camera.lookAt(0, 0, 0)
-        gl.setClearColor(BG_COLOR, 1)
+        gl.setClearColor(0x000000, 0)
       }}
-      gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
+      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
       style={{ touchAction: 'none' }}
     >
       <Field src={src} />
@@ -293,7 +292,7 @@ const SceneNoSSR = dynamic(() => Promise.resolve(Scene), { ssr: false })
  */
 export default function ParticleMark({ src = '/hi-res-am-flag.webp', className }: { src?: string; className?: string } = {}) {
   return (
-    <div className={className} style={{ background: BG_COLOR }}>
+    <div className={className}>
       <SceneNoSSR src={src} />
     </div>
   )

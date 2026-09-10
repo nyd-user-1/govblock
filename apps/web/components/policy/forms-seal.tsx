@@ -22,20 +22,20 @@ import { RecordAvatar, RecordSeal } from "@/components/policy/record-item"
 // commit of its own; until it lands, this says what we have rather than guessing.
 
 const SEALS: Record<string, string> = {
-  "US:DOL": "/seals/department-of-labor.png",
-  "US:HUD": "/seals/department-of-housing-and-urban-development.png",
-  "US:ED": "/seals/department-of-education.png",
-  "US:VA": "/seals/department-of-veterans-affairs.png",
-  "US:SSA": "/seals/social-security-administration.png",
-  "US:OPM": "/seals/office-of-personnel-management.png",
-  "US:GSA": "/seals/general-services-administration.png",
-  "US:SBA": "/seals/small-business-administration.png",
+  "US:DOL": "/seals/department-of-labor.avif",
+  "US:HUD": "/seals/department-of-housing-and-urban-development.avif",
+  "US:ED": "/seals/department-of-education.avif",
+  "US:VA": "/seals/department-of-veterans-affairs.avif",
+  "US:SSA": "/seals/social-security-administration.avif",
+  "US:OPM": "/seals/office-of-personnel-management.avif",
+  "US:GSA": "/seals/general-services-administration.avif",
+  "US:SBA": "/seals/small-business-administration.avif",
   // The city's own seal, for the three New York City agencies. Before it was
   // here they wore New York *State*'s, which is a different government — HRA,
   // HPD and DHS are the city's, and 690 forms said otherwise.
-  "NYC:HRA": "/seals/new-york-city.png",
-  "NYC:HPD": "/seals/new-york-city.png",
-  "NYC:DHS": "/seals/new-york-city.png",
+  "NYC:HRA": "/seals/new-york-city.avif",
+  "NYC:HPD": "/seals/new-york-city.avif",
+  "NYC:DHS": "/seals/new-york-city.avif",
 }
 
 /** The agencies with no emblem of their own on file, and why. */
