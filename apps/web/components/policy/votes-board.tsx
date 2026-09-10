@@ -249,7 +249,7 @@ export function VotesBoard() {
                   <CardTitle className="truncate">
                     {row.bill_id ? (
                       <Link
-                        href={`/docs/bills/${row.bill_id}`}
+                        href={`/bills/${row.bill_id}`}
                         className="no-underline hover:underline"
                         title={row.title}
                       >

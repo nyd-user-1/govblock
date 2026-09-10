@@ -39,7 +39,7 @@ export function LobbyingCard() {
           ))}
         </div>
       </CardContent>
-      <CardFoot href={`/docs/lobbying?state=${state}`} label="Lobbying" />
+      <CardFoot href={`/lobbying?state=${state}`} label="Lobbying" />
     </CardFrame>
   )
 }

@@ -178,7 +178,7 @@ const actionColumns: ColumnDef<ActionTableRow>[] = [
               {r.committees.map((cm) => (
                 <span key={cm.code ?? cm.name}>
                   {cm.code ? (
-                    <Link href={`/docs/committees/${cm.code}`} className="underline-offset-4 hover:underline">
+                    <Link href={`/committees/${cm.code}`} className="underline-offset-4 hover:underline">
                       {cm.name}
                     </Link>
                   ) : (

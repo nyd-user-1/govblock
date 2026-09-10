@@ -76,7 +76,7 @@ export function BillsCard() {
           <Link
             key={row.label}
             // The board filters by LegiScan's own status; a folded row opens on its first.
-            href={`/docs/bills?state=${state}&status=${encodeURIComponent(row.statuses[0] ?? row.label)}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`}
+            href={`/bills?state=${state}&status=${encodeURIComponent(row.statuses[0] ?? row.label)}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`}
             className="flex flex-col gap-1.5 no-underline"
           >
             <span className="flex items-baseline justify-between gap-2 text-sm">
@@ -87,7 +87,7 @@ export function BillsCard() {
           </Link>
         ))}
       </CardContent>
-      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
     </CardFrame>
   )
 }

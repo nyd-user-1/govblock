@@ -145,13 +145,13 @@ export const BLOCK_DOCS: BlockDoc[] = [
       { name: "text", type: "string | null", description: "That document's text." },
       { name: "texts", type: "HeldText[]", description: "LegiScan's versions, for a state bill." },
     ],
-    lives: "/docs/bills/{id}",
+    lives: "/bills/{id}",
   },
-  { slug: "bill-sponsors", description: describe("bill-sponsors"), title: "Sponsors", group: "bill", file: "components/policy/bill-congress.tsx", component: "BillSponsorsBlock", usage: `<BillSponsorsBlock sponsors={bill.sponsors} state="US" bill="HB9329" />`, lives: "/docs/bills/{id}" },
-  { slug: "bill-tracker", description: describe("bill-tracker"), title: "Tracker", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillTracker", usage: `<BillTracker framed />`, props: [{ name: "framed", type: "boolean", default: "false", description: "Drawn inside the preview frame." }], lives: "/docs/bills/{id}" },
-  { slug: "bill-actions", description: describe("bill-actions"), title: "Actions", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillActionsBlock", usage: `<BillActionsBlock history={bill.history} rollCalls={bill.rollCalls} bill="HB9329" />`, lives: "/docs/bills/{id}" },
-  { slug: "bill-votes", description: describe("bill-votes"), title: "Votes", group: "bill", file: "components/policy/bill-congress.tsx", component: "BillVotesBlock", usage: `<BillVotesBlock rollCalls={bill.rollCalls} bill="HB9329" billNumber="HB9329" state="US" />`, lives: "/docs/bills/{id}" },
-  { slug: "bill-subjects", description: describe("bill-subjects"), title: "Subjects", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillSubjects", usage: `<BillSubjects bill="HB9329" chamber="House" state="US" />`, lives: "/docs/bills/{id}" },
+  { slug: "bill-sponsors", description: describe("bill-sponsors"), title: "Sponsors", group: "bill", file: "components/policy/bill-congress.tsx", component: "BillSponsorsBlock", usage: `<BillSponsorsBlock sponsors={bill.sponsors} state="US" bill="HB9329" />`, lives: "/bills/{id}" },
+  { slug: "bill-tracker", description: describe("bill-tracker"), title: "Tracker", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillTracker", usage: `<BillTracker framed />`, props: [{ name: "framed", type: "boolean", default: "false", description: "Drawn inside the preview frame." }], lives: "/bills/{id}" },
+  { slug: "bill-actions", description: describe("bill-actions"), title: "Actions", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillActionsBlock", usage: `<BillActionsBlock history={bill.history} rollCalls={bill.rollCalls} bill="HB9329" />`, lives: "/bills/{id}" },
+  { slug: "bill-votes", description: describe("bill-votes"), title: "Votes", group: "bill", file: "components/policy/bill-congress.tsx", component: "BillVotesBlock", usage: `<BillVotesBlock rollCalls={bill.rollCalls} bill="HB9329" billNumber="HB9329" state="US" />`, lives: "/bills/{id}" },
+  { slug: "bill-subjects", description: describe("bill-subjects"), title: "Subjects", group: "bill", file: "components/policy/bill-depth.tsx", component: "BillSubjects", usage: `<BillSubjects bill="HB9329" chamber="House" state="US" />`, lives: "/bills/{id}" },
 ]
 
 export const BLOCK_GROUP_LABEL = { home: "Home", analytics: "Analytics", dashboard: "Dashboards", bill: "Bill" } as const

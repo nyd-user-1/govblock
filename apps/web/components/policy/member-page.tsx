@@ -10,7 +10,7 @@ import { Chip } from "@/components/chip"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
 // member page: every surface that named a member stopped at the name. This is
-// where they all point now — `memberHref` has been writing /docs/directory/<id>
+// where they all point now — `memberHref` has been writing /members/<id>
 // since the directory landed, and until today it went nowhere.
 //
 // Server components, deliberately, as in v3: the path names exactly one
@@ -92,7 +92,7 @@ export function MemberHeader({
   peopleId: number
   state: string
   member: Record<string, unknown>
-  /** The Copy Page control, so it top-aligns with the name as /docs/bills does. */
+  /** The Copy Page control, so it top-aligns with the name as /bills does. */
   action?: React.ReactNode
 }) {
   const name = String(member.name ?? "")

@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation"
 import { Bot, CalendarDays, Database, FileText, Globe, History, Home, LayoutGrid, Newspaper, PieChart, Search, Settings } from "lucide-react"
 
-import { hasItems, siteConfig } from "@/lib/config"
+import { hasItems, isScoped, siteConfig } from "@/lib/config"
 import { stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { RailGroup, type RailItem } from "@/components/directory-rail"
@@ -43,7 +43,7 @@ export function HomeRail() {
   })
   const page = (p: { href: string; label: string }): RailItem => ({
     key: p.href,
-    href: p.href.startsWith("/docs") ? `${p.href}${scope}` : p.href,
+    href: isScoped(p.href) ? `${p.href}${scope}` : p.href,
     label: p.label,
     active: pathname.startsWith(p.href),
   })
@@ -57,11 +57,11 @@ export function HomeRail() {
       glyph(History),
       recents.map((r) => ({ key: r.href, href: r.href, label: r.title, detail: r.group, active: false }))
     ),
-    item("jurisdiction", `/docs/bills${scope}`, stateName(state) || "Jurisdiction", glyph(Globe), [
-      { key: "overview", href: `/docs/bills${scope}`, label: "Overview", active: false },
-      { key: "members", href: `/docs/directory${scope}`, label: "Members", active: false },
-      { key: "committees", href: `/docs/committees${scope}`, label: "Committees", active: false },
-      { key: "departments", href: `/docs/departments${scope}`, label: "Departments", active: false },
+    item("jurisdiction", `/bills${scope}`, stateName(state) || "Jurisdiction", glyph(Globe), [
+      { key: "overview", href: `/bills${scope}`, label: "Overview", active: false },
+      { key: "members", href: `/members${scope}`, label: "Members", active: false },
+      { key: "committees", href: `/committees${scope}`, label: "Committees", active: false },
+      { key: "departments", href: `/departments${scope}`, label: "Departments", active: false },
       { key: "sessions", href: `/docs/datasets/${state.toLowerCase()}`, label: "Sessions", active: false },
     ]),
   ]
@@ -79,7 +79,7 @@ export function HomeRail() {
     ]),
     item("news", "/newsroom", "News", glyph(Newspaper)),
   ]
-  const records: RailItem[] = [item("records", `/docs/bills${scope}`, "Records", glyph(FileText), pages("Records").map(page))]
+  const records: RailItem[] = [item("records", `/bills${scope}`, "Records", glyph(FileText), pages("Records").map(page))]
   const workspace: RailItem[] = [item("workspace", "/workspace/data", "Workspace", glyph(LayoutGrid), pages("Workspace").map(page))]
   const account: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
 

@@ -31,7 +31,7 @@ You are Fable 5.1 in the **govblock** monorepo (`/Users/brendanstanton/Code/govb
 4. **Fill + deliver.** pdf-lib fills the AcroForm (or draws by coordinates), then: download, **email via Resend** (add `RESEND_API_KEY` to `apps/web/.env.local`; wire the delivery), and drop the finished PDF into the **Agentic Inbox** as a delivered thread with the PDF attached (the inbox already renders `Message.attachments`, `registry/blocks/sidebar-09`, and report-mode added a client-side jsPDF path you can learn from).
 
 ### Surfaces
-- New `/chat` page: put the livingston-v3 chat in the **main container of the /docs/bills layout** (Brendan: "it will fit perfectly"). Look at `apps/web/app/docs/bills` for the layout shell.
+- New `/chat` page: put the livingston-v3 chat in the **main container of the /bills layout** (Brendan: "it will fit perfectly"). Look at `apps/web/app/bills` for the layout shell.
 - **App-shell right panel:** update the existing right-side chat panel to use the **same chat input container** from livingston-v3, so the panel and the /chat page share one input.
 
 ## Priority #2 — the form-filling agent as an agent

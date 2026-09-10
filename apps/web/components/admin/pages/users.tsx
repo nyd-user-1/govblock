@@ -112,7 +112,7 @@ export function UsersPage() {
                 }
               />
               <DropdownMenuContent align="end" className="w-max min-w-44">
-                <DropdownMenuItem render={<a href="/docs/directory" />} className="whitespace-nowrap">
+                <DropdownMenuItem render={<a href="/members" />} className="whitespace-nowrap">
                   Open Directory
                 </DropdownMenuItem>
                 <DropdownMenuItem render={<a href="/docs/datasets" />} className="whitespace-nowrap">
@@ -187,7 +187,7 @@ export function UsersPage() {
                             }
                           />
                           <DropdownMenuContent align="end" className="w-max min-w-44">
-                            <DropdownMenuItem render={<a href={`/docs/directory/${m.people_id}`} />} className="whitespace-nowrap">
+                            <DropdownMenuItem render={<a href={`/members/${m.people_id}`} />} className="whitespace-nowrap">
                               <UserIcon />
                               View profile
                             </DropdownMenuItem>

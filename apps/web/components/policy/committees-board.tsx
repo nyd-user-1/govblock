@@ -133,7 +133,7 @@ export function CommitteesBoard() {
         return (
           <ProjectCard
             key={id}
-            href={`/docs/bills?state=${state}&committee=${encodeURIComponent(
+            href={`/bills?state=${state}&committee=${encodeURIComponent(
               committee.committee_name
             )}`}
             title={detail.label || committee.committee_name}

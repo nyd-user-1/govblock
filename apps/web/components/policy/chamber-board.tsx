@@ -19,7 +19,7 @@ import { Badge } from "@govblock/ui/components/nova/badge"
 // Chamber — the third instance of the rail-and-cards shell. Rail = chamber,
 // then party; cards = the people who sit there, on the same card the
 // committees wear (Brendan, 2026-09-03: "all these cards should have the same
-// styling/treatment as do the cards on /docs/committees") — the portrait, the
+// styling/treatment as do the cards on /committees") — the portrait, the
 // name, one meta line, and the ⋮ menu with Pin, Edit details, Subscribe and
 // Alert. Pinned members float to the front.
 

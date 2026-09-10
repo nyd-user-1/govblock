@@ -184,7 +184,7 @@ function Card({
 
       {code && (
         <Link
-          href={`/docs/directory?state=${row.chamber ? code : "US"}`}
+          href={`/members?state=${row.chamber ? code : "US"}`}
           onClick={(e) => e.stopPropagation()}
           className="text-sm underline-offset-4 hover:underline"
         >

@@ -124,7 +124,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     )
     const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
     const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
-    const href = active === "record" ? `/docs/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
+    const href = active === "record" ? `/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
     const related = [
       ...(bill?.sameAs ?? []).map((s) => ({ label: s.sast_bill_number, action: `View ${s.sast_type?.toLowerCase().includes("same") ? "companion bill" : s.sast_type || "related bill"}`, onClick: () => onGo({ bill: String(s.sast_bill_id) }) })),
       ...versions.filter((v) => /amend|engross|enroll|substitute|comm sub/i.test(v.version ?? "")).map((v) => ({ label: bill?.bill_number ?? "", action: `View ${v.version}`, onClick: () => onDoc(v.document_id) })),
@@ -286,7 +286,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
 
   const active = MEMBER_TABS.some((t) => t.value === tab) ? tab : "record"
   const label = member ? `${honorific(member.role, member.chamber)} ${member.name}` : `Member ${node.id}`
-  const href = `/docs/directory/${node.id}${query({ state })}`
+  const href = `/members/${node.id}${query({ state })}`
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2.5">

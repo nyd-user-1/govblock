@@ -56,7 +56,7 @@ export async function getBills(f: Resolved, limit = 40, offset = 0) {
 }
 
 export async function getBill(billId: number): Promise<Bill | null> {
-  // /docs/bills/abc reaches here as NaN; sending that to the Data API costs a
+  // /bills/abc reaches here as NaN; sending that to the Data API costs a
   // signed request and its retries before failing.
   if (!Number.isInteger(billId) || billId <= 0) return null
   if (sql) {

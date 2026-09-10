@@ -66,10 +66,10 @@ export function CommitteesList() {
                 // any other state's by state, chamber and name.
                 const code = state === "US" ? codeFor(committee.chamber, committee.committee_name) : undefined
                 const href = code
-                  ? `/docs/committees/${code}`
+                  ? `/committees/${code}`
                   : state === "US"
-                    ? `/docs/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`
-                    : `/docs/committees/${committee.slug ?? committeeSlug(state, committee.chamber, committee.committee_name)}`
+                    ? `/bills?state=${state}&committee=${encodeURIComponent(committee.committee_name)}`
+                    : `/committees/${committee.slug ?? committeeSlug(state, committee.chamber, committee.committee_name)}`
                 return (
                   <ProjectCard
                     key={`${committee.chamber}/${committee.committee_name}`}

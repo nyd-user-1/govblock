@@ -16,7 +16,7 @@ import { H2, Table } from "@/components/typeset"
 // Three kinds, one page. The three differ only in which side of a filing they
 // sit on, and writing three pages for that would be three places to fix a
 // column. Each kind has its own route, because each also has a board beside it
-// at /docs/lobbying/<kind> and Next will not match a static segment and a
+// at /lobbying/<kind> and Next will not match a static segment and a
 // dynamic one at the same level.
 
 /** What the other side of a filing is called, for each kind. */
@@ -36,15 +36,15 @@ export async function LobbyingEntity({ kind, name }: { kind: EntityKind; name: s
   if (!entity) notFound()
   const words = COUNTERPARTY[entity.kind]
   const years = entity.first_year === entity.last_year ? String(entity.last_year ?? "") : `${entity.first_year} to ${entity.last_year}`
-  const otherHref = (other: string) => `/docs/lobbying/${entity.kind === "firm" ? "clients" : "firms"}/${encodeURIComponent(other)}`
+  const otherHref = (other: string) => `/lobbying/${entity.kind === "firm" ? "clients" : "firms"}/${encodeURIComponent(other)}`
 
   return (
     <DocsPage
       title={entity.name}
       description={`${fmtNumber(entity.filings)} federal lobbying ${entity.filings === 1 ? "filing" : "filings"}${years ? `, ${years}` : ""}.`}
-      slug={`/docs/lobbying/${PATHS[kind]}/${encodeURIComponent(name)}`}
-      previous={{ name: "Lobbying", url: "/docs/lobbying" }}
-      next={{ name: "Finance", url: "/docs/money" }}
+      slug={`/lobbying/${PATHS[kind]}/${encodeURIComponent(name)}`}
+      previous={{ name: "Lobbying", url: "/lobbying" }}
+      next={{ name: "Finance", url: "/money" }}
       rail={
         <DocsTableOfContents
           toc={[
@@ -174,7 +174,7 @@ export async function LobbyingEntity({ kind, name }: { kind: EntityKind; name: s
               {entity.bills.map((row) => (
                 <tr key={row.congress_key}>
                   <td className="whitespace-nowrap">
-                    {row.bill_id ? <Link href={`/docs/bills/${row.bill_id}`}>{row.citation}</Link> : row.citation}
+                    {row.bill_id ? <Link href={`/bills/${row.bill_id}`}>{row.citation}</Link> : row.citation}
                   </td>
                   <td>{truncate(row.title ?? "", 110) || "—"}</td>
                   <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
@@ -203,7 +203,7 @@ export async function LobbyingEntity({ kind, name }: { kind: EntityKind; name: s
               {entity.lobbyists.map((row) => (
                 <tr key={row.lobbyist}>
                   <td>
-                    <Link href={`/docs/lobbying/lobbyists/${encodeURIComponent(row.lobbyist)}`}>{row.lobbyist}</Link>
+                    <Link href={`/lobbying/lobbyists/${encodeURIComponent(row.lobbyist)}`}>{row.lobbyist}</Link>
                   </td>
                   <td className="text-right tabular-nums">{fmtNumber(row.clients)}</td>
                   <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>

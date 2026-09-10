@@ -87,7 +87,7 @@ function sourcesOf(payload: unknown): Source[] {
     if (typeof row.page === "string" && row.page.startsWith("/") && typeof row.title === "string")
       push(row.title, row.page, typeof row.source === "string" && row.source ? row.source : "the record")
     if (row.bill_number && (typeof billId === "string" || typeof billId === "number"))
-      push(`${row.bill_number}${row.title ? ` — ${row.title}` : ""}`, `/docs/bills/${billId}`, "the record")
+      push(`${row.bill_number}${row.title ? ` — ${row.title}` : ""}`, `/bills/${billId}`, "the record")
     for (const value of Object.values(row)) if (value && typeof value === "object") walk(value, depth + 1)
   }
   walk(payload, 0)

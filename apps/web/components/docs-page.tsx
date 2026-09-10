@@ -6,14 +6,14 @@ import { PublicRail } from "@/components/block-card"
 import { Sidebar, SidebarContent } from "@govblock/ui/components/ny4/sidebar"
 import { Button } from "@govblock/ui/components/ny4/button"
 
-// The docs page shell /docs/bills, /docs/committees and /docs/directory each
+// The docs page shell /bills, /committees and /members each
 // carry a copy of: title, Copy Page, prev/next, description, the prose column,
 // and the rail. Written down once here for the pages added after them — the
 // same markup and the same classNames, moved rather than redesigned.
 
 export type DocsLink = { name: string; url: string }
 
-export function DocsPage({ title, description, slug, previous, next, rail, children }: { title: string; description: string; slug: string; previous: DocsLink; next: DocsLink; rail?: React.ReactNode; children: React.ReactNode }) {
+export function DocsPage({ title, description, slug, previous, next, rail, children }: { title: string; description: string; slug: string; /** Absent on the first page, which has nothing before it. */ previous?: DocsLink; next: DocsLink; rail?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -28,12 +28,14 @@ export function DocsPage({ title, description, slug, previous, next, rail, child
                     <DocsCopyPage page={`# ${title}\n\n${description}`} url={`https://gov.nysgpt.com${slug}`} />
                   </div>
                   <div className="ml-auto flex gap-2">
+                    {previous && (
                     <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
                       <Link href={previous.url}>
                         <IconArrowLeft />
                         <span className="sr-only">Previous</span>
                       </Link>
                     </Button>
+                    )}
                     <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
                       <Link href={next.url}>
                         <span className="sr-only">Next</span>
@@ -48,11 +50,13 @@ export function DocsPage({ title, description, slug, previous, next, rail, child
           </div>
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">{children}</div>
           <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
+            {previous && (
             <Button variant="secondary" size="sm" className="shadow-none" asChild>
               <Link href={previous.url}>
                 <IconArrowLeft /> {previous.name}
               </Link>
             </Button>
+            )}
             <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
               <Link href={next.url}>
                 {next.name} <IconArrowRight />

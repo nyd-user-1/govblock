@@ -213,7 +213,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
             {bills.map((bill) => (
               <RecordItem
                 key={bill.bill_id}
-                href={`/docs/bills/${bill.bill_id}?state=${bill.state}`}
+                href={`/bills/${bill.bill_id}?state=${bill.state}`}
                 // The flag, not a chamber seal: these results span every
                 // jurisdiction, and which one a row came from is the first thing
                 // a reader needs.
@@ -233,7 +233,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
             {texts.map((text) => (
               <RecordItem
                 key={`${text.bill_id}-${text.document_id}`}
-                href={`/docs/bills/${text.bill_id}?state=${text.state}#text`}
+                href={`/bills/${text.bill_id}?state=${text.state}#text`}
                 avatar={<FlagChip state={text.state} width={36} />}
                 title={<Highlight text={fmtBill(text.bill_number, text.state)} query={hit} />}
                 lead={text.title}
@@ -271,7 +271,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
             {committees.map((committee) => (
               <RecordItem
                 key={`${committee.state}-${committee.committee}`}
-                href={`/docs/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
+                href={`/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
                 avatar={<ChamberSeal state={committee.state} chamber={committee.chamber} size={36} />}
                 title={<Highlight text={committee.committee} query={hit} />}
                 meta={[
@@ -286,7 +286,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
             {shownTopics.map((topic) => (
               <RecordItem
                 key={topic.value}
-                href={`/docs/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
+                href={`/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
                 title={<Highlight text={topic.value} query={hit} />}
                 meta={[`${topic.count} bills`]}
               />
@@ -321,8 +321,8 @@ function SearchShell() {
       title="Search"
       description="Bills, bill text, members, committees, topics and pages — across every jurisdiction, with the one you are in first."
       slug="search"
-      previous={{ name: "Members", url: "/docs/directory" }}
-      next={{ name: "Bills", url: "/docs/bills" }}
+      previous={{ name: "Members", url: "/members" }}
+      next={{ name: "Bills", url: "/bills" }}
       rail={<SearchFilters filters={filters} onChange={setFilters} here={state} counts={facets.counts} chambers={facets.chambers} statuses={facets.statuses} />}
     >
       <SearchResults filters={filters} onFacets={setFacets} />

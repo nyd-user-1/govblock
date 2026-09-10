@@ -42,7 +42,7 @@ export function ChambersCard({ compact = false }: { compact?: boolean }) {
               key={row.label}
               variant="muted"
               size={compact ? "sm" : "default"}
-              render={<Link href={`/docs/bills?state=${state}&chamber=${encodeURIComponent(row.label)}`} className="no-underline" />}
+              render={<Link href={`/bills?state=${state}&chamber=${encodeURIComponent(row.label)}`} className="no-underline" />}
             >
               <ItemMedia>
                 <ChamberSeal state={state} chamber={row.label} size={compact ? 28 : 36} />

@@ -70,7 +70,7 @@ const rowOf = (h: Hearing & { href?: string | null; type?: string | null }, stat
   date: h.date,
   time: h.time,
   description: h.description,
-  href: h.href ?? `/docs/bills/${h.bill_id}`,
+  href: h.href ?? `/bills/${h.bill_id}`,
   external: false,
   badge: h.bill_number ? fmtBill(h.bill_number, state) : (h.type ?? null),
   committee: h.committee ?? null,

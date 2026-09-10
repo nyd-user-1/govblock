@@ -42,6 +42,37 @@ export type NavItem =
       groups?: NavGroup[]
     }
 
+
+// The record's own pages (2026-09-10). They used to sit under /docs, which is
+// how a living page and its documentation came to want the same name; they are
+// at the root now, and /docs is documentation again. Everything here reads the
+// jurisdiction in scope, so a link to one carries ?state=.
+export const RECORD_ROUTES = [
+  "/amendments",
+  "/bills",
+  "/committees",
+  "/departments",
+  "/forms",
+  "/hearings",
+  "/legislative-subjects",
+  "/lobbying",
+  "/meetings",
+  "/members",
+  "/money",
+  "/nominations",
+  "/policy-areas",
+  "/public-laws",
+  "/record",
+  "/reports",
+  "/roll-call-votes",
+  "/tags",
+] as const
+
+/** Whether a link should carry the jurisdiction in scope. */
+export function isScoped(href: string) {
+  return RECORD_ROUTES.some((route) => href === route || href.startsWith(route + "/"))
+}
+
 export function hasItems(
   item: NavItem
 ): item is Extract<NavItem, { items: unknown[] }> {
@@ -71,36 +102,36 @@ export const siteConfig = {
     { href: "/", label: "Home" },
     {
       label: "Records",
-      href: "/docs/bills",
+      href: "/bills",
       promo: {
         title: "The Record",
         description:
           "Every bill, vote, hearing and dollar in all 52 jurisdictions, in one shape.",
-        href: "/docs/bills",
+        href: "/bills",
         tone: "blue",
       },
       groups: [
         {
           label: "Legislation",
           items: [
-            "/docs/bills",
-            "/docs/laws",
-            "/docs/roll-call-votes",
-            "/docs/record",
+            "/bills",
+            "/public-laws",
+            "/roll-call-votes",
+            "/record",
           ],
         },
         {
           label: "Who acts",
-          items: ["/docs/directory", "/docs/committees", "/docs/departments"],
+          items: ["/members", "/committees", "/departments"],
         },
-        { label: "Money", items: ["/docs/money", "/docs/lobbying"] },
+        { label: "Money", items: ["/money", "/lobbying"] },
         {
           label: "Filed under",
-          items: ["/docs/subjects", "/docs/reports", "/docs/hearings"],
+          items: ["/tags", "/reports", "/hearings"],
         },
         {
           label: "Elsewhere",
-          items: ["/docs/nominations", "/docs/forms", "/newsroom"],
+          items: ["/nominations", "/forms", "/newsroom"],
         },
       ],
       // Aurora's own count, 2026-09-09: live rows across 166 tables, written out
@@ -117,56 +148,56 @@ export const siteConfig = {
       columns: 3,
       items: [
         {
-          href: "/docs/bills",
+          href: "/bills",
           label: "Bills",
           description: "Every bill in all 52 jurisdictions, newest first.",
           icon: "FileText",
         },
         {
-          href: "/docs/committees",
+          href: "/committees",
           label: "Committees",
           description: "Who sits where, and what is before them.",
           icon: "Users",
         },
         {
-          href: "/docs/departments",
+          href: "/departments",
           label: "Departments",
           description: "What each department does, spends, and is asked to do.",
           icon: "Landmark",
         },
         {
-          href: "/docs/money",
+          href: "/money",
           label: "Finance",
           description:
             "Lobbying and campaign money, where the record holds it.",
           icon: "Coins",
         },
         {
-          href: "/docs/forms",
+          href: "/forms",
           label: "Forms",
           description: "Government forms for benefits, grants and programs.",
           icon: "ClipboardList",
         },
         {
-          href: "/docs/hearings",
+          href: "/hearings",
           label: "Hearings",
           description: "Every hearing of the Congress, with its transcript.",
           icon: "Mic",
         },
         {
-          href: "/docs/laws",
+          href: "/public-laws",
           label: "Laws",
           description: "What passed, and the bill it began as.",
           icon: "Scale",
         },
         {
-          href: "/docs/lobbying",
+          href: "/lobbying",
           label: "Lobbying",
           description: "Who is paid to be heard, on what, and for whom.",
           icon: "Handshake",
         },
         {
-          href: "/docs/directory",
+          href: "/members",
           label: "Members",
           description: "The sitting members, with party and district.",
           icon: "BookUser",
@@ -178,31 +209,31 @@ export const siteConfig = {
           icon: "Newspaper",
         },
         {
-          href: "/docs/nominations",
+          href: "/nominations",
           label: "Nominations",
           description: "Nominations before the Senate.",
           icon: "UserCheck",
         },
         {
-          href: "/docs/reports",
+          href: "/reports",
           label: "Reports",
           description: "Committee reports and CRS research.",
           icon: "BookOpen",
         },
         {
-          href: "/docs/roll-call-votes",
+          href: "/roll-call-votes",
           label: "Roll calls",
           description: "Every recorded vote, and how each member answered.",
           icon: "ListChecks",
         },
         {
-          href: "/docs/subjects",
+          href: "/tags",
           label: "Subjects",
           description: "How a bill is filed, and every bill under each term.",
           icon: "Tags",
         },
         {
-          href: "/docs/record",
+          href: "/record",
           label: "The Record",
           description: "The Congressional Record, issue by issue.",
           icon: "ScrollText",

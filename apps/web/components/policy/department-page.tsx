@@ -221,7 +221,7 @@ export function DepartmentBills({ rows, total, department, state, session, who }
               key={bill.bill_id}
               stacked
               hover="rail"
-              href={`/docs/bills/${bill.bill_id}`}
+              href={`/bills/${bill.bill_id}`}
               avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
               title={fmtBill(bill.bill_number, state)}
               lead={bill.last_action}
@@ -287,7 +287,7 @@ export function DepartmentForms({ rows, total, inspected, department, state, who
       <p>
         <Chip>{who}</Chip> publishes {fmtNumber(total)} {inspected ? (total === 1 ? "form" : "forms") : total === 1 ? "document" : "documents"}, filed under {codes}
         {inspected ? "" : "; none has been opened yet, so the forms among them are not yet sorted from the rest"}.{" "}
-        <Link href={`/docs/forms?state=${state}&agency=${encodeURIComponent(department.forms[0] ?? "")}${inspected ? "" : "&all=1"}`}>See them all</Link>.
+        <Link href={`/forms?state=${state}&agency=${encodeURIComponent(department.forms[0] ?? "")}${inspected ? "" : "&all=1"}`}>See them all</Link>.
       </p>
       <PreviewFrame>
         <PagedList
@@ -300,7 +300,7 @@ export function DepartmentForms({ rows, total, inspected, department, state, who
               key={form.id}
               stacked
               hover="rail"
-              href={`/docs/forms/${form.id}`}
+              href={`/forms/${form.id}`}
               avatar={<RecordSeal state={state} chamber={null} ordinal={index + 1} />}
               title={form.number}
               lead={form.agency}

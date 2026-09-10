@@ -42,7 +42,7 @@ export function PartyCard() {
         </span>
         <div className="flex flex-col gap-1.5">
           {ordered.map((row) => (
-            <Link key={row.party} href={`/docs/directory?state=${state}&party=${row.party}&chamber=${encodeURIComponent(active)}`} className="flex items-center gap-2 text-sm no-underline">
+            <Link key={row.party} href={`/members?state=${state}&party=${row.party}&chamber=${encodeURIComponent(active)}`} className="flex items-center gap-2 text-sm no-underline">
               <PartyDot party={row.party} />
               <span className="truncate text-foreground">{partyName(row.party)}</span>
               <span className="ml-auto shrink-0 font-medium tabular-nums">{fmtNumber(row.seats)}</span>
@@ -51,7 +51,7 @@ export function PartyCard() {
           ))}
         </div>
       </CardContent>
-      <CardFoot href={`/docs/directory?state=${state}${active ? `&chamber=${encodeURIComponent(active)}` : ""}`} label="All members">
+      <CardFoot href={`/members?state=${state}${active ? `&chamber=${encodeURIComponent(active)}` : ""}`} label="All members">
         <ToggleGroup value={active ? [active] : []} onValueChange={(value) => setChamber(String(value ?? ""))} variant="outline" spacing={1}>
           {chambers.map((name) => (
             <ToggleGroupItem

@@ -61,7 +61,7 @@ export function AdoptedBillsCard() {
           </AreaChart>
         </ChartContainer>
       </CardContent>
-      <CardFoot href={`/docs/laws?state=${state}`} label="The laws" />
+      <CardFoot href={`/public-laws?state=${state}`} label="The laws" />
     </CardFrame>
   )
 }

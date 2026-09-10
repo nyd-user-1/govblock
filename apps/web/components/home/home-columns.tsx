@@ -164,7 +164,7 @@ export function HomeColumns() {
         <Column
           key={kind}
           title={KINDS[kind]}
-          href={`/docs/bills${scope}`}
+          href={`/bills${scope}`}
           menu={menu(
             <>
               <DropdownMenuSub>
@@ -196,7 +196,7 @@ export function HomeColumns() {
           {followedReady &&
             shown.flatMap((code) =>
               chambersOf(code).map((chamber) => (
-                <Row key={`${code}-${chamber}`} href={`/docs/bills?state=${code}&chamber=${encodeURIComponent(chamber)}`} icon={<ChamberSeal state={code} chamber={chamber} size={28} />}>
+                <Row key={`${code}-${chamber}`} href={`/bills?state=${code}&chamber=${encodeURIComponent(chamber)}`} icon={<ChamberSeal state={code} chamber={chamber} size={28} />}>
                   {chamberLabel(code, chamber)}
                 </Row>
               ))

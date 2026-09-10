@@ -106,7 +106,7 @@ export function MemberFeed({
             key={bill.bill_id}
             stacked
             hover="rail"
-            href={`/docs/bills/${bill.bill_id}`}
+            href={`/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={page * pageSize + index + 1} />}
             title={fmtBill(bill.bill_number, state)}
             meta={[

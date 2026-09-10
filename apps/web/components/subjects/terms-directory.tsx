@@ -34,6 +34,9 @@ const KIND_ORDER: SubjectKind[] = ["general", "organization", "geographic"]
 
 export type TermsKind = "policy" | "legislative" | "all"
 
+const POLICY_BASE = "/policy-areas"
+const SUBJECT_BASE = "/legislative-subjects"
+
 const NOUN: Record<TermsKind, string> = {
   policy: "policy areas",
   legislative: "legislative subjects",
@@ -44,7 +47,11 @@ export function TermsDirectory({ kind }: { kind: TermsKind }) {
   const { data, state, resolved } = useScoped<Terms>("subject-terms", EMPTY)
   const [query, setQuery] = React.useState("")
 
-  const groups = React.useMemo<[string, Term[]][]>(() => {
+  // Each group carries where its terms live. A policy area and a legislative
+  // subject are not the same thing — the Congressional Research Service assigns
+  // exactly one policy area to a bill and any number of subjects — so a term's
+  // page is filed under the kind it is, and the group already knows which.
+  const groups = React.useMemo<[string, Term[], string][]>(() => {
     const q = query.trim()
     const keep = (rows: Term[]) =>
       (q ? rows.filter((t) => matchesQuery(q, t.name)) : rows)
@@ -52,15 +59,17 @@ export function TermsDirectory({ kind }: { kind: TermsKind }) {
         .sort((a, b) => a.name.localeCompare(b.name))
     const policy = keep(data?.policyAreas ?? [])
     const subjects = keep(data?.subjects ?? [])
-    const out: [string, Term[]][] = []
-    if (kind !== "legislative") out.push(["Policy Areas", policy])
+    const out: [string, Term[], string][] = []
+    if (kind !== "legislative") out.push(["Policy Areas", policy, POLICY_BASE])
     if (kind === "legislative") {
       for (const k of KIND_ORDER)
         out.push([
           KIND_LABEL[k],
           subjects.filter((t) => subjectKind(t.name) === k),
+          SUBJECT_BASE,
         ])
-    } else if (kind === "all") out.push(["Legislative Subjects", subjects])
+    } else if (kind === "all")
+      out.push(["Legislative Subjects", subjects, SUBJECT_BASE])
     return out.filter(([, rows]) => rows.length)
   }, [data, kind, query])
 
@@ -78,7 +87,7 @@ export function TermsDirectory({ kind }: { kind: TermsKind }) {
         }
       />
       <div className="my-8 flex flex-col gap-10">
-        {groups.map(([group, rows]) => (
+        {groups.map(([group, rows, base]) => (
           <section key={group}>
             <h3 className="mb-4 text-sm font-medium text-muted-foreground">
               {group}
@@ -87,7 +96,7 @@ export function TermsDirectory({ kind }: { kind: TermsKind }) {
               {rows.map((term) => (
                 <ProjectCard
                   key={term.name}
-                  href={`/docs/subjects/${state.toLowerCase()}/${subjectSlug(term.name)}?state=${state}`}
+                  href={`${base}/${state.toLowerCase()}/${subjectSlug(term.name)}?state=${state}`}
                   title={term.name}
                   media={<ChamberSeal state={state} size={28} />}
                   meta={`${fmtNumber(term.bills)} ${term.bills === 1 ? "Bill" : "Bills"}`}

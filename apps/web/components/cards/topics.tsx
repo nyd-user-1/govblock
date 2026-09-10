@@ -46,7 +46,7 @@ export function TopicsCard() {
           {rows.map((row) => (
             <Link
               key={row.label}
-              href={`/docs/bills?state=${state}&committee=${encodeURIComponent(row.label)}`}
+              href={`/bills?state=${state}&committee=${encodeURIComponent(row.label)}`}
               className="no-underline"
             >
               <Badge
@@ -64,7 +64,7 @@ export function TopicsCard() {
       </CardContent>
       {/* No line under the chips (Brendan, 2026-09-09): it named LegiScan
           for every jurisdiction, and under Congress the terms are CRS's. */}
-      <CardFoot href={`/docs/subjects?state=${state}`} label="All subjects" />
+      <CardFoot href={`/tags?state=${state}`} label="All subjects" />
     </CardFrame>
   )
 }

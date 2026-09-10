@@ -16,8 +16,8 @@ import { Button } from "@govblock/ui/components/ny4/button"
 const title = "News"
 const description =
   "What each legislature did, newest first: a desk for every jurisdiction with a record."
-const previous = { name: "Committees", url: "/docs/committees" }
-const next = { name: "Subjects", url: "/docs/subjects" }
+const previous = { name: "Committees", url: "/committees" }
+const next = { name: "Subjects", url: "/tags" }
 
 export const metadata = { title, description }
 export const revalidate = 3600

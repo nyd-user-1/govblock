@@ -37,7 +37,7 @@ export default async function AgentPage({ params }: { params: Promise<{ slug: st
       description={agent.speciality}
       slug={`/agents/${agent.slug}`}
       previous={before ? { name: before.name, url: `/agents/${before.slug}` } : { name: "Agents", url: "/agents" }}
-      next={after ? { name: after.name, url: `/agents/${after.slug}` } : { name: "Bills", url: "/docs/bills" }}
+      next={after ? { name: after.name, url: `/agents/${after.slug}` } : { name: "Bills", url: "/bills" }}
     >
       <dl className="mb-6 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[7rem_minmax(0,1fr)]">
         <dt className="text-muted-foreground">Reads</dt>

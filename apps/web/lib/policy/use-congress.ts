@@ -15,7 +15,7 @@ export type Scope = { param: string; value: string | number }
  * A list page reads in the reader's — that is what the switcher is for, and it
  * waits for the scope to resolve so the shared prerendered shell never asks on
  * the wrong jurisdiction's behalf. A page whose path names one record reads in
- * *that record's* jurisdiction instead: /docs/committees/hsvr00 is a federal
+ * *that record's* jurisdiction instead: /committees/hsvr00 is a federal
  * committee whoever is looking at it, and its meetings are not a Texas reader's
  * to be denied. The rail and the nav stay scoped to the reader either way.
  */

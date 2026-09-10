@@ -200,7 +200,7 @@ export const connect = {
   ],
 }
 
-// The bills most recently acted on in Congress — the /docs/bills list and the
+// The bills most recently acted on in Congress — the /bills list and the
 // Recent Bills rail. Real rows from the v3 API, 2026-08-31.
 export const recentBills = [
   { bill_id: 2157698, bill_number: "HB10171", title: "To establish a supplemental food and nutrition services grant program, and for other purposes.", status_desc: "In House Committee", last_action_date: "2026-08-27", sponsor: "Joseph Morelle", body: "House", committee: "Agriculture" },
@@ -305,7 +305,7 @@ export const recentBills = [
   { bill_id: 2157470, bill_number: "HB10127", title: "TRANS Government Research Act Terminating Radical Attempts to Negate Sex Through Government Research Act", status_desc: "In House Committee", last_action_date: "2026-08-20", sponsor: "Nancy Mace", body: "House", committee: "Energy And Commerce" },
 ]
 
-// Every committee of the jurisdiction in scope, for /docs/committees and the
+// Every committee of the jurisdiction in scope, for /committees and the
 // rail. Real rows from the v3 API, 2026-08-31 (its Senate rows are labelled
 // House upstream; the page groups by what the data says).
 export const committeesAll = [

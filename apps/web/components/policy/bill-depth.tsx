@@ -465,7 +465,7 @@ const shortName = (name: string) => name.replace(/^(House|Senate|Joint) Committe
 type CommitteeCount = { committee_name: string; chamber: string; bills: number }
 
 /**
- * Every committee the bill touched, on the card /docs/committees and the
+ * Every committee the bill touched, on the card /committees and the
  * member page use — the seal, the name, and one line: what the committee last
  * did with the bill and when (2026-09-05). A state bill's referrals draw the
  * same cards from LegiScan's rows, under the jurisdiction's own seal.
@@ -502,7 +502,7 @@ export function BillCommitteesBlock({
       if (seen.has(code)) continue
       seen.set(code, {
         key: code,
-        href: row.systemCode ? `/docs/committees/${row.systemCode}` : `/docs/committees?state=${state}`,
+        href: row.systemCode ? `/committees/${row.systemCode}` : `/committees?state=${state}`,
         chamber: row.chamber ?? null,
         title: shortName(row.name ?? ""),
         line: row.activity,
@@ -516,7 +516,7 @@ export function BillCommitteesBlock({
       if (seen.has(row.name)) continue
       seen.set(row.name, {
         key: row.name,
-        href: `/docs/committees?state=${state}`,
+        href: `/committees?state=${state}`,
         chamber: row.chamber,
         title: row.name,
         line: "Referred to",

@@ -84,7 +84,7 @@ function Story({
   return (
     <article className="flex flex-col gap-1.5">
       <Link
-        href={`/docs/bills/${bill.bill_id}`}
+        href={`/bills/${bill.bill_id}`}
         className="no-underline hover:underline"
       >
         <h3
@@ -259,7 +259,7 @@ export function NewsroomPage({
                     return (
                       <Link
                         key={call.roll_call_id}
-                        href={`/docs/bills/${call.bill_id}`}
+                        href={`/bills/${call.bill_id}`}
                         className="flex flex-col gap-1.5 no-underline"
                       >
                         <span className="text-sm font-medium">
@@ -305,7 +305,7 @@ export function NewsroomPage({
                   {data.hearings.map((hearing, index) => (
                     <Link
                       key={`${hearing.bill_id}-${index}`}
-                      href={`/docs/bills/${hearing.bill_id}`}
+                      href={`/bills/${hearing.bill_id}`}
                       className="flex flex-col no-underline"
                     >
                       <span className="text-sm font-medium">
@@ -341,7 +341,7 @@ export function NewsroomPage({
                     {desk.bills.slice(0, 2).map((bill) => (
                       <Link
                         key={bill.bill_id}
-                        href={`/docs/bills/${bill.bill_id}`}
+                        href={`/bills/${bill.bill_id}`}
                         className="text-xs text-muted-foreground no-underline hover:underline"
                       >
                         {fmtBill(bill.bill_number, desk.state)} ·{" "}

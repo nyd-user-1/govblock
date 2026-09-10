@@ -60,7 +60,7 @@ export default async function ChangelogPage() {
                 variant="ghost"
                 render={
                   <a
-                    href="/docs/bills"
+                    href="/bills"
                     target="_blank"
                     rel="noopener noreferrer"
                   />

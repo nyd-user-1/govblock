@@ -90,7 +90,7 @@ export function CalendarBoard() {
   }, [data])
 
   const whenOf = (hearing: Hearing) => `${fmtDate(hearing.date, false)}${hearing.time ? ` · ${fmtTime(hearing.time)}` : ""}`
-  const href = (hearing: Hearing) => `/docs/bills/${hearing.bill_id}`
+  const href = (hearing: Hearing) => `/bills/${hearing.bill_id}`
 
   // The cards: the standard workspace grid, a hearing per card — the chamber's
   // seal, the bill, what it is about, when and where. The card opens the bill.

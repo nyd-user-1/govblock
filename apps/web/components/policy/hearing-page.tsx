@@ -149,7 +149,7 @@ export function HearingDocuments({ meeting }: { meeting: MeetingRow | null }) {
       <ul>
         {bills.map((b, i) => (
           <li key={`${b.type}-${b.number}-${i}`}>
-            <Link href={`/docs/bills?state=US&q=${encodeURIComponent(`${b.type ?? ""} ${b.number ?? ""}`.trim())}`}>{`${b.type ?? ""} ${b.number ?? ""}`.trim()}</Link>
+            <Link href={`/bills?state=US&q=${encodeURIComponent(`${b.type ?? ""} ${b.number ?? ""}`.trim())}`}>{`${b.type ?? ""} ${b.number ?? ""}`.trim()}</Link>
             {b.title ? ` — ${truncate(b.title, 140)}` : ""}
           </li>
         ))}
@@ -185,7 +185,7 @@ export function HearingRows({ rows, total, more, state }: { rows: HearingRow[]; 
             key={h.key}
             stacked
             hover="rail"
-            href={`/docs/hearings/${h.jacket}`}
+            href={`/hearings/${h.jacket}`}
             avatar={<RecordSeal state={state} chamber={h.chamber} ordinal={index + 1} />}
             title={h.citation ?? `Jacket ${h.jacket}`}
             lead={h.date ? fmtDate(h.date) : null}

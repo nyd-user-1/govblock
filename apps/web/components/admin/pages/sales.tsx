@@ -48,9 +48,9 @@ const codeFor = (chamber: string, name: string): string | undefined => (CODES as
 function committeeHref(state: string, chamber: string, name: string, slug?: string) {
   if (state === "US") {
     const code = codeFor(chamber, name)
-    return code ? `/docs/committees/${code}` : `/docs/bills?state=${state}&committee=${encodeURIComponent(name)}`
+    return code ? `/committees/${code}` : `/bills?state=${state}&committee=${encodeURIComponent(name)}`
   }
-  return `/docs/committees/${slug ?? committeeSlug(state, chamber, name)}`
+  return `/committees/${slug ?? committeeSlug(state, chamber, name)}`
 }
 
 const initials = (name: string) =>

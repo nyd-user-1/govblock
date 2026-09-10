@@ -187,7 +187,7 @@ export type LobbyingTotals = {
 export type LobbyingSector = { issue_code: string; issue: string | null; filings: number; clients: number; registrants: number }
 
 /**
- * The whole federal register at a glance, for /docs/lobbying. Every count is a
+ * The whole federal register at a glance, for /lobbying. Every count is a
  * distinct count over the filings themselves; nothing is estimated and nothing
  * is apportioned between the issues or the bills a filing names.
  */
@@ -237,8 +237,8 @@ export async function getLobbyingOverview(limit = 25) {
 }
 
 /**
- * The register's registrants, paged and searchable — the list /docs/lobbying is
- * built on, in the shape /docs/bills and /docs/directory are built on: fifty at
+ * The register's registrants, paged and searchable — the list /lobbying is
+ * built on, in the shape /bills and /members are built on: fifty at
  * a time from the server, the search run there too, because 6,473 registrants
  * do not filter usefully fifty rows at a time.
  */

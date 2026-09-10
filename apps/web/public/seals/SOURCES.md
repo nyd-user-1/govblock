@@ -1,7 +1,7 @@
 # Seals — where each file came from
 
-Harvested 2026-09-02 for the nominations list (`/docs/nominations`) and the CRS
-reports list (`/docs/reports`). The organizations are the distinct
+Harvested 2026-09-02 for the nominations list (`/nominations`) and the CRS
+reports list (`/reports`). The organizations are the distinct
 `organization` values in `congress_nominations`; each file below is the
 Wikimedia Commons file named, rendered to 144 px wide (an avatar is 36 CSS px,
 and several of the originals are megabyte SVGs).
@@ -116,7 +116,7 @@ Two near-misses deliberately **not** used, because they are a different body:
 the U.S. Postal *Inspection* Service seal for the Postal Service, and the Post
 Office Department seal (1837–1970), which the Postal Service replaced in 1971.
 
-## Added 2026-09-02 for the Forms surface (`/docs/forms`)
+## Added 2026-09-02 for the Forms surface (`/forms`)
 
 The forms library's agencies are federal departments, New York State agencies
 and New York City agencies. Where an agency **is** one of the federal

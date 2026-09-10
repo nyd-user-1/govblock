@@ -196,11 +196,11 @@ export function DocumentsTree() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href={`/docs/bills?state=${state}`}>{stateName(state)}</BreadcrumbLink>
+              <BreadcrumbLink href={`/bills?state=${state}`}>{stateName(state)}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href={`/docs/bills?state=${state}`}>{sessionTitle || "—"}</BreadcrumbLink>
+              <BreadcrumbLink href={`/bills?state=${state}`}>{sessionTitle || "—"}</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
@@ -222,7 +222,7 @@ export function DocumentsTree() {
           onOpenBill={(billId, documentId) => {
             const row = inScope.find((r) => (documentId ? r.document_id === documentId : r.bill_id === billId))
             if (row) choose(row)
-            else window.open(`/docs/bills/${billId}?state=${state}`, "_blank", "noopener")
+            else window.open(`/bills/${billId}?state=${state}`, "_blank", "noopener")
           }}
         />
       ) : (

@@ -44,7 +44,7 @@ export function VotesCard() {
       <CardContent>
         <ItemGroup>
           {(data ?? []).map((row) => (
-            <Item key={row.roll_call_id} variant="muted" render={<Link href={`/docs/bills/${row.bill_id}`} className="no-underline" />}>
+            <Item key={row.roll_call_id} variant="muted" render={<Link href={`/bills/${row.bill_id}`} className="no-underline" />}>
               <ItemMedia>
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
@@ -59,7 +59,7 @@ export function VotesCard() {
           ))}
         </ItemGroup>
       </CardContent>
-      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
     </CardFrame>
   )
 }

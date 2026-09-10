@@ -196,7 +196,7 @@ export function BillTextPane({
   const openResult = (billId: number, documentId?: number) => {
     if (billId === bill.bill_id && documentId && versions.some((v) => v.document_id === documentId)) onChoose(documentId)
     else if (onOpenBill) onOpenBill(billId, documentId)
-    else window.open(`/docs/bills/${billId}?state=${state}`, "_blank", "noopener")
+    else window.open(`/bills/${billId}?state=${state}`, "_blank", "noopener")
   }
 
   const scopes: { value: Scope; label: string }[] = [
@@ -356,7 +356,7 @@ export function BillTextPane({
                   <PencilIcon /> Edit in place
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={`/docs/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer">
+                  <a href={`/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer">
                     <ExternalLinkIcon /> Open the bill&apos;s page
                   </a>
                 </DropdownMenuItem>

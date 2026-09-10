@@ -42,10 +42,10 @@ export function NavigationCard() {
     {
       label: "Records",
       items: [
-        { name: "Bills", href: scoped("/docs/bills"), icon: IconFileText },
-        { name: "Committees", href: scoped("/docs/committees"), icon: IconUsersGroup },
-        { name: "Members", href: scoped("/docs/directory"), icon: IconUsers },
-        { name: "Finance", href: scoped("/docs/money"), icon: IconCoin },
+        { name: "Bills", href: scoped("/bills"), icon: IconFileText },
+        { name: "Committees", href: scoped("/committees"), icon: IconUsersGroup },
+        { name: "Members", href: scoped("/members"), icon: IconUsers },
+        { name: "Finance", href: scoped("/money"), icon: IconCoin },
       ],
     },
     {

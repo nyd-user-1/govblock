@@ -58,7 +58,7 @@ const rollCallColumns: ColumnDef<RollCallRow>[] = [
       const link = "underline-offset-4 hover:underline"
       if (r.bill && r.billId)
         return (
-          <Link href={`/docs/bills/${r.billId}`} className={link}>
+          <Link href={`/bills/${r.billId}`} className={link}>
             {r.bill}
           </Link>
         )
@@ -112,7 +112,7 @@ const rollCallColumns: ColumnDef<RollCallRow>[] = [
                 <Copy />
                 Bill No.
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={!r.billId} render={r.billId ? <Link href={`/docs/bills/${r.billId}`} /> : undefined}>
+              <DropdownMenuItem disabled={!r.billId} render={r.billId ? <Link href={`/bills/${r.billId}`} /> : undefined}>
                 <ArrowUpRight />
                 View Bill
               </DropdownMenuItem>

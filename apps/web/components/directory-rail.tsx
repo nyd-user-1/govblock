@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 
-import { hasItems, siteConfig, type NavLink } from "@/lib/config"
+import { hasItems, isScoped, siteConfig, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { useScoped } from "@/lib/policy/use-scoped"
@@ -143,13 +143,13 @@ export function DirectoryRail() {
   // jurisdiction's Recent Bills follow (Brendan, 2026-09-06). The id comes
   // off the path; the resource resolves it, so the rail never guesses the
   // jurisdiction from the URL's scope.
-  const committeeId = pathname.match(/^\/docs\/committees\/([^/?#]+)/)?.[1] ?? null
-  const memberId = pathname.match(/^\/docs\/directory\/(\d+)/)?.[1] ?? null
+  const committeeId = pathname.match(/^\/committees\/([^/?#]+)/)?.[1] ?? null
+  const memberId = pathname.match(/^\/members\/(\d+)/)?.[1] ?? null
   const { data: own } = usePolicy<RailData>(committeeId || memberId ? "rail" : null, { state }, { committee: committeeId ?? undefined, member: memberId ?? undefined, session })
   const scope = `?state=${state}`
   // Docs pages take the jurisdiction on the URL; the rest of the site reads it
   // from the browser.
-  const scoped = (href: string) => (href.startsWith("/docs") ? `${href}${scope}` : href)
+  const scoped = (href: string) => (isScoped(href) ? `${href}${scope}` : href)
 
   const sections: RailItem[] = SECTIONS.flatMap((nav) => {
     const entry = siteConfig.navItems.find((item) => item.label === nav)
@@ -172,12 +172,12 @@ export function DirectoryRail() {
   })
   const billItem = (bill: RailBill, prefix = ""): RailItem => ({
     key: `${prefix}${bill.bill_id}`,
-    href: `/docs/bills/${bill.bill_id}`,
+    href: `/bills/${bill.bill_id}`,
     label: fmtBill(bill.bill_number, state),
     // The day it last moved, written out (Brendan, 2026-09-03).
     detail: bill.last_action_date ? fmtLongDate(bill.last_action_date) : null,
     tooltip: bill.title,
-    active: pathname === `/docs/bills/${bill.bill_id}`,
+    active: pathname === `/bills/${bill.bill_id}`,
   })
   const bills: RailItem[] = (billData?.rows ?? []).slice(0, 12).map((bill) => billItem(bill as RailBill))
   const pending: RailItem[] = (own?.pending ?? []).map((bill) => billItem(bill, "p-"))
@@ -187,7 +187,7 @@ export function DirectoryRail() {
     .sort((a, b) => a.committee_name.localeCompare(b.committee_name))
     .map((c) => ({
       key: `${c.chamber}/${c.committee_name}`,
-      href: `/docs/bills${scope}&committee=${encodeURIComponent(c.committee_name)}`,
+      href: `/bills${scope}&committee=${encodeURIComponent(c.committee_name)}`,
       label: truncate(c.committee_name, 40),
       tooltip: c.committee_name,
       active: false,

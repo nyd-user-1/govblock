@@ -66,7 +66,7 @@ device. Each build below says what runs where and roughly what it costs.
   despite the tranche brief saying one exists. Bulk paths under
   `govinfo.gov/bulkdata/` need no key. **Blocker for `REC-04`, `CMT-05`, `HRG-02`.**
 - **No `YOUTUBE_API_KEY` in `apps/web/.env.local`** either, though
-  `lib/policy/committee-video.ts` reads one. Committee video on `/docs/committees/[id]`
+  `lib/policy/committee-video.ts` reads one. Committee video on `/committees/[id]`
   is therefore returning `unconfigured` in any environment without it.
 
 ---
@@ -93,8 +93,8 @@ something real and not a table nobody checked.
 | `senate_contact` | 100 | current | From `senators_cfm.xml`. Senate has no staff directory. |
 
 Surfaces that already exist: `/calendar/[view]/[date]` (US reads
-`congress_committee_meetings` via `lib/policy/db-queries.ts`), `/docs/meetings`,
-`/docs/hearings`, `/docs/committees`, `/docs/record`, `/docs/datasets`.
+`congress_committee_meetings` via `lib/policy/db-queries.ts`), `/meetings`,
+`/hearings`, `/committees`, `/record`, `/docs/datasets`.
 
 ---
 
@@ -119,7 +119,7 @@ Surfaces that already exist: `/calendar/[view]/[date]` (US reads
 | ID | Resource | What it provides | Have it? | Gap | Upstream | Feas. | Pri. |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **CMT-01** | Committees of the U.S. Congress — `congress.gov/committees` | Roster of current and terminated committees and subcommittees, by chamber. | **Yes** | Terminated/historical committees: we hold 236 rows, all current. congress.gov covers ~1971→present. | `api.congress.gov/v3/committee` with no `currentStatus` filter. | easy | P2 |
-| **CMT-02** | Committee profiles — `congress.gov/help/committee-profiles` | Per committee: legislation, publications, meetings, executive communications, and for Senate committees nominations, treaty documents and a Members tab. Coverage ~1971→present. | **Partial** | We hold every ingredient (`congress_bill_committees` 29,763; `congress_committee_reports` 929; `congress_committee_prints` 80; `congress_committee_communications` 207,163; `congress_committee_nominations` 44,397; `congress_committee_members` 3,895) but only for the 119th, and `/docs/committees/[id]` does not assemble them into a profile. | Already ingested; backfill earlier congresses from `api.congress.gov`. | medium | P1 |
+| **CMT-02** | Committee profiles — `congress.gov/help/committee-profiles` | Per committee: legislation, publications, meetings, executive communications, and for Senate committees nominations, treaty documents and a Members tab. Coverage ~1971→present. | **Partial** | We hold every ingredient (`congress_bill_committees` 29,763; `congress_committee_reports` 929; `congress_committee_prints` 80; `congress_committee_communications` 207,163; `congress_committee_nominations` 44,397; `congress_committee_members` 3,895) but only for the 119th, and `/committees/[id]` does not assemble them into a profile. | Already ingested; backfill earlier congresses from `api.congress.gov`. | medium | P1 |
 | **CMT-03** | Senate committee list — `senate.gov/committees/index.htm` | Chair, ranking member, total members, full subcommittee list per committee. | **Data** | Nothing missing — `congress_committee_members.title`/`party`/`rank` already resolves chair and ranking member; we just do not render them. | Per-committee membership XML: `senate.gov/general/committee_membership/committee_memberships_{THOMAS_ID}.xml` (e.g. `..._SSAF.xml`, confirmed 200). Good cross-check. | easy | P2 |
 | **CMT-04** | Senate site index — `senate.gov/about/research-tools/site-index.htm` | An A–Z of everything senate.gov publishes. Harvested; the finds are `CAL-06`, `CAL-10`, `CAL-11`, `CMT-05`, `SES-02`, `SES-03`, `SES-04`. | n/a | — | Reference only. | easy | P3 |
 | **CMT-05** | LIS Calendar of Business lists — `lis.gov/crtext/lists.html#lcal` | Senate Calendar of Business and Executive Calendar as text lists. | No | Whole thing, **and the host is unreachable from here** (connection times out). | govinfo collection **`CCAL`** — "Congressional Calendars", 6,413 packages / 100,937 granules, covering both chambers' calendars. Needs a govinfo key. | medium | P1 |
@@ -365,8 +365,8 @@ fetch, nothing to schedule, nothing to backfill.
    The congress.gov weekly page, rebuilt from our own rows, laid out like
    `/docs/datasets`. Day-by-day, both chambers, witnesses inline.
 4. **Video on the meeting** (~0.5 d) — `VID-01`. 2,292 meetings have a video URL
-   nobody has ever rendered. Put it on `/docs/meetings/[id]`, and group by
-   committee to give `/docs/committees/[id]` a real video list that does not
+   nobody has ever rendered. Put it on `/meetings/[id]`, and group by
+   committee to give `/committees/[id]` a real video list that does not
    need `YOUTUBE_API_KEY` (`VID-03`).
 
 **Why first:** highest value per unit of risk in the whole document. No new

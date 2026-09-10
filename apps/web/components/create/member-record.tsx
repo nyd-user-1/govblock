@@ -140,7 +140,7 @@ export function MemberRecord({ id, scope, label }: { id: number; scope: Scope; l
                 {rows.map((row) => (
                   <TableRow key={`${tab}-${row.bill_id}`}>
                     <TableCell className="max-w-96">
-                      <a href={`/docs/bills/${row.bill_id}?state=${state}`} target="_blank" rel="noreferrer" className="font-medium hover:underline">
+                      <a href={`/bills/${row.bill_id}?state=${state}`} target="_blank" rel="noreferrer" className="font-medium hover:underline">
                         {row.bill_number}
                       </a>
                       <span className="block truncate text-xs text-muted-foreground">{truncate(row.title, 90)}</span>

@@ -73,7 +73,7 @@ export default async function DatasetsJurisdictionPage({ params }: Props) {
       description={`${fmtNumber(bills)} bills across ${fmtNumber(sessions.length)} ${sessions.length === 1 ? "session" : "sessions"}, each as seven files.`}
       slug={`/docs/datasets/${state.toLowerCase()}`}
       previous={previous ? { name: previous.name, url: `/docs/datasets/${previous.code.toLowerCase()}` } : { name: "Bulk Datasets", url: "/docs/datasets" }}
-      next={next ? { name: next.name, url: `/docs/datasets/${next.code.toLowerCase()}` } : { name: "Bills", url: "/docs/bills" }}
+      next={next ? { name: next.name, url: `/docs/datasets/${next.code.toLowerCase()}` } : { name: "Bills", url: "/bills" }}
       rail={<DocsTableOfContents toc={toc} />}
     >
       <p>

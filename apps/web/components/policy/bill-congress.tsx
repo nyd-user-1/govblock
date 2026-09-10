@@ -654,7 +654,7 @@ export function BillVotesBlock({
         nay: rc.nay ?? 0,
         nv: rc.not_voting ?? 0,
         absent: rc.present ?? 0,
-        href: `/docs/roll-call-votes/${rc.chamber}-${rc.congress}-${rc.session}/${rc.roll}`,
+        href: `/roll-call-votes/${rc.chamber}-${rc.congress}-${rc.session}/${rc.roll}`,
       }))
     : rollCalls.map((rc) => ({
         id: String(rc.roll_call_id),
@@ -727,7 +727,7 @@ export function BillAmendmentsBlock({ bill }: { bill: string }) {
                 stacked
                 hover="rail"
                 // An amendment has a page of its own now (2026-09-06).
-                href={`/docs/amendments/${String(row.type ?? "HAMDT").toLowerCase()}-${row.number ?? ""}`}
+                href={`/amendments/${String(row.type ?? "HAMDT").toLowerCase()}-${row.number ?? ""}`}
                 avatar={<RecordSeal state="US" chamber={row.chamber ?? chamberOfType(row.type)} ordinal={index + 1} />}
                 title={`${row.type ?? ""} ${row.number ?? ""}`.trim()}
                 meta={[row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null, row.latestAction?.text ? truncate(row.latestAction.text, 80) : null, row.sponsors?.[0]?.fullName ?? null]}
@@ -776,7 +776,7 @@ export function BillRelatedBlock({ bill }: { bill: string }) {
                 stacked
                 hover="rail"
                 external={!row.ourId}
-                href={row.ourId ? `/docs/bills/${row.ourId}` : congressGovHref("bill", row.type ?? "HR", String(row.number ?? ""), row.congress ? Number(row.congress) : undefined)}
+                href={row.ourId ? `/bills/${row.ourId}` : congressGovHref("bill", row.type ?? "HR", String(row.number ?? ""), row.congress ? Number(row.congress) : undefined)}
                 avatar={<RecordSeal state="US" chamber={chamberOfType(row.type)} ordinal={index + 1} />}
                 title={number}
                 meta={[row.latestAction?.actionDate ? fmtDate(row.latestAction.actionDate) : null, row.latestAction?.text ? truncate(row.latestAction.text, 80) : null, relationOf(row)]}

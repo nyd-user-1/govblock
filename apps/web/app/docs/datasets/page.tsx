@@ -14,7 +14,7 @@ export default function DatasetsIndexPage() {
       description={description}
       slug="/docs/datasets"
       previous={{ name: "API", url: "/docs/api" }}
-      next={{ name: "Bills", url: "/docs/bills" }}
+      next={{ name: "Bills", url: "/bills" }}
       base="/docs/datasets"
     >
     </JurisdictionIndex>

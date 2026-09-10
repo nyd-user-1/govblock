@@ -34,6 +34,43 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 30 * 1000,
     pagesBufferLength: 2,
   },
+  // The record moved out of /docs (Brendan, 2026-09-10): a living page and the
+  // documentation for installing it were competing for one name, and the page
+  // was winning. Permanent, so the old paths do not linger as two ways to
+  // reach the same thing.
+  async redirects() {
+    const moved: [string, string][] = [
+      ["/docs/bills", "/bills"],
+      ["/docs/committees", "/committees"],
+      ["/docs/directory", "/members"],
+      ["/docs/amendments", "/amendments"],
+      ["/docs/departments", "/departments"],
+      ["/docs/forms", "/forms"],
+      ["/docs/hearings", "/hearings"],
+      ["/docs/laws", "/public-laws"],
+      ["/docs/lobbying", "/lobbying"],
+      ["/docs/meetings", "/meetings"],
+      ["/docs/money", "/money"],
+      ["/docs/nominations", "/nominations"],
+      ["/docs/record", "/record"],
+      ["/docs/reports", "/reports"],
+      ["/docs/roll-call-votes", "/roll-call-votes"],
+    ]
+    return [
+      ...moved.flatMap(([from, to]) => [
+        { source: from, destination: to, permanent: true },
+        { source: `${from}/:path*`, destination: `${to}/:path*`, permanent: true },
+      ]),
+      // The old combined browser is the Tags page; a term's own page is now
+      // filed under the kind it is.
+      { source: "/docs/subjects", destination: "/tags", permanent: true },
+      {
+        source: "/docs/subjects/:state/:slug",
+        destination: "/policy-areas/:state/:slug",
+        permanent: true,
+      },
+    ]
+  },
   // The in-memory response cache, 50 MB by default. Small next to the rest, and
   // free to give up while exploring: nothing here is measured on a warm cache.
   cacheMaxMemorySize: 0,

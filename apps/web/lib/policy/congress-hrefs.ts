@@ -10,8 +10,8 @@ export function fmtAmendment(type: string, number: string) {
   return `${label} ${number}`.trim()
 }
 
-export const amendmentPath = (type: string, number: string) => `/docs/amendments/${type.toLowerCase()}-${number}`
+export const amendmentPath = (type: string, number: string) => `/amendments/${type.toLowerCase()}-${number}`
 
-export const nominationPath = (r: { citation: string | null; key: string }) => `/docs/nominations/${encodeURIComponent((r.citation ?? r.key).toLowerCase())}`
+export const nominationPath = (r: { citation: string | null; key: string }) => `/nominations/${encodeURIComponent((r.citation ?? r.key).toLowerCase())}`
 
 export const congressNominationHref = (r: { congress: number; number: string; part: string | null }) => `https://www.congress.gov/nomination/${r.congress}th-congress/${r.number}${r.part && r.part !== "00" ? `/${Number(r.part)}` : ""}`

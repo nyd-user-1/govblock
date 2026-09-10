@@ -97,7 +97,7 @@ export function LobbyingList({ kind }: { kind: LobbyingKind }) {
           return (
             <RecordItem
               key={name}
-              href={`/docs/lobbying/${kind}/${encodeURIComponent(name)}`}
+              href={`/lobbying/${kind}/${encodeURIComponent(name)}`}
               title={name}
               lead={spec.lead(row)}
               meta={spec.meta(row)}

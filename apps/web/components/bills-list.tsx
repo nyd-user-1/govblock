@@ -83,7 +83,7 @@ export function BillsList() {
         {bills.map((bill, index) => (
           <RecordItem
             key={bill.bill_id}
-            href={`/docs/bills/${bill.bill_id}`}
+            href={`/bills/${bill.bill_id}`}
             avatar={<RecordSeal state={state} chamber={bill.body} ordinal={searching ? index + 1 : (current - 1) * PAGE_SIZE + index + 1} />}
             title={fmtBill(bill.bill_number, state)}
             lead={bill.last_action}

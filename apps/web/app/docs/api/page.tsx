@@ -13,7 +13,7 @@ export default function ApiIndexPage() {
       title={title}
       description={description}
       slug="/docs/api"
-      previous={{ name: "Forms", url: "/docs/forms" }}
+      previous={{ name: "Forms", url: "/forms" }}
       next={{ name: "Bulk Datasets", url: "/docs/datasets" }}
       base="/docs/api"
     >

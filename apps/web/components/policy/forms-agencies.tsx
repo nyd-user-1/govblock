@@ -85,7 +85,7 @@ export function FormsAgenciesCard({ compact = false }: { compact?: boolean }) {
                 data-active={chosen || undefined}
                 title={agencyName(govOf(state, row.value), row.value)}
                 className="rounded-full data-[active=true]:bg-accent"
-                render={<Link href={`/docs/forms?${params}`} className="no-underline" />}
+                render={<Link href={`/forms?${params}`} className="no-underline" />}
               >
                 <ItemMedia>
                   <FormSeal gov={govOf(state, row.value)} agency={row.value} size={compact ? 28 : 36} />

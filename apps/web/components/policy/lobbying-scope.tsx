@@ -53,7 +53,7 @@ export function LobbyingScopeBlock({
           {data.topClients.map((row) => (
             <tr key={row.client}>
               <td>
-                <Link href={`/docs/lobbying/clients/${encodeURIComponent(row.client)}`}>{row.client}</Link>
+                <Link href={`/lobbying/clients/${encodeURIComponent(row.client)}`}>{row.client}</Link>
               </td>
               <td className="text-right tabular-nums">{fmtNumber(row.bills)}</td>
               <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
@@ -76,7 +76,7 @@ export function LobbyingScopeBlock({
           {data.topFirms.map((row) => (
             <tr key={row.registrant}>
               <td>
-                <Link href={`/docs/lobbying/firms/${encodeURIComponent(row.registrant)}`}>{row.registrant}</Link>
+                <Link href={`/lobbying/firms/${encodeURIComponent(row.registrant)}`}>{row.registrant}</Link>
               </td>
               <td className="text-right tabular-nums">{fmtNumber(row.bills)}</td>
               <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
@@ -101,7 +101,7 @@ export function LobbyingScopeBlock({
               {data.topBills.map((row) => (
                 <tr key={row.congress_key}>
                   <td className="whitespace-nowrap">
-                    {row.bill_id ? <Link href={`/docs/bills/${row.bill_id}`}>{row.citation}</Link> : row.citation}
+                    {row.bill_id ? <Link href={`/bills/${row.bill_id}`}>{row.citation}</Link> : row.citation}
                   </td>
                   <td>{truncate(row.title ?? "", 100) || "—"}</td>
                   <td className="pr-8 text-right tabular-nums">{fmtNumber(row.filings)}</td>
@@ -133,7 +133,7 @@ export function LobbyingScopeBlock({
               {revolving.map((row) => (
                 <tr key={row.name}>
                   <td>
-                    <Link href={`/docs/lobbying/lobbyists/${encodeURIComponent(row.name)}`}>{row.name}</Link>
+                    <Link href={`/lobbying/lobbyists/${encodeURIComponent(row.name)}`}>{row.name}</Link>
                   </td>
                   <td>
                     {row.was}

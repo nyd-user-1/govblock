@@ -1302,7 +1302,7 @@ export async function getRecentHearings(state: string, session: number, from: st
         title: m.title ?? "",
         committee: m.committee,
         body: m.chamber,
-        href: `/docs/meetings/${m.event_id}`,
+        href: `/meetings/${m.event_id}`,
       }
     })
     const merged = [...rows.map((r) => ({ ...r, href: null as string | null })), ...extra].sort((a, b) => `${b.date} ${b.time ?? ""}`.localeCompare(`${a.date} ${a.time ?? ""}`))

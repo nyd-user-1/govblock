@@ -102,7 +102,7 @@ export function NominationsList() {
               <RecordItem
                 key={row.citation}
                 // A nomination has a page of its own now (2026-09-06), by citation.
-                href={`/docs/nominations/${encodeURIComponent(String(row.citation ?? `PN${row.number}`).toLowerCase())}`}
+                href={`/nominations/${encodeURIComponent(String(row.citation ?? `PN${row.number}`).toLowerCase())}`}
                 avatar={
                   seal ? (
                     <RecordAvatar src={seal.file} shape={seal.shape} alt="" />

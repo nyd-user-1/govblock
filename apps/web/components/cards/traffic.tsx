@@ -65,7 +65,7 @@ export function BarChartCard() {
           </div>
         </div>
       </CardContent>
-      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All bills" />
     </Card>
   )
 }

@@ -6,7 +6,7 @@ import { PublicRail } from "@/components/block-card"
 import { ChatView } from "./chat-view"
 
 // /chat: the one chat, at the directory family's width, with the Filer's
-// starters first. The column is the bills page's (app/docs/bills/page.tsx),
+// starters first. The column is the bills page's (app/bills/page.tsx),
 // without its prose cap, and the composer pins to the column's bottom.
 const title = "Chat"
 const description = "Apply for New York benefits with the Filer, or ask the Clerk about a bill, a vote, a hearing or a committee."

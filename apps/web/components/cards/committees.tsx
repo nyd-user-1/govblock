@@ -45,7 +45,7 @@ export function CommitteesCard() {
       <CardContent>
         <ItemGroup>
           {committees.map((row) => (
-            <Item key={row.label} variant="muted" render={<Link href={`/docs/bills?state=${state}&committee=${encodeURIComponent(row.label)}`} className="no-underline" />}>
+            <Item key={row.label} variant="muted" render={<Link href={`/bills?state=${state}&committee=${encodeURIComponent(row.label)}`} className="no-underline" />}>
               <ItemMedia>
                 <ChamberSeal state={state} chamber={row.chamber} size={32} />
               </ItemMedia>
@@ -57,7 +57,7 @@ export function CommitteesCard() {
           ))}
         </ItemGroup>
       </CardContent>
-      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/committees?state=${state}`} label="All committees" />
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/committees?state=${state}`} label="All committees" />
     </CardFrame>
   )
 }

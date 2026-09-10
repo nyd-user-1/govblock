@@ -118,7 +118,7 @@ export function CommitteeChair({ record, roster, state, website }: { record: Com
 
 /* ---- members ---------------------------------------------------------------- */
 
-/** A member on the committee card /docs/committees draws: portrait, name, one line (Brendan, 2026-09-06: "use this for the majority and minority committee members"). */
+/** A member on the committee card /committees draws: portrait, name, one line (Brendan, 2026-09-06: "use this for the majority and minority committee members"). */
 const cardOf = (r: RosterRow, state: string): CardSpec => ({
   key: r.bioguide_id,
   href: r.people_id ? memberHref(r.people_id, state) : "#",
@@ -189,7 +189,7 @@ export function CommitteeSubcommittees({ record, counts, state }: { record: Comm
       const bills = counts.get(s.code)
       return {
         key: s.code,
-        href: `/docs/committees/${s.code}`,
+        href: `/committees/${s.code}`,
         title: s.name,
         media: <ChamberSeal state={state} chamber={record?.chamber} size={28} />,
         meta: bills != null ? `${fmtNumber(bills)} Bills` : "Subcommittee",
@@ -233,7 +233,7 @@ function BillRows({ rows, total, state, more, empty }: { rows: BillRow[]; total:
           key={bill.bill_id}
           stacked
           hover="rail"
-          href={`/docs/bills/${bill.bill_id}`}
+          href={`/bills/${bill.bill_id}`}
           avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
           title={fmtBill(bill.bill_number, state)}
           lead={bill.last_action}
@@ -321,7 +321,7 @@ export function CommitteeMeetings({ meetings, hearings, calendar, who }: { meeti
     ...dated.map((m) => {
       const at = eastern(m.date)
       const past = at.date < now
-      return { id: `m-${m.event_id}`, ...at, description: m.title ?? m.type ?? "Meeting", href: `/docs/meetings/${m.event_id}`, badge: m.type ?? null, committee: m.committee_name, action: past ? ("open" as const) : ("calendar" as const) }
+      return { id: `m-${m.event_id}`, ...at, description: m.title ?? m.type ?? "Meeting", href: `/meetings/${m.event_id}`, badge: m.type ?? null, committee: m.committee_name, action: past ? ("open" as const) : ("calendar" as const) }
     }),
     ...hearings
       .filter((h) => h.date && !meetingDays.has(`${parentCode(h.committee_code)}|${day(h.date)}`))
@@ -330,7 +330,7 @@ export function CommitteeMeetings({ meetings, hearings, calendar, who }: { meeti
         date: day(h.date),
         time: null,
         description: h.title ?? h.citation ?? `Hearing ${h.number ?? ""}`,
-        href: `/docs/hearings/${h.jacket}`,
+        href: `/hearings/${h.jacket}`,
         badge: "Transcript",
         committee: h.committee_name,
         action: "open" as const,
@@ -340,7 +340,7 @@ export function CommitteeMeetings({ meetings, hearings, calendar, who }: { meeti
       date: day(c.date),
       time: c.time,
       description: c.description ?? who,
-      href: `/docs/bills/${c.bill_id}`,
+      href: `/bills/${c.bill_id}`,
       badge: fmtBill(c.bill_number, "US"),
       committee: who,
       action: day(c.date) < now ? ("open" as const) : ("calendar" as const),
@@ -379,7 +379,7 @@ export function CommitteeCalendar({ rows, who, state, chamber }: { rows: Calenda
               key={`${row.bill_id}-${row.date}-${index}`}
               stacked
               hover="rail"
-              href={`/docs/bills/${row.bill_id}`}
+              href={`/bills/${row.bill_id}`}
               avatar={<RecordSeal state={state} chamber={chamber} ordinal={index + 1} />}
               title={fmtBill(row.bill_number, state)}
               lead={row.description}
@@ -416,7 +416,7 @@ export function CommitteeReports({ reports, prints, who }: { reports: ReportRow[
               </a>
             </td>
             <td>{truncate(r.title ?? "", 140) || "—"}</td>
-            <td className="whitespace-nowrap">{r.bill_id ? <Link href={`/docs/bills/${r.bill_id}`}>{fmtBill(r.bill_number, "US")}</Link> : "—"}</td>
+            <td className="whitespace-nowrap">{r.bill_id ? <Link href={`/bills/${r.bill_id}`}>{fmtBill(r.bill_number, "US")}</Link> : "—"}</td>
             <td className="pr-8 text-right whitespace-nowrap tabular-nums">{r.issued ? fmtDate(r.issued) : "—"}</td>
           </tr>
         ))}

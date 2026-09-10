@@ -198,7 +198,7 @@ export function FormsList() {
         {rows.map((form) => (
           <RecordItem
             key={form.id}
-            href={`/docs/forms/${form.id}`}
+            href={`/forms/${form.id}`}
             avatar={<FormSeal gov={form.gov} agency={form.agency} />}
             title={form.number}
             lead={formLead(form)}

@@ -33,8 +33,8 @@ export default async function AgentsPage() {
       title={title}
       description={description}
       slug="/agents"
-      previous={{ name: "Members", url: "/docs/directory" }}
-      next={{ name: "Bills", url: "/docs/bills" }}
+      previous={{ name: "Members", url: "/members" }}
+      next={{ name: "Bills", url: "/bills" }}
     >
       <p>
         Every agent here reads through <code>/api/policy</code> — the same routes the pages

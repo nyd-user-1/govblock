@@ -47,11 +47,11 @@ function Block({ id, title, description, href }: { id: string; title: string; de
 }
 
 export function MemberBlock() {
-  return <Block id="member-block" title="Member Block" description="Bills organized by Member" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
+  return <Block id="member-block" title="Member Block" description="Bills organized by Member" href={(c) => `/bills?state=US&chamber=${c}`} />
 }
 
 export function CommitteeBlock() {
-  return <Block id="committee-block" title="Committee Block" description="Bills organized by committee" href={(c) => `/docs/bills?state=US&chamber=${c}`} />
+  return <Block id="committee-block" title="Committee Block" description="Bills organized by committee" href={(c) => `/bills?state=US&chamber=${c}`} />
 }
 
 /**

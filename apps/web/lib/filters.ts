@@ -1,4 +1,4 @@
-// livingston-v3 lib/policy/filters.ts, whole; memberHref points at /docs/directory.
+// livingston-v3 lib/policy/filters.ts, whole; memberHref points at /members.
 // The one filter model every legislative surface speaks: the /create rail
 // writes it into the URL, the preview iframe receives it, the widgets fetch
 // with it, /typeset and the calendars read the same keys. Client-safe — no
@@ -125,7 +125,7 @@ export function isJurisdiction(
 
 /** Where a member's page lives. One place, so every link agrees. */
 export function memberHref(peopleId: number | string, state?: string) {
-  return `/docs/directory/${peopleId}${state ? `?state=${state}` : ""}`
+  return `/members/${peopleId}${state ? `?state=${state}` : ""}`
 }
 
 export function flagUrl(code: string) {

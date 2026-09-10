@@ -60,7 +60,7 @@ export function NominationCommittees({ committees, who }: { committees: { code: 
     const latest = [...c.activities].sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))[0]
     return {
       key: c.code ?? String(i),
-      href: c.code ? `/docs/committees/${c.code.toLowerCase()}` : "/docs/committees?state=US",
+      href: c.code ? `/committees/${c.code.toLowerCase()}` : "/committees?state=US",
       title: c.name ?? c.code ?? "Committee",
       media: <ChamberSeal state={STATE} chamber={c.chamber ?? "Senate"} size={28} />,
       meta: latest ? `${latest.name ?? "Referred"}${latest.date ? ` · ${fmtDate(latest.date)}` : ""}` : "Referred",
@@ -96,7 +96,7 @@ export function NominationHearings({ hearings, who }: { hearings: { key: string;
         <tbody>
           {hearings.map((h) => (
             <tr key={h.key}>
-              <td>{h.jacket ? <Link href={`/docs/hearings/${h.jacket}`}>{h.citation ?? `Jacket ${h.jacket}`}</Link> : (h.citation ?? "—")}</td>
+              <td>{h.jacket ? <Link href={`/hearings/${h.jacket}`}>{h.citation ?? `Jacket ${h.jacket}`}</Link> : (h.citation ?? "—")}</td>
               <td>{h.number ?? "—"}</td>
               <td className="pr-8 text-right whitespace-nowrap tabular-nums">{h.date ? fmtDate(h.date) : "—"}</td>
             </tr>

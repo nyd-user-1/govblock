@@ -74,7 +74,7 @@ export function MembersCard() {
           ))}
         </div>
       </CardContent>
-      <CardFoot chamber={chamber} onChamber={setChamber} href={`/docs/directory?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All members" />
+      <CardFoot chamber={chamber} onChamber={setChamber} href={`/members?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : ""}`} label="All members" />
     </CardFrame>
   )
 }

@@ -7,7 +7,7 @@ import { LobbyingList, type LobbyingKind } from "@/components/policy/lobbying-li
 import { Button } from "@govblock/ui/components/ny4/button"
 
 // The three lobbying boards — registrants, clients, lobbyists — on the bills
-// board's page (app/docs/bills/page.tsx), which is where the shell comes from.
+// board's page (app/bills/page.tsx), which is where the shell comes from.
 // One file rather than three copies of it: the boards differ only by which list
 // they hold and where the arrows point.
 

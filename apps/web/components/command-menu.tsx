@@ -154,7 +154,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               key={`bill-${bill.bill_id}`}
               className="group/row"
               value={`bill-${bill.bill_id}`}
-              onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
+              onSelect={() => go(`/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
             >
               <FlagChip state={bill.state ?? state} width={20} />
               <span className="w-28 shrink-0 truncate font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
@@ -209,7 +209,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               className="group/row"
               value={`committee-${committee.committee}`}
               onSelect={() =>
-                go(`/docs/bills?state=${committee.state ?? state}&committee=${encodeURIComponent(committee.committee)}`)
+                go(`/bills?state=${committee.state ?? state}&committee=${encodeURIComponent(committee.committee)}`)
               }
             >
               <FlagChip state={committee.state ?? state} width={20} />

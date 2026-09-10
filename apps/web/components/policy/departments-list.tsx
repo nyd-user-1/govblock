@@ -45,7 +45,7 @@ export function DepartmentsList() {
             <ProjectGrid>
               {rows.map((d) => {
                 const bills = counts[d.slug]
-                return <ProjectCard key={d.slug} href={`/docs/departments/${d.slug}`} title={d.name} media={media(d)} meta={bills != null ? `${fmtNumber(bills)} Bills` : d.kind} />
+                return <ProjectCard key={d.slug} href={`/departments/${d.slug}`} title={d.name} media={media(d)} meta={bills != null ? `${fmtNumber(bills)} Bills` : d.kind} />
               })}
             </ProjectGrid>
           </section>

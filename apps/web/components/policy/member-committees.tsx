@@ -7,7 +7,7 @@ import { CardBlock } from "@/components/policy/card-block"
 import { H3 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
-// A member's committees on the card /docs/committees uses — seal, name, bill
+// A member's committees on the card /committees uses — seal, name, bill
 // count — in that page's two-column grid. Brendan, 2026-09-05: "use the
 // ProjectCard with seal and bill count."
 
@@ -70,7 +70,7 @@ export function MemberCommittees({
           const role = c.title?.replace(/^Chairman$|^Chairwoman$/, "Chair") ?? "Member"
           return {
             key: c.system_code,
-            href: `/docs/committees/${c.system_code}`,
+            href: `/committees/${c.system_code}`,
             title: shortName(c),
             media: <ChamberSeal state="US" chamber={chamberOf(c)} size={28} />,
             meta: bills != null ? `${fmtNumber(bills)} Bills` : role,

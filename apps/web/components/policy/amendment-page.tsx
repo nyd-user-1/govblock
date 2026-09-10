@@ -133,5 +133,5 @@ export function AmendmentToc({ parts }: { parts: string[] }) {
 }
 
 export function AmendedBillLink({ id, label }: { id: number | null; label: string }) {
-  return id ? <Link href={`/docs/bills/${id}`}>{label}</Link> : <>{label}</>
+  return id ? <Link href={`/bills/${id}`}>{label}</Link> : <>{label}</>
 }

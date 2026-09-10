@@ -19,9 +19,9 @@ import { H2, H3, Table } from "@/components/typeset"
 
 const money = (value: number | null | undefined) => (value == null ? "—" : fmtCompact(value))
 
-const lobbyistHref = (name: string) => `/docs/lobbying/lobbyists/${encodeURIComponent(name)}`
-const firmHref = (name: string) => `/docs/lobbying/firms/${encodeURIComponent(name)}`
-const clientHref = (name: string) => `/docs/lobbying/clients/${encodeURIComponent(name)}`
+const lobbyistHref = (name: string) => `/lobbying/lobbyists/${encodeURIComponent(name)}`
+const firmHref = (name: string) => `/lobbying/firms/${encodeURIComponent(name)}`
+const clientHref = (name: string) => `/lobbying/clients/${encodeURIComponent(name)}`
 
 export function BillLobbyingBlock({ bill, data }: { bill: string; data: BillLobbying | null }) {
   if (!data || !data.summary.filings) return null

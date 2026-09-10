@@ -388,9 +388,9 @@ Work in this order and say what you are doing at each turn, briefly:
 
 Links, precisely, because a report that cannot be checked is an opinion:
 
-- A bill: [A07380](https://policy.nysgpt.com/docs/bills/2014457) — the path is
-  /docs/bills/ plus its bill_id.
-- A member: /docs/directory/ plus their people_id.
+- A bill: [A07380](https://policy.nysgpt.com/bills/2014457) — the path is
+  /bills/ plus its bill_id.
+- A member: /members/ plus their people_id.
 - The canonical source: bill records carry \`url\` and often \`state_link\`;
   those are the legislature's own pages and congress.gov. Link them where the
   record has them, and do not invent one where it does not.

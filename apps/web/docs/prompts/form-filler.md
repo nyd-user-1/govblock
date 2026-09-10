@@ -21,7 +21,7 @@ The app-shell right panel and `/chat` share one chat component. The Filer appear
 
 ### 1.1 govblock (read in full before writing anything)
 
-`lib/agents/loop.ts`, `lib/agents/run-client.ts`, `app/api/agents/chat/route.ts`, `lib/agents/registry.ts` (the `AgentDefinition` type and the Clerk entry, lines 1–150), `lib/agents/run-tools.ts`, `lib/agents/tools.ts` lines 1–60 and 800–863, `lib/agents/inbox.ts`, `components/policy/assist-chat.tsx`, `components/assist-panel.tsx`, `app/agents/agent-chat.tsx`, `app/agents/transcript.tsx`, `app/docs/layout.tsx`, `app/docs/bills/page.tsx`, `registry/blocks/sidebar-09/page.tsx` lines 180–260, `lib/agents/report-pdf.ts` lines 1–110, `lib/policy/forms-queries.ts` lines 1–125.
+`lib/agents/loop.ts`, `lib/agents/run-client.ts`, `app/api/agents/chat/route.ts`, `lib/agents/registry.ts` (the `AgentDefinition` type and the Clerk entry, lines 1–150), `lib/agents/run-tools.ts`, `lib/agents/tools.ts` lines 1–60 and 800–863, `lib/agents/inbox.ts`, `components/policy/assist-chat.tsx`, `components/assist-panel.tsx`, `app/agents/agent-chat.tsx`, `app/agents/transcript.tsx`, `app/docs/layout.tsx`, `app/bills/page.tsx`, `registry/blocks/sidebar-09/page.tsx` lines 180–260, `lib/agents/report-pdf.ts` lines 1–110, `lib/policy/forms-queries.ts` lines 1–125.
 
 - **Runtime.** The Bedrock Converse loop, one round per POST to `/api/agents/chat`, ndjson events `open | text | tool | tool_result | continue | state | done | error`. `runAgent` in `run-client.ts` carries `state.messages` (the full Converse `Message[]`) back every round. Tools run server-side in the round through `runTool`. Results are capped at 8,000 chars and **compacted to 700 chars after two rounds** (`VERBATIM_ROUNDS`): the model cannot be the ledger of answers. The browser is.
 - **`ai` v7 and `@ai-sdk/react` are in `apps/web/package.json`** but used only by `app/(typeset)/lib/fixtures/docs.ts`. Do not build on them. One runtime.
@@ -29,7 +29,7 @@ The app-shell right panel and `/chat` share one chat component. The Filer appear
 - **The right panel** (`assist-panel.tsx`, fixed 423px drawer mounted in `app/layout.tsx`) renders `AssistChat`. Rebuilding `AssistChat` upgrades the panel; keep that true.
 - **Not installed anywhere in the workspace:** `pdf-lib`, `resend`, `motion`, `@shadcn/react`, `@aws-sdk/client-textract`. `jspdf` is (used by `report-pdf.ts`). From the repo root: `pnpm add pdf-lib resend motion @shadcn/react --filter web` and `pnpm add -D unpdf --filter web` (text layer for the draft-spec script). `@base-ui/react` 1.7 and `class-variance-authority` are already in both `web` and `@govblock/ui`. Do not add Textract; nothing here needs OCR.
 - **The Agentic Inbox is localStorage-backed** (`inbox.ts`, fifty threads in a few megabytes). `Attached = { name; meta?; href; build?: "report-pdf" }`; with `build` set, the file is rebuilt in the browser on click (sidebar-09 line 230, `report-pdf.ts`). **Never store PDF bytes in a thread.** Store form id and the values used on the message and rebuild.
-- **The Forms table** carries `fillable_fields` jsonb, `url`, `file`, `pages`, `bytes`; `/docs/forms/[id]` is the form page. The two PDFs for this build ship in `public/forms/`, not from the table.
+- **The Forms table** carries `fillable_fields` jsonb, `url`, `file`, `pages`, `bytes`; `/forms/[id]` is the form page. The two PDFs for this build ship in `public/forms/`, not from the table.
 - **Model tiers** `reasoning | grounded | routing` (`lib/agents/models.ts`); `maxRounds` per agent (`registry.ts` line 29).
 - **Secrets.** `apps/web/.env.local` (gitignored) now has `RESEND_API_KEY` and `RESEND_FROM_EMAIL=GovBlock <onboarding@resend.dev>`, copied from livingston on 2026-09-08. Email is live, not gated. AWS is the default credential chain; nothing to add.
 
@@ -157,7 +157,7 @@ Profile data includes SSN and DOB. It stays in this browser (localStorage, same 
 
 - **`/chat`**: `app/chat/layout.tsx` reproduces `app/docs/layout.tsx` (`container-wrapper`, `SidebarProvider`, `DocsSidebar`); `app/chat/page.tsx` uses the column from `docs/bills/page.tsx` (`data-slot="docs"`, top spacing, the h1 row) with `AssistChat` filling the column at the directory width, not `max-w-160`, and the composer pinned to the column's bottom. Title "Chat". Starters: "Apply for SNAP or Public Assistance (LDSS-2921)", "Apply for child care assistance (OCFS-6025)", plus two of the Clerk's. `?form=ldss-2921` pre-seeds the first message.
 - **Right panel**: `AssistPanel` keeps rendering `AssistChat`, compact variant.
-- **`/docs/forms/[id]`**: when the row's number is one of the two forms, a "Fill this form" button to `/chat?form=…`. Form numbers render as the copy chip bills use.
+- **`/forms/[id]`**: when the row's number is one of the two forms, a "Fill this form" button to `/chat?form=…`. Form numbers render as the copy chip bills use.
 
 ### 2.7 The agent (`registry.ts`)
 
@@ -169,7 +169,7 @@ Profile data includes SSN and DOB. It stays in this browser (localStorage, same 
 2. **Visual proof, LDSS-2921 and OCFS-6025.** Rasterise the filled PDFs with `/opt/homebrew/bin/pdftoppm -r 80 -png` into your scratchpad and **look at every data page** (LDSS-2921 pages 2–18, OCFS-6025 pages 1–5) with the Read tool. Every value must sit inside its box beside the right printed label. Fix the map, refill, look again. Keep the annotated renders and the final filled PNGs and name them in the report; Brendan will open the PDFs himself.
 3. **Loop regression**: the Clerk curl and `/agents/bill-reader` after the loop change.
 4. **The Filer over HTTP**: `POST /api/agents/chat` with `agent: "form-filler"` and a first turn returns a `state` with `waiting` whose `input.fields` are the first section's keys.
-5. **Dev server**: `cd apps/web && BRENDAN_OK_LOCAL_BUILD=1 NODE_OPTIONS=--max-old-space-size=2048 ../../node_modules/.bin/next dev`; `/chat`, `/agents/form-filler`, `/docs/forms` compile and answer 200; kill it. Stop at "compiles and answers"; Brendan reviews in his own browser.
+5. **Dev server**: `cd apps/web && BRENDAN_OK_LOCAL_BUILD=1 NODE_OPTIONS=--max-old-space-size=2048 ../../node_modules/.bin/next dev`; `/chat`, `/agents/form-filler`, `/forms` compile and answer 200; kill it. Stop at "compiles and answers"; Brendan reviews in his own browser.
 6. **Email for real**: send both sample filled PDFs once to `brendan@nysgpt.com` through the route; report the Resend message ids.
 7. **The second form is prefilled.** With the sample profile in localStorage from an LDSS-2921 run, start OCFS-6025 and count the keys `ask` still has to open. Report that number and the list; it should be only what CCAP asks that the common application does not (provider, schedule, care reason).
 
@@ -199,7 +199,7 @@ A lead session is running alongside you and cannot message your session directly
 4. `specs + fill`: `spec.ts`, `draft-spec.mjs`, `annotate.mjs`, both specs with maps and fixups, generic `fillForm`, readback script, rasterised pages reviewed and corrected. Commit only when both specs account for every field and `unmapped` is empty or every remaining key is explained.
 5. `widgets`: ask, review, delivery card, progress, the tool→widget map. Commit.
 6. `delivery`: Resend route, inbox `form-pdf` build and `Message.form`, sidebar-09 dispatch, the real test email. Commit.
-7. `Filer + /chat`: registry entry and prompt, `form_schema`, `remember`, `/chat` page and layout, `/docs/forms/[id]` button, starters, the HTTP check. Commit.
+7. `Filer + /chat`: registry entry and prompt, `form_schema`, `remember`, `/chat` page and layout, `/forms/[id]` button, starters, the HTTP check. Commit.
 8. `applicant profile page`: the `settings/applicant` tab on the dashboard, reading and writing the same profile store; verify a value entered there appears prefilled in `ask`. Commit.
 
 ## 6. Report (your final message)

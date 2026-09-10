@@ -759,7 +759,7 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       )
     }
     case "lobbying-firms": {
-      // The register's own list, for /docs/lobbying: paged and searched on the
+      // The register's own list, for /lobbying: paged and searched on the
       // server, because 6,473 registrants do not filter fifty rows at a time.
       return getLobbyingFirms(
         Math.min(int(sp.get("limit"), 50), 200),
