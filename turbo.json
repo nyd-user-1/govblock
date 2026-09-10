@@ -35,5 +35,18 @@
       "cache": false,
       "persistent": true
     }
-  }
+  },
+  "globalEnv": [
+    "AWS_REGION",
+    "EXA_API_KEY",
+    "EXA_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_PROJECT_ROOT",
+    "NODE_ENV",
+    "POLICY_CLUSTER_ARN",
+    "POLICY_DATABASE",
+    "POLICY_DATABASE_URL",
+    "POLICY_SECRET_ARN",
+    "TYPESET_UPLOADS_BUCKET",
+    "USCENSUS_API_KEY"
+  ]
 }
