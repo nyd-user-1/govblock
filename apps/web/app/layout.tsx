@@ -7,9 +7,15 @@ import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
-import { EMBED_SCRIPT, EMBED_STYLE, SCOPE_SCRIPT, SCOPE_STYLE } from "@/lib/policy/scope-script"
+import {
+  EMBED_SCRIPT,
+  EMBED_STYLE,
+  SCOPE_SCRIPT,
+  SCOPE_STYLE,
+} from "@/lib/policy/scope-script"
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
+import { DevTrace } from "@/components/dev/trace"
 import { AssistPanel, AssistShell } from "@/components/assist-panel"
 import { CardGateProvider } from "@/components/card-gate"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
@@ -25,12 +31,17 @@ export const metadata: Metadata = {
 // Ported from livingston-v3 app/layout.tsx + app/(app)/layout.tsx. The header
 // and footer heights are CSS variables the header, footer and scroll padding
 // all read.
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(fontVariables, "[--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)]")}
+      className={cn(
+        fontVariables,
+        "[--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)]"
+      )}
     >
       <head>
         {/* Before first paint: which jurisdiction this document is about to be
@@ -45,27 +56,37 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
         <NuqsAdapter>
-        <ThemeProvider>
-          <TooltipProvider delay={0}>
-            <JurisdictionProvider>
-            <CardGateProvider>
-            <AssistPanelProvider>
-            <ScopeReady />
-            <div data-slot="layout" className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden has-data-[slot=inbox]:h-svh has-data-[slot=inbox]:overflow-hidden">
-              <SiteHeader />
-              {/* The chat drawer is part of this shell (Brendan, 2026-09-07): it
+          <ThemeProvider>
+            <TooltipProvider delay={0}>
+              <JurisdictionProvider>
+                <CardGateProvider>
+                  <AssistPanelProvider>
+                    <ScopeReady />
+                    <div
+                      data-slot="layout"
+                      className="group/layout relative z-10 flex min-h-svh flex-col bg-background has-data-[slot=designer]:h-svh has-data-[slot=designer]:overflow-hidden has-data-[slot=inbox]:h-svh has-data-[slot=inbox]:overflow-hidden"
+                    >
+                      <SiteHeader />
+                      {/* The chat drawer is part of this shell (Brendan, 2026-09-07): it
                   lives outside the routed pages and survives every navigation. */}
-              <AssistShell>
-                <main data-scope-content className="flex min-h-0 flex-1 flex-col">{children}</main>
-              </AssistShell>
-              <SiteFooter />
-            </div>
-            <AssistPanel />
-            </AssistPanelProvider>
-            </CardGateProvider>
-            </JurisdictionProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+                      <AssistShell>
+                        <main
+                          data-scope-content
+                          className="flex min-h-0 flex-1 flex-col"
+                        >
+                          {children}
+                        </main>
+                      </AssistShell>
+                      <SiteFooter />
+                    </div>
+                    <AssistPanel />
+                    {/* The visual inspector, on the dev server only. */}
+                    <DevTrace />
+                  </AssistPanelProvider>
+                </CardGateProvider>
+              </JurisdictionProvider>
+            </TooltipProvider>
+          </ThemeProvider>
         </NuqsAdapter>
       </body>
     </html>
