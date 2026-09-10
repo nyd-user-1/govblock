@@ -13,6 +13,16 @@ import { SessionsCard } from "./sessions"
 import { AdoptedBillsCard } from "./adopted"
 import { NoTeamMembers } from "./team"
 import { TopicsCard } from "./topics"
+import {
+  BulkDatasetsCard,
+  LegislativeActivityCard,
+  SeatsByPartyCard,
+  TopSponsorsCard,
+} from "@/components/admin/pages/sales"
+import {
+  BillTextCard,
+  DemoBillProvider,
+} from "@/components/workspace/demo-bill"
 import { BarChartCard } from "./traffic"
 import { VotesCard } from "./votes"
 
@@ -32,18 +42,21 @@ const STACKS: { id: string; node: React.ReactNode }[][] = [
     { id: "votes", node: <VotesCard /> },
     { id: "subjects", node: <TopicsCard /> },
     { id: "lobbying", node: <LobbyingCard /> },
+    { id: "legislative-activity", node: <LegislativeActivityCard /> },
   ],
   [
     { id: "connect", node: <ConnectCard /> },
     { id: "party", node: <PartyCard /> },
     { id: "sessions", node: <SessionsCard /> },
     { id: "model-bills", node: <ModelBillsCard /> },
+    { id: "bill-text", node: <BillTextCard /> },
   ],
   [
     { id: "committees", node: <CommitteesCard /> },
     { id: "traffic", node: <BarChartCard /> },
     { id: "notifications", node: <NotificationSettings /> },
     { id: "nav", node: <NavigationCard /> },
+    { id: "top-sponsors", node: <TopSponsorsCard /> },
   ],
   [
     { id: "stock", node: <AdoptedBillsCard /> },
@@ -51,6 +64,8 @@ const STACKS: { id: string; node: React.ReactNode }[][] = [
     { id: "members", node: <MembersCard /> },
     { id: "api", node: <ApiCard /> },
     { id: "team", node: <NoTeamMembers /> },
+    { id: "seats-by-party", node: <SeatsByPartyCard /> },
+    { id: "bulk-datasets", node: <BulkDatasetsCard /> },
   ],
 ]
 
@@ -58,19 +73,25 @@ export function CardsDemo() {
   return (
     <div
       data-slot="demo"
-      className="relative flex w-full max-w-none flex-col gap-(--gap) overflow-hidden bg-muted p-12 pb-0! lg:max-h-[1500px] xl:max-h-[1600px] [--gap:--spacing(8)] 3xl:[--gap:--spacing(8)] min-[1900px]:p-12 min-[1900px]:[--gap:--spacing(10)]! lg:p-6 lg:[--gap:--spacing(6)] dark:bg-background"
+      className="relative flex w-full max-w-none flex-col gap-(--gap) overflow-hidden bg-muted p-12 pb-0! [--gap:--spacing(8)] 3xl:[--gap:--spacing(8)] min-[1900px]:p-12 min-[1900px]:[--gap:--spacing(10)]! lg:max-h-[1500px] lg:p-6 lg:[--gap:--spacing(6)] xl:max-h-[1600px] dark:bg-background"
     >
-      <div className="relative z-10 mx-auto grid w-full max-w-[1600px] grid-cols-1 items-start gap-(--gap) md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {STACKS.map((stack, index) => (
-          <div key={index} className="flex min-w-0 flex-col gap-(--gap)">
-            {stack.map((item) => (
-              <div key={item.id} data-sortable={item.id} className="flex min-w-0 flex-col outline-none **:data-[slot=card]:h-full">
-                {item.node}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+      <DemoBillProvider>
+        <div className="relative z-10 mx-auto grid w-full max-w-[1600px] grid-cols-1 items-start gap-(--gap) md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {STACKS.map((stack, index) => (
+            <div key={index} className="flex min-w-0 flex-col gap-(--gap)">
+              {stack.map((item) => (
+                <div
+                  key={item.id}
+                  data-sortable={item.id}
+                  className="flex min-w-0 flex-col outline-none **:data-[slot=card]:h-full"
+                >
+                  {item.node}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </DemoBillProvider>
       <div className="absolute inset-x-0 top-0 z-1 h-120 bg-linear-to-b from-background via-muted to-transparent dark:hidden" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-48 bg-linear-to-t from-background via-muted/80 to-transparent lg:h-80 xl:h-64 dark:via-background/80" />
     </div>
