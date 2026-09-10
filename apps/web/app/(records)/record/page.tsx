@@ -14,7 +14,7 @@ export default function RecordPage() {
       description={description}
       slug="/record"
       previous={{ name: "Reports", url: "/reports" }}
-      next={{ name: "Laws", url: "/public-laws" }}
+      next={{ name: "Finance", url: "/money" }}
     >
       <RecordList />
     </DocsPage>

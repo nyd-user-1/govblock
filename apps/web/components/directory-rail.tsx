@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight } from "lucide-react"
 
-import { hasItems, isScoped, siteConfig, type NavLink } from "@/lib/config"
+import { hasItems, siteConfig, withScope, type NavLink } from "@/lib/config"
 import * as F from "@/lib/fixtures"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { useScoped } from "@/lib/policy/use-scoped"
@@ -149,7 +149,7 @@ export function DirectoryRail() {
   const scope = `?state=${state}`
   // Docs pages take the jurisdiction on the URL; the rest of the site reads it
   // from the browser.
-  const scoped = (href: string) => (isScoped(href) ? `${href}${scope}` : href)
+  const scoped = (href: string) => withScope(href, state)
 
   const sections: RailItem[] = SECTIONS.flatMap((nav) => {
     const entry = siteConfig.navItems.find((item) => item.label === nav)

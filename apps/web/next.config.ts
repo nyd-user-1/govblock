@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
       ["/docs/departments", "/departments"],
       ["/docs/forms", "/forms"],
       ["/docs/hearings", "/hearings"],
-      ["/docs/laws", "/public-laws"],
+
       ["/docs/lobbying", "/lobbying"],
       ["/docs/meetings", "/meetings"],
       ["/docs/money", "/money"],
@@ -61,6 +61,11 @@ const nextConfig: NextConfig = {
         { source: from, destination: to, permanent: true },
         { source: `${from}/:path*`, destination: `${to}/:path*`, permanent: true },
       ]),
+      // Becoming law is a bill's last stage, so the list lives on the bills
+      // page. /docs/laws went to /public-laws for a few hours on 2026-09-10;
+      // both land in the same place.
+      { source: "/docs/laws", destination: "/bills?status=enacted", permanent: true },
+      { source: "/public-laws", destination: "/bills?status=enacted", permanent: true },
       // The old combined browser is the Tags page; a term's own page is now
       // filed under the kind it is.
       { source: "/docs/subjects", destination: "/tags", permanent: true },

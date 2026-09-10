@@ -26,7 +26,7 @@ export default function MoneyPage() {
       title={title}
       description={description}
       slug="/money"
-      previous={{ name: "Laws", url: "/public-laws" }}
+      previous={{ name: "The Record", url: "/record" }}
       next={{ name: "Bills", url: "/bills" }}
     >
       <FinanceList />

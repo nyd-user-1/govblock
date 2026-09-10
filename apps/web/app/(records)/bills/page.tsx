@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { IconArrowRight } from "@tabler/icons-react"
 
-import { BillsList } from "@/components/bills-list"
+import { BillsStage } from "@/components/bills-stage"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -42,7 +42,7 @@ export default function BillsPage() {
             </div>
           </div>
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-            <BillsList />
+            <BillsStage />
           </div>
           <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
             <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>

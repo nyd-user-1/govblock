@@ -4,7 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation"
 import { Bot, CalendarDays, Database, FileText, Globe, History, Home, LayoutGrid, Newspaper, PieChart, Search, Settings } from "lucide-react"
 
-import { hasItems, isScoped, siteConfig } from "@/lib/config"
+import { hasItems, siteConfig, withScope } from "@/lib/config"
 import { stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { RailGroup, type RailItem } from "@/components/directory-rail"
@@ -43,7 +43,7 @@ export function HomeRail() {
   })
   const page = (p: { href: string; label: string }): RailItem => ({
     key: p.href,
-    href: isScoped(p.href) ? `${p.href}${scope}` : p.href,
+    href: withScope(p.href, state),
     label: p.label,
     active: pathname.startsWith(p.href),
   })

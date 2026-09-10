@@ -34,7 +34,7 @@ export default async function RollCallVotesPage() {
       title={title}
       description={description}
       slug="/roll-call-votes"
-      previous={{ name: "Laws", url: "/public-laws" }}
+      previous={{ name: "Finance", url: "/money" }}
       next={{ name: "Finance", url: "/money" }}
       rail={<DocsTableOfContents toc={toc} />}
     >

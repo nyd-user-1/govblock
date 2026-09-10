@@ -61,7 +61,6 @@ export const RECORD_ROUTES = [
   "/money",
   "/nominations",
   "/policy-areas",
-  "/public-laws",
   "/record",
   "/reports",
   "/roll-call-votes",
@@ -70,7 +69,14 @@ export const RECORD_ROUTES = [
 
 /** Whether a link should carry the jurisdiction in scope. */
 export function isScoped(href: string) {
-  return RECORD_ROUTES.some((route) => href === route || href.startsWith(route + "/"))
+  const path = href.split(/[?#]/)[0]
+  return RECORD_ROUTES.some((route) => path === route || path.startsWith(route + "/"))
+}
+
+/** A record link with the jurisdiction on it, whatever else it already carries. */
+export function withScope(href: string, state: string) {
+  if (!isScoped(href)) return href
+  return `${href}${href.includes("?") ? "&" : "?"}state=${state}`
 }
 
 export function hasItems(
@@ -115,7 +121,7 @@ export const siteConfig = {
           label: "Legislation",
           items: [
             "/bills",
-            "/public-laws",
+            "/bills?status=enacted",
             "/roll-call-votes",
             "/record",
           ],
@@ -185,8 +191,9 @@ export const siteConfig = {
           icon: "Mic",
         },
         {
-          href: "/public-laws",
-          label: "Laws",
+          // Becoming law is a bill's last stage, not a section of its own.
+          href: "/bills?status=enacted",
+          label: "Enacted",
           description: "What passed, and the bill it began as.",
           icon: "Scale",
         },
