@@ -59,19 +59,19 @@ const forms = (code: string) => `/workspace/forms?state=US&agency=${encodeURICom
 const dept = (key: string, title: string, seal: string, href: string): Dataset => ({ key, title, seal: { kind: "image", src: seal }, group: "department", href })
 
 const DEPARTMENTS: Dataset[] = [
-  dept("fec", "Federal Election Commission", "/seals/federal-election-commission.png", "/workspace/dashboard/finance"),
-  dept("hud", "Housing & Urban Development", "/seals/department-of-housing-and-urban-development.png", forms("HUD")),
-  dept("irs", "Internal Revenue Service", "/chambers/us.png", forms("IRS")),
-  dept("opm", "Office of Personnel Management", "/seals/office-of-personnel-management.png", forms("OPM")),
-  dept("sba", "Small Business Administration", "/seals/small-business-administration.png", forms("SBA")),
-  dept("ssa", "Social Security Administration", "/seals/social-security-administration.png", forms("SSA")),
-  dept("gsa", "General Services Administration", "/seals/general-services-administration.png", forms("GSA")),
-  dept("dol", "Department of Labor", "/seals/department-of-labor.png", forms("DOL")),
-  dept("usda", "Department of Agriculture", "/seals/department-of-agriculture.png", forms("USDA-FNS")),
-  dept("ed", "Department of Education", "/seals/department-of-education.png", forms("ED")),
-  dept("hhs", "Health & Human Services", "/seals/department-of-health-and-human-services.png", forms("CMS")),
-  dept("dhs", "Homeland Security", "/seals/department-of-homeland-security.png", forms("USCIS")),
-  dept("va", "Veterans Affairs", "/seals/department-of-veterans-affairs.png", forms("VA")),
+  dept("fec", "Federal Election Commission", "/seals/federal-election-commission.avif", "/workspace/dashboard/finance"),
+  dept("hud", "Housing & Urban Development", "/seals/department-of-housing-and-urban-development.avif", forms("HUD")),
+  dept("irs", "Internal Revenue Service", "/chambers/us.avif", forms("IRS")),
+  dept("opm", "Office of Personnel Management", "/seals/office-of-personnel-management.avif", forms("OPM")),
+  dept("sba", "Small Business Administration", "/seals/small-business-administration.avif", forms("SBA")),
+  dept("ssa", "Social Security Administration", "/seals/social-security-administration.avif", forms("SSA")),
+  dept("gsa", "General Services Administration", "/seals/general-services-administration.avif", forms("GSA")),
+  dept("dol", "Department of Labor", "/seals/department-of-labor.avif", forms("DOL")),
+  dept("usda", "Department of Agriculture", "/seals/department-of-agriculture.avif", forms("USDA-FNS")),
+  dept("ed", "Department of Education", "/seals/department-of-education.avif", forms("ED")),
+  dept("hhs", "Health & Human Services", "/seals/department-of-health-and-human-services.avif", forms("CMS")),
+  dept("dhs", "Homeland Security", "/seals/department-of-homeland-security.avif", forms("USCIS")),
+  dept("va", "Veterans Affairs", "/seals/department-of-veterans-affairs.avif", forms("VA")),
 ]
 
 export const DATASETS: Dataset[] = [

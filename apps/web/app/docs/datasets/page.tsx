@@ -17,10 +17,6 @@ export default function DatasetsIndexPage() {
       next={{ name: "Bills", url: "/docs/bills" }}
       base="/docs/datasets"
     >
-      <p>
-        Where the API pages, a dataset does not: each file is a whole session of one family, streamed from the record as it stands
-        that day and cached for a day. Open a jurisdiction to see its sessions, and take any family as JSON or CSV.
-      </p>
     </JurisdictionIndex>
   )
 }
