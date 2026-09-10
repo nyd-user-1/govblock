@@ -3,6 +3,7 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
+import { Sidebar, SidebarContent } from "@govblock/ui/components/ny4/sidebar"
 import { Button } from "@govblock/ui/components/ny4/button"
 
 // The docs page shell /docs/bills, /docs/committees and /docs/directory each
@@ -60,14 +61,26 @@ export function DocsPage({ title, description, slug, previous, next, rail, child
           </div>
         </div>
       </div>
-      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-        <div className="h-(--top-spacing) shrink-0"></div>
+      {/* The right rail is the left rail, mirrored (Brendan, 2026-09-10): the
+          same sticky offset, the same height, the same widths and the same
+          hairline — moved to the inner edge — and the content padded away from
+          it on the other side. Only the breakpoint differs, because a narrow
+          window drops this rail before it drops the navigation. */}
+      <Sidebar
+        side="right"
+        collapsible="none"
+        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] overflow-hidden overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] xl:flex"
+      >
+        <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] xl:flex" />
         {/* py-1: the scroller clipped the first card's top edge and shadow into a blurred line (Brendan, 2026-09-06). */}
-        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 py-1 xl:flex">
+        {/* mr-8: the left rail sits 32px off the viewport, and this one has a
+            scroll gutter eating the difference, so the margin is stated rather
+            than left to the scrollbar (Brendan, 2026-09-10). */}
+        <SidebarContent className="scrollbar-none mr-8 ml-auto w-(--sidebar-menu-width) scroll-fade gap-6 overflow-x-hidden py-1">
           {rail}
           <PublicRail />
-        </div>
-      </div>
+        </SidebarContent>
+      </Sidebar>
     </div>
   )
 }
