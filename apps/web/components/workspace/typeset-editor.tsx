@@ -6,11 +6,10 @@ import { Plate, usePlateEditor } from "platejs/react"
 import { Toaster } from "sonner"
 
 import { EditorKit } from "@/components/plate/editor/editor-kit"
-import { PotionKit } from "@/components/plate/editor/potion-kit"
 import { PlateEditor } from "@/components/plate/editor/plate-editor"
 import { Editor, EditorContainer } from "@/components/plate/ui/editor"
 import { BillSkeleton } from "@/components/workspace/bill-skeleton"
-import { PotionOutline } from "@/components/workspace/potion-outline"
+import { PotionDocument } from "@/components/workspace/potion-editor"
 
 // The Typeset editor (Brendan, 2026-09-09): Plate's playground editor, as the
 // template ships it — its fixed toolbar under the shell's header, the centred
@@ -27,6 +26,12 @@ import { PotionOutline } from "@/components/workspace/potion-outline"
 export type TypesetSurface = "plate" | "potion"
 
 type Loaded = { key: string; html: string }
+
+/** What the page is called: the document's own <h1>. */
+function titleOf(html: string) {
+  const match = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)
+  return match ? match[1].replace(/<[^>]+>/g, "").trim() : "Typeset"
+}
 
 function useContent(item: string, bill: string, version?: string) {
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
@@ -70,19 +75,6 @@ function Document({ html }: { html: string }) {
   )
 }
 
-/** The same bill with the chrome taken away, and its shape beside it. */
-function PotionDocument({ html }: { html: string }) {
-  const editor = usePlateEditor({ plugins: PotionKit, value: html })
-  return (
-    <Plate editor={editor}>
-      <EditorContainer className="relative">
-        <PotionOutline />
-        <Editor variant="default" />
-      </EditorContainer>
-    </Plate>
-  )
-}
-
 export function TypesetEditor({
   item,
   bill,
@@ -95,7 +87,6 @@ export function TypesetEditor({
   surface?: TypesetSurface
 }) {
   const html = useContent(item, bill, version)
-  const Body = surface === "potion" ? PotionDocument : Document
   return (
     <div data-slot="typeset-editor" className="h-full w-full">
       {!bill ? (
@@ -103,7 +94,13 @@ export function TypesetEditor({
       ) : html === null ? (
         <BillSkeleton />
       ) : (
-        <Body key={`${surface}:${item}:${bill}:${version ?? ""}`} html={html} />
+        <React.Fragment key={`${surface}:${item}:${bill}:${version ?? ""}`}>
+          {surface === "potion" ? (
+            <PotionDocument html={html} name={titleOf(html)} />
+          ) : (
+            <Document html={html} />
+          )}
+        </React.Fragment>
       )}
       <Toaster />
     </div>

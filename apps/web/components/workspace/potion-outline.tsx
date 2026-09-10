@@ -5,15 +5,16 @@ import * as React from "react"
 import { useTocSideBar, useTocSideBarState } from "@platejs/toc/react"
 import { cn } from "@govblock/ui/lib/utils"
 
-// Potion's sticky outline (Brendan, 2026-09-10). It rides the left edge of the
-// page as a column of rules, one per heading, indented by depth — the way a
-// long document shows its shape without spending room on it. Point at it and
-// the rules become the headings themselves; click one and the page goes there.
+// Potion's sticky outline (Brendan, 2026-09-10, from potion.platejs.org). It
+// rides the right edge of the page as a column of rules, one per heading,
+// indented by depth — the way a long document shows its shape without spending
+// room on it. Point at it and the rules become the headings themselves; click
+// one and the page goes there.
 //
 // A bill is the document this was made for: H.R. 5366 alone is twenty-seven
 // headings deep in sections, subsections and lettered clauses.
 
-const INDENT = ["ml-0", "ml-0", "ml-3", "ml-6", "ml-9", "ml-12", "ml-12"]
+const INDENT = ["mr-0", "mr-0", "mr-3", "mr-6", "mr-9", "mr-12", "mr-12"]
 const WIDTH = ["w-8", "w-8", "w-6", "w-5", "w-4", "w-3.5", "w-3"]
 
 export function PotionOutline({ className }: { className?: string }) {
@@ -26,9 +27,9 @@ export function PotionOutline({ className }: { className?: string }) {
       {...navProps}
       aria-label="Outline"
       className={cn(
-        "group/toc absolute top-16 left-0 z-20 hidden max-h-[70vh] overflow-y-auto py-2 pl-3 lg:block",
+        "group/toc absolute top-16 right-0 z-20 hidden max-h-[70vh] overflow-y-auto py-2 pr-3 lg:block",
         "transition-[width] duration-200",
-        mouseInToc ? "w-64 pr-3" : "w-16",
+        mouseInToc ? "w-64 pl-3" : "w-16",
         className
       )}
     >
@@ -42,7 +43,7 @@ export function PotionOutline({ className }: { className?: string }) {
                 type="button"
                 onClick={(event) => onContentClick(event, heading, "smooth")}
                 className={cn(
-                  "flex w-full cursor-pointer items-center rounded py-1 text-left",
+                  "flex w-full cursor-pointer items-center justify-end rounded py-1 text-right",
                   mouseInToc ? "px-1" : "px-0"
                 )}
               >
