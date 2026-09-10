@@ -101,7 +101,7 @@ export default async function DepartmentRoute({ params }: Props) {
             meta={facts}
             action={
               <>
-                <DocsCopyPage page={markdown} url={`https://govblock.app/docs/departments/${department.slug}`} />
+                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/departments/${department.slug}`} />
                 {neighbours.previous ? (
                   <Button variant="secondary" size="icon" className={arrow} asChild>
                     <Link href={`/docs/departments/${neighbours.previous.slug}`} title={neighbours.previous.name}>

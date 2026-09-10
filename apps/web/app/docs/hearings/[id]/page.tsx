@@ -77,7 +77,7 @@ export default async function HearingRoute({ params }: Props) {
             meta={facts}
             action={
               <>
-                <DocsCopyPage page={markdown} url={`https://govblock.app/docs/hearings/${hearing.jacket}`} />
+                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/hearings/${hearing.jacket}`} />
                 {neighbours.previous ? (
                   <Button variant="secondary" size="icon" className={arrow} asChild>
                     <Link href={`/docs/hearings/${neighbours.previous.key}`} title={neighbours.previous.citation ?? undefined}>

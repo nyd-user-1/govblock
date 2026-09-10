@@ -16,7 +16,7 @@ import { CardFoot } from "@/components/card-foot"
 export function ApiCard() {
   const { state } = useJurisdiction()
   const path = `/api/policy/bills?state=${state}&limit=5`
-  const command = `curl https://govblock.app${path}`
+  const command = `curl https://gov.nysgpt.com${path}`
   return (
     <CardFrame id="api">
       <CardHeader>

@@ -169,7 +169,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                 action={
                   <div className="docs-nav flex items-center gap-2">
                     <div className="hidden sm:block">
-                      <DocsCopyPage page={markdown} url={`https://govblock.app/docs/directory/${peopleId}`} />
+                      <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/directory/${peopleId}`} />
                     </div>
                     {/* The arrows the index pages carry beside Copy Page, walking to
                       the previous and next sitting member (Brendan, 2026-09-05). */}

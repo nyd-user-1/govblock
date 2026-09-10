@@ -99,7 +99,7 @@ export default async function MeetingRoute({ params }: Props) {
             meta={facts}
             action={
               <>
-                <DocsCopyPage page={markdown} url={`https://govblock.app/docs/meetings/${meeting.event_id}`} />
+                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/meetings/${meeting.event_id}`} />
                 {neighbours.previous ? (
                   <Button variant="secondary" size="icon" className={arrow} asChild>
                     <Link href={`/docs/meetings/${neighbours.previous.event_id}`} title={neighbours.previous.title ?? undefined}>

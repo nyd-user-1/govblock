@@ -195,7 +195,7 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
               meta={facts}
               action={
                 <>
-                  <DocsCopyPage page={markdown} url={`https://govblock.app/docs/committees/${code}`} />
+                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/committees/${code}`} />
                   {neighbours.previous ? (
                     <Button variant="secondary" size="icon" className={arrow} asChild>
                       <Link href={`/docs/committees/${neighbours.previous.key}`} title={neighbours.previous.name}>

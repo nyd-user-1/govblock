@@ -82,7 +82,7 @@ async function gdelt(params) {
   const url = `http://api.gdeltproject.org/api/v2/doc/doc?${new URLSearchParams(params)}`
   for (let attempt = 0; ; attempt++) {
     lastCall = Date.now()
-    const r = await fetch(url, { headers: { "user-agent": "GovBlockBot/1.0 (+https://govblock.app)" }, signal: AbortSignal.timeout(60000) })
+    const r = await fetch(url, { headers: { "user-agent": "GovBlockBot/1.0 (+https://gov.nysgpt.com)" }, signal: AbortSignal.timeout(60000) })
     const text = await r.text()
     if (r.status === 429 || /rate limit|too many/i.test(text.slice(0, 200))) {
       // The cooldown after a burst is a minute or more, and it is shared by

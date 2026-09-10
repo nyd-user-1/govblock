@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "nysgpt",
-  "homepage": "https://govblock.app",
+  "homepage": "https://gov.nysgpt.com",
   "items": [
     {
       "name": "state-fips",

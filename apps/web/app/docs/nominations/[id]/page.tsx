@@ -72,7 +72,7 @@ export default async function NominationRoute({ params }: Props) {
             meta={facts}
             action={
               <>
-                <DocsCopyPage page={markdown} url={`https://govblock.app/docs/nominations/${encodeURIComponent(name.toLowerCase())}`} />
+                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/nominations/${encodeURIComponent(name.toLowerCase())}`} />
                 {neighbours.previous ? (
                   <Button variant="secondary" size="icon" className={arrow} asChild>
                     <Link href={`/docs/nominations/${encodeURIComponent((neighbours.previous.citation ?? neighbours.previous.key).toLowerCase())}`} title={neighbours.previous.citation ?? undefined}>

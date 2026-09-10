@@ -25,7 +25,7 @@ const REWRITES = [
   // Flags, seals and the boundary files are ours and they are public. A
   // consumer's own tree has none of them, so the copies read them from the
   // site rather than from a path that will 404.
-  [/(["'`])\/(geo|flags|chambers)\//g, "$1https://govblock.app/$2/"],
+  [/(["'`])\/(geo|flags|chambers)\//g, "$1https://gov.nysgpt.com/$2/"],
 ]
 
 fs.rmSync(out, { recursive: true, force: true })

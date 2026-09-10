@@ -30,7 +30,7 @@ export default function SubjectsPage() {
                 <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
                 <div className="docs-nav flex items-center gap-2">
                   <div className="hidden sm:block">
-                    <DocsCopyPage page={`# ${title}\n\n${description}`} url="https://govblock.app/docs/subjects" />
+                    <DocsCopyPage page={`# ${title}\n\n${description}`} url="https://gov.nysgpt.com/docs/subjects" />
                   </div>
                   <div className="ml-auto flex gap-2">
                     <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>

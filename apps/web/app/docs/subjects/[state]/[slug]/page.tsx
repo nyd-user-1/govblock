@@ -121,7 +121,7 @@ export default async function SubjectRoute({ params }: Props) {
               meta={[kind === "policy area" ? "Policy area" : congress ? "Legislative subject" : "Subject"]}
               action={
                 <>
-                  <DocsCopyPage page={markdown} url={`https://govblock.app/docs/subjects/${data.state.toLowerCase()}/${slug}`} />
+                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/subjects/${data.state.toLowerCase()}/${slug}`} />
                   {previous ? (
                     <Button variant="secondary" size="icon" className={arrow} asChild>
                       <Link href={href(previous.name)} title={previous.name}>

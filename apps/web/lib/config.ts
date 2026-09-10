@@ -50,7 +50,7 @@ export function hasItems(
 
 export const siteConfig = {
   name: "govblock",
-  url: "https://govblock.app",
+  url: "https://gov.nysgpt.com",
   description:
     "One view over all 50 states and Congress. Open Source. Open Code. Open Data.",
   links: {

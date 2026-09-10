@@ -33,7 +33,7 @@ export default function BlocksIndexPage() {
         GovBlock&rsquo;s parts install the way any shadcn registry&rsquo;s do. Name it once in your <code>components.json</code>:
       </p>
       <pre>
-        <code>{`"registries": {\n  "@nysgpt": "https://govblock.app/r/{name}.json"\n}`}</code>
+        <code>{`"registries": {\n  "@nysgpt": "https://gov.nysgpt.com/r/{name}.json"\n}`}</code>
       </pre>
       <p>Then take what you need. Anything an item depends on arrives with it.</p>
       <pre>

@@ -43,7 +43,7 @@ const database = env.POLICY_DATABASE || "policy"
 if (!resourceArn || !secretArn) throw new Error("POLICY_CLUSTER_ARN and POLICY_SECRET_ARN must be set in apps/web/.env.local")
 const client = new RDSDataClient({ region: env.AWS_REGION || "us-east-1" })
 
-const UA = "govblock/1.0 (+https://govblock.app; brendan@nysgpt.com)"
+const UA = "govblock/1.0 (+https://gov.nysgpt.com; brendan@nysgpt.com)"
 const BASE = "https://www.senate.gov/legislative/LIS"
 
 const s = (v) => (v === null || v === undefined || v === "" ? { isNull: true } : { stringValue: String(v) })

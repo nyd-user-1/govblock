@@ -108,7 +108,7 @@ export default async function AmendmentRoute({ params }: Props) {
             meta={facts}
             action={
               <>
-                <DocsCopyPage page={markdown} url={`https://govblock.app${amendmentPath(amendment.type, amendment.number)}`} />
+                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com${amendmentPath(amendment.type, amendment.number)}`} />
                 {neighbours.previous ? (
                   <Button variant="secondary" size="icon" className={arrow} asChild>
                     <Link href={amendmentPath(neighbours.previous.amendment_type, neighbours.previous.number)} title={fmtAmendment(neighbours.previous.amendment_type, neighbours.previous.number)}>

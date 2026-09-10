@@ -45,7 +45,7 @@ export default async function NewsPage() {
                   <div className="hidden sm:block">
                     <DocsCopyPage
                       page={`# ${title}\n\n${description}`}
-                      url="https://govblock.app/news"
+                      url="https://gov.nysgpt.com/news"
                     />
                   </div>
                   <div className="ml-auto flex gap-2">

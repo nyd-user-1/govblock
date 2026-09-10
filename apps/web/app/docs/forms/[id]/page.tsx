@@ -103,7 +103,7 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
               <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight text-balance sm:text-3xl">{heading}</h1>
               <div className="docs-nav flex items-center gap-2">
                 <div className="hidden sm:block">
-                  <DocsCopyPage page={markdown} url={`https://govblock.app/docs/forms/${form.id}`} />
+                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/docs/forms/${form.id}`} />
                 </div>
                 <div className="ml-auto flex gap-2">
                   {fillable && (

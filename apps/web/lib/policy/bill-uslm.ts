@@ -330,7 +330,7 @@ export async function fetchUslm(url: string | null | undefined) {
   if (!url || !XML_URL.test(url)) return null
   try {
     const response = await fetch(url, {
-      headers: { "user-agent": "govblock (+https://govblock.app)" },
+      headers: { "user-agent": "govblock (+https://gov.nysgpt.com)" },
       // The published text of a bill version never changes, so a day is
       // conservative and keeps GovInfo out of the request path.
       next: { revalidate: 86_400 },
