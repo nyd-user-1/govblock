@@ -63,6 +63,10 @@ export const siteConfig = {
   // having been told they exist. Each panel line carries the sentence that
   // says what the page is for — the nav is the only place most people will
   // read it.
+  // Annotated, so a plain link and a panel are both NavItem here rather than
+  // two inferred literal shapes. Without it a reader of `navItems` sees the
+  // union of the literals, and `item.icon` is an error on any entry that
+  // happens not to carry one.
   navItems: [
     { href: "/", label: "Home" },
     {
@@ -507,5 +511,5 @@ export const siteConfig = {
     },
     // Creators was the header's last flat entry until 2026-09-09; it lives in
     // the Workspace menu now, in its alphabetical seat.
-  ],
+  ] as NavItem[],
 }

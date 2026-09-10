@@ -82,9 +82,20 @@ function Slot<T extends HTMLElement = HTMLElement>({
 
   const mergedProps = mergeProps(childProps, props);
 
-  return (
-    <Base {...mergedProps} ref={mergeRefs(childRef as React.Ref<T>, ref)} />
-  );
+  // `Base` comes back from motion.create() as a bare React.ElementType, whose
+  // ref prop types as `never` under React 19. The ref rides in with the rest of
+  // the props rather than as its own attribute, which is the same element with
+  // the same ref and nothing for the checker to widen.
+  const withRef: AnyProps = {
+    ...mergedProps,
+    ref: mergeRefs(childRef as React.Ref<T>, ref),
+  };
+
+  // React.ElementType accepts no props at all as far as the checker is
+  // concerned, so the element is named once as what it actually is.
+  const Rendered = Base as React.ComponentType<AnyProps>;
+
+  return <Rendered {...withRef} />;
 }
 
 export {
