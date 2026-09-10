@@ -25,7 +25,7 @@ const REGION = process.env.AWS_REGION || process.env.BEDROCK_REGION || "us-east-
 
 let client: BedrockRuntimeClient | null = null
 
-function bedrock() {
+export function bedrock() {
   // One client per warm Lambda. Amplify's Fluid-style compute reuses the
   // instance across requests, so the signer and connection pool are reused too.
   if (!client) client = new BedrockRuntimeClient({ region: REGION })
@@ -59,12 +59,20 @@ function withCachePoints(messages: Message[]): Message[] {
 
 /** A step the browser can watch happen. The chat route serialises these as
  *  newline-delimited JSON — one line, one event, flushed as it is produced. */
+/**
+ * A record the agent actually read, as the answer can cite it: a story at its
+ * outlet, a bill at its page here. Carried out on the tool result that
+ * returned it, so a grounded answer can show its sources without the model
+ * being asked to list them.
+ */
+export type Source = { id: string; title: string; url: string; domain: string }
+
 export type StreamEvent =
   | { t: "open"; model: string; label: string }
   | { t: "text"; v: string }
   | { t: "reasoning"; v: string }
   | { t: "tool"; id: string; name: string; input: unknown }
-  | { t: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number }
+  | { t: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number; sources?: Source[] }
   /** A client-side tool call: the browser answers it (lib/agents/loop.ts). */
   | { t: "ask"; id: string; name: string; input: unknown }
   | { t: "step"; n: number; of: number; label: string }

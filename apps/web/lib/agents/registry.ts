@@ -84,7 +84,8 @@ export const AGENTS: AgentDefinition[] = [
   {
     slug: "bill-reader",
     name: "Clerk",
-    speciality: "Reads the record — a bill, a vote, a hearing, a committee — and explains it, citing the rows it read.",
+    speciality:
+      "Reads the record — a bill, a vote, a hearing, a committee — and explains it, citing the rows it read.",
     reads:
       "A bill's record end to end: status, sponsors and cosponsors with the dates they signed on, the action history, roll calls member by member, amendments, committee rosters and calendars, hearing transcripts, presidential nominations, and the text as filed with the changes between its versions.",
     can: "Find a bill by number or by keyword, read the record end to end, and give a sourced brief — what it does, where it is, who is behind it, what has actually happened to it, and how it changed on the way. Where the answer is not in the record it can search the web and read the page it finds, and say which is which.",
@@ -157,7 +158,8 @@ holds no actions, not that none occurred.`,
   {
     slug: "jurisdiction-guide",
     name: "Parliamentarian",
-    speciality: "Who represents, which committee holds it, where a bill sits — across all 52.",
+    speciality:
+      "Who represents, which committee holds it, where a bill sits — across all 52.",
     reads:
       "The sitting rosters of every jurisdiction, their committees and the bills before them, and which jurisdictions the record covers at all.",
     can: "Answer 'who represents…', 'which committee has…', 'where is this bill' in any of the 52, and say honestly when a jurisdiction's rows are thinner than another's.",
@@ -198,7 +200,8 @@ merge their rows into one list.`,
   {
     slug: "money-follower",
     name: "Treasurer",
-    speciality: "Sponsors, committees and the money the record actually holds — gaps named.",
+    speciality:
+      "Sponsors, committees and the money the record actually holds — gaps named.",
     reads:
       "Members' sponsorship and voting records, who sponsors most, committee membership, and — for Congress — the federal lobbying filings that name a bill and members' FEC totals by cycle with their largest reported contributions.",
     can: "Trace a bill to the lobbyists who filed on it and its sponsors to their FEC totals, and state precisely which part of the money is not in this record.",
@@ -258,7 +261,8 @@ each other and let the reader draw the line.`,
   {
     slug: "tracker",
     name: "Whip",
-    speciality: "The agentic one: give it a topic and a jurisdiction and it goes and does the work.",
+    speciality:
+      "The agentic one: give it a topic and a jurisdiction and it goes and does the work.",
     reads:
       "The search index, then each bill it finds in full — description, status, sponsors and the last actions taken.",
     can: "Plan a watch, search for the bills, open each one, compose a digest, post it to Discord, and report back with what it read and where it went. Every step is visible while it runs.",
@@ -309,7 +313,8 @@ agent exists not to do.`,
   {
     slug: "researcher",
     name: "Librarian",
-    speciality: "The long one: a sourced report over the whole record, delivered rather than chatted.",
+    speciality:
+      "The long one: a sourced report over the whole record, delivered rather than chatted.",
     reads:
       "Whatever the question needs — the search index across jurisdictions, whole bill records and their text, members and their sponsorship and votes, committees, and for Congress the lobbying filings and FEC totals.",
     can: "Plan a report's sections, gather the records section by section, and write a long brief that links every claim to the page it came from and to the canonical source where the record carries one.",
@@ -341,7 +346,8 @@ agent exists not to do.`,
     // A report is a dozen reads and a long write. Twelve rounds is a chat's
     // budget and would cut one off mid-gathering.
     maxRounds: 24,
-    placeholder: "Ask for a report — a topic, a jurisdiction, and what you want to know…",
+    placeholder:
+      "Ask for a report — a topic, a jurisdiction, and what you want to know…",
     starters: [
       "Report on New York housing legislation this session",
       "Report on what Congress has done on artificial intelligence in the 119th",
@@ -407,22 +413,30 @@ only way the whole thing arrives. Then say in one line where it went.`,
 const FORM_OUTLINE = FORMS.map((form) =>
   [
     `${form.code} — ${form.title} (${form.pages} pages; about ${form.minutes} minutes). Sections, in order:`,
-    ...form.sections.map((s) => `  ${s.consent ? "READ-ONLY " : ""}${sectionLabel(form, s.n)} (p.${s.pages.join(", ")})${s.keys.length ? `: ${s.keys.join(", ")}` : ""}`),
+    ...form.sections.map(
+      (s) =>
+        `  ${s.consent ? "READ-ONLY " : ""}${sectionLabel(form, s.n)} (p.${s.pages.join(", ")})${s.keys.length ? `: ${s.keys.join(", ")}` : ""}`
+    ),
   ].join("\n")
 ).join("\n\n")
 
 AGENTS.push({
   slug: "form-filler",
   name: "Filer",
-  speciality: "Fills two New York applications — the common benefits application and the child-care application — into the forms' own fields.",
-  reads: "The applicant's profile in this browser: what has already been answered, on either form, so a section that is known is not asked again.",
+  speciality:
+    "Fills two New York applications — the common benefits application and the child-care application — into the forms' own fields.",
+  reads:
+    "The applicant's profile in this browser: what has already been answered, on either form, so a section that is known is not asked again.",
   can: "Walk through LDSS-2921 (SNAP, Public Assistance, Medicaid, child care, emergency assistance) or OCFS-6025 (child care assistance) one section at a time, keep every answer in the applicant's profile, show every answer for review, write them into the PDF's own fields, and hand the file over — download, email, or the inbox.",
   tier: "grounded",
   tools: ["form_schema", "ask", "review", "fill_form", "remember"],
   clientTools: ["ask", "review", "fill_form", "remember"],
   maxRounds: 64,
   placeholder: "Say which form to fill, or what you are applying for…",
-  starters: ["Apply for SNAP or Public Assistance (LDSS-2921)", "Apply for child care assistance (OCFS-6025)"],
+  starters: [
+    "Apply for SNAP or Public Assistance (LDSS-2921)",
+    "Apply for child care assistance (OCFS-6025)",
+  ],
   system: `You are the Filer on govblock. You fill two New York State forms and nothing
 else: LDSS-2921, the Application for Certain Benefits and Services (SNAP,
 Public Assistance, Medicaid, child care, emergency assistance), and OCFS-6025,
@@ -473,6 +487,92 @@ calls. Accept "skip" and "don't know"; nothing is final until it is reviewed.
 
 ${FORM_OUTLINE}`,
 })
+
+// The Reporter (2026-09-09): the desk's briefing. Not a news agent — it reads
+// the whole record for one jurisdiction, the week of it, and the press beside
+// it: what was introduced, what moved, how the chamber voted, who sat down to
+// hear it, and what the outlets made of it. /briefing deploys it through the
+// same loop every other agent runs in, so its reading arrives as it happens.
+//
+// One jurisdiction at a time, on purpose (Brendan, 2026-09-09): eight sources
+// across fifty-two desks in one search is a worse answer, not a bigger one.
+// Multi-jurisdictional scoping is a thing to earn once the desk works.
+const REPORTER: AgentDefinition = {
+  slug: "reporter",
+  name: "Reporter",
+  speciality:
+    "The week on your desk — every bill, vote, hearing and headline — read and written up, with a source on every line.",
+  reads:
+    "One jurisdiction's whole record: bills and their actions, roll calls, hearings and their agendas, committees and their rosters, the members themselves — and the press on all of it.",
+  can: "Write the briefing for a desk: what was introduced, what moved, how the chamber voted, what was heard and what the outlets made of it. Ask it about any of that and it opens the record behind the story.",
+  tier: "grounded",
+  tools: [
+    "desk_stories",
+    "search_bills",
+    "get_bill",
+    "bill_status",
+    "sponsors",
+    "votes",
+    "roll_call",
+    "hearings",
+    "committee_agenda",
+    "list_committees",
+    "get_committee",
+    "list_members",
+    "get_member",
+  ],
+  // A briefing is a dozen reads and then the writing, which is a report's
+  // shape rather than a chat's.
+  maxRounds: 18,
+  placeholder: "What happened on the <jurisdiction> desk this week?",
+  starters: [
+    "Brief me on New York this week",
+    "What moved in the Texas legislature, and what did the press make of it?",
+    "Which Congress bills got a roll call this week, and who broke with their party?",
+  ],
+  system: `${GROUND}
+
+You are the Reporter. You write the briefing for one desk: everything that
+happened in that jurisdiction's government this week, read out of the record
+itself and out of the press on it, in the time a reader has over one coffee.
+
+Read before you write, and read widely. The desk is not its news: bills were
+introduced, actions were taken, chambers voted, committees met and heard
+people, members sponsored and broke with their parties. Call for those in
+parallel — six or eight calls in a round is how you cover a week quickly — and
+call for the press beside them. Two or three rounds of gathering, then write.
+Do not write a line about a thing you did not open.
+
+The press is not the record. A story's claim is the outlet's claim; attribute
+it — "VTDigger reports", "per Capitol News Illinois" — and where a story names
+a bill, open the bill and let the record correct the story if they differ. Say
+so plainly when they differ: that is the most useful line in the briefing.
+
+Your last message is the briefing itself and nothing else. Do not announce it,
+do not say what you are about to do, do not write "I now have everything I
+need" or "let me compile", and do not open with a rule or a heading. The first
+character a reader sees is the first word of the lede.
+
+The briefing, in order:
+1. One sentence of lede: the week on this desk in a breath. No date, no
+   greeting, no "here is your briefing".
+2. Six to ten bullets, each one thread — a bill and what happened to it, a vote
+   and who broke ranks, a hearing and what was said, a story and what the
+   record says back. Lead with what moves law or money; end with what is only
+   talk. Name the bill by its number, the vote by its count, the member by the
+   name and office the record gives them.
+3. Nothing after the bullets. No sign-off, no "in summary", no offer.
+
+Every bullet rests on something you opened, and says what: the bill number, the
+outlet, the committee. Never invent a bill number, a dollar figure or a vote
+count that no tool returned. Where the desk is quiet — an out-of-session
+legislature is quiet, and that is a fact about the week, not a failure — say so
+in the lede and write fewer bullets rather than fill.
+
+Bullets begin with "• ". No headings, no bold, no tables.`,
+}
+
+AGENTS.push(REPORTER)
 
 export function agent(slug: string) {
   return AGENTS.find((a) => a.slug === slug)

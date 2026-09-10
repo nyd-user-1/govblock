@@ -31,9 +31,21 @@ export type Step =
 
 export type Waiting = { id: string; name: string }
 
+/** A record the run read, as the answer can cite it. */
+export type Source = { id: string; title: string; url: string; domain: string }
+
 export type RunState = {
   text: string
+  /**
+   * What the model wrote after its last tool call — the answer, without the
+   * running commentary it makes between calls ("Good, now let me open the key
+   * bills…"). The chat wants the whole transcript; a briefing wants only the
+   * thing that was written at the end, so both are kept.
+   */
+  answer: string
   steps: Step[]
+  /** Everything the run read that the reader can open, in the order read. */
+  sources: Source[]
   /** The model that answered, by its label. */
   model: string
   rounds: number
@@ -50,10 +62,38 @@ export type RunState = {
   carry?: { messages: unknown[] }
 }
 
+/**
+ * The briefing, without whatever the model said before starting it. The
+ * prompt forbids a preamble; this makes it true. A rule near the top is the
+ * model separating its thinking from its writing, and a leading first-person
+ * line is it talking to itself.
+ */
+export function briefingOnly(text: string) {
+  let out = text.trim()
+  const rule = out.slice(0, 600).search(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/m)
+  if (rule >= 0) out = out.slice(out.indexOf("\n", rule) + 1).trim()
+  out = out
+    .split(/\n/)
+    .filter(
+      (line, i) =>
+        !(
+          i < 2 &&
+          /^(good[.,]|okay[.,]|right[.,]|now |let me |i (now )?have|i'?ll |here is|here'?s )/i.test(
+            line.trim()
+          )
+        )
+    )
+    .join("\n")
+    .trim()
+  return out
+}
+
 export function emptyRun(): RunState {
   return {
     text: "",
+    answer: "",
     steps: [],
+    sources: [],
     model: "",
     rounds: 0,
     usd: 0,
@@ -117,6 +157,7 @@ export async function runAgent({
   const run: RunState = resume
     ? {
         ...resume.run,
+        sources: resume.run.sources ?? [],
         steps: resume.run.steps.map((step) => {
           if (step.kind !== "ask") return step
           const hit = resume.results.find((r) => r.id === step.id)
@@ -197,8 +238,10 @@ export async function runAgent({
             // "I'll search…" runs straight into its "Now I'll open the top five
             // bills…" with no space between them.
             if (run.text && roundText === 0) run.text += "\n\n"
+            if (run.answer && roundText === 0) run.answer += "\n\n"
             roundText += 1
             run.text += String(event.v)
+            run.answer += String(event.v)
             if (tracing) {
               if (note === null) {
                 note = run.steps.length
@@ -211,11 +254,21 @@ export async function runAgent({
               }
             }
           } else if (event.t === "tool") {
+            // Anything written before a call was the model talking itself
+            // through the work, not the answer.
+            run.answer = ""
             run.steps = [
               ...run.steps,
               { kind: "tool", id: String(event.id), name: String(event.name), input: event.input },
             ]
           } else if (event.t === "tool_result") {
+            // What the call returned that can be cited, kept in the order it
+            // was read and never twice.
+            const found = (event.sources ?? []) as Source[]
+            if (found.length) {
+              const known = new Set(run.sources.map((s) => s.url))
+              run.sources = [...run.sources, ...found.filter((s) => !known.has(s.url))]
+            }
             run.steps = run.steps.map((step) =>
               step.kind === "tool" && step.id === event.id
                 ? {
