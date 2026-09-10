@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "directory-search",
+  "title": "Directory search",
+  "description": "The search field a directory is filtered with, clearable, on an input group.",
+  "registryDependencies": [
+    "field",
+    "input-group"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/directory-search.tsx",
+      "content": "\"use client\"\n\nimport { Search, X } from \"lucide-react\"\n\nimport { Field } from \"@/components/ui/field\"\nimport { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from \"@/components/ui/input-group\"\n\n// Ported from livingston-v3 components/directory-search.tsx. The count that\n// sat at the right of the field (\"400 candidates\") is gone from every search\n// box (Brendan, 2026-09-03); the list beneath says what it holds.\nexport function SearchDirectory({\n  query,\n  setQuery,\n  placeholder = \"Search\",\n}: {\n  query: string\n  setQuery: (value: string | null) => void\n  placeholder?: string\n}) {\n  return (\n    <Field>\n      <InputGroup>\n        <InputGroupAddon>\n          <Search />\n        </InputGroupAddon>\n        <InputGroupInput className=\"h-full\" placeholder={placeholder} value={query} onChange={(e) => setQuery(e.target.value)} />\n        <InputGroupAddon align=\"inline-end\" data-disabled={!query.length} className=\"data-[disabled=true]:hidden\">\n          <InputGroupButton aria-label=\"Clear\" size=\"icon-xs\" onClick={() => setQuery(null)}>\n            <X />\n          </InputGroupButton>\n        </InputGroupAddon>\n      </InputGroup>\n    </Field>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/directory-search.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

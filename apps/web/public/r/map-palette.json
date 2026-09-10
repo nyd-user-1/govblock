@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "map-palette",
+  "title": "Map palette",
+  "description": "A deterministic hue per key on the golden angle, the opacities that let washes stack, and the ramps for counts, money, heat and party split.",
+  "files": [
+    {
+      "path": "apps/web/lib/map/palette.ts",
+      "content": "// How layers keep their identity when they sit on top of one another\n// (Brendan, 2026-09-10, pointing at Solar's balancing-authority map).\n//\n// Solar's rule, and it is the right one: a categorical region is a wash of\n// its own colour with a white hairline around it. Several washes over one\n// another still read, because the white lines never blend and the eye\n// follows an edge before it judges a hue. Hues come off the golden angle,\n// which spreads any number of neighbours as far apart as the wheel allows,\n// so 3,235 counties or 33,000 ZIPs never repeat next to themselves.\n\nconst GOLDEN_ANGLE = 137.508\n\n/** A stable colour for a key, spread as far from its neighbours as the wheel allows. */\nexport function keyColor(\n  key: string,\n  { sat = 58, lit = 68 }: { sat?: number; lit?: number } = {}\n) {\n  let n = 0\n  for (let i = 0; i < key.length; i++) n = (n * 31 + key.charCodeAt(i)) >>> 0\n  const hue = (n * GOLDEN_ANGLE) % 360\n  // A little variation keeps two neighbouring hues from reading as one.\n  return `hsl(${hue.toFixed(1)},${sat + (n % 3) * 6}%,${lit + (n % 2) * 6}%)`\n}\n\n/**\n * What a layer is worth on the stack. A categorical wash is the ground a\n * reader reads region from; a reading is a ramp over it; a boundary is a\n * line and costs the stack nothing.\n */\nexport const LAYER = {\n  /** One wash alone. */\n  solo: 0.55,\n  /** Each wash when several share the stage — they add, never hide. */\n  shared: 0.34,\n  /** The one under the pointer. */\n  lift: 0.2,\n  /** The hairline every categorical region wears, so the edges survive a stack. */\n  hairline: { color: \"#ffffff\", width: 0.7, opacity: 0.85 },\n} as const\n\n/** The steps a counted reading climbs, light to dark, in the site's blue. */\nexport const RAMP = [\"#dbe4ff\", \"#a9bdff\", \"#6f8fff\", \"#3b5cff\", \"#1f3ed6\"]\n\n/** Money reads amber, as Solar reads it. */\nexport const MONEY_RAMP = [\n  \"#fef3c7\",\n  \"#fbbf24\",\n  \"#f59e0b\",\n  \"#d97706\",\n  \"#92400e\",\n]\n\n/** Heat reads warm, from nothing to a lot. */\nexport const HEAT_RAMP = [\"#f1f5f9\", \"#fed7aa\", \"#fb923c\", \"#ea580c\", \"#9a3412\"]\n\n/** The parties, in the colours the country reads them in. */\nexport const PARTY_COLORS: Record<string, string> = {\n  D: \"#2563eb\",\n  R: \"#dc2626\",\n  I: \"#7c3aed\",\n}\n\n/** A delegation's balance, from solidly one way to solidly the other. */\nexport const SPLIT_RAMP = [\n  \"#dc2626\",\n  \"#f87171\",\n  \"#c4b5fd\",\n  \"#60a5fa\",\n  \"#2563eb\",\n]\n\nexport const NO_DATA = \"#e5e7eb\"\n",
+      "type": "registry:lib",
+      "target": "lib/map/palette.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

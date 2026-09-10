@@ -29,10 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 const COMMANDS = [
-  { value: "pnpm", label: "pnpm", lines: (slug: string) => [`pnpm dlx shadcn@latest add @govblock/${slug}`] },
-  { value: "npm", label: "npm", lines: (slug: string) => [`npx shadcn@latest add @govblock/${slug}`] },
-  { value: "yarn", label: "yarn", lines: (slug: string) => [`yarn dlx shadcn@latest add @govblock/${slug}`] },
-  { value: "bun", label: "bun", lines: (slug: string) => [`bunx --bun shadcn@latest add @govblock/${slug}`] },
+  { value: "pnpm", label: "pnpm", lines: (slug: string) => [`pnpm dlx shadcn@latest add @nysgpt/${slug}`] },
+  { value: "npm", label: "npm", lines: (slug: string) => [`npx shadcn@latest add @nysgpt/${slug}`] },
+  { value: "yarn", label: "yarn", lines: (slug: string) => [`yarn dlx shadcn@latest add @nysgpt/${slug}`] },
+  { value: "bun", label: "bun", lines: (slug: string) => [`bunx --bun shadcn@latest add @nysgpt/${slug}`] },
 ]
 
 export default async function BlockDocPage({ params }: { params: Promise<{ slug: string }> }) {

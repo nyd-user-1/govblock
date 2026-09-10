@@ -5,6 +5,13 @@
 // the honest limit of these files and is said in the card. Files load once
 // and stay.
 
+import type {
+  Feature as GeoFeature,
+  FeatureCollection,
+  MultiPolygon,
+  Polygon,
+} from "geojson"
+
 import { FIPS_TO_STATE } from "@/lib/map/fips"
 import { chambersOfState } from "@/lib/map/state-districts"
 
@@ -31,13 +38,13 @@ export type Representation = {
   county: { geoid: string; name: string } | null
 }
 
-type Feature = GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>
+type Feature = GeoFeature<Polygon | MultiPolygon>
 
-const files = new Map<string, Promise<GeoJSON.FeatureCollection>>()
+const files = new Map<string, Promise<FeatureCollection>>()
 export function loadGeo(path: string) {
   let p = files.get(path)
   if (!p) {
-    p = fetch(path).then((r) => r.json() as Promise<GeoJSON.FeatureCollection>)
+    p = fetch(path).then((r) => r.json() as Promise<FeatureCollection>)
     files.set(path, p)
   }
   return p
@@ -77,7 +84,7 @@ export function contains(f: Feature, p: LngLat) {
   if (g.type === "Polygon") return inPolygon(g.coordinates, p)
   return g.coordinates.some((poly) => inPolygon(poly, p))
 }
-export function find(fc: GeoJSON.FeatureCollection, p: LngLat) {
+export function find(fc: FeatureCollection, p: LngLat) {
   return (fc.features as Feature[]).find((f) => contains(f, p)) ?? null
 }
 

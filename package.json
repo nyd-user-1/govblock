@@ -6,8 +6,9 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
     "format": "turbo format",
+    "lint": "turbo lint",
+    "registry": "node scripts/registry/build.mjs",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

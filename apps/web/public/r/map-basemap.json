@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "map-basemap",
+  "title": "Basemap",
+  "description": "OpenFreeMap's positron style, which needs no key.",
+  "files": [
+    {
+      "path": "apps/web/lib/map/basemap.ts",
+      "content": "// The basemap, one constant (Solar's rule, 2026-09-03): OpenFreeMap's\n// positron — light, low-contrast, right under a choropleth — with no key,\n// no quota and no account. OSM data under ODbL, so the attribution stays on.\n// The durable step after it, a US extract as PMTiles on our own S3, is a\n// one-line swap here.\nexport const BASEMAP_STYLE = \"https://tiles.openfreemap.org/styles/positron\"\n",
+      "type": "registry:lib",
+      "target": "lib/map/basemap.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

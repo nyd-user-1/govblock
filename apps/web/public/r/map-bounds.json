@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "map-bounds",
+  "title": "Map bounds",
+  "description": "A bounding box grown over GeoJSON geometry, for flying a map to a feature.",
+  "dependencies": [
+    "@types/geojson"
+  ],
+  "files": [
+    {
+      "path": "apps/web/lib/map/bounds.ts",
+      "content": "// A box in lon/lat, and the one walk that grows it. The map fits to these,\n// the trees fly to them; two files compute them, so the walk lives here.\n\nimport type { Geometry } from \"geojson\"\n\nexport type Bounds = [number, number, number, number]\n\nexport const EMPTY: Bounds = [180, 90, -180, -90]\n\nexport const empty = (): Bounds => [...EMPTY] as Bounds\n\nexport const isEmpty = (box: Bounds) => box[0] > box[2] || box[1] > box[3]\n\n/** Every coordinate in a geometry, however deeply the rings nest. */\nexport function grow(box: Bounds, geometry: Geometry | null): Bounds {\n  const walk = (c: unknown) => {\n    if (Array.isArray(c) && typeof c[0] === \"number\") {\n      const [x, y] = c as [number, number]\n      box[0] = Math.min(box[0], x)\n      box[1] = Math.min(box[1], y)\n      box[2] = Math.max(box[2], x)\n      box[3] = Math.max(box[3], y)\n    } else if (Array.isArray(c)) c.forEach(walk)\n  }\n  if (geometry && \"coordinates\" in geometry) walk(geometry.coordinates)\n  return box\n}\n",
+      "type": "registry:lib",
+      "target": "lib/map/bounds.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

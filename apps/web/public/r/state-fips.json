@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "state-fips",
+  "title": "State FIPS",
+  "description": "The Census's two-digit state codes both ways, and a district number without its padding.",
+  "files": [
+    {
+      "path": "apps/web/lib/map/fips.ts",
+      "content": "// State FIPS codes, as the Census draws boundaries by, to the postal codes\n// the record files by. The 52 with a record plus the territories the\n// district file carries.\nexport const FIPS_TO_STATE: Record<string, string> = {\n  \"01\": \"AL\",\n  \"02\": \"AK\",\n  \"04\": \"AZ\",\n  \"05\": \"AR\",\n  \"06\": \"CA\",\n  \"08\": \"CO\",\n  \"09\": \"CT\",\n  \"10\": \"DE\",\n  \"11\": \"DC\",\n  \"12\": \"FL\",\n  \"13\": \"GA\",\n  \"15\": \"HI\",\n  \"16\": \"ID\",\n  \"17\": \"IL\",\n  \"18\": \"IN\",\n  \"19\": \"IA\",\n  \"20\": \"KS\",\n  \"21\": \"KY\",\n  \"22\": \"LA\",\n  \"23\": \"ME\",\n  \"24\": \"MD\",\n  \"25\": \"MA\",\n  \"26\": \"MI\",\n  \"27\": \"MN\",\n  \"28\": \"MS\",\n  \"29\": \"MO\",\n  \"30\": \"MT\",\n  \"31\": \"NE\",\n  \"32\": \"NV\",\n  \"33\": \"NH\",\n  \"34\": \"NJ\",\n  \"35\": \"NM\",\n  \"36\": \"NY\",\n  \"37\": \"NC\",\n  \"38\": \"ND\",\n  \"39\": \"OH\",\n  \"40\": \"OK\",\n  \"41\": \"OR\",\n  \"42\": \"PA\",\n  \"44\": \"RI\",\n  \"45\": \"SC\",\n  \"46\": \"SD\",\n  \"47\": \"TN\",\n  \"48\": \"TX\",\n  \"49\": \"UT\",\n  \"50\": \"VT\",\n  \"51\": \"VA\",\n  \"53\": \"WA\",\n  \"54\": \"WV\",\n  \"55\": \"WI\",\n  \"56\": \"WY\",\n  \"60\": \"AS\",\n  \"66\": \"GU\",\n  \"69\": \"MP\",\n  \"72\": \"PR\",\n  \"78\": \"VI\",\n}\n\nexport const STATE_TO_FIPS: Record<string, string> = Object.fromEntries(\n  Object.entries(FIPS_TO_STATE).map(([f, s]) => [s, f])\n)\n\n/** \"At Large\" for the 00 districts, else the number without its zero. */\nexport const districtLabel = (district: string) =>\n  district === \"00\" || district === \"98\" ? \"At Large\" : String(Number(district))\n",
+      "type": "registry:lib",
+      "target": "lib/map/fips.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

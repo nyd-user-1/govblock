@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-local",
+  "title": "useLocal",
+  "description": "State that survives a reload in localStorage, and reads correctly on the first server-rendered paint.",
+  "files": [
+    {
+      "path": "apps/web/lib/policy/use-local.ts",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\n// Ported verbatim from livingston-v3 lib/policy/use-local.ts. Per-browser state for the widgets that need a user (notes, tracked bills,\n// tasks, preferences) until there is an account to attach them to. Reads\n// after mount so the server and first client render agree.\nexport function useLocal<T>(key: string, initial: T) {\n  const [value, setValue] = React.useState<T>(initial)\n\n  React.useEffect(() => {\n    try {\n      const raw = window.localStorage.getItem(key)\n      if (raw !== null) {\n        setValue(JSON.parse(raw) as T)\n      } else {\n        setValue(initial)\n      }\n    } catch {}\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [key])\n\n  const set = React.useCallback(\n    (next: T | ((previous: T) => T)) => {\n      setValue((previous) => {\n        const resolved =\n          typeof next === \"function\" ? (next as (p: T) => T)(previous) : next\n        try {\n          window.localStorage.setItem(key, JSON.stringify(resolved))\n        } catch {}\n        return resolved\n      })\n    },\n    [key]\n  )\n\n  return [value, set] as const\n}\n",
+      "type": "registry:hook",
+      "target": "lib/policy/use-local.ts"
+    }
+  ],
+  "type": "registry:hook"
+}

@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "NEXT_PUBLIC_PROJECT_ROOT=$(cd ../.. \u0026\u0026 pwd) NODE_OPTIONS=--max-old-space-size=2048 next dev",
+    "dev": "NEXT_PUBLIC_PROJECT_ROOT=$(cd ../.. && pwd) NODE_OPTIONS=--max-old-space-size=2048 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -137,6 +137,7 @@
     "@govblock/typescript-config": "workspace:*",
     "@react-trace/kit": "^0.0.8",
     "@tailwindcss/postcss": "^4",
+    "@types/geojson": "^7946.0.16",
     "@types/lodash": "^4.17.25",
     "@types/node": "^20",
     "@types/react": "^19",
