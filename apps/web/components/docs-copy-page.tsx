@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react"
+import { TypeIcon } from "lucide-react"
 
-import { claimCheck } from "@/lib/agents/claim-check"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { Button } from "@govblock/ui/components/ny4/button"
 import {
@@ -28,57 +28,10 @@ Help me understand how to use it. Be ready to explain concepts, give examples, o
   )}`
 }
 
-// This page, saved as a Google Doc through the reader's own Drive connection
-// and opened in a new tab. Not connected yet → the same consent the Connect
-// button starts; never a dead click.
-function OpenInDocs({ page }: { page: string }) {
-  const [label, setLabel] = React.useState("Open in Docs")
-  return (
-    <a
-      href="#"
-      className="flex w-full items-center gap-2"
-      onClick={async (event) => {
-        event.preventDefault()
-        if (label !== "Open in Docs") return
-        setLabel("Opening Docs…")
-        try {
-          const response = await fetch("/api/connectors/save", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              claimCheck: claimCheck(),
-              action: "drive",
-              name: document.title || "govblock page",
-              markdown: page,
-            }),
-          })
-          const json = (await response.json()) as {
-            connected?: boolean
-            authorizeUrl?: string
-            url?: string
-            error?: string
-          }
-          if (json.error) throw new Error(json.error)
-          if (!json.connected && json.authorizeUrl) {
-            window.location.href = json.authorizeUrl
-            return
-          }
-          if (json.url) window.open(json.url, "_blank", "noopener")
-          setLabel("Open in Docs")
-        } catch {
-          setLabel("Couldn't open — try again")
-          window.setTimeout(() => setLabel("Open in Docs"), 4000)
-        }
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logos/google-docs.svg" alt="" className="size-4" />
-      {label}
-    </a>
-  )
-}
-
-const menuItems: Record<string, (url: string, page: string) => React.ReactNode> = {
+const menuItems: Record<
+  string,
+  (url: string, page: string, typeset?: string) => React.ReactNode
+> = {
   markdown: (url: string) => (
     <a href={`${url}.md`} target="_blank" rel="noopener noreferrer">
       <svg strokeLinejoin="round" viewBox="0 0 22 16">
@@ -139,10 +92,27 @@ const menuItems: Record<string, (url: string, page: string) => React.ReactNode> 
       Open in Claude
     </a>
   ),
-  docs: (_url: string, page: string) => <OpenInDocs page={page} />,
+  // Our own editor in place of Google Docs (Brendan, 2026-09-09): the page's
+  // record, opened in the Typeset workspace. Only a page that names where it
+  // lives there offers it.
+  typeset: (_url: string, _page: string, typeset?: string) =>
+    typeset ? (
+      <a href={typeset} className="flex w-full items-center gap-2">
+        <TypeIcon className="size-4" aria-hidden />
+        Open in Typeset
+      </a>
+    ) : null,
 }
 
-export function DocsCopyPage({ page, url }: { page: string; url: string }) {
+export function DocsCopyPage({
+  page,
+  url,
+  typeset,
+}: {
+  page: string
+  url: string
+  /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
+}) {
   const { copyToClipboard, isCopied } = useCopyToClipboard()
 
   const trigger = (
@@ -176,11 +146,14 @@ export function DocsCopyPage({ page, url }: { page: string; url: string }) {
             align="end"
             className="animate-none! rounded-lg shadow-none"
           >
-            {Object.entries(menuItems).map(([key, value]) => (
-              <DropdownMenuItem key={key} asChild>
-                {value(url, page)}
-              </DropdownMenuItem>
-            ))}
+            {Object.entries(menuItems).map(([key, value]) => {
+              const node = value(url, page, typeset)
+              return node ? (
+                <DropdownMenuItem key={key} asChild>
+                  {node}
+                </DropdownMenuItem>
+              ) : null
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
         <Separator

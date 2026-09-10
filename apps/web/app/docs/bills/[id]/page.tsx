@@ -231,7 +231,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 meta={[chamber ? (federal ? `U.S. ${chamber}` : `${stateName(bill.state)} ${chamber}`) : null, bill.status_desc ?? null]}
                 action={
                   <>
-                    <DocsCopyPage page={markdown} url={`https://govblock.app/docs/bills/${bill.bill_id}`} />
+                    <DocsCopyPage page={markdown} url={`https://govblock.app/docs/bills/${bill.bill_id}`} typeset={`/workspace/typeset-2?item=article&state=${bill.state}&bill=${bill.bill_id}`} />
                     {/* The neighbouring bills in the session, as shadcn's docs
                         header pages to the next document. */}
                     {neighbours.previous ? (

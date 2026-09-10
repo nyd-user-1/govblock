@@ -21,18 +21,35 @@ import {
 
 type ItemValue = TypesetSearchParams["item"]
 
-/** The numbered pages, 01–05 (and the dev fixtures in development). */
-export function TypesetPages() {
+/**
+ * The numbered pages, 01–05 (and the dev fixtures in development). A surface
+ * with fewer pages passes its own list: /workspace/typeset-2 keeps two
+ * (Brendan, 2026-09-09).
+ */
+export function TypesetPages({
+  options = CONTENT_OPTIONS,
+}: { options?: readonly { value: ItemValue; label: string }[] } = {}) {
   return (
     <>
-      {CONTENT_OPTIONS.map((option, index) => (
-        <ItemPill key={option.value} value={option.value} label={option.label} number={index + 1} />
+      {options.map((option, index) => (
+        <ItemPill
+          key={option.value}
+          value={option.value}
+          label={option.label}
+          number={index + 1}
+        />
       ))}
-      {process.env.NODE_ENV === "development" && DEV_CONTENT_OPTIONS.length > 0 ? (
+      {process.env.NODE_ENV === "development" &&
+      DEV_CONTENT_OPTIONS.length > 0 ? (
         <div className="hidden items-center gap-1 md:flex">
           <div className="mx-0.5 h-4 w-px bg-border" />
           {DEV_CONTENT_OPTIONS.map((option, index) => (
-            <ItemPill key={option.value} value={option.value} label={option.label} number={CONTENT_OPTIONS.length + index + 1} />
+            <ItemPill
+              key={option.value}
+              value={option.value}
+              label={option.label}
+              number={options.length + index + 1}
+            />
           ))}
         </div>
       ) : null}

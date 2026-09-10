@@ -49,7 +49,13 @@ const TYPESET_PARAM_VALUES = {
   measure: TYPESET_MEASURES.map((option) => option.value),
   flow: TYPESET_FLOWS.map((option) => option.value),
   leading: TYPESET_LEADINGS.map((option) => option.value),
-  item: AVAILABLE_CONTENT_OPTIONS.map((option) => option.value),
+  // "potion" is /workspace/typeset-2's second editor, not a fixture: it opens
+  // the same `article` content in the Notion-shaped editor. It joins the values
+  // the URL accepts without joining the pills the other typeset surfaces draw.
+  item: [
+    ...AVAILABLE_CONTENT_OPTIONS.map((option) => option.value),
+    "potion",
+  ] as const,
 }
 
 const typesetSearchParams = {

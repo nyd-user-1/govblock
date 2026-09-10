@@ -113,6 +113,9 @@ export type BillText = {
   /** The document's own date from `Documents`, which is the day the version was
    *  published — `fetched_at` is the night we pulled it and is not that. */
   date: string | null
+  /** Where the document was published. For federal documents this is GovInfo's
+   *  USLM XML, which carries the structure the stored plain text has lost. */
+  url?: string | null
 }
 
 export type Votes = {
