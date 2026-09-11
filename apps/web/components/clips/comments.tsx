@@ -4,6 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 import { BookmarkIcon, HeartIcon, MessageCircleIcon, MoreHorizontalIcon, SendIcon } from "lucide-react"
 
+import { ReactionButton } from "@govblock/ui/components/animbits/reaction-button"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
 import { cn } from "@govblock/ui/lib/utils"
@@ -25,6 +27,7 @@ export function CommentsPanel({
   signedIn,
   onLike,
   onSave,
+  onDelete,
   onFollow,
   onGoToPost,
   onPost,
@@ -41,6 +44,7 @@ export function CommentsPanel({
   signedIn: boolean
   onLike: () => void
   onSave: () => void
+  onDelete?: () => void
   onFollow: () => void
   onGoToPost: () => void
   onPost: (text: string) => void
@@ -75,7 +79,7 @@ export function CommentsPanel({
             </button>
           </>
         )}
-        <ClipMenu clip={clip} onGoToPost={onGoToPost}>
+        <ClipMenu clip={clip} onGoToPost={onGoToPost} onDelete={onDelete}>
           <button type="button" className="ml-auto flex size-8 items-center justify-center rounded-full hover:bg-accent" aria-label="More">
             <MoreHorizontalIcon className="size-5" />
           </button>
@@ -96,18 +100,18 @@ export function CommentsPanel({
 
       <div className="border-t px-4 py-3">
         <div className="flex items-center gap-1">
-          <IconButton onClick={onLike} label="Like" className={cn(liked && "text-red-500")}>
-            <HeartIcon className={cn("size-6", liked && "fill-current")} />
-          </IconButton>
+          <span className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent", liked && "text-red-500")}>
+            <ReactionButton Icon={HeartIcon} size={24} isLiked={liked} onToggle={onLike} />
+          </span>
           <IconButton onClick={() => inputRef.current?.focus()} label="Comment">
             <MessageCircleIcon className="size-6 -scale-x-100" />
           </IconButton>
           <IconButton onClick={onGoToPost} label="Share">
             <SendIcon className="size-6" />
           </IconButton>
-          <IconButton onClick={onSave} label="Save" className="ml-auto">
-            <BookmarkIcon className={cn("size-6", saved && "fill-current")} />
-          </IconButton>
+          <span className="ml-auto flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent">
+            <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={onSave} />
+          </span>
         </div>
         <p className="mt-1 text-sm font-semibold">{fmtCount(likes)} likes</p>
         <p className="text-xs text-muted-foreground">{fmtWhen(clip.createdAt)}</p>

@@ -12,6 +12,7 @@ import { cn } from "@govblock/ui/lib/utils"
 import { Capture } from "./capture"
 import { CommentsPanel } from "./comments"
 import { Creators, type CreatorRow } from "./creators"
+import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFollows, loadLikes, loadMine, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, type Clip, type Comment } from "./store"
@@ -102,7 +103,7 @@ export function ClipsApp() {
     if (c) pendingId.current = c
   }, [])
 
-  const you: Clip["author"] = { name: account?.name ?? account?.email ?? "You", handle: (account?.email ?? "you").split("@")[0], image: account?.image }
+  const you: Clip["author"] = { name: account?.name ?? account?.email ?? "You", handle: (account?.email ?? "you").split("@")[0], image: account?.image || DEFAULT_AVATAR }
 
   // What is on offer: the published set (the desks' clips and the reader's
   // own public ones), narrowed to a creator when one is picked.
@@ -151,6 +152,7 @@ export function ClipsApp() {
     saved,
     following,
     commentCount: (id) => commentsFor(id).length,
+    onDelete: (clip) => void remove(clip),
     onLike: (clip) => {
       if (!signedIn) return setMode("gate")
       setLiked((s) => {
@@ -223,6 +225,7 @@ export function ClipsApp() {
         signedIn={signedIn}
         onLike={() => reactions.onLike(active)}
         onSave={() => reactions.onSave(active)}
+        onDelete={active.mine ? () => void remove(active) : undefined}
         onFollow={() => reactions.onFollow?.(active.creatorId)}
         onGoToPost={() => goToPost(active)}
         onPost={post}
@@ -236,7 +239,8 @@ export function ClipsApp() {
   const creatorLabel = creator === "all" ? "All clips" : creator === "you" ? "Your library" : (CREATORS.find((c) => c.id === creator)?.name ?? creator)
 
   return (
-    <div className="container-wrapper">
+    // The slot hides the site footer (Brendan, 2026-09-11): the page is the clip.
+    <div data-slot="clips" className="container-wrapper">
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", "h-[calc(100svh-var(--header-height))]")}>

@@ -22,12 +22,52 @@ const MAX_SECONDS = 60
 
 type Stage = "camera" | "review" | "details"
 
+// WebM with Opus first (Brendan, 2026-09-11, "there's no sound"): Chrome
+// accepts a bare video/mp4 too, but which audio codec it muxes into it is the
+// browser's choice and not every build carries one. MP4 stays for Safari,
+// which records nothing else.
 function pickMime() {
   if (typeof MediaRecorder === "undefined") return ""
-  for (const t of ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]) {
+  for (const t of ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]) {
     if (MediaRecorder.isTypeSupported(t)) return t
   }
   return ""
+}
+
+/**
+ * The first decoded frame of a recording as a JPEG, or nothing after three
+ * seconds. MediaRecorder's WebM carries no cues, so a tile that asks the
+ * browser for metadata alone can sit black (Brendan, 2026-09-11: "nothing is
+ * showing up even though the slot for the video shows up"); a drawn frame is
+ * what the grid shows instead.
+ */
+function frameOf(src: string): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    const v = document.createElement("video")
+    const done = (out?: string) => {
+      clearTimeout(timer)
+      v.remove()
+      resolve(out)
+    }
+    const timer = setTimeout(() => done(), 3000)
+    v.muted = true
+    v.playsInline = true
+    v.preload = "auto"
+    v.src = src
+    v.onloadeddata = () => {
+      try {
+        const scale = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight, 1))
+        const c = document.createElement("canvas")
+        c.width = Math.round(v.videoWidth * scale)
+        c.height = Math.round(v.videoHeight * scale)
+        c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height)
+        done(c.toDataURL("image/jpeg", 0.8))
+      } catch {
+        done()
+      }
+    }
+    v.onerror = () => done()
+  })
 }
 
 export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; onSaved: (clip: Clip) => void; onClose: () => void }) {
@@ -38,6 +78,8 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
   const [recording, setRecording] = React.useState(false)
   const [elapsed, setElapsed] = React.useState(0)
   const [blob, setBlob] = React.useState<Blob | null>(null)
+  /** Whether the take carried a microphone track; null until a take is made. */
+  const [hasAudio, setHasAudio] = React.useState<boolean | null>(null)
   const [url, setUrl] = React.useState<string | null>(null)
   const [duration, setDuration] = React.useState<number | undefined>()
   const [title, setTitle] = React.useState("")
@@ -107,6 +149,7 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
     if (!stream) return
     const mime = pickMime()
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+    setHasAudio(stream.getAudioTracks().some((t) => t.enabled && t.readyState === "live"))
     chunksRef.current = []
     rec.ondataavailable = (e) => {
       if (e.data.size) chunksRef.current.push(e.data)
@@ -127,6 +170,7 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
 
   const pickFile = (f: File | undefined) => {
     if (!f) return
+    setHasAudio(null)
     setBlob(f)
     setUrl(URL.createObjectURL(f))
     setDuration(undefined)
@@ -139,9 +183,10 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
     setStage("camera")
   }
 
-  const save = () => {
+  const save = async () => {
     if (!blob || !title.trim()) return
     setSaving(true)
+    const poster = url ? await frameOf(url) : undefined
     onSaved({
       id: `mine-${Date.now().toString(36)}`,
       creatorId: "you",
@@ -150,6 +195,7 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
       caption: caption.trim(),
       src: url ?? "",
       blob,
+      poster,
       duration,
       createdAt: new Date().toISOString(),
       visibility,
@@ -218,6 +264,9 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
               if (Number.isFinite(d) && d > 0) setDuration(d)
             }}
           />
+        )}
+        {hasAudio === false && (
+          <p className="absolute inset-x-0 top-14 z-10 text-center text-xs text-white/80">No microphone on this take. Check the browser&apos;s permission and retake.</p>
         )}
         <div className="relative flex items-center justify-between p-3">
           <Button variant="ghost" size="icon-sm" className={chip} aria-label="Retake" onClick={retake}>

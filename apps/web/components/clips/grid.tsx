@@ -17,7 +17,12 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
     <div className={cn("grid grid-cols-3 gap-0.5 lg:grid-cols-4", className)}>
       {clips.map((clip) => (
         <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
-          <video src={`${clip.src}#t=0.1`} preload="metadata" muted playsInline className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          {clip.poster ? (
+            <img src={clip.poster} alt="" className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          ) : (
+            // A recording has no cues to seek by, so it loads whole rather than sitting black on metadata alone.
+            <video src={clip.mine ? clip.src : `${clip.src}#t=0.1`} preload={clip.mine ? "auto" : "metadata"} muted playsInline className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          )}
           <div className="absolute inset-x-0 top-0 flex items-center gap-1.5 bg-gradient-to-b from-black/60 to-transparent p-2 pb-6">
             <Avatar className="size-6 ring-1 ring-white/40 max-sm:size-5">
               <AvatarImage src={clip.author.image ?? undefined} alt="" className="object-cover" />

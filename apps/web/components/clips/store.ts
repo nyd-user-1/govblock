@@ -1,5 +1,6 @@
 "use client"
 
+import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { flagUrl } from "@/lib/filters"
 
 // The clips a reader can see, who made them, and what was said under them.
@@ -28,6 +29,8 @@ export type Clip = {
   caption: string
   src: string
   blob?: Blob
+  /** A frame of the recording as a JPEG data URL, drawn when it was saved, so a tile has something to show before the video decodes. */
+  poster?: string
   duration?: number
   createdAt: string
   visibility: Visibility
@@ -294,7 +297,10 @@ export async function loadMine(): Promise<Clip[]> {
     req.onerror = () => reject(req.error)
   })
   db.close()
-  return rows.map((r) => ({ ...r, src: r.blob ? URL.createObjectURL(r.blob) : "", mine: true })).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // A recording saved before the reader had a picture wears the site's default (Brendan, 2026-09-11: "george... the standard for any user who has not added a picture").
+  return rows
+    .map((r) => ({ ...r, author: { ...r.author, image: r.author.image || DEFAULT_AVATAR }, src: r.blob ? URL.createObjectURL(r.blob) : "", mine: true }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export async function saveClip(clip: Clip) {

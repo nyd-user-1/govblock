@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CodeIcon, ExternalLinkIcon, LinkIcon, Share2Icon } from "lucide-react"
+import { CodeIcon, ExternalLinkIcon, LinkIcon, Share2Icon, Trash2Icon } from "lucide-react"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 
@@ -13,7 +13,9 @@ import type { Clip } from "./store"
 
 export const clipUrl = (clip: Clip) => `${typeof window === "undefined" ? "" : window.location.origin}/clips?c=${encodeURIComponent(clip.id)}`
 
-export function ClipMenu({ clip, onGoToPost, children }: { clip: Clip; onGoToPost: () => void; children: React.ReactElement }) {
+// `onDelete` is only handed over for a clip of the reader's own (Brendan,
+// 2026-09-11); a published clip has no such row.
+export function ClipMenu({ clip, onGoToPost, onDelete, children }: { clip: Clip; onGoToPost: () => void; onDelete?: () => void; children: React.ReactElement }) {
   const copy = (text: string) => void navigator.clipboard?.writeText(text)
   const share = async () => {
     const url = clipUrl(clip)
@@ -41,6 +43,11 @@ export function ClipMenu({ clip, onGoToPost, children }: { clip: Clip; onGoToPos
         <DropdownMenuItem className="whitespace-nowrap" onClick={() => copy(`<iframe src="${clipUrl(clip)}&embed=1" width="360" height="640" style="border:0;border-radius:12px" allow="autoplay; fullscreen"></iframe>`)}>
           <CodeIcon /> Embed
         </DropdownMenuItem>
+        {onDelete && (
+          <DropdownMenuItem variant="destructive" className="whitespace-nowrap" onClick={onDelete}>
+            <Trash2Icon /> Delete
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

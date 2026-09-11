@@ -13,14 +13,23 @@ import { useEffect, useState } from "react"
 // truth until proven otherwise. The tab's cache paints a signed-in reader
 // without a flash; the server's answer always wins.
 
-export type Account = { name?: string | null; email?: string | null; image?: string | null } | null
+export type Account = { name?: string | null; email?: string | null; image?: string | null; /** The home state from the reader's profile (onboarding, 2026-09-11); null until they have one. */ home?: string | null } | null
 
 export const ACCOUNT_CACHE_KEY = "govblock:account"
+
+// The portrait every reader wears until they upload their own (Brendan,
+// 2026-09-11): Gilbert Stuart's George Washington, National Gallery of Art
+// 1979.5.1, cropped square at 512 px in public/avatars.
+export const DEFAULT_AVATAR = "/avatars/default.jpg"
+
+/** The account as the surfaces read it: a reader with no photo has the default one. */
+const withAvatar = (user: NonNullable<Account>): NonNullable<Account> => ({ ...user, image: user.image || DEFAULT_AVATAR })
 
 function cached(): Account {
   try {
     const raw = sessionStorage.getItem(ACCOUNT_CACHE_KEY)
-    return raw ? (JSON.parse(raw) as Account) : null
+    const user = raw ? (JSON.parse(raw) as Account) : null
+    return user ? withAvatar(user) : null
   } catch {
     return null
   }
@@ -36,7 +45,7 @@ export function useAccount(): { account: Account; signedIn: boolean } {
       .then((response) => (response.ok ? response.json() : null))
       .then((session: { user?: NonNullable<Account> } | null) => {
         if (!live) return
-        const user = session?.user ?? null
+        const user = session?.user ? withAvatar(session.user) : null
         setAccount(user)
         try {
           if (user) sessionStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(user))

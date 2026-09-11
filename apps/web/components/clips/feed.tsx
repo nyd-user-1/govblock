@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { ReactionButton } from "@govblock/ui/components/animbits/reaction-button"
 import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, HeartIcon, LockIcon, MessageCircleIcon, MoreHorizontalIcon, PauseIcon, SendIcon, Volume2Icon, VolumeXIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
@@ -25,6 +26,8 @@ export type Reactions = {
   onGoToPost: (clip: Clip) => void
   onFollow?: (creatorId: string) => void
   following?: Set<string>
+  /** Removes a clip of the reader's own; absent for published clips. */
+  onDelete?: (clip: Clip) => void
 }
 
 export function Feed({
@@ -164,8 +167,8 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
 
   const rail = (
     <div className="flex flex-col items-center gap-4 text-white lg:text-foreground">
-      <RailButton label={fmtCount(likes)} onClick={() => reactions.onLike(clip)} active={liked} activeClass="text-red-500">
-        <HeartIcon className={cn("size-6", liked && "fill-current")} />
+      <RailButton label={fmtCount(likes)} active={liked} activeClass="text-red-500">
+        <ReactionButton Icon={HeartIcon} size={24} isLiked={liked} onToggle={() => reactions.onLike(clip)} />
       </RailButton>
       <RailButton label={fmtCount(comments)} onClick={() => reactions.onComment(clip)}>
         <MessageCircleIcon className="size-6 -scale-x-100" />
@@ -173,10 +176,10 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
       <RailButton onClick={() => reactions.onGoToPost(clip)} label="">
         <SendIcon className="size-6" />
       </RailButton>
-      <RailButton onClick={() => reactions.onSave(clip)} active={saved} label="">
-        <BookmarkIcon className={cn("size-6", saved && "fill-current")} />
+      <RailButton active={saved} label="">
+        <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={() => reactions.onSave(clip)} />
       </RailButton>
-      <ClipMenu clip={clip} onGoToPost={() => reactions.onGoToPost(clip)}>
+      <ClipMenu clip={clip} onGoToPost={() => reactions.onGoToPost(clip)} onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}>
         <button type="button" className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/15 lg:hover:bg-accent" aria-label="More">
           <MoreHorizontalIcon className="size-6" />
         </button>
@@ -190,6 +193,7 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
         <video
           ref={videoRef}
           src={clip.src}
+          poster={clip.poster}
           loop
           playsInline
           muted={muted}
@@ -242,11 +246,15 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
   )
 }
 
-function RailButton({ children, label, onClick, active, activeClass }: { children: React.ReactNode; label: string; onClick: () => void; active?: boolean; activeClass?: string }) {
+// The heart and the bookmark are animbits' Reaction Button (Brendan,
+// 2026-09-11), which handles its own click, so those two RailButtons carry no
+// onClick of their own: the circle is the hover target, the icon is the button.
+function RailButton({ children, label, onClick, active, activeClass }: { children: React.ReactNode; label: string; onClick?: () => void; active?: boolean; activeClass?: string }) {
+  const Outer = onClick ? "button" : "div"
   return (
-    <button type="button" onClick={onClick} className={cn("flex flex-col items-center gap-0.5 text-xs font-medium", active && (activeClass ?? "text-foreground"))}>
+    <Outer type={onClick ? "button" : undefined} onClick={onClick} className={cn("flex flex-col items-center gap-0.5 text-xs font-medium", active && (activeClass ?? "text-foreground"))}>
       <span className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/15 lg:hover:bg-accent">{children}</span>
       {label && <span className="tabular-nums">{label}</span>}
-    </button>
+    </Outer>
   )
 }
