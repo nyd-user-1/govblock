@@ -90,10 +90,13 @@ export async function entries(url, match, cacheKey) {
   return out
 }
 
-// Apache's MaxRanges defaults to 200, and over it the server quietly answers
-// with the whole file instead of the parts asked for — which on a 1.28 GB
-// archive is the accident this module exists to avoid. Well under it.
-const RANGES_PER_REQUEST = 120
+// Apache answers a multi-range request with the whole resource — here, 1.28 GB
+// — rather than an error whenever it dislikes the ranges: more than `MaxRanges`
+// (200) of them, more than `MaxRangeOverlaps` (20) that overlap, or more than
+// `MaxRangeReversals` (20) that run backwards. So the ranges below are sorted,
+// merged and kept well under the count, and the status is checked before the
+// body is read rather than after.
+const RANGES_PER_REQUEST = 100
 
 function splitMultipart(body, boundary) {
   const parts = []
@@ -130,22 +133,35 @@ export async function manyEntries(url, records, cacheKey, onProgress) {
     else missing.push(record)
   }
   // The local header's extra field can differ in length from the central
-  // directory's, so 200 bytes of slack is read ahead of every entry and the
-  // real start worked out from the header that comes back.
+  // directory's, so a little slack is read ahead of every entry and the real
+  // start worked out from the header that comes back.
   const SLACK = 200
-  for (let i = 0; i < missing.length; i += RANGES_PER_REQUEST) {
-    const batch = missing.slice(i, i + RANGES_PER_REQUEST)
-    const spec = batch.map((r) => `${r.offset}-${r.offset + SLACK + r.compressed - 1}`).join(", ")
+  // Ascending, so no range runs backwards, and merged, so none overlaps.
+  missing.sort((a, b) => a.offset - b.offset)
+  const wanted = missing.map((r) => ({ from: r.offset, to: r.offset + SLACK + r.compressed - 1 }))
+  const merged = []
+  for (const span of wanted) {
+    const last = merged[merged.length - 1]
+    if (last && span.from <= last.to + 1) last.to = Math.max(last.to, span.to)
+    else merged.push({ ...span })
+  }
+
+  let done = 0
+  let at = 0
+  for (let i = 0; i < merged.length; i += RANGES_PER_REQUEST) {
+    const batch = merged.slice(i, i + RANGES_PER_REQUEST)
+    const spec = batch.map((r) => `${r.from}-${r.to}`).join(", ")
     const response = await fetch(url, { headers: { "user-agent": UA, range: `bytes=${spec}` } })
+    if (response.status !== 206) {
+      // Reading the body here would pull the whole archive. Say so instead.
+      response.body?.cancel?.()
+      throw new Error(`${response.status} for a ${batch.length}-range request — the server would not split it`)
+    }
     const type = response.headers.get("content-type") ?? ""
     const body = Buffer.from(await response.arrayBuffer())
-    if (response.status !== 206) throw new Error(`${response.status} for a ${batch.length}-range request — the server would not split it`)
     const parts = /boundary=/.test(type)
       ? splitMultipart(body, /boundary="?([^";]+)"?/.exec(type)[1])
-      : [{ from: batch[0].offset, bytes: body }]
-    // Entries that sit next to each other make ranges that touch, and the
-    // server is free to answer those as one part. So a record is found by the
-    // part that covers it rather than by one that starts exactly at it.
+      : [{ from: batch[0].from, bytes: body }]
     parts.sort((a, b) => a.from - b.from)
     const covering = (offset) => {
       let lo = 0
@@ -159,19 +175,24 @@ export async function manyEntries(url, records, cacheKey, onProgress) {
       }
       return null
     }
-    for (const record of batch) {
+    // Every record whose bytes are inside the spans just fetched.
+    const last = batch[batch.length - 1].to
+    while (at < missing.length && missing[at].offset <= last) {
+      const record = missing[at]
       const part = covering(record.offset)
       if (!part) throw new Error(`the server did not return the range for ${record.name}`)
       const chunk = part.bytes.subarray(record.offset - part.from)
       const nameLength = chunk.readUInt16LE(26)
       const extraLength = chunk.readUInt16LE(28)
-      const start = 30 + nameLength + extraLength
-      const packed = chunk.subarray(start, start + record.compressed)
+      const from = 30 + nameLength + extraLength
+      const packed = chunk.subarray(from, from + record.compressed)
       const bytes = record.method === 0 ? packed : inflateRawSync(packed)
       writeFileSync(join(dir, record.name), bytes)
       out.set(record.name, bytes)
+      at += 1
+      done += 1
     }
-    onProgress?.(Math.min(i + batch.length, missing.length), missing.length)
+    onProgress?.(done, missing.length)
   }
   return out
 }

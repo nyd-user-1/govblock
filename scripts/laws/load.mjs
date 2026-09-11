@@ -44,6 +44,11 @@ const states = flag("all") ? ADAPTERS.flatMap((a) => a.states) : [String(value("
 
 const plural = (n, word) => `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`
 
+// What counts as a leaf — a node that carries the words of the law rather than
+// a heading over them. New York's court acts and rules use the last three, and
+// /api/laws searches all four.
+const LEAF = new Set(["SECTION", "RULE", "JOINT_RULE", "PREAMBLE"])
+
 for (const state of states) {
   const adapter = adapterFor(state)
   if (!adapter) {
@@ -63,7 +68,10 @@ for (const state of states) {
   let rows = 0
   const skipped = []
 
-  for await (const law of adapter.laws({ state, only: ONLY, log: (m) => console.log(`  ${m}`) })) {
+  // `have` is handed to the adapter as well as checked here: a source that
+  // costs a request per section should not spend thirty thousand of them on
+  // laws that are already written.
+  for await (const law of adapter.laws({ state, only: ONLY, have: done, log: (m) => console.log(`  ${m}`) })) {
     if (ONLY && law.law_id !== ONLY) continue
     if (done.has(law.law_id)) continue
     if (LIMIT && laws >= LIMIT) break
@@ -96,7 +104,7 @@ for (const state of states) {
       continue
     }
 
-    const count = nodes.filter((n) => n.doc_type === "SECTION").length
+    const count = nodes.filter((n) => LEAF.has(n.doc_type)).length
     if (DRY) {
       console.log(`  · ${law.law_id.padEnd(10)} ${plural(nodes.length, "node").padEnd(18)} ${plural(count, "section").padEnd(20)} ${law.law_name}`)
       laws += 1
@@ -147,7 +155,7 @@ function check(nodes) {
       break
     }
   }
-  if (!nodes.some((n) => n.doc_type === "SECTION")) problems.push("no sections")
-  if (!nodes.some((n) => n.doc_type === "SECTION" && n.text)) problems.push("no section carries text")
+  if (!nodes.some((n) => LEAF.has(n.doc_type))) problems.push("no sections")
+  if (!nodes.some((n) => LEAF.has(n.doc_type) && n.text)) problems.push("no section carries text")
   return problems
 }

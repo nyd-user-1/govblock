@@ -3,10 +3,11 @@
 // adapter has in common is the shape it yields, which is the "Laws" table —
 // the runner owns the ordering, the tree and the write.
 import ca from "./ca.mjs"
+import ma from "./ma.mjs"
 import ny from "./ny.mjs"
 import us from "./us.mjs"
 
-export const ADAPTERS = [us, ca, ny]
+export const ADAPTERS = [us, ca, ma, ny]
 
 export function adapterFor(state) {
   return ADAPTERS.find((a) => a.states.includes(state.toUpperCase())) ?? null
