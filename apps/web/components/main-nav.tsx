@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowRightIcon } from "lucide-react"
 
+import { Icons } from "@/components/icons"
 import { NAV_ICONS as ICONS } from "@/components/page-icon"
 import { hasItems, type NavItem } from "@/lib/config"
 import { AnimateIcon } from "@govblock/ui/components/animate-ui/icons/icon"
@@ -152,6 +153,8 @@ export function MainNav({
                   )}
                 >
                   <Link href={item.href}>
+                    {/* The product's own item wears the block before its name (Brendan, 2026-09-11). */}
+                    {item.href === "/" && <Icons.logo className="size-4 shrink-0" aria-hidden />}
                     {item.label}
                     {/* A flat entry can carry an icon as well. None does since
                         Creators moved into the Workspace menu (2026-09-09); the

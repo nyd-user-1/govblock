@@ -106,7 +106,8 @@ export const siteConfig = {
   // union of the literals, and `item.icon` is an error on any entry that
   // happens not to carry one.
   navItems: [
-    { href: "/", label: "Home" },
+    // The first item is the product itself, its block before the name (Brendan, 2026-09-11).
+    { href: "/", label: "GovBlocks" },
     {
       label: "Records",
       href: "/bills",
