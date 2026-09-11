@@ -145,18 +145,24 @@ export default function Page() {
     const kept = loadThreads()
     const cleared = Boolean(window.localStorage.getItem(CLEARED))
     const base = kept.length || cleared ? kept : sampleThreads()
-    // The Clerk's featured deliveries arrive in any inbox that has not been
-    // cleared. They are authored, not user data, so a stored copy is refreshed
-    // to its current definition on load — only the reader's own flags (starred,
-    // trashed) are kept — otherwise an edit to a featured report would never
-    // reach a browser that saw the old one. A cleared inbox stays cleared.
+    // The Clerk's featured deliveries lead every inbox. They are authored, not
+    // user data, so a stored copy is refreshed to its current definition on
+    // load — only the reader's own flags (starred, trashed) are kept —
+    // otherwise an edit to a featured report would never reach a browser that
+    // saw the old one. They are pinned to the top rather than dated into
+    // place: the placeholders are dated relative to today, so a delivery dated
+    // the 7th sank beneath fifty of them within days (Brendan, 2026-09-11:
+    // "where is the open primary report? It should be there... top of the
+    // list"). A cleared inbox gets them back too; Trash is how one goes away.
     const authored = new Map(FEATURED.map((thread) => [thread.id, thread]))
     const overlaid = base.map((thread) => {
       const fresh = authored.get(thread.id)
       return fresh ? { ...fresh, starred: thread.starred ?? fresh.starred, trashed: thread.trashed ?? fresh.trashed } : thread
     })
-    const missing = cleared ? [] : FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
-    const stored = missing.length ? [...missing, ...overlaid].sort((a, b) => b.updatedAt - a.updatedAt) : overlaid
+    const missing = FEATURED.filter((thread) => !base.some((entry) => entry.id === thread.id))
+    const merged = [...missing, ...overlaid]
+    const pinned = FEATURED.map((f) => merged.find((t) => t.id === f.id)).filter((t): t is Thread => Boolean(t))
+    const stored = [...pinned, ...merged.filter((t) => !authored.has(t.id))]
     // A run that was in flight when the tab closed did not survive it. Say so
     // on that reply — and only that one; earlier replies on the thread stand —
     // rather than leave a spinner that will never stop.
