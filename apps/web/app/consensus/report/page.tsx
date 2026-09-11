@@ -3,11 +3,10 @@ import { H3 } from "@/components/typeset"
 import { StatementsRail } from "@/components/consensus/rail"
 import { SplitLegend } from "@/components/consensus/split-bar"
 import { StatementCard } from "@/components/consensus/status-bars"
+import { conversation, conversations } from "@/lib/consensus/store"
 import {
   agreement,
   consensusStatements,
-  conversation,
-  conversations,
   divisiveness,
   divisiveStatements,
   share,
@@ -46,7 +45,7 @@ export default async function ConsensusReportPage({
   searchParams: Promise<{ c?: string }>
 }) {
   const { c: slug } = await searchParams
-  const c = conversation(slug ?? "") ?? conversations()[0]!
+  const c = (await conversation(slug ?? "")) ?? (await conversations())[0]!
   const agreed = consensusStatements(c)
   const split = divisiveStatements(c)
   // The table shows the statements that stood: not the ones a moderator

@@ -1,6 +1,6 @@
 import { DocsPage } from "@/components/docs-page"
 import { Survey } from "@/components/consensus/survey"
-import { conversation, conversations } from "@/lib/consensus/data"
+import { conversation, conversations } from "@/lib/consensus/store"
 
 // /consensus/survey — where a conversation is voted on.
 const title = "Survey"
@@ -15,7 +15,7 @@ export default async function ConsensusSurveyPage({
   searchParams: Promise<{ c?: string }>
 }) {
   const { c: slug } = await searchParams
-  const c = conversation(slug ?? "") ?? conversations()[0]!
+  const c = (await conversation(slug ?? "")) ?? (await conversations())[0]!
   return (
     <DocsPage
       title={title}

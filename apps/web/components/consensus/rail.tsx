@@ -1,11 +1,7 @@
 import Link from "next/link"
 
-import {
-  conversations,
-  share,
-  standing,
-  type Conversation,
-} from "@/lib/consensus/data"
+import { share, standing, type Conversation } from "@/lib/consensus/data"
+import { conversations } from "@/lib/consensus/store"
 import { fmtNumber } from "@/lib/format"
 import { StatementCard } from "@/components/consensus/statement-card"
 
@@ -17,10 +13,11 @@ import { StatementCard } from "@/components/consensus/statement-card"
 const card =
   "flex flex-col gap-1.5 rounded-xl border bg-card p-3 text-left transition-colors hover:bg-accent/30"
 
-export function ConversationsRail() {
+export async function ConversationsRail() {
+  const all = await conversations()
   return (
     <div className="flex flex-col gap-3">
-      {conversations().map((c) => (
+      {all.map((c) => (
         <Link key={c.slug} href={`/consensus/report?c=${c.slug}`} className={card}>
           <span className="truncate text-sm font-medium">{c.title}</span>
           <span className="text-xs text-muted-foreground tabular-nums">

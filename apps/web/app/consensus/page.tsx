@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 import { DocsPage } from "@/components/docs-page"
-import { conversations } from "@/lib/consensus/data"
+import { conversations } from "@/lib/consensus/store"
 import { fmtNumber } from "@/lib/format"
 import { ProjectCard, ProjectGrid } from "@/components/project-card"
 import { ConversationsRail } from "@/components/consensus/rail"
@@ -19,8 +19,8 @@ const description =
 
 export const metadata = { title, description }
 
-export default function ConsensusPage() {
-  const all = conversations()
+export default async function ConsensusPage() {
+  const all = await conversations()
   return (
     <DocsPage
       title={title}

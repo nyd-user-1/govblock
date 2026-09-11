@@ -2,7 +2,8 @@ import Link from "next/link"
 
 import { DocsPage } from "@/components/docs-page"
 import { SplitBar } from "@/components/consensus/split-bar"
-import { conversation, conversations, share } from "@/lib/consensus/data"
+import { share } from "@/lib/consensus/data"
+import { conversation, conversations } from "@/lib/consensus/store"
 import { fmtNumber } from "@/lib/format"
 
 // /consensus/admin — building and watching a conversation.
@@ -34,7 +35,7 @@ export default async function ConsensusAdminPage({
   searchParams: Promise<{ c?: string }>
 }) {
   const { c: slug } = await searchParams
-  const c = conversation(slug ?? "") ?? conversations()[0]!
+  const c = (await conversation(slug ?? "")) ?? (await conversations())[0]!
   // 1 is accepted, -1 is pulled, 0 is not yet looked at — the flag reads
   // backwards, so it is named rather than tested for truthiness.
   const moderated = c.statements.filter((s) => s.moderated === -1)

@@ -1,12 +1,3 @@
-import seattle from "@/lib/data/consensus/seattle.json"
-import bowlingGreen from "@/lib/data/consensus/bowling-green.json"
-import brexit from "@/lib/data/consensus/brexit-consensus.json"
-import canada from "@/lib/data/consensus/canadian-electoral-reform.json"
-import uberx from "@/lib/data/consensus/vtaiwan.uberx.json"
-import concussions from "@/lib/data/consensus/football-concussions.json"
-import policing from "@/lib/data/consensus/london.youth.policing.json"
-import ubi from "@/lib/data/consensus/scoop-hivemind.ubi.json"
-
 // Consensus: opinion gathered at scale on one question.
 //
 // A conversation is a set of statements people vote on — agree, disagree or
@@ -14,8 +5,9 @@ import ubi from "@/lib/data/consensus/scoop-hivemind.ubi.json"
 // GovBlock owns every surface here; the clustering is Polis's, reached over
 // its API (see ~/Code/long-poll for the evaluation and the headless spike).
 //
-// The two conversations below are CompDem's own published data
-// (github.com/compdemocracy/openData), so these pages can be built against
+// The conversations themselves are in Aurora (lib/consensus/store.ts, since
+// 2026-09-11); the first eight were CompDem's own published data
+// (github.com/compdemocracy/openData), so these pages could be built against
 // rooms that actually clustered rather than a test with one participant.
 //
 // Polarity, which everything depends on: in the published export 1 is agree
@@ -56,24 +48,6 @@ export type Conversation = {
   groups: { id: number; size: number }[]
   statements: Statement[]
 }
-
-// CompDem's published conversations, biggest room first. Two of them found
-// three and four groups rather than two, which is what exercises the
-// per-group rows in the report.
-const CONVERSATIONS: Conversation[] = [
-  seattle as Conversation,
-  bowlingGreen as Conversation,
-  uberx as Conversation,
-  concussions as Conversation,
-  canada as Conversation,
-  ubi as Conversation,
-  brexit as Conversation,
-  policing as Conversation,
-]
-
-export const conversations = () => CONVERSATIONS
-export const conversation = (slug: string) =>
-  CONVERSATIONS.find((c) => c.slug === slug) ?? null
 
 /** Shares of the people who saw a statement, as percentages that sum to 100. */
 export function share(t: Tally) {
