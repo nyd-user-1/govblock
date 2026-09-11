@@ -1,4 +1,4 @@
-/* /unite's own styles: its two appearances, and the CSS halves of
+/* /unite's own styles: the CSS halves of
    @animbits/transitions-theme-toggle-slide-left and -slide-right, which the
    registry would have written into globals.css. */
 :root {
@@ -7,36 +7,6 @@
   /* The flag's own blue and red. */
   --unite-blue: #0a3161;
   --unite-red: #b31942;
-}
-
-/* Red state and Blue state: Dark Mode 1 with its black replaced. The page's
-   wrapper carries `dark` alongside one of these, so every dark token and
-   `dark:` variant applies and only the surfaces are recoloured — scoped to
-   /unite, never the site's theme. */
-.unite-red {
-  --unite-ground: var(--unite-red);
-}
-
-.unite-blue {
-  --unite-ground: var(--unite-blue);
-}
-
-/* Two classes, so the recolour outranks globals.css's `.dark` block
-   whichever stylesheet loads last. */
-.dark.unite-red,
-.dark.unite-blue {
-  color-scheme: dark;
-  --background: var(--unite-ground);
-  --card: color-mix(in oklch, var(--unite-ground), white 8%);
-  --popover: color-mix(in oklch, var(--unite-ground), white 8%);
-  --muted: color-mix(in oklch, var(--unite-ground), white 14%);
-  --accent: color-mix(in oklch, var(--unite-ground), white 14%);
-  --secondary: color-mix(in oklch, var(--unite-ground), white 14%);
-  --muted-foreground: color-mix(in oklch, var(--unite-ground), white 72%);
-  --surface: color-mix(in oklch, var(--unite-ground), white 8%);
-  --sidebar: var(--unite-ground);
-  --border: oklch(1 0 0 / 18%);
-  --input: oklch(1 0 0 / 22%);
 }
 
 /* What shows through while the screens slide: blue going forward, onto the

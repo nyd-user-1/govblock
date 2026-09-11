@@ -12,14 +12,13 @@ import { honorific, truncate } from "@/lib/format"
 import { PathScopeContext } from "@/lib/policy/jurisdiction"
 import { SCOPE_KEYS, useScope, useSessionTitle, type ScopeKey } from "@/lib/policy/scope"
 import type { Bill, Member } from "@/lib/policy/types"
-import { useLocal } from "@/lib/policy/use-local"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Customizer } from "@/components/create/customizer"
 import { FileActions, type BillView } from "@/components/create/file-actions"
 import { FolderView, type Look } from "@/components/create/folder-view"
 import { LocksProvider, useLocks } from "@/components/create/locks"
-import { PathBar, type Crumb } from "@/components/create/path-bar"
+import { APP_CRUMB, PathBar, type Crumb } from "@/components/create/path-bar"
 import { type Mode } from "@/components/create/main-menu"
 import { RevealFx } from "@/components/create/reveal-fx"
 import { type Stage } from "@/components/create/stage-switcher"
@@ -82,14 +81,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   const year = pathScope?.year ?? scope.session
   const [picked, setMode] = React.useState<Mode | null>(null)
   const mode: Mode = picked ?? (params.mode === "design" ? "design" : "state")
-  const [panelOpen, setPanelOpen] = useLocal("govblock:create:customizer", true)
-  // The Admin experience opens with the customizer off screen (Brendan,
-  // 2026-09-06: "I want all admin pages to load with the customizer off
-  // screen"). The FAB brings it back for anyone who wants it.
-  const isAdmin = params.at === "admin" || params.at.startsWith("admin/")
-  React.useEffect(() => {
-    if (isAdmin) setPanelOpen(false)
-  }, [isAdmin, setPanelOpen])
+  // The customizer never opens on its own (Brendan, 2026-09-11): every page loads with it off screen, and only the footer's hamburger brings it out. Not remembered between loads.
+  const [panelOpen, setPanelOpen] = React.useState(false)
   // The look lives in the URL alone (Brendan, 2026-09-04: Canvas set the
   // cards look and a `look=table` left in the address bar overruled it).
   // Cards are the default on every page (Brendan, 2026-09-07); `look=table` is the table.
@@ -226,8 +219,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   const billLabel = bill ? `${bill.bill_number} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
   const crumbs = React.useMemo<Crumb[]>(() => {
     const out: Crumb[] = [{ label: legislatureName(scope.state), go: listing("sessions") }]
-    // The workspace's path starts at Data (Brendan, 2026-09-07: one breadcrumb, one component).
-    if (workspace) out.unshift({ label: "Data", go: { at: "datasets" } })
+    // The workspace's path starts at Workspace, then Data (Brendan, 2026-09-07: one breadcrumb, one component; 2026-09-11: Workspace at the root).
+    if (workspace) out.unshift(APP_CRUMB, { label: "Data", go: { at: "datasets" } })
     if (node.kind === "sessions") return out
     if (workspace && !routeNode) return out
     // The year, not the session's name (Brendan, 2026-09-07: "by year is 10000% required"). The record keys each dataset by the year its session began.
@@ -298,8 +291,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
 
   // The block's title is the path to where you are — the state short, as a
   // path segment, not the legislature's full name.
-  const first = workspace ? 1 : 0
-  const header = route?.datasets ? <PathBar crumbs={[{ label: "Data" }]} folder onGo={go} /> : <PathBar crumbs={crumbs.map((c, i) => (i === first ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
+  const first = workspace ? 2 : 0
+  const header = route?.datasets ? <PathBar crumbs={[APP_CRUMB, { label: "Data" }]} folder onGo={go} /> : <PathBar crumbs={crumbs.map((c, i) => (i === first ? { ...c, label: stateName(scope.state) } : c))} folder={!isFile(node)} onGo={go} />
 
   // Whether the folder's rows have scrolled under the header. Remembered per
   // location so a new folder starts at the top.
@@ -358,7 +351,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   )
 
   const stage = route?.datasets ? (
-    <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto">
+    <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto bg-muted dark:bg-background">
       <DatasetGrid look={datasetsLook} />
     </BlockShell>
   ) : routeNode?.pending ? (
@@ -377,7 +370,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
       <AdminStage page={node.page} onGo={(page) => writeUrlParams({ ...listing(page ? `admin/${page}` : "admin") }, { history: "push" })} />
     ) : (
       <BlockShell
-        title={all === "1" ? "Documents" : "Forms"}
+        defaultOpen={false}
+        title={<PathBar crumbs={[APP_CRUMB, { label: all === "1" ? "Documents" : "Forms" }]} folder onGo={go} />}
         rail={
           <SidebarContent>
             <SidebarGroup>
@@ -394,7 +388,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
       </BlockShell>
     )
   ) : (
-    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === 0 ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
+    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === first ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
         <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} fork={params.fork} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (

@@ -1,23 +1,26 @@
-// The four appearances (Brendan, 2026-09-07): two darks and two lights. Dark
-// Mode 1 is the original palette; Dark Mode 2 lifts the page off pure black;
-// Light Mode 1 is the original white; Light Mode 2 is Dark 2's rough mirror,
-// the page a shade off white. Each is a class on <html>, set by next-themes;
-// the palettes live in packages/ui/src/styles/globals.css.
+// The appearances (Brendan, 2026-09-07; renamed 2026-09-11). Two modes: Light
+// Mode, the original white, and Dark Mode, the original palette. Two shades
+// of them: Slate lifts the page a shade off white, Charcoal lifts it off pure
+// black. Each is a class on <html>, set by next-themes; the palettes live in
+// packages/ui/src/styles/globals.css. (Red State and Blue State were tried
+// site-wide on 2026-09-11 and undone the same hour.)
 
-export type ThemeName = "light" | "light-2" | "dark" | "dark-2"
+export type ThemeName = "light" | "dark" | "light-2" | "dark-2"
 
-export const THEMES: { value: ThemeName; label: string }[] = [
-  { value: "light", label: "Light Mode 1" },
-  { value: "light-2", label: "Light Mode 2" },
-  { value: "dark", label: "Dark Mode 1 (Original)" },
-  { value: "dark-2", label: "Dark Mode 2" },
+export type ThemeGroup = "mode" | "shade"
+
+export const THEMES: { value: ThemeName; label: string; group: ThemeGroup }[] = [
+  { value: "light", label: "Light Mode", group: "mode" },
+  { value: "dark", label: "Dark Mode", group: "mode" },
+  { value: "light-2", label: "Slate", group: "shade" },
+  { value: "dark-2", label: "Charcoal", group: "shade" },
 ]
 
 export const THEME_NAMES: ThemeName[] = THEMES.map((t) => t.value)
 
 export const isDark = (theme: string | undefined) => theme === "dark" || theme === "dark-2"
 
-/** The other side of the same pair: Dark 2 flips to Light 2, Dark 1 to Light 1. */
+/** The other side of the same pair: Charcoal flips to Slate, Dark Mode to Light Mode. */
 export function flipTheme(theme: string | undefined): ThemeName {
   switch (theme) {
     case "dark":

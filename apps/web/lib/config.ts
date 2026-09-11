@@ -124,7 +124,6 @@ export const siteConfig = {
             "/bills",
             "/amendments",
             "/laws",
-            "/bills?status=enacted",
             "/roll-call-votes",
             "/record",
           ],
@@ -140,7 +139,7 @@ export const siteConfig = {
         },
         {
           label: "Elsewhere",
-          items: ["/nominations", "/forms", "/newsroom"],
+          items: ["/nominations", "/forms"],
         },
       ],
       // Aurora's own count, 2026-09-09: live rows across 166 tables, written out
@@ -201,13 +200,6 @@ export const siteConfig = {
           icon: "Mic",
         },
         {
-          // Becoming law is a bill's last stage, not a section of its own.
-          href: "/bills?status=enacted",
-          label: "Enacted",
-          description: "What passed, and the bill it began as.",
-          icon: "Scale",
-        },
-        {
           href: "/laws",
           label: "Laws",
           description: "The standing law of every jurisdiction, section by section.",
@@ -224,12 +216,6 @@ export const siteConfig = {
           label: "Members",
           description: "The sitting members, with party and district.",
           icon: "BookUser",
-        },
-        {
-          href: "/newsroom",
-          label: "News",
-          description: "What the legislature did, newest first.",
-          icon: "Newspaper",
         },
         {
           href: "/nominations",
@@ -277,20 +263,26 @@ export const siteConfig = {
       groups: [
         {
           label: "Today",
-          items: ["/briefing", "/happening-now", "/hot-takes"],
+          items: ["/briefing", "/desk", "/happening-now", "/hot-takes"],
         },
         {
           label: "Filed under",
           items: ["/tags", "/policy-areas", "/legislative-subjects"],
         },
         {
-          label: "The room",
+          label: "Talk",
           items: ["/discussions", "/watercooler", "/leaderboard"],
+        },
+        {
+          label: "Decide",
+          items: ["/consensus/survey", "/consensus/report", "/consensus/admin"],
         },
         { label: "Watching", items: ["/watches", "/sources"] },
       ],
-      // Eleven entries, alphabetical, three across (Brendan, 2026-09-09).
-      // Four have pages; the rest are named here first and built later.
+      // Fifteen entries, alphabetical, three across (Brendan, 2026-09-09; the
+      // Consensus pages joined on 2026-09-11, and later that day Consensus
+      // itself moved to Workspace and Desk came in from Records). Eight have
+      // pages; the rest are named here first and built later.
       columns: 3,
       items: [
         {
@@ -299,6 +291,30 @@ export const siteConfig = {
           description:
             "Start the day knowing what the press said about your desk.",
           icon: "Coffee",
+        },
+        {
+          href: "/desk",
+          label: "Desk",
+          description: "What the legislature did, newest first, by stage.",
+          icon: "Newspaper",
+        },
+        {
+          href: "/consensus/admin",
+          label: "Consensus admin",
+          description: "Configure a conversation, watch it fill, and keep the statements clean.",
+          icon: "Eye",
+        },
+        {
+          href: "/consensus/report",
+          label: "Consensus report",
+          description: "Where agreement can be found, where a split emerges, and the statements.",
+          icon: "ListChecks",
+        },
+        {
+          href: "/consensus/survey",
+          label: "Consensus survey",
+          description: "One statement at a time: agree, disagree or pass.",
+          icon: "ClipboardList",
         },
         {
           href: "/discussions",
@@ -463,11 +479,13 @@ export const siteConfig = {
             "/workspace/dashboard",
             "/workspace/blocks",
             "/workspace/typeset",
+            "/chat",
+            "/diff",
           ],
         },
         {
           label: "Watch",
-          items: ["/map", "/calendar", "/blocks/intelligence", "/newsroom"],
+          items: ["/map", "/calendar", "/blocks/intelligence", "/desk", "/consensus"],
         },
         {
           label: "Build on it",
@@ -519,6 +537,18 @@ export const siteConfig = {
           icon: "History",
         },
         {
+          href: "/chat",
+          label: "Chat",
+          description: "Ask the Clerk about a bill, or fill a form with the Filer.",
+          icon: "MessageSquare",
+        },
+        {
+          href: "/consensus",
+          label: "Consensus",
+          description: "Vote on each other's statements and see where agreement can be found.",
+          icon: "Handshake",
+        },
+        {
           href: "/clips",
           label: "Creators",
           description: "Short video from the record, and your own.",
@@ -543,6 +573,12 @@ export const siteConfig = {
           icon: "FileDown",
         },
         {
+          href: "/diff",
+          label: "Diff",
+          description: "Two printings of a bill as one redline, the changes moving as you scroll.",
+          icon: "GitCompare",
+        },
+        {
           href: "/map",
           label: "Map",
           description:
@@ -550,8 +586,8 @@ export const siteConfig = {
           icon: "MapPin",
         },
         {
-          href: "/newsroom",
-          label: "News",
+          href: "/desk",
+          label: "Desk",
           description: "Catch what the legislature did while you were away.",
           icon: "Newspaper",
         },

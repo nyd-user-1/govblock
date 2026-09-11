@@ -13,6 +13,7 @@ import { ADMIN_USER } from "@/components/admin/account-footer"
 import { SaveToDrive } from "@/components/connectors/save-to-drive"
 import { Prose, RunSteps } from "@/app/agents/transcript"
 import { BlockShell } from "@/components/policy/block-shell"
+import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { InboxRail } from "@/registry/blocks/sidebar-09/components/app-sidebar"
 import { Compose, EMPTY_DRAFT, type Draft } from "@/registry/blocks/sidebar-09/components/compose"
 import { isReportType, isTrace, reportBody } from "@/lib/agents/report-modes"
@@ -392,7 +393,7 @@ export default function Page() {
     // the reading pane sharing the inset pane beside it.
     <BlockShell
       defaultOpen={false}
-      title="Inbox"
+      title={<PathBar crumbs={[APP_CRUMB, { label: "Agentic Inbox" }]} folder onGo={() => {}} />}
       sidebarWidth="calc(var(--spacing) * 56)"
       contentClassName="overflow-hidden"
       rail={

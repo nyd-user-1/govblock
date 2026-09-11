@@ -63,7 +63,7 @@ export function useFork(forkId: number | null) {
   return { fork: data.forks[0] ?? null, loading }
 }
 
-/** Every fork's commits on a bill — forks are public, and a bill's timeline shows what everyone proposed. */
+/** Every fork's commits on a bill. Forks are public; the bill's own timeline stopped showing them on 2026-09-11 (the official versions stand alone), but the API still answers. */
 export function useBillCommits(billId: number | null) {
   const { data, loading } = useJson(billId ? `/api/policy/commits?bill=${billId}` : null, NO_COMMITS)
   return { commits: data.commits, loading }

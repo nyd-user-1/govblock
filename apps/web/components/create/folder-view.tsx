@@ -247,7 +247,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
           <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">{tabs.map((t) => toggle(t, activeTab === t, () => pickTab(t), tabLabel(t)))}</div>
         </div>
       )}
-      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto" onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}>
+      <div ref={scroller} className={cn("min-h-0 flex-1 overflow-y-auto", look === "cards" && "bg-muted dark:bg-background")} onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}>
         {look === "cards" ? (
           <div className="p-6">
             {up && (

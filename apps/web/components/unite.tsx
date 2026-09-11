@@ -1,11 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { useTheme } from "next-themes"
 
-import { cn } from "@govblock/ui/lib/utils"
-import { ModeSwitcher, type AppearanceItem } from "@/components/mode-switcher"
+import { ModeSwitcher } from "@/components/mode-switcher"
 import ParticleMark from "@/components/flag-particles"
 import { ParticleScroll } from "@/components/canvasui/ParticleScroll"
 import { UniteParticleScroll } from "@/components/unite-particle-scroll"
@@ -14,8 +12,8 @@ import { SlideLink, useSlideArrival } from "@/components/unite-slide-link"
 // /unite and /unite-2 (Brendan, 2026-09-10/11) — for now the same page on two
 // routes, with slides between them. The hero is v2 from devtools
 // (unite-hero-v2.html at the repo root): the flag alone in a padded field, one
-// viewport tall. A 40px band of the flag's blue marks the seam, and below it
-// the second section — canvasui's Particle Scroll page
+// viewport tall. Below it (the blue band that marked the seam went on
+// 2026-09-11) the second section — canvasui's Particle Scroll page
 // (components/unite-particle-scroll.tsx). The question closes the page in the
 // footer line: on /unite "America Today?" slides left over blue to /unite-2,
 // and on /unite-2 it slides right over red back to /unite.
@@ -38,28 +36,6 @@ import { SlideLink, useSlideArrival } from "@/components/unite-slide-link"
 // value; it steps down with the screen or a phone would have no room left for
 // the flag.
 
-type Palette = "red" | "blue"
-
-const PALETTE_KEY = "unite-palette"
-
-function usePalette() {
-  const [palette, setPalette] = useState<Palette | null>(null)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(PALETTE_KEY)
-      if (saved === "red" || saved === "blue") setPalette(saved)
-    } catch {}
-  }, [])
-  const choose = (next: Palette | null) => {
-    setPalette(next)
-    try {
-      if (next) localStorage.setItem(PALETTE_KEY, next)
-      else localStorage.removeItem(PALETTE_KEY)
-    } catch {}
-  }
-  return [palette, choose] as const
-}
-
 export function Unite({ code }: { code: string }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -70,39 +46,13 @@ export function Unite({ code }: { code: string }) {
   // Warm the other route so the slide is not left waiting on it.
   useEffect(() => router.prefetch(other), [router, other])
 
-  const { theme, setTheme } = useTheme()
-  const [palette, setPalette] = usePalette()
-  const site = (value: "light" | "dark" | "system", label: string): AppearanceItem => ({
-    key: value,
-    label,
-    checked: !palette && (theme ?? "system") === value,
-    onSelect: () => {
-      setPalette(null)
-      setTheme(value)
-    },
-  })
-  const state = (value: Palette, label: string): AppearanceItem => ({
-    key: value,
-    label,
-    checked: palette === value,
-    onSelect: () => setPalette(value),
-  })
-  const groups = [
-    [site("light", "Light Mode"), site("dark", "Dark Mode")],
-    [state("red", "Red State"), state("blue", "Blue State")],
-    [site("system", "System")],
-  ]
-
   return (
     <div
       data-slot="unite"
-      className={cn(
-        "relative flex min-h-svh flex-col",
-        palette && `dark unite-${palette} bg-background text-foreground`
-      )}
+      className="relative flex min-h-svh flex-col"
     >
       <div className="fixed top-0 right-0 z-50 flex h-(--header-height) items-center px-6">
-        <ModeSwitcher groups={groups} />
+        <ModeSwitcher />
       </div>
       <ParticleScroll className="inset-0 z-30" style={{ position: "fixed" }}>
         <div className="min-h-full bg-background text-foreground">
@@ -111,7 +61,6 @@ export function Unite({ code }: { code: string }) {
               <ParticleMark fit={1} className="absolute inset-0" />
             </div>
           </section>
-          <div aria-hidden className="h-10 bg-(--unite-blue)" />
           <UniteParticleScroll code={code} />
           <footer className="container-wrapper px-4 xl:px-6">
             <div className="flex h-(--footer-height) items-center justify-between">

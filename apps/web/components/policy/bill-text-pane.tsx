@@ -13,6 +13,7 @@ import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's text as a file: the file view GitHub gives a source file, put to a
@@ -342,9 +343,19 @@ export function BillTextPane({
             </Button>
           </div>
           <div className="flex items-center overflow-hidden rounded-md border" role="group" aria-label="Edit">
-            <Button variant="ghost" size="icon-sm" className="rounded-none" aria-label="Edit this bill" disabled={!onEdit || !text} onClick={onEdit}>
-              <PencilIcon />
-            </Button>
+            {/* Duplicate to edit (Brendan, 2026-09-11): the pencil opens the reader's own copy in the editor at once. */}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" className="rounded-none" aria-label="Duplicate to edit" disabled={!onEdit || !text} onClick={onEdit}>
+                    <PencilIcon />
+                  </Button>
+                }
+              />
+              <TooltipContent side="top" sideOffset={6}>
+                Duplicate to edit
+              </TooltipContent>
+            </Tooltip>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Ny4Button variant="ghost" size="icon" className="size-7 rounded-none border-l" aria-label="More edit options">
@@ -353,7 +364,7 @@ export function BillTextPane({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 rounded-lg">
                 <DropdownMenuItem disabled={!onEdit || !text} onClick={onEdit}>
-                  <PencilIcon /> Edit in place
+                  <PencilIcon /> Duplicate to edit
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={`/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer">

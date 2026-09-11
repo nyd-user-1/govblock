@@ -332,7 +332,7 @@ export function NewsroomPage({
                 {others.map((desk) => (
                   <div key={desk.state} className="flex flex-col gap-1.5">
                     <Link
-                      href={`/newsroom?state=${desk.state}`}
+                      href={`/desk/${desk.state.toLowerCase()}`}
                       className="flex items-center gap-2 text-sm font-medium no-underline hover:underline"
                     >
                       <FlagChip state={desk.state} />

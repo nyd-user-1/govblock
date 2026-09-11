@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
+  AppWindowIcon,
   ArchiveIcon,
   CalendarDaysIcon,
   CheckIcon,
@@ -43,6 +44,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // far; the rest go where they live today.
 
 export type Workspace =
+  | "app"
   | "data"
   | "dashboards"
   | "inbox"
@@ -60,6 +62,8 @@ export const WORKSPACES: {
   href: string
   icon: typeof DatabaseIcon
 }[] = [
+  // The root (Brendan, 2026-09-11): every workspace as a card.
+  { key: "app", label: "Workspace", href: "/workspace", icon: AppWindowIcon },
   { key: "data", label: "Data", href: "/workspace/data", icon: DatabaseIcon },
   {
     key: "dashboards",

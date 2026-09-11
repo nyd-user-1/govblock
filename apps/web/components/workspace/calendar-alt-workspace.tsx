@@ -7,7 +7,6 @@ import { LocksProvider } from "@/components/create/locks"
 import { CalendarBoard } from "@/components/policy/calendar-board"
 import { ShellFooterProvider } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
-import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { writeUrlParams } from "@/lib/policy/url-state"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
@@ -39,7 +38,8 @@ function CalendarCustomizer({ filters, setFilters }: { filters: ReturnType<typeo
 
 function CalendarAltWorkspaceInner() {
   const scope = useScope()
-  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:calendar-alt:customizer", false)
+  // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
+  const [panelOpen, setPanelOpen] = React.useState(false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   return (
     <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]">

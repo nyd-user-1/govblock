@@ -106,8 +106,10 @@ const SESSIONS_KEY = "govblock:workspace:data:sessions"
 
 export function DatasetGrid({ look = "cards" }: { look?: Look }) {
   const router = useRouter()
-  const { signedIn } = useAccount()
-  const { state: home } = useJurisdiction()
+  const { account, signedIn } = useAccount()
+  const { state: flag } = useJurisdiction()
+  // The profile's home state (onboarding, 2026-09-11), or the header's flag for a reader who has none.
+  const home = account?.home ?? flag
   const [chosen, setChosen] = React.useState<Record<string, number>>({})
   React.useEffect(() => {
     try {
@@ -166,8 +168,10 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
 /** The datasets as the standard table: the seal and name, the jurisdiction, the plan. */
 function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: Dataset[] }) {
   const router = useRouter()
-  const { signedIn } = useAccount()
-  const { state: home } = useJurisdiction()
+  const { account, signedIn } = useAccount()
+  const { state: flag } = useJurisdiction()
+  // The profile's home state (onboarding, 2026-09-11), or the header's flag for a reader who has none.
+  const home = account?.home ?? flag
   const columns = ["Dataset", "Jurisdiction", "Plan"]
   return (
     <div className="m-4 overflow-hidden rounded-lg border">

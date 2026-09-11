@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { MoreVertical, Pin, PinOff } from "lucide-react"
+import { ArrowUpRight, MoreVertical, Pin, PinOff } from "lucide-react"
 
 import { useLocal } from "@/lib/policy/use-local"
 import { cn } from "@govblock/ui/lib/utils"
@@ -68,6 +68,7 @@ export function ProjectCard({
   note,
   menu: menuProp,
   feedHref,
+  arrow,
   className,
 }: {
   href: string
@@ -82,6 +83,8 @@ export function ProjectCard({
   menu?: ProjectCardMenu
   /** A feed alone: the menu shows, Pin and Edit details are inert. */
   feedHref?: string
+  /** The record row's hover mark (Brendan, 2026-09-11): an up-right arrow that rises into the bottom-right corner as the pointer arrives. */
+  arrow?: boolean
   className?: string
 }) {
   const menu = menuProp ?? (feedHref ? { pinned: false, onPin: () => {}, onEdit: () => {}, feedHref } : undefined)
@@ -121,6 +124,12 @@ export function ProjectCard({
       <div className="pointer-events-none relative z-1 truncate text-xs text-muted-foreground tabular-nums">
         {meta}
       </div>
+      {arrow && !menu && (
+        <ArrowUpRight
+          aria-hidden
+          className="pointer-events-none absolute right-4 bottom-4 z-1 size-4 translate-x-[-4px] translate-y-[4px] text-muted-foreground opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/project:translate-x-0 group-hover/project:translate-y-0 group-hover/project:opacity-100 group-hover/project:text-foreground"
+        />
+      )}
       {menu ? (
         <div
           className={cn(

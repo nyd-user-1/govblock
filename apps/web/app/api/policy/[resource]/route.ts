@@ -21,6 +21,7 @@ import {
   getHearingIndex,
   getHearingTranscript,
   getAmendmentList,
+  getIntroducedRail,
   getMemberRail,
   getMemberVoteRecord,
   getNominationList,
@@ -431,6 +432,12 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "rail": {
       // What the left rail shows beside a committee or a member: their own
       // bills above the jurisdiction's recent ones (Brendan, 2026-09-06).
+      // On the bills pages, the jurisdiction's recently introduced bills
+      // (2026-09-11).
+      if (sp.get("introduced")) {
+        const f = await resolve(filters)
+        return { state: f.state, session: f.session, ...(await getIntroducedRail(f)) }
+      }
       const committeeId = sp.get("committee")
       const member = int(sp.get("member"), 0)
       if (committeeId) {

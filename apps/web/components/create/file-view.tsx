@@ -12,11 +12,10 @@ import { useSessionTitle, type Scope } from "@/lib/policy/scope"
 import type { Bill, BillRow, Member } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
-import { commitVersion, createCommit, useBillCommits, useFork, useForkCommits, versionId } from "@/lib/policy/forks"
+import { commitVersion, createCommit, createFork, useFork, useForkCommits, useMyForks, versionId } from "@/lib/policy/forks"
 import { BillChanges } from "@/components/create/bill-changes"
 import { BillEdit } from "@/components/create/bill-edit"
 import { BillHistory } from "@/components/create/bill-history"
-import { ForkPrompt } from "@/components/create/fork-prompt"
 import { ago } from "@/components/create/timeline"
 import { MemberRecord } from "@/components/create/member-record"
 import { BillTextPane, type TextVersion } from "@/components/policy/bill-text-pane"
@@ -86,14 +85,16 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
   // One array per bill, newest first, so the tabs that key effects on it do
   // not re-run every render. Seen through a fork, the fork's commits sit in
   // it as versions ahead of the legislature's; the legislature's own list is
-  // never touched (Brendan, 2026-09-03: "so it's a fork?").
+  // never touched (Brendan, 2026-09-03: "so it's a fork?"). Seen without
+  // one, the legislature's versions stand alone: a reader's copy never
+  // shares a screen with the official record (Brendan, 2026-09-11).
   const forkId = node.kind === "bill" && fork ? Number(fork) : null
   const { fork: forkRow } = useFork(forkId)
-  const { commits: forkCommits } = useForkCommits(forkId)
-  // Without a fork, the bill's timeline shows every fork's commits, under
-  // the official version each one changes (Brendan, 2026-09-04).
-  const { commits: billCommits } = useBillCommits(node.kind === "bill" && !forkId ? node.id : null)
-  const commits = forkId ? forkCommits : billCommits
+  const { commits } = useForkCommits(forkId)
+  // The reader's own fork of this bill, if they have one, so Duplicate to
+  // edit reuses it instead of minting another.
+  const { forks: myForks, loading: forksLoading } = useMyForks(node.kind === "bill" ? node.id : -1)
+  const [forkFailed, setForkFailed] = React.useState(false)
   const versions = React.useMemo<TextVersion[]>(() => [...commits.map(commitVersion), ...[...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id)], [bill?.texts, commits])
   // The version being edited, and its text.
   const editing = node.kind === "bill" && tab === "edit"
@@ -122,6 +123,17 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
         </Button>
       </span>
     )
+    // Duplicate to edit (Brendan, 2026-09-11): the pencil opens the editor
+    // at once, with no fork screen in the way. The copy is the reader's
+    // fork, made here in the background or reused, and it lives in Your forks.
+    const duplicateToEdit = async () => {
+      if (forkId) return onGo({ bill: String(node.id), tab: "edit", doc: doc || null })
+      if (!bill) return
+      setForkFailed(false)
+      const mine = myForks.find((f) => f.bill_id === node.id) ?? (await createFork({ state, session_id: session, bill_id: bill.bill_id, bill_number: bill.bill_number, title: bill.title }))
+      if (mine) onGo({ bill: String(node.id), fork: String(mine.id), tab: "edit", doc: doc || null })
+      else setForkFailed(true)
+    }
     const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
     const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
     const href = active === "record" ? `/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
@@ -164,7 +176,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
               }}
               history={historyButton}
               related={related}
-              onEdit={() => onGo({ bill: String(node.id), tab: forkId ? "edit" : "fork", doc: doc || null })}
+              onEdit={() => void duplicateToEdit()}
             />
           ) : (
             <div className="flex flex-col gap-2 p-4">
@@ -173,10 +185,8 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
               ))}
             </div>
           )
-        ) : active === "fork" && bill ? (
-          <ForkPrompt bill={bill} state={state} session={session} onForked={(id) => onGo({ bill: String(node.id), fork: String(id), tab: "edit", doc: doc || null })} />
-        ) : active === "edit" && bill && !forkId ? (
-          <ForkPrompt bill={bill} state={state} session={session} onForked={(id) => onGo({ bill: String(node.id), fork: String(id), tab: "edit", doc: doc || null })} />
+        ) : (active === "fork" || active === "edit") && !forkId ? (
+          <Duplicating ready={!!bill && !forksLoading} run={duplicateToEdit} failed={forkFailed} />
         ) : active === "edit" && bill && editBase && forkId ? (
           <BillEdit
             bill={bill}
@@ -356,6 +366,26 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
       ) : (
         <iframe key={href} src={href} title={`${label} · Record`} className="min-h-0 flex-1 bg-background" />
       )}
+    </div>
+  )
+}
+
+/** A direct hit on the edit URL without a fork: make or reuse the copy once the bill and the reader's forks are known, then open the editor. */
+function Duplicating({ ready, run, failed }: { ready: boolean; run: () => Promise<void>; failed: boolean }) {
+  const started = React.useRef(false)
+  React.useEffect(() => {
+    if (!ready || started.current) return
+    started.current = true
+    void run()
+    // `run` is rebuilt every render; it is read once, when ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+  if (failed) return <p className="p-6 text-sm text-destructive">The copy could not be made. Try again in a moment.</p>
+  return (
+    <div className="flex flex-col gap-2 p-4">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Skeleton key={i} className="h-3.5 rounded" style={{ width: `${55 + ((i * 37) % 40)}%` }} />
+      ))}
     </div>
   )
 }

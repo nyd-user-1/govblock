@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 
 import { useAdminNav } from "@/components/admin/nav"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@govblock/ui/components/nova/breadcrumb"
@@ -23,6 +24,13 @@ export function AdminCrumb({ crumbs }: { crumbs: { label: string; page?: string;
   return (
     <Breadcrumb>
       <BreadcrumbList className="flex-nowrap">
+        {/* Workspace is the root of every workspace path (Brendan, 2026-09-11). */}
+        <BreadcrumbItem>
+          <BreadcrumbLink render={<Link href="/workspace" />} className="whitespace-nowrap">
+            Workspace
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
         <BreadcrumbItem>
           {last < 0 ? <BreadcrumbPage className="whitespace-nowrap">Dashboard</BreadcrumbPage> : <BreadcrumbLink render={<button type="button" onClick={() => (home ? home() : go(""))} />}>Dashboard</BreadcrumbLink>}
         </BreadcrumbItem>

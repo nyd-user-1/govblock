@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { cn } from "@govblock/ui/lib/utils"
 
 import { AdminTopbar } from "@/components/admin/blocks/layout"
 import { menuPath } from "@/components/admin/items"
@@ -51,7 +52,8 @@ export function AdminStage({
   return (
     <AdminNavProvider value={nav}>
       <BlockShell defaultOpen={railOpen} rail={<AdminRail />} sidebarWidth="250px" separatorClassName="mx-1" title={<AdminCrumb crumbs={crumbs} />} actions={<AdminTopbar />}>
-        <div className="flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0">{content ?? <AdminPage page={page} />}</div>
+        {/* The menu sits on the grid's grey to the pane's edges (Brendan, 2026-09-11: no white margin around it); a page keeps the plain ground. */}
+        <div className={cn("flex flex-1 flex-col p-4 sm:p-5 [&>div>*:first-child]:mt-0", content && "bg-muted dark:bg-background")}>{content ?? <AdminPage page={page} />}</div>
       </BlockShell>
     </AdminNavProvider>
   )

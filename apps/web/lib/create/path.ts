@@ -54,12 +54,13 @@ export type Location = { at: string; committee: string; member: string; bill: st
 // member's name), which /create's query keys ignore.
 export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc" | "fork" | "state" | "number" | "slug", string | null>>
 
+// Your forks first (Brendan, 2026-09-11): the reader's own copies sit above the legislature's record.
 export const ROOT_FOLDERS = [
+  { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
   { key: "bills", label: "Bills", go: { at: "bills" } as Target },
   { key: "committees", label: "Committees", go: { at: "committees" } as Target },
   { key: "members", label: "Members", go: { at: "members" } as Target },
   { key: "votes", label: "Votes", go: { at: "votes" } as Target },
-  { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
 ] as const
 
 const SPECIAL = new Set(["inbox", "finance", "forms"])

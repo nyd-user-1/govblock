@@ -9,7 +9,6 @@ import { LocksProvider } from "@/components/create/locks"
 import { ShellFooterProvider } from "@/components/policy/block-shell"
 import { DashboardMenu } from "@/components/workspace/dashboard-menu"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
-import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { writeUrlParams } from "@/lib/policy/url-state"
 import { DASHBOARD_ROOT, dashboardHref } from "@/lib/workspace/dashboard"
@@ -27,11 +26,11 @@ import { cn } from "@govblock/ui/lib/utils"
 // Data variant of /create's, and opens closed. So does the rail (Brendan,
 // 2026-09-07: "I want the page to load with the sidebar defaulted closed").
 
-function DashboardCustomizer({ filters, setFilters }: { filters: ReturnType<typeof useScope>["filters"]; setFilters: (patch: Partial<Record<ScopeKey, string>>) => void }) {
+export function DashboardCustomizer({ filters, setFilters, title = "Dashboards" }: { filters: ReturnType<typeof useScope>["filters"]; setFilters: (patch: Partial<Record<ScopeKey, string>>) => void; title?: string }) {
   return (
     <Card className="dark isolate z-10 max-h-full min-h-0 w-full self-start rounded-2xl bg-card/90 backdrop-blur-xl md:w-(--customizer-width)" size="sm">
       <CardHeader className="hidden items-center justify-between gap-2 border-b md:flex">
-        <CardTitle className="text-base">Dashboards</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden max-md:px-0 md:overflow-y-auto">
         <FieldGroup className="flex-row gap-2.5 py-px max-md:px-3 md:flex-col md:gap-3.25">
@@ -45,7 +44,8 @@ function DashboardCustomizer({ filters, setFilters }: { filters: ReturnType<type
 function DashboardWorkspaceInner({ page }: { page?: string }) {
   const router = useRouter()
   const scope = useScope()
-  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:dashboard:customizer", false)
+  // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
+  const [panelOpen, setPanelOpen] = React.useState(false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   // The rail moves the router, carrying the jurisdiction and filters along.
   const go = React.useCallback((next: string) => router.push(dashboardHref(next, window.location.search)), [router])

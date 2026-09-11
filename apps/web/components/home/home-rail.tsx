@@ -2,20 +2,25 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { Bot, CalendarDays, Database, FileText, Globe, History, Home, LayoutGrid, Newspaper, PieChart, Search, Settings } from "lucide-react"
+import { Bot, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search, Settings } from "lucide-react"
 
+import { useAccount } from "@/lib/auth/use-account"
 import { hasItems, siteConfig, withScope } from "@/lib/config"
-import { stateName } from "@/lib/filters"
+import { DEFAULT_STATE, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { RailGroup, type RailItem } from "@/components/directory-rail"
+import { RailGroup, useRecordGroups, type RailItem } from "@/components/directory-rail"
 import { useRecents } from "@/components/home/recents"
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
-// The home page's rail: Cloudflare's account rail, in our terms (Brendan,
-// 2026-09-07: "this is where we will house the tld organizing principles and
-// functions"). Quick search, Account home, Recents and the jurisdiction at
-// the top; then Observe, Build, Records and Workspace as sections; Manage
-// account at the foot. On any other page the rail is the docs rail.
+// The site's rail, on AnimBits' shape (Brendan, 2026-09-11): four rows at
+// the top — Quick search, Account home, Recents, Scope — then four nodes,
+// each folding open to its sub-sections and each sub-section to its items:
+// Agents (the index and each agent), ArXiv (the record's pages), News (the
+// desks and everything the News menu holds), Workspace (the workspace's
+// rooms, with Consensus and Data as nodes of their own). Scope is what the
+// reader is entitled to: Congress, and their home state — shown either way,
+// muted until they sign in. The record's own groups follow, then Manage
+// account at the foot.
 
 const glyph = (Icon: React.ComponentType<{ className?: string }>) => <Icon className="size-4 shrink-0 text-muted-foreground" />
 
@@ -24,30 +29,37 @@ function openSearch() {
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))
 }
 
-export function HomeRail() {
+const byLabel = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label)
+
+export function SiteRail() {
   const pathname = usePathname()
   const { state } = useJurisdiction()
+  const { account, signedIn } = useAccount()
   const recents = useRecents(6)
-  const scope = `?state=${state}`
+  const record = useRecordGroups()
   const pages = (label: string) => {
     const entry = siteConfig.navItems.find((item) => item.label === label)
     return entry && hasItems(entry) ? entry.items : []
   }
-  const item = (key: string, href: string, label: React.ReactNode, icon?: React.ReactNode, items?: RailItem[]): RailItem => ({
+  const here = (href: string) => pathname === href.split("?")[0]
+  const item = (key: string, href: string, label: React.ReactNode, icon?: React.ReactNode, items?: RailItem[], muted?: boolean): RailItem => ({
     key,
     href,
     label,
     icon,
     items,
-    active: pathname === href.split("?")[0] || (!!items && items.some((i) => i.active)),
+    muted,
+    active: here(href) || (!!items && items.some((i) => i.active)),
   })
-  const page = (p: { href: string; label: string }): RailItem => ({
-    key: p.href,
-    href: withScope(p.href, state),
-    label: p.label,
-    active: pathname.startsWith(p.href),
-  })
+  const page = (p: { href: string; label: string }): RailItem => ({ key: p.href, href: withScope(p.href, state), label: p.label, active: pathname.startsWith(p.href) })
 
+  // Scope: Congress and the home state, each with the three lists a jurisdiction is read through.
+  const home = account?.home ?? (state !== "US" ? state : DEFAULT_STATE)
+  const lists = (code: string, muted: boolean): RailItem[] => [
+    { key: `${code}-bills`, href: `/bills/${code.toLowerCase()}`, label: "Bills", active: here(`/bills/${code.toLowerCase()}`), muted },
+    { key: `${code}-committees`, href: `/committees?state=${code}`, label: "Committees", active: false, muted },
+    { key: `${code}-members`, href: `/members?state=${code}`, label: "Members", active: false, muted },
+  ]
   const top: RailItem[] = [
     item("home", "/home", "Account home", glyph(Home)),
     item(
@@ -57,31 +69,38 @@ export function HomeRail() {
       glyph(History),
       recents.map((r) => ({ key: r.href, href: r.href, label: r.title, detail: r.group, active: false }))
     ),
-    item("jurisdiction", `/bills${scope}`, stateName(state) || "Jurisdiction", glyph(Globe), [
-      { key: "overview", href: `/bills${scope}`, label: "Overview", active: false },
-      { key: "members", href: `/members${scope}`, label: "Members", active: false },
-      { key: "committees", href: `/committees${scope}`, label: "Committees", active: false },
-      { key: "departments", href: `/departments${scope}`, label: "Departments", active: false },
-      { key: "sessions", href: `/docs/datasets/${state.toLowerCase()}`, label: "Sessions", active: false },
+    item("scope", "/bills", "Scope", glyph(Globe), [
+      item("congress", "/bills/us", "Congress", undefined, lists("US", false)),
+      item("home-state", `/bills/${home.toLowerCase()}`, stateName(home), undefined, lists(home, !signedIn), !signedIn),
     ]),
   ]
-  const observe: RailItem[] = [item("investigate", "/search", "Investigate", glyph(Search)), item("analytics", "/home#analytics", "Analytics", glyph(PieChart)), item("calendar", "/calendar", "Calendar", glyph(CalendarDays))]
-  const build: RailItem[] = [
-    item("agents", "/agents", "Agents", glyph(Bot), [
-      { key: "agents", href: "/agents", label: "Agents", active: pathname.startsWith("/agents") },
-      { key: "agent", href: "/agent", label: "Ask", active: pathname === "/agent" },
-      { key: "data", href: "/workspace/data", label: "Data", active: pathname.startsWith("/workspace/data") },
-      { key: "blocks", href: "/workspace/blocks", label: "Blocks", active: pathname.startsWith("/workspace/blocks") },
-    ]),
-    item("data", "/docs/api", "Data", glyph(Database), [
-      { key: "api", href: "/docs/api", label: "API", active: pathname.startsWith("/docs/api") },
-      { key: "datasets", href: "/docs/datasets", label: "Datasets", active: pathname.startsWith("/docs/datasets") },
-    ]),
-    item("news", "/newsroom", "News", glyph(Newspaper)),
+
+  const agents: RailItem[] = [{ key: "/agents", href: "/agents", label: "Index", active: pathname === "/agents" }, ...pages("Agents").filter((p) => p.href.startsWith("/agents/")).sort(byLabel).map(page)]
+  const arxiv: RailItem[] = pages("Records").filter((p) => p.href !== "/desk").sort(byLabel).map(page)
+  const news: RailItem[] = pages("News").filter((p) => !p.href.startsWith("/consensus")).sort(byLabel).map(page)
+  const consensus = item("consensus", "/consensus", "Consensus", undefined, [
+    { key: "/consensus", href: "/consensus", label: "Consensus", active: pathname === "/consensus" },
+    ...pages("News").filter((p) => p.href.startsWith("/consensus/")).sort(byLabel).map((p) => ({ key: p.href, href: p.href, label: p.label.replace(/^Consensus /, "").replace(/^\w/, (c) => c.toUpperCase()), active: pathname.startsWith(p.href) })),
+  ])
+  const data = item("data", "/workspace/data", "Data", undefined, [
+    { key: "/docs/api", href: "/docs/api", label: "API", active: pathname.startsWith("/docs/api") },
+    { key: "/docs/datasets", href: "/docs/datasets", label: "Datasets", active: pathname.startsWith("/docs/datasets") },
+  ])
+  const workspace: RailItem[] = [
+    ...pages("Workspace")
+      .filter((p) => !["/docs/api", "/docs/datasets", "/workspace/data", "/desk", "/consensus"].includes(p.href))
+      .map(page),
+    consensus,
+    data,
+  ].sort((a, b) => String(a.label).localeCompare(String(b.label)))
+
+  const nodes: RailItem[] = [
+    item("agents", "/agents", "Agents", glyph(Bot), agents),
+    item("arxiv", withScope("/bills", state), "ArXiv", glyph(FileText), arxiv),
+    item("news", "/news", "News", glyph(Newspaper), news),
+    item("workspace", "/workspace", "Workspace", glyph(LayoutGrid), workspace),
   ]
-  const records: RailItem[] = [item("records", `/bills${scope}`, "Records", glyph(FileText), pages("Records").map(page))]
-  const workspace: RailItem[] = [item("workspace", "/workspace/data", "Workspace", glyph(LayoutGrid), pages("Workspace").map(page))]
-  const account: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
+  const account_: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
 
   return (
     <>
@@ -99,9 +118,11 @@ export function HomeRail() {
         </SidebarGroupContent>
       </SidebarGroup>
       <RailGroup items={top} />
-      <RailGroup label="Observe" items={observe} />
-      <RailGroup label="Build" items={[...build, ...records, ...workspace]} />
-      <RailGroup items={account} className="border-t pt-3" />
+      <RailGroup items={nodes} />
+      {record.map((g) => (
+        <RailGroup key={g.key} label={g.label} items={g.items} />
+      ))}
+      <RailGroup items={account_} className="border-t pt-3" />
     </>
   )
 }

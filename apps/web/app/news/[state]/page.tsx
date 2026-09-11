@@ -50,7 +50,7 @@ export default async function DeskPage({
       description={describe(code)}
       slug={`/news/${state.toLowerCase()}`}
       previous={{ name: "News", url: "/news" }}
-      next={{ name: "Newsroom", url: `/newsroom?state=${code}` }}
+      next={{ name: "Desk", url: `/desk/${code.toLowerCase()}` }}
       rail={<CalendarCard compact />}
     >
       <StoriesDirectory state={code} stories={stories} />

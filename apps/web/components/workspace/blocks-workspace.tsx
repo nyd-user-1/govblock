@@ -4,13 +4,12 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { BarChart3Icon, FileTextIcon, HomeIcon, LayoutDashboardIcon, LayoutGridIcon } from "lucide-react"
 
-import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { readSort, sortRows } from "@/lib/workspace/sort"
 import { LegislativeFields } from "@/components/create/fields"
 import { LocksProvider } from "@/components/create/locks"
-import { PathBar } from "@/components/create/path-bar"
+import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import type { Look } from "@/components/create/folder-view"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { BLOCKS, GROUP_LABEL, findBlock, type BlockEntry, type BlockGroup } from "@/components/workspace/blocks-catalogue"
@@ -128,7 +127,8 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
   const router = useRouter()
   const scope = useScope()
   const params = useUrlParams(["look", "sort"] as const)
-  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:blocks:customizer", false)
+  // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
+  const [panelOpen, setPanelOpen] = React.useState(false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   const look: Look = params.look === "table" ? "table" : "cards"
   const setLook = (next: Look) => writeUrlParams({ look: next === "table" ? "table" : null }, { history: "replace" })
@@ -155,10 +155,10 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
     [ordered, open]
   )
 
-  const crumbs = block ? [{ label: "Blocks", go: { at: "root" } }, { label: block.title }] : [{ label: "Blocks" }]
+  const crumbs = block ? [APP_CRUMB, { label: "Blocks", go: { at: "root" } }, { label: block.title }] : [APP_CRUMB, { label: "Blocks" }]
   const stage = (
     <ShellFooterProvider footer={<WorkspaceFooter mode="blocks" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((o) => !o)} />}>
-      <BlockShell defaultOpen={false} rail={<BlocksRail />} title={<PathBar crumbs={crumbs} folder={!block} onGo={home} />} actions={block ? undefined : toggleFor(look, setLook)} contentClassName="overflow-y-auto">
+      <BlockShell defaultOpen={false} rail={<BlocksRail />} title={<PathBar crumbs={crumbs} folder={!block} onGo={home} />} actions={block ? undefined : toggleFor(look, setLook)} contentClassName="overflow-y-auto bg-muted dark:bg-background">
         <DemoBillProvider>
           {block ? (
             <div className="flex flex-1 items-start justify-center p-6">

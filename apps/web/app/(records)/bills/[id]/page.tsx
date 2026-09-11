@@ -27,8 +27,9 @@ import { fmtBill } from "@/lib/format"
 import { billCongressKey, congressName } from "@/lib/policy/congress"
 import { getBillLobbying } from "@/lib/policy/lobbying-queries"
 import { getBillRollCalls } from "@/lib/policy/roll-call-queries"
-import { stateName } from "@/lib/filters"
+import { isJurisdiction, stateName } from "@/lib/filters"
 import { BackToTop } from "@/components/back-to-top"
+import { BillsJurisdictionPage, jurisdictionTitle } from "@/components/bills-jurisdiction-page"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -157,8 +158,14 @@ async function loadCongress(billId: number): Promise<{ congress: CongressInitial
   }
 }
 
+// /bills/ny is a jurisdiction's bills page, not a bill (Brendan, 2026-09-11);
+// the segment is a two-letter code there and a number everywhere else.
+const jurisdictionOf = (id: string) => (/^[a-z]{2}$/i.test(id) && isJurisdiction(id) ? id.toUpperCase() : null)
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const code = jurisdictionOf(id)
+  if (code) return { title: `${jurisdictionTitle(code)} Bills`, description: `The bills most recently acted on in ${jurisdictionTitle(code)}, each with its full text.` }
   const bill = await getBill(Number(id))
   if (!bill) return { title: "Bill" }
   return { title: bill.citation ?? fmtBill(bill.bill_number, bill.state), description: bill.description || bill.title }
@@ -166,6 +173,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function BillRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const code = jurisdictionOf(id)
+  if (code) return <BillsJurisdictionPage state={code} />
   const bill = await getBill(Number(id))
   if (!bill) notFound()
   const federal = bill.state === "US"

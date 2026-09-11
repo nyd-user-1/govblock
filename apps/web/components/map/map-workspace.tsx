@@ -12,7 +12,6 @@ import { accessTo } from "@/lib/map/access"
 import { overlayFor, type OverlayId } from "@/lib/map/overlays"
 import { representationAt, type Representation } from "@/lib/map/join"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { useLocal } from "@/lib/policy/use-local"
 import type {
   Acs,
   DistrictProps,
@@ -24,7 +23,7 @@ import { sameDistrict } from "@/components/map/districts-map"
 import { useStateDistricts } from "@/components/map/use-state-districts"
 import { OverlayPicker } from "@/components/map/overlay-picker"
 import { MapPanel } from "@/components/map/map-panel"
-import { PathBar } from "@/components/create/path-bar"
+import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { ChamberSeal, FlagChip } from "@/components/policy/imagery"
 import { BlockShell } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
@@ -87,10 +86,8 @@ function boundsOf(fc: GeoJSON.FeatureCollection): {
 }
 
 export function MapWorkspace() {
-  const [panelOpen, setPanelOpen] = useLocal(
-    "govblock:workspace:map:panel",
-    true
-  )
+  // Closed on every load (Brendan, 2026-09-11); the footer's hamburger, a click on the map or an address search opens it.
+  const [panelOpen, setPanelOpen] = React.useState(false)
   const { signedIn } = useAccount()
   const { state: home } = useJurisdiction()
   const reader = React.useMemo(() => ({ signedIn, home }), [signedIn, home])
@@ -386,7 +383,7 @@ export function MapWorkspace() {
               defaultOpen={false}
               rail={rail}
               title={
-                <PathBar crumbs={[{ label: "Map" }]} folder onGo={() => {}} />
+                <PathBar crumbs={[APP_CRUMB, { label: "Map" }]} folder onGo={() => {}} />
               }
               actions={
                 <OverlayPicker

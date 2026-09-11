@@ -988,6 +988,23 @@ export async function getMemberRail(f: Resolved, peopleId: number, limit = 12) {
   return { sponsored: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })) }
 }
 
+/**
+ * The jurisdiction's most recently introduced bills, for the rail on the bills
+ * pages (Brendan, 2026-09-11: "recent bills" there means recently introduced,
+ * not recently acted on). The Progress table's "Introduced" event carries the
+ * date; newest first.
+ */
+export async function getIntroducedRail(f: Resolved, limit = 12) {
+  const rows = await q<{ bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action: string | null; last_action_date: string | null; introduced: string | null }>(
+    `select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, pg.date::text as introduced
+       from "Progress" pg join "Bills" b using (bill_id)
+      where pg.event = 'Introduced' and b.state = $1 and b.session_id = $2
+      order by pg.date desc nulls last, b.bill_id desc limit $3`,
+    [f.state, f.session, limit]
+  )
+  return { introduced: rows.map((r) => ({ ...r, bill_id: n(r.bill_id) })) }
+}
+
 /* ---- a member's whole voting record, for the PDF --------------------------- */
 
 export type VoteRecordRow = {

@@ -8,14 +8,13 @@ import { readFilters, scopedFilters } from "@/lib/filters"
 import { billSystemPrompt } from "@/lib/policy/bill-html"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import type { Bill } from "@/lib/policy/types"
-import { useLocal } from "@/lib/policy/use-local"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { TypesetCustomizer } from "@/app/(typeset)/components/customizer"
 import { TypesetPreviewOverrideProvider } from "@/app/(typeset)/components/preview-override"
 import { OpenInNewTab, TypesetPages } from "@/app/(typeset)/components/toolbar"
 import { useTypesetSearchParams } from "@/app/(typeset)/lib/search-params"
 import { previewFontVariables } from "@/app/preview/fonts"
-import { PathBar } from "@/components/create/path-bar"
+import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { TypesetEditor } from "@/components/workspace/typeset-editor"
 import { BillCompare, type CompareWidth } from "@/components/bill-compare"
 import type { BillComparison } from "@/lib/policy/bill-compare"
@@ -128,6 +127,7 @@ function useBillSubject() {
       : "Ask about the bills in the rail…",
     title: bill ? bill.bill_number : "Chat",
   })
+  return bill ?? null
 }
 
 /** The Diff page's two settings, remembered in this browser. */
@@ -206,12 +206,12 @@ function DiffPane({ width, locked }: { width: CompareWidth; locked: boolean }) {
 }
 
 export function TypesetWorkspace() {
-  const [panelOpen, setPanelOpen] = useLocal(
-    "govblock:workspace:typeset-2:customizer",
-    false
-  )
-  useBillSubject()
+  // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
+  const [panelOpen, setPanelOpen] = React.useState(false)
+  const bill = useBillSubject()
   const [params] = useTypesetSearchParams()
+  // The path ends on the open file (Brendan, 2026-09-11): the bill, or the page when none is loaded.
+  const file = bill ? bill.bill_number : PAGES.find((p) => p.value === pageOf(params.item))!.label
   const page = pageOf(params.item)
   const diff = useDiffSettings()
 
@@ -254,8 +254,8 @@ export function TypesetWorkspace() {
               rail={<TypesetRail />}
               title={
                 <PathBar
-                  crumbs={[{ label: "Typeset" }]}
-                  folder
+                  crumbs={[APP_CRUMB, { label: "Typeset" }, { label: file }]}
+                  folder={false}
                   onGo={() => {}}
                 />
               }

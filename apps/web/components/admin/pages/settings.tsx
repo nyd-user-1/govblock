@@ -6,7 +6,6 @@ import { CheckIcon, CopyIcon, CreditCardIcon, KeyIcon, PlusIcon, RefreshCwIcon, 
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { Applicant } from "@/components/admin/pages/applicant"
 import { useAdminNav } from "@/components/admin/nav"
-import { ADMIN_USER } from "@/components/admin/rail"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -62,7 +61,53 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+/** The reader's profile, live (2026-09-11): what onboarding captured, editable here. */
+type ProfileRow = { name: string | null; email: string | null; phone: string | null; bio: string | null; home_state: string | null; zip: string | null; role: string | null; organization: string | null; created_at: string | null }
+
+function useProfile() {
+  const [profile, setProfile] = React.useState<ProfileRow | null | undefined>(undefined)
+  React.useEffect(() => {
+    let live = true
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : { profile: null }))
+      .then((d: { profile: ProfileRow | null }) => live && setProfile(d.profile))
+      .catch(() => live && setProfile(null))
+    return () => {
+      live = false
+    }
+  }, [])
+  return [profile, setProfile] as const
+}
+
 function Profile() {
+  const [profile, setProfile] = useProfile()
+  const [form, setForm] = React.useState<ProfileRow | null>(null)
+  const [saving, setSaving] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  React.useEffect(() => {
+    if (profile !== undefined && form === null) setForm(profile ?? { name: "", email: "", phone: "", bio: "", home_state: null, zip: "", role: "", organization: "", created_at: null })
+  }, [profile, form])
+  const set = (key: keyof ProfileRow, value: string) => setForm((f) => (f ? { ...f, [key]: value } : f))
+  const save = async () => {
+    if (!form) return
+    setSaving(true)
+    const r = await fetch("/api/profile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) })
+    setSaving(false)
+    if (r.ok) {
+      const d = (await r.json()) as { profile: ProfileRow }
+      setProfile(d.profile)
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 1500)
+    }
+  }
+  const initials = (form?.name ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("")
+  const signedOut = profile === null && form?.email === ""
+  const joined = form?.created_at ? new Date(form.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—"
   return (
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
@@ -75,32 +120,46 @@ function Profile() {
         <CardContent className="grid gap-4">
           <div className="flex items-center gap-4">
             <Avatar size="lg" className="size-16">
-              <AvatarFallback className="text-lg">JH</AvatarFallback>
+              <AvatarFallback className="text-lg">{initials || "?"}</AvatarFallback>
             </Avatar>
             <div>
               <p className="text-sm font-medium">Profile photo</p>
-              <Button variant="outline" size="sm" className="mt-1 gap-1.5">
+              <Button variant="outline" size="sm" className="mt-1 gap-1.5" disabled>
                 <UploadIcon className="size-3.5" />
                 Upload
               </Button>
             </div>
           </div>
+          {signedOut && <p className="text-sm text-muted-foreground">Sign in to edit your profile.</p>}
           <Field label="Full name">
-            <Input defaultValue={ADMIN_USER.name} />
+            <Input value={form?.name ?? ""} onChange={(e) => set("name", e.target.value)} />
           </Field>
           <Field label="Email address">
-            <Input defaultValue={ADMIN_USER.email} />
+            <Input value={form?.email ?? ""} readOnly className="text-muted-foreground" />
           </Field>
           <Field label="Phone number">
-            <Input defaultValue="+1 (555) 010-4242" />
+            <Input value={form?.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+          </Field>
+          <Field label="Home state">
+            <Input value={form?.home_state ?? ""} onChange={(e) => set("home_state", e.target.value.toUpperCase().slice(0, 2))} placeholder="NY" />
+          </Field>
+          <Field label="ZIP">
+            <Input value={form?.zip ?? ""} onChange={(e) => set("zip", e.target.value)} />
+          </Field>
+          <Field label="Organization">
+            <Input value={form?.organization ?? ""} onChange={(e) => set("organization", e.target.value)} />
           </Field>
           <Field label="Bio">
-            <Textarea defaultValue="Product designer with 8+ years of experience building user-centered digital products." rows={3} />
+            <Textarea value={form?.bio ?? ""} onChange={(e) => set("bio", e.target.value)} rows={3} />
           </Field>
         </CardContent>
         <CardFooter className="gap-2">
-          <Button>Save changes</Button>
-          <Button variant="outline">Cancel</Button>
+          <Button onClick={save} disabled={saving || signedOut || !form}>
+            {saving ? "Saving…" : saved ? "Saved" : "Save changes"}
+          </Button>
+          <Button variant="outline" onClick={() => setForm(profile ?? null)} disabled={!profile}>
+            Cancel
+          </Button>
         </CardFooter>
       </Card>
       <div className="flex flex-col gap-4 sm:gap-5">
@@ -113,12 +172,11 @@ function Profile() {
           </CardHeader>
           <CardContent className="text-sm">
             {[
-              ["Role", "Product Designer"],
-              ["Department", "Design Team"],
-              ["Location", "San Francisco, CA"],
-              ["Timezone", "(GMT-08:00) Pacific Time"],
-              ["Languages", "English, French"],
-              ["Joined", "March 2021"],
+              ["Role", form?.role || "—"],
+              ["Organization", form?.organization || "—"],
+              ["Home state", form?.home_state || "—"],
+              ["ZIP", form?.zip || "—"],
+              ["Joined", joined],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-3 border-b py-2.5 last:border-b-0">
                 <span className="text-muted-foreground">{k}</span>
@@ -126,14 +184,6 @@ function Profile() {
               </div>
             ))}
           </CardContent>
-        </Card>
-        <Card className="bg-muted/40">
-          <CardHeader>
-            <CardAnchor>Update your location</CardAnchor>
-            <CardAction>
-              <CardTools />
-            </CardAction>
-          </CardHeader>
         </Card>
       </div>
     </div>

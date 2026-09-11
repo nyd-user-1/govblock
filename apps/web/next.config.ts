@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 30 * 1000,
     pagesBufferLength: 2,
   },
+  // "View as Markdown": a page's address with .md on the end answers with the
+  // page as markdown (app/api/markdown), for the pages that have one.
+  async rewrites() {
+    return [{ source: "/:path*.md", destination: "/api/markdown/:path*" }]
+  },
   // The record moved out of /docs (Brendan, 2026-09-10): a living page and the
   // documentation for installing it were competing for one name, and the page
   // was winning. Permanent, so the old paths do not linger as two ways to
@@ -61,11 +66,16 @@ const nextConfig: NextConfig = {
         { source: from, destination: to, permanent: true },
         { source: `${from}/:path*`, destination: `${to}/:path*`, permanent: true },
       ]),
-      // Becoming law is a bill's last stage, so the list lives on the bills
-      // page. /docs/laws went to /public-laws for a few hours on 2026-09-10;
-      // both land in the same place.
-      { source: "/docs/laws", destination: "/bills?status=enacted", permanent: true },
-      { source: "/public-laws", destination: "/bills?status=enacted", permanent: true },
+      // The enacted stage came off the bills page on 2026-09-11 (Brendan:
+      // "that tab doesn't belong there at all"); the old addresses land on
+      // Congress's bills. /docs/laws went to /public-laws for a few hours on
+      // 2026-09-10.
+      { source: "/docs/laws", destination: "/bills/us", permanent: true },
+      // /newsroom became /desk on 2026-09-11 (Brendan: "you've said desk so
+      // many times"), a page per jurisdiction in the path.
+      { source: "/newsroom", has: [{ type: "query", key: "state", value: "(?<state>[A-Za-z]{2})" }], destination: "/desk/:state", permanent: true },
+      { source: "/newsroom", destination: "/desk", permanent: true },
+      { source: "/public-laws", destination: "/bills/us", permanent: true },
       // The old combined browser is the Tags page; a term's own page is now
       // filed under the kind it is.
       { source: "/docs/subjects", destination: "/tags", permanent: true },

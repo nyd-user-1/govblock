@@ -21,6 +21,8 @@ import Google from "next-auth/providers/google"
 // releases since 2023-10-24; that is a real risk and the containment is that
 // everything it touches lives under `lib/auth/**`.
 
+import { getProfile } from "@/lib/profile"
+
 import { USER_ID_PATTERN, userIdForSubject } from "./contract"
 
 const clientId = process.env.AUTH_GOOGLE_ID
@@ -94,17 +96,34 @@ const nextAuth = NextAuth({
     // Pinning it ourselves instead of leaning on `token.sub` is deliberate: the
     // contract's stability guarantee is ours to keep, not Auth.js's to change
     // in a beta release.
-    async jwt({ token, account }) {
+    async jwt({ token, account, trigger, session }) {
       if (account?.providerAccountId) {
         const id = userIdForSubject(account.providerAccountId)
         if (id) token.uid = id
         else delete token.uid
+      }
+      // The home state rides the token (Brendan, 2026-09-11): read from the
+      // profile at sign-in and whenever the app updates the session after
+      // onboarding — once, not on every request. A token from before today
+      // has no `home` at all and reads it the first time it is seen.
+      const updated = trigger === "update" && session && typeof (session as { home?: unknown }).home !== "undefined"
+      if (updated) token.home = (session as { home?: string | null }).home ?? null
+      else if (account || typeof token.home === "undefined") {
+        token.home = null
+        if (typeof token.uid === "string") {
+          try {
+            token.home = (await getProfile(token.uid))?.home_state ?? null
+          } catch {
+            token.home = null
+          }
+        }
       }
       return token
     },
     async session({ session, token }) {
       if (typeof token.uid === "string" && USER_ID_PATTERN.test(token.uid))
         session.user.id = token.uid
+      ;(session.user as { home?: string | null }).home = typeof token.home === "string" ? token.home : null
       return session
     },
   },
@@ -121,3 +140,5 @@ export const handlers: NextAuthResult["handlers"] = nextAuth.handlers
 export const signIn: NextAuthResult["signIn"] = nextAuth.signIn
 export const signOut: NextAuthResult["signOut"] = nextAuth.signOut
 export const auth: NextAuthResult["auth"] = nextAuth.auth
+/** Rewrites the session's token from the server — onboarding uses it to set the home state without a fresh sign-in. */
+export const update: NextAuthResult["unstable_update"] = nextAuth.unstable_update

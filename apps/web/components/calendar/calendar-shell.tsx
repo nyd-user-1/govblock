@@ -3,10 +3,10 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 
-import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
+import { BlockShell } from "@/components/policy/block-shell"
 
 import { AppSearch } from "./app-search"
-import { AppSidebar } from "./app-sidebar"
+import { CalendarMenuSheet, CalendarRail } from "./app-sidebar"
 import { CalendarHeader } from "./calendar-header"
 import {
   CalendarProvider,
@@ -15,6 +15,11 @@ import {
 } from "./calendar-provider"
 import { MonthView } from "./month-view"
 import { WeekView } from "./week-view"
+
+// /calendar in the shell every workspace item wears (Brendan, 2026-09-11):
+// the stage in its rounded frame, the block shell's rail and header across
+// it. The rail is the site rail with the month at its top, open on arrival,
+// since the rail is what this page is for.
 
 function CalendarLayout({ children }: { children: React.ReactNode }) {
   const { view, isSearchOpen } = useCalendar()
@@ -30,25 +35,24 @@ function CalendarLayout({ children }: { children: React.ReactNode }) {
   }, [pathname, draft, isSearchOpen])
 
   return (
-    <div className="container-wrapper flex flex-1 flex-col px-2">
-      <SidebarProvider
-        className="min-h-min flex-1 items-start px-0 lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] 3xl:fixed:container 3xl:fixed:px-3"
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar menuOpen={menuOpen} onMenuOpenChange={setMenuOpen} />
-
-        <div className="relative mt-[0.6rem] flex h-[calc(100svh-var(--header-height)-1.2rem)] w-full flex-col overflow-hidden">
-          <CalendarHeader onOpenMenu={() => setMenuOpen(true)} />
-
-          <div className="flex min-h-0 flex-1 flex-col">
-            {view === "month" ? <MonthView /> : <WeekView key={view} />}
+    <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--gap:--spacing(4)] md:[--gap:--spacing(6)]">
+      <div data-slot="designer" className="flex min-h-0 flex-1 flex-col gap-(--gap) p-(--gap) pt-[calc(var(--gap)*0.25)]">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
+          <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
+          <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
+            <BlockShell defaultOpen rail={<CalendarRail />} title="Calendar" contentClassName="overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col">
+                <CalendarHeader onOpenMenu={() => setMenuOpen(true)} />
+                <div className="flex min-h-0 flex-1 flex-col">
+                  {view === "month" ? <MonthView /> : <WeekView key={view} />}
+                </div>
+              </div>
+            </BlockShell>
           </div>
         </div>
-      </SidebarProvider>
+      </div>
+
+      <CalendarMenuSheet open={menuOpen} onOpenChange={setMenuOpen} />
 
       {children}
 

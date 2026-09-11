@@ -22,7 +22,6 @@ export function MiniCalendar() {
     <Calendar
       mode="single"
       weekStartsOn={1}
-      fixedWeeks
       showOutsideDays
       selected={selected}
       month={month}
@@ -32,7 +31,8 @@ export function MiniCalendar() {
       classNames={{
         month_caption:
           "flex h-7 w-full items-center justify-center px-7 text-sm font-medium",
-        weekday: "text-primary text-[0.7rem] font-semibold",
+        // flex-1 with it (Brendan, 2026-09-11): the override replaces the wrapper's class, and without it the seven names ran together at the left.
+        weekday: "flex-1 text-[0.7rem] font-semibold text-muted-foreground",
         outside: "text-muted-foreground/60",
       }}
     />

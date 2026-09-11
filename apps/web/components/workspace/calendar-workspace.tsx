@@ -5,13 +5,13 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { AccountFooter } from "@/components/admin/account-footer"
+import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { CALENDARS, CalendarMonth, CalendarSide, useCalendar, type Calendar } from "@/components/admin/pages/calendar"
 import { LegislativeFields } from "@/components/create/fields"
 import { LocksProvider } from "@/components/create/locks"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { dashboardHref } from "@/lib/workspace/dashboard"
-import { useLocal } from "@/lib/policy/use-local"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { writeUrlParams } from "@/lib/policy/url-state"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
@@ -64,7 +64,8 @@ function CalendarCustomizer({ filters, setFilters }: { filters: ReturnType<typeo
 function CalendarWorkspaceInner() {
   const scope = useScope()
   const cal = useCalendar(CALENDARS)
-  const [panelOpen, setPanelOpen] = useLocal("govblock:workspace:calendar:customizer", false)
+  // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
+  const [panelOpen, setPanelOpen] = React.useState(false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
   return (
     <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]">
@@ -73,9 +74,9 @@ function CalendarWorkspaceInner() {
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
             <ShellFooterProvider footer={<WorkspaceFooter mode="calendar" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>
-              <BlockShell defaultOpen={false} rail={<CalendarRail cal={cal} />} sidebarWidth="250px" separatorClassName="mx-1" title="Calendar">
-                <div className="flex flex-1 flex-col p-4">
-                  <CalendarMonth cal={cal} className="min-h-[70vh]" />
+              <BlockShell defaultOpen={false} rail={<CalendarRail cal={cal} />} sidebarWidth="250px" separatorClassName="mx-1" title={<PathBar crumbs={[APP_CRUMB, { label: "Calendar" }]} folder onGo={() => {}} />}>
+                <div className="flex flex-1 flex-col bg-muted p-4 dark:bg-background">
+                  <CalendarMonth cal={cal} className="min-h-0 flex-1" />
                 </div>
               </BlockShell>
             </ShellFooterProvider>

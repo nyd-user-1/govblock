@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowRightIcon, ArrowUpRightIcon, ChevronDownIcon } from "lucide-react"
+import { ArrowRightIcon, ArrowUpRightIcon } from "lucide-react"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
@@ -17,14 +17,20 @@ import { Calendar } from "@govblock/ui/components/calendar"
 import { CardContent } from "@govblock/ui/components/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govblock/ui/components/item"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@govblock/ui/components/nova/dialog"
+import { ShowMore } from "@govblock/ui/components/interior/show-more"
 
 // Calendar — the month grid, then the hearings from the picked day onward,
 // nearest first. A row names the committee sitting and the topic it sits on
-// (Brendan, 2026-09-07); three fit, and the list scrolls to the rest. Days
-// with a hearing are marked; it opens on the next day that has any. The
-// chevron at the foot throws the whole calendar open over the viewport, the
-// month beside the full list. Given a `committee`, the widget narrows to
-// that committee's hearings.
+// (Brendan, 2026-09-07). Days with a hearing are marked; it opens on the next
+// day that has any. Given a `committee`, the widget narrows to that
+// committee's hearings.
+//
+// Two rules from 2026-09-11 (Brendan). The widget is never wider than about
+// 300px — stretched across a rail it was ridiculous. And the sittings sit
+// behind interior.dev's show-more: one row showing, "More sittings" opens a
+// window about four rows tall that scrolls through the rest, with its own
+// scrollbar. The full-viewport overlay the chevron used to open is kept below
+// for the day it is wanted again; nothing opens it now.
 
 // How many rows the list holds: enough to scroll through a season in the
 // card, a year in the full view, without building thousands of nodes for a
@@ -146,31 +152,6 @@ function HearingRow({ row, compact, state }: { row: Row; compact: boolean; state
   )
 }
 
-/**
- * True while the box has something below the fold, remeasured as it scrolls
- * and as it resizes. The card fades its bottom edge on this and nothing else:
- * a fade over the last row when the last row is the last row would be a
- * promise of more that is not there.
- */
-function useMoreBelow(rows: number) {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const [more, setMore] = React.useState(false)
-  React.useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const measure = () => setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8)
-    measure()
-    el.addEventListener("scroll", measure, { passive: true })
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => {
-      el.removeEventListener("scroll", measure)
-      observer.disconnect()
-    }
-  }, [rows])
-  return [ref, more] as const
-}
-
 /** The rows, in a group that scrolls: the card holds three and the rest is a scroll away. */
 function HearingRows({ rows, compact, state, className, empty }: { rows: Row[]; compact: boolean; state: string; className?: string; empty: React.ReactNode }) {
   return (
@@ -240,7 +221,7 @@ export function CalendarCard({
   const Frame = bare
     ? React.Fragment
     : ({ children }: { children: React.ReactNode }) => (
-        <CardFrame id="hearings" size={compact ? "sm" : "default"}>
+        <CardFrame id="hearings" size={compact ? "sm" : "default"} className="w-full max-w-[300px]">
           {children}
         </CardFrame>
       )
@@ -266,53 +247,32 @@ export function CalendarCard({
     />
   )
   const nothing = <p className="py-3 text-center text-sm text-muted-foreground">Nothing calendared from {date ? fmtDate(from, false) : "today"}.</p>
-  const [scroller, moreBelow] = useMoreBelow(upcoming.length)
   const sittings = `${upcoming.length} ${upcoming.length === 1 ? "sitting" : "sittings"}`
 
   return (
     <Frame>
       <CardContent className={cn("flex flex-col gap-4", bare && "px-0")}>
-        {/* One scroll box, no bar down its side: the month holds the top and
-            the sittings run up behind it (Brendan, 2026-09-07), so the list is
-            as long as it is and the card stays the height it was. The last
-            row fades rather than being cut in half at the edge. */}
-        <div
-          ref={scroller}
-          className={cn(
-            "no-scrollbar overflow-y-auto overscroll-contain",
-            compact ? "max-h-[30rem]" : "max-h-[34rem]",
-            moreBelow && "[mask-image:linear-gradient(to_bottom,#000_calc(100%-1.5rem),transparent)]"
-          )}
-        >
-          <div className={cn("sticky top-0 z-10 pb-4", bare ? "bg-background" : "bg-card")}>
-            {monthGrid(false)}
-            {through && <p className="mt-2 text-xs text-muted-foreground">Most recent sitting · through {fmtDate(through, false)}</p>}
-          </div>
-          <HearingRows rows={upcoming.slice(0, ROWS_IN_CARD)} compact={compact} state={state} empty={nothing} />
+        <div>
+          {monthGrid(false)}
+          {through && <p className="mt-2 text-xs text-muted-foreground">Most recent sitting · through {fmtDate(through, false)}</p>}
         </div>
-        {/* The chevron at the left throws the calendar open over the viewport;
-            the circle arrow at the right goes to the calendar page, as every
-            card's foot has it (Brendan, 2026-09-07). */}
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full"
-            aria-label="Open the calendar over the page"
-            title="Open the calendar over the page"
-            onClick={() => setExpanded(true)}
-          >
-            <ChevronDownIcon />
-          </Button>
-          {!bare && (
+        {/* One row in view; More sittings opens a window about four rows tall that scrolls through the rest. */}
+        <ShowMore lines={4} maxHeight={320} moreLabel="More sittings" lessLabel="Fewer sittings" label="Sittings" className="text-foreground">
+          <HearingRows rows={upcoming.slice(0, ROWS_IN_CARD)} compact={compact} state={state} empty={nothing} />
+        </ShowMore>
+        {/* The circle arrow goes to the calendar page, as every card's foot has it (Brendan, 2026-09-07). */}
+        {!bare && (
+          <div className="flex items-center justify-end gap-2">
             <Button variant="outline" size="icon" aria-label="The calendar" title="The calendar" className="group/foot shrink-0 rounded-full" nativeButton={false} render={<Link href="/calendar" />}>
               <ArrowRightIcon className="transition-transform duration-200 group-hover/foot:-rotate-45" />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
       {/* The whole viewport: the month at its full size, the sittings beside
-          it, both scrolling on their own. */}
+          it, both scrolling on their own. Kept for the day a widget opens into
+          a larger view again (Brendan, 2026-09-11); nothing sets `expanded`
+          now, so it never shows. */}
       <Dialog open={expanded} onOpenChange={setExpanded}>
         <DialogContent className="fixed inset-0 top-0 left-0 flex h-dvh max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-4 rounded-none bg-background p-4 sm:max-w-none md:p-6">
           <DialogHeader className="pr-10 text-left">

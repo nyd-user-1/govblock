@@ -31,13 +31,15 @@ const description =
  * /home"), and this constant is the only thing that had to change.
  */
 const HOME = "/home"
+/** Where sign-in lands: onboarding, which sends a reader with a finished profile on to /home (2026-09-11). */
+const WELCOME = "/welcome"
 
 export const metadata = { title, description }
 export const dynamic = "force-dynamic"
 
 async function signInWithGoogle() {
   "use server"
-  await signIn("google", { redirectTo: HOME })
+  await signIn("google", { redirectTo: WELCOME })
 }
 
 async function signOutEverywhere() {
@@ -55,7 +57,7 @@ async function signInWithEmail(form: FormData) {
   await signIn("dev", {
     email: String(form.get("email") ?? ""),
     password: String(form.get("password") ?? ""),
-    redirectTo: HOME,
+    redirectTo: WELCOME,
   })
 }
 

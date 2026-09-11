@@ -113,25 +113,30 @@ export function BillCompare({
   width = "centered",
   locked = true,
   contained = false,
+  headless = false,
 }: BillComparison & {
   width?: CompareWidth
   locked?: boolean
   /** Scroll inside its own box (Typeset's pane) rather than with the page. */
   contained?: boolean
+  /** No header and no outer padding of its own: the docs page around it carries the title (Brendan, 2026-09-11: the same layout as every other page). */
+  headless?: boolean
 }) {
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
   useChanges(root, { locked, contained })
   return (
-    <div ref={setRoot} className={cn("w-full px-4 pt-8 pb-24 sm:px-8", contained && "h-full overflow-y-auto")}>
-      <header className="mx-auto max-w-3xl">
-        <Link href={href} className="font-mono text-sm text-muted-foreground hover:text-foreground">
-          {number}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">{title}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{printings.join(" → ")}</p>
-      </header>
+    <div ref={setRoot} data-not-typeset="true" className={cn("w-full", !headless && "px-4 pt-8 pb-24 sm:px-8", contained && "h-full overflow-y-auto")}>
+      {!headless && (
+        <header className="mx-auto max-w-3xl">
+          <Link href={href} className="font-mono text-sm text-muted-foreground hover:text-foreground">
+            {number}
+          </Link>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">{title}</h1>
+          <p className="mt-3 text-sm text-muted-foreground">{printings.join(" → ")}</p>
+        </header>
+      )}
       {passes.map((pass, p) => (
-        <section key={`${pass.from}-${pass.to}`} className="mt-12">
+        <section key={`${pass.from}-${pass.to}`} id={`pass-${p}`} className={cn(headless ? "mt-8 scroll-mt-24 first:mt-0" : "mt-12")}>
           <h2 className="mx-auto mb-4 max-w-3xl text-sm font-semibold">
             {pass.from} → {pass.to}
           </h2>
