@@ -50,7 +50,9 @@ export const CREATORS: Creator[] = [
 
 export const creatorOf = (id: string) => CREATORS.find((c) => c.id === id)
 
-const MIXKIT = (id: number) => `https://assets.mixkit.co/videos/${id}/${id}-360.mp4`
+// 720p, not 360 (Brendan, 2026-09-11: "the video quality is just pretty
+// shitty"): five times the bytes, still under 6 MB a clip; 1080 is fifty.
+const MIXKIT = (id: number) => `https://assets.mixkit.co/videos/${id}/${id}-720.mp4`
 const by = (id: string) => {
   const c = creatorOf(id)!
   return { name: c.name, handle: c.handle, image: c.image }
@@ -238,6 +240,84 @@ export const PUBLISHED: Clip[] = [
     visibility: "public",
     views: 156000,
     likes: 947,
+  },
+  {
+    id: "pub-40677",
+    creatorId: "govblock",
+    author: by("govblock"),
+    title: "The grounds before the session",
+    caption: "Quiet for one more week. The calendar for the first day is up, and the bills that carry over are marked on the session page.",
+    src: MIXKIT(40677),
+    duration: 14,
+    createdAt: "2026-09-05T13:15:00Z",
+    visibility: "public",
+    views: 22600,
+    likes: 171,
+  },
+  {
+    id: "pub-11800",
+    creatorId: "govblock",
+    author: by("govblock"),
+    title: "Driving in for the first day",
+    caption: "Up the hill at seven. Forty-one bills prefiled overnight, three of them on the same subject. The desk sorts them by stage.",
+    src: MIXKIT(11800),
+    duration: 28,
+    createdAt: "2026-09-06T11:40:00Z",
+    visibility: "public",
+    views: 48300,
+    likes: 356,
+  },
+  {
+    id: "pub-40701",
+    creatorId: "ny",
+    author: by("ny"),
+    title: "Walking to the Assembly",
+    caption: "State Street to the Capitol steps in ten minutes. Today's order of business: the housing package, second reading.",
+    src: MIXKIT(40701),
+    duration: 10,
+    createdAt: "2026-09-08T12:30:00Z",
+    visibility: "public",
+    views: 8900,
+    likes: 84,
+  },
+  {
+    id: "pub-44694",
+    creatorId: "tx",
+    author: by("tx"),
+    title: "Late session, Austin",
+    caption: "Past ten and the House is still in. The calendar had sixty bills on it this morning and eighteen are left.",
+    src: MIXKIT(44694),
+    duration: 8,
+    createdAt: "2026-09-03T03:20:00Z",
+    visibility: "public",
+    views: 31400,
+    likes: 227,
+  },
+  {
+    id: "pub-49849",
+    creatorId: "ca",
+    author: by("ca"),
+    title: "The 5 at rush hour",
+    caption: "The transportation bill funds this stretch for nine years. What it costs, who voted for it, and the amendment that moved the money.",
+    src: MIXKIT(49849),
+    duration: 17,
+    createdAt: "2026-09-02T00:10:00Z",
+    visibility: "public",
+    views: 19700,
+    likes: 133,
+  },
+  {
+    id: "pub-49858",
+    creatorId: "ny",
+    author: by("ny"),
+    title: "Albany from above",
+    caption: "Two chambers, one budget, and a deadline on the first of the month. The desk has both one-house bills side by side.",
+    src: MIXKIT(49858),
+    duration: 17,
+    createdAt: "2026-08-31T16:00:00Z",
+    visibility: "public",
+    views: 14200,
+    likes: 118,
   },
   {
     id: "pub-40656",

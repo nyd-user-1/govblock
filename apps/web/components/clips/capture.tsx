@@ -148,7 +148,10 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
   const start = () => {
     if (!stream) return
     const mime = pickMime()
-    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+    // 8 Mbit/s: the browser's default is a fraction of that and the take
+    // reads as smeared (Brendan, 2026-09-11: "the video quality is just
+    // pretty shitty"). A sixty-second take is about 60 MB in the store.
+    const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 })
     setHasAudio(stream.getAudioTracks().some((t) => t.enabled && t.readyState === "live"))
     chunksRef.current = []
     rec.ondataavailable = (e) => {
