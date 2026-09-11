@@ -99,7 +99,9 @@ applications:
               echo "source maps left: $(find .next -name '*.map' | wc -l)"
               find .next -name '*.map' -delete
               echo "output size: $(du -sm .next | cut -f1)M .next, $(du -sm public | cut -f1)M public"
-              (cd .next && du -sm * server/* static/* 2>/dev/null | sort -rn | head -30 | sed 's/^/output size: /')
+              (cd .next && du -sm * 2>/dev/null | sort -rn | head -6 | sed 's/^/output size: /')
+              find .next/server -mindepth 1 -maxdepth 2 -type d -exec du -sm {} + | sort -rn | head -12 | sed 's/^/output size: /'
+              find .next/server -type f -size +2M -exec du -sm {} + | sort -rn | head -20 | sed 's/^/output size: /'
             # Amplify packages <appRoot>/node_modules; prove next resolves there.
             - node -e "console.log('next at', require.resolve('next/package.json'))"
       artifacts:

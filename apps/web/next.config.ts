@@ -2,6 +2,12 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@govblock/ui"],
+  // The block docs page reads each block's source at build time, and the
+  // tracer, unable to scope that read, carried the whole project into the
+  // compute bundle on every deploy (Next's own warning; Amplify's 220 MB cap,
+  // jobs 255–257, 2026-09-11). The page is fully static and no other slug
+  // exists, so at runtime it needs nothing traced at all.
+  outputFileTracingExcludes: { "/docs/blocks/[slug]": ["**/*"] },
   experimental: {
     // The /docs pages prerender against the live database. Eight at a time per
     // worker was the default; against a just-resumed Aurora that stampede is
