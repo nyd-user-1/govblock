@@ -107,3 +107,36 @@ export function without(xml, names) {
   }
   return out
 }
+
+/**
+ * The immediate children of a fragment, in document order.
+ *
+ * For a document small enough to hold — one section of a code, not a title of
+ * the United States Code — walking children is easier to read than scanning
+ * for tags and tracking depth by hand.
+ */
+export function children(fragment) {
+  const out = []
+  let at = 0
+  while (at < fragment.length) {
+    const lt = fragment.indexOf("<", at)
+    if (lt < 0) break
+    const m = /^<([A-Za-z][\w:.-]*)/.exec(fragment.slice(lt, lt + 60))
+    if (!m) {
+      at = lt + 1
+      continue
+    }
+    const tag = m[1]
+    const end = endOf(fragment, tag, lt)
+    const openEnd = fragment.indexOf(">", lt)
+    const selfClosing = fragment[openEnd - 1] === "/"
+    const closeAt = selfClosing ? openEnd + 1 : fragment.lastIndexOf(`</${tag}`, end)
+    out.push({
+      tag,
+      head: fragment.slice(lt, openEnd + 1),
+      inner: selfClosing ? "" : fragment.slice(openEnd + 1, closeAt),
+    })
+    at = end
+  }
+  return out
+}

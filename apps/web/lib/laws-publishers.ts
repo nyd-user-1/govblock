@@ -15,13 +15,27 @@ export type Publisher = {
    * it added, and that layer is not taken.
    */
   vendor?: string
+  /**
+   * The date the source itself states its text is current to — a release
+   * point, a file's own date, a "current through" line. Set only where the
+   * source says; a live API with nothing to say falls back to the day its rows
+   * were last read, which the page works out for itself.
+   *
+   * Every loaded jurisdiction prints one of the two at the foot of its page,
+   * because every one of them is a copy taken at a moment and a reader is
+   * entitled to know which moment.
+   */
+  asOf?: string
 }
 
 export const PUBLISHERS: Record<string, Publisher> = {
-  US: { name: "Office of the Law Revision Counsel", url: "https://uscode.house.gov/" },
-  CA: { name: "California Legislative Counsel", url: "https://leginfo.legislature.ca.gov/" },
+  // Release point 119-103: Public Law 119-103, 2 September 2026.
+  US: { name: "Office of the Law Revision Counsel", url: "https://uscode.house.gov/", asOf: "2026-09-02" },
+  // The pubinfo archive's own Last-Modified: 7 September 2026.
+  CA: { name: "California Legislative Counsel", url: "https://leginfo.legislature.ca.gov/", asOf: "2026-09-07" },
   NY: { name: "the New York State Senate", url: "https://legislation.nysenate.gov/" },
-  DC: { name: "the Council of the District of Columbia", url: "https://code.dccouncil.gov/" },
+  // The Council's XML states its own recency: current through 7 October 2021.
+  DC: { name: "the Council of the District of Columbia", url: "https://code.dccouncil.gov/", asOf: "2021-10-07" },
   MA: { name: "the Massachusetts General Court", url: "https://malegislature.gov/Laws/GeneralLaws" },
   TX: { name: "the Texas Legislative Council", url: "https://statutes.capitol.texas.gov/" },
   FL: { name: "the Florida Legislature", url: "https://www.flsenate.gov/Laws/Statutes" },

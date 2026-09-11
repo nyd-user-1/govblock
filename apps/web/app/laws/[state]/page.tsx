@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { STATE_NAMES, stateName } from "@/lib/filters"
+import { fmtDate } from "@/lib/format"
 import { PUBLISHERS } from "@/lib/laws-publishers"
 import { one } from "@/lib/policy/db"
 import { LawsBrowser } from "@/components/laws/laws-browser"
@@ -40,12 +41,20 @@ export default async function LawsStatePage({ params }: Props) {
 
   // Whether this jurisdiction is on file at all. A page that cannot say so
   // draws an empty rail and lets a reader conclude the law does not exist.
-  const held = await one<{ n: number }>(`select count(*)::int n from "Laws" where state = $1`, [code]).catch(() => null)
+  const held = await one<{ n: number; read: string | null }>(
+    `select count(*)::int n, max(fetched_at)::date::text read from "Laws" where state = $1`,
+    [code]
+  ).catch(() => null)
   if (!held || Number(held.n) === 0) return <NotHere code={code} />
+
+  // What the source says its text is current to, or failing that the day the
+  // rows were last read. Every one of these is a copy taken at a moment.
+  const snapshot = PUBLISHERS[code]?.asOf ?? held.read
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height))] min-h-0 flex-col p-4 md:p-6">
       <LawsBrowser state={code} />
+      {snapshot && <p className="shrink-0 pt-2 text-right text-xs text-muted-foreground">Snapshot: {fmtDate(snapshot)}</p>}
     </div>
   )
 }

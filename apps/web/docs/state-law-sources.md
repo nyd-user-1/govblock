@@ -7,6 +7,16 @@ vendor sits between the legislature and the reader.
 It is written as the work goes and is not finished. A row with no adapter is a
 row nobody has built yet, not a jurisdiction whose law cannot be had.
 
+## Every page says what it is current to
+
+Each `/laws/<state>` page prints one small line at its foot: **Snapshot: <date>**.
+It is the date the *source* states its text is current to — the US Code's
+release point, the date on California's archive, the "current through" line in
+the District's own XML — and where a source states nothing, the day its rows
+were last read. Every jurisdiction here is a copy taken at a moment, including
+the ones read from a live API this week, and the line says which moment rather
+than leaving a reader to assume today.
+
 ## What "loaded" means
 
 A jurisdiction is loaded when its rows are in the `Laws` table on Aurora with a
@@ -52,7 +62,7 @@ written) · **open** (not yet looked at).
 | US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 laws, 61,009 sections |
 | CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,427 sections |
 | NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,551 sections |
-| DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, but the codified repository has not been pushed since March 2022 | no | open — needs a live source |
+| DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, one index per title and one file per section | no | **loaded** — 54 titles, 23,492 sections, current through 7 October 2021 |
 | MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **building** — 701 chapters; a full run is hours at one request at a time |
 | TX | Texas | Legislative Council, `statutes.capitol.texas.gov` | **the site is now an Angular app**; the old `/Docs/<code>/htm/` and `Download.aspx` paths all answer with the shell. Its API has to be found. | no | open |
 | FL | Florida | `flsenate.gov/Laws/Statutes` | HTML and XML per title | no | sized |
@@ -119,8 +129,20 @@ old static documents are gone and the data now sits behind an API that has to
 be found before an adapter can be written. Nothing about this makes the
 statutes unavailable; it makes them one discovery away.
 
-**District of Columbia.** The Council publishes the Code as XML on GitHub, but
-`dc-law-xml-codified` was last pushed in March 2022 and `dc-law-html` in August
-2024. Loading a 2022 snapshot would put stale law on the page and say nothing
-about its age, which is worse than not holding it. The current Code is at
-`code.dccouncil.gov`; a live source for it has to be found before DC is loaded.
+**District of Columbia.** The Council publishes the Code as XML at
+`github.com/DCCouncil/dc-law-xml-codified` — one index per title, one file per
+section, `xi:include` between them, and a `<container>` that states its own
+prefix, number and heading, so no level is inferred from heading text. The
+whole repository is read as one archive rather than as 23,275 file requests.
+
+**It is a snapshot.** The repository was published on 14 October 2021 and its
+`index.xml` states the Code is current through 7 October 2021. That date is
+printed at the foot of `/laws/dc`, and the page links `code.dccouncil.gov` for
+a reader who needs today's text. A live source has not been found; when one is,
+the adapter changes and the date moves with it.
+
+Title 99, "Reserved sections", holds the permanent versions of provisions that
+were temporarily amended — the Council's own arrangement, kept as they publish
+it. The `<annotations>` block is the codification's editorial layer and is left
+where it is; the History annotation is taken, on the same terms as California's
+enacting line and the OLRC's source credit.
