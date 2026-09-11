@@ -24,8 +24,9 @@ import { openPrimaries } from "@/lib/consensus/open-primaries"
 // hero and the copy alike where the HTML-in-Canvas API is on, and the page is
 // plain HTML in one scroller where it is not.
 
-// A section with `href` and `still` shows the tool in action: a framed
-// capture of the live page (public/unite/*.jpg, 1280×800 at 1.5×, cropped to
+// A section with `href` and `still` shows the tool in action first (Brendan,
+// 2026-09-11: "put the image first and the header and the description
+// underneath it"): a framed capture of the live page (public/unite/*.jpg, 1280×800 at 1.5×, cropped to
 // 16:9 from the top so the dev toolbar at the foot never shows), and the title
 // is the way into the tool itself. Stills, not embeds, on purpose (Brendan,
 // 2026-09-11): the page is snapshotted into a canvas by the particle scroller,
@@ -45,6 +46,7 @@ function Section({
 }) {
   return (
     <section id={id} className="flex scroll-mt-24 flex-col gap-4">
+      {href && still && <Still href={href} title={title} still={still} />}
       <h2 className="text-2xl font-semibold tracking-tight">
         {href ? (
           <Link href={href} className="underline-offset-4 hover:underline">
@@ -55,7 +57,6 @@ function Section({
         )}
       </h2>
       {children}
-      {href && still && <Still href={href} title={title} still={still} />}
     </section>
   )
 }
@@ -65,7 +66,7 @@ function Still({ href, title, still }: { href: string; title: string; still: str
     <Link
       href={href}
       aria-label={`Open ${title}`}
-      className="mt-2 block overflow-hidden rounded-xl border bg-card transition-colors hover:border-foreground/30"
+      className="mb-2 block overflow-hidden rounded-xl border bg-card transition-colors hover:border-foreground/30"
     >
       <img src={still} alt="" loading="lazy" className="aspect-video w-full object-cover object-top" />
     </Link>
@@ -85,6 +86,7 @@ function Item({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
+      {href && still && <Still href={href} title={title} still={still} />}
       <h3 className="font-medium">
         {href ? (
           <Link href={href} className="underline-offset-4 hover:underline">
@@ -95,7 +97,6 @@ function Item({
         )}
       </h3>
       <p className="text-muted-foreground">{children}</p>
-      {href && still && <Still href={href} title={title} still={still} />}
     </div>
   )
 }
@@ -122,7 +123,7 @@ export function Unite2() {
           {/* Screen two: the conversation. */}
           <section className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-24 text-[1.05rem] leading-7 sm:text-base">
             <div className="flex flex-col gap-5">
-              <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+              <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
                 A conversation between Americans in every congressional
                 district.
               </h1>
@@ -159,11 +160,6 @@ export function Unite2() {
                 more American voices be heard. And ultimately, 94% of
                 participants indicated they felt encouraged by the
                 conversation.
-              </p>
-              <p className="text-muted-foreground">
-                The first conversation is open primaries. The statements are
-                other people&apos;s. Agree, disagree or pass, and the engine
-                chooses what you see next.
               </p>
             </div>
             <Survey conversation={openPrimaries} />
