@@ -2,6 +2,7 @@ import Link from "next/link"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { DocsCopyPage } from "@/components/docs-copy-page"
+import { RailToggle } from "@/components/rail-toggle"
 import { PublicRail } from "@/components/block-card"
 import { Sidebar, SidebarContent } from "@govblock/ui/components/ny4/sidebar"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -13,7 +14,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 
 export type DocsLink = { name: string; url: string }
 
-export function DocsPage({ title, description, slug, previous, next, rail, children }: { title: string; description: string; slug: string; /** Absent on the first page, which has nothing before it. */ previous?: DocsLink; next: DocsLink; rail?: React.ReactNode; children: React.ReactNode }) {
+export function DocsPage({ title, description, lead, slug, previous, next, rail, railFirst, children }: { title: string; description: string; /** Drawn under the title in the description's place — a desk's eyebrow; the description still feeds Copy Page. */ lead?: React.ReactNode; slug: string; /** Absent on the first page, which has nothing before it. */ previous?: DocsLink; next: DocsLink; rail?: React.ReactNode; /** Draw Build with GovBlocks above the page's own rail instead of below it. */ railFirst?: boolean; children: React.ReactNode }) {
   return (
     <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -45,7 +46,7 @@ export function DocsPage({ title, description, slug, previous, next, rail, child
                   </div>
                 </div>
               </div>
-              <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>
+              {lead ?? <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>}
             </div>
           </div>
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">{children}</div>
@@ -73,16 +74,19 @@ export function DocsPage({ title, description, slug, previous, next, rail, child
       <Sidebar
         side="right"
         collapsible="none"
-        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] overflow-hidden overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] xl:flex"
+        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] overflow-visible overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] xl:flex [[data-rail-right=closed]_&]:w-6"
       >
         <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] xl:flex" />
+        <RailToggle side="right" />
         {/* py-1: the scroller clipped the first card's top edge and shadow into a blurred line (Brendan, 2026-09-06). */}
-        {/* mr-8: the left rail sits 32px off the viewport, and this one has a
-            scroll gutter eating the difference, so the margin is stated rather
-            than left to the scrollbar (Brendan, 2026-09-10). */}
-        <SidebarContent className="scrollbar-none mr-8 ml-auto w-(--sidebar-menu-width) scroll-fade gap-6 overflow-x-hidden py-1">
+        {/* The left rail's geometry, mirrored (Brendan, 2026-09-11): its content
+            is pl-2.5 and w-56 with the line 56px past it, so this one starts
+            56px past its line (ml-16 from the rail's edge, the line at left-2)
+            and keeps pl-2.5's 10px on the outside as pr-2.5. */}
+        <SidebarContent className="scrollbar-none ml-16 w-(--sidebar-menu-width) scroll-fade gap-6 overflow-x-hidden py-1 pr-2.5 [[data-rail-right=closed]_&]:hidden">
+          {railFirst && <PublicRail />}
           {rail}
-          <PublicRail />
+          {!railFirst && <PublicRail />}
         </SidebarContent>
       </Sidebar>
     </div>
