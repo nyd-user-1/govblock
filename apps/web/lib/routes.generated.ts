@@ -478,7 +478,7 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
-    "path": "/workspace/[room]",
+    "path": "/workspace/[surface]",
     "kind": "page"
   },
   {
@@ -487,10 +487,6 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/workspace/calendar",
-    "kind": "page"
-  },
-  {
-    "path": "/workspace/calendar-alt",
     "kind": "page"
   },
   {

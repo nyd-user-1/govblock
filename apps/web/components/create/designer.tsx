@@ -25,7 +25,7 @@ import { type Stage } from "@/components/create/stage-switcher"
 import { legislatureName, Tree } from "@/components/create/tree"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { chambersOf } from "@/lib/workspace/datasets"
-import { applyTarget, buildWorkspacePath, roomPath, WORKSPACE_DATA, type Room } from "@/lib/workspace/path"
+import { applyTarget, buildWorkspacePath, surfacePath, WORKSPACE_DATA, type Surface } from "@/lib/workspace/path"
 import { DatasetGrid, DatasetRail } from "@/components/workspace/dataset-grid"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
@@ -61,18 +61,18 @@ const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc",
 // the designer its route; the state, session and chamber in it reach every
 // hook through PathScopeContext, set by the route component.
 export type DesignerRoute =
-  | { datasets: true; room?: undefined }
-  | { datasets?: false; room: Room }
-  | { datasets?: false; room?: undefined; state: string; chamber: string; session: number | null; location: Location; /** A bill number or committee slug still resolving. */ pending?: boolean }
+  | { datasets: true; surface?: undefined }
+  | { datasets?: false; surface: Surface }
+  | { datasets?: false; surface?: undefined; state: string; chamber: string; session: number | null; location: Location; /** A bill number or committee slug still resolving. */ pending?: boolean }
 
 function DesignerInner({ route }: { route?: DesignerRoute }) {
   const router = useRouter()
   const params = useUrlParams(URL_KEYS)
   const workspace = !!route
-  const routeNode = route && !route.datasets && !route.room ? route : null
-  const room = route?.room ?? null
-  // Documents is Forms with `all`; the room says so where the query used to.
-  const all = room === "documents" ? "1" : params.all
+  const routeNode = route && !route.datasets && !route.surface ? route : null
+  const surface = route?.surface ?? null
+  // Documents is Forms with `all`; the surface says so where the query used to.
+  const all = surface === "documents" ? "1" : params.all
   const scope = useScope()
   const { locks } = useLocks()
   const sessionTitle = useSessionTitle(scope.state, scope.session)
@@ -90,7 +90,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   const setLook = React.useCallback((next: Look) => writeUrlParams({ look: next === "table" ? "table" : null }, { history: "replace" }), [])
 
   const design = React.useMemo(() => readDesign(params), [params])
-  const location = React.useMemo<Location>(() => (routeNode ? routeNode.location : room ? { at: room === "documents" ? "forms" : room, committee: "", member: "", bill: "", rollcall: "" } : { at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [routeNode, room, params.at, params.committee, params.member, params.bill, params.rollcall])
+  const location = React.useMemo<Location>(() => (routeNode ? routeNode.location : surface ? { at: surface === "documents" ? "forms" : surface, committee: "", member: "", bill: "", rollcall: "" } : { at: params.at, committee: params.committee, member: params.member, bill: params.bill, rollcall: params.rollcall }), [routeNode, surface, params.at, params.committee, params.member, params.bill, params.rollcall])
   const node = React.useMemo(() => locate(location), [location])
 
   // Congress, current session, every time: a bare /create writes the state
@@ -122,8 +122,8 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   const goPath = React.useCallback(
     (target: Target) => {
       if (target.at === "datasets") return router.push(WORKSPACE_DATA)
-      const toRoom = target.at ? roomPath(target.at, target.at === "forms" ? (all === "1" ? "1" : null) : null) : null
-      if (toRoom) return router.push(toRoom)
+      const toSurface = target.at ? surfacePath(target.at, target.at === "forms" ? (all === "1" ? "1" : null) : null) : null
+      if (toSurface) return router.push(toSurface)
       const state = target.state ?? routeNode?.state ?? scope.state
       const changedState = !!target.state && target.state !== (routeNode?.state ?? scope.state)
       const chamber = target.chamber ?? (changedState ? chambersOf(state)[0] : (routeNode?.chamber ?? scope.filters.chamber ?? chambersOf(state)[0]))
@@ -328,7 +328,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
         router.push(next === "documents" ? "/workspace/documents" : next === "admin" ? "/workspace/dashboard" : `/workspace/${next}`)
         return
       }
-      if (workspace && room && next === "canvas") {
+      if (workspace && surface && next === "canvas") {
         router.push(buildWorkspacePath({ state: scope.state, chamber: scope.filters.chamber ?? null, session: scope.session, location: { at: "bills", committee: "", member: "", bill: "", rollcall: "" } }))
         return
       }
@@ -347,7 +347,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
         writeUrlParams({ ...listing("forms"), all: null }, { history: "push" })
       } else go(listing(next))
     },
-    [node, setMode, setLook, go, workspace, router, scope.state, scope.session, scope.filters.chamber, room]
+    [node, setMode, setLook, go, workspace, router, scope.state, scope.session, scope.filters.chamber, surface]
   )
 
   const stage = route?.datasets ? (
@@ -406,7 +406,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
             <RevealFx key={stageKey} translateY={8} className="flex h-full min-h-0 flex-1 flex-col bg-background">
               {/* The FAB is gone (Brendan, 2026-09-07): every stage's shell
                   wears the footer, which summons the customizer and picks the mode. */}
-              <ShellFooterProvider footer={<WorkspaceFooter mode={room ?? "data"} panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>{stage}</ShellFooterProvider>
+              <ShellFooterProvider footer={<WorkspaceFooter mode={surface ?? "data"} panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>{stage}</ShellFooterProvider>
             </RevealFx>
           </div>
         </div>

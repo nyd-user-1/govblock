@@ -7,13 +7,14 @@ import { useRouter } from "next/navigation"
 import { AccountFooter } from "@/components/admin/account-footer"
 import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { CALENDARS, CalendarMonth, CalendarSide, useCalendar, type Calendar } from "@/components/admin/pages/calendar"
+import { CalendarBoard } from "@/components/policy/calendar-board"
 import { LegislativeFields } from "@/components/create/fields"
 import { LocksProvider } from "@/components/create/locks"
 import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { dashboardHref } from "@/lib/workspace/dashboard"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
-import { writeUrlParams } from "@/lib/policy/url-state"
+import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Card, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/nova/card"
 import { FieldGroup } from "@govblock/ui/components/nova/field"
 import { SidebarContent, SidebarHeader } from "@govblock/ui/components/ny4/sidebar"
@@ -61,9 +62,28 @@ function CalendarCustomizer({ filters, setFilters }: { filters: ReturnType<typeo
   )
 }
 
+// The surface's looks (Brendan, 2026-09-11): the month, or what the committees
+// have calendared as cards or a table — the listing that was /workspace/calendar-alt.
+type CalendarLook = "month" | "cards" | "table"
+
+function LookToggle({ current, set }: { current: CalendarLook; set: (next: CalendarLook) => void }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+      {(["month", "cards", "table"] as CalendarLook[]).map((value) => (
+        <button key={value} type="button" data-active={current === value} aria-pressed={current === value} onClick={() => set(value)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-xs">
+          {value === "month" ? "Month" : value === "table" ? "Table" : "Card"}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function CalendarWorkspaceInner() {
   const scope = useScope()
   const cal = useCalendar(CALENDARS)
+  const { look: lookParam } = useUrlParams(["look"] as const)
+  const look: CalendarLook = lookParam === "table" ? "table" : lookParam === "cards" ? "cards" : "month"
+  const setLook = (next: CalendarLook) => writeUrlParams({ look: next === "month" ? null : next }, { history: "push" })
   // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
   const [panelOpen, setPanelOpen] = React.useState(false)
   const setFilters = React.useCallback((patch: Partial<Record<ScopeKey, string>>) => writeUrlParams(patch, { history: "push" }), [])
@@ -74,10 +94,14 @@ function CalendarWorkspaceInner() {
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
             <ShellFooterProvider footer={<WorkspaceFooter mode="calendar" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)} />}>
-              <BlockShell defaultOpen={false} rail={<CalendarRail cal={cal} />} sidebarWidth="250px" separatorClassName="mx-1" title={<PathBar crumbs={[APP_CRUMB, { label: "Calendar" }]} folder onGo={() => {}} />}>
-                <div className="flex flex-1 flex-col bg-muted p-4 dark:bg-background">
-                  <CalendarMonth cal={cal} className="min-h-0 flex-1" />
-                </div>
+              <BlockShell defaultOpen={false} rail={<CalendarRail cal={cal} />} sidebarWidth="250px" separatorClassName="mx-1" title={<PathBar crumbs={[APP_CRUMB, { label: "Calendar" }]} folder onGo={() => {}} />} actions={<LookToggle current={look} set={setLook} />} contentClassName="overflow-y-auto bg-muted dark:bg-background">
+                {look === "month" ? (
+                  <div className="flex flex-1 flex-col p-4">
+                    <CalendarMonth cal={cal} className="min-h-0 flex-1" />
+                  </div>
+                ) : (
+                  <CalendarBoard look={look} />
+                )}
               </BlockShell>
             </ShellFooterProvider>
           </div>

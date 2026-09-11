@@ -1,27 +1,28 @@
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
-import { ROOMS, type Room } from "@/lib/workspace/path"
+import { SURFACES, type Surface } from "@/lib/workspace/path"
 import { Designer } from "@/components/create/designer"
 
-// The rooms beside the legislature (Brendan, 2026-09-07): the Agentic Inbox,
+// The workspace's surfaces beside the data (Brendan, 2026-09-07; named
+// surfaces, not rooms, 2026-09-11): the Agentic Inbox,
 // the finance explorer, the forms and the documents, each at its own path
 // now that /create is retired.
-const TITLES: Record<Room, string> = { inbox: "Agentic Inbox", finance: "Finance", forms: "Forms", documents: "Documents" }
+const TITLES: Record<Surface, string> = { inbox: "Agentic Inbox", finance: "Finance", forms: "Forms", documents: "Documents" }
 
 export function generateStaticParams() {
-  return ROOMS.map((room) => ({ room }))
+  return SURFACES.map((surface) => ({ surface }))
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ room: string }> }): Promise<Metadata> {
-  const { room } = await params
-  return { title: TITLES[room as Room] ?? "Workspace" }
+export async function generateMetadata({ params }: { params: Promise<{ surface: string }> }): Promise<Metadata> {
+  const { surface } = await params
+  return { title: TITLES[surface as Surface] ?? "Workspace" }
 }
 
-export default async function RoomPage({ params }: { params: Promise<{ room: string }> }) {
-  const { room } = await params
-  if (!(ROOMS as readonly string[]).includes(room)) notFound()
+export default async function SurfacePage({ params }: { params: Promise<{ surface: string }> }) {
+  const { surface } = await params
+  if (!(SURFACES as readonly string[]).includes(surface)) notFound()
   // Finance moved under the dashboards (Brendan, 2026-09-07).
-  if (room === "finance") redirect("/workspace/dashboard/finance")
-  return <Designer route={{ room: room as Room }} />
+  if (surface === "finance") redirect("/workspace/dashboard/finance")
+  return <Designer route={{ surface: surface as Surface }} />
 }

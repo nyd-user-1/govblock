@@ -121,12 +121,12 @@ export function applyTarget(current: Location, target: Target): Location {
 
 // ---------------------------------------------------------------------------
 // /create retired (Brendan, 2026-09-07): its query keys, translated to the
-// workspace. The four rooms beside the legislature have paths of their own.
+// workspace. The four surfaces beside the data have paths of their own.
 
-export const ROOMS = ["inbox", "finance", "forms", "documents"] as const
-export type Room = (typeof ROOMS)[number]
+export const SURFACES = ["inbox", "finance", "forms", "documents"] as const
+export type Surface = (typeof SURFACES)[number]
 
-export function roomPath(at: string, all?: string | null): string | null {
+export function surfacePath(at: string, all?: string | null): string | null {
   if (at === "admin" || at.startsWith("admin/")) return `/workspace/dashboard${at.slice(5) ? `/${at.slice(6)}` : ""}`
   if (at === "forms") return all === "1" ? "/workspace/documents" : "/workspace/forms"
   if (at === "inbox" || at === "finance") return `/workspace/${at}`
@@ -137,8 +137,8 @@ export function roomPath(at: string, all?: string | null): string | null {
 export function fromCreateQuery(search: string): string {
   const q = new URLSearchParams(search)
   const at = q.get("at") ?? ""
-  const room = roomPath(at, q.get("all"))
-  if (room) return room
+  const surface = surfacePath(at, q.get("all"))
+  if (surface) return surface
   const state = (q.get("state") ?? "").toUpperCase()
   if (!isJurisdiction(state)) return WORKSPACE_DATA
   const sessionRaw = q.get("session")

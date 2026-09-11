@@ -17,7 +17,7 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, Side
 // each folding open to its sub-sections and each sub-section to its items:
 // Agents (the index and each agent), ArXiv (the record's pages), News (the
 // desks and everything the News menu holds), Workspace (the workspace's
-// rooms, with Consensus and Data as nodes of their own). Scope is what the
+// surfaces, with Consensus and Data as nodes of their own). Scope is what the
 // reader is entitled to: Congress, and their home state — shown either way,
 // muted until they sign in. The record's own groups follow, then Manage
 // account at the foot.

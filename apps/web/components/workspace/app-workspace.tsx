@@ -23,8 +23,8 @@ import { cn } from "@govblock/ui/lib/utils"
 
 const LAYOUT_KEY = "govblock:workspace:app:layout"
 
-/** The workspaces themselves; the root is where we are. */
-const ROOMS = WORKSPACES.filter((w) => w.key !== "app")
+/** The surfaces themselves; the root is where we are. */
+const SURFACES = WORKSPACES.filter((w) => w.key !== "app")
 
 function AppRail({ search }: { search: string }) {
   const router = useRouter()
@@ -34,7 +34,7 @@ function AppRail({ search }: { search: string }) {
         <SidebarGroupLabel>Workspace</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {ROOMS.map((w) => (
+            {SURFACES.map((w) => (
               <SidebarMenuItem key={w.key}>
                 <SidebarMenuButton onClick={() => router.push(`${w.href}${search}`)}>
                   <w.icon />
@@ -53,7 +53,7 @@ function AppCards({ search }: { search: string }) {
   const router = useRouter()
   const items = React.useMemo<GridItem[]>(
     () =>
-      ROOMS.map((w) => {
+      SURFACES.map((w) => {
         const href = `${w.href}${search}`
         const open = () => router.push(href)
         const share = () => navigator.clipboard?.writeText(`${window.location.origin}${href}`).catch(() => {})

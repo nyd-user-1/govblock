@@ -39,7 +39,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // The footer every shell wears (Brendan, 2026-09-07): the two things the
 // floating pill used to hold, fixed to the bottom of the pane instead — the
 // customizer's hamburger, then the mode you are in, with the chevrons the
-// inbox's rail footer wears. The modes are the workspace's rooms: Data,
+// inbox's rail footer wears. The modes are the workspace's surfaces: Data,
 // Create, Typeset, Charts, Dashboards. Only Data has moved under /workspace so
 // far; the rest go where they live today.
 

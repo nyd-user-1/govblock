@@ -12,18 +12,18 @@ import { AddToCalendar } from "@/components/connectors/add-to-calendar"
 import { ExportToSheet } from "@/components/connectors/export-to-sheet"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { readSort, sortRows } from "@/lib/workspace/sort"
-import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
+import { useUrlParams } from "@/lib/policy/url-state"
 import type { Look } from "@/components/create/folder-view"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
 import { DropdownMenuItem } from "@govblock/ui/components/dropdown-menu"
 import { ChamberSeal } from "@/components/policy/imagery"
-import { RailAndCards, type RailGroup } from "@/components/policy/rail-and-cards"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 
-// Calendar — the fourth instance of the rail-and-cards shell. Rail = the
-// committees that have calendared something; cards = what they calendared,
-// on the standard workspace grid, or the standard table (Brendan, 2026-09-07).
+// Calendar — what the committees have calendared, on the standard workspace
+// grid or the standard table (Brendan, 2026-09-07). Since 2026-09-11 it is a
+// look of /workspace/calendar rather than a page of its own: the shell, the
+// look toggle and the rail are the surface's, and this is the listing alone.
 
 const ALL = "__all__"
 const iso = (offsetDays: number) => new Date(Date.now() + offsetDays * 864e5).toISOString().slice(0, 10)
@@ -41,18 +41,15 @@ export function hearingDescription(hearing: Hearing) {
   return [hearing.title || null, hearing.location ? `Location: ${hearing.location}` : null, hearing.committee ? `Committee: ${hearing.committee}` : null].filter(Boolean).join("\n\n")
 }
 
-export function CalendarBoard() {
+export function CalendarBoard({ look }: { look: Look }) {
   // The rail's scope: the jurisdiction, the session, and the committee if one
   // was chosen — the calendar is a committee's before it is anything else.
   const { state, session, filters } = useScope()
   const router = useRouter()
-  const [selected, setSelected] = React.useState(ALL)
-  const [search, setSearch] = React.useState("")
-  // Card or table, as /workspace/data reads it: `look=table` on the URL, cards
-  // otherwise (Brendan, 2026-09-07: the adopted card and table, not our own).
+  const [selected] = React.useState(ALL)
+  const [search] = React.useState("")
   // The footer's Filter chip orders the rows through `sort`.
-  const { look: lookParam, sort: sortParam } = useUrlParams(["look", "sort"] as const)
-  const look: Look = lookParam === "table" ? "table" : "cards"
+  const { sort: sortParam } = useUrlParams(["sort"] as const)
   const sort = readSort(sortParam)
 
   // hearings-recent falls back to the 60 days before the jurisdiction's last
@@ -73,21 +70,6 @@ export function CalendarBoard() {
       .slice(0, 60)
     return sortRows(shown, sort, { name: (h) => h.bill_number || h.title || "", kind: (h) => h.committee ?? "", time: (h) => `${h.date} ${h.time ?? ""}` })
   }, [data, search, selected, sort])
-
-  const groups = React.useMemo<RailGroup[]>(() => {
-    const all = data?.rows ?? []
-    const byCommittee = new Map<string, number>()
-    for (const hearing of all) {
-      const key = hearing.committee ?? ""
-      if (key) byCommittee.set(key, (byCommittee.get(key) ?? 0) + 1)
-    }
-    return [
-      {
-        label: "Committees",
-        items: [{ value: ALL, label: "Everything calendared", hint: String(all.length) }, ...[...byCommittee.entries()].sort((a, b) => b[1] - a[1]).map(([committee, count]) => ({ value: committee, label: committee, hint: String(count) }))],
-      },
-    ]
-  }, [data])
 
   const whenOf = (hearing: Hearing) => `${fmtDate(hearing.date, false)}${hearing.time ? ` · ${fmtTime(hearing.time)}` : ""}`
   const href = (hearing: Hearing) => `/bills/${hearing.bill_id}`
@@ -117,34 +99,8 @@ export function CalendarBoard() {
   const empty = !rows.length && <p className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading…" : `Nothing calendared for ${stateName(state)}${search ? ` matching “${search}”` : ""}.`}</p>
 
   return (
-    <RailAndCards
-      defaultOpen={false}
-      groups={groups}
-      selected={selected}
-      onSelect={(value) => setSelected((current) => (current === value ? ALL : value))}
-      search={search}
-      onSearch={setSearch}
-      searchPlaceholder="Search the calendar…"
-      className="block p-0"
-      actions={
-        // Card | Table, as every workspace listing reads it.
-        <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-          {(["cards", "table"] as Look[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              data-active={look === value}
-              aria-pressed={look === value}
-              onClick={() => writeUrlParams({ look: value === "table" ? "table" : null }, { history: "push" })}
-              className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm"
-            >
-              {value === "table" ? "Table" : "Card"}
-            </button>
-          ))}
-        </div>
-      }
-      header={
-        <>
+    <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{stateName(state)} calendar</span>
           <Badge variant="outline" className="font-normal">
             {fmtNumber(rows.length)} · {session} session
@@ -168,9 +124,7 @@ export function CalendarBoard() {
               ]}
             />
           )}
-        </>
-      }
-    >
+      </div>
       {look === "table" ? (
         // The standard table, as /workspace/data?look=table draws it.
         <div className="m-4 overflow-hidden rounded-lg border">
@@ -222,6 +176,6 @@ export function CalendarBoard() {
           {empty}
         </>
       )}
-    </RailAndCards>
+    </div>
   )
 }
