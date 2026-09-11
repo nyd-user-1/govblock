@@ -22,6 +22,12 @@ export function generateStaticParams() {
   return BLOCK_DOCS.map((d) => ({ slug: d.slug }))
 }
 
+// Every block's page is built here, from its source on disk, and no other
+// slug exists: so the route never reads a file at runtime, and the tracer
+// need not carry the sources — or, as it did until 2026-09-11, the whole
+// project — into the deploy (job 255 failed Amplify's size cap by 3 MB).
+export const dynamicParams = false
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const doc = findBlockDoc(slug)
@@ -39,7 +45,7 @@ export default async function BlockDocPage({ params }: { params: Promise<{ slug:
   const { slug } = await params
   const doc = findBlockDoc(slug)
   if (!doc) notFound()
-  const source = await fs.readFile(path.join(process.cwd(), doc.file), "utf8").catch(() => "")
+  const source = await fs.readFile(path.join(/* turbopackIgnore: true */ process.cwd(), doc.file), "utf8").catch(() => "")
   const resources = resourcesIn(source)
   const composition = compositionIn(source, doc.component)
   const at = BLOCK_DOCS.findIndex((d) => d.slug === slug)
