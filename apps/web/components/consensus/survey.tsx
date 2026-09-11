@@ -2,11 +2,11 @@
 
 import * as React from "react"
 
-import { share, type Conversation, type Statement } from "@/lib/consensus/data"
-import { SplitBar } from "@/components/consensus/split-bar"
+import type { Conversation, Statement } from "@/lib/consensus/data"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Textarea } from "@govblock/ui/components/nova/textarea"
-import { Check, Flag, Minus, X } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
+import { ArrowLeft, Check, Flag, Info, Minus, X } from "lucide-react"
 
 // The vote card, and a catalogue of what Polis's own gets wrong.
 //
@@ -38,28 +38,35 @@ const CHOICES: { value: Answer; label: string; icon: React.ReactNode }[] = [
   { value: "pass", label: "Pass", icon: <Minus className="size-4" /> },
 ]
 
-export function Survey({ conversation }: { conversation: Conversation }) {
+export function Survey({
+  conversation,
+  startAt,
+}: {
+  conversation: Conversation
+  /** Open straight onto this statement, past the framing. */
+  startAt?: number
+}) {
   const queue = React.useMemo(
     () =>
       // 1 accepted, 0 unreviewed, -1 pulled.
       conversation.statements.filter((s) => s.moderated >= 0).slice(0, 25),
     [conversation]
   )
-  const [entered, setEntered] = React.useState(false)
-  const [at, setAt] = React.useState(0)
+  const start = Math.max(0, queue.findIndex((s) => s.tid === startAt))
+  const [entered, setEntered] = React.useState(startAt !== undefined)
+  const [at, setAt] = React.useState(start)
   const [answers, setAnswers] = React.useState<Record<number, Answer>>({})
   const [salient, setSalient] = React.useState<Set<number>>(new Set())
   const [written, setWritten] = React.useState("")
   const [submitted, setSubmitted] = React.useState<string[]>([])
 
   const statement: Statement | undefined = queue[at]
-  const done = at >= queue.length
 
   // The framing is read once, on the way in — not over every statement, where
   // it would lean on the answer.
   if (!entered) {
     return (
-      <div className="mx-auto flex max-w-xl flex-col gap-5 rounded-xl border bg-card p-8">
+      <div className="flex flex-col gap-5 rounded-xl border bg-card p-8">
         <h2 className="text-xl font-semibold tracking-tight text-balance">
           {conversation.topic}
         </h2>
@@ -85,10 +92,20 @@ export function Survey({ conversation }: { conversation: Conversation }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{conversation.topic}</span>
-        <span className="tabular-nums">
+        {/* Back, never forward: a vote can be revisited, not skipped ahead of. */}
+        <span className="flex items-center gap-2 tabular-nums">
+          <button
+            type="button"
+            onClick={() => setAt((n) => Math.max(0, n - 1))}
+            disabled={at === 0}
+            aria-label="Back one statement"
+            className="inline-flex size-6 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <ArrowLeft className="size-3.5" />
+          </button>
           {Math.min(at + 1, queue.length)} of {queue.length}
         </span>
       </div>
@@ -151,6 +168,26 @@ export function Survey({ conversation }: { conversation: Conversation }) {
               ? "Marked as one that matters"
               : "This one matters more than most"}
           </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label="What marking a statement does"
+                  className="-mt-4 inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+                />
+              }
+            >
+              <Info className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8} className="max-w-xs text-xs leading-5">
+              Check this box if you believe this statement is especially
+              important to you or is highly relevant to the conversation,
+              irrespective of your vote. It will give this statement higher
+              priority compared to your other votes in the conversation
+              analysis.
+            </TooltipContent>
+          </Tooltip>
         </section>
       ) : (
         <section className="flex flex-col gap-4 rounded-xl border bg-card p-6">
@@ -201,22 +238,6 @@ export function Survey({ conversation }: { conversation: Conversation }) {
         )}
       </section>
 
-      {done && (
-        <section className="flex flex-col gap-3 border-t pt-6">
-          <h3 className="text-sm font-medium">How the room answered</h3>
-          {queue.slice(0, 6).map((s) => (
-            <div key={s.tid} className="flex flex-col gap-1.5">
-              <p className="text-xs text-muted-foreground">{s.text}</p>
-              <SplitBar votes={s.votes} compact />
-            </div>
-          ))}
-          <p className="text-xs text-muted-foreground">
-            Shown after voting, never before — seeing the tally first changes
-            the answer. {Math.round(share(queue[0]!.votes).agree)}% agreed with
-            the first one.
-          </p>
-        </section>
-      )}
     </div>
   )
 }

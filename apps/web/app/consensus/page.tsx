@@ -4,6 +4,7 @@ import { DocsPage } from "@/components/docs-page"
 import { conversations } from "@/lib/consensus/data"
 import { fmtNumber } from "@/lib/format"
 import { ProjectCard, ProjectGrid } from "@/components/project-card"
+import { ConversationsRail } from "@/components/consensus/rail"
 import { MessagesSquare } from "lucide-react"
 
 // /consensus — the conversations, as a directory.
@@ -14,7 +15,7 @@ import { MessagesSquare } from "lucide-react"
 // with that shape on it, the way committees and bills do here.
 const title = "Consensus"
 const description =
-  "Opinion gathered at scale: people vote on each other's statements, and the groups in the room emerge from the votes rather than from who spoke loudest."
+  "Opinion gathered at scale: people vote on each other's statements, and the groups emerge from the votes rather than from who spoke loudest."
 
 export const metadata = { title, description }
 
@@ -27,6 +28,8 @@ export default function ConsensusPage() {
       slug="/consensus"
       previous={{ name: "Briefing", url: "/briefing" }}
       next={{ name: "Report", url: "/consensus/report" }}
+      rail={<ConversationsRail />}
+      railFirst
     >
       <div data-not-typeset="true" className="my-8 flex flex-col gap-8">
         <ProjectGrid>
@@ -34,21 +37,21 @@ export default function ConsensusPage() {
             <ProjectCard
               key={c.slug}
               href={`/consensus/report?c=${c.slug}`}
-              title={c.topic}
+              title={c.title}
               media={
                 <MessagesSquare
                   className="size-7 text-muted-foreground"
                   aria-hidden
                 />
               }
-              meta={`${fmtNumber(c.stats.voters)} voters · ${fmtNumber(c.stats.statements)} statements · ${c.stats.groups} groups`}
+              meta={`${fmtNumber(c.stats.voters)} participants · ${fmtNumber(c.stats.statements)} statements · ${c.stats.groups} groups`}
             />
           ))}
         </ProjectGrid>
 
         <p className="text-sm text-muted-foreground">
-          Both conversations are the Computational Democracy Project&apos;s own
-          published data, so these pages read a room that actually clustered.
+          The conversations are the Computational Democracy Project&apos;s own
+          published data, so every one of them has already clustered.
           The <Link href="/consensus/survey">survey</Link> is where a
           conversation is voted on and the{" "}
           <Link href="/consensus/admin">admin</Link> is where one is built.

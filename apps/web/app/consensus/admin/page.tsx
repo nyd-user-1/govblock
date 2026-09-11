@@ -54,7 +54,7 @@ export default async function ConsensusAdminPage({
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold tracking-tight">{c.topic}</h2>
           <div className="grid grid-cols-2 gap-6 rounded-xl border bg-card p-5 sm:grid-cols-4">
-            <Stat value={fmtNumber(c.stats.voters)} label="voters" />
+            <Stat value={fmtNumber(c.stats.voters)} label="participants" />
             <Stat value={fmtNumber(c.stats.votes)} label="votes cast" />
             <Stat value={fmtNumber(c.stats.commenters)} label="wrote a statement" />
             <Stat

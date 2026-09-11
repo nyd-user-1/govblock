@@ -117,7 +117,7 @@ export function agreement(s: Statement) {
  * opposite of how it reads, and treating it as "hidden" silently drops every
  * approved statement in the conversation (caught 2026-09-10, before shipping).
  */
-const standing = (s: Statement) => s.moderated >= 0 && s.votes.seen >= 10
+export const standing = (s: Statement) => s.moderated >= 0 && s.votes.seen >= 10
 
 /** Statements everyone agrees on, strongest first. */
 export function consensusStatements(c: Conversation, limit = 6) {
