@@ -4,7 +4,12 @@ import * as React from "react"
 import { CalendarIcon, FilterIcon, MicIcon, PlusIcon, Share2Icon, TagIcon, UserIcon } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
-import { useCommittee, useCommittees } from "@/components/admin/data"
+import { useRouter } from "next/navigation"
+
+import { useCommittee, useCommittees, type Sponsor } from "@/components/admin/data"
+import { usePolicy } from "@/lib/policy/use-policy"
+import { portraitFor } from "@/lib/imagery"
+import { CitationList } from "@govblock/ui/components/tool-ui/citation"
 import { fmtBill, fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { useUrlParams } from "@/lib/policy/url-state"
 import { useScope } from "@/lib/policy/scope"
@@ -73,8 +78,9 @@ function AttendanceCard({ title, series, config }: { title: string; series: ("ma
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
             <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-            {series.map((s, i) => (
-              <Bar key={s} dataKey={s} stackId="a" fill={`var(--color-${s})`} radius={series.length === 1 ? 6 : i === 0 ? [0, 0, 6, 6] : [6, 6, 0, 0]} />
+            {/* Side by side, not stacked (Brendan, 2026-09-11): each party's day stands on the axis. */}
+            {series.map((s) => (
+              <Bar key={s} dataKey={s} fill={`var(--color-${s})`} radius={6} />
             ))}
           </BarChart>
         </ChartContainer>
@@ -83,22 +89,59 @@ function AttendanceCard({ title, series, config }: { title: string; series: ("ma
   )
 }
 
-function BillCard() {
+type HeldBill = NonNullable<ReturnType<typeof useCommittee>["data"]>["bills"][number]
+
+// A bill before the committee (Brendan, 2026-09-11): its number, its title
+// clamped to two lines, its sponsors as tool-ui's stacked citations in the
+// bottom-left corner, and the two buttons. The card fills its row so the
+// bottoms line up with the Active Bills list beside it.
+function BillCard({ bill, state }: { bill: HeldBill | null; state: string }) {
+  const router = useRouter()
+  const { session } = useScope()
+  const { data: sponsors } = usePolicy<Sponsor[]>(bill ? "bill-sponsors" : null, { state, session: session ? String(session) : undefined }, { bill: bill?.bill_id })
+  const citations = React.useMemo(
+    () =>
+      (sponsors ?? [])
+        .slice()
+        .sort((a, b) => b.prime - a.prime)
+        .map((m) => ({
+          id: String(m.people_id),
+          href: `https://gov.nysgpt.com/members/${m.people_id}`,
+          title: m.name,
+          snippet: [m.role, m.party, m.district].filter(Boolean).join(" · "),
+          domain: m.prime ? "Sponsor" : "Cosponsor",
+          favicon: portraitFor(m) ?? undefined,
+          type: "webpage" as const,
+        })),
+    [sponsors]
+  )
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <Card className="h-full">
+      <CardContent className="flex h-full flex-col gap-4">
         <div>
-          <p className="text-lg font-semibold">HR 10345</p>
-          <p className="line-clamp-2 text-sm text-muted-foreground">Insert bill description here, talk about the bill a bit. Two lines is usually enough, in most cases I&apos;ll say truncate at two lines...</p>
+          <p className="text-lg font-semibold">{bill ? fmtBill(bill.bill_number, state) : "HR 10345"}</p>
+          <p className="line-clamp-2 text-sm text-muted-foreground">
+            {bill ? bill.title : "Insert bill description here, talk about the bill a bit. Two lines is usually enough, in most cases I\u2019ll say truncate at two lines..."}
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="lg" className="gap-1.5">
-            <Share2Icon className="size-4" />
-            Share
-          </Button>
-          <Button size="lg" className="gap-1.5">
-            + Add to Calendar
-          </Button>
+        <div className="mt-auto flex flex-col gap-3">
+          {citations.length > 0 && (
+            <CitationList
+              id={`sponsors-${bill?.bill_id}`}
+              variant="stacked"
+              citations={citations}
+              onNavigate={(href) => router.push(new URL(href).pathname)}
+            />
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="lg" className="gap-1.5">
+              <Share2Icon className="size-4" />
+              Share
+            </Button>
+            <Button size="lg" className="gap-1.5">
+              + Add to Calendar
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -121,7 +164,8 @@ export function CommitteePage() {
   const { of } = useUrlParams(["of"])
   const { state } = useScope()
   const committees = useCommittees()
-  const chosen = (committees.data ?? []).find((c) => (c.slug ?? c.committee_name) === of || c.committee_name === of) ?? null
+  // No `of` yet: the first committee on the list, so the page reads the record rather than the mock (Brendan, 2026-09-11: "the active bills needs to be wired up").
+  const chosen = (committees.data ?? []).find((c) => (c.slug ?? c.committee_name) === of || c.committee_name === of) ?? (committees.data ?? [])[0] ?? null
   const record = useCommittee(chosen?.committee_name ?? null)
   const held = record.data
   const rate = held ? passageRate(held.statuses) : null
@@ -196,9 +240,9 @@ export function CommitteePage() {
             <AttendanceCard title="Majority" series={["majority"]} config={colours} />
             <AttendanceCard title="Minority" series={["minority"]} config={colours} />
           </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <BillCard key={i} />
+              <BillCard key={held?.bills[i]?.bill_id ?? i} bill={held?.bills[i] ?? null} state={state} />
             ))}
           </div>
         </div>
@@ -321,8 +365,8 @@ export function CommitteePage() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <BillCard key={i} />
+          {[3, 4, 5, 6, 7, 8].map((i) => (
+            <BillCard key={held?.bills[i]?.bill_id ?? i} bill={held?.bills[i] ?? null} state={state} />
           ))}
         </div>
       </div>

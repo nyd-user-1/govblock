@@ -45,7 +45,16 @@ const fill: Record<Kind, string> = {
   disagree: DISAGREE,
 }
 
-export function StatusBars({ votes, size = "md" }: { votes: Tally; size?: "md" | "sm" }) {
+export function StatusBars({
+  votes,
+  size = "md",
+  figures = false,
+}: {
+  votes: Tally
+  size?: "md" | "sm"
+  /** The agree share before the pills and the disagree share after, in their colours. */
+  figures?: boolean
+}) {
   const s = share(votes)
   const pct = (v: number) => `${Math.round(v)}%`
   const title: Record<Kind, string> = {
@@ -53,12 +62,18 @@ export function StatusBars({ votes, size = "md" }: { votes: Tally; size?: "md" |
     pass: `Pass · ${pct(s.pass)}`,
     disagree: `Disagree · ${pct(s.disagree)}`,
   }
+  const figure = "shrink-0 text-2xl font-semibold tracking-tight tabular-nums"
   return (
     <div
       className={`flex w-full items-end ${size === "md" ? "h-9 gap-[3px]" : "h-4 gap-[2px]"}`}
       role="img"
       aria-label={`${pct(s.agree)} agree, ${pct(s.pass)} pass, ${pct(s.disagree)} disagree, of ${fmtNumber(votes.seen)} who saw it`}
     >
+      {figures && (
+        <span className={`${figure} mr-3`} style={{ color: AGREE }}>
+          {pct(s.agree)}
+        </span>
+      )}
       {pillsOf(votes).map((kind, i) => (
         <span
           key={i}
@@ -67,58 +82,23 @@ export function StatusBars({ votes, size = "md" }: { votes: Tally; size?: "md" |
           style={{ background: fill[kind] }}
         />
       ))}
+      {figures && (
+        <span className={`${figure} ml-3`} style={{ color: DISAGREE }}>
+          {pct(s.disagree)}
+        </span>
+      )}
     </div>
   )
 }
 
-/** The big figure's colour: the side that carried the statement, or neither. */
-function tone(s: ReturnType<typeof share>) {
-  if (s.agree >= 50) return AGREE
-  if (s.disagree >= 50) return DISAGREE
-  return "var(--foreground)"
-}
-
-export function StatementCard({
-  statement,
-  conversation: c,
-  note,
-}: {
-  statement: Statement
-  conversation: Conversation
-  note: string
-}) {
-  const s = share(statement.votes)
-  const groups = c.groups.filter((g) => (statement.byGroup[g.id]?.seen ?? 0) >= 5)
+// The card as Brendan arranged it in devtools (2026-09-11): the statement,
+// clamped to two lines, then one row — the agree share, the pills, the
+// disagree share. The note, the group rows and the foot came off.
+export function StatementCard({ statement }: { statement: Statement; conversation?: Conversation; note?: string }) {
   return (
     <article className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-sm leading-6 font-medium">{statement.text}</p>
-          <p className="text-xs text-muted-foreground">{note}</p>
-        </div>
-        <span className="shrink-0 text-2xl font-semibold tracking-tight tabular-nums" style={{ color: tone(s) }}>
-          {Math.round(s.agree)}%
-        </span>
-      </div>
-      <StatusBars votes={statement.votes} />
-      {groups.length > 1 && (
-        <div className="flex flex-col gap-2">
-          {groups.map((g) => {
-            const v = statement.byGroup[g.id]!
-            return (
-              <div key={g.id} className="flex items-center gap-3">
-                <span className="w-16 shrink-0 text-xs text-muted-foreground">Group {String.fromCharCode(65 + g.id)}</span>
-                <StatusBars votes={v} size="sm" />
-                <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{Math.round(share(v).agree)}%</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{fmtNumber(statement.votes.seen)} saw it</span>
-        <span className="tabular-nums">{Math.round(s.disagree)}% disagree</span>
-      </div>
+      <p className="line-clamp-2 text-sm leading-6 font-medium">{statement.text}</p>
+      <StatusBars votes={statement.votes} figures />
     </article>
   )
 }

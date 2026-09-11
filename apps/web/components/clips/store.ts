@@ -28,6 +28,8 @@ export type Clip = {
   title: string
   caption: string
   src: string
+  /** A YouTube video id: the clip plays in YouTube's own player and `src` is empty. */
+  youtube?: string
   blob?: Blob
   /** A frame of the recording as a JPEG data URL, drawn when it was saved, so a tile has something to show before the video decodes. */
   poster?: string
@@ -46,6 +48,8 @@ export const CREATORS: Creator[] = [
   { id: "ny", name: "New York Desk", handle: "nydesk", image: flagUrl("NY"), state: "NY", kind: "desk" },
   { id: "tx", name: "Texas Desk", handle: "txdesk", image: flagUrl("TX"), state: "TX", kind: "desk" },
   { id: "ca", name: "California Desk", handle: "cadesk", image: flagUrl("CA"), state: "CA", kind: "desk" },
+  // A committee's own channel, found by scripts/clips/shorts.mjs (2026-09-11).
+  { id: "house-ag", name: "House Agriculture", handle: "houseagriculture", image: flagUrl("US"), state: "US", kind: "desk" },
 ]
 
 export const creatorOf = (id: string) => CREATORS.find((c) => c.id === id)
@@ -58,7 +62,24 @@ const by = (id: string) => {
   return { name: c.name, handle: c.handle, image: c.image }
 }
 
+/** A Short from a committee's channel: YouTube's portrait thumbnail, and the player when it is active. */
+const short = (id: string, o: { title: string; caption: string; duration: number; createdAt: string; views: number }): Clip => ({
+  id: `yt-${id}`,
+  creatorId: "house-ag",
+  author: by("house-ag"),
+  src: "",
+  youtube: id,
+  poster: `https://i.ytimg.com/vi/${id}/oardefault.jpg`,
+  visibility: "public",
+  likes: 0,
+  ...o,
+})
+
 export const PUBLISHED: Clip[] = [
+  short("ZfZYXKoJ4Rc", { title: "Time to get the Farm Bill done", caption: "Tell your elected officials: it's time to get the Farm Bill done. From the House Committee on Agriculture.", duration: 42, createdAt: "2026-03-02T15:00:00Z", views: 217 }),
+  short("RHKfwZaMdqU", { title: "A new farm bill means certainty", caption: "For everyone. The committee's case for finishing the bill this session.", duration: 29, createdAt: "2026-03-01T18:00:00Z", views: 346 }),
+  short("p33RWZYDpvM", { title: "Support rural America", caption: "Support the Farm Bill. The committee on what the bill carries for rural districts.", duration: 49, createdAt: "2026-03-01T14:00:00Z", views: 108 }),
+  short("0agkzFpSSIQ", { title: "We need a Prop 12 fix", caption: "We need a new Farm Bill. The committee on the California pork rule and what the bill does about it.", duration: 43, createdAt: "2026-02-28T16:00:00Z", views: 104 }),
   {
     id: "pub-40700",
     creatorId: "tx",

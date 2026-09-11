@@ -1,4 +1,5 @@
 import { cn } from "@govblock/ui/lib/utils"
+import { GitCompareIcon, MessageSquareIcon } from "lucide-react"
 import { Activity } from "@govblock/ui/components/animate-ui/icons/activity"
 import { CupSoda } from "@govblock/ui/components/animate-ui/icons/cup-soda"
 import { Eye } from "@govblock/ui/components/animate-ui/icons/eye"
@@ -58,6 +59,9 @@ type NavIcon = React.ComponentType<{
 }>
 
 export const NAV_ICONS: Record<string, NavIcon> = {
+  // Two lucide icons where animate-ui has no drawing yet (Brendan, 2026-09-11: "chat and diff are both missing an icon").
+  GitCompare: GitCompareIcon,
+  MessageSquare: MessageSquareIcon,
   Activity,
   CupSoda,
   Eye,

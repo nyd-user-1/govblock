@@ -190,18 +190,34 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
   return (
     <div className="relative h-full max-w-full">
       <div className="relative h-full max-w-full overflow-hidden bg-black select-none lg:rounded-xl" style={{ aspectRatio: "9 / 16" }}>
-        <video
-          ref={videoRef}
-          src={clip.src}
-          poster={clip.poster}
-          loop
-          playsInline
-          muted={muted}
-          preload={active ? "auto" : "metadata"}
-          className="absolute inset-0 size-full object-cover"
-          onClick={toggle}
-          onTimeUpdate={(e) => e.currentTarget.duration && setProgress(e.currentTarget.currentTime / e.currentTarget.duration)}
-        />
+        {clip.youtube ? (
+          // A YouTube Short plays in YouTube's own player, with its controls;
+          // the thumbnail stands in until the clip is the active one.
+          active ? (
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${clip.youtube}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${clip.youtube}&playsinline=1&rel=0&modestbranding=1`}
+              title={clip.title}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 size-full border-0"
+            />
+          ) : (
+            <img src={clip.poster} alt="" className="absolute inset-0 size-full object-cover" />
+          )
+        ) : (
+          <video
+            ref={videoRef}
+            src={clip.src}
+            poster={clip.poster}
+            loop
+            playsInline
+            muted={muted}
+            preload={active ? "auto" : "metadata"}
+            className="absolute inset-0 size-full object-cover"
+            onClick={toggle}
+            onTimeUpdate={(e) => e.currentTarget.duration && setProgress(e.currentTarget.currentTime / e.currentTarget.duration)}
+          />
+        )}
         {paused && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <PauseIcon className="size-14 fill-white/80 text-white/80" />
@@ -212,12 +228,16 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             <LockIcon className="size-3" /> Private
           </span>
         )}
-        <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>
-          {muted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
-        </button>
-        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
-          <div className="h-full bg-white" style={{ width: `${progress * 100}%` }} />
-        </div>
+        {!clip.youtube && (
+          <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>
+            {muted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
+          </button>
+        )}
+        {!clip.youtube && (
+          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
+            <div className="h-full bg-white" style={{ width: `${progress * 100}%` }} />
+          </div>
+        )}
         {/* On a phone the rail and the caption sit over the picture. */}
         <div className="absolute right-1 bottom-14 lg:hidden">{rail}</div>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pr-16 pb-8 text-white lg:hidden">
