@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { FileTextIcon, HistoryIcon, SparklesIcon } from "lucide-react"
+import { FileTextIcon, FoldHorizontalIcon, GitCompareArrowsIcon, HistoryIcon, LockIcon, LockOpenIcon, SparklesIcon, UnfoldHorizontalIcon } from "lucide-react"
 
 import { useAssistSubject } from "@/lib/assist-panel"
 import { readFilters, scopedFilters } from "@/lib/filters"
@@ -17,6 +17,10 @@ import { useTypesetSearchParams } from "@/app/(typeset)/lib/search-params"
 import { previewFontVariables } from "@/app/preview/fonts"
 import { PathBar } from "@/components/create/path-bar"
 import { TypesetEditor } from "@/components/workspace/typeset-editor"
+import { BillCompare, type CompareWidth } from "@/components/bill-compare"
+import type { BillComparison } from "@/lib/policy/bill-compare"
+import { Button } from "@govblock/ui/components/ny4/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 import { BlockShell } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import {
@@ -41,10 +45,16 @@ import { cn } from "@govblock/ui/lib/utils"
 // left. History is the bill's actions by date. `article` and `changelog` are
 // the keys the URL and the preview route already use; `potion` opens `article`
 // on the other editor, which is why it maps back to it below.
+//
+// Diff (2026-09-11) is the bill's printings, each against the one before, as
+// the scrolling redline of /bills/[id]/compare. No editor draws it; its two
+// settings — centred or full width, and whether a change once shown stays —
+// sit in the footer while it is open.
 const PAGES = [
   { value: "article", label: "Plate", icon: FileTextIcon },
   { value: "potion", label: "Potion", icon: SparklesIcon },
   { value: "changelog", label: "History", icon: HistoryIcon },
+  { value: "diff", label: "Diff", icon: GitCompareArrowsIcon },
 ] as const
 
 type Page = (typeof PAGES)[number]["value"]
@@ -52,11 +62,11 @@ type Page = (typeof PAGES)[number]["value"]
 const pageOf = (item: string): Page =>
   PAGES.some((p) => p.value === item) ? (item as Page) : "article"
 
-/** Which document a page reads. Potion is a second editor on the same text. */
-const contentOf = (page: Page) => (page === "potion" ? "article" : page)
+/** Which document an editor page reads. Potion is a second editor on the same text. */
+const contentOf = (page: Exclude<Page, "diff">) => (page === "potion" ? "article" : page)
 
 /** Which editor draws it. */
-const surfaceOf = (page: Page) => (page === "potion" ? "potion" : "plate")
+const surfaceOf = (page: Exclude<Page, "diff">) => (page === "potion" ? "potion" : "plate")
 //
 // /workspace/typeset (Brendan, 2026-09-07): /typeset in the shell. The
 // typeset document fills the pane; the numbered pages and Open in New Tab
@@ -120,6 +130,81 @@ function useBillSubject() {
   })
 }
 
+/** The Diff page's two settings, remembered in this browser. */
+function useDiffSettings() {
+  const [width, setWidth] = React.useState<CompareWidth>("centered")
+  const [locked, setLocked] = React.useState(true)
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("typeset-diff") ?? "{}")
+      if (saved.width === "centered" || saved.width === "full") setWidth(saved.width)
+      if (typeof saved.locked === "boolean") setLocked(saved.locked)
+    } catch {}
+  }, [])
+  const save = (next: { width: CompareWidth; locked: boolean }) => {
+    setWidth(next.width)
+    setLocked(next.locked)
+    try {
+      localStorage.setItem("typeset-diff", JSON.stringify(next))
+    } catch {}
+  }
+  return {
+    width,
+    locked,
+    setWidth: (w: CompareWidth) => save({ width: w, locked }),
+    toggleLock: () => save({ width, locked: !locked }),
+  }
+}
+
+function FooterToggle({ label, pressed, onClick, children }: { label: string; pressed: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button variant="ghost" size="icon" className={cn("size-7 cursor-pointer", pressed && "bg-muted")} aria-label={label} aria-pressed={pressed} onClick={onClick}>
+            {children}
+          </Button>
+        }
+      />
+      <TooltipContent side="top" sideOffset={10}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function DiffControls({ settings }: { settings: ReturnType<typeof useDiffSettings> }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <FooterToggle label="Centered" pressed={settings.width === "centered"} onClick={() => settings.setWidth("centered")}>
+        <FoldHorizontalIcon className="size-4" />
+      </FooterToggle>
+      <FooterToggle label="Full width" pressed={settings.width === "full"} onClick={() => settings.setWidth("full")}>
+        <UnfoldHorizontalIcon className="size-4" />
+      </FooterToggle>
+      <div className="mx-0.5 h-4 w-px bg-border" />
+      <FooterToggle
+        label={settings.locked ? "Locked: changes stay once shown" : "Unlocked: scrolling back replays changes"}
+        pressed={false}
+        onClick={settings.toggleLock}
+      >
+        {settings.locked ? <LockIcon className="size-4" /> : <LockOpenIcon className="size-4" />}
+      </FooterToggle>
+    </div>
+  )
+}
+
+/** The Diff page: the open bill's printings compared, scrolling in the pane. */
+function DiffPane({ width, locked }: { width: CompareWidth; locked: boolean }) {
+  const [params] = useTypesetSearchParams()
+  const { state, session, isDefaultSession } = useJurisdiction()
+  const filters = scopedFilters(readFilters(params as unknown as Record<string, unknown>), state, session, isDefaultSession)
+  const { data, error } = usePolicy<BillComparison>(params.bill ? "bill-compare" : null, filters)
+  const note = !params.bill ? "No bill is open." : error ? "The printings could not be loaded." : !data ? "Loading the printings…" : data.passes.length ? null : "This bill has one printing, so there is nothing to compare."
+  if (note) return <p className="p-8 text-sm text-muted-foreground">{note}</p>
+  return <BillCompare {...data!} width={width} locked={locked} contained />
+}
+
 export function TypesetWorkspace() {
   const [panelOpen, setPanelOpen] = useLocal(
     "govblock:workspace:typeset-2:customizer",
@@ -127,6 +212,8 @@ export function TypesetWorkspace() {
   )
   useBillSubject()
   const [params] = useTypesetSearchParams()
+  const page = pageOf(params.item)
+  const diff = useDiffSettings()
 
   const footer = (
     <WorkspaceFooter
@@ -139,6 +226,12 @@ export function TypesetWorkspace() {
       </div>
       <div className="mx-0.5 h-4 w-px bg-border" />
       <OpenInNewTab />
+      {page === "diff" && (
+        <>
+          <div className="mx-0.5 h-4 w-px bg-border" />
+          <DiffControls settings={diff} />
+        </>
+      )}
     </WorkspaceFooter>
   )
 
@@ -169,12 +262,16 @@ export function TypesetWorkspace() {
               footer={footer}
               contentClassName="overflow-hidden"
             >
-              <TypesetEditor
-                item={contentOf(pageOf(params.item))}
-                surface={surfaceOf(pageOf(params.item))}
-                bill={params.bill}
-                version={params.version ? String(params.version) : undefined}
-              />
+              {page === "diff" ? (
+                <DiffPane width={diff.width} locked={diff.locked} />
+              ) : (
+                <TypesetEditor
+                  item={contentOf(page)}
+                  surface={surfaceOf(page)}
+                  bill={params.bill}
+                  version={params.version ? String(params.version) : undefined}
+                />
+              )}
             </BlockShell>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
+import { getBillComparison } from "@/lib/policy/bill-compare"
 import { getBillDiff } from "@/lib/policy/bill-diff"
 import { getStories, getStory } from "@/lib/policy/news"
 import {
@@ -607,6 +608,14 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         to: sp.get("to"),
         limit: int(sp.get("limit"), 12),
       })
+    }
+    // Every printing against the one before it, as redline rows — Typeset's
+    // Diff page (the same comparison /bills/[id]/compare draws).
+    case "bill-compare": {
+      const f = await resolve(filters)
+      const answer = await getBillComparison(await billFrom(f, sp))
+      if (!answer) throw new Error("no such bill")
+      return answer
     }
     case "bill-amendments": {
       const f = await resolve(filters)

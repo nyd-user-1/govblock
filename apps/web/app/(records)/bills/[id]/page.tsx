@@ -231,7 +231,13 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 meta={[chamber ? (federal ? `U.S. ${chamber}` : `${stateName(bill.state)} ${chamber}`) : null, bill.status_desc ?? null]}
                 action={
                   <>
-                    <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/bills/${bill.bill_id}`} typeset={`/workspace/typeset-2?item=article&state=${bill.state}&bill=${bill.bill_id}`} />
+                    <DocsCopyPage
+                      page={markdown}
+                      url={`https://gov.nysgpt.com/bills/${bill.bill_id}`}
+                      typeset={`/workspace/typeset-2?item=article&state=${bill.state}&bill=${bill.bill_id}`}
+                      // Only when there are printings to compare — sponsor memos are not printings.
+                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? `/workspace/typeset?item=diff&state=${bill.state}&bill=${bill.bill_id}` : undefined}
+                    />
                     {/* The neighbouring bills in the session, as shadcn's docs
                         header pages to the next document. */}
                     {neighbours.previous ? (

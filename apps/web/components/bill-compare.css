@@ -1,0 +1,99 @@
+/* A change's two states (2026-09-11). Until the change reaches the reading
+   line, a removed line looks like any unchanged line and an added line sits
+   faded, not yet arrived. When it does (components/bill-compare.tsx sets
+   `data-struck` on the removed rows and `data-arrived` on the added ones), a
+   red strike sweeps left to right across the cut words, and a beat behind it
+   a green highlighter sweeps across the new line and its new words as the
+   text comes up to full strength. Each run starts in proportion to where it
+   sits on its line (--strike-delay), each line a beat after the one above
+   (--row-delay). Scrolling back reverses both. */
+
+.gh-diff {
+  --compare-strike: #cf222e;
+}
+.dark .gh-diff {
+  --compare-strike: #f85149;
+}
+
+/* Removed */
+
+.compare-strike {
+  background-image: linear-gradient(var(--compare-strike), var(--compare-strike));
+  background-repeat: no-repeat;
+  background-position: 0 55%;
+  background-size: 0% 2px;
+  transition:
+    background-size 520ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--row-delay, 0ms) + var(--strike-delay, 0ms)),
+    background-color 400ms ease-out var(--row-delay, 0ms);
+}
+
+.compare-word {
+  background-color: transparent;
+}
+
+.compare-removed {
+  background-color: transparent;
+  transition: background-color 400ms ease-out var(--row-delay, 0ms);
+}
+
+.compare-removed[data-struck] {
+  background-color: var(--gh-diff-del-line);
+}
+
+[data-struck] .compare-strike {
+  background-size: 100% 2px;
+}
+
+[data-struck] .compare-word {
+  background-color: var(--gh-diff-del-word);
+}
+
+/* Added */
+
+.compare-added {
+  opacity: 0.35;
+  background-image: linear-gradient(var(--gh-diff-add-line), var(--gh-diff-add-line));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition:
+    opacity 400ms ease-out var(--row-delay, 0ms),
+    background-size 600ms cubic-bezier(0.23, 1, 0.32, 1) var(--row-delay, 0ms);
+}
+
+.compare-added[data-arrived] {
+  opacity: 1;
+  background-size: 100% 100%;
+}
+
+.compare-highlight {
+  background-image: linear-gradient(var(--gh-diff-add-word), var(--gh-diff-add-word));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition: background-size 520ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--row-delay, 0ms) + var(--strike-delay, 0ms));
+}
+
+[data-arrived] .compare-highlight {
+  background-size: 100% 100%;
+}
+
+/* Both */
+
+.compare-sign {
+  opacity: 0;
+  transition: opacity 300ms ease-out var(--row-delay, 0ms);
+}
+
+[data-struck] .compare-sign,
+[data-arrived] .compare-sign {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compare-strike,
+  .compare-removed,
+  .compare-added,
+  .compare-highlight,
+  .compare-sign {
+    transition: none;
+  }
+}

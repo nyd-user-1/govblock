@@ -52,9 +52,12 @@ const TYPESET_PARAM_VALUES = {
   // "potion" is /workspace/typeset-2's second editor, not a fixture: it opens
   // the same `article` content in the Notion-shaped editor. It joins the values
   // the URL accepts without joining the pills the other typeset surfaces draw.
+  // "diff" is the same kind of page: the bill's printings compared
+  // (components/bill-compare.tsx), drawn by no editor at all.
   item: [
     ...AVAILABLE_CONTENT_OPTIONS.map((option) => option.value),
     "potion",
+    "diff",
   ] as const,
 }
 

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react"
-import { TypeIcon } from "lucide-react"
+import { GitCompareArrowsIcon, TypeIcon } from "lucide-react"
 
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -30,7 +30,7 @@ Help me understand how to use it. Be ready to explain concepts, give examples, o
 
 const menuItems: Record<
   string,
-  (url: string, page: string, typeset?: string) => React.ReactNode
+  (url: string, page: string, typeset?: string, diff?: string) => React.ReactNode
 > = {
   markdown: (url: string) => (
     <a href={`${url}.md`} target="_blank" rel="noopener noreferrer">
@@ -95,6 +95,15 @@ const menuItems: Record<
   // Our own editor in place of Google Docs (Brendan, 2026-09-09): the page's
   // record, opened in the Typeset workspace. Only a page that names where it
   // lives there offers it.
+  // The page's printings compared, as Typeset's Diff page (2026-09-11). Only
+  // a record with more than one printing names where that lives.
+  diff: (_url: string, _page: string, _typeset?: string, diff?: string) =>
+    diff ? (
+      <a href={diff} className="flex w-full items-center gap-2">
+        <GitCompareArrowsIcon className="size-4" aria-hidden />
+        Diff in Typeset
+      </a>
+    ) : null,
   typeset: (_url: string, _page: string, typeset?: string) =>
     typeset ? (
       <a href={typeset} className="flex w-full items-center gap-2">
@@ -108,10 +117,12 @@ export function DocsCopyPage({
   page,
   url,
   typeset,
+  diff,
 }: {
   page: string
   url: string
   /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
+  /** Where its printings open compared in Typeset, when it has more than one. */ diff?: string
 }) {
   const { copyToClipboard, isCopied } = useCopyToClipboard()
 
@@ -147,7 +158,7 @@ export function DocsCopyPage({
             className="animate-none! rounded-lg shadow-none"
           >
             {Object.entries(menuItems).map(([key, value]) => {
-              const node = value(url, page, typeset)
+              const node = value(url, page, typeset, diff)
               return node ? (
                 <DropdownMenuItem key={key} asChild>
                   {node}
