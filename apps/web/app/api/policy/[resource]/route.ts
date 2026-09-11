@@ -19,6 +19,7 @@ import {
   getCongressHearingList,
   getHearingIndex,
   getHearingTranscript,
+  getAmendmentList,
   getMemberRail,
   getMemberVoteRecord,
   getNominationList,
@@ -879,12 +880,22 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         int(sp.get("offset"), 0) || 0,
         sp.get("chamber") ?? undefined
       )
-    case "amendments":
-      return getAmendments(
-        int(sp.get("limit"), 50),
-        int(sp.get("offset"), 0) || 0,
-        int(sp.get("bill"), 0) || undefined
+    case "amendments": {
+      // One bill's amendments come back as congress.gov filed them, which is
+      // what the bill page's block reads. The family is the index, and it needs
+      // a date on every row, so it is a query of its own.
+      const bill = int(sp.get("bill"), 0) || undefined
+      if (bill)
+        return getAmendments(
+          int(sp.get("limit"), 50),
+          int(sp.get("offset"), 0) || 0,
+          bill
+        )
+      return getAmendmentList(
+        int(sp.get("limit"), 250),
+        int(sp.get("offset"), 0) || 0
       )
+    }
     case "committee-reports":
       return getCommitteeReports(
         int(sp.get("limit"), 50),

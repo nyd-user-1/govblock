@@ -6,6 +6,7 @@ import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useCongress } from "@/lib/policy/use-congress"
 import { congressGovHref } from "@/lib/policy/congress"
+import { amendmentPath, fmtAmendment } from "@/lib/policy/congress-hrefs"
 import { agencySeal, CRS_SEAL } from "@/lib/seals"
 import { matchesQuery } from "@/lib/search-match"
 import { SearchDirectory } from "@/components/directory-search"
@@ -15,12 +16,12 @@ import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 // shape. The canon's list container comes in as `CanonList`.
 import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@/components/policy/record-item"
 
-// The four families that are a page in their own right: the Senate's
-// confirmation docket, the research library, the daily proceedings, and the
-// laws. Each is one read, one search field and one list of the canon item,
-// with the facts each family actually has in its slots.
+// The five families that are a page in their own right: the Senate's
+// confirmation docket, the research library, the daily proceedings, the
+// amendments and the laws. Each is one read, one search field and one list of
+// the canon item, with the facts each family actually has in its slots.
 //
-// All four are federal, and all four say so under another jurisdiction rather
+// All five are federal, and all five say so under another jurisdiction rather
 // than quietly showing federal rows beneath a state's name. Nothing paints
 // before the scope resolves, so the shared prerendered shell never flashes one
 // jurisdiction's content at a reader who asked for another.
@@ -59,7 +60,7 @@ function Shell({ placeholder, rows, count, filter, children, federal }: { placeh
   )
 }
 
-// The four federal families match the way the rest of the site does: "hr 119",
+// The federal families match the way the rest of the site does: "hr 119",
 // "H.R. 119" and "hr119" are one query, so a law filed as HR119 is found under
 // all three rather than under whichever one happens to carry no space.
 const has = (query: string, ...values: (string | number | null | undefined)[]) => matchesQuery(query, ...values)
@@ -224,6 +225,63 @@ export function RecordList() {
               meta={[row.congress ? `${ordinal(row.congress)} Congress` : null, row.sessionNumber ? `${ordinal(row.sessionNumber)} Session` : null, "Daily Digest"]}
             />
           ))}
+        </CanonList>
+      )}
+    </Shell>
+  )
+}
+
+// ---------------------------------------------------------------- amendments
+
+type Amendment = {
+  key?: string
+  type?: string
+  number?: string
+  chamber?: string | null
+  purpose?: string | null
+  sponsor?: string | null
+  action?: string | null
+  actionDate?: string | null
+  submitted?: string | null
+  bill?: { id?: number | null; citation?: string | null; title?: string | null } | null
+}
+
+export function AmendmentsList() {
+  const { rows, count } = useCongress<Amendment>("amendments", "amendments", null, { limit: 250 })
+  const filter = React.useCallback(
+    (query: string) =>
+      byDate(
+        rows.filter((row) => has(query, row.purpose, row.sponsor, row.bill?.citation, row.bill?.title, fmtAmendment(row.type ?? "", row.number ?? ""), `${row.type}${row.number}`)),
+        // Most amendments are submitted and never acted on, so the day it was
+        // submitted is the date the row falls back to — the same order the
+        // nominations list takes when the docket has not moved.
+        (row) => row.actionDate ?? row.submitted
+      ),
+    [rows]
+  )
+  return (
+    <Shell placeholder="Search amendments by number, purpose, sponsor or bill…" rows={rows} count={count} filter={filter} federal="Amendments are filed against federal bills. They read under the federal jurisdiction.">
+      {(shown) => (
+        <CanonList className="my-0">
+          {(shown as Amendment[]).map((row) => {
+            const when = row.actionDate ?? row.submitted
+            return (
+              <RecordItem
+                key={row.key}
+                href={amendmentPath(row.type ?? "", row.number ?? "")}
+                avatar={<RecordSeal state="US" chamber={row.chamber} />}
+                title={fmtAmendment(row.type ?? "", row.number ?? "")}
+                lead={row.action}
+                meta={[
+                  when ? fmtDate(when) : null,
+                  row.bill?.citation ? `Amends ${row.bill.citation}` : null,
+                  row.sponsor,
+                  !row.actionDate && row.submitted ? "Submitted" : null,
+                ]}
+                description={truncate(row.purpose ?? "", 240) || null}
+              />
+            )
+          })}
         </CanonList>
       )}
     </Shell>

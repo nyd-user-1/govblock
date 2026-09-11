@@ -1,7 +1,7 @@
 import "server-only"
 
 import { n, one, q } from "@/lib/policy/db"
-import { parentCode } from "@/lib/policy/congress"
+import { citationOf, parentCode } from "@/lib/policy/congress"
 import { BILL_COLUMNS, PRIME_SPONSOR, type BillRow, type Resolved, getSessionTitles, withLatestTexts } from "@/lib/policy/db-queries"
 
 // The committee page's record, and the pages that hang off it — a hearing, a
@@ -872,6 +872,87 @@ export async function getAmendmentNeighbours(key: string) {
     ]),
   ])
   return { previous, next }
+}
+
+export type AmendmentListRow = {
+  key: string
+  type: string
+  number: string
+  chamber: string | null
+  purpose: string | null
+  sponsor: string | null
+  action: string | null
+  actionDate: string | null
+  submitted: string | null
+  bill: { id: number | null; citation: string | null; title: string | null } | null
+}
+
+/**
+ * The amendments index: every amendment on the record, newest action first.
+ *
+ * The date is coalesced out of the actions table rather than read off the
+ * amendment row, and that is the whole reason this is a query and not a read of
+ * `payload`. congress.gov puts `latestAction` on an amendment's detail for only
+ * 649 of the 7,038 it has filed, but `congress_amendment_actions` holds dated
+ * actions for 5,000 of them — so the flat column would have left seven rows in
+ * ten undated and the list unsorted in everything but name. An amendment with
+ * no action at all falls back to the day it was submitted, which every row has.
+ *
+ * Federal by construction: amendments are a Congress family and the list says
+ * so under any other jurisdiction rather than showing these rows beneath a
+ * state's name.
+ */
+export async function getAmendmentList(limit = 250, offset = 0) {
+  const total = await one<{ n: number }>(`select count(*)::int as n from congress_amendments`)
+  const rows = await q<{
+    key: string
+    amendment_type: string
+    number: string
+    chamber: string | null
+    purpose: string | null
+    sponsor_name: string | null
+    amended_bill_id: number | null
+    bill_type: string | null
+    bill_number: string | null
+    bill_title: string | null
+    submitted: string | null
+    action_date: string | null
+    action: string | null
+  }>(
+    `select a.key, a.amendment_type, a.number, a.chamber,
+            coalesce(a.purpose, a.description) as purpose,
+            a.sponsor_name, a.amended_bill_id,
+            a.payload->'amendedBill'->>'type' as bill_type,
+            a.payload->'amendedBill'->>'number' as bill_number,
+            a.payload->'amendedBill'->>'title' as bill_title,
+            left(a.payload->>'submittedDate', 10) as submitted,
+            coalesce(a.latest_action_date, la.date) as action_date,
+            coalesce(a.latest_action, la.text) as action
+       from congress_amendments a
+       left join lateral (
+         select ac.action_date as date, ac.text
+           from congress_amendment_actions ac
+          where ac.parent_key = a.key and ac.action_date is not null
+          order by ac.action_date desc, ac.action_time desc nulls last, ac.key desc
+          limit 1
+       ) la on true
+      order by coalesce(a.latest_action_date, la.date, left(a.payload->>'submittedDate', 10)) desc nulls last, a.key desc
+      limit $1 offset $2`,
+    [limit, offset]
+  )
+  const amendments: AmendmentListRow[] = rows.map((r) => ({
+    key: r.key,
+    type: r.amendment_type,
+    number: r.number,
+    chamber: r.chamber,
+    purpose: r.purpose,
+    sponsor: r.sponsor_name,
+    action: r.action,
+    actionDate: r.action_date,
+    submitted: r.submitted,
+    bill: r.bill_type || r.bill_number ? { id: r.amended_bill_id == null ? null : n(r.amended_bill_id), citation: citationOf(r.bill_type, r.bill_number), title: r.bill_title } : null,
+  }))
+  return { count: n(total?.n), amendments }
 }
 
 /* ---- the rail ------------------------------------------------------------ */

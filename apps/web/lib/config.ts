@@ -121,6 +121,7 @@ export const siteConfig = {
           label: "Legislation",
           items: [
             "/bills",
+            "/amendments",
             "/bills?status=enacted",
             "/roll-call-votes",
             "/record",
@@ -144,15 +145,22 @@ export const siteConfig = {
       // as it stood. It grows daily, so the line only becomes more true.
       footer:
         "Browse more than 159,109,531 records across all 50 states and the federal government.",
-      // Fifteen entries, three across (Brendan, 2026-09-08: the fourth column
-      // held three orphans, so the grid is three wide and five deep and every
-      // row is full). Alphabetical, because fifteen names in a panel is a list
-      // to look something up in, not an argument about which matters most.
+      // Sixteen entries, three across (Brendan, 2026-09-08: the fourth column
+      // held three orphans, so the grid is three wide). Amendments joined on
+      // 2026-09-10 and takes the first seat, which leaves the sixth row holding
+      // one. Alphabetical, because sixteen names in a panel is a list to look
+      // something up in, not an argument about which matters most.
       // This list is also the docs rail's Records section —
       // `components/directory-rail.tsx` reads it — so the panel and the rail
       // cannot say different things.
       columns: 3,
       items: [
+        {
+          href: "/amendments",
+          label: "Amendments",
+          description: "What was offered to change a bill, and how far it got.",
+          icon: "FileSignature",
+        },
         {
           href: "/bills",
           label: "Bills",

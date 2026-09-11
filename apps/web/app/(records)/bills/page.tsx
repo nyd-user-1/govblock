@@ -10,7 +10,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 // bills doc. The directory family reads at ~835px, not the 640px of prose.
 const title = "Bills"
 const description = "The bills most recently acted on in the jurisdiction in scope, each with its full text."
-const next = { name: "Committees", url: "/committees" }
+const next = { name: "Amendments", url: "/amendments" }
 
 export const metadata = { title, description }
 
