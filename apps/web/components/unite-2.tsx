@@ -73,33 +73,6 @@ function Still({ href, title, still }: { href: string; title: string; still: str
   )
 }
 
-function Item({
-  title,
-  href,
-  still,
-  children,
-}: {
-  title: string
-  href?: string
-  still?: string
-  children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {href && still && <Still href={href} title={title} still={still} />}
-      <h3 className="font-medium">
-        {href ? (
-          <Link href={href} className="underline-offset-4 hover:underline">
-            {title}
-          </Link>
-        ) : (
-          title
-        )}
-      </h3>
-      <p className="text-muted-foreground">{children}</p>
-    </div>
-  )
-}
 
 export function Unite2() {
   const router = useRouter()
@@ -127,13 +100,13 @@ export function Unite2() {
                 A conversation between Americans in every congressional
                 district.
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 A pilot for a new kind of national conversation, Unite America
                 leveraged AI to elevate the voices of Americans from across the
                 country and explore what one-person, one-vote means to them
                 today.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Over 2,400 Americans, a nationally representative sample
                 hailing from all 435 congressional districts, participated in
                 the conversation. Unlike traditional means of understanding
@@ -141,7 +114,7 @@ export function Unite2() {
                 of polls or the depth of focus groups, this pilot explored how
                 AI might make both possible at the same time.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 During the conversation, AI helped to draw out the nuance and
                 richness in participants&apos; views and past life experiences.
                 AI then helped bring structure to the resulting data, allowing
@@ -151,7 +124,7 @@ export function Unite2() {
                 entire prior conversation. Participants were then given an
                 opportunity to weigh in on those statements.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 One clear takeaway is that the process gave people an
                 opportunity to be heard in ways they may not have before. The
                 percentage of participants who said they &ldquo;feel voting is
@@ -175,14 +148,14 @@ export function Unite2() {
                 GovBlocks is open infrastructure for the record of American
                 government.
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 The record is public infrastructure. Every surface below is
                 built on the same one, and every one of them is open.
               </p>
             </div>
 
             <Section id="arxiv" title="National arXiv" href="/bills" still="/unite/arxiv.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 One view over 52 jurisdictions, nearly 20 years deep, at the
                 site root. Bills with every version and a redline between
                 printings, committees with dockets and hearing video, members
@@ -196,14 +169,14 @@ export function Unite2() {
             </Section>
 
             <Section id="inbox" title="Agentic Inbox" href="/workspace/inbox" still="/unite/inbox.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Send the work, not the prompt. Hand a task to an agent the way
                 you would email a colleague, close the tab and go about your
                 day. The report comes back as a reply on the same thread, with
                 the PDF attached if you asked for one. No more staring at a
                 screen while a bot types.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Seven agents answer the mail, named for the offices of a
                 legislature. Clerk reads a bill. Parliamentarian knows who
                 represents and where a bill sits. Treasurer follows the money
@@ -214,13 +187,13 @@ export function Unite2() {
                 from rows they read, never from memory. Clerk also answers
                 email on its own thread through a Cloudflare worker.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 A watch does the same job on a schedule. Name a bill, a
                 committee or a subject, say how you want to hear about it, and
                 the memo arrives when something moves, or every Monday if you
                 would rather read the week at once.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Whatever comes back lands where the team already works: a
                 report in your own Drive as a Google Doc you can edit, a
                 hearing on your own calendar with the link back, a digest in
@@ -230,70 +203,69 @@ export function Unite2() {
               </p>
             </Section>
 
-            <Section id="workspace" title="Workspace">
-              <p className="text-muted-foreground">
-                The family of apps built on the record.
+            <Section id="gitlaw" title="GitLaw" href="/workspace/data/ny/senate/2025/bill/2015571" still="/unite/gitlaw.jpg">
+              <p className="text-lg">
+                GitHub for legislation and the law. Every bill in every state and Congress, every session, twenty years back, down to the line. A bill is a file. Its printings are its commits, and the change between two of them reads as a diff. Search a bill, a session or the whole country. Evaluate legislation the way a developer evaluates code: the same clauses recur across bills and across states, and the repository makes the pattern visible.
               </p>
-              <div className="flex flex-col gap-6 pt-2">
-                <Item title="GitLaw" href="/workspace/data/ny/senate/2025/bill/2015571" still="/unite/gitlaw.jpg">
-                  GitHub for legislation and the law. Every bill in every state
-                  and Congress, every session, twenty years back, down to the
-                  line. A bill is a file. Its printings are its commits, and the
-                  change between two of them reads as a diff. Search a bill, a
-                  session or the whole country. Evaluate legislation the way a
-                  developer evaluates code: the same clauses recur across bills
-                  and across states, and the repository makes the pattern
-                  visible.
-                </Item>
-                <Item title="Union Calendar" href="/calendar" still="/unite/calendar.jpg">
-                  Hearings and sessions across all 50 states and Congress, by
-                  day, week and month.
-                </Item>
-                <Item title="Blocks" href="/workspace/blocks" still="/unite/blocks.jpg">
-                  Distributed government transparency and legislative
-                  intelligence. A block is a live surface over the record, a
-                  committee&apos;s docket, a member&apos;s votes, a
-                  session&apos;s bills, and the blocks are distributed with the
-                  data. Install one into your own site and it reads the record
-                  from there.
-                </Item>
-                <Item title="Dashboards" href="/workspace/dashboard" still="/unite/dashboards.jpg">
-                  A committee, a member, a roll call or a session at a glance,
-                  each at its own address.
-                </Item>
-                <Item title="Data Sets" href="/workspace/data" still="/unite/datasets.jpg">
-                  The whole record as files, per jurisdiction, and the API the
-                  pages themselves read.
-                </Item>
-                <Item title="Typeset" href="/workspace/typeset" still="/unite/typeset.jpg">
-                  A bill set as a document, in two editors: read it, mark it
-                  up, and draft from it.
-                </Item>
-                <Item title="Diff Blocks" href="/bills/2015571/compare" still="/unite/diff.jpg">
-                  A bill&apos;s printings as one redline. What was struck, what
-                  was added, and the version that did it, side by side or in
-                  one scroll.
-                </Item>
-                <Item title="Forms">
-                  Benefits applications filled from a profile you keep, then
-                  downloaded, emailed or delivered to the inbox.
-                </Item>
-                <Item title="Presets">
-                  The view you build is a six-character code. Save it, paste
-                  it, share it as a link, or take the code.
-                </Item>
-              </div>
             </Section>
 
-            <Section id="map" title="Map" href="/map" still="/unite/map.jpg">
-              <p className="text-muted-foreground">
+            <Section id="union-calendar" title="Union Calendar" href="/calendar" still="/unite/calendar.jpg">
+              <p className="text-lg">
+                Hearings and sessions across all 50 states and Congress, by day, week and month.
+              </p>
+            </Section>
+
+            <Section id="blocks" title="Blocks" href="/workspace/blocks" still="/unite/blocks.jpg">
+              <p className="text-lg">
+                Distributed government transparency and legislative intelligence. A block is a live surface over the record, a committee&apos;s docket, a member&apos;s votes, a session&apos;s bills, and the blocks are distributed with the data. Install one into your own site and it reads the record from there.
+              </p>
+            </Section>
+
+            <Section id="dashboards" title="Dashboards" href="/workspace/dashboard" still="/unite/dashboards.jpg">
+              <p className="text-lg">
+                A committee, a member, a roll call or a session at a glance, each at its own address.
+              </p>
+            </Section>
+
+            <Section id="data-sets" title="Data Sets" href="/workspace/data" still="/unite/datasets.jpg">
+              <p className="text-lg">
+                The whole record as files, per jurisdiction, and the API the pages themselves read.
+              </p>
+            </Section>
+
+            <Section id="typeset" title="Typeset" href="/workspace/typeset" still="/unite/typeset.jpg">
+              <p className="text-lg">
+                A bill set as a document, in two editors: read it, mark it up, and draft from it.
+              </p>
+            </Section>
+
+            <Section id="diff-blocks" title="Diff Blocks" href="/bills/2015571/compare" still="/unite/diff.jpg">
+              <p className="text-lg">
+                A bill&apos;s printings as one redline. What was struck, what was added, and the version that did it, side by side or in one scroll.
+              </p>
+            </Section>
+
+            <Section id="forms" title="Forms">
+              <p className="text-lg">
+                Benefits applications filled from a profile you keep, then downloaded, emailed or delivered to the inbox.
+              </p>
+            </Section>
+
+            <Section id="presets" title="Presets">
+              <p className="text-lg">
+                The view you build is a six-character code. Save it, paste it, share it as a link, or take the code.
+              </p>
+            </Section>
+
+                          <Section id="map" title="Map" href="/map" still="/unite/map.jpg">
+              <p className="text-lg">
                 Every district in every chamber, coloured by what the Census
                 counts there. Drop a point and see who represents it.
               </p>
             </Section>
 
             <Section id="consensus" title="Consensus" href="/consensus" still="/unite/consensus.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Opinion gathered at scale. People vote on each other&apos;s
                 statements, agree, disagree or pass, and the groups emerge
                 from the votes rather than from who spoke loudest. The report
@@ -303,33 +275,33 @@ export function Unite2() {
             </Section>
 
             <Section id="desk" title="Desk" href="/desk" still="/unite/desk.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 What each legislature did, newest first, on a desk per state,
                 with the press on it.
               </p>
             </Section>
 
             <Section id="briefing" title="Briefing" href="/briefing" still="/unite/briefing.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 The Reporter reads the week on a desk and writes it up, a
                 source on every line.
               </p>
             </Section>
 
             <Section id="clips" title="Clips" href="/clips" still="/unite/clips.jpg">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 Short vertical video from the record, and your own, recorded in
                 the browser.
               </p>
             </Section>
 
             <Section id="premise" title="Why">
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 America feels fractured because it no longer holds to one
                 question, one answer. Every screen now carries its own answer to
                 everything, and consensus reads as a dead idea.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 The evidence says otherwise. We the People&apos;s first
                 conversation put 2,400 Americans in one conversation, and 26 statements
                 cleared 80 percent agreement. Conversations from Seattle to Taiwan
@@ -342,7 +314,7 @@ export function Unite2() {
                 government, built so it can be read, cited and voted on, and
                 use that shared ground to find where people already agree.
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-lg">
                 <Link href="/" className="underline underline-offset-4">
                   Open the record
                 </Link>
