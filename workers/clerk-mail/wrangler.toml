@@ -10,8 +10,11 @@ name = "govblock-clerk-mail"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
+# Paused (Brendan, 2026-09-11: "I don't want them running on their own
+# anymore ... until I say otherwise"). Mail still lands in KV; nothing reads
+# it until the cron below is put back to "*/2 * * * *" and redeployed.
 [triggers]
-crons = ["*/2 * * * *"]
+crons = []
 
 [vars]
 APP_ORIGIN = "https://policy.nysgpt.com"
