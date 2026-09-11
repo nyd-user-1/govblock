@@ -18,10 +18,6 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
-    "path": "/agents/discord",
-    "kind": "page"
-  },
-  {
     "path": "/amendments",
     "kind": "page"
   },
@@ -187,14 +183,6 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/bills/[id]/compare",
-    "kind": "page"
-  },
-  {
-    "path": "/blocks",
-    "kind": "page"
-  },
-  {
-    "path": "/blocks/[...categories]",
     "kind": "page"
   },
   {
@@ -463,10 +451,6 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/unite-2",
-    "kind": "page"
-  },
-  {
-    "path": "/view/[style]/[name]",
     "kind": "page"
   },
   {

@@ -98,7 +98,7 @@ export default async function ConnectorsPage() {
         description={description}
         slug="/connectors"
         previous={{ name: "Agents", url: "/agents" }}
-        next={{ name: "Discord", url: "/agents/discord" }}
+        next={{ name: "Workspace", url: "/workspace" }}
       >
         <h2 className="mt-8 text-lg font-semibold tracking-tight">Popular</h2>
         <div className="grid gap-4 sm:grid-cols-2">

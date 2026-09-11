@@ -485,7 +485,7 @@ export const siteConfig = {
         },
         {
           label: "Watch",
-          items: ["/map", "/calendar", "/blocks/intelligence", "/desk", "/consensus"],
+          items: ["/map", "/calendar", "/workspace/inbox", "/desk", "/consensus"],
         },
         {
           label: "Build on it",
@@ -499,7 +499,7 @@ export const siteConfig = {
       columns: 3,
       items: [
         {
-          href: "/blocks/intelligence",
+          href: "/workspace/inbox",
           label: "Agentic Inbox",
           description: "Hand a job to an agent and read it when it lands.",
           icon: "Inbox",
@@ -550,7 +550,7 @@ export const siteConfig = {
         },
         {
           href: "/clips",
-          label: "Creators",
+          label: "Clips",
           description: "Short video from the record, and your own.",
           icon: "SquarePlay",
         },

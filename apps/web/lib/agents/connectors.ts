@@ -91,7 +91,7 @@ export const CONNECTORS: Connector[] = [
     kind: "platform",
     popular: true,
     summary: "Where the Whip posts its digests and the Librarian delivers its reports.",
-    href: "/agents/discord",
+    href: "/agents",
   },
 ]
 

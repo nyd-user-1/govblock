@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { BLOCK_TABS } from "@/lib/blocks-tabs"
-import { getBlockNames, registryCategories } from "@/lib/blocks"
 import { STATE_NAMES } from "@/lib/filters"
 import { ROUTES } from "@/lib/routes.generated"
 import { BLOCK_DOCS } from "@/lib/workspace/block-docs"
@@ -13,17 +11,15 @@ import { ROOMS } from "@/lib/workspace/path"
 // scripts/routes/generate.mjs; the dynamic routes are opened out here where
 // their values are known — the blocks, the rooms, the 52 jurisdictions — and
 // shown as a pattern with one example where they are not. The notes name
-// what a route is when its path does not say: the shadcn template's pages,
-// the retired ones, the redirects.
+// what a route is when its path does not say: the retired ones, the
+// sandboxes, the redirects. (The shadcn template's gallery — /blocks, /view —
+// came out the day this page was made.)
 
 export const metadata: Metadata = { title: "Routes", description: "Every URL the site serves." }
 
 const JURISDICTIONS = Object.keys(STATE_NAMES).filter((c) => c !== "PR").map((c) => c.toLowerCase())
 
 const NOTES: Record<string, string> = {
-  "/blocks": "shadcn template: the blocks gallery",
-  "/blocks/[...categories]": "shadcn template: a category or one of our tabs, rendering the seven registry blocks",
-  "/view/[style]/[name]": "shadcn template: a registry block alone in an iframe, for the gallery",
   "/create": "retired; redirects into the workspace",
   "/agent": "the singular; redirects to /agents",
   "/typeset": "the old typeset; the editor is /workspace/typeset",
@@ -52,8 +48,6 @@ const REGISTRY = ["directory-search", "district-join", "map-basemap", "map-bound
 
 /** The values a dynamic segment takes, where they are finite and known. */
 function expand(route: string): { hrefs: string[]; more?: string } | null {
-  if (route === "/view/[style]/[name]") return { hrefs: getBlockNames().map((n) => `/view/new-york-v4/${n}`) }
-  if (route === "/blocks/[...categories]") return { hrefs: [...BLOCK_TABS.map((t) => `/blocks/${t.value}`), ...registryCategories.filter((c) => !c.hidden).map((c) => `/blocks/${c.slug}`)] }
   if (route === "/docs/blocks/[slug]") return { hrefs: BLOCK_DOCS.map((d) => `/docs/blocks/${d.slug}`) }
   if (route === "/workspace/[room]") return { hrefs: ROOMS.map((r) => `/workspace/${r}`) }
   const jurisdiction = /^\/(desk|laws|news|docs\/api|docs\/datasets)\/\[state\]$/.exec(route)
