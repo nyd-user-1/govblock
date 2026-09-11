@@ -1,23 +1,18 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
 import type { Metadata } from "next"
 
-import { Unite } from "@/components/unite"
+import { Unite2 } from "@/components/unite-2"
 
 import "../unite/unite.css"
 
-// A second /unite (Brendan, 2026-09-11) — the same page for now, so the two
-// can slide into each other; it forks from components/unite.tsx when it needs
-// to differ.
+// /unite-2 (Brendan, 2026-09-11): the ecosystem landing page, its own
+// component so /unite is untouched. The slide between the two routes and the
+// Red state / Blue state pair come from unite.css, shared.
 export const metadata: Metadata = {
-  title: "Unite 2",
-  description: "What's wrong with America?",
+  title: "Unite",
+  description:
+    "A conversation between Americans in every congressional district, on open infrastructure for the record of American government.",
 }
 
-export default async function Unite2Page() {
-  const code = await readFile(
-    path.join(process.cwd(), "components/canvasui/ParticleScroll.tsx"),
-    "utf8"
-  )
-  return <Unite code={code} />
+export default function Unite2Page() {
+  return <Unite2 />
 }
