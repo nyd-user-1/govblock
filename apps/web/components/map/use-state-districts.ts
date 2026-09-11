@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { geoUrl } from "@/lib/map/geo-url"
 import { empty, grow, type Bounds } from "@/lib/map/bounds"
 import { overlay, type OverlayId } from "@/lib/map/overlays"
 import type { DistrictProps } from "@/components/map/districts-map"
@@ -32,7 +33,7 @@ async function load(id: OverlayId): Promise<ChamberDistricts | null> {
   const o = overlay(id)
   if (!o?.state || !o.chamber) return null
   const [response, members] = await Promise.all([
-    fetch(`/geo/${id}.geojson`),
+    fetch(geoUrl(`/geo/${id}.geojson`)),
     loadMembers(id),
   ])
   if (!response.ok) return null
