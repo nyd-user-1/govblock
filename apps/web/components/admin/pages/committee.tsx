@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 
 import { useRouter } from "next/navigation"
 
-import { useCommittee, useCommittees, type Sponsor } from "@/components/admin/data"
+import { useCommittee, useCommittees } from "@/components/admin/data"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { portraitFor } from "@/lib/imagery"
 import { CitationList } from "@govblock/ui/components/tool-ui/citation"
@@ -90,6 +90,10 @@ function AttendanceCard({ title, series, config }: { title: string; series: ("ma
 }
 
 type HeldBill = NonNullable<ReturnType<typeof useCommittee>["data"]>["bills"][number]
+type SponsorRow = { people_id: number | null; name: string | null; party: string | null; district: string | null }
+type FederalSponsor = { peopleId?: number | null; fullName?: string; firstName?: string; middleName?: string; lastName?: string; party?: string; state?: string; district?: string; bioguideId?: string }
+type BillSponsors = { primary?: SponsorRow[]; cosponsors?: SponsorRow[]; sponsors?: FederalSponsor[] }
+type Person = SponsorRow & { favicon?: string; prime: boolean }
 
 // A bill before the committee (Brendan, 2026-09-11): its number, its title
 // clamped to two lines, its sponsors as tool-ui's stacked citations in the
@@ -98,23 +102,34 @@ type HeldBill = NonNullable<ReturnType<typeof useCommittee>["data"]>["bills"][nu
 function BillCard({ bill, state }: { bill: HeldBill | null; state: string }) {
   const router = useRouter()
   const { session } = useScope()
-  const { data: sponsors } = usePolicy<Sponsor[]>(bill ? "bill-sponsors" : null, { state, session: session ? String(session) : undefined }, { bill: bill?.bill_id })
-  const citations = React.useMemo(
-    () =>
-      (sponsors ?? [])
-        .slice()
-        .sort((a, b) => b.prime - a.prime)
-        .map((m) => ({
-          id: String(m.people_id),
-          href: `https://gov.nysgpt.com/members/${m.people_id}`,
-          title: m.name,
-          snippet: [m.role, m.party, m.district].filter(Boolean).join(" · "),
-          domain: m.prime ? "Sponsor" : "Cosponsor",
-          favicon: portraitFor(m) ?? undefined,
-          type: "webpage" as const,
-        })),
-    [sponsors]
-  )
+  // bill-sponsors answers in one of two shapes: for a state bill the prime
+  // sponsors and the cosponsors as two lists; for a federal bill congress.gov's
+  // own sponsor objects, with a bioguide id that gives a portrait.
+  const { data: sponsors } = usePolicy<BillSponsors>(bill ? "bill-sponsors" : null, { state, session: session ? String(session) : undefined }, { bill: bill?.bill_id })
+  const citations = React.useMemo(() => {
+    const people: Person[] = sponsors?.sponsors
+      ? sponsors.sponsors.map((m, i) => ({
+          people_id: m.peopleId ?? null,
+          name: [m.firstName, m.middleName, m.lastName].filter(Boolean).join(" ") || m.fullName || null,
+          party: m.party ?? null,
+          district: [m.state, m.district].filter(Boolean).join("-") || null,
+          favicon: portraitFor({ bioguide_id: m.bioguideId ?? null }) ?? undefined,
+          prime: i === 0,
+        }))
+      : [
+          ...(sponsors?.primary ?? []).map((m) => ({ ...m, favicon: undefined, prime: true })),
+          ...(sponsors?.cosponsors ?? []).map((m) => ({ ...m, favicon: undefined, prime: false })),
+        ]
+    return people.map((m, i) => ({
+      id: `${m.people_id ?? "c"}-${i}`,
+      href: m.people_id ? `https://gov.nysgpt.com/members/${m.people_id}` : `https://gov.nysgpt.com/bills/${bill?.bill_id}`,
+      title: m.name ?? "—",
+      snippet: [m.prime ? "Sponsor" : "Cosponsor", m.party, m.district].filter(Boolean).join(" · "),
+      domain: m.prime ? "Sponsor" : "Cosponsor",
+      favicon: m.favicon,
+      type: "webpage" as const,
+    }))
+  }, [sponsors, bill?.bill_id])
   return (
     <Card className="h-full">
       <CardContent className="flex h-full flex-col gap-4">
