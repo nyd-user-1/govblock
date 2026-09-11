@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { siteConfig } from "@/lib/config"
+import { ORIGIN_TRIALS } from "@/lib/origin-trials"
 import { fontVariables } from "@/lib/fonts"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
@@ -44,6 +45,9 @@ export default function RootLayout({
       )}
     >
       <head>
+        {ORIGIN_TRIALS.map((trial) => (
+          <meta key={trial.origin + trial.feature} httpEquiv="origin-trial" content={trial.token} />
+        ))}
         {/* Before first paint: which jurisdiction this document is about to be
             for, and the rule that keeps Congress off a Texas reader's screen
             until the client has taken over. */}

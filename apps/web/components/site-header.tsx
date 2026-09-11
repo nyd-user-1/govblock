@@ -10,7 +10,7 @@ import { Separator } from "@govblock/ui/components/ny4/separator"
 // nav and the designer actions are not ported yet).
 export function SiteHeader() {
   return (
-    <header data-slot="site-header" className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden">
+    <header data-slot="site-header" className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden group-has-[[data-slot=unite]]/layout:hidden">
       <div className="container-wrapper px-6 3xl:fixed:px-0">
         <div className="flex h-(--header-height) items-center **:data-[slot=separator]:h-4! 3xl:fixed:container">
           <nav className="hidden items-center gap-0 lg:flex">

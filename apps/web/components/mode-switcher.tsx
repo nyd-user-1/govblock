@@ -13,16 +13,38 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 // circle, now opening a small menu of the four appearances — two lights, two
 // darks — and System, which follows the machine between the two originals.
 // The D key still flips between the two sides of whichever pair you are in.
+//
+// A page may hand in its own `groups` — /unite swaps the second pair for its
+// Red state and Blue state. Each group is a run of items; a separator falls
+// between groups.
+
+export type AppearanceItem = {
+  key: string
+  label: string
+  checked: boolean
+  onSelect: () => void
+}
 
 export function ModeSwitcher({
   variant = "ghost",
   className,
+  groups,
 }: {
   variant?: React.ComponentProps<typeof Button>["variant"]
   className?: string
+  groups?: AppearanceItem[][]
 }) {
   const { setTheme, theme } = useTheme()
   const current = theme ?? "system"
+  const menu = groups ?? [
+    THEMES.map((t) => ({
+      key: t.value,
+      label: t.label,
+      checked: current === t.value,
+      onSelect: () => setTheme(t.value),
+    })),
+    [{ key: "system", label: "System", checked: current === "system", onSelect: () => setTheme("system") }],
+  ]
 
   return (
     <DropdownMenu>
@@ -40,17 +62,17 @@ export function ModeSwitcher({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="w-max min-w-44 rounded-lg">
-        {THEMES.map((t) => (
-          <DropdownMenuItem key={t.value} className="whitespace-nowrap" onClick={() => setTheme(t.value)}>
-            {t.label}
-            {current === t.value && <CheckIcon className="ml-auto size-4" />}
-          </DropdownMenuItem>
+        {menu.map((group, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <DropdownMenuSeparator />}
+            {group.map((item) => (
+              <DropdownMenuItem key={item.key} className="whitespace-nowrap" onClick={item.onSelect}>
+                {item.label}
+                {item.checked && <CheckIcon className="ml-auto size-4" />}
+              </DropdownMenuItem>
+            ))}
+          </React.Fragment>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="whitespace-nowrap" onClick={() => setTheme("system")}>
-          System
-          {current === "system" && <CheckIcon className="ml-auto size-4" />}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

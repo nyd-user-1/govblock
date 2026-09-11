@@ -171,13 +171,13 @@ function parseHex(hex: string): [number, number, number] {
 }
 
 // ── Scene ──────────────────────────────────────────────────────────────────
-function Field({ src }: { src: string }) {
+function Field({ src, fit }: { src: string; fit?: number }) {
   const groupRef = useRef<THREE.Group>(null)
   const mouseRef = useRef(new THREE.Vector3(999, 999, 999))
   const hoverActive = useRef(false)
   const hover = useRef(0)
   const hoverVel = useRef(0)
-  const { gl } = useThree()
+  const { gl, camera, size } = useThree()
   const [data, setData] = useState<{ positions: Float32Array; colors: Float32Array } | null>(null)
 
   useEffect(() => {
@@ -185,6 +185,23 @@ function Field({ src }: { src: string }) {
     sample(DENSITY, src).then((d) => { if (alive) setData(d) })
     return () => { alive = false }
   }, [src])
+
+  // With `fit`, the camera dollies until the sampled image spans that
+  // fraction of whichever canvas edge binds first, on every resize — /unite
+  // hands the flag a box of any shape. Without it, the LAB's fixed camera.
+  useEffect(() => {
+    if (!fit || !data || data.positions.length === 0) return
+    if (!(camera instanceof THREE.PerspectiveCamera)) return
+    let maxX = 0, maxY = 0
+    for (let i = 0; i < data.positions.length; i += 3) {
+      maxX = Math.max(maxX, Math.abs(data.positions[i]))
+      maxY = Math.max(maxY, Math.abs(data.positions[i + 1]))
+    }
+    const aspect = size.width / Math.max(size.height, 1)
+    const halfH = Math.max(maxY, maxX / aspect) / fit
+    camera.position.z = halfH / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    camera.updateProjectionMatrix()
+  }, [fit, data, camera, size.width, size.height])
 
   const { geometry, material } = useMemo(() => {
     const geo = new THREE.BufferGeometry()
@@ -259,7 +276,7 @@ function Field({ src }: { src: string }) {
   )
 }
 
-function Scene({ src }: { src: string }) {
+function Scene({ src, fit }: { src: string; fit?: number }) {
   // The LAB shipped this opaque (alpha: false, BG_COLOR as clear colour) so
   // screen recordings stayed sRGB. Here the canvas sits in a themed panel and
   // paints no background of its own — a transparent clear, and the panel's
@@ -277,7 +294,7 @@ function Scene({ src }: { src: string }) {
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
       style={{ touchAction: 'none' }}
     >
-      <Field src={src} />
+      <Field src={src} fit={fit} />
     </Canvas>
   )
 }
@@ -290,10 +307,10 @@ const SceneNoSSR = dynamic(() => Promise.resolve(Scene), { ssr: false })
  * so only that shell changed; the field, the shaders and every constant above
  * are the generated file untouched.
  */
-export default function ParticleMark({ src = '/hi-res-am-flag.webp', className }: { src?: string; className?: string } = {}) {
+export default function ParticleMark({ src = '/hi-res-am-flag.webp', className, fit }: { src?: string; className?: string; fit?: number } = {}) {
   return (
     <div className={className}>
-      <SceneNoSSR src={src} />
+      <SceneNoSSR src={src} fit={fit} />
     </div>
   )
 }

@@ -1,0 +1,57 @@
+"use client";
+import * as React from "react";
+export interface ThemeToggleSlideRightProps {
+  children: React.ReactNode;
+  // Local change: a returned promise holds the transition's "after" snapshot
+  // until it settles, so a route change can finish rendering first (/unite).
+  onToggle?: () => void | Promise<void>;
+  theme?: "light" | "dark";
+  className?: string;
+  speed?: number;
+  blur?: number;
+}
+export function ThemeToggleSlideRight({
+  children,
+  onToggle,
+  theme,
+  className,
+  speed = 0.5,
+  blur = 0,
+}: ThemeToggleSlideRightProps) {
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const handleClick = async () => {
+    if (isTransitioning) return;
+    if (!document.startViewTransition) {
+      onToggle?.();
+      return;
+    }
+    setIsTransitioning(true);
+    document.documentElement.style.setProperty(
+      "--transition-speed",
+      `${speed}s`,
+    );
+    document.documentElement.style.setProperty(
+      "--transition-blur",
+      `${blur}px`,
+    );
+    document.documentElement.classList.add("theme-slide-right");
+    const transition = document.startViewTransition(() => onToggle?.());
+    try {
+      await transition.finished;
+    } catch (error) {
+      console.warn("Theme transition interrupted:", error);
+    } finally {
+      document.documentElement.classList.remove("theme-slide-right");
+      setIsTransitioning(false);
+    }
+  };
+  return (
+    <div
+      onClick={handleClick}
+      className={className}
+      style={{ pointerEvents: isTransitioning ? "none" : "auto" }}
+    >
+      {children}
+    </div>
+  );
+}
