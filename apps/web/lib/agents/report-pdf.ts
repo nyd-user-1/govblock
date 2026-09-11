@@ -134,10 +134,27 @@ export async function buildReport({
     doc.setTextColor(20)
   }
 
-  // The masthead, once: who made it, what shape it is, and when.
+  // The masthead, once: the mark, who made it, what shape it is, and when.
+  // The mark is Icons.logo redrawn in lines — three blocks in the flag's blue
+  // as one L, the top-right block in its red — at 14pt on the baseline.
+  {
+    const s = 14 / 24
+    const ox = MARGIN
+    const oy = MARGIN - 11
+    doc.setLineWidth(2 * s)
+    doc.setLineCap("round")
+    doc.setLineJoin("round")
+    doc.setDrawColor(10, 49, 97)
+    doc.roundedRect(ox + 2 * s, oy + 6 * s, 16 * s, 16 * s, 2 * s, 2 * s, "S")
+    doc.line(ox + 10 * s, oy + 22 * s, ox + 10 * s, oy + 6 * s)
+    doc.line(ox + 2 * s, oy + 14 * s, ox + 18 * s, oy + 14 * s)
+    doc.setDrawColor(179, 25, 66)
+    doc.roundedRect(ox + 14 * s, oy + 2 * s, 8 * s, 8 * s, 1 * s, 1 * s, "S")
+    doc.setDrawColor(0)
+  }
   doc.setFont("helvetica", "bold")
   doc.setFontSize(11)
-  doc.text("GovBlock", MARGIN, MARGIN)
+  doc.text("GovBlocks", MARGIN + 19, MARGIN)
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8.5)
   doc.setTextColor(110)

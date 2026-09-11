@@ -155,7 +155,7 @@ export const FEATURED: Thread[] = [
         at: AT,
         body: OPEN_PRIMARIES,
         unread: true,
-        attachments: [{ name: "open-primaries-2026-09-07.pdf", meta: "PDF · 10 pages · 264 KB", href: "/reports/open-primaries-2026-09-07.pdf" }],
+        attachments: [{ name: "open-primaries-2026-09-07.pdf", meta: "PDF · 16 pages · 598 KB", href: "/reports/open-primaries-2026-09-07.pdf" }],
         run: {
           ...emptyRun(),
           text: OPEN_PRIMARIES,
