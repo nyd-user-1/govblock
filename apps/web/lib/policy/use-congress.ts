@@ -55,7 +55,7 @@ export function useCongress<T>(
 ) {
   const { state, resolved } = useReadState(record)
   const on = resolved && state === "US" && !!resource
-  const { data } = usePolicy<unknown>(on ? resource : null, { state }, extra)
+  const { data, isLoading } = usePolicy<unknown>(on ? resource : null, { state }, extra)
 
   const live = React.useMemo(
     () => (scope ? scopedRows<T>(data, key, scope, names) : rowsOf<T>(data, key)),
@@ -85,8 +85,13 @@ export function useCongress<T>(
   )
 
   const rows = live.length ? live : held
+  // Still reading: the route has not answered, or it answered empty and the
+  // committed copy is still on its way. A list draws its skeleton on this
+  // rather than "nothing on file" (Brendan, 2026-09-11, on /amendments).
+  const pending = on && ((isLoading && data === undefined) || (wanted && committed === undefined))
   return {
     rows,
+    pending,
     count: familyCount(live.length ? data : committed, rows),
     /** Which of the two answered, for a report and for a reader who asks. */
     source: live.length ? ("aurora" as const) : held.length ? ("committed" as const) : ("none" as const),

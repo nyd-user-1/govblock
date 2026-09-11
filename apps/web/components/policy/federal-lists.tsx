@@ -14,7 +14,8 @@ import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 // `RecordList` is aliased: this file already exports a `RecordList` — the
 // Congressional Record's daily issues — and that is a surface name, not a
 // shape. The canon's list container comes in as `CanonList`.
-import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@/components/policy/record-item"
+import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal, RecordSkeleton } from "@/components/policy/record-item"
+import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 
 // The five families that are a page in their own right: the Senate's
 // confirmation docket, the research library, the daily proceedings, the
@@ -26,7 +27,7 @@ import { RecordAvatar, RecordItem, RecordList as CanonList, RecordSeal } from "@
 // before the scope resolves, so the shared prerendered shell never flashes one
 // jurisdiction's content at a reader who asked for another.
 
-function Shell({ placeholder, rows, count, filter, children, federal }: { placeholder: string; rows: unknown[]; count: number; filter: (query: string) => unknown[]; children: (shown: unknown[]) => React.ReactNode; federal: string }) {
+function Shell({ placeholder, rows, count, filter, children, federal, pending }: { placeholder: string; rows: unknown[]; count: number; filter: (query: string) => unknown[]; children: (shown: unknown[]) => React.ReactNode; federal: string; pending?: boolean }) {
   const { state, resolved } = useJurisdiction()
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
@@ -37,6 +38,14 @@ function Shell({ placeholder, rows, count, filter, children, federal }: { placeh
 
   if (!resolved) return null
   if (state !== "US") return <p className="py-10 text-sm text-muted-foreground">{federal}</p>
+  if (!rows.length && pending) {
+    return (
+      <>
+        <Skeleton className="h-9 w-full rounded-md" />
+        <RecordSkeleton className="my-8" />
+      </>
+    )
+  }
   if (!rows.length) {
     return <p className="py-10 text-sm text-muted-foreground">Nothing on file yet.</p>
   }
@@ -84,7 +93,7 @@ type Nomination = {
 }
 
 export function NominationsList() {
-  const { rows, count } = useCongress<Nomination>("nominations", "nominations", null, { limit: 250 })
+  const { rows, count, pending } = useCongress<Nomination>("nominations", "nominations", null, { limit: 250 })
   const filter = React.useCallback(
     (query: string) =>
       byDate(
@@ -94,7 +103,7 @@ export function NominationsList() {
     [rows]
   )
   return (
-    <Shell placeholder="Search nominations by nominee, office or citation…" rows={rows} count={count} filter={filter} federal="The confirmation docket belongs to the Senate. It reads under the federal jurisdiction.">
+    <Shell pending={pending} placeholder="Search nominations by nominee, office or citation…" rows={rows} count={count} filter={filter} federal="The confirmation docket belongs to the Senate. It reads under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Nomination[]).map((row) => {
@@ -140,7 +149,7 @@ type CrsReport = {
 }
 
 export function ReportsList() {
-  const { rows, count } = useCongress<CrsReport>("crs-reports", "CRSReports", null, { limit: 250 })
+  const { rows, count, pending } = useCongress<CrsReport>("crs-reports", "CRSReports", null, { limit: 250 })
   const filter = React.useCallback(
     (query: string) =>
       byDate(
@@ -150,7 +159,7 @@ export function ReportsList() {
     [rows]
   )
   return (
-    <Shell placeholder="Search reports by title, kind or number…" rows={rows} count={count} filter={filter} federal="These are the research service's reports for the federal legislature. They read under the federal jurisdiction.">
+    <Shell pending={pending} placeholder="Search reports by title, kind or number…" rows={rows} count={count} filter={filter} federal="These are the research service's reports for the federal legislature. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as CrsReport[]).map((row) => (
@@ -199,7 +208,7 @@ const ordinal = (n: number) => {
 }
 
 export function RecordList() {
-  const { rows, count } = useCongress<Issue>("record-issues", "dailyCongressionalRecord", null, { limit: 250 })
+  const { rows, count, pending } = useCongress<Issue>("record-issues", "dailyCongressionalRecord", null, { limit: 250 })
   const filter = React.useCallback(
     (query: string) =>
       byDate(
@@ -209,7 +218,7 @@ export function RecordList() {
     [rows]
   )
   return (
-    <Shell placeholder="Search issues by date or number…" rows={rows} count={count} filter={filter} federal="The daily proceedings are the federal legislature's. They read under the federal jurisdiction.">
+    <Shell pending={pending} placeholder="Search issues by date or number…" rows={rows} count={count} filter={filter} federal="The daily proceedings are the federal legislature's. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Issue[]).map((row) => (
@@ -247,7 +256,7 @@ type Amendment = {
 }
 
 export function AmendmentsList() {
-  const { rows, count } = useCongress<Amendment>("amendments", "amendments", null, { limit: 250 })
+  const { rows, count, pending } = useCongress<Amendment>("amendments", "amendments", null, { limit: 250 })
   const filter = React.useCallback(
     (query: string) =>
       byDate(
@@ -260,7 +269,7 @@ export function AmendmentsList() {
     [rows]
   )
   return (
-    <Shell placeholder="Search amendments by number, purpose, sponsor or bill…" rows={rows} count={count} filter={filter} federal="Amendments are filed against federal bills. They read under the federal jurisdiction.">
+    <Shell pending={pending} placeholder="Search amendments by number, purpose, sponsor or bill…" rows={rows} count={count} filter={filter} federal="Amendments are filed against federal bills. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Amendment[]).map((row) => {
@@ -300,7 +309,7 @@ type Law = {
 }
 
 export function LawsList() {
-  const { rows, count } = useCongress<Law>("laws", "bills", null, { limit: 250 })
+  const { rows, count, pending } = useCongress<Law>("laws", "bills", null, { limit: 250 })
   const filter = React.useCallback(
     (query: string) =>
       byDate(
@@ -310,7 +319,7 @@ export function LawsList() {
     [rows]
   )
   return (
-    <Shell placeholder="Search laws by title, citation or bill…" rows={rows} count={count} filter={filter} federal="These are the public laws of the federal legislature. They read under the federal jurisdiction.">
+    <Shell pending={pending} placeholder="Search laws by title, citation or bill…" rows={rows} count={count} filter={filter} federal="These are the public laws of the federal legislature. They read under the federal jurisdiction.">
       {(shown) => (
         <CanonList className="my-0">
           {(shown as Law[]).map((row) => {

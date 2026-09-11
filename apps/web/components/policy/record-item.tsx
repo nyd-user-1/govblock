@@ -6,6 +6,7 @@ import { truncate } from "@/lib/format"
 import { hasSeal } from "@/lib/imagery"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { cn } from "@govblock/ui/lib/utils"
+import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 
 // The item canon. Every record list on the site draws the same item, so it is
 // drawn in exactly one file.
@@ -25,6 +26,33 @@ import { cn } from "@govblock/ui/lib/utils"
 //
 // No "use client" on purpose: server pages (member, committee) and client
 // lists (bills, the federal families) both render it.
+
+/**
+ * The list while it is still reading: rows in the canon item's own shape —
+ * the seal, the number and its lead, the meta line, two lines of description —
+ * so the page holds its layout and never says "nothing on file" about a
+ * record it has not yet seen (Brendan, 2026-09-11, on /amendments).
+ */
+export function RecordSkeleton({ rows = 8, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cn("not-typeset mt-6 mb-8 flex flex-col divide-y divide-border", className)} aria-busy="true" aria-label="Loading">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex gap-4 px-3 py-3 md:px-4">
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
+            <div className="flex items-baseline gap-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3.5 w-1/2" />
+            </div>
+            <Skeleton className="h-3 w-2/5" />
+            <Skeleton className="mt-1 h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-4/5" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function RecordList({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn("not-typeset mt-6 mb-8 flex flex-col divide-y divide-border", className)}>{children}</div>
