@@ -45,7 +45,7 @@ export default async function BlockDocPage({ params }: { params: Promise<{ slug:
   const { slug } = await params
   const doc = findBlockDoc(slug)
   if (!doc) notFound()
-  const source = await fs.readFile(path.join(/* turbopackIgnore: true */ process.cwd(), doc.file), "utf8").catch(() => "")
+  const source = await fs.readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), doc.file), "utf8").catch(() => "")
   const resources = resourcesIn(source)
   const composition = compositionIn(source, doc.component)
   const at = BLOCK_DOCS.findIndex((d) => d.slug === slug)
