@@ -10,6 +10,7 @@ import Map, {
 } from "react-map-gl/maplibre"
 import "maplibre-gl/dist/maplibre-gl.css"
 
+import { geoUrl } from "@/lib/map/geo-url"
 import { BASEMAP_STYLE } from "@/lib/map/basemap"
 import {
   keyColor,
@@ -123,7 +124,7 @@ function useWashed(
   React.useEffect(() => {
     if (!path) return
     let live = true
-    fetch(path)
+    fetch(geoUrl(path))
       .then((r) => r.json() as Promise<GeoJSON.FeatureCollection>)
       .then((j) => live && setFc(wash(j, key)))
       .catch(() => {})
@@ -228,7 +229,7 @@ export function DistrictsMap({
   const [data, setData] = React.useState<GeoJSON.FeatureCollection | null>(null)
   React.useEffect(() => {
     let live = true
-    fetch("/geo/cd119.geojson")
+    fetch(geoUrl("/geo/cd119.geojson"))
       .then((r) => r.json() as Promise<GeoJSON.FeatureCollection>)
       .then((fc) => live && setData(fc))
       .catch(() => live && setData({ type: "FeatureCollection", features: [] }))
@@ -283,7 +284,7 @@ export function DistrictsMap({
     React.useState<GeoJSON.FeatureCollection | null>(null)
   React.useEffect(() => {
     let live = true
-    fetch("/geo/states.geojson")
+    fetch(geoUrl("/geo/states.geojson"))
       .then((r) => r.json() as Promise<GeoJSON.FeatureCollection>)
       .then((fc) => live && setStatesFc(fc))
       .catch(() => {})

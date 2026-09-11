@@ -12,6 +12,7 @@ import type {
   Polygon,
 } from "geojson"
 
+import { geoUrl } from "@/lib/map/geo-url"
 import { FIPS_TO_STATE } from "@/lib/map/fips"
 import { chambersOfState } from "@/lib/map/state-districts"
 
@@ -44,7 +45,7 @@ const files = new Map<string, Promise<FeatureCollection>>()
 export function loadGeo(path: string) {
   let p = files.get(path)
   if (!p) {
-    p = fetch(path).then((r) => r.json() as Promise<FeatureCollection>)
+    p = fetch(geoUrl(path)).then((r) => r.json() as Promise<FeatureCollection>)
     files.set(path, p)
   }
   return p
@@ -53,7 +54,7 @@ const memberFiles = new Map<string, Promise<Members>>()
 export function loadMembers(id: string) {
   let p = memberFiles.get(id)
   if (!p) {
-    p = fetch(`/geo/${id}-members.json`)
+    p = fetch(geoUrl(`/geo/${id}-members.json`))
       .then((r) =>
         r.ok ? (r.json() as Promise<{ districts: Members }>) : { districts: {} }
       )

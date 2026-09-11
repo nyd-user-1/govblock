@@ -4,6 +4,7 @@ import * as React from "react"
 import dynamic from "next/dynamic"
 import { ChevronRightIcon } from "lucide-react"
 
+import { geoUrl } from "@/lib/map/geo-url"
 import { lowerChamber, STATE_NAMES, stateName } from "@/lib/filters"
 import { useAccount } from "@/lib/auth/use-account"
 import { empty, grow, type Bounds } from "@/lib/map/bounds"
@@ -175,15 +176,15 @@ export function MapWorkspace() {
   }
 
   React.useEffect(() => {
-    fetch("/geo/cd119-acs.json")
+    fetch(geoUrl("/geo/cd119-acs.json"))
       .then((r) => r.json() as Promise<{ districts: Acs }>)
       .then((j) => setAcs(j.districts))
       .catch(() => setAcs({}))
-    fetch("/geo/cd119-party.json")
+    fetch(geoUrl("/geo/cd119-party.json"))
       .then((r) => r.json() as Promise<{ districts: Party }>)
       .then((j) => setParty(j.districts))
       .catch(() => setParty({}))
-    fetch("/geo/cd119.geojson")
+    fetch(geoUrl("/geo/cd119.geojson"))
       .then((r) => r.json() as Promise<GeoJSON.FeatureCollection>)
       .then((fc) => setGeo(boundsOf(fc)))
       .catch(() => setGeo({ states: {}, districts: {}, byState: {} }))
@@ -226,7 +227,7 @@ export function MapWorkspace() {
   const wantsHeat = overlays.has("heat")
   React.useEffect(() => {
     if (!wantsMoney || Object.keys(money).length) return
-    fetch("/geo/cd119-money.json")
+    fetch(geoUrl("/geo/cd119-money.json"))
       .then((r) => r.json() as Promise<{ districts: Money }>)
       .then((j) => setMoney(j.districts))
       .catch(() => {})
@@ -234,7 +235,7 @@ export function MapWorkspace() {
   }, [wantsMoney])
   React.useEffect(() => {
     if (!wantsHeat || heat.areas.length) return
-    fetch("/geo/cd119-heat.json")
+    fetch(geoUrl("/geo/cd119-heat.json"))
       .then((r) => r.json() as Promise<Heat>)
       .then((j) => {
         setHeat(j)
