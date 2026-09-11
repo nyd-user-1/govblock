@@ -50,13 +50,13 @@ written) · **open** (not yet looked at).
 | | Jurisdiction | Publisher | Format | Vendor in front | Status |
 | --- | --- | --- | --- | --- | --- |
 | US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 laws, 61,009 sections |
-| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, ~162,000 sections |
+| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,427 sections |
 | NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,551 sections |
 | DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, but the codified repository has not been pushed since March 2022 | no | open — needs a live source |
-| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **building** — 701 chapters, a long run |
+| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **building** — 701 chapters; a full run is hours at one request at a time |
 | TX | Texas | Legislative Council, `statutes.capitol.texas.gov` | **the site is now an Angular app**; the old `/Docs/<code>/htm/` and `Download.aspx` paths all answer with the shell. Its API has to be found. | no | open |
 | FL | Florida | `flsenate.gov/Laws/Statutes` | HTML and XML per title | no | sized |
-| WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | HTML per title/chapter, bulk available | no | sized |
+| WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | HTML per title/chapter. The Code Reviser's bulk-download page has moved — its old address answers "Page not found" with a 200 — so the bulk route has to be found again | no | sized, bulk address unknown |
 | VA | Virginia | Division of Legislative Automated Systems, `law.lis.virginia.gov` | HTML per title/chapter | no | sized |
 | OH | Ohio | `codes.ohio.gov` (LAWriter, state-run) | HTML per section | no | sized |
 | AZ | Arizona | `azleg.gov/arstitle` | HTML per title/section | no | sized |
