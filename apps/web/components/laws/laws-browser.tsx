@@ -5,6 +5,7 @@ import { BookOpenIcon, ChevronRightIcon, CopyIcon, CheckIcon, FileTextIcon, Fold
 
 import type { LawDoc, LawHit, LawNode, LawSummary } from "@/app/api/laws/route"
 import { fmtNumber } from "@/lib/format"
+import { stateName } from "@/lib/filters"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { useSnapshot } from "@/lib/policy/use-policy"
 import { LawText } from "@/components/laws/law-text"
@@ -15,13 +16,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInput, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 import { cn } from "@govblock/ui/lib/utils"
 
-// The Laws of New York as a repository, the way /create shows a legislature:
-// the laws in the rail, a law's articles and sections as folders and files
-// on the stage, a section's text as the file, and one search box over all of
-// it — this law, or every law. The URL is the location: `?law=GBS&doc=1420`.
+// A jurisdiction's standing law as a repository, the way /create shows a
+// legislature: the laws in the rail, a law's articles and sections as folders
+// and files on the stage, a section's text as the file, and one search box
+// over all of it — this law, or every law. The URL is the location:
+// `/laws/ny?law=GBS&doc=1420`.
 //
-// Text is set as the Open Legislation API gives it, whitespace kept, in a
-// readable measure — the law is prose, not a source file.
+// Text is set as its publisher gives it, whitespace kept, in a readable
+// measure — the law is prose, not a source file.
+//
+// Written for New York, which was loaded first, and made to take a
+// jurisdiction on 2026-09-10 so every state reads on the same page. Nothing
+// here is per-state but the name at the head of the crumbs and the link out to
+// the publisher.
 
 const TYPE_LABEL: Record<string, string> = { CONSOLIDATED: "Consolidated laws", MISC: "Constitution", UNCONSOLIDATED: "Unconsolidated laws", COURT_ACTS: "Court acts", RULES: "Rules" }
 
@@ -34,7 +41,14 @@ const label = (n: { doc_type: string; doc_level_id?: string | null; title?: stri
   return n.title ? `${id} — ${n.title}` : id
 }
 
-export function LawsBrowser() {
+/** Where a jurisdiction publishes the section on screen, for the link out. */
+const PUBLISHER: Record<string, { name: string; href: (law: string, doc: string) => string }> = {
+  NY: { name: "nysenate.gov", href: (law, doc) => `https://www.nysenate.gov/legislation/laws/${law}/${doc}` },
+  CA: { name: "leginfo.legislature.ca.gov", href: (law, doc) => `https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=${law}&sectionNum=${doc}.` },
+  US: { name: "uscode.house.gov", href: (law, doc) => `https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title${law.replace(/^USC0?/, "")}-section${doc.replace(/^.*\/s/, "")}` },
+}
+
+export function LawsBrowser({ state }: { state: string }) {
   const params = useUrlParams(["law", "doc", "q"] as const)
   const law = params.law || null
   const doc = params.doc || null
@@ -43,10 +57,10 @@ export function LawsBrowser() {
   const [filter, setFilter] = React.useState("")
   const [copied, setCopied] = React.useState(false)
 
-  const { data: list } = useSnapshot<{ laws: LawSummary[] }>("/api/laws?list=1")
-  const { data: tree } = useSnapshot<{ law_id: string; law_name: string; law_type: string; nodes: LawNode[] }>(law ? `/api/laws?law=${law}` : null)
-  const { data: node } = useSnapshot<LawDoc>(law && doc ? `/api/laws?law=${law}&doc=${encodeURIComponent(doc)}` : null)
-  const searching = params.q?.trim() ? `/api/laws?q=${encodeURIComponent(params.q.trim())}${scope === "law" && law ? `&law=${law}` : ""}` : null
+  const { data: list } = useSnapshot<{ laws: LawSummary[] }>(`/api/laws?state=${state}&list=1`)
+  const { data: tree } = useSnapshot<{ law_id: string; law_name: string; law_type: string; nodes: LawNode[] }>(law ? `/api/laws?state=${state}&law=${law}` : null)
+  const { data: node } = useSnapshot<LawDoc>(law && doc ? `/api/laws?state=${state}&law=${law}&doc=${encodeURIComponent(doc)}` : null)
+  const searching = params.q?.trim() ? `/api/laws?state=${state}&q=${encodeURIComponent(params.q.trim())}${scope === "law" && law ? `&law=${law}` : ""}` : null
   const { data: results } = useSnapshot<{ hits: LawHit[] }>(searching)
 
   const go = (next: { law?: string | null; doc?: string | null; q?: string | null }) => writeUrlParams({ law: next.law === undefined ? law : next.law, doc: next.doc === undefined ? doc : next.doc, q: next.q === undefined ? params.q || null : next.q }, { history: "push" })
@@ -65,7 +79,7 @@ export function LawsBrowser() {
   const crumbs = (
     <div className="flex min-w-0 items-center gap-1 text-sm font-normal">
       <button type="button" onClick={() => go({ law: null, doc: null, q: null })} className="shrink-0 text-primary hover:underline">
-        New York
+        {stateName(state)}
       </button>
       {current && (
         <>
@@ -178,7 +192,7 @@ export function LawsBrowser() {
                     go({ q: null })
                   }
                 }}
-                placeholder={scope === "law" && current ? `Search the ${current.law_name} Law…` : "Search every law of New York…"}
+                placeholder={scope === "law" && current ? `Search the ${current.law_name} Law…` : `Search every law of ${stateName(state)}…`}
                 className="min-w-0 flex-1 bg-transparent outline-none"
                 aria-label="Search the laws"
               />
@@ -195,9 +209,9 @@ export function LawsBrowser() {
               <XIcon className="size-3.5" />
             </button>
           </div>
-          {shown && (
-            <a href={`https://www.nysenate.gov/legislation/laws/${shown.law_id}/${shown.location_id}`} target="_blank" rel="noreferrer" className="shrink-0 text-xs text-muted-foreground hover:underline">
-              nysenate.gov
+          {shown && PUBLISHER[state] && (
+            <a href={PUBLISHER[state].href(shown.law_id, shown.location_id)} target="_blank" rel="noreferrer" className="shrink-0 text-xs text-muted-foreground hover:underline">
+              {PUBLISHER[state].name}
             </a>
           )}
         </div>
@@ -225,7 +239,7 @@ export function LawsBrowser() {
             </div>
           ) : law && current ? (
             // The law itself, one document, top to bottom.
-            <LawText law={law} lawName={current.law_name} doc={doc} onDoc={(id) => writeUrlParams({ doc: id }, { history: "replace" })} />
+            <LawText state={state} law={law} lawName={current.law_name} doc={doc} onDoc={(id) => writeUrlParams({ doc: id }, { history: "replace" })} />
           ) : !law ? (
             // The organisation page: every law, as a table.
             <div className="m-4 overflow-hidden rounded-lg border">

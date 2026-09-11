@@ -11,7 +11,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 // prev/next, description, then the search field directly beneath.
 const title = "Committees"
 const description = "The standing committees of the jurisdiction in scope, each with the bills before it."
-const previous = { name: "Amendments", url: "/amendments" }
+const previous = { name: "Laws", url: "/laws" }
 const next = { name: "Subjects", url: "/tags" }
 
 export const metadata = { title, description }

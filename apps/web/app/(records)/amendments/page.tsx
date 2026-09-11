@@ -17,7 +17,7 @@ export default function AmendmentsPage() {
       description={description}
       slug="/amendments"
       previous={{ name: "Bills", url: "/bills" }}
-      next={{ name: "Committees", url: "/committees" }}
+      next={{ name: "Laws", url: "/laws" }}
     >
       <AmendmentsList />
     </DocsPage>

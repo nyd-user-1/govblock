@@ -38,7 +38,7 @@ const label = (n: { doc_type: string; doc_level_id?: string | null; title?: stri
 }
 
 /** The law's text, assembled page by page; `entries` map its parts to lines. */
-function useLawText(law: string) {
+function useLawText(law: string, jurisdiction: string) {
   const EMPTY = React.useMemo(() => ({ law, text: "", entries: [] as Entry[], done: false, nodes: 0 }), [law])
   const [loaded, setState] = React.useState<{ law: string; text: string; entries: Entry[]; done: boolean; nodes: number }>(EMPTY)
   // Another law's text is not this law's: until this one's first page lands, it is empty.
@@ -52,7 +52,7 @@ function useLawText(law: string) {
     let nodes = 0
     const step = async () => {
       while (live) {
-        const r = await fetch(`/api/laws?law=${law}&text=1&after=${after}`)
+        const r = await fetch(`/api/laws?state=${jurisdiction}&law=${law}&text=1&after=${after}`)
         if (!r.ok) break
         const page = (await r.json()) as Page
         for (const n of page.nodes) {
@@ -73,12 +73,12 @@ function useLawText(law: string) {
     return () => {
       live = false
     }
-  }, [law])
+  }, [law, jurisdiction])
   return state
 }
 
-export function LawText({ law, lawName, doc, onDoc, allowAll = true }: { law: string; lawName: string; /** A section to scroll to. */ doc: string | null; onDoc: (locationId: string | null) => void; allowAll?: boolean }) {
-  const { text, entries, done, nodes } = useLawText(law)
+export function LawText({ state, law, lawName, doc, onDoc, allowAll = true }: { /** The jurisdiction whose law this is. */ state: string; law: string; lawName: string; /** A section to scroll to. */ doc: string | null; onDoc: (locationId: string | null) => void; allowAll?: boolean }) {
+  const { text, entries, done, nodes } = useLawText(law, state)
   const [wrap] = useDocPref("wrap", true)
   const [fold] = useDocPref("fold", true)
   const [query, setQuery] = React.useState("")
@@ -90,7 +90,7 @@ export function LawText({ law, lawName, doc, onDoc, allowAll = true }: { law: st
   const [copied, setCopied] = React.useState(false)
   const [outlineFilter, setOutlineFilter] = React.useState("")
   const code = React.useRef<CodeViewHandle>(null)
-  const { data: results } = useSnapshot<{ hits: LawHit[] }>(scope === "all" && query.trim().length >= 2 ? `/api/laws?q=${encodeURIComponent(query.trim())}` : null)
+  const { data: results } = useSnapshot<{ hits: LawHit[] }>(scope === "all" && query.trim().length >= 2 ? `/api/laws?state=${state}&q=${encodeURIComponent(query.trim())}` : null)
 
   const onMatches = React.useCallback((found: Match[]) => setMatches(found), [])
   const goto = React.useCallback((line: number) => {
