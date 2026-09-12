@@ -731,12 +731,14 @@ function TraceOverlay({
             }}
           >
             {text}
-            {selected &&
-              (copied ? (
-                <Check className="size-3" aria-hidden />
-              ) : (
-                <Copy className="size-3" aria-hidden />
-              ))}
+            {/* Shown in both states, live in one. Hiding it while hovering
+                read as a missing feature (Brendan, 2026-09-12); dimmed, it
+                says "pin this and I am yours" instead. */}
+            {copied ? (
+              <Check className="size-3 shrink-0" aria-hidden />
+            ) : (
+              <Copy className="size-3 shrink-0" style={{ opacity: selected ? 1 : 0.55 }} aria-hidden />
+            )}
           </button>
         </>
       )}
