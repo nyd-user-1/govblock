@@ -107,10 +107,10 @@ const LAYER: Record<
   Layer,
   { color: string; label: string; note: string; Icon: typeof Component }
 > = {
-  system: { color: "#1c3f75", label: "Design system", note: "packages/ui/src", Icon: Component },
-  shared: { color: "#3b6b52", label: "Shared", note: "apps/web/components", Icon: Boxes },
-  page: { color: "#b0975f", label: "Page", note: "apps/web/app", Icon: FileCode },
-  unknown: { color: "#c4564a", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
+  system: { color: "#7c3aed", label: "Design system", note: "packages/ui/src", Icon: Component },
+  shared: { color: "#2f9e5e", label: "Shared", note: "apps/web/components", Icon: Boxes },
+  page: { color: "#e07a1f", label: "Page", note: "apps/web/app", Icon: FileCode },
+  unknown: { color: "#d92d20", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
 }
 
 /** Max wash boxes drawn at once — beyond this the browser, not the tool, is
@@ -128,6 +128,8 @@ type Info = {
   file: string | null
   line: number | null
   layer: Layer
+  /** Resolved by searching every file rather than one — treat as a guess. */
+  loose?: boolean
   exact: number
   near: number
   files: number
@@ -179,18 +181,20 @@ function gistOf(el: Element): string {
   return t.length > 44 ? t.slice(0, 43) + "…" : t
 }
 
-const keyOf = (el: Element) => `${ownerOf(ownerChain(fiberOf(el)))}|${el.getAttribute("class") ?? ""}`
+/** Deep enough to walk past the framework wrappers to something of ours. */
+const lookupChain = (el: Element) => ownerChain(fiberOf(el), 8)
+const keyOf = (el: Element) => `${lookupChain(el).join(",")}|${el.getAttribute("class") ?? ""}`
 
 // ── dev-server lookups ──────────────────────────────────────────────────────
 
 const one = new Map<string, Info | null>()
 
-async function lookup(component: string, className: string): Promise<Info | null> {
-  const k = `${component}|${className}`
+async function lookup(chain: string[], className: string): Promise<Info | null> {
+  const k = `${chain.join(",")}|${className}`
   if (one.has(k)) return one.get(k) ?? null
   try {
     const qs = new URLSearchParams()
-    if (component) qs.set("component", component)
+    if (chain.length) qs.set("chain", chain.join(","))
     if (className) qs.set("class", className)
     const r = await fetch(`/api/dev-locate?${qs}`)
     const j = r.ok ? ((await r.json()) as Info) : null
@@ -228,8 +232,6 @@ export function DevInspector() {
   /** Up here rather than inside Tree: the key handler has to know which rows
    *  are drawn to step to the next one. */
   const [expanded, setExpanded] = useState<Set<Element>>(new Set())
-  const expandedRef = useRef(expanded)
-  expandedRef.current = expanded
   /** Bumped on scroll and resize so the boxes re-measure; the rects are read
    *  during render, so a re-render is the whole update. */
   const [, setTick] = useState(0)
@@ -244,7 +246,7 @@ export function DevInspector() {
     const chain = ownerChain(fiberOf(el))
     const n: Node = { el, chain, desc: describe(el), gist: gistOf(el), info: null }
     setHover(n)
-    const info = await lookup(ownerOf(chain), el.getAttribute("class") ?? "")
+    const info = await lookup(lookupChain(el), el.getAttribute("class") ?? "")
     const full = { ...n, info }
     setHover((h) => (h?.el === el ? full : h))
     return full
@@ -257,13 +259,13 @@ export function DevInspector() {
       const els = Array.from(document.querySelectorAll<HTMLElement>("body *"))
         .filter((el) => !el.closest("[data-devinspector]") && el.getAttribute("class") && el.offsetParent !== null)
         .slice(0, 3000)
-      const byKey = new Map<string, { component: string; class: string }>()
+      const byKey = new Map<string, { chain: string; class: string }>()
       const keyed: { el: Element; k: string }[] = []
       for (const el of els) {
         const k = keyOf(el)
         keyed.push({ el, k })
         if (!byKey.has(k)) {
-          byKey.set(k, { component: k.slice(0, k.indexOf("|")), class: k.slice(k.indexOf("|") + 1) })
+          byKey.set(k, { chain: k.slice(0, k.indexOf("|")), class: k.slice(k.indexOf("|") + 1) })
         }
       }
       const keys = [...byKey.keys()]
@@ -304,24 +306,33 @@ export function DevInspector() {
         setHover(null)
         setFrozen(null)
         setInspecting(false)
+        // Including the full-page layer wash, which had no way out but the
+        // panel (Brendan, 2026-09-12).
+        setFilter(new Set())
       }
-      if ((HELD(e) || latched || inspecting) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      const ARROWS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]
+      if ((HELD(e) || latched || inspecting) && ARROWS.includes(e.key)) {
         // Walk from whatever is pinned, or from the last thing hovered.
         const cur = frozenRef.current?.el ?? lastEl.current
         if (!cur) return
         e.preventDefault()
-        // The next ROW as drawn (Brendan, 2026-09-12), the way devtools walks.
-        // Stepping DOM parent/child instead meant ⌥↓ dived into the first
-        // child and shut every branch beside it.
-        const rows = visibleRows(document.body, expandedRef.current)
-        const i = rows.indexOf(cur)
+        /**
+         * The tree's axes, not a flat list of rows (Brendan, 2026-09-12): down
+         * goes INTO a thing — card, to the link, to the span, to the text —
+         * and left and right step its siblings. Walking the drawn rows instead
+         * meant ⌥↓ on a card just cycled the other six cards, which is sideways
+         * motion wearing a down arrow.
+         */
+        const sibs = cur.parentElement ? kidsOf(cur.parentElement) : []
+        const at = sibs.indexOf(cur)
         const next =
-          i >= 0
-            ? (e.key === "ArrowDown" ? rows[i + 1] : rows[i - 1]) ?? null
-            : // Not on screen — the panel is shut, or this is a fresh pin.
-              e.key === "ArrowUp"
-              ? cur.parentElement
-              : (kidsOf(cur)[0] ?? null)
+          e.key === "ArrowUp"
+            ? cur.parentElement
+            : e.key === "ArrowDown"
+              ? (kidsOf(cur)[0] ?? null)
+              : e.key === "ArrowLeft"
+                ? (sibs[at - 1] ?? null)
+                : (sibs[at + 1] ?? null)
         if (next && next !== document.documentElement) {
           lastEl.current = next
           // A pinned selection MOVES (Brendan, 2026-09-12). Before this the
@@ -358,7 +369,10 @@ export function DevInspector() {
       const held = HELD(e)
       if (held !== alt) setAlt(held)
       if (inspecting) setMouse({ x: e.clientX, y: e.clientY })
-      if (!(held || latched || inspecting) || frozen) return
+      // In inspect mode the hover keeps moving after a pin — you are meant to
+      // go on looking. In classifier mode the pin freezes it so the chip can
+      // be reached with the pointer.
+      if (!(held || latched || inspecting) || (frozen && !inspecting)) return
       const el = document.elementFromPoint(e.clientX, e.clientY)
       if (!el || el === lastEl.current || el.closest("[data-devinspector]")) return
       lastEl.current = el
@@ -426,15 +440,25 @@ export function DevInspector() {
     })
   }, [frozen])
 
-  // react-trace clears the crosshair the moment something is selected, so the
-  // pointer goes back to being a pointer while you read the chip.
+  /**
+   * A stylesheet, not `body.style.cursor` (Brendan, 2026-09-12: hovering a link
+   * turned the crosshair into a hand). Every element on the page carries its
+   * own cursor rule and a style on <body> loses to all of them; `*` with
+   * !important is the only thing that wins.
+   *
+   * And it stays up after a selection. react-trace drops the crosshair and the
+   * rules the moment you pin something, which leaves inspect mode running with
+   * nothing on screen saying so — you hover, nothing happens, and it reads as
+   * broken.
+   */
   useEffect(() => {
-    if (!inspecting || frozen) return
-    document.body.style.cursor = "crosshair"
-    return () => {
-      document.body.style.cursor = ""
-    }
-  }, [inspecting, frozen])
+    if (!inspecting) return
+    const tag = document.createElement("style")
+    tag.setAttribute("data-devinspector", "")
+    tag.textContent = "*, *::before, *::after { cursor: crosshair !important; }"
+    document.head.append(tag)
+    return () => tag.remove()
+  }, [inspecting])
 
   useEffect(() => {
     if (!inspecting) return
@@ -503,24 +527,24 @@ export function DevInspector() {
 
       {/* Two visual languages, never at once: react-trace's blue while the
           crosshair is on, ours — the layer colour — while a modifier is. */}
-      {inspecting && <TraceOverlay node={frozen ?? hover} selected={!!frozen} mouse={mouse} />}
+      {inspecting && <TraceOverlay hovered={hover} pinned={frozen} mouse={mouse} />}
 
       {!inspecting && (frozen ?? (armed ? hover : null)) && (
         <Chip node={(frozen ?? hover)!} frozen={!!frozen} onRelease={() => setFrozen(null)} />
       )}
 
-      {!open && (
-        <Dock
-          onOpen={() => setOpen(true)}
-          inspecting={inspecting}
-          onInspect={() => {
-            setInspecting((v) => !v)
-            setFrozen(null)
-            setHover(null)
-            lastEl.current = null
-          }}
-        />
-      )}
+      {/* The dock stays while the panel is open (Brendan, 2026-09-12) — the
+          crosshair has to stay reachable with the module up. */}
+      <Dock
+        onOpen={() => setOpen(true)}
+        inspecting={inspecting}
+        onInspect={() => {
+          setInspecting((v) => !v)
+          setFrozen(null)
+          setHover(null)
+          lastEl.current = null
+        }}
+      />
 
       {open && (
         <Panel
@@ -665,14 +689,19 @@ const BLUE = "#3b82f6"
 const BLUE_RULE = "rgba(59,130,246,0.5)"
 
 function TraceOverlay({
-  node,
-  selected,
+  hovered,
+  pinned,
   mouse,
 }: {
-  node: Node | null
-  selected: boolean
+  hovered: Node | null
+  pinned: Node | null
   mouse: { x: number; y: number } | null
 }) {
+  // The pin is what the chip describes; the hover is drawn behind it so you
+  // can see what the next click would take (Brendan, 2026-09-12).
+  const node = pinned ?? hovered
+  const selected = !!pinned
+  const ghost = pinned && hovered && hovered.el !== pinned.el ? hovered.el.getBoundingClientRect() : null
   const r = node?.el.getBoundingClientRect() ?? null
   const [copied, setCopied] = useState(false)
   const text = node ? [node.chain.join(" › ") || node.desc, where(node.info)].filter(Boolean).join(" ") : ""
@@ -683,7 +712,7 @@ function TraceOverlay({
       data-devinspector
       style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2147483645 }}
     >
-      {mouse && !selected && (
+      {mouse && (
         <>
           <div
             style={{
@@ -706,6 +735,22 @@ function TraceOverlay({
             }}
           />
         </>
+      )}
+
+      {ghost && (
+        <div
+          style={{
+            position: "fixed",
+            top: ghost.top,
+            left: ghost.left,
+            width: ghost.width,
+            height: ghost.height,
+            background: "rgba(59,130,246,0.07)",
+            border: "2px dashed rgba(59,130,246,0.7)",
+            borderRadius: 2,
+            boxSizing: "border-box",
+          }}
+        />
       )}
 
       {r && (
@@ -1045,23 +1090,6 @@ function descendants(el: Element, cap = 400): Element[] {
   return out
 }
 
-/**
- * The rows actually on screen, in the order they are drawn — pre-order,
- * descending only into what is open. This is what ⌥↑/⌥↓ steps through
- * (Brendan, 2026-09-12): the walk moves to the NEXT ROW, the way it does in
- * devtools, rather than to the next DOM child.
- */
-export function visibleRows(root: Element, expanded: Set<Element>): Element[] {
-  const out: Element[] = []
-  const walk = (el: Element) => {
-    out.push(el)
-    if (!expanded.has(el)) return
-    for (const c of kidsOf(el)) walk(c)
-  }
-  walk(root)
-  return out
-}
-
 function TreeRow({
   el,
   depth,
@@ -1087,7 +1115,7 @@ function TreeRow({
 
   useEffect(() => {
     let live = true
-    void lookup(ownerOf(chain), el.getAttribute("class") ?? "").then((i) => {
+    void lookup(lookupChain(el), el.getAttribute("class") ?? "").then((i) => {
       if (live) setInfo(i)
     })
     return () => {

@@ -239,6 +239,9 @@ type Resolved = {
   file: string | null
   line: number | null
   layer: Layer
+  /** No component in the chain named a file of ours, so this came from a
+   *  whole-index search and the file may belong to someone else entirely. */
+  loose: boolean
   exact: number
   near: number
   files: number
@@ -246,12 +249,35 @@ type Resolved = {
   verdict: Verdict
 }
 
-async function resolve(component: string, className: string, deep: boolean): Promise<Resolved> {
+/**
+ * ⚠ SCOPE TO A FILE OR SAY NOTHING (Brendan, 2026-09-12). A span on /docs came
+ * back as `app/(records)/forms/[id]/page.tsx:98` because both files carry
+ * `text-sm text-muted-foreground` and the global search took whichever came
+ * first. A confident wrong file is worse than no answer from a tool whose
+ * whole job is leaving no ambiguity about what to edit.
+ *
+ * So the WHOLE owner chain gets tried, not just the nearest name — the nearest
+ * is often a framework component out of node_modules (`LinkComponent` is
+ * Next's `Link`) that no file of ours declares. The first name that does
+ * resolve scopes the search. Only a chain that resolves to nothing at all
+ * falls back to searching everything, and that result is marked `loose` so the
+ * caller can treat it as the guess it is.
+ */
+async function resolve(chain: string[], className: string, deep: boolean): Promise<Resolved> {
   const { lines: idx, decls } = await build()
   const tokens = className.split(/\s+/).filter(Boolean)
   const probe = [...tokens].sort((a, b) => b.length - a.length).slice(0, 4)
 
-  let file = component && /^[A-Z][\w$]*$/.test(component) ? (decls.get(component) ?? null) : null
+  let file: string | null = null
+  for (const name of chain) {
+    if (!/^[A-Z][\w$]*$/.test(name)) continue
+    const hit = decls.get(name)
+    if (hit) {
+      file = hit
+      break
+    }
+  }
+  const loose = !file
   let line: number | null = null
   const inFile = file ? idx.filter((c) => c.file === file) : idx
   const hit = probe.length ? inFile.find((c) => probe.every((t) => c.tokens.has(t))) : undefined
@@ -269,6 +295,7 @@ async function resolve(component: string, className: string, deep: boolean): Pro
     files: 0,
     examples: [] as string[],
     verdict: "unique" as Verdict,
+    loose,
   }
   // The batch pass wants layers and nothing else — counting repeats for 300
   // elements would walk the index 300 times for numbers no one is reading yet.
@@ -316,15 +343,18 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  const component = (url.searchParams.get("component") ?? "").trim()
+  const chain = (url.searchParams.get("chain") ?? url.searchParams.get("component") ?? "")
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean)
   const className = (url.searchParams.get("class") ?? "").trim()
-  if (!component && !className) {
-    return NextResponse.json({ error: "need component or class" }, { status: 400 })
+  if (!chain.length && !className) {
+    return NextResponse.json({ error: "need chain or class" }, { status: 400 })
   }
   try {
-    return NextResponse.json(await resolve(component, className, true))
+    return NextResponse.json(await resolve(chain, className, true))
   } catch {
-    return NextResponse.json({ file: null, line: null, layer: "unknown", verdict: "unique" })
+    return NextResponse.json({ file: null, line: null, layer: "unknown", verdict: "unique", loose: true })
   }
 }
 
@@ -338,11 +368,12 @@ export async function POST(req: Request) {
     return new NextResponse("Not found", { status: 404 })
   }
   try {
-    const { items } = (await req.json()) as { items: { component: string; class: string }[] }
+    const { items } = (await req.json()) as { items: { chain?: string; class: string }[] }
     const out = await Promise.all(
       (items ?? []).slice(0, 800).map(async (it) => {
-        const r = await resolve(it.component ?? "", it.class ?? "", false)
-        return { file: r.file, line: r.line, layer: r.layer }
+        const chain = (it.chain ?? "").split(",").map((n) => n.trim()).filter(Boolean)
+        const r = await resolve(chain, it.class ?? "", false)
+        return { file: r.file, line: r.line, layer: r.layer, loose: r.loose }
       })
     )
     return NextResponse.json({ results: out })
