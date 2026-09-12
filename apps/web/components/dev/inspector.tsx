@@ -323,6 +323,40 @@ export function DevInspector() {
     [latched, inspecting, read]
   )
 
+  /**
+   * Long-press ⌘C, their ⌘X (core/dist/index.js:942 — 600ms, releasing early
+   * cancels). One deliberate difference: they preventDefault the keydown,
+   * which kills native Cut for as long as the tool is mounted. ⌘C is Copy, and
+   * a page you cannot copy from is a worse tool than no shortcut, so the
+   * default stands — a quick ⌘C still copies, and a held one also opens this.
+   */
+  useEffect(() => {
+    if (!IS_DEV) return
+    let timer: number | null = null
+    const cancel = () => {
+      if (timer !== null) window.clearTimeout(timer)
+      timer = null
+    }
+    const down = (e: KeyboardEvent) => {
+      const mod = navigator.platform.startsWith("Mac") ? e.metaKey : e.ctrlKey
+      if (e.key !== "c" || !mod || e.repeat || timer !== null) return
+      timer = window.setTimeout(() => {
+        timer = null
+        setInspecting(true)
+      }, 600)
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "c" || e.key === "Meta" || e.key === "Control") cancel()
+    }
+    document.addEventListener("keydown", down)
+    document.addEventListener("keyup", up)
+    return () => {
+      document.removeEventListener("keydown", down)
+      document.removeEventListener("keyup", up)
+      cancel()
+    }
+  }, [])
+
   // react-trace clears the crosshair the moment something is selected, so the
   // pointer goes back to being a pointer while you read the chip.
   useEffect(() => {
@@ -565,11 +599,12 @@ function TraceOverlay({
   mouse: { x: number; y: number } | null
 }) {
   const r = node?.el.getBoundingClientRect() ?? null
+  const [copied, setCopied] = useState(false)
+  const text = node ? [node.chain.join(" › ") || node.desc, where(node.info)].filter(Boolean).join(" ") : ""
 
   return (
     <div
       data-devinspector
-      aria-hidden
       style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2147483645 }}
     >
       {mouse && !selected && (
@@ -612,11 +647,27 @@ function TraceOverlay({
               boxSizing: "border-box",
             }}
           />
-          <div
+          {/* Their breadcrumb is the component chain; ours carries the file
+              and line too, which is the whole reason this exists — so it is a
+              button, and the click copies it. Live only once the element is
+              pinned: while you are still hovering, a clickable label sitting
+              over the page would eat the click meant to pin it. */}
+          <button
+            type="button"
+            disabled={!selected}
+            onClick={() => {
+              void navigator.clipboard.writeText(text)
+              setCopied(true)
+              window.setTimeout(() => setCopied(false), 1200)
+            }}
             style={{
               position: "fixed",
               top: Math.max(0, r.top - 24),
               left: r.left,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              border: 0,
               background: selected ? BLUE : "rgba(59,130,246,0.85)",
               color: "#fff",
               fontSize: 11,
@@ -626,13 +677,18 @@ function TraceOverlay({
               borderRadius: 4,
               whiteSpace: "nowrap",
               lineHeight: "18px",
+              pointerEvents: selected ? "auto" : "none",
+              cursor: selected ? "pointer" : "default",
             }}
           >
-            {/* Their breadcrumb is the component chain; ours carries the file
-                and line too, which is the whole reason this exists. */}
-            {node!.chain.join(" › ") || node!.desc}
-            {where(node!.info) ? `  ${where(node!.info)}` : ""}
-          </div>
+            {text}
+            {selected &&
+              (copied ? (
+                <Check className="size-3" aria-hidden />
+              ) : (
+                <Copy className="size-3" aria-hidden />
+              ))}
+          </button>
         </>
       )}
     </div>
@@ -865,7 +921,7 @@ function Dock({
           </div>
           <DockButton
             label="Inspector"
-            shortcut="Esc"
+            shortcut={inspecting ? "Esc to exit" : "Long-press ⌘C"}
             on={inspecting}
             onClick={onInspect}
           >
