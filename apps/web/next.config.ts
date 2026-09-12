@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
   // jobs 255–257, 2026-09-11). The page is fully static and no other slug
   // exists, so at runtime it needs nothing traced at all.
   outputFileTracingExcludes: { "/docs/blocks/[slug]": ["**/*"] },
+  // The inspector is development-only, and the guard inside it is not what
+  // keeps it out of the build: an internal early return makes the body
+  // unreachable while the module still ships (verified in 44b — its strings
+  // survived into two production chunks). Aliasing the import to an empty stub
+  // is what actually excludes it.
+  turbopack: {
+    resolveAlias:
+      process.env.NODE_ENV === "development"
+        ? {}
+        : { "@/components/dev/inspector": "./components/dev/inspector.stub.tsx" },
+  },
   experimental: {
     // The /docs pages prerender against the live database. Eight at a time per
     // worker was the default; against a just-resumed Aurora that stampede is

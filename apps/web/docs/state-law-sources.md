@@ -59,32 +59,58 @@ written) · **open** (not yet looked at).
 
 | | Jurisdiction | Publisher | Format | Vendor in front | Status |
 | --- | --- | --- | --- | --- | --- |
-| US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 laws, 61,009 sections |
-| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,427 sections |
+| US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 titles, 61,009 sections |
+| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,428 sections |
 | NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,551 sections |
-| DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, one index per title and one file per section | no | **loaded** — 54 titles, 23,492 sections, current through 7 October 2021 |
-| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **loaded** — 611 chapters, 26,326 sections; 87 more are repealed with no sections left, which is the API's own answer |
+| DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, one index per title and one file per section | no | **loaded** — 54 titles, 23,492 sections |
+| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **loaded** — 611 laws, 26,326 sections |
 | TX | Texas | Legislative Council, `tcss.legis.texas.gov` | one API call per code for its whole tree, then one HTML file per chapter | no | **loaded** — 30 codes, 145,592 sections |
-| FL | Florida | `flsenate.gov/Laws/Statutes` | HTML per chapter, `/ChapterN/All` for the whole of one | no | **building** — 49 titles. Counts requests per IP (`X-Throttle-Reason: crawler-penalty-active`, `Retry-After: 300`) and the penalty stuck to the AWS address, so it runs from a different one at two lanes |
-| WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | HTML per title/chapter. The Code Reviser's bulk-download page has moved — its old address answers "Page not found" with a 200 — so the bulk route has to be found again | no | sized, bulk address unknown |
-| VA | Virginia | Division of Legislative Automated Systems, `law.lis.virginia.gov` | HTML per title/chapter | no | sized |
-| OH | Ohio | `codes.ohio.gov` (LAWriter, state-run) | HTML per section | no | sized |
-| AZ | Arizona | `azleg.gov/arstitle` | HTML per title/section | no | sized |
-| DE | Delaware | Code Revisors, `delcode.delaware.gov` | one HTML page per chapter | no | **loaded** — 31 titles, 10,081 sections. 403s AWS at width; four lanes and a quarter-second apart passes |
-| CT | Connecticut | General Assembly, `cga.ct.gov/current/pub` | one HTML page per chapter, the whole chapter on it | no | **loaded** — 71 titles, 29,671 sections. Serves an incomplete certificate chain; the intermediate its own certificate names is fetched and added |
-| AK | Alaska | `akleg.gov/basis/statutes.asp` | HTML per title | no | sized |
-| CO | Colorado | General Assembly, `leg.colorado.gov` | PDF per title, published free | LexisNexis prints it; the state posts the PDFs | sized |
-| AL | Alabama | `alison.legislature.state.al.us/code-of-alabama` | HTML behind a state-run viewer | no | sized |
-| GA | Georgia | `legis.ga.gov/legislation/ocga` | viewer over LexisNexis | yes — take the statute, leave the OCGA annotations | sized |
-| AR | Arkansas | General Assembly, via LexisNexis | vendor viewer | yes | sized |
-| HI | Hawaii | `capitol.hawaii.gov` | HTML/PDF per chapter; refuses an unknown agent (403) | no | sized |
-| IL | Illinois | `ilga.gov` | HTML; the site was rebuilt and the old ILCS paths are gone | no | open |
-| MI | Michigan | `legislature.mi.gov` | HTML; the MCL paths moved | no | open |
-| NC | North Carolina | General Assembly, `ncleg.gov` | one HTML file per chapter, the whole chapter in it | no | **loaded** — 396 chapters, 41,481 sections |
-| PA | Pennsylvania | Legislative Reference Bureau, `legis.state.pa.us` | one HTML file per title, every unit marked by a `<div class="Comment">` | no | **loaded** — 51 consolidated titles, 14,045 sections. Black-holes the AWS range, so it is fetched from elsewhere; the unconsolidated statutes are a second pass |
-| SC | South Carolina | Legislative Council, `scstatehouse.gov/code` | one HTML page per chapter, unannotated | no | **building** — 63 titles |
-| OR | Oregon | Legislative Counsel, `oregonlegislature.gov/bills_laws/ors` | one HTML file per chapter, ISO-8859-1 | no | **building** — chapters enumerated, the index page names none |
-| — | the remaining 27 states, plus the territories the record covers | | | | open |
+| FL | Florida | `flsenate.gov/Laws/Statutes` | HTML per chapter, `/ChapterN/All` for the whole of one | no | **loaded** — 49 laws, 24,866 sections. Counts requests per IP (`X-Throttle-Reason: crawler-penalty-active`, `Retry-After: 300`) and the penalty stuck to the AWS address, so it was run from another at two lanes and 1.2 s apart |
+| WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | the same page at three depths; one request per section | no | **loaded** — 100 laws, 51,380 sections. The bulk file was never needed |
+| VA | Virginia | Division of Legislative Automated Systems, `law.lis.virginia.gov` | one page per section; the full-chapter view renders on the client | no | **loaded** — 61 laws, 33,355 sections. The API registration has not come back, and nothing waited on it |
+| OH | Ohio | Legislative Service Commission, `codes.ohio.gov` | the chapter page carries every section in full | no | **loaded** — 976 laws, 33,830 sections |
+| AZ | Arizona | Legislative Council, `azleg.gov` | one small HTML file per section | no | **loaded** — 47 laws, 24,960 sections. Sucuri answers a bare 307 once a count is passed and holds the AWS address there, so it runs from another |
+| DE | Delaware | Code Revisors, `delcode.delaware.gov` | one HTML page per chapter | no | **loaded** — 31 laws, 10,081 sections. 403s AWS at width; four lanes and a quarter-second apart passes |
+| CT | Connecticut | General Assembly, `cga.ct.gov/current/pub` | one HTML page per chapter, the whole chapter on it | no | **loaded** — 71 laws, 29,671 sections. Serves an incomplete certificate chain; the intermediate its own certificate names is fetched and added |
+| AK | Alaska | Legislative Affairs Agency, `akleg.gov/basis` | the site's own TOC and print endpoints; the print view is a window that is paged | no | **building** — 12,846 sections so far |
+| CO | Colorado | Office of Legislative Legal Services, `olls.info/crs` | the whole Code as one 37 MB HTML archive, a file per title | no | **loaded** — 44 titles, 35,101 sections. The PDFs the ledger recorded are beside it; the HTML is better |
+| AL | Alabama | Legislative Services Agency, `gql.api.alison.legislature.state.al.us` | GraphQL: one call returns the whole hierarchy, one call per section returns its content | no | **building** — 25,803 sections so far. The viewer is a Next.js client; introspection is off, so the queries are the ones its own bundle sends |
+| GA | Georgia | `legis.ga.gov/legislation/ocga` | the page is an application shell of 1.5 KB that names no code; the OCGA itself is served by LexisNexis's viewer | yes — take the statute, leave the OCGA annotations | **blocked** — no open address for the text has been found. Next: the viewer's own API from its network calls, and the General Assembly's bulk request |
+| HI | Hawaii | Legislative Reference Bureau, `capitol.hawaii.gov/hrscurrent` | a directory listing: one file per section | no | **loaded** — 696 chapters, 10,120 sections. Refuses the AWS address with a 403, so it runs from another |
+| IL | Illinois | General Assembly, `ilga.gov` | an act's full-text view is the whole act in one request | no | **loaded** — 2,816 acts, 72,652 sections. The rebuilt site's paths are `/Legislation/ILCS/Chapters` → `Acts?ChapterID=` → `details?…ChapAct=FullText` |
+| MI | Michigan | Legislative Service Bureau, `legislature.mi.gov` | `/Home/RenderDoc?objectName=mcl-chapN` renders a whole chapter | no | **loaded** — 199 laws, 41,752 sections. The old MCL paths answer 400; the render endpoint is the one the site itself uses |
+| NC | North Carolina | General Assembly, `ncleg.gov` | one HTML file per chapter, the whole chapter in it | no | **loaded** — 396 laws, 41,481 sections |
+| PA | Pennsylvania | Legislative Reference Bureau, `legis.state.pa.us` | one HTML file per title, every unit marked by a `<div class="Comment">` | no | **loaded** — 51 laws, 14,045 sections. Black-holes the AWS range, so it is fetched from elsewhere; the unconsolidated statutes are a second pass |
+| SC | South Carolina | Legislative Council, `scstatehouse.gov/code` | one HTML page per chapter, unannotated | no | **loaded** — 63 laws, 30,991 sections |
+| OR | Oregon | Legislative Counsel, `oregonlegislature.gov/bills_laws/ors` | one HTML file per chapter, ISO-8859-1 | no | **loaded** — 552 laws, 61,141 sections |
+| NV | Nevada | Legislative Counsel Bureau, `leg.state.nv.us/NRS` | one HTML file per chapter, windows-1252 | no | **loaded** — 834 laws, 43,768 sections |
+| VT | Vermont | Office of Legislative Counsel, `legislature.vermont.gov` | one page per section | no | **loaded** — 1,321 laws, 19,019 sections |
+| MN | Minnesota | Office of the Revisor, `revisor.mn.gov` | one page per section; no machine-readable chapter list, so chapters are enumerated | no | **loaded** — 1,016 laws, 51,103 sections |
+| MO | Missouri | Revisor of Statutes, `revisor.mo.gov` | one page per section | no | **loaded** — 452 laws, 29,275 sections |
+| MD | Maryland | General Assembly, `mgaleg.maryland.gov` | `/api/Laws/GetSections` lists an article's sections; one page each | LexisNexis prints the annotated edition; the site serves the statute alone | **loaded** — 36 articles, 40,053 sections |
+| WI | Wisconsin | Legislative Reference Bureau, `docs.legis.wisconsin.gov` | one page per section; the chapter's contents scroll sixty entries at a time | no | **loaded** — 470 laws, 16,344 sections |
+| WV | West Virginia | Legislature, `code.wvlegislature.gov` | chapter, article and section pages | no | **building** — 45 laws, 11,294 sections |
+| ID | Idaho | Legislative Services Office, `legislature.idaho.gov` | titles, chapters and sections; the statute carries no class of its own and is cut out of the page's prose | no | **building** — 121 laws, 1,316 sections |
+| KY | Kentucky | Legislative Research Commission, `apps.legislature.ky.gov` | one PDF per section | no | **loaded** — 542 laws, 35,577 sections |
+| ND | North Dakota | Legislative Council, `ndlegis.gov/cencode` | one PDF per chapter; the chapters are enumerated | no | **loaded** — 872 laws, 17,949 sections |
+| IA | Iowa | Legislative Services Agency, `legis.iowa.gov/docs/code` | one PDF per chapter; the chapters are enumerated | no | **loaded** — 1,120 laws, 26,680 sections |
+| WY | Wyoming | Legislative Service Office, `wyoleg.gov/statutes/compress` | one PDF per title | no | **loaded** — 42 laws, 20,989 sections |
+| ME | Maine | Revisor of Statutes, `legislature.maine.gov/legis/statutes` | a file tree: title, chapter and section pages | no | **loaded** — 39 laws, 32,753 sections |
+| RI | Rhode Island | General Assembly, `webserver.rilegislature.gov/Statutes` | a file tree: title, chapter and section pages | no | **loaded** — 2,468 laws, 32,458 sections |
+| MT | Montana | Legislative Services Division, `archive.legmt.gov/bills/mca` | index pages four deep, one file per section | annotations are licensed for the printed edition; the site serves the statute | **loaded** — 869 laws, 44,150 sections |
+| OK | Oklahoma | Legislature, `oklegislature.gov/OK_Statutes` | one PDF per complete title | no | **loaded** — 82 laws, 35,658 sections |
+| UT | Utah | `le.utah.gov/xcode` | the pages render on the client and name no chapter; only `Title1/1.html` answers, and every chapter and section path tried returns 404 | no | **blocked** — the data endpoint has not been found; the bundle names only `searchCode.jsp`. Next: the Office of Legislative Research and General Counsel's bulk publication, and the search endpoint as an index |
+| SD | South Dakota | `sdlegislature.gov` | `/api/Statutes/Title` returns all 71 titles as JSON; every other path under `/api/Statutes` falls through to the application shell | no | **blocked** — the children endpoint has not been found. Next: the statute route's own lazily-loaded chunk, and the Codified Laws PDFs |
+| NE | Nebraska | Revisor of Statutes, `nebraskalegislature.gov` | `display-chapters.php` is a whole chapter with its text | no | **loaded** — 90 chapters, 55,676 sections |
+| NH | New Hampshire | General Court, `gencourt.state.nh.us/rsa/html` | a file tree; each chapter has a merged file that is the whole of it | no | **building** — 1,787 chapters; the host hangs up under width, so it runs at three lanes and a failure is a gap rather than a stop |
+| LA | Louisiana | `legis.la.gov` | the table of contents navigates by ASP.NET postbacks, so no address addresses a title or a chapter; `Law.aspx?d=<id>` does address a section | no | **blocked** — the tree cannot be walked by address. Next: enumerate the document ids, which are dense, and rebuild the tree from each section's own citation |
+| NJ | New Jersey | `lis.njleg.state.nj.us` | the statutes sit behind a Folio `nxt/gateway.dll` viewer, which refuses a plain GET | no | **blocked**. Next: the viewer's own query strings, and the OLS bulk request |
+| KS | Kansas | `ksrevisor.gov` / `kslegislature.gov` | the Revisor's chapter paths answer 404 and the Legislature's statute index carries no link | no | **blocked** — the current address has not been found. Next: the Revisor's own index page and the Legislature's search endpoint |
+| MS | Mississippi | `billstatus.ls.state.ms.us` | answers 403; the Code is published through a vendor viewer | yes | **blocked**. Next: the Secretary of State's publication and the Legislature's own bulk request |
+| NM | New Mexico | `nmonesource.com` | the Compilation Commission's viewer; the paths tried answer 404 | yes — the Commission publishes under contract | **blocked**. Next: the viewer's own API, and the Commission's bulk terms |
+| IN | Indiana | `iga.in.gov` | a React application with no statute in its HTML; the MyIGA key was requested and has not come back | no | **blocked** — no open address for the text has been found. Next: the application's own data calls, and the key |
+| AR | Arkansas | `arkleg.state.ar.us` | the code path answers with 42 bytes; the Code is published through LexisNexis | yes | **blocked**. Next: the Bureau of Legislative Research's own files |
+| TN | Tennessee | `lexisnexis.com/hottopics/tncode` | a vendor viewer, 3.7 KB of shell | yes — take the statute, leave the annotations | **blocked**. Next: the viewer's API, and the Secretary of State's publication |
 
 ## Notes per source
 
