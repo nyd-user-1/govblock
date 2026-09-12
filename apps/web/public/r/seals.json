@@ -5,8 +5,8 @@
   "description": "A jurisdiction's flag chip, a chamber's seal, a member's portrait with its fallback, and a party dot.",
   "registryDependencies": [
     "utils",
-    "@nysgpt/policy-filters",
-    "@nysgpt/policy-imagery"
+    "@44gov/policy-filters",
+    "@44gov/policy-imagery"
   ],
   "files": [
     {

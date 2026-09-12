@@ -33,11 +33,11 @@ export default function BlocksIndexPage() {
         GovBlock&rsquo;s parts install the way any shadcn registry&rsquo;s do. Name it once in your <code>components.json</code>:
       </p>
       <pre>
-        <code>{`"registries": {\n  "@nysgpt": "https://gov.nysgpt.com/r/{name}.json"\n}`}</code>
+        <code>{`"registries": {\n  "@44gov": "https://44gov.nysgpt.com/r/{name}.json"\n}`}</code>
       </pre>
       <p>Then take what you need. Anything an item depends on arrives with it.</p>
       <pre>
-        <code>npx shadcn@latest add @nysgpt/district-join</code>
+        <code>npx shadcn@latest add @44gov/district-join</code>
       </pre>
       <p>
         These are published today. The blocks below are not yet among them: they read the site&rsquo;s own card frame and jurisdiction, which does not travel.
@@ -54,7 +54,7 @@ export default function BlocksIndexPage() {
           {REGISTRY_ITEMS.map((item) => (
             <tr key={item.name}>
               <td>
-                <code>@nysgpt/{item.name}</code>
+                <code>@44gov/{item.name}</code>
               </td>
               <td>{item.kind}</td>
               <td>{item.what}</td>

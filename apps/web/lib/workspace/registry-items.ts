@@ -1,4 +1,4 @@
-// What the @nysgpt registry publishes (2026-09-10). One list, read by the docs
+// What the @44gov registry publishes (2026-09-10). One list, read by the docs
 // page; registry.json at the repo root is what the build reads. Keep the two
 // in step — a name here that is not there is a command that 404s.
 

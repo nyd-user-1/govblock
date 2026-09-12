@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
-  "name": "nysgpt",
-  "homepage": "https://gov.nysgpt.com",
+  "name": "44gov",
+  "homepage": "https://44gov.nysgpt.com",
   "items": [
     {
       "name": "state-fips",
@@ -77,8 +77,8 @@
       "title": "District join",
       "description": "Who represents a point. Ray-cast point in polygon over the district files, answering Congress, both state chambers and the county at once.",
       "registryDependencies": [
-        "@nysgpt/state-fips",
-        "@nysgpt/state-districts"
+        "@44gov/state-fips",
+        "@44gov/state-districts"
       ],
       "files": [
         {
@@ -110,7 +110,7 @@
       "title": "Policy imagery",
       "description": "Which picture a jurisdiction, chamber or member gets, and which colour a party gets.",
       "registryDependencies": [
-        "@nysgpt/policy-filters"
+        "@44gov/policy-filters"
       ],
       "files": [
         {
@@ -140,8 +140,8 @@
       "description": "A jurisdiction's flag chip, a chamber's seal, a member's portrait with its fallback, and a party dot.",
       "registryDependencies": [
         "utils",
-        "@nysgpt/policy-filters",
-        "@nysgpt/policy-imagery"
+        "@44gov/policy-filters",
+        "@44gov/policy-imagery"
       ],
       "files": [
         {

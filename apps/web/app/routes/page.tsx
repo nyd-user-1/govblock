@@ -135,7 +135,7 @@ export default function RoutesPage() {
         </section>
         <section>
           <h2 className="mb-3 text-lg font-semibold">Registry files</h2>
-          <p className="mb-3 text-sm text-muted-foreground">Static JSON under public/r, the @nysgpt shadcn registry.</p>
+          <p className="mb-3 text-sm text-muted-foreground">Static JSON under public/r, the @44gov shadcn registry.</p>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {REGISTRY.map((n) => (
               <a key={n} href={`/r/${n}.json`} className="text-xs text-primary hover:underline">

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds the @nysgpt registry from registry.json into apps/web/public/r, then
+// Builds the @44gov registry from registry.json into apps/web/public/r, then
 // makes the copies installable in somebody else's tree.
 //
 // The source files are ours: they import the design system by its workspace
@@ -25,7 +25,7 @@ const REWRITES = [
   // Flags, seals and the boundary files are ours and they are public. A
   // consumer's own tree has none of them, so the copies read them from the
   // site rather than from a path that will 404.
-  [/(["'`])\/(geo|flags|chambers)\//g, "$1https://gov.nysgpt.com/$2/"],
+  [/(["'`])\/(geo|flags|chambers)\//g, "$1https://44gov.nysgpt.com/$2/"],
 ]
 
 fs.rmSync(out, { recursive: true, force: true })
