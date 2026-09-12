@@ -109,7 +109,7 @@ const LAYER: Record<
 > = {
   system: { color: "#1c3f75", label: "Design system", note: "packages/ui/src", Icon: Component },
   shared: { color: "#3b6b52", label: "Shared", note: "apps/web/components", Icon: Boxes },
-  page: { color: "#b0975f", label: "Page-local", note: "apps/web/app", Icon: FileCode },
+  page: { color: "#b0975f", label: "Page", note: "apps/web/app", Icon: FileCode },
   unknown: { color: "#c4564a", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
 }
 
@@ -225,6 +225,11 @@ export function DevInspector() {
    *  and named. No modifier held; the crosshair on the dock turns it on. */
   const [inspecting, setInspecting] = useState(false)
   const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null)
+  /** Up here rather than inside Tree: the key handler has to know which rows
+   *  are drawn to step to the next one. */
+  const [expanded, setExpanded] = useState<Set<Element>>(new Set())
+  const expandedRef = useRef(expanded)
+  expandedRef.current = expanded
   /** Bumped on scroll and resize so the boxes re-measure; the rects are read
    *  during render, so a re-render is the whole update. */
   const [, setTick] = useState(0)
@@ -305,10 +310,18 @@ export function DevInspector() {
         const cur = frozenRef.current?.el ?? lastEl.current
         if (!cur) return
         e.preventDefault()
+        // The next ROW as drawn (Brendan, 2026-09-12), the way devtools walks.
+        // Stepping DOM parent/child instead meant ⌥↓ dived into the first
+        // child and shut every branch beside it.
+        const rows = visibleRows(document.body, expandedRef.current)
+        const i = rows.indexOf(cur)
         const next =
-          e.key === "ArrowUp"
-            ? cur.parentElement
-            : (Array.from(cur.children).find((c) => !c.closest("[data-devinspector]")) ?? null)
+          i >= 0
+            ? (e.key === "ArrowDown" ? rows[i + 1] : rows[i - 1]) ?? null
+            : // Not on screen — the panel is shut, or this is a fresh pin.
+              e.key === "ArrowUp"
+              ? cur.parentElement
+              : (kidsOf(cur)[0] ?? null)
         if (next && next !== document.documentElement) {
           lastEl.current = next
           // A pinned selection MOVES (Brendan, 2026-09-12). Before this the
@@ -401,6 +414,17 @@ export function DevInspector() {
       cancel()
     }
   }, [])
+
+  // Everything above the selection opens, so the row it lands on is drawn —
+  // without re-rooting, which is what used to throw the ancestors off the top.
+  useEffect(() => {
+    if (!frozen) return
+    setExpanded((prev) => {
+      const n = new Set(prev)
+      for (let a = frozen.el.parentElement; a; a = a.parentElement) n.add(a)
+      return n
+    })
+  }, [frozen])
 
   // react-trace clears the crosshair the moment something is selected, so the
   // pointer goes back to being a pointer while you read the chip.
@@ -516,6 +540,8 @@ export function DevInspector() {
           onSelect={(el) => {
             void read(el).then(setFrozen)
           }}
+          expanded={expanded}
+          setExpanded={setExpanded}
         />
       )}
     </>
@@ -650,6 +676,7 @@ function TraceOverlay({
   const r = node?.el.getBoundingClientRect() ?? null
   const [copied, setCopied] = useState(false)
   const text = node ? [node.chain.join(" › ") || node.desc, where(node.info)].filter(Boolean).join(" ") : ""
+  const chipLayer = LAYER[node?.info?.layer ?? "unknown"]
 
   return (
     <div
@@ -717,7 +744,9 @@ function TraceOverlay({
               alignItems: "center",
               gap: 5,
               border: 0,
-              background: selected ? BLUE : "rgba(59,130,246,0.85)",
+              // The chip is the layer's colour now (Brendan, 2026-09-12), so
+              // what a thing IS reads off the label without a legend.
+              background: selected ? chipLayer.color : `${chipLayer.color}d9`,
               color: "#fff",
               fontSize: 11,
               fontFamily: "ui-monospace, monospace",
@@ -730,6 +759,7 @@ function TraceOverlay({
               cursor: selected ? "pointer" : "default",
             }}
           >
+            <chipLayer.Icon className="size-3 shrink-0" aria-hidden />
             {text}
             {/* Shown in both states, live in one. Hiding it while hovering
                 read as a missing feature (Brendan, 2026-09-12); dimmed, it
@@ -1000,9 +1030,8 @@ function Dock({
 const kidsOf = (el: Element) =>
   Array.from(el.children).filter((c) => !c.closest("[data-devinspector]"))
 
-/** Every descendant that could be opened, so "expand recursively" has a set to
- *  add. Capped: a page's body has thousands, and a tree that long is not read,
- *  it is scrolled past. */
+/** Every descendant that could be opened. Capped: a page's body has thousands,
+ *  and a tree that long is not read, it is scrolled past. */
 function descendants(el: Element, cap = 400): Element[] {
   const out: Element[] = []
   const walk = (n: Element) => {
@@ -1013,6 +1042,23 @@ function descendants(el: Element, cap = 400): Element[] {
     }
   }
   walk(el)
+  return out
+}
+
+/**
+ * The rows actually on screen, in the order they are drawn — pre-order,
+ * descending only into what is open. This is what ⌥↑/⌥↓ steps through
+ * (Brendan, 2026-09-12): the walk moves to the NEXT ROW, the way it does in
+ * devtools, rather than to the next DOM child.
+ */
+export function visibleRows(root: Element, expanded: Set<Element>): Element[] {
+  const out: Element[] = []
+  const walk = (el: Element) => {
+    out.push(el)
+    if (!expanded.has(el)) return
+    for (const c of kidsOf(el)) walk(c)
+  }
+  walk(root)
   return out
 }
 
@@ -1032,6 +1078,8 @@ function TreeRow({
   selectedEl: Element | null
 }) {
   const [info, setInfo] = useState<Info | null>(null)
+  const [hovered, setHovered] = useState(false)
+  const row = useRef<HTMLDivElement | null>(null)
   const chain = useMemo(() => ownerChain(fiberOf(el)), [el])
   const kids = kidsOf(el)
   const open = expanded.has(el)
@@ -1047,12 +1095,21 @@ function TreeRow({
     }
   }, [el, chain])
 
+  // Walking with the keyboard has to keep the row it lands on in sight, and
+  // "nearest" is the one that does not yank the whole list around to do it.
+  useEffect(() => {
+    if (isSelected) row.current?.scrollIntoView({ block: "nearest" })
+  }, [isSelected])
+
   const layer = info?.layer ?? "unknown"
   const { Icon, color } = LAYER[layer]
 
   return (
     <>
       <div
+        ref={row}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -1060,7 +1117,7 @@ function TreeRow({
           paddingLeft: 4 + depth * 12,
           paddingRight: 4,
           borderRadius: 3,
-          background: isSelected ? "var(--accent)" : "transparent",
+          background: isSelected ? "var(--accent)" : hovered ? "var(--muted)" : "transparent",
           minWidth: 0,
         }}
       >
@@ -1126,19 +1183,24 @@ function TreeRow({
 }
 
 /**
- * The DOM under what is selected, each row named by the component that owns it
- * and carrying the layer it resolves to. Rooted at the SELECTION rather than at
- * the document, so ⌥↑ re-roots it higher and the walk and the tree drive each
- * other instead of competing.
+ * The page's tree, rooted at <body> and STAYING there (Brendan, 2026-09-12).
+ * It used to re-root on whatever you selected, which shot the ancestors off
+ * the top of the list and collapsed the branch you were reading. Selecting a
+ * row now only highlights it; the shape of the tree is yours to set.
  */
-function Tree({ root, onSelect }: { root: Element; onSelect: (el: Element) => void }) {
-  const [expanded, setExpanded] = useState<Set<Element>>(() => new Set([root]))
-
-  // A new selection opens itself, and nothing else is forgotten — walking up
-  // and back down should not cost you the branch you had already opened.
-  useEffect(() => {
-    setExpanded((prev) => new Set(prev).add(root))
-  }, [root])
+function Tree({
+  selectedEl,
+  expanded,
+  setExpanded,
+  onSelect,
+}: {
+  selectedEl: Element | null
+  expanded: Set<Element>
+  setExpanded: React.Dispatch<React.SetStateAction<Set<Element>>>
+  onSelect: (el: Element) => void
+}) {
+  const [allOpen, setAllOpen] = useState(false)
+  const root = typeof document === "undefined" ? null : document.body
 
   const toggle = (el: Element) =>
     setExpanded((prev) => {
@@ -1148,34 +1210,33 @@ function Tree({ root, onSelect }: { root: Element; onSelect: (el: Element) => vo
       return n
     })
 
-  const expandAll = () =>
+  // One button, two states, because they are one decision (Brendan,
+  // 2026-09-12). Collapsing leaves the root open — devtools' sense of it.
+  const toggleAll = () => {
+    if (!root) return
     setExpanded((prev) => {
       const n = new Set(prev)
-      n.add(root)
-      for (const d of descendants(root)) n.add(d)
-      return n
-    })
-
-  // Devtools' sense of it: the node stays open, everything under it shuts.
-  const collapseKids = () =>
-    setExpanded((prev) => {
-      const n = new Set(prev)
-      for (const d of descendants(root)) n.delete(d)
+      if (allOpen) for (const d of descendants(root)) n.delete(d)
+      else for (const d of descendants(root)) n.add(d)
       return n.add(root)
     })
+    setAllOpen((v) => !v)
+  }
+
+  if (!root) return null
 
   return (
     <div>
       <Head>
         <span>Tree</span>
-        <span style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={expandAll} title="Expand recursively" style={bare}>
-            <UnfoldVertical className="size-3.5" />
-          </button>
-          <button type="button" onClick={collapseKids} title="Collapse children" style={bare}>
-            <FoldVertical className="size-3.5" />
-          </button>
-        </span>
+        <button
+          type="button"
+          onClick={toggleAll}
+          title={allOpen ? "Collapse children" : "Expand recursively"}
+          style={bare}
+        >
+          {allOpen ? <FoldVertical className="size-4" /> : <UnfoldVertical className="size-4" />}
+        </button>
       </Head>
       <div style={{ maxHeight: 260, overflowY: "auto", margin: "0 -7px" }}>
         <TreeRow
@@ -1184,13 +1245,14 @@ function Tree({ root, onSelect }: { root: Element; onSelect: (el: Element) => vo
           expanded={expanded}
           toggle={toggle}
           onSelect={onSelect}
-          selectedEl={root}
+          selectedEl={selectedEl}
         />
       </div>
-      <p style={note}>⌥↑ / ⌥↓ walks. A row re-roots this and moves the highlight.</p>
+      <p style={note}>⌥↑ / ⌥↓ walks the rows. A row moves the highlight.</p>
     </div>
   )
 }
+
 
 // ── the panel ───────────────────────────────────────────────────────────────
 
@@ -1209,6 +1271,8 @@ function Panel({
   hover,
   selected,
   onSelect,
+  expanded,
+  setExpanded,
 }: {
   onClose: () => void
   latched: boolean
@@ -1224,6 +1288,8 @@ function Panel({
   hover: Node | null
   selected: Node | null
   onSelect: (el: Element) => void
+  expanded: Set<Element>
+  setExpanded: React.Dispatch<React.SetStateAction<Set<Element>>>
 }) {
   const d = useDrag<HTMLDivElement>({ top: 18, right: 18 })
   // Filtering needs the page scanned. Doing it here rather than in an effect
@@ -1265,9 +1331,17 @@ function Panel({
         <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 500, letterSpacing: "-0.005em" }}>
           Inspector
         </span>
-        <button type="button" onClick={() => setLatched(!latched)} style={pill(latched)} aria-pressed={latched} title="⌥⇧I">
-          {latched ? "On" : "Off"}
+        {/* The scan is the panel's work, not the Layers section's, so it sits
+            in the header with the other controls (Brendan, 2026-09-12). */}
+        <button
+          type="button"
+          onClick={() => void scanPage()}
+          style={{ ...bare, fontSize: 10, letterSpacing: "0.12em" }}
+          title="Resolve every element on the page"
+        >
+          {scanning ? "SCANNING…" : scan ? "RESCAN" : "SCAN"}
         </button>
+        <Switch on={latched} onChange={setLatched} label="Keep the inspector armed (⌥⇧I)" />
         <button
           type="button"
           onClick={onClose}
@@ -1291,13 +1365,6 @@ function Panel({
         <div>
           <Head>
             <span>Layers</span>
-            <button
-              type="button"
-              onClick={() => void scanPage()}
-              style={{ ...bare, fontSize: 10, letterSpacing: "0.12em" }}
-            >
-              {scanning ? "SCANNING…" : scan ? "RESCAN" : "SCAN PAGE"}
-            </button>
           </Head>
           {LAYERS.map((l) => {
             const on = filter.has(l)
@@ -1356,7 +1423,7 @@ function Panel({
               </button>
             )
           })}
-          {!scan && !scanning && <p style={note}>Click a layer, or SCAN PAGE, to count and highlight.</p>}
+          {!scan && !scanning && <p style={note}>Click a layer, or SCAN, to count and highlight.</p>}
           {filter.size > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
               <button type="button" onClick={() => setFilter(new Set())} style={{ ...bare, fontSize: 11 }}>
@@ -1396,14 +1463,13 @@ function Panel({
               {hover.info && (
                 <>
                   <div className="mt-3 grid grid-cols-3 border-t border-l border-border" style={{ borderRadius: 3 }}>
+                    {/* The icon alone — the row above already names the layer,
+                        and the word was saying it a second time. */}
                     <Cell label="Layer">
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        {(() => {
-                          const { Icon, color } = LAYER[hover.info!.layer]
-                          return <Icon className="size-3.5" style={{ color }} aria-hidden />
-                        })()}
-                        {LAYER[hover.info.layer].label}
-                      </span>
+                      {(() => {
+                        const { Icon, color, label } = LAYER[hover.info!.layer]
+                        return <Icon className="size-5" style={{ color }} aria-label={label} />
+                      })()}
                     </Cell>
                     <Cell label="Repeats">
                       {hover.info.exact}
@@ -1428,7 +1494,12 @@ function Panel({
           )}
         </div>
 
-        {selected && <Tree root={selected.el} onSelect={onSelect} />}
+        <Tree
+          selectedEl={selected?.el ?? null}
+          expanded={expanded}
+          setExpanded={setExpanded}
+          onSelect={onSelect}
+        />
       </div>
     </div>
   )
@@ -1450,15 +1521,44 @@ const bare: React.CSSProperties = {
   padding: 0,
 }
 
-const pill = (on: boolean): React.CSSProperties => ({
-  padding: "3px 9px",
-  borderRadius: 6,
-  fontSize: 11,
-  cursor: "pointer",
-  border: `1px solid ${on ? LAYER.system.color : "var(--border)"}`,
-  background: on ? `${LAYER.system.color}1a` : "transparent",
-  color: on ? LAYER.system.color : "inherit",
-})
+/** A real on/off, not a pill that says which it is (Brendan, 2026-09-12). */
+function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      title={label}
+      onClick={() => onChange(!on)}
+      style={{
+        position: "relative",
+        width: 28,
+        height: 16,
+        flexShrink: 0,
+        padding: 0,
+        borderRadius: 999,
+        border: `1px solid ${on ? LAYER.system.color : "var(--border)"}`,
+        background: on ? LAYER.system.color : "transparent",
+        cursor: "pointer",
+        transition: "background 150ms, border-color 150ms",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 1,
+          left: on ? 13 : 1,
+          width: 12,
+          height: 12,
+          borderRadius: 999,
+          background: on ? "#fff" : "var(--muted-foreground)",
+          transition: "left 150ms",
+        }}
+      />
+    </button>
+  )
+}
 
 function Cell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
