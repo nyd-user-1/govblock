@@ -16,6 +16,7 @@
 // that finished. That is what makes `--resume` (the default) honest: an
 // interrupted run is restarted with the same command and picks up where it
 // stopped.
+import { archive, archiveDone } from "./lib/archive.mjs"
 import { begin, commit, one, q, rollback, writeRows } from "./lib/db.mjs"
 import { ADAPTERS, adapterFor } from "./adapters/index.mjs"
 
@@ -124,9 +125,13 @@ for (const state of states) {
     laws += 1
     sections += count
     rows += nodes.length
+    // The originals go up beside the load rather than after it, so a run that
+    // is killed still leaves every document it read in the lake.
+    archive(state, (m) => console.log(`  ${m}`))
     console.log(`  ✓ ${law.law_id.padEnd(10)} ${plural(nodes.length, "node").padEnd(18)} ${plural(count, "section").padEnd(20)} ${law.law_name}`)
   }
 
+  if (!DRY) await archiveDone()
   const held = DRY ? null : await one(`select count(*)::int rows, count(distinct law_id)::int laws, count(*) filter (where doc_type = 'SECTION')::int sections from "Laws" where state = $1`, [state])
   console.log(`\n  ${DRY ? "would write" : "wrote"} ${plural(laws, "law")}, ${plural(sections, "section")}, ${plural(rows, "row")}`)
   if (held) console.log(`  ${state} now holds ${plural(Number(held.laws), "law")} and ${plural(Number(held.sections), "section")} across ${plural(Number(held.rows), "row")}`)

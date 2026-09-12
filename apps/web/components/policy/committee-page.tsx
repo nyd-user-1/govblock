@@ -1,5 +1,6 @@
 "use client"
 
+import { chamberFromNumber } from "@/lib/imagery"
 import * as React from "react"
 import Link from "next/link"
 
@@ -234,7 +235,7 @@ function BillRows({ rows, total, state, more, empty }: { rows: BillRow[]; total:
           stacked
           hover="rail"
           href={`/bills/${bill.bill_id}`}
-          avatar={<RecordSeal state={state} chamber={bill.body} ordinal={index + 1} />}
+          avatar={<RecordSeal state={state} chamber={bill.body ?? chamberFromNumber(bill.bill_number)} ordinal={index + 1} />}
           title={fmtBill(bill.bill_number, state)}
           lead={bill.last_action}
           meta={[bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.status_desc || "Introduced", bill.sponsor]}

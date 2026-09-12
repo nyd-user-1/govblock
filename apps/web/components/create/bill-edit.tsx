@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import dynamic from "next/dynamic"
 
@@ -50,7 +51,7 @@ export function BillEdit({
   const [size, setSize] = React.useState<2 | 4 | 8>(2)
   const [wrap, setWrap] = React.useState(false)
   const [asking, setAsking] = React.useState(false)
-  const [message, setMessage] = React.useState(`Update ${bill.bill_number}`)
+  const [message, setMessage] = React.useState(`Update ${fmtBill(bill.bill_number, bill.state)}`)
   const [description, setDescription] = React.useState("")
 
   const cancel = () => {
@@ -62,7 +63,7 @@ export function BillEdit({
     <div className="flex min-h-0 flex-1 flex-col">
       {/* The file's name, in main, and what to do with the changes. */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
-        <span className="rounded-md border bg-muted/40 px-3 py-1.5 font-mono text-sm">{bill.bill_number}</span>
+        <span className="rounded-md border bg-muted/40 px-3 py-1.5 font-mono text-sm">{fmtBill(bill.bill_number, bill.state)}</span>
         <span className="text-sm text-muted-foreground">in</span>
         <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">your fork</span>
         <span className="ml-2 truncate text-sm text-muted-foreground">
@@ -127,7 +128,7 @@ export function BillEdit({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Commit changes</DialogTitle>
-            <DialogDescription>Your change becomes a commit in your fork of {bill.bill_number}. The legislature&apos;s versions are never altered.</DialogDescription>
+            <DialogDescription>Your change becomes a commit in your fork of {fmtBill(bill.bill_number, bill.state)}. The legislature&apos;s versions are never altered.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">

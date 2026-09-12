@@ -133,3 +133,24 @@ The code in this repository is licensed under the [GNU Affero General Public Lic
 The data GovBlock publishes is licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Forks and commits you make on GovBlock are contributed under the same terms.
 
 The GovBlock name and mark are not covered by either license.
+
+## Install the parts
+
+Every component, card, hook and library on the site installs into your own app with the shadcn CLI. Name the registry once in `components.json`:
+
+```json
+{
+  "registries": {
+    "@44gov": "https://44gov.nysgpt.com/r/{name}.json"
+  }
+}
+```
+
+Then add what you need; anything an item depends on arrives with it, and a card can bring its data set along:
+
+```sh
+npx shadcn@latest add @44gov/seals
+npx shadcn@latest add @44gov/votes-card @44gov/votes-card-data
+```
+
+Every item has a page under [/docs/components](https://gov.nysgpt.com/docs/components) with its preview, its command, its API and its source.

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "committees-card",
+  "title": "Committees Card",
+  "description": "The committees with the most bills before them, each with its seal and count, for either chamber.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "@44gov/seals",
+    "card",
+    "item"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/committees-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { fmtNumber, truncate } from \"@/lib/format\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { ChamberSeal } from \"@/components/policy/seals\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from \"@/components/ui/item\"\n\n// Committees — each with its bill count; the footer picks the chamber.\nexport type CommitteeRow = { label: string; bills: number; chamber: string }\n\nexport function CommitteesCardBody({\n  rows,\n  state = \"US\",\n  title = \"Committees\",\n  action,\n  href,\n  chamber,\n  onChamber,\n  committeeHref,\n}: CardBodyProps & { rows: CommitteeRow[]; chamber?: string; onChamber?: (chamber: string) => void; committeeHref?: (row: CommitteeRow) => string }) {\n  const link = committeeHref ?? ((row: CommitteeRow) => `${SITE}/bills?state=${state}&committee=${encodeURIComponent(row.label)}`)\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent>\n        <ItemGroup>\n          {rows.map((row) => (\n            <Item key={`${row.chamber}/${row.label}`} variant=\"muted\" render={<Link href={link(row)} className=\"no-underline\" />}>\n              <ItemMedia>\n                <ChamberSeal state={state} chamber={row.chamber} size={32} />\n              </ItemMedia>\n              <ItemContent>\n                <ItemTitle>{truncate(row.label, 30)}</ItemTitle>\n                <ItemDescription>{fmtNumber(row.bills)} bills</ItemDescription>\n              </ItemContent>\n            </Item>\n          ))}\n        </ItemGroup>\n      </CardContent>\n      <CardFoot chamber={chamber} onChamber={onChamber} state={state} href={href ?? `${SITE}/committees?state=${state}`} label=\"All committees\" />\n    </>\n  )\n}\n\nexport function CommitteesCard({ rows, limit = 3, ...props }: Omit<React.ComponentProps<typeof CommitteesCardBody>, \"chamber\" | \"onChamber\"> & { limit?: number }) {\n  const [chamber, setChamber] = React.useState(\"\")\n  const shown = [...rows].filter((r) => !chamber || r.chamber === chamber).sort((a, b) => b.bills - a.bills).slice(0, limit)\n  return (\n    <CardShell>\n      <CommitteesCardBody {...props} rows={shown} chamber={chamber} onChamber={setChamber} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/committees-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

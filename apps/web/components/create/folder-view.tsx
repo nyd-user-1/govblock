@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
 
@@ -162,7 +163,7 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
     case "votes-kind":
       return [
         { key: "rollcall", label: "Roll call", cell: (r) => <span className="font-medium">{splitRollCall(r.name).name}</span> },
-        { key: "bill", label: "Bill", className: "w-36", cell: (r) => <span className="flex items-center gap-2 font-mono text-xs">{r.avatar.kind === "seal" && <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />}{r.record?.kind === "rollcall" ? r.record.rollcall.bill_number : r.description}</span> },
+        { key: "bill", label: "Bill", className: "w-36", cell: (r) => <span className="flex items-center gap-2 font-mono text-xs">{r.avatar.kind === "seal" && <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />}{r.record?.kind === "rollcall" ? fmtBill(r.record.rollcall.bill_number, state) : r.description}</span> },
         { key: "type", label: "Type", cell: (r) => muted(splitRollCall(r.name).type || "—") },
         { key: "aye", label: "Aye", className: `w-16 ${right}`, cell: (r) => muted(r.record?.kind === "rollcall" ? fmtNumber(r.record.rollcall.yea) : "") },
         { key: "nay", label: "Nay", className: `w-16 ${right}`, cell: (r) => muted(r.record?.kind === "rollcall" ? fmtNumber(r.record.rollcall.nay) : "") },
@@ -275,7 +276,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                       </span>
                     ) : undefined,
                     media: <ChamberSeal state={state} chamber={b.body} size={96} />,
-                    title: b.bill_number.replace(/^([A-Za-z]+)\s*(\d)/, "$1 $2"),
+                    title: fmtBill(b.bill_number, state),
                     description: truncate(b.title, 140),
                     meta: [b.last_action_date ? fmtDate(b.last_action_date) : null, b.status_desc || "Introduced"].filter(Boolean).join(" · "),
                     onOpen: () => onGo(go),

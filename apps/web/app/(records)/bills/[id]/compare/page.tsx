@@ -1,3 +1,4 @@
+import { fmtBill } from "@/lib/format"
 import { notFound } from "next/navigation"
 
 import { BillCompare } from "@/components/bill-compare"
@@ -19,7 +20,7 @@ export const revalidate = 3600
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const bill = await getBill(Number(id))
-  return { title: bill ? `${bill.bill_number} printings compared` : "Compare printings" }
+  return { title: bill ? `${fmtBill(bill.bill_number, bill.state)} printings compared` : "Compare printings" }
 }
 
 export default async function CompareBillPage({ params }: { params: Promise<{ id: string }> }) {

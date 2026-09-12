@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "bills-by-party-card-data",
+  "title": "Bills by party data",
+  "description": "Six months of bills introduced, by party.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/bills-by-party.json",
+      "content": "[\n  {\n    \"month\": \"2026-03\",\n    \"republican\": 392,\n    \"democrat\": 519,\n    \"other\": 7\n  },\n  {\n    \"month\": \"2026-04\",\n    \"republican\": 397,\n    \"democrat\": 499,\n    \"other\": 3\n  },\n  {\n    \"month\": \"2026-05\",\n    \"republican\": 337,\n    \"democrat\": 404,\n    \"other\": 4\n  },\n  {\n    \"month\": \"2026-06\",\n    \"republican\": 448,\n    \"democrat\": 485,\n    \"other\": 2\n  },\n  {\n    \"month\": \"2026-07\",\n    \"republican\": 362,\n    \"democrat\": 442,\n    \"other\": 4\n  },\n  {\n    \"month\": \"2026-08\",\n    \"republican\": 193,\n    \"democrat\": 221,\n    \"other\": 4\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/bills-by-party.json"
+    }
+  ],
+  "type": "registry:file"
+}

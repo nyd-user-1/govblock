@@ -72,7 +72,7 @@ const describe = (slug: string) => DESCRIPTIONS[slug] ?? ""
 const home = (slug: string, title: string, file: string, component: string, usage = `<${component} />`): BlockDoc => ({ slug, title, description: describe(slug), group: "home", file: `components/cards/${file}.tsx`, component, usage, lives: "/home" })
 
 export const BLOCK_DOCS: BlockDoc[] = [
-  home("bills", "Total Bills", "bills", "BillsCard"),
+  home("bills", "Bills", "bills", "BillsCard"),
   home("votes", "Votes", "votes", "VotesCard"),
   home("topics", "Topics", "topics", "TopicsCard"),
   home("lobbying", "Lobbying", "lobbying", "LobbyingCard"),

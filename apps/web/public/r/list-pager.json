@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "list-pager",
+  "title": "List Pager",
+  "description": "Previous, next and the page numbers under a list, with an ellipsis where the run is long.",
+  "registryDependencies": [
+    "utils",
+    "button",
+    "pagination"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/list-pager.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { IconChevronLeft, IconChevronRight } from \"@tabler/icons-react\"\n\nimport { cn } from \"@/lib/utils\"\nimport { Button, buttonVariants } from \"@/components/ui/button\"\nimport { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from \"@/components/ui/pagination\"\n\n// Every list on the site shows fifty and pages the rest (Brendan, 2026-09-03).\n// Lifted from the members directory, which was the one list that paged; the\n// pager is drawn in exactly one file so the lists cannot page differently.\nexport const PAGE_SIZE = 50\n\nexport const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE))\n\nfunction getPageNumbers(current: number, total: number) {\n  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as (number | \"ellipsis\")[]\n  const pages: (number | \"ellipsis\")[] = [1]\n  if (current > 4) pages.push(\"ellipsis\")\n  else if (current >= 4) pages.push(2)\n  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i)\n  if (current < total - 3) pages.push(\"ellipsis\")\n  else if (current <= total - 3) pages.push(total - 1)\n  pages.push(total)\n  return pages\n}\n\nfunction PageLink({\n  className,\n  isActive,\n  size = \"icon\",\n  ...props\n}: React.ComponentProps<\"a\"> & { isActive?: boolean; size?: React.ComponentProps<typeof Button>[\"size\"] }) {\n  return (\n    <a aria-current={isActive ? \"page\" : undefined} data-slot=\"pagination-link\" data-active={isActive} className={cn(buttonVariants({ variant: isActive ? \"outline\" : \"ghost\", size }), className)} {...props} />\n  )\n}\n\nexport function ListPager({ page, pages, onPage }: { page: number; pages: number; onPage: (page: number) => void }) {\n  if (pages <= 1) return null\n  const current = Math.min(Math.max(1, page), pages)\n  const go = (event: React.MouseEvent, next: number, disabled = false) => {\n    event.preventDefault()\n    if (disabled) return\n    onPage(next)\n    window.scrollTo({ top: 0 })\n  }\n  return (\n    <Pagination className=\"not-typeset\">\n      <PaginationContent className=\"not-typeset list-none p-0 [&>li]:m-0 [&>li]:p-0 [&>li]:before:hidden\">\n        <PaginationItem>\n          <PageLink href=\"#\" aria-label=\"Go to previous page\" size=\"default\" className={cn(\"pl-1.5!\", current <= 1 ? \"pointer-events-none opacity-50\" : \"cursor-pointer\")} onClick={(e) => go(e, current - 1, current <= 1)}>\n            <IconChevronLeft className=\"size-4\" />\n            <span className=\"hidden sm:block\">Previous</span>\n          </PageLink>\n        </PaginationItem>\n        {getPageNumbers(current, pages).map((p, i) =>\n          p === \"ellipsis\" ? (\n            <PaginationItem key={`ellipsis-${i}`}>\n              <PaginationEllipsis />\n            </PaginationItem>\n          ) : (\n            <PaginationItem key={p}>\n              <PageLink href=\"#\" isActive={p === current} className=\"cursor-pointer\" onClick={(e) => go(e, p)}>\n                {p}\n              </PageLink>\n            </PaginationItem>\n          )\n        )}\n        <PaginationItem>\n          <PageLink href=\"#\" aria-label=\"Go to next page\" size=\"default\" className={cn(\"pr-1.5!\", current >= pages ? \"pointer-events-none opacity-50\" : \"cursor-pointer\")} onClick={(e) => go(e, current + 1, current >= pages)}>\n            <span className=\"hidden sm:block\">Next</span>\n            <IconChevronRight className=\"size-4\" />\n          </PageLink>\n        </PaginationItem>\n      </PaginationContent>\n    </Pagination>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/list-pager.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

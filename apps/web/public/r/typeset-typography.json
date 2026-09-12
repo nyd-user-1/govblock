@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "typeset-typography",
+  "title": "Typography",
+  "description": "H2, H3, Table and Callout as the docs set them, each heading with an anchor that copies its link.",
+  "registryDependencies": [
+    "utils"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/typeset.tsx",
+      "content": "import { cn } from \"@/lib/utils\"\nimport { HeadingAnchor } from \"@/components/heading-anchor\"\n\n// The prose pieces the docs pages use from livingston-v3's mdx-components:\n// a heading that carries its own anchor, and a table that scrolls sideways.\n\nfunction getNodeText(node: React.ReactNode): string {\n  if (typeof node === \"string\" || typeof node === \"number\") return String(node)\n  if (Array.isArray(node)) return node.map(getNodeText).join(\"\")\n  if (node && typeof node === \"object\" && \"props\" in node) return getNodeText((node as React.ReactElement<{ children?: React.ReactNode }>).props.children)\n  return \"\"\n}\n\nexport function headingId(children: React.ReactNode) {\n  const id = getNodeText(children).trim().replace(/\\s+/g, \"-\").replace(/'/g, \"\").replace(/\\?/g, \"\").toLowerCase()\n  return id || undefined\n}\n\n// text-2xl: the page's name is text-3xl and its sections sit one step under\n// it, as shadcn's docs headings do (Brendan, 2026-09-05).\nexport function H2({ children, id, className, ...props }: React.ComponentProps<\"h2\">) {\n  const hid = id ?? headingId(children)\n  return (\n    <h2 id={hid} className={cn(\"text-2xl\", className)} {...props}>\n      <HeadingAnchor id={hid}>{children}</HeadingAnchor>\n    </h2>\n  )\n}\n\nexport function H3({ children, id, ...props }: React.ComponentProps<\"h3\">) {\n  const hid = id ?? headingId(children)\n  return (\n    <h3 id={hid} {...props}>\n      <HeadingAnchor id={hid}>{children}</HeadingAnchor>\n    </h3>\n  )\n}\n\nexport function Table(props: React.ComponentProps<\"table\">) {\n  return (\n    <div className=\"typeset-scroll scroll-fade-x scrollbar-none *:[table]:w-full\">\n      <table {...props} />\n    </div>\n  )\n}\n\nexport function Callout({ className, children, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      role=\"alert\"\n      data-slot=\"alert\"\n      className={cn(\n        \"not-typeset mt-6 w-auto rounded-2xl border border-surface bg-surface px-4 py-3 text-sm text-surface-foreground md:-mx-1 **:[code]:border\",\n        className\n      )}\n      {...props}\n    >\n      <div data-slot=\"alert-description\" className=\"text-card-foreground/80 [&_p]:leading-relaxed\">\n        {children}\n      </div>\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/typeset.tsx"
+    },
+    {
+      "path": "apps/web/components/heading-anchor.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { CheckIcon, CopyIcon } from \"lucide-react\"\n\n// The anchor beside a section heading. The heading is a link to its own\n// anchor, and the glyph beside it is lucide.dev's: a copy icon that appears\n// on hover and, when clicked, puts the section's full URL on the clipboard,\n// showing a check for a moment. Brendan, 2026-09-05: \"change these from # to\n// [the copy icon]... allowing the user to click to copy.\"\n\nexport function HeadingAnchor({ id, children }: { id?: string; children: React.ReactNode }) {\n  const [copied, setCopied] = React.useState(false)\n  if (!id) return children\n\n  async function copy(event: React.MouseEvent) {\n    event.preventDefault()\n    const url = `${window.location.origin}${window.location.pathname}${window.location.search}#${id}`\n    await navigator.clipboard.writeText(url)\n    setCopied(true)\n    setTimeout(() => setCopied(false), 1500)\n  }\n\n  return (\n    <span className=\"group inline-flex items-center gap-2\">\n      <a className=\"no-underline underline-offset-4 hover:underline\" href={`#${id}`}>\n        {children}\n      </a>\n      <button\n        type=\"button\"\n        onClick={copy}\n        aria-label={copied ? \"Copied\" : \"Copy link to this section\"}\n        className=\"inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 [&_svg]:size-4\"\n      >\n        {copied ? <CheckIcon /> : <CopyIcon />}\n      </button>\n    </span>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/heading-anchor.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

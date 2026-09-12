@@ -2,26 +2,20 @@
 
 import * as React from "react"
 
-import Link from "next/link"
-
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { ChamberSeal } from "@/components/policy/imagery"
+import { ChambersCardBody, type ChamberRow } from "@/components/cards/chambers-card"
 import { CardAnchor } from "@/components/admin/blocks/card-tools"
-import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
-import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from "@govblock/ui/components/item"
 
-// Chambers — each chamber and who sits in it (Brendan, 2026-09-01: the row is
-// seal · name · members; the bill count moved out). The row filters the grid.
+// Chambers, on the home page (Brendan, 2026-09-01: the row is seal · name ·
+// members; the bill count moved out). `compact` is the docs-rail size.
 type Option = { value: string; count: number }
 
-// `compact` is the docs-rail size, as on the calendar card.
 export function ChambersCard({ compact = false }: { compact?: boolean }) {
   const { data: options, state, congress } = useScoped<{ chambers: Option[] }>("options", null as unknown as { chambers: Option[] })
   const { data: seats } = useScoped<{ chamber: string; seats: number }[]>("seats", null as unknown as { chamber: string; seats: number }[])
-  const chambers = React.useMemo(() => {
+  const chambers = React.useMemo<ChamberRow[]>(() => {
     if (!options) return congress ? F.chambers : []
     const members = new Map<string, number>()
     for (const row of seats ?? []) members.set(row.chamber, (members.get(row.chamber) ?? 0) + row.seats)
@@ -29,32 +23,7 @@ export function ChambersCard({ compact = false }: { compact?: boolean }) {
   }, [options, seats, congress])
   return (
     <CardFrame id="chambers" size={compact ? "sm" : "default"}>
-      <CardHeader>
-        <CardAnchor>Chambers</CardAnchor>
-        <CardAction>
-          <ComponentActions rows={chambers} id="chambers" />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <ItemGroup>
-          {chambers.map((row) => (
-            <Item
-              key={row.label}
-              variant="muted"
-              size={compact ? "sm" : "default"}
-              render={<Link href={`/bills?state=${state}&chamber=${encodeURIComponent(row.label)}`} className="no-underline" />}
-            >
-              <ItemMedia>
-                <ChamberSeal state={state} chamber={row.label} size={compact ? 28 : 36} />
-              </ItemMedia>
-              <ItemContent>
-                <ItemTitle>{row.label}</ItemTitle>
-              </ItemContent>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtNumber(row.members)}</span>
-            </Item>
-          ))}
-        </ItemGroup>
-      </CardContent>
+      <ChambersCardBody rows={chambers} state={state} compact={compact} title={<CardAnchor>Chambers</CardAnchor>} action={<ComponentActions rows={chambers} id="chambers" />} chamberHref={(row) => `/bills?state=${state}&chamber=${encodeURIComponent(row.label)}`} />
     </CardFrame>
   )
 }

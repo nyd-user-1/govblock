@@ -1,0 +1,122 @@
+[
+  {
+    "label": "Judiciary",
+    "bills": 2181,
+    "chamber": "House"
+  },
+  {
+    "label": "Energy And Commerce",
+    "bills": 1636,
+    "chamber": "House"
+  },
+  {
+    "label": "Ways And Means",
+    "bills": 1160,
+    "chamber": "House"
+  },
+  {
+    "label": "Finance",
+    "bills": 902,
+    "chamber": "House"
+  },
+  {
+    "label": "Education and Workforce",
+    "bills": 824,
+    "chamber": "House"
+  },
+  {
+    "label": "Health, Education, Labor, And Pensions",
+    "bills": 747,
+    "chamber": "House"
+  },
+  {
+    "label": "Oversight And Government Reform",
+    "bills": 696,
+    "chamber": "House"
+  },
+  {
+    "label": "Foreign Affairs",
+    "bills": 658,
+    "chamber": "House"
+  },
+  {
+    "label": "Armed Services",
+    "bills": 581,
+    "chamber": "House"
+  },
+  {
+    "label": "Financial Services",
+    "bills": 559,
+    "chamber": "House"
+  },
+  {
+    "label": "Banking, Housing, And Urban Affairs",
+    "bills": 465,
+    "chamber": "House"
+  },
+  {
+    "label": "Commerce, Science, And Transportation",
+    "bills": 458,
+    "chamber": "House"
+  },
+  {
+    "label": "Homeland Security And Governmental Affairs",
+    "bills": 444,
+    "chamber": "House"
+  },
+  {
+    "label": "Natural Resources",
+    "bills": 395,
+    "chamber": "House"
+  },
+  {
+    "label": "Foreign Relations",
+    "bills": 385,
+    "chamber": "House"
+  },
+  {
+    "label": "Agriculture, Nutrition, And Forestry",
+    "bills": 334,
+    "chamber": "House"
+  },
+  {
+    "label": "Energy And Natural Resources",
+    "bills": 314,
+    "chamber": "House"
+  },
+  {
+    "label": "Veterans' Affairs",
+    "bills": 285,
+    "chamber": "House"
+  },
+  {
+    "label": "Environment And Public Works",
+    "bills": 257,
+    "chamber": "House"
+  },
+  {
+    "label": "Agriculture",
+    "bills": 226,
+    "chamber": "House"
+  },
+  {
+    "label": "Administration",
+    "bills": 196,
+    "chamber": "House"
+  },
+  {
+    "label": "Science, Space, And Technology",
+    "bills": 178,
+    "chamber": "House"
+  },
+  {
+    "label": "Subcommittee on Highways and Transit",
+    "bills": 174,
+    "chamber": "House"
+  },
+  {
+    "label": "Transportation And Infrastructure",
+    "bills": 156,
+    "chamber": "House"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "docs-toc",
+  "title": "Table of Contents",
+  "description": "The On This Page rail: the headings of the page, the one in view marked, and a menu of them on a narrow screen.",
+  "registryDependencies": [
+    "utils",
+    "button",
+    "dropdown-menu"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/docs-toc.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { IconMenu3 } from \"@tabler/icons-react\"\n\nimport { cn } from \"@/lib/utils\"\nimport { Button } from \"@/components/ui/button\"\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuTrigger,\n} from \"@/components/ui/dropdown-menu\"\n\nfunction useActiveItem(itemIds: string[]) {\n  const [activeId, setActiveId] = React.useState<string | null>(null)\n\n  React.useEffect(() => {\n    const observer = new IntersectionObserver(\n      (entries) => {\n        for (const entry of entries) {\n          if (entry.isIntersecting) {\n            setActiveId(entry.target.id)\n          }\n        }\n      },\n      { rootMargin: \"0% 0% -80% 0%\" }\n    )\n\n    for (const id of itemIds ?? []) {\n      const element = document.getElementById(id)\n      if (element) {\n        observer.observe(element)\n      }\n    }\n\n    return () => {\n      for (const id of itemIds ?? []) {\n        const element = document.getElementById(id)\n        if (element) {\n          observer.unobserve(element)\n        }\n      }\n    }\n  }, [itemIds])\n\n  return activeId\n}\n\nexport function DocsTableOfContents({\n  toc,\n  variant = \"list\",\n  className,\n}: {\n  toc: {\n    title?: React.ReactNode\n    url: string\n    depth: number\n  }[]\n  variant?: \"dropdown\" | \"list\"\n  className?: string\n}) {\n  const [open, setOpen] = React.useState(false)\n  const itemIds = React.useMemo(\n    () => toc.map((item) => item.url.replace(\"#\", \"\")),\n    [toc]\n  )\n  const activeHeading = useActiveItem(itemIds)\n\n  if (!toc?.length) {\n    return null\n  }\n\n  if (variant === \"dropdown\") {\n    return (\n      <DropdownMenu open={open} onOpenChange={setOpen}>\n        <DropdownMenuTrigger asChild>\n          <Button\n            variant=\"outline\"\n            size=\"sm\"\n            className={cn(\"h-8 md:h-7\", className)}\n          >\n            <IconMenu3 /> On This Page\n          </Button>\n        </DropdownMenuTrigger>\n        <DropdownMenuContent\n          align=\"start\"\n          className=\"no-scrollbar max-h-[70svh]\"\n        >\n          {toc.map((item) => (\n            <DropdownMenuItem\n              key={item.url}\n              asChild\n              onClick={() => {\n                setOpen(false)\n              }}\n              data-depth={item.depth}\n              className=\"data-[depth=3]:pl-6 data-[depth=4]:pl-8\"\n            >\n              <a href={item.url}>{item.title}</a>\n            </DropdownMenuItem>\n          ))}\n        </DropdownMenuContent>\n      </DropdownMenu>\n    )\n  }\n\n  return (\n    <div className={cn(\"flex flex-col gap-2 p-4 pt-0 text-sm\", className)}>\n      <p className=\"h-6 bg-background text-xs font-medium text-muted-foreground\">\n        On This Page\n      </p>\n      {toc.map((item) => (\n        <a\n          key={item.url}\n          href={item.url}\n          className=\"text-[0.8rem] text-muted-foreground no-underline transition-colors hover:text-foreground data-[active=true]:font-medium data-[active=true]:text-foreground data-[depth=3]:pl-4 data-[depth=4]:pl-6\"\n          data-active={item.url === `#${activeHeading}`}\n          data-depth={item.depth}\n        >\n          {item.title}\n        </a>\n      ))}\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/docs-toc.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

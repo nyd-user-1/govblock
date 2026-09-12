@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { ExternalLinkIcon, PlusIcon, XIcon } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@govblock/ui/lib/utils"
 import { displayValue, gateOpen, keyDef, normaliseKey, optionParts, splitMulti, type CanonicalKey } from "@/lib/forms/keys"
 import { askedSections, formById, type FormId } from "@/lib/forms/programs"
 import { markDone, mergeProfile, rowCount, sectionKnown, valueFor, valuesFor, type Values } from "@/lib/forms/profile"

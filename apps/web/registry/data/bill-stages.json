@@ -1,0 +1,113 @@
+{
+  "statuses": [
+    {
+      "value": "In House Committee",
+      "count": 10753
+    },
+    {
+      "value": "In Senate Committee",
+      "count": 5973
+    },
+    {
+      "value": "Introduced",
+      "count": 807
+    },
+    {
+      "value": "Senate Floor Calendar",
+      "count": 340
+    },
+    {
+      "value": "House Floor Calendar",
+      "count": 248
+    },
+    {
+      "value": "Engrossed",
+      "count": 242
+    },
+    {
+      "value": "Passed",
+      "count": 104
+    },
+    {
+      "value": "Vetoed",
+      "count": 2
+    },
+    {
+      "value": "Adopted",
+      "count": 1
+    }
+  ],
+  "total": 18470,
+  "chambers": {
+    "House": {
+      "statuses": [
+        {
+          "value": "In House Committee",
+          "count": 10752
+        },
+        {
+          "value": "In Senate Committee",
+          "count": 493
+        },
+        {
+          "value": "Introduced",
+          "count": 309
+        },
+        {
+          "value": "House Floor Calendar",
+          "count": 248
+        },
+        {
+          "value": "Engrossed",
+          "count": 77
+        },
+        {
+          "value": "Passed",
+          "count": 64
+        },
+        {
+          "value": "Senate Floor Calendar",
+          "count": 57
+        },
+        {
+          "value": "Vetoed",
+          "count": 2
+        },
+        {
+          "value": "Adopted",
+          "count": 1
+        }
+      ],
+      "total": 12003
+    },
+    "Senate": {
+      "statuses": [
+        {
+          "value": "In Senate Committee",
+          "count": 5480
+        },
+        {
+          "value": "Introduced",
+          "count": 498
+        },
+        {
+          "value": "Senate Floor Calendar",
+          "count": 283
+        },
+        {
+          "value": "Engrossed",
+          "count": 165
+        },
+        {
+          "value": "Passed",
+          "count": 40
+        },
+        {
+          "value": "In House Committee",
+          "count": 1
+        }
+      ],
+      "total": 6467
+    }
+  }
+}

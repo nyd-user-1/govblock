@@ -111,7 +111,7 @@ export function DocumentsTree() {
                 const amended = /amend|engross|enroll|chapter/i.test(row.version ?? "")
                 return (
                   <SidebarMenuItem key={`change-${row.document_id}`}>
-                    <SidebarMenuButton isActive={current?.document_id === row.document_id} onClick={() => choose(row)} title={`${row.bill_number} — ${row.title}`} className="justify-between gap-2">
+                    <SidebarMenuButton isActive={current?.document_id === row.document_id} onClick={() => choose(row)} title={`${fmtBill(row.bill_number, state)} — ${row.title}`} className="justify-between gap-2">
                       <span className="truncate font-mono text-xs">
                         {fmtBill(row.bill_number, state)}
                         {row.version ? ` · ${row.version}` : ""}
@@ -152,7 +152,7 @@ export function DocumentsTree() {
                           const billOpen = openBills.has(bill_id)
                           return (
                             <SidebarMenuItem key={bill_id}>
-                              <SidebarMenuButton isActive={!billOpen && current?.bill_id === bill_id} onClick={() => (v.length > 1 ? toggleBill(bill_id) : choose(head))} title={`${head.bill_number} — ${head.title}`} className="gap-1.5">
+                              <SidebarMenuButton isActive={!billOpen && current?.bill_id === bill_id} onClick={() => (v.length > 1 ? toggleBill(bill_id) : choose(head))} title={`${fmtBill(head.bill_number, state)} — ${head.title}`} className="gap-1.5">
                                 <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
                                 <span className="truncate font-mono text-xs">{fmtBill(head.bill_number, state)}</span>
                                 <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{v.length}</span>

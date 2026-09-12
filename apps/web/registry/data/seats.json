@@ -1,0 +1,32 @@
+[
+  {
+    "chamber": "House",
+    "party": "R",
+    "seats": 225
+  },
+  {
+    "chamber": "House",
+    "party": "D",
+    "seats": 223
+  },
+  {
+    "chamber": "House",
+    "party": "I",
+    "seats": 1
+  },
+  {
+    "chamber": "Senate",
+    "party": "R",
+    "seats": 57
+  },
+  {
+    "chamber": "Senate",
+    "party": "D",
+    "seats": 45
+  },
+  {
+    "chamber": "Senate",
+    "party": "I",
+    "seats": 2
+  }
+]

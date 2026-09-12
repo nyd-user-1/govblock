@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import Link from "next/link"
 
@@ -143,7 +144,7 @@ export function VotesBoard() {
       const type = String(vote.legislationType ?? "").toUpperCase()
       // Not every roll call is on a bill — the House also votes on adjourning
       // and on its own journal — and those name themselves by their number.
-      const named = vote.legislationNumber ? `${LEGISCAN_TYPE[type] ?? type}${vote.legislationNumber}` : ""
+      const named = vote.legislationNumber ? fmtBill(`${LEGISCAN_TYPE[type] ?? type}${vote.legislationNumber}`, "US") : ""
       return [
         {
           roll_call_id: -Number(vote.identifier ?? 0),

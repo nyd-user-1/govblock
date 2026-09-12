@@ -9,7 +9,8 @@ import { fmtBill, fmtDate, truncate } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { scopeStates, type StreamBill, type StreamGroup } from "@/lib/policy/stream"
 import { usePolicy } from "@/lib/policy/use-policy"
-import { CodeFigure, printedWithChanges } from "@/components/code-block"
+import { CodeFrame, CodeLines, printedWithChanges } from "@/components/code-block"
+import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { PublicRail } from "@/components/block-card"
 import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -111,12 +112,16 @@ export function ChangelogV2Body({
                     </p>
                     <p>{truncate(bill.title, 240)}</p>
                     {block && (
-                      <CodeFigure
-                        title={`${bill.state.toLowerCase()}/${bill.session}/${bill.bill_number}.txt`}
-                        code={code!}
-                        highlighted={block.changed}
-                        collapsible={lines.length > LONG}
-                      />
+                      // Bill text has no tokens to colour, and this is a client component, so the plain frame.
+                      lines.length > LONG ? (
+                        <CodeCollapsibleWrapper title={`${bill.state.toLowerCase()}/${bill.session}/${bill.bill_number}.txt`} code={code!}>
+                          <CodeLines code={code!} highlighted={block.changed} />
+                        </CodeCollapsibleWrapper>
+                      ) : (
+                        <CodeFrame title={`${bill.state.toLowerCase()}/${bill.session}/${bill.bill_number}.txt`} code={code!}>
+                          <CodeLines code={code!} highlighted={block.changed} />
+                        </CodeFrame>
+                      )
                     )}
                   </React.Fragment>
                 )

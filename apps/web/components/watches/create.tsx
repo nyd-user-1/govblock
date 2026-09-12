@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { CompassIcon, FolderOpenIcon, LandmarkIcon, ScrollTextIcon, WorkflowIcon } from "lucide-react"
@@ -151,7 +152,7 @@ function BillPicker({ state, value, onPick }: { state: string; value?: { bill_id
                 className="flex w-full flex-col rounded-md px-2 py-1.5 text-left hover:bg-accent"
               >
                 <span className="text-sm font-medium">
-                  {h.state} {String(h.bill_number).replace(/^([A-Z]+)0*(\d+)/, "$1 $2")}
+                  {h.state} {fmtBill(h.bill_number, h.state)}
                 </span>
                 <span className="line-clamp-1 text-xs text-muted-foreground">{h.title}</span>
               </button>
@@ -192,7 +193,7 @@ function FieldRow({ field, answers, set, allowAll }: { field: Field; answers: An
                 value={answers.bill_id ? { bill_id: Number(answers.bill_id), label: String(answers.bill_label ?? "") } : null}
                 onPick={(h) => {
                   set("bill_id", h?.bill_id)
-                  set("bill_label", h ? `${h.state} ${String(h.bill_number).replace(/^([A-Z]+)0*(\d+)/, "$1 $2")}: ${h.title}` : undefined)
+                  set("bill_label", h ? `${h.state} ${fmtBill(h.bill_number, h.state)}: ${h.title}` : undefined)
                   if (h) set("state", h.state)
                 }}
               />
@@ -592,7 +593,7 @@ function Upload({ account, onBack, onDone }: { account: { email?: string | null 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: `Track ${hit.state} ${String(hit.bill_number).replace(/^([A-Z]+)0*(\d+)/, "$1 $2")}`,
+          name: `Track ${hit.state} ${fmtBill(hit.bill_number, hit.state)}`,
           template: "track-bill",
           answers: { bill_id: hit.bill_id, state: hit.state, bill_label: hit.title, when: "any" },
           via,
@@ -669,7 +670,7 @@ function Upload({ account, onBack, onDone }: { account: { email?: string | null 
             <li key={i} className="flex items-center gap-3 px-3 py-2">
               <span className={cn("size-2 rounded-full", r.hit ? "bg-green-500" : "bg-destructive")} />
               <span className="w-24 shrink-0 font-mono text-xs">{r.line}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">{r.hit ? `${r.hit.state} ${r.hit.bill_number}: ${r.hit.title}` : "not found"}</span>
+              <span className="min-w-0 flex-1 truncate text-muted-foreground">{r.hit ? `${r.hit.state} ${fmtBill(r.hit.bill_number, r.hit.state)}: ${r.hit.title}` : "not found"}</span>
             </li>
           ))}
         </ul>

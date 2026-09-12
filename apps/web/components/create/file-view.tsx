@@ -1,5 +1,7 @@
 "use client"
 
+import { typesetHref } from "@/lib/typeset/views"
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { ExternalLinkIcon, GitForkIcon, HistoryIcon } from "lucide-react"
 
@@ -109,7 +111,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     const historyButton = (
       <span className="flex items-center gap-2">
         {forkRow && (
-          <span className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={`Your fork of ${bill?.bill_number ?? "this bill"}`}>
+          <span className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={`Your fork of ${bill ? fmtBill(bill.bill_number, bill.state) : "this bill"}`}>
             <GitForkIcon className="size-3.5" /> your fork
           </span>
         )}
@@ -136,10 +138,11 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     }
     const openText = (documentId: number) => onGo({ bill: String(node.id), tab: "text", doc: String(documentId) })
     const openChanges = (documentId: number) => onGo({ bill: String(node.id), tab: "changes", doc: String(documentId) })
-    const href = active === "record" ? `/bills/${node.id}${query({ state })}` : active === "typeset" ? `/preview/typeset/docs${query({ state, session: sessionParam, bill: node.id, ...designDiff(design) })}` : null
+    // Typeset is a workspace of its own now (2026-09-12), not a frame in this one.
+    const href = active === "record" ? `/bills/${node.id}${query({ state })}` : active === "typeset" ? typesetHref(node.id) : null
     const related = [
       ...(bill?.sameAs ?? []).map((s) => ({ label: s.sast_bill_number, action: `View ${s.sast_type?.toLowerCase().includes("same") ? "companion bill" : s.sast_type || "related bill"}`, onClick: () => onGo({ bill: String(s.sast_bill_id) }) })),
-      ...versions.filter((v) => /amend|engross|enroll|substitute|comm sub/i.test(v.version ?? "")).map((v) => ({ label: bill?.bill_number ?? "", action: `View ${v.version}`, onClick: () => onDoc(v.document_id) })),
+      ...versions.filter((v) => /amend|engross|enroll|substitute|comm sub/i.test(v.version ?? "")).map((v) => ({ label: bill ? fmtBill(bill.bill_number, bill.state) : "", action: `View ${v.version}`, onClick: () => onDoc(v.document_id) })),
     ]
     return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -209,7 +212,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
             ))}
           </div>
         ) : (
-          <iframe key={href} src={href ?? undefined} title={`${bill?.bill_number ?? "Bill"} · ${active}`} className="min-h-0 flex-1 bg-background" />
+          <iframe key={href} src={href ?? undefined} title={`${bill ? fmtBill(bill.bill_number, bill.state) : "Bill"} · ${active}`} className="min-h-0 flex-1 bg-background" />
         )}
       </div>
     )
@@ -228,7 +231,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
             {rc && (
               <span className="text-xs text-muted-foreground">
                 <button type="button" className="font-mono text-primary hover:underline" onClick={() => onGo({ bill: String(rc.bill_id), rollcall: null })}>
-                  {rc.bill_number}
+                  {fmtBill(rc.bill_number, state)}
                 </button>
                 {" · "}
                 {truncate(rc.title, 100)} · {rc.chamber} · {fmtDate(rc.date)}

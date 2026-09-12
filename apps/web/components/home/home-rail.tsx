@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { Bot, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search, Settings } from "lucide-react"
+import { BookOpen, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search, Settings } from "lucide-react"
 
 import { useAccount } from "@/lib/auth/use-account"
-import { hasItems, siteConfig, withScope } from "@/lib/config"
+import { AGENT_PAGES, hasItems, siteConfig, withScope } from "@/lib/config"
+import { useHomeState } from "@/lib/policy/home-state"
+import { REGISTRY_ITEMS } from "@/lib/workspace/registry-items"
 import { DEFAULT_STATE, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { RailGroup, useRecordGroups, type RailItem } from "@/components/directory-rail"
@@ -34,7 +36,8 @@ const byLabel = (a: { label: string }, b: { label: string }) => a.label.localeCo
 export function SiteRail() {
   const pathname = usePathname()
   const { state } = useJurisdiction()
-  const { account, signedIn } = useAccount()
+  const { signedIn } = useAccount()
+  const homeState = useHomeState()
   const recents = useRecents(6)
   const record = useRecordGroups()
   const pages = (label: string) => {
@@ -54,7 +57,7 @@ export function SiteRail() {
   const page = (p: { href: string; label: string }): RailItem => ({ key: p.href, href: withScope(p.href, state), label: p.label, active: pathname.startsWith(p.href) })
 
   // Scope: Congress and the home state, each with the three lists a jurisdiction is read through.
-  const home = account?.home ?? (state !== "US" ? state : DEFAULT_STATE)
+  const home = homeState ?? (state !== "US" ? state : DEFAULT_STATE)
   const lists = (code: string, muted: boolean): RailItem[] => [
     { key: `${code}-bills`, href: `/bills/${code.toLowerCase()}`, label: "Bills", active: here(`/bills/${code.toLowerCase()}`), muted },
     { key: `${code}-committees`, href: `/committees?state=${code}`, label: "Committees", active: false, muted },
@@ -75,28 +78,41 @@ export function SiteRail() {
     ]),
   ]
 
-  const agents: RailItem[] = [{ key: "/agents", href: "/agents", label: "Index", active: pathname === "/agents" }, ...pages("Agents").filter((p) => p.href.startsWith("/agents/")).sort(byLabel).map(page)]
-  const arxiv: RailItem[] = pages("Records").filter((p) => p.href !== "/desk").sort(byLabel).map(page)
+  const agents: RailItem[] = [{ key: "/agents", href: "/agents", label: "Index", active: pathname === "/agents" }, ...AGENT_PAGES.filter((p) => p.href.startsWith("/agents/")).sort(byLabel).map(page)]
+  const arxiv: RailItem[] = pages("ArXiv").filter((p) => p.href !== "/desk").sort(byLabel).map(page)
   const news: RailItem[] = pages("News").filter((p) => !p.href.startsWith("/consensus")).sort(byLabel).map(page)
   const consensus = item("consensus", "/consensus", "Consensus", undefined, [
     { key: "/consensus", href: "/consensus", label: "Consensus", active: pathname === "/consensus" },
     ...pages("News").filter((p) => p.href.startsWith("/consensus/")).sort(byLabel).map((p) => ({ key: p.href, href: p.href, label: p.label.replace(/^Consensus /, "").replace(/^\w/, (c) => c.toUpperCase()), active: pathname.startsWith(p.href) })),
   ])
-  const data = item("data", "/workspace/data", "Data", undefined, [
-    { key: "/docs/api", href: "/docs/api", label: "API", active: pathname.startsWith("/docs/api") },
-    { key: "/docs/datasets", href: "/docs/datasets", label: "Datasets", active: pathname.startsWith("/docs/datasets") },
-  ])
+  // The sections are the header's menus, in the header's order and with the
+  // header's items (Brendan, 2026-09-12: "apply it to this section of the
+  // left sidebar"). Docs holds what used to sit under Workspace as Build on it.
+  // Components folds open to every registry item, as Consensus does to its pages.
+  const docs: RailItem[] = pages("Docs")
+    .sort(byLabel)
+    .map((p) =>
+      p.href === "/docs/components"
+        ? item("components", "/docs/components", "Components", undefined, [
+            { key: "/docs/components", href: "/docs/components", label: "Index", active: pathname === "/docs/components" },
+            ...[...REGISTRY_ITEMS].sort((a, b) => a.title.localeCompare(b.title)).map((r) => ({ key: r.name, href: `/docs/components/${r.name}`, label: r.title, active: pathname === `/docs/components/${r.name}` })),
+          ])
+        : page(p)
+    )
+  // Agents is a Workspace item in the header, so here it is a Workspace node
+  // with the seven agent pages beneath it, not a section of its own.
+  const agentsNode = item("agents", "/agents", "Agents", undefined, agents)
   const workspace: RailItem[] = [
     ...pages("Workspace")
-      .filter((p) => !["/docs/api", "/docs/datasets", "/workspace/data", "/desk", "/consensus"].includes(p.href))
+      .filter((p) => p.href !== "/consensus" && p.href !== "/agents")
       .map(page),
     consensus,
-    data,
+    agentsNode,
   ].sort((a, b) => String(a.label).localeCompare(String(b.label)))
 
   const nodes: RailItem[] = [
-    item("agents", "/agents", "Agents", glyph(Bot), agents),
     item("arxiv", withScope("/bills", state), "ArXiv", glyph(FileText), arxiv),
+    item("docs", "/docs", "Docs", glyph(BookOpen), docs),
     item("news", "/news", "News", glyph(Newspaper), news),
     item("workspace", "/workspace", "Workspace", glyph(LayoutGrid), workspace),
   ]

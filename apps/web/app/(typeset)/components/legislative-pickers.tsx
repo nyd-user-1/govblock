@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 
 import {
@@ -374,7 +375,7 @@ export function LegislativeFields({
         label="Bill"
         value={filters.bill ?? ""}
         display={
-          currentBill?.bill_number ?? (filters.bill ? undefined : "Latest")
+          (currentBill ? fmtBill(currentBill.bill_number, state) : undefined) ?? (filters.bill ? undefined : "Latest")
         }
         options={billOptions}
         allLabel="Latest"

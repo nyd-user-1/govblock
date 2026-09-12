@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts"
 
@@ -141,7 +142,7 @@ export function MemberRecord({ id, scope, label }: { id: number; scope: Scope; l
                   <TableRow key={`${tab}-${row.bill_id}`}>
                     <TableCell className="max-w-96">
                       <a href={`/bills/${row.bill_id}?state=${state}`} target="_blank" rel="noreferrer" className="font-medium hover:underline">
-                        {row.bill_number}
+                        {fmtBill(row.bill_number, state)}
                       </a>
                       <span className="block truncate text-xs text-muted-foreground">{truncate(row.title, 90)}</span>
                     </TableCell>

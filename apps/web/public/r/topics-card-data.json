@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "topics-card-data",
+  "title": "Topics data",
+  "description": "The twenty-four most used subject terms of the current Congress.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/topics.json",
+      "content": "[\n  {\n    \"label\": \"Health\",\n    \"bills\": 2121\n  },\n  {\n    \"label\": \"Armed forces and national security\",\n    \"bills\": 1468\n  },\n  {\n    \"label\": \"Government operations and politics\",\n    \"bills\": 1369\n  },\n  {\n    \"label\": \"International affairs\",\n    \"bills\": 1288\n  },\n  {\n    \"label\": \"Taxation\",\n    \"bills\": 1250\n  },\n  {\n    \"label\": \"Crime and law enforcement\",\n    \"bills\": 1110\n  },\n  {\n    \"label\": \"Agriculture and food\",\n    \"bills\": 752\n  },\n  {\n    \"label\": \"Transportation and public works\",\n    \"bills\": 741\n  },\n  {\n    \"label\": \"Finance and financial sector\",\n    \"bills\": 737\n  },\n  {\n    \"label\": \"Immigration\",\n    \"bills\": 688\n  },\n  {\n    \"label\": \"Education\",\n    \"bills\": 678\n  },\n  {\n    \"label\": \"Public lands and natural resources\",\n    \"bills\": 671\n  },\n  {\n    \"label\": \"Congress\",\n    \"bills\": 603\n  },\n  {\n    \"label\": \"Science, technology, communications\",\n    \"bills\": 568\n  },\n  {\n    \"label\": \"Environmental protection\",\n    \"bills\": 530\n  },\n  {\n    \"label\": \"Commerce\",\n    \"bills\": 520\n  },\n  {\n    \"label\": \"Energy\",\n    \"bills\": 467\n  },\n  {\n    \"label\": \"Labor and employment\",\n    \"bills\": 427\n  },\n  {\n    \"label\": \"Housing and community development\",\n    \"bills\": 282\n  },\n  {\n    \"label\": \"Foreign trade and international finance\",\n    \"bills\": 276\n  },\n  {\n    \"label\": \"Native Americans\",\n    \"bills\": 246\n  },\n  {\n    \"label\": \"Civil rights and liberties, minority issues\",\n    \"bills\": 228\n  },\n  {\n    \"label\": \"Emergency management\",\n    \"bills\": 218\n  },\n  {\n    \"label\": \"Law\",\n    \"bills\": 204\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/topics.json"
+    }
+  ],
+  "type": "registry:file"
+}

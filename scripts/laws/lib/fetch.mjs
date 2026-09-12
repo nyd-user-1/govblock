@@ -9,7 +9,15 @@ import { createHash } from "node:crypto"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
-export const UA = "GovBlock/1.0 (+https://gov.nysgpt.com; open public-law mirror; brendan@nysgpt.com)"
+// Who is asking, and how to reach them — with the `Mozilla/` prefix in front.
+//
+// The prefix is not a disguise: the rest of the string says exactly what this
+// is and gives an address to complain to. It is there because a good number of
+// the hosts on this list refuse, or quietly degrade, anything that does not
+// begin with it. Indiana's CDN answers a non-Mozilla agent with the React
+// application's shell instead of the statute — a 200 with the wrong document,
+// which is worse than a refusal because it looks like success.
+export const UA = "Mozilla/5.0 (compatible; GovBlock/1.0; +https://gov.nysgpt.com; brendan@nysgpt.com)"
 
 const CACHE = process.env.LAWS_CACHE || "/tmp/govblock-laws"
 mkdirSync(CACHE, { recursive: true })

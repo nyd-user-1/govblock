@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "bills-by-party-card",
+  "title": "Bills by Party Card",
+  "description": "Bills introduced by each party's members, month by month, as bars in the flag's red and blue, with the totals and the share beneath.",
+  "dependencies": [
+    "recharts"
+  ],
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/policy-imagery",
+    "card",
+    "chart"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/traffic-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { Bar, BarChart, CartesianGrid, XAxis } from \"recharts\"\n\nimport { PARTY_BLUE, PARTY_RED } from \"@/lib/imagery\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from \"@/components/ui/chart\"\n\n// Bills by party — how many bills each party's members introduced, month by\n// month, in the flag's red and blue.\nexport type MonthRow = { month: string; republican: number; democrat: number; other?: number }\n\nconst chartConfig = {\n  republican: { label: \"Republican\", color: PARTY_RED },\n  democrat: { label: \"Democrat\", color: PARTY_BLUE },\n} satisfies ChartConfig\n\nconst monthName = (ym: string) => new Date(`${ym}-15T00:00:00Z`).toLocaleDateString(\"en-US\", { month: \"short\", timeZone: \"UTC\" })\n\nexport function TrafficCardBody({ rows: months, pending = false, state = \"US\", title = \"Bills by party\", action, href, chamber, onChamber }: CardBodyProps & { rows: MonthRow[]; pending?: boolean; chamber?: string; onChamber?: (chamber: string) => void }) {\n  const rows = React.useMemo(() => months.map((r) => ({ ...r, label: monthName(r.month) })), [months])\n  const republican = rows.reduce((sum, r) => sum + r.republican, 0)\n  const democrat = rows.reduce((sum, r) => sum + r.democrat, 0)\n  const total = republican + democrat\n  const share = total ? Math.round((republican / total) * 100) : 0\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent className=\"flex flex-col gap-4 pt-0\">\n        <ChartContainer config={chartConfig} className=\"max-h-[180px] w-full\">\n          <BarChart accessibilityLayer data={rows} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>\n            <CartesianGrid vertical={false} strokeDasharray=\"3 3\" />\n            <XAxis dataKey=\"label\" tickLine={false} tickMargin={8} axisLine={false} />\n            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator=\"dashed\" />} />\n            <ChartLegend content={<ChartLegendContent />} />\n            <Bar dataKey=\"republican\" fill=\"var(--color-republican)\" radius={[6, 6, 0, 0]} />\n            <Bar dataKey=\"democrat\" fill=\"var(--color-democrat)\" radius={[6, 6, 0, 0]} />\n          </BarChart>\n        </ChartContainer>\n        <div className=\"grid w-full grid-cols-3 divide-x divide-border/60\">\n          {[\n            [\"Republican\", republican.toLocaleString(\"en-US\")],\n            [\"Democrat\", democrat.toLocaleString(\"en-US\")],\n            [\"Share\", total ? `${share}%` : \"—\"],\n          ].map(([label, value]) => (\n            <div key={label} className=\"px-2 text-center\">\n              <div className=\"text-[0.65rem] text-muted-foreground uppercase\">{label}</div>\n              <div className={pending && label !== \"Share\" ? \"animate-pulse text-sm font-medium tabular-nums\" : \"text-sm font-medium tabular-nums\"}>{value}</div>\n            </div>\n          ))}\n        </div>\n      </CardContent>\n      <CardFoot chamber={chamber} onChamber={onChamber} state={state} href={href ?? `${SITE}/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : \"\"}`} label=\"All bills\" />\n    </>\n  )\n}\n\nexport function TrafficCard(props: Omit<React.ComponentProps<typeof TrafficCardBody>, \"chamber\" | \"onChamber\">) {\n  return (\n    <CardShell>\n      <TrafficCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/traffic-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

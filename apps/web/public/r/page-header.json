@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "page-header",
+  "title": "Page Header",
+  "description": "A page's heading, its one-line description and its actions row, in shadcn's docs measure.",
+  "registryDependencies": [
+    "utils"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/page-header.tsx",
+      "content": "import { cn } from \"@/lib/utils\"\n\n// Ported verbatim from livingston-v3 components/page-header.tsx.\n\nfunction PageHeader({ className, children, ...props }: React.ComponentProps<\"section\">) {\n  return (\n    <section className={cn(\"border-grid\", className)} {...props}>\n      <div className=\"container-wrapper\">\n        <div className=\"container flex flex-col items-center gap-2 px-6 py-8 text-center md:py-16 lg:py-20 xl:gap-4\">\n          {children}\n        </div>\n      </div>\n    </section>\n  )\n}\n\nfunction PageHeaderHeading({ className, ...props }: React.ComponentProps<\"h1\">) {\n  return (\n    <h1\n      className={cn(\n        \"leading-tighter max-w-3xl text-3xl font-semibold tracking-tight text-balance text-primary lg:leading-[1.1] lg:font-semibold xl:text-5xl xl:tracking-tighter\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nfunction PageHeaderDescription({ className, ...props }: React.ComponentProps<\"p\">) {\n  return (\n    <p className={cn(\"max-w-4xl text-base text-balance text-foreground sm:text-lg\", className)} {...props} />\n  )\n}\n\nfunction PageActions({ className, ...props }: React.ComponentProps<\"div\">) {\n  return (\n    <div\n      className={cn(\"flex w-full items-center justify-center gap-2 pt-2 **:data-[slot=button]:shadow-none\", className)}\n      {...props}\n    />\n  )\n}\n\nexport { PageActions, PageHeader, PageHeaderDescription, PageHeaderHeading }\n",
+      "type": "registry:component",
+      "target": "components/page-header.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

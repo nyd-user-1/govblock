@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 
 import { cn } from "@govblock/ui/lib/utils"
-import type { BillComparison, CompareRow } from "@/lib/policy/bill-compare"
+import type { BillComparison, CompareRow } from "@/lib/policy/bill-compare-types"
 
 import "./policy/diff-view.css"
 import "./bill-compare.css"

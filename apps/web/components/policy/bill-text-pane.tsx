@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, PencilIcon, SearchIcon, SquareCodeIcon, XIcon } from "lucide-react"
@@ -179,7 +180,7 @@ export function BillTextPane({
 
   // The header's more-actions menu asks; this pane, which has the text and
   // the editor, answers.
-  const fileName = shown ? `${bill.bill_number}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt` : ""
+  const fileName = shown ? `${fmtBill(bill.bill_number, state).toLowerCase().replace(/[^a-z0-9]/g, "")}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt` : ""
   React.useEffect(() => {
     const on = (e: Event) => {
       const action = (e as CustomEvent<FileAction>).detail
@@ -205,10 +206,10 @@ export function BillTextPane({
     { value: "session", label: "Search in this session" },
     { value: "all", label: "Search all of govblock" },
   ]
-  const qualifier = (s: Scope) => (s === "bill" ? `bill:${bill.bill_number}` : s === "session" ? `session:${state}/${session ?? ""}` : "all:govblock")
+  const qualifier = (s: Scope) => (s === "bill" ? `bill:${fmtBill(bill.bill_number, state)}` : s === "session" ? `session:${state}/${session ?? ""}` : "all:govblock")
 
   if (!shown) {
-    return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {bill.bill_number} yet.</p>
+    return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {fmtBill(bill.bill_number, state)} yet.</p>
   }
 
   return (
@@ -429,7 +430,7 @@ export function BillTextPane({
                   {results.answer?.texts.map((t) => (
                     <button key={`t-${t.document_id}`} type="button" onClick={() => openResult(t.bill_id, t.document_id)} className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs hover:bg-muted">
                       <span className="flex items-center gap-2">
-                        <span className="font-mono font-medium">{t.bill_number}</span>
+                        <span className="font-mono font-medium">{fmtBill(t.bill_number, state)}</span>
                         <span className="truncate text-muted-foreground">{truncate(t.title, 60)}</span>
                         {results.scope === "all" && <span className="ml-auto shrink-0 text-muted-foreground">{t.state}</span>}
                       </span>

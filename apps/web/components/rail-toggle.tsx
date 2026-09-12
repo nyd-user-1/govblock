@@ -39,23 +39,36 @@ function apply(side: Side, closed: boolean) {
   } catch {}
 }
 
-export function RailToggle({ side, className }: { side: Side; className?: string }) {
-  const [closed, setClosed] = React.useState(false)
+// One store per side, so the tab on the hairline and the mark in the header
+// (2026-09-12) agree on whether the rail is open.
+const listeners = new Set<() => void>()
+const subscribe = (l: () => void) => {
+  listeners.add(l)
+  return () => listeners.delete(l)
+}
+const isClosed = (side: Side) => (typeof document === "undefined" ? false : document.documentElement.getAttribute(attr(side)) === "closed")
 
-  // The page renders open; the remembered state lands on mount.
+export function setRail(side: Side, closed: boolean) {
+  apply(side, closed)
+  listeners.forEach((l) => l())
+}
+
+export function toggleRail(side: Side) {
+  setRail(side, !isClosed(side))
+}
+
+/** Whether a rail is closed, live; the page renders open and the remembered state lands on mount. */
+export function useRailClosed(side: Side) {
+  const closed = React.useSyncExternalStore(subscribe, () => isClosed(side), () => false)
   React.useEffect(() => {
-    const stored = readClosed(side)
-    if (stored) {
-      apply(side, true)
-      setClosed(true)
-    }
+    if (readClosed(side) && !isClosed(side)) setRail(side, true)
   }, [side])
+  return closed
+}
 
-  const toggle = () => {
-    const next = !closed
-    apply(side, next)
-    setClosed(next)
-  }
+export function RailToggle({ side, className }: { side: Side; className?: string }) {
+  const closed = useRailClosed(side)
+  const toggle = () => toggleRail(side)
 
   // Pointing at the rail means "close it"; pointing away means "open it".
   const towardRail = side === "left" ? ChevronLeft : ChevronRight

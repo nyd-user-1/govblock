@@ -42,6 +42,21 @@ const nextConfig: NextConfig = {
   },
   // "View as Markdown": a page's address with .md on the end answers with the
   // page as markdown (app/api/markdown), for the pages that have one.
+  // Headers every response carries (2026-09-12, after an audit found none):
+  // nothing is sniffed into a script, and referrers stop at the origin. A
+  // content-security policy is the next step and needs a pass over every
+  // inline style the editors and the map emit before it can be strict.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ]
+  },
   async rewrites() {
     return [{ source: "/:path*.md", destination: "/api/markdown/:path*" }]
   },

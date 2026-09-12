@@ -1,5 +1,6 @@
 "use client"
 
+import { chamberFromNumber } from "@/lib/imagery"
 import * as React from "react"
 
 import { fmtBill, fmtDate } from "@/lib/format"
@@ -107,7 +108,7 @@ export function MemberFeed({
             stacked
             hover="rail"
             href={`/bills/${bill.bill_id}`}
-            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={page * pageSize + index + 1} />}
+            avatar={<RecordSeal state={state} chamber={bill.body ?? chamberFromNumber(bill.bill_number)} ordinal={page * pageSize + index + 1} />}
             title={fmtBill(bill.bill_number, state)}
             meta={[
               bill.last_action_date ? fmtDate(bill.last_action_date) : null,

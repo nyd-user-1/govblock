@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, FolderOpenIcon, SearchIcon, XIcon } from "lucide-react"
 
@@ -214,7 +215,7 @@ export function Tree({ scope, location, node, onGo }: { scope: Scope; location: 
                   <SidebarMenuItem key={`b-${b.bill_id}`}>
                     <SidebarMenuButton onClick={() => onGo({ bill: String(b.bill_id), rollcall: null })} title={b.title} className="gap-1.5">
                       <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate font-mono text-xs">{b.bill_number}</span>
+                      <span className="truncate font-mono text-xs">{fmtBill(b.bill_number, b.state)}</span>
                       <span className="truncate text-xs text-muted-foreground">{b.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

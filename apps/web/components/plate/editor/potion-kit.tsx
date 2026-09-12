@@ -22,6 +22,7 @@ import { DndKit } from '@/components/plate/editor/plugins/dnd-kit';
 import { DocxKit } from '@/components/plate/editor/plugins/docx-kit';
 import { EmojiKit } from '@/components/plate/editor/plugins/emoji-kit';
 import { ExitBreakKit } from '@/components/plate/editor/plugins/exit-break-kit';
+import { FixedToolbarKit } from '@/components/plate/editor/plugins/fixed-toolbar-kit';
 import { FloatingToolbarKit } from '@/components/plate/editor/plugins/floating-toolbar-kit';
 import { FontKit } from '@/components/plate/editor/plugins/font-kit';
 import { LineHeightKit } from '@/components/plate/editor/plugins/line-height-kit';
@@ -43,8 +44,8 @@ import { ToggleKit } from '@/components/plate/editor/plugins/toggle-kit';
 // which is where Potion's own difference lies: it is the same Plate with the
 // page's chrome taken away.
 //
-// One plugin apart from EditorKit: no FixedToolbarKit. Nothing sits above the
-// page. Formatting arrives when it is asked for — the floating toolbar on a
+// It differs from EditorKit in posture, not plugins: the page's chrome is
+// taken away. Formatting arrives when it is asked for — the floating toolbar on a
 // selection, "/" for a block, the drag handle's menu on a block — which is the
 // whole of the Notion posture. Everything else the playground can do, this can
 // do; the shell adds the sticky outline Potion puts beside the page.
@@ -94,8 +95,10 @@ export const PotionKit = [
   ...DocxKit,
   ...MarkdownKit,
 
-  // UI — the floating toolbar, and no fixed one.
+  // UI — the floating toolbar, and, since 2026-09-12, the fixed one too:
+  // the toolbar never leaves the frame, whichever view is open (Brendan).
   ...BlockPlaceholderKit,
+  ...FixedToolbarKit,
   ...FloatingToolbarKit,
 ];
 

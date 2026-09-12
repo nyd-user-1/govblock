@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "sessions-card",
+  "title": "Sessions Card",
+  "description": "Every session on file, newest first, each with its bill count; the current one is marked.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "card",
+    "item"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/sessions-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { fmtNumber } from \"@/lib/format\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from \"@/components/ui/item\"\n\n// Sessions — every session the jurisdiction has on file, newest first, each\n// with its bill count; the current one is marked.\nexport type SessionRow = { session_year: number; label: string; years: string; bills: number }\n\nexport function SessionsCardBody({ rows, current, onPick, state = \"US\", title = \"Sessions\", action, href }: CardBodyProps & { rows: SessionRow[]; current?: number | null; onPick?: (year: number) => void }) {\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent>\n        <ItemGroup>\n          {rows.map((row) => {\n            const isCurrent = row.session_year === current\n            return (\n              <Item key={row.session_year} variant=\"muted\" aria-current={isCurrent ? \"true\" : undefined} className={isCurrent ? \"ring-1 ring-ring/40\" : undefined} render={<button type=\"button\" className=\"w-full text-left\" onClick={() => onPick?.(row.session_year)} />}>\n                <ItemContent>\n                  <ItemTitle>{row.label}</ItemTitle>\n                  <ItemDescription>\n                    {row.years} · {fmtNumber(row.bills)} bills\n                  </ItemDescription>\n                </ItemContent>\n              </Item>\n            )\n          })}\n        </ItemGroup>\n      </CardContent>\n      <CardFoot href={href ?? `${SITE}/docs/datasets/${state.toLowerCase()}`} label=\"The sessions as files\" />\n    </>\n  )\n}\n\nexport function SessionsCard(props: React.ComponentProps<typeof SessionsCardBody>) {\n  return (\n    <CardShell>\n      <SessionsCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/sessions-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

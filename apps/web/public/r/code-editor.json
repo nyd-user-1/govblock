@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "code-editor",
+  "title": "Code Editor",
+  "description": "The fork editor: the code view made editable, with spaces or tabs, an indent size and wrap.",
+  "dependencies": [
+    "@codemirror/commands",
+    "@codemirror/language",
+    "@codemirror/merge",
+    "@codemirror/search",
+    "@codemirror/state",
+    "@codemirror/view"
+  ],
+  "registryDependencies": [
+    "@44gov/code-view"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/policy/code-editor.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { defaultKeymap, history, historyKeymap, indentWithTab } from \"@codemirror/commands\"\nimport { indentUnit } from \"@codemirror/language\"\nimport { Compartment, EditorState } from \"@codemirror/state\"\nimport { EditorView, keymap, lineNumbers } from \"@codemirror/view\"\n\nimport { codeTheme } from \"@/components/policy/code-view\"\nimport { cn } from \"@/lib/utils\"\n\n// The editable twin of CodeView: GitHub's editor for a file, put to a bill.\n// One document per mount (`initial`); every keystroke reports the whole text\n// through onChange, and the indent and wrap settings from GitHub's three\n// selects reconfigure the editor in place.\n\nexport function CodeEditor({\n  initial,\n  onChange,\n  indent = \"spaces\",\n  size = 2,\n  wrap = false,\n  className,\n}: {\n  initial: string\n  onChange: (text: string) => void\n  indent?: \"spaces\" | \"tabs\"\n  size?: 2 | 4 | 8\n  wrap?: boolean\n  className?: string\n}) {\n  const host = React.useRef<HTMLDivElement>(null)\n  const view = React.useRef<EditorView | null>(null)\n  const indentConf = React.useRef(new Compartment())\n  const wrapConf = React.useRef(new Compartment())\n  const report = React.useRef(onChange)\n  React.useEffect(() => {\n    report.current = onChange\n  }, [onChange])\n\n  const indentExt = (kind: \"spaces\" | \"tabs\", n: number) => [indentUnit.of(kind === \"tabs\" ? \"\\t\" : \" \".repeat(n)), EditorState.tabSize.of(n)]\n\n  React.useEffect(() => {\n    if (!host.current) return\n    const state = EditorState.create({\n      doc: initial,\n      extensions: [\n        lineNumbers(),\n        history(),\n        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),\n        indentConf.current.of(indentExt(indent, size)),\n        wrapConf.current.of(wrap ? EditorView.lineWrapping : []),\n        EditorView.updateListener.of((u) => {\n          if (u.docChanged) report.current(u.state.doc.toString())\n        }),\n        codeTheme,\n      ],\n    })\n    const editor = new EditorView({ state, parent: host.current })\n    view.current = editor\n    editor.focus()\n    return () => {\n      editor.destroy()\n      view.current = null\n    }\n    // One editor per document: the settings below reconfigure it in place.\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [initial])\n\n  React.useEffect(() => {\n    view.current?.dispatch({ effects: indentConf.current.reconfigure(indentExt(indent, size)) })\n  }, [indent, size])\n  React.useEffect(() => {\n    view.current?.dispatch({ effects: wrapConf.current.reconfigure(wrap ? EditorView.lineWrapping : []) })\n  }, [wrap])\n\n  return <div ref={host} className={cn(\"h-full min-h-0 overflow-hidden\", className)} />\n}\n",
+      "type": "registry:component",
+      "target": "components/policy/code-editor.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

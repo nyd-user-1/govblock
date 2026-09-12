@@ -1,0 +1,38 @@
+[
+  {
+    "month": "2026-03",
+    "republican": 392,
+    "democrat": 519,
+    "other": 7
+  },
+  {
+    "month": "2026-04",
+    "republican": 397,
+    "democrat": 499,
+    "other": 3
+  },
+  {
+    "month": "2026-05",
+    "republican": 337,
+    "democrat": 404,
+    "other": 4
+  },
+  {
+    "month": "2026-06",
+    "republican": 448,
+    "democrat": 485,
+    "other": 2
+  },
+  {
+    "month": "2026-07",
+    "republican": 362,
+    "democrat": 442,
+    "other": 4
+  },
+  {
+    "month": "2026-08",
+    "republican": 193,
+    "democrat": 221,
+    "other": 4
+  }
+]

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { useAccount } from "@/lib/auth/use-account"
+import { useHomeState } from "@/lib/policy/home-state"
 import { CONGRESS, DISTRICT, flagUrl, STATE_CODES, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { FlagChip } from "@/components/policy/imagery"
@@ -78,9 +78,9 @@ function FlagStack({ home }: { home: string }) {
 
 export function StateSwitcher({ className, compact = false }: { className?: string; compact?: boolean }) {
   const { state, setState, resolved } = useJurisdiction()
-  const { account, signedIn } = useAccount()
-  // The home state is the profile's (onboarding, 2026-09-11); a reader signed in before there was one keeps the header's flag as it.
-  const home = account?.home ?? (signedIn && state !== CONGRESS ? state : null)
+  // The profile's home, or the last state a signed-in reader was in — never
+  // Congress, and never lost by stepping into Congress (2026-09-12).
+  const home = useHomeState()
   const active = home ? [CONGRESS, home] : [CONGRESS]
   const [open, setOpen] = React.useState(false)
   const select = React.useCallback(

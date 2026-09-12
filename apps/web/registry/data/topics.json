@@ -1,0 +1,98 @@
+[
+  {
+    "label": "Health",
+    "bills": 2121
+  },
+  {
+    "label": "Armed forces and national security",
+    "bills": 1468
+  },
+  {
+    "label": "Government operations and politics",
+    "bills": 1369
+  },
+  {
+    "label": "International affairs",
+    "bills": 1288
+  },
+  {
+    "label": "Taxation",
+    "bills": 1250
+  },
+  {
+    "label": "Crime and law enforcement",
+    "bills": 1110
+  },
+  {
+    "label": "Agriculture and food",
+    "bills": 752
+  },
+  {
+    "label": "Transportation and public works",
+    "bills": 741
+  },
+  {
+    "label": "Finance and financial sector",
+    "bills": 737
+  },
+  {
+    "label": "Immigration",
+    "bills": 688
+  },
+  {
+    "label": "Education",
+    "bills": 678
+  },
+  {
+    "label": "Public lands and natural resources",
+    "bills": 671
+  },
+  {
+    "label": "Congress",
+    "bills": 603
+  },
+  {
+    "label": "Science, technology, communications",
+    "bills": 568
+  },
+  {
+    "label": "Environmental protection",
+    "bills": 530
+  },
+  {
+    "label": "Commerce",
+    "bills": 520
+  },
+  {
+    "label": "Energy",
+    "bills": 467
+  },
+  {
+    "label": "Labor and employment",
+    "bills": 427
+  },
+  {
+    "label": "Housing and community development",
+    "bills": 282
+  },
+  {
+    "label": "Foreign trade and international finance",
+    "bills": 276
+  },
+  {
+    "label": "Native Americans",
+    "bills": 246
+  },
+  {
+    "label": "Civil rights and liberties, minority issues",
+    "bills": 228
+  },
+  {
+    "label": "Emergency management",
+    "bills": 218
+  },
+  {
+    "label": "Law",
+    "bills": 204
+  }
+]

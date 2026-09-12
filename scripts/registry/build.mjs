@@ -22,10 +22,18 @@ const REWRITES = [
   [/@govblock\/ui\/lib\/utils/g, "@/lib/utils"],
   [/@govblock\/ui\/components\/(?:nova|ny4|animate-ui|animbits)\//g, "@/components/ui/"],
   [/@govblock\/ui\/components\//g, "@/components/ui/"],
-  // Flags, seals and the boundary files are ours and they are public. A
-  // consumer's own tree has none of them, so the copies read them from the
-  // site rather than from a path that will 404.
-  [/(["'`])\/(geo|flags|chambers)\//g, "$1https://44gov.nysgpt.com/$2/"],
+  // The seals item lands under the name the docs give it, so anything that
+  // reads the site's imagery file reads the installed one.
+  [/@\/components\/policy\/imagery/g, "@/components/policy/seals"],
+  // Flags and seals are ours and they are public. A consumer's own tree has
+  // none of them, so the copies read them from the site rather than from a
+  // path that will 404.
+  [/(["'`])\/(flags|chambers)\//g, "$1https://44gov.nysgpt.com/$2/"],
+  // The boundary files left the site for a public bucket on 2026-09-11
+  // (Amplify's output cap), so they are read from there — the same base
+  // lib/map/geo-url.ts uses. An audit on 2026-09-12 caught the old rewrite
+  // pointing consumers at the site, where every /geo/ path is a 404.
+  [/(["'`])\/geo\//g, "$1https://govblock-geo-638175140432.s3.amazonaws.com/"],
 ]
 
 fs.rmSync(out, { recursive: true, force: true })
@@ -65,6 +73,42 @@ for (const name of fs.readdirSync(out)) {
 }
 if (leaks.length) {
   console.error("registry: unrewritten references\n  " + leaks.join("\n  "))
+  process.exit(1)
+}
+
+// Every "@/…" import a consumer's copy makes must land somewhere the same
+// install puts a file: this item, an @44gov item it depends on (transitively),
+// a shadcn primitive under components/ui, or lib/utils. Anything else is a
+// path that only resolves inside this repo (2026-09-12, as the registry grew
+// past what one person could check by eye).
+const items = new Map()
+for (const name of fs.readdirSync(out)) {
+  if (!name.endsWith(".json") || name === "registry.json") continue
+  items.set(name.slice(0, -5), JSON.parse(fs.readFileSync(path.join(out, name), "utf8")))
+}
+const targetsOf = (name, seen = new Set()) => {
+  if (seen.has(name)) return []
+  seen.add(name)
+  const item = items.get(name)
+  if (!item) return []
+  const own = (item.files ?? []).map((f) => (f.target ?? f.path).replace(/\.(tsx?|css|json)$/, ""))
+  const deps = (item.registryDependencies ?? []).filter((d) => d.startsWith("@44gov/")).flatMap((d) => targetsOf(d.slice(7), seen))
+  return [...own, ...deps]
+}
+const unresolved = []
+for (const [name, item] of items) {
+  const reach = new Set(targetsOf(name))
+  for (const f of item.files ?? []) {
+    if (typeof f.content !== "string") continue
+    for (const m of f.content.matchAll(/from\s+["']@\/([^"']+)["']/g)) {
+      const spec = m[1].replace(/\.(tsx?|css|json)$/, "")
+      if (spec === "lib/utils" || spec.startsWith("components/ui/")) continue
+      if (!reach.has(spec)) unresolved.push(`${name}: @/${m[1]}`)
+    }
+  }
+}
+if (unresolved.length) {
+  console.error("registry: imports no install would satisfy\n  " + unresolved.join("\n  "))
   process.exit(1)
 }
 

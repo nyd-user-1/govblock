@@ -63,15 +63,15 @@ written) · **open** (not yet looked at).
 | CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,427 sections |
 | NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,551 sections |
 | DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, one index per title and one file per section | no | **loaded** — 54 titles, 23,492 sections, current through 7 October 2021 |
-| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **building** — 701 chapters; a full run is hours at one request at a time |
-| TX | Texas | Legislative Council, `statutes.capitol.texas.gov` | **the site is now an Angular app**; the old `/Docs/<code>/htm/` and `Download.aspx` paths all answer with the shell. Its API has to be found. | no | open |
-| FL | Florida | `flsenate.gov/Laws/Statutes` | HTML and XML per title | no | sized |
+| MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **loaded** — 611 chapters, 26,326 sections; 87 more are repealed with no sections left, which is the API's own answer |
+| TX | Texas | Legislative Council, `tcss.legis.texas.gov` | one API call per code for its whole tree, then one HTML file per chapter | no | **loaded** — 30 codes, 145,592 sections |
+| FL | Florida | `flsenate.gov/Laws/Statutes` | HTML per chapter, `/ChapterN/All` for the whole of one | no | **building** — 49 titles. Counts requests per IP (`X-Throttle-Reason: crawler-penalty-active`, `Retry-After: 300`) and the penalty stuck to the AWS address, so it runs from a different one at two lanes |
 | WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | HTML per title/chapter. The Code Reviser's bulk-download page has moved — its old address answers "Page not found" with a 200 — so the bulk route has to be found again | no | sized, bulk address unknown |
 | VA | Virginia | Division of Legislative Automated Systems, `law.lis.virginia.gov` | HTML per title/chapter | no | sized |
 | OH | Ohio | `codes.ohio.gov` (LAWriter, state-run) | HTML per section | no | sized |
 | AZ | Arizona | `azleg.gov/arstitle` | HTML per title/section | no | sized |
-| DE | Delaware | `delcode.delaware.gov` | HTML per title/chapter | no | sized |
-| CT | Connecticut | General Assembly, `cga.ct.gov/current/pub` | HTML and PDF per title | no | sized |
+| DE | Delaware | Code Revisors, `delcode.delaware.gov` | one HTML page per chapter | no | **loaded** — 31 titles, 10,081 sections. 403s AWS at width; four lanes and a quarter-second apart passes |
+| CT | Connecticut | General Assembly, `cga.ct.gov/current/pub` | one HTML page per chapter, the whole chapter on it | no | **loaded** — 71 titles, 29,671 sections. Serves an incomplete certificate chain; the intermediate its own certificate names is fetched and added |
 | AK | Alaska | `akleg.gov/basis/statutes.asp` | HTML per title | no | sized |
 | CO | Colorado | General Assembly, `leg.colorado.gov` | PDF per title, published free | LexisNexis prints it; the state posts the PDFs | sized |
 | AL | Alabama | `alison.legislature.state.al.us/code-of-alabama` | HTML behind a state-run viewer | no | sized |
@@ -80,7 +80,11 @@ written) · **open** (not yet looked at).
 | HI | Hawaii | `capitol.hawaii.gov` | HTML/PDF per chapter; refuses an unknown agent (403) | no | sized |
 | IL | Illinois | `ilga.gov` | HTML; the site was rebuilt and the old ILCS paths are gone | no | open |
 | MI | Michigan | `legislature.mi.gov` | HTML; the MCL paths moved | no | open |
-| — | the remaining 31 states, plus the territories the record covers | | | | open |
+| NC | North Carolina | General Assembly, `ncleg.gov` | one HTML file per chapter, the whole chapter in it | no | **loaded** — 396 chapters, 41,481 sections |
+| PA | Pennsylvania | Legislative Reference Bureau, `legis.state.pa.us` | one HTML file per title, every unit marked by a `<div class="Comment">` | no | **loaded** — 51 consolidated titles, 14,045 sections. Black-holes the AWS range, so it is fetched from elsewhere; the unconsolidated statutes are a second pass |
+| SC | South Carolina | Legislative Council, `scstatehouse.gov/code` | one HTML page per chapter, unannotated | no | **building** — 63 titles |
+| OR | Oregon | Legislative Counsel, `oregonlegislature.gov/bills_laws/ors` | one HTML file per chapter, ISO-8859-1 | no | **building** — chapters enumerated, the index page names none |
+| — | the remaining 27 states, plus the territories the record covers | | | | open |
 
 ## Notes per source
 

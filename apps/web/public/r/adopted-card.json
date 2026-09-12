@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "adopted-card",
+  "title": "Adopted Bills Card",
+  "description": "Bills adopted per session, as an area across the sessions on file.",
+  "dependencies": [
+    "recharts"
+  ],
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "card",
+    "chart"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/adopted-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { Area, AreaChart, CartesianGrid, XAxis } from \"recharts\"\n\nimport { congressName } from \"@/lib/policy/congress\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from \"@/components/ui/chart\"\n\n// Adopted Bills — the bills adopted in every session the jurisdiction has,\n// oldest to newest, so the shape is the legislature's own output over the\n// years. The current session is the last point and is still climbing.\nexport type AdoptedRow = { session_id: number; adopted: number; bills: number }\n\nconst chartConfig = {\n  adopted: { label: \"Adopted\", color: \"var(--chart-1)\" },\n} satisfies ChartConfig\n\nexport function AdoptedCardBody({ rows: all, state = \"US\", title = \"Adopted Bills\", action, href }: CardBodyProps & { rows: AdoptedRow[] }) {\n  const nameOf = React.useCallback((id: number) => (state === \"US\" ? congressName(id).replace(\" Congress\", \"\") : String(id)), [state])\n  // The last twelve sessions, and a session's name is what the pages call it.\n  const rows = React.useMemo(() => all.filter((r) => r.bills > 0).slice(-12).map((r) => ({ session: nameOf(r.session_id), adopted: r.adopted, bills: r.bills, id: r.session_id })), [all, nameOf])\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent className=\"flex flex-col gap-4\">\n        <ChartContainer config={chartConfig} className=\"h-[200px] w-full\">\n          <AreaChart accessibilityLayer data={rows} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>\n            <defs>\n              <linearGradient id=\"fillAdopted\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n                <stop offset=\"0%\" stopColor=\"var(--color-adopted)\" stopOpacity={0.3} />\n                <stop offset=\"100%\" stopColor=\"var(--color-adopted)\" stopOpacity={0.05} />\n              </linearGradient>\n            </defs>\n            <CartesianGrid vertical={false} strokeDasharray=\"3 3\" />\n            <XAxis dataKey=\"session\" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />\n            <ChartTooltip cursor={false} content={<ChartTooltipContent labelKey=\"session\" />} />\n            <Area type=\"monotone\" dataKey=\"adopted\" stroke=\"var(--color-adopted)\" strokeWidth={2} fill=\"url(#fillAdopted)\" />\n          </AreaChart>\n        </ChartContainer>\n      </CardContent>\n      <CardFoot href={href ?? `${SITE}/laws?state=${state}`} label=\"The laws\" />\n    </>\n  )\n}\n\nexport function AdoptedCard(props: React.ComponentProps<typeof AdoptedCardBody>) {\n  return (\n    <CardShell>\n      <AdoptedCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/adopted-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

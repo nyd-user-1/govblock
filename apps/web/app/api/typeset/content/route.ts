@@ -1,3 +1,4 @@
+import { billCitation } from "@/lib/policy/congress"
 import { NextResponse } from "next/server"
 
 import { changelogHtml, esc } from "@/lib/policy/bill-html"
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
   const uslm = text ? await fetchUslm(text.url) : null
   // The document names itself — "H. R. 5366", the way the GPO sets it — which
   // beats the record's own key ("HB5366") at the top of a page a reader reads.
-  const heading = uslm?.title ?? bill.bill_number
+  const heading = uslm?.title ?? billCitation(bill.bill_number, bill.state)
   const head = `<h1>${esc(heading)}</h1><p><em>${esc(bill.title)}</em></p>${shown ? `<p><strong>Shown here:</strong> ${esc(shown)}</p>` : ""}`
   const body = uslm
     ? uslm.html

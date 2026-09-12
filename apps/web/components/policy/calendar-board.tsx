@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 
@@ -32,9 +33,9 @@ const iso = (offsetDays: number) => new Date(Date.now() + offsetDays * 864e5).to
 // are the two things that identify a hearing to someone looking at next
 // Tuesday, so they lead; the bill's title is the body, and the link comes back
 // here.
-export function hearingSummary(hearing: Hearing) {
+export function hearingSummary(hearing: Hearing, state?: string | null) {
   const what = (hearing.description || "").trim() || `${hearing.committee ?? ""} hearing`.trim() || "Hearing"
-  return hearing.bill_number ? `${what} · ${hearing.bill_number}` : what
+  return hearing.bill_number ? `${what} · ${fmtBill(hearing.bill_number, state)}` : what
 }
 
 export function hearingDescription(hearing: Hearing) {
@@ -82,7 +83,7 @@ export function CalendarBoard({ look }: { look: Look }) {
         key: `hearing-${hearing.bill_id}-${hearing.date}-${index}`,
         group: hearing.committee ?? undefined,
         media: <ChamberSeal state={state} chamber={hearing.chamber ?? hearing.body} size={96} />,
-        title: hearing.bill_number || hearing.title || "Hearing",
+        title: (hearing.bill_number ? fmtBill(hearing.bill_number, state) : "") || hearing.title || "Hearing",
         description: truncate(hearing.title || hearing.description || "", 90),
         meta: `${whenOf(hearing)}${hearing.location ? ` · ${truncate(hearing.location, 28)}` : ""}`,
         onOpen: () => router.push(href(hearing)),
@@ -145,7 +146,7 @@ export function CalendarBoard({ look }: { look: Look }) {
                     <span className="flex items-center gap-2.5 font-medium">
                       <ChamberSeal state={state} chamber={hearing.chamber ?? hearing.body} size={22} />
                       <span className="truncate group-hover/row:text-primary group-hover/row:underline" title={hearing.title}>
-                        {hearing.bill_number || "Hearing"}
+                        {hearing.bill_number ? fmtBill(hearing.bill_number, state) : "Hearing"}
                         {hearing.title && <span className="font-normal text-muted-foreground"> · {hearing.title}</span>}
                       </span>
                     </span>
@@ -162,7 +163,7 @@ export function CalendarBoard({ look }: { look: Look }) {
                     </span>
                   </TableCell>
                   <TableCell onClick={(event) => event.stopPropagation()}>
-                    <AddToCalendar className="-my-1" summary={hearingSummary(hearing)} description={hearingDescription(hearing)} when={hearingWhen(hearing.date, hearing.time, state)} url={href(hearing)} />
+                    <AddToCalendar className="-my-1" summary={hearingSummary(hearing, state)} description={hearingDescription(hearing)} when={hearingWhen(hearing.date, hearing.time, state)} url={href(hearing)} />
                   </TableCell>
                 </TableRow>
               ))}

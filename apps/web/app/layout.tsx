@@ -16,6 +16,7 @@ import {
 } from "@/lib/policy/scope-script"
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
+import { PageCurtainHost } from "@/components/page-curtain"
 import { DevTrace } from "@/components/dev/trace"
 import { AssistPanel, AssistShell } from "@/components/assist-panel"
 import { CardGateProvider } from "@/components/card-gate"
@@ -84,6 +85,8 @@ export default function RootLayout({
                       <SiteFooter />
                     </div>
                     <AssistPanel />
+                    {/* The page curtain, over everything and outside the routed pages, so it outlives the navigation it covers. */}
+                    <PageCurtainHost />
                     {/* The visual inspector, on the dev server only. */}
                     <DevTrace />
                   </AssistPanelProvider>

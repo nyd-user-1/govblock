@@ -19,6 +19,45 @@ const REGION = process.env.AWS_REGION ?? "us-east-1"
 /** 25 MB: a scan of a bill or a short clip; not a film. */
 export const MAX_BYTES = 25 * 1024 * 1024
 
+/**
+ * What a document may carry, by extension, and the type it is stored and
+ * served as. Nothing that a browser would run: no HTML, no SVG, no scripts.
+ */
+export const ALLOWED_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  csv: "text/csv",
+  txt: "text/plain",
+  md: "text/markdown",
+  json: "application/json",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+}
+
+/** Shown in the page rather than downloaded: the kinds a browser renders safely. */
+export const INLINE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif", "application/pdf", "video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/wav"])
+
+/** The type a file is stored as: from its extension, and only when the client's declared type agrees or is blank. */
+export function typeOf(name: string, declared: string): string | null {
+  const ext = name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]
+  const type = ext ? ALLOWED_TYPES[ext] : undefined
+  if (!type) return null
+  const said = declared.split(";")[0].trim().toLowerCase()
+  if (said && said !== type && !(said === "image/jpg" && type === "image/jpeg")) return null
+  return type
+}
+
 let client: S3Client | null = null
 export function s3() {
   if (!client) client = new S3Client({ region: REGION })
