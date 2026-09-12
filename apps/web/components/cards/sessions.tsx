@@ -4,20 +4,17 @@ import * as React from "react"
 
 import * as F from "@/lib/fixtures"
 import { useScoped } from "@/lib/policy/use-scoped"
-import { fmtNumber } from "@/lib/format"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
-import { CardFoot } from "@/components/card-foot"
+import { SessionsCardBody, type SessionRow } from "@/components/cards/sessions-card"
 import { CardAnchor } from "@/components/admin/blocks/card-tools"
-import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@govblock/ui/components/item"
 
-// Sessions — the picker. Choosing one scopes every other card; the current
-// one is marked.
+// Sessions, on the home page — the picker. Choosing one scopes every other
+// card; the current one is marked.
 type ApiSession = { session_id: number; bills: number; title: string }
 
 export function SessionsCard() {
   const { data, session, state, congress } = useScoped<ApiSession[]>("sessions", null as unknown as ApiSession[], { titles: 1 })
-  const sessions = React.useMemo(
+  const sessions = React.useMemo<SessionRow[]>(
     () =>
       data
         ? data.map((row) => ({
@@ -35,30 +32,7 @@ export function SessionsCard() {
   )
   return (
     <CardFrame id="sessions">
-      <CardHeader>
-        <CardAnchor>Sessions</CardAnchor>
-        <CardAction>
-          <ComponentActions rows={sessions} id="sessions" />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <ItemGroup>
-          {sessions.map((row) => {
-            const isCurrent = row.session_year === session
-            return (
-              <Item key={row.session_year} variant="muted" aria-current={isCurrent ? "true" : undefined} className={isCurrent ? "ring-1 ring-ring/40" : undefined} render={<button type="button" className="w-full text-left" />}>
-                <ItemContent>
-                  <ItemTitle>{row.label}</ItemTitle>
-                  <ItemDescription>
-                    {row.years} · {fmtNumber(row.bills)} bills
-                  </ItemDescription>
-                </ItemContent>
-              </Item>
-            )
-          })}
-        </ItemGroup>
-      </CardContent>
-      <CardFoot href={`/docs/datasets/${state.toLowerCase()}`} label="The sessions as files" />
+      <SessionsCardBody rows={sessions} current={session} state={state} title={<CardAnchor>Sessions</CardAnchor>} action={<ComponentActions rows={sessions} id="sessions" />} href={`/docs/datasets/${state.toLowerCase()}`} />
     </CardFrame>
   )
 }

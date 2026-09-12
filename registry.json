@@ -85,6 +85,11 @@
           "path": "apps/web/lib/map/join.ts",
           "type": "registry:lib",
           "target": "lib/map/join.ts"
+        },
+        {
+          "path": "apps/web/lib/map/geo-url.ts",
+          "type": "registry:lib",
+          "target": "lib/map/geo-url.ts"
         }
       ],
       "dependencies": [
@@ -166,6 +171,1157 @@
           "type": "registry:component",
           "target": "components/directory-search.tsx"
         }
+      ]
+    },
+    {
+      "name": "format",
+      "type": "registry:lib",
+      "title": "Format",
+      "description": "Dates, numbers, names and bill citations the way the record prints them: fmtDate, fmtNumber, fmtBill, truncate, honorific, and the congress.gov citation table behind them.",
+      "files": [
+        {
+          "path": "apps/web/lib/format.ts",
+          "type": "registry:lib",
+          "target": "lib/format.ts"
+        },
+        {
+          "path": "apps/web/lib/policy/congress.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/congress.ts"
+        }
+      ]
+    },
+    {
+      "name": "file-block",
+      "type": "registry:component",
+      "title": "File Block",
+      "description": "A file with its name on top, line numbers down the side, and Expand when it runs long \u2014 the way GitHub shows one.",
+      "files": [
+        {
+          "path": "apps/web/components/file-block.tsx",
+          "type": "registry:component",
+          "target": "components/file-block.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ]
+    },
+    {
+      "name": "command-block",
+      "type": "registry:component",
+      "title": "Command Block",
+      "description": "shadcn's install-command block: the terminal glyph, package-manager tabs, the copy button and the mono command beneath.",
+      "files": [
+        {
+          "path": "apps/web/components/command-block.tsx",
+          "type": "registry:component",
+          "target": "components/command-block.tsx"
+        }
+      ]
+    },
+    {
+      "name": "copy-button",
+      "type": "registry:component",
+      "title": "Copy Button",
+      "description": "The small copy button a code figure wears, with its tick.",
+      "files": [
+        {
+          "path": "apps/web/components/copy-button.tsx",
+          "type": "registry:component",
+          "target": "components/copy-button.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "button"
+      ],
+      "dependencies": [
+        "@tabler/icons-react"
+      ]
+    },
+    {
+      "name": "code-figure",
+      "type": "registry:component",
+      "title": "Code Figure",
+      "description": "A code block with an optional file caption, a copy button, highlighted lines, and a collapsible wrapper for long sources.",
+      "files": [
+        {
+          "path": "apps/web/components/code-block.tsx",
+          "type": "registry:component",
+          "target": "components/code-block.tsx"
+        },
+        {
+          "path": "apps/web/components/code-collapsible-wrapper.tsx",
+          "type": "registry:component",
+          "target": "components/code-collapsible-wrapper.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/copy-button",
+        "button",
+        "collapsible",
+        "separator"
+      ]
+    },
+    {
+      "name": "list-pager",
+      "type": "registry:component",
+      "title": "List Pager",
+      "description": "Previous, next and the page numbers under a list, with an ellipsis where the run is long.",
+      "files": [
+        {
+          "path": "apps/web/components/list-pager.tsx",
+          "type": "registry:component",
+          "target": "components/list-pager.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "button",
+        "pagination"
+      ]
+    },
+    {
+      "name": "page-header",
+      "type": "registry:component",
+      "title": "Page Header",
+      "description": "A page's heading, its one-line description and its actions row, in shadcn's docs measure.",
+      "files": [
+        {
+          "path": "apps/web/components/page-header.tsx",
+          "type": "registry:component",
+          "target": "components/page-header.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ]
+    },
+    {
+      "name": "page-actions",
+      "type": "registry:component",
+      "title": "Page Actions",
+      "description": "The icon group at the top of a record: open in Typeset, diff the printings, open in Git, copy the page as Markdown, and a menu that opens it in v0, ChatGPT or Claude.",
+      "files": [
+        {
+          "path": "apps/web/components/docs-copy-page.tsx",
+          "type": "registry:component",
+          "target": "components/docs-copy-page.tsx"
+        },
+        {
+          "path": "apps/web/hooks/use-copy-to-clipboard.ts",
+          "type": "registry:hook",
+          "target": "hooks/use-copy-to-clipboard.ts"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "dropdown-menu",
+        "popover",
+        "separator",
+        "tooltip"
+      ],
+      "dependencies": [
+        "@tabler/icons-react"
+      ]
+    },
+    {
+      "name": "block-shell",
+      "type": "registry:component",
+      "title": "Block Shell",
+      "description": "The frame a workspace surface sits in: a collapsible rail, a title bar with actions, the content, and a footer any child can fill.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/block-shell.tsx",
+          "type": "registry:component",
+          "target": "components/policy/block-shell.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "separator",
+        "sidebar"
+      ]
+    },
+    {
+      "name": "path-bar",
+      "type": "registry:component",
+      "title": "Path Bar",
+      "description": "A breadcrumb that reads as a file path, each crumb a move, with the copy button at the end.",
+      "files": [
+        {
+          "path": "apps/web/components/create/path-bar.tsx",
+          "type": "registry:component",
+          "target": "components/create/path-bar.tsx"
+        },
+        {
+          "path": "apps/web/lib/create/path.ts",
+          "type": "registry:lib",
+          "target": "lib/create/path.ts"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "button"
+      ]
+    },
+    {
+      "name": "docs-toc",
+      "type": "registry:component",
+      "title": "Table of Contents",
+      "description": "The On This Page rail: the headings of the page, the one in view marked, and a menu of them on a narrow screen.",
+      "files": [
+        {
+          "path": "apps/web/components/docs-toc.tsx",
+          "type": "registry:component",
+          "target": "components/docs-toc.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "button",
+        "dropdown-menu"
+      ]
+    },
+    {
+      "name": "typeset-typography",
+      "type": "registry:component",
+      "title": "Typography",
+      "description": "H2, H3, Table and Callout as the docs set them, each heading with an anchor that copies its link.",
+      "files": [
+        {
+          "path": "apps/web/components/typeset.tsx",
+          "type": "registry:component",
+          "target": "components/typeset.tsx"
+        },
+        {
+          "path": "apps/web/components/heading-anchor.tsx",
+          "type": "registry:component",
+          "target": "components/heading-anchor.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ]
+    },
+    {
+      "name": "timeline",
+      "type": "registry:component",
+      "title": "Timeline",
+      "description": "Rows on a dated rail \u2014 a commit list, a bill's actions \u2014 each with a title, a meta line and its actions, grouped by day.",
+      "files": [
+        {
+          "path": "apps/web/components/create/timeline.tsx",
+          "type": "registry:component",
+          "target": "components/create/timeline.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "@44gov/format"
+      ]
+    },
+    {
+      "name": "record-list",
+      "type": "registry:component",
+      "title": "Record List",
+      "description": "A directory row and its list: the seal or an ordinal, the number and status, the meta line, the title, and a skeleton for loading.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/record-item.tsx",
+          "type": "registry:component",
+          "target": "components/policy/record-item.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "skeleton",
+        "@44gov/format",
+        "@44gov/policy-imagery",
+        "@44gov/seals"
+      ]
+    },
+    {
+      "name": "paged-list",
+      "type": "registry:component",
+      "title": "Paged List",
+      "description": "A record list that pages: previous and next, and a menu for how many rows a page holds.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/paged-list.tsx",
+          "type": "registry:component",
+          "target": "components/policy/paged-list.tsx"
+        },
+        {
+          "path": "apps/web/components/policy/page-size-menu.tsx",
+          "type": "registry:component",
+          "target": "components/policy/page-size-menu.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "dropdown-menu",
+        "@44gov/record-list",
+        "@44gov/format"
+      ]
+    },
+    {
+      "name": "data-table",
+      "type": "registry:component",
+      "title": "Data Table",
+      "description": "shadcn's data table on TanStack Table 8, with a select column, a filter field, column visibility and the same paging footer the lists use.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/data-table.tsx",
+          "type": "registry:component",
+          "target": "components/policy/data-table.tsx"
+        },
+        {
+          "path": "apps/web/components/policy/page-size-menu.tsx",
+          "type": "registry:component",
+          "target": "components/policy/page-size-menu.tsx"
+        },
+        {
+          "path": "apps/web/components/preview-frame.tsx",
+          "type": "registry:component",
+          "target": "components/preview-frame.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "checkbox",
+        "dropdown-menu",
+        "input",
+        "table",
+        "@44gov/format"
+      ],
+      "dependencies": [
+        "@tanstack/react-table"
+      ]
+    },
+    {
+      "name": "preview-frame",
+      "type": "registry:component",
+      "title": "Preview Frame",
+      "description": "shadcn's component-preview box, class for class: the rounded frame a component is shown in.",
+      "files": [
+        {
+          "path": "apps/web/components/preview-frame.tsx",
+          "type": "registry:component",
+          "target": "components/preview-frame.tsx"
+        }
+      ]
+    },
+    {
+      "name": "member-card",
+      "type": "registry:component",
+      "title": "Member Card",
+      "description": "A legislator as a row: portrait with its fallback, name, and the line under it.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/member-card.tsx",
+          "type": "registry:component",
+          "target": "components/policy/member-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/seals"
+      ]
+    },
+    {
+      "name": "project-card",
+      "type": "registry:component",
+      "title": "Project Card",
+      "description": "The card the boards are built from: a title, a description, a menu, pin and details, in a grid that wraps \u2014 with the Edit details dialog. Base UI.",
+      "files": [
+        {
+          "path": "apps/web/components/project-card.tsx",
+          "type": "registry:component",
+          "target": "components/project-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "button",
+        "dialog",
+        "dropdown-menu",
+        "field",
+        "input",
+        "textarea",
+        "@44gov/use-local"
+      ]
+    },
+    {
+      "name": "card-block",
+      "type": "registry:component",
+      "title": "Card Block",
+      "description": "A grid of project cards inside the preview frame, from a list of specs, with Show more when the list runs long.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/card-block.tsx",
+          "type": "registry:component",
+          "target": "components/policy/card-block.tsx"
+        },
+        {
+          "path": "apps/web/components/preview-frame.tsx",
+          "type": "registry:component",
+          "target": "components/preview-frame.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "@44gov/project-card",
+        "@44gov/format"
+      ]
+    },
+    {
+      "name": "bill-text",
+      "type": "registry:component",
+      "title": "Bill Text",
+      "description": "A bill's text set as the legislature prints it \u2014 the monospace facsimile \u2014 with headings found in the text, blank lines kept, and {+insertions+} and [-strikes-] marked.",
+      "files": [
+        {
+          "path": "apps/web/components/bill-text.tsx",
+          "type": "registry:component",
+          "target": "components/bill-text.tsx"
+        },
+        {
+          "path": "apps/web/lib/policy/bill-text-layout.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/bill-text-layout.ts"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ]
+    },
+    {
+      "name": "bill-redline",
+      "type": "registry:component",
+      "title": "Bill Redline",
+      "description": "Every printing of a bill against the one before it, as one scrolling redline: red strike, then green highlighter at the reading line.",
+      "files": [
+        {
+          "path": "apps/web/components/bill-compare.tsx",
+          "type": "registry:component",
+          "target": "components/bill-compare.tsx"
+        },
+        {
+          "path": "apps/web/lib/policy/bill-compare-types.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/bill-compare-types.ts"
+        },
+        {
+          "path": "apps/web/components/bill-compare.css",
+          "type": "registry:file",
+          "target": "components/bill-compare.css"
+        },
+        {
+          "path": "apps/web/components/policy/diff-view.css",
+          "type": "registry:file",
+          "target": "components/policy/diff-view.css"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ]
+    },
+    {
+      "name": "card-shell",
+      "type": "registry:component",
+      "title": "Card Shell",
+      "description": "The shell a card wears when it stands alone: the Card, a head that takes a title and an action, and the public origin its links fall back to.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/card-shell.tsx",
+          "type": "registry:component",
+          "target": "components/cards/card-shell.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "card"
+      ]
+    },
+    {
+      "name": "card-foot",
+      "type": "registry:component",
+      "title": "Card Foot",
+      "description": "The foot of a card: the chamber pills at the left where there is a chamber to pick, and the circle arrow at the right into the card's own page.",
+      "files": [
+        {
+          "path": "apps/web/components/card-foot.tsx",
+          "type": "registry:component",
+          "target": "components/card-foot.tsx"
+        },
+        {
+          "path": "apps/web/components/chamber-pills.tsx",
+          "type": "registry:component",
+          "target": "components/chamber-pills.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "button",
+        "card",
+        "toggle-group",
+        "@44gov/policy-filters"
+      ]
+    },
+    {
+      "name": "votes-card",
+      "type": "registry:component",
+      "title": "Votes Card",
+      "description": "The latest roll calls with their aye/nay split: each row the vote, a two-tone bar sized by the tally, linking to the bill it decided.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/votes-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/votes-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/seals",
+        "card",
+        "item"
+      ]
+    },
+    {
+      "name": "committees-card",
+      "type": "registry:component",
+      "title": "Committees Card",
+      "description": "The committees with the most bills before them, each with its seal and count, for either chamber.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/committees-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/committees-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/seals",
+        "card",
+        "item"
+      ]
+    },
+    {
+      "name": "sessions-card",
+      "type": "registry:component",
+      "title": "Sessions Card",
+      "description": "Every session on file, newest first, each with its bill count; the current one is marked.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/sessions-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/sessions-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "card",
+        "item"
+      ]
+    },
+    {
+      "name": "topics-card",
+      "type": "registry:component",
+      "title": "Topics Card",
+      "description": "The subjects the session's bills are tagged with, each with its count, as chips.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/topics-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/topics-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "badge",
+        "card"
+      ]
+    },
+    {
+      "name": "party-card",
+      "type": "registry:component",
+      "title": "Party Card",
+      "description": "The seats of a chamber by party, as a two-tone bar and a list with counts and shares, for either chamber.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/party-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/party-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/policy-filters",
+        "@44gov/policy-imagery",
+        "@44gov/seals",
+        "card",
+        "toggle-group"
+      ]
+    },
+    {
+      "name": "chambers-card",
+      "type": "registry:component",
+      "title": "Chambers Card",
+      "description": "The chambers of a jurisdiction, each with its seal and who sits in it.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/chambers-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/chambers-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/seals",
+        "card",
+        "item"
+      ]
+    },
+    {
+      "name": "bills-card",
+      "type": "registry:component",
+      "title": "Bills Card",
+      "description": "Where the session's bills stand, by stage, each a bar against the total \u2014 with the fold that turns any legislature's status names into seven stages.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/bills-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/bills-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/policy-filters",
+        "card",
+        "progress"
+      ]
+    },
+    {
+      "name": "members-card",
+      "type": "registry:component",
+      "title": "Members Card",
+      "description": "The chamber's members as a grid of portraits with the party dot, faces first and seals where there is no photo.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/members-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/members-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "@44gov/seals",
+        "card",
+        "tooltip"
+      ]
+    },
+    {
+      "name": "bills-by-party-card",
+      "type": "registry:component",
+      "title": "Bills by Party Card",
+      "description": "Bills introduced by each party's members, month by month, as bars in the flag's red and blue, with the totals and the share beneath.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/traffic-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/traffic-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/policy-imagery",
+        "card",
+        "chart"
+      ],
+      "dependencies": [
+        "recharts"
+      ]
+    },
+    {
+      "name": "adopted-card",
+      "type": "registry:component",
+      "title": "Adopted Bills Card",
+      "description": "Bills adopted per session, as an area across the sessions on file.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/adopted-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/adopted-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/format",
+        "card",
+        "chart"
+      ],
+      "dependencies": [
+        "recharts"
+      ]
+    },
+    {
+      "name": "stats-card",
+      "type": "registry:component",
+      "title": "Stats Card",
+      "description": "A row of number tiles and a ranked list under them: registrations, clients and spend; matched bills and their states.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/stats-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/stats-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "card"
+      ]
+    },
+    {
+      "name": "connect-card",
+      "type": "registry:component",
+      "title": "Connect Card",
+      "description": "An empty state with a row of marks and one call to action: connect a service, invite a team.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/connect-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/connect-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-shell",
+        "avatar",
+        "button",
+        "card",
+        "empty"
+      ]
+    },
+    {
+      "name": "api-card",
+      "type": "registry:component",
+      "title": "API Card",
+      "description": "The request that returns the numbers on the page, ready to copy and try.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/api-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/api-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-foot",
+        "@44gov/card-shell",
+        "@44gov/copy-button",
+        "button",
+        "card"
+      ]
+    },
+    {
+      "name": "navigation-card",
+      "type": "registry:component",
+      "title": "Navigation Card",
+      "description": "Groups of links drawn as a sidebar inside a card.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/navigation-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/navigation-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-shell",
+        "card",
+        "sidebar"
+      ]
+    },
+    {
+      "name": "subscribe-card",
+      "type": "registry:component",
+      "title": "Subscribe Card",
+      "description": "What to hear about, and one button that becomes the address field when pressed; Enter sends it.",
+      "files": [
+        {
+          "path": "apps/web/components/cards/subscribe-card.tsx",
+          "type": "registry:component",
+          "target": "components/cards/subscribe-card.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/card-shell",
+        "button",
+        "card",
+        "checkbox",
+        "field",
+        "input"
+      ]
+    },
+    {
+      "name": "votes-card-data",
+      "type": "registry:file",
+      "title": "Votes data",
+      "description": "Twelve roll calls from the current Congress.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/votes.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/votes.json"
+        }
+      ]
+    },
+    {
+      "name": "committees-card-data",
+      "type": "registry:file",
+      "title": "Committees data",
+      "description": "The twenty-four busiest committees of the current Congress.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/committees.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/committees.json"
+        }
+      ]
+    },
+    {
+      "name": "sessions-card-data",
+      "type": "registry:file",
+      "title": "Sessions data",
+      "description": "Every Congress on file, with its bill count.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/sessions.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/sessions.json"
+        }
+      ]
+    },
+    {
+      "name": "topics-card-data",
+      "type": "registry:file",
+      "title": "Topics data",
+      "description": "The twenty-four most used subject terms of the current Congress.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/topics.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/topics.json"
+        }
+      ]
+    },
+    {
+      "name": "party-card-data",
+      "type": "registry:file",
+      "title": "Party data",
+      "description": "Seats by chamber and party in the current Congress.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/seats.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/seats.json"
+        }
+      ]
+    },
+    {
+      "name": "chambers-card-data",
+      "type": "registry:file",
+      "title": "Chambers data",
+      "description": "The two chambers, with members and bills.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/chambers.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/chambers.json"
+        }
+      ]
+    },
+    {
+      "name": "bills-card-data",
+      "type": "registry:file",
+      "title": "Bills data",
+      "description": "Every status and its count in the current Congress, and the total.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/bill-stages.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/bill-stages.json"
+        }
+      ]
+    },
+    {
+      "name": "members-card-data",
+      "type": "registry:file",
+      "title": "Members data",
+      "description": "Thirty-six sitting members with their portraits.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/members.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/members.json"
+        }
+      ]
+    },
+    {
+      "name": "bills-by-party-card-data",
+      "type": "registry:file",
+      "title": "Bills by party data",
+      "description": "Six months of bills introduced, by party.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/bills-by-party.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/bills-by-party.json"
+        }
+      ]
+    },
+    {
+      "name": "adopted-card-data",
+      "type": "registry:file",
+      "title": "Adopted data",
+      "description": "Bills adopted in every Congress on file.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/adopted.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/adopted.json"
+        }
+      ]
+    },
+    {
+      "name": "record-list-data",
+      "type": "registry:file",
+      "title": "Bills data",
+      "description": "The twenty-five bills most recently acted on in Congress.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/bills.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/bills.json"
+        }
+      ]
+    },
+    {
+      "name": "bill-text-data",
+      "type": "registry:file",
+      "title": "Bill text data",
+      "description": "One printing of H.R. 6644, as the GPO set it.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/bill-text.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/bill-text.json"
+        }
+      ]
+    },
+    {
+      "name": "bill-redline-data",
+      "type": "registry:file",
+      "title": "Bill redline data",
+      "description": "H.R. 9329's two printings compared, every pass and row.",
+      "files": [
+        {
+          "path": "apps/web/registry/data/bill-redline.json",
+          "type": "registry:file",
+          "target": "lib/44gov/data/bill-redline.json"
+        }
+      ]
+    },
+    {
+      "name": "form-chat",
+      "type": "registry:component",
+      "title": "Form Chat",
+      "description": "A chat turn that is a form: the Filer's ask widget (fields, repeats, options, gates), the review widget that shows what is known, and the progress line \u2014 with the profile, the keys and the programs behind them. The input field is the form.",
+      "files": [
+        {
+          "path": "apps/web/components/chat/ask-widget.tsx",
+          "type": "registry:component",
+          "target": "components/chat/ask-widget.tsx"
+        },
+        {
+          "path": "apps/web/components/chat/review-widget.tsx",
+          "type": "registry:component",
+          "target": "components/chat/review-widget.tsx"
+        },
+        {
+          "path": "apps/web/components/chat/progress.tsx",
+          "type": "registry:component",
+          "target": "components/chat/progress.tsx"
+        },
+        {
+          "path": "apps/web/lib/chat/form-tools.ts",
+          "type": "registry:lib",
+          "target": "lib/chat/form-tools.ts"
+        },
+        {
+          "path": "apps/web/lib/forms/keys.ts",
+          "type": "registry:lib",
+          "target": "lib/forms/keys.ts"
+        },
+        {
+          "path": "apps/web/lib/forms/programs.ts",
+          "type": "registry:lib",
+          "target": "lib/forms/programs.ts"
+        },
+        {
+          "path": "apps/web/lib/forms/profile.ts",
+          "type": "registry:lib",
+          "target": "lib/forms/profile.ts"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "button",
+        "checkbox",
+        "field",
+        "input",
+        "input-group",
+        "label",
+        "radio-group",
+        "select",
+        "textarea"
+      ]
+    },
+    {
+      "name": "chat-messages",
+      "type": "registry:component",
+      "title": "Chat Messages",
+      "description": "A chat turn that slides in when it arrives and stands still when it is only re-rendered: the reader's turns animate, the assistant's stream in place, with an optional reasoning fold.",
+      "files": [
+        {
+          "path": "apps/web/components/chat/message-animated.tsx",
+          "type": "registry:component",
+          "target": "components/chat/message-animated.tsx"
+        },
+        {
+          "path": "apps/web/lib/chat/message-animations.ts",
+          "type": "registry:lib",
+          "target": "lib/chat/message-animations.ts"
+        }
+      ],
+      "registryDependencies": [
+        "bubble",
+        "message",
+        "message-scroller"
+      ],
+      "dependencies": [
+        "motion"
+      ]
+    },
+    {
+      "name": "code-view",
+      "type": "registry:component",
+      "title": "Code View",
+      "description": "A bill's text as a file: line numbers, folding, wrap, search with a match list, a centred measure, and an optional diff against the printing before \u2014 CodeMirror underneath.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/code-view.tsx",
+          "type": "registry:component",
+          "target": "components/policy/code-view.tsx"
+        },
+        {
+          "path": "apps/web/lib/policy/bill-text-layout.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/bill-text-layout.ts"
+        }
+      ],
+      "registryDependencies": [
+        "utils"
+      ],
+      "dependencies": [
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/merge",
+        "@codemirror/search",
+        "@codemirror/state",
+        "@codemirror/view"
+      ]
+    },
+    {
+      "name": "code-editor",
+      "type": "registry:component",
+      "title": "Code Editor",
+      "description": "The fork editor: the code view made editable, with spaces or tabs, an indent size and wrap.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/code-editor.tsx",
+          "type": "registry:component",
+          "target": "components/policy/code-editor.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "@44gov/code-view"
+      ],
+      "dependencies": [
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/merge",
+        "@codemirror/search",
+        "@codemirror/state",
+        "@codemirror/view"
+      ]
+    },
+    {
+      "name": "diff-view",
+      "type": "registry:component",
+      "title": "Diff View",
+      "description": "GitHub's diff, unified or split, with hunks that expand, word marks, a search, line permalinks and inline comments \u2014 on a word-aware line diff with a budget so a gut-and-amend never freezes the page.",
+      "files": [
+        {
+          "path": "apps/web/components/policy/diff-view.tsx",
+          "type": "registry:component",
+          "target": "components/policy/diff-view.tsx"
+        },
+        {
+          "path": "apps/web/components/policy/diff-view.css",
+          "type": "registry:file",
+          "target": "components/policy/diff-view.css"
+        },
+        {
+          "path": "apps/web/lib/policy/line-diff.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/line-diff.ts"
+        },
+        {
+          "path": "apps/web/lib/policy/octicons.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/octicons.ts"
+        },
+        {
+          "path": "apps/web/lib/policy/bill-compare-types.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/bill-compare-types.ts"
+        },
+        {
+          "path": "apps/web/lib/policy/bill-text-layout.ts",
+          "type": "registry:lib",
+          "target": "lib/policy/bill-text-layout.ts"
+        }
+      ],
+      "registryDependencies": [
+        "utils",
+        "dropdown-menu"
+      ],
+      "dependencies": [
+        "@codemirror/merge"
       ]
     }
   ]

@@ -3,42 +3,29 @@
 import * as F from "@/lib/fixtures"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { CardFrame, ComponentActions } from "@/components/card-frame"
+import { StatsCardBody } from "@/components/cards/stats-card"
 import { CardAnchor } from "@/components/admin/blocks/card-tools"
-import { CardAction, CardContent, CardHeader, CardTitle } from "@govblock/ui/components/card"
-import { CardFoot } from "@/components/card-foot"
 
-// Model bills — bills whose text is shared with bills in other states.
-// Model bills are a cross-jurisdiction measure by definition: the match is
-// between states. The card is national under every scope and labels itself so.
+// Model bills — bills whose text is shared with bills in other states. The
+// match is between states, so the card is national under every scope.
 export function ModelBillsCard() {
   const { state } = useJurisdiction()
   return (
     <CardFrame id="model-bills">
-      <CardHeader>
-        <CardAnchor>Model bills</CardAnchor>
-        <CardAction>
-          <ComponentActions />
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          {F.modelBills.stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl bg-muted/50 p-3">
-              <div className="text-lg font-semibold tabular-nums">{stat.value}</div>
-              <div className="text-xs text-muted-foreground">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-1.5 text-sm">
-          {F.modelBills.top.map((row) => (
-            <div key={row.bill} className="flex justify-between">
-              <span className="font-medium">{row.bill}</span>
-              <span className="text-muted-foreground">↔ {row.states} states</span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-      <CardFoot href={`/docs/model-bills?state=${state}`} label="Model bills" />
+      <StatsCardBody
+        title={<CardAnchor>Model bills</CardAnchor>}
+        action={<ComponentActions />}
+        stats={F.modelBills.stats}
+        columns={2}
+        list={F.modelBills.top.map((row) => (
+          <div key={row.bill} className="flex justify-between">
+            <span className="font-medium">{row.bill}</span>
+            <span className="text-muted-foreground">↔ {row.states} states</span>
+          </div>
+        ))}
+        href={`/docs/model-bills?state=${state}`}
+        footLabel="Model bills"
+      />
     </CardFrame>
   )
 }

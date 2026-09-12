@@ -1,0 +1,47 @@
+[
+  {
+    "session_id": 2009,
+    "adopted": 614,
+    "bills": 10964
+  },
+  {
+    "session_id": 2011,
+    "adopted": 648,
+    "bills": 12276
+  },
+  {
+    "session_id": 2013,
+    "adopted": 614,
+    "bills": 10639
+  },
+  {
+    "session_id": 2015,
+    "adopted": 640,
+    "bills": 12073
+  },
+  {
+    "session_id": 2017,
+    "adopted": 463,
+    "bills": 13557
+  },
+  {
+    "session_id": 2019,
+    "adopted": 344,
+    "bills": 16601
+  },
+  {
+    "session_id": 2021,
+    "adopted": 334,
+    "bills": 17817
+  },
+  {
+    "session_id": 2023,
+    "adopted": 180,
+    "bills": 19304
+  },
+  {
+    "session_id": 2025,
+    "adopted": 105,
+    "bills": 18470
+  }
+]

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react"
-import { GitCompareArrowsIcon, TypeIcon } from "lucide-react"
+import { GitBranchIcon, GitCompareArrowsIcon, TypeIcon } from "lucide-react"
 
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@govblock/ui/components/ny4/popover"
 import { Separator } from "@govblock/ui/components/ny4/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 
 function getPromptUrl(baseURL: string, url: string) {
   return `${baseURL}?q=${encodeURIComponent(
@@ -28,9 +29,12 @@ Help me understand how to use it. Be ready to explain concepts, give examples, o
   )}`
 }
 
+/** Where the page opens in Typeset, when it is a bill: the editor, its printings compared, and Git. */
+export type TypesetLinks = { typeset?: string; diff?: string; git?: string }
+
 const menuItems: Record<
   string,
-  (url: string, page: string, typeset?: string, diff?: string) => React.ReactNode
+  (url: string, page: string, links?: TypesetLinks) => React.ReactNode
 > = {
   markdown: (url: string) => (
     <a href={`${url}.md`} target="_blank" rel="noopener noreferrer">
@@ -97,34 +101,64 @@ const menuItems: Record<
   // lives there offers it.
   // The page's printings compared, as Typeset's Diff page (2026-09-11). Only
   // a record with more than one printing names where that lives.
-  diff: (_url: string, _page: string, _typeset?: string, diff?: string) =>
-    diff ? (
-      <a href={diff} className="flex w-full items-center gap-2">
-        <GitCompareArrowsIcon className="size-4" aria-hidden />
-        Diff in Typeset
-      </a>
-    ) : null,
-  typeset: (_url: string, _page: string, typeset?: string) =>
-    typeset ? (
-      <a href={typeset} className="flex w-full items-center gap-2">
+  typeset: (_url: string, _page: string, links?: TypesetLinks) =>
+    links?.typeset ? (
+      <a href={links.typeset} className="flex w-full items-center gap-2">
         <TypeIcon className="size-4" aria-hidden />
         Open in Typeset
       </a>
     ) : null,
+  diff: (_url: string, _page: string, links?: TypesetLinks) =>
+    links?.diff ? (
+      <a href={links.diff} className="flex w-full items-center gap-2">
+        <GitCompareArrowsIcon className="size-4" aria-hidden />
+        Diff in Typeset
+      </a>
+    ) : null,
+  git: (_url: string, _page: string, links?: TypesetLinks) =>
+    links?.git ? (
+      <a href={links.git} className="flex w-full items-center gap-2">
+        <GitBranchIcon className="size-4" aria-hidden />
+        Open in Git
+      </a>
+    ) : null,
 }
 
+/** One icon in the group, named by its tooltip. */
+function GroupIcon({ label, href, onClick, children }: { label: string; href?: string; onClick?: () => void; children: React.ReactNode }) {
+  const button = (
+    <Button variant="secondary" size="sm" className="size-8 shadow-none md:size-7" aria-label={label} onClick={onClick} asChild={!!href}>
+      {href ? <a href={href}>{children}</a> : children}
+    </Button>
+  )
+  return (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipContent side="bottom" sideOffset={6}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+// The page's controls as one group of icons (Brendan, 2026-09-12): on a bill,
+// Typeset, Diff and Git, then Copy, then the menu; on any other page, Copy and
+// the menu. Each icon says what it is on hover; none carries a word.
 export function DocsCopyPage({
   page,
   url,
   typeset,
   diff,
+  git,
 }: {
   page: string
   url: string
   /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
   /** Where its printings open compared in Typeset, when it has more than one. */ diff?: string
+  /** Where it opens as a file in Git, when it is a bill. */ git?: string
 }) {
   const { copyToClipboard, isCopied } = useCopyToClipboard()
+  const links: TypesetLinks = { typeset, diff, git }
 
   const trigger = (
     <Button
@@ -140,15 +174,24 @@ export function DocsCopyPage({
     <Popover>
       <div className="group/buttons relative flex rounded-lg bg-secondary *:[[data-slot=button]]:focus-visible:relative *:[[data-slot=button]]:focus-visible:z-10">
         <PopoverAnchor />
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-8 shadow-none md:h-7 md:text-[0.8rem]"
-          onClick={() => copyToClipboard(page)}
-        >
+        {typeset && (
+          <GroupIcon label="Open in Typeset" href={typeset}>
+            <TypeIcon aria-hidden />
+          </GroupIcon>
+        )}
+        {diff && (
+          <GroupIcon label="Diff the printings" href={diff}>
+            <GitCompareArrowsIcon aria-hidden />
+          </GroupIcon>
+        )}
+        {git && (
+          <GroupIcon label="Open in Git" href={git}>
+            <GitBranchIcon aria-hidden />
+          </GroupIcon>
+        )}
+        <GroupIcon label={isCopied ? "Copied" : "Copy page as Markdown"} onClick={() => copyToClipboard(page)}>
           {isCopied ? <IconCheck /> : <IconCopy />}
-          Copy Page
-        </Button>
+        </GroupIcon>
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="hidden sm:flex">
             {trigger}
@@ -158,7 +201,7 @@ export function DocsCopyPage({
             className="animate-none! rounded-lg shadow-none"
           >
             {Object.entries(menuItems).map(([key, value]) => {
-              const node = value(url, page, typeset, diff)
+              const node = value(url, page, links)
               return node ? (
                 <DropdownMenuItem key={key} asChild>
                   {node}
@@ -186,7 +229,7 @@ export function DocsCopyPage({
               key={key}
               className="w-full justify-start text-base font-normal"
             >
-              {value(url, page)}
+              {value(url, page, links)}
             </Button>
           ))}
         </PopoverContent>

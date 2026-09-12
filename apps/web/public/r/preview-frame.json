@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "preview-frame",
+  "title": "Preview Frame",
+  "description": "shadcn's component-preview box, class for class: the rounded frame a component is shown in.",
+  "files": [
+    {
+      "path": "apps/web/components/preview-frame.tsx",
+      "content": "import * as React from \"react\"\n\n// shadcn's component-preview frame, class for class — the rounded box the\n// docs show a component in — so a block on our pages sits the way one sits\n// in theirs, at 32px all round so the content sits centred (Brendan,\n// 2026-09-05). The data tables, the committee cards, and the Bills and Votes\n// lists all render inside it.\nexport function PreviewFrame({ children }: { children: React.ReactNode }) {\n  return (\n    <div data-slot=\"component-preview\" data-not-typeset=\"true\" className=\"group relative mt-4 mb-12 flex flex-col overflow-hidden rounded-2xl border\">\n      <div data-slot=\"preview\" dir=\"ltr\">\n        <div\n          data-align=\"start\"\n          data-chromeless=\"false\"\n          className=\"preview relative flex h-auto w-full items-start justify-center p-8 data-[align=center]:items-center data-[align=end]:items-start data-[align=start]:items-start data-[chromeless=true]:h-auto data-[chromeless=true]:p-0 sm:data-[align=end]:items-end\"\n        >\n          <div className=\"w-full\">{children}</div>\n        </div>\n      </div>\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/preview-frame.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

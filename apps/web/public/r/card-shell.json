@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "card-shell",
+  "title": "Card Shell",
+  "description": "The shell a card wears when it stands alone: the Card, a head that takes a title and an action, and the public origin its links fall back to.",
+  "registryDependencies": [
+    "card"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/card-shell.tsx",
+      "content": "import * as React from \"react\"\n\nimport { Card, CardAction, CardHeader, CardTitle } from \"@/components/ui/card\"\n\n// The shell a card wears when it stands alone — outside the site's frame,\n// with its gates and grid cell (2026-09-12). A card's body takes `title` and\n// `action`, so the site can hand it the anchor-copy title and the ⋮ menu and\n// a consumer gets a plain title and nothing at the right.\n\n/** The public origin, for a consumer whose app does not serve the record itself. */\nexport const SITE = \"https://gov.nysgpt.com\"\n\nexport function CardShell({ children, className }: { children: React.ReactNode; className?: string }) {\n  return <Card className={className}>{children}</Card>\n}\n\nexport function CardHead({ title, action }: { title: React.ReactNode; action?: React.ReactNode }) {\n  return (\n    <CardHeader>\n      {typeof title === \"string\" ? <CardTitle>{title}</CardTitle> : title}\n      {action && <CardAction>{action}</CardAction>}\n    </CardHeader>\n  )\n}\n\n/** What every portable card body takes besides its rows. */\nexport type CardBodyProps = {\n  /** The jurisdiction the rows belong to; seals and the chamber pills read it. */\n  state?: string\n  title?: React.ReactNode\n  action?: React.ReactNode\n  /** Where the foot's arrow goes; the site's own page by default. */\n  href?: string\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/card-shell.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

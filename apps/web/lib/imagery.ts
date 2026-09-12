@@ -178,10 +178,14 @@ export function portraitFor(member: { photo_url?: string | null; bioguide_id?: s
   return member.photo_url ?? null
 }
 
-export const PARTY_BLUE = "var(--color-blue-600)"
-export const PARTY_RED = "var(--color-red-600)"
-export const PARTY_GREY = "var(--color-muted-foreground)"
-export const PARTY_OTHER = "var(--color-amber-500)"
+// Literal colours, not Tailwind's theme variables (2026-09-12): the file
+// ships in the registry, and a consumer on Tailwind v3 has no
+// --color-blue-600, so the party dot vanished there. These are v4's
+// blue-600, red-600, zinc-500 and amber-500.
+export const PARTY_BLUE = "#155dfc"
+export const PARTY_RED = "#e7000b"
+export const PARTY_GREY = "#71717b"
+export const PARTY_OTHER = "#fd9a00"
 
 export function partyColor(
   party: string | null | undefined,
@@ -192,4 +196,13 @@ export function partyColor(
   if (code === "D") return PARTY_BLUE
   if (code === "R") return PARTY_RED
   return PARTY_OTHER
+}
+
+/**
+ * The chamber a bill's own number names, for a row whose record carries none:
+ * New York's A and S, Congress's HB and SB, the Houses of most states.
+ */
+export function chamberFromNumber(number: string | null | undefined): string | null {
+  const letter = String(number ?? "").trim().charAt(0).toUpperCase()
+  return letter === "A" ? "Assembly" : letter === "S" ? "Senate" : letter === "H" ? "House" : null
 }

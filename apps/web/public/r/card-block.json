@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "card-block",
+  "title": "Card Block",
+  "description": "A grid of project cards inside the preview frame, from a list of specs, with Show more when the list runs long.",
+  "registryDependencies": [
+    "button",
+    "@44gov/project-card",
+    "@44gov/format"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/policy/card-block.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { fmtNumber } from \"@/lib/format\"\nimport { Button } from \"@/components/ui/button\"\nimport { PreviewFrame } from \"@/components/preview-frame\"\nimport { ProjectCard, ProjectGrid } from \"@/components/project-card\"\n\n// The card block every page shares (Brendan, 2026-09-05: \"we are making\n// reusable blocks\"): the committee card — the seal, the name, one line\n// beneath — two to a row in the preview frame, with a block's own control at\n// the top right. A member's committees, a bill's committees and a\n// jurisdiction's subjects all draw it. A long list shows its first rows and\n// a See more button for the rest.\n\nexport type CardSpec = {\n  key: string\n  href: string\n  title: string\n  media?: React.ReactNode\n  meta: React.ReactNode\n}\n\nexport function CardBlock({\n  cards,\n  menu,\n  initial,\n  empty,\n  framed = true,\n}: {\n  cards: CardSpec[]\n  /** What sits at the block's top right: the Sessions menu, a Sort control. */\n  menu?: React.ReactNode\n  /** How many cards show before See more; every card when left out. */\n  initial?: number\n  empty?: React.ReactNode\n  /** Off when the grid sits inside a tab of a frame the block already has. */\n  framed?: boolean\n}) {\n  const [all, setAll] = React.useState(false)\n  const shown = initial != null && !all ? cards.slice(0, initial) : cards\n  const hidden = cards.length - shown.length\n  const Frame = framed ? PreviewFrame : React.Fragment\n  return (\n    <Frame>\n      {menu && <div className=\"flex items-center pb-4\">{menu}</div>}\n      {cards.length ? (\n        <ProjectGrid>\n          {shown.map((card) => (\n            <ProjectCard key={card.key} href={card.href} title={card.title} media={card.media} meta={card.meta} />\n          ))}\n        </ProjectGrid>\n      ) : (\n        <p className=\"py-10 text-sm text-muted-foreground\">{empty ?? \"Nothing on file.\"}</p>\n      )}\n      {initial != null && cards.length > initial && (\n        <div className=\"flex pt-4\">\n          <Button variant=\"outline\" size=\"sm\" onClick={() => setAll((open) => !open)}>\n            {all ? \"See fewer\" : `See more (${fmtNumber(hidden)})`}\n          </Button>\n        </div>\n      )}\n    </Frame>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/policy/card-block.tsx"
+    },
+    {
+      "path": "apps/web/components/preview-frame.tsx",
+      "content": "import * as React from \"react\"\n\n// shadcn's component-preview frame, class for class — the rounded box the\n// docs show a component in — so a block on our pages sits the way one sits\n// in theirs, at 32px all round so the content sits centred (Brendan,\n// 2026-09-05). The data tables, the committee cards, and the Bills and Votes\n// lists all render inside it.\nexport function PreviewFrame({ children }: { children: React.ReactNode }) {\n  return (\n    <div data-slot=\"component-preview\" data-not-typeset=\"true\" className=\"group relative mt-4 mb-12 flex flex-col overflow-hidden rounded-2xl border\">\n      <div data-slot=\"preview\" dir=\"ltr\">\n        <div\n          data-align=\"start\"\n          data-chromeless=\"false\"\n          className=\"preview relative flex h-auto w-full items-start justify-center p-8 data-[align=center]:items-center data-[align=end]:items-start data-[align=start]:items-start data-[chromeless=true]:h-auto data-[chromeless=true]:p-0 sm:data-[align=end]:items-end\"\n        >\n          <div className=\"w-full\">{children}</div>\n        </div>\n      </div>\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/preview-frame.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

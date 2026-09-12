@@ -1,3 +1,4 @@
+import { billCitation } from "@/lib/policy/congress"
 import { fmtDate, fmtNumber } from "@/lib/format"
 import type { Bill } from "@/lib/policy/types"
 
@@ -116,7 +117,7 @@ export function summaryHtml(bill: Bill) {
 
 export function changelogHtml(bill: Bill) {
   const parts: string[] = []
-  parts.push(`<h1>${esc(bill.bill_number)} — Changelog</h1>`)
+  parts.push(`<h1>${esc(billCitation(bill.bill_number, bill.state))} — Activity</h1>`)
   parts.push(`<p><em>${esc(bill.title)}</em></p>`)
 
   type Entry = { date: string; kind: "action" | "vote" | "hearing"; html: string }

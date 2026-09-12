@@ -1,0 +1,56 @@
+[
+  {
+    "session_year": 2025,
+    "label": "2025-2026 Regular Session",
+    "years": "2025-2026",
+    "bills": 18470
+  },
+  {
+    "session_year": 2023,
+    "label": "2023-2024 Regular Session",
+    "years": "2023-2024",
+    "bills": 19304
+  },
+  {
+    "session_year": 2021,
+    "label": "2021-2022 Regular Session",
+    "years": "2021-2022",
+    "bills": 17817
+  },
+  {
+    "session_year": 2019,
+    "label": "2019-2020 Regular Session",
+    "years": "2019-2020",
+    "bills": 16601
+  },
+  {
+    "session_year": 2017,
+    "label": "2017-2018 Regular Session",
+    "years": "2017-2018",
+    "bills": 13557
+  },
+  {
+    "session_year": 2015,
+    "label": "2015-2016 Regular Session",
+    "years": "2015-2016",
+    "bills": 12073
+  },
+  {
+    "session_year": 2013,
+    "label": "2013-2014 Regular Session",
+    "years": "2013-2014",
+    "bills": 10639
+  },
+  {
+    "session_year": 2011,
+    "label": "2011-2012 Regular Session",
+    "years": "2011-2012",
+    "bills": 12276
+  },
+  {
+    "session_year": 2009,
+    "label": "2009-2010 Regular Session",
+    "years": "2009-2010",
+    "bills": 10964
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "card-foot",
+  "title": "Card Foot",
+  "description": "The foot of a card: the chamber pills at the left where there is a chamber to pick, and the circle arrow at the right into the card's own page.",
+  "registryDependencies": [
+    "button",
+    "card",
+    "toggle-group",
+    "@44gov/policy-filters"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/card-foot.tsx",
+      "content": "\"use client\"\n\nimport Link from \"next/link\"\nimport { ArrowRight } from \"lucide-react\"\n\nimport { lowerChamber } from \"@/lib/filters\"\nimport { ChamberPills } from \"@/components/chamber-pills\"\nimport { Button } from \"@/components/ui/button\"\nimport { CardFooter } from \"@/components/ui/card\"\n\n// The standard foot of a home card (Brendan, 2026-09-07): the chamber pills\n// at the left where the card has a chamber to pick, and the circle arrow at\n// the right, into the card's own page — right at rest, up-right on hover.\n// The jurisdiction names the pills (House or Assembly, then Senate); with no\n// `state` the two are House and Senate.\nexport function CardFoot({\n  chamber,\n  onChamber,\n  state,\n  chambers,\n  href,\n  label,\n  children,\n}: {\n  chamber?: string\n  onChamber?: (chamber: string) => void\n  /** The jurisdiction, for the lower chamber's name. */\n  state?: string\n  /** The pills, when they are not the jurisdiction's two. */\n  chambers?: string[]\n  href: string\n  label: string\n  /** Anything else the foot carries at the left, in place of the pills. */\n  children?: React.ReactNode\n}) {\n  return (\n    <CardFooter className=\"justify-between gap-2\">\n      {onChamber ? <ChamberPills value={chamber ?? \"\"} onChange={onChamber} chambers={chambers ?? [lowerChamber(state), \"Senate\"]} /> : (children ?? <span />)}\n      <Button variant=\"outline\" size=\"icon\" aria-label={label} title={label} className=\"group/foot shrink-0 rounded-full\" nativeButton={false} render={<Link href={href} />}>\n        <ArrowRight className=\"transition-transform duration-200 group-hover/foot:-rotate-45\" />\n      </Button>\n    </CardFooter>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/card-foot.tsx"
+    },
+    {
+      "path": "apps/web/components/chamber-pills.tsx",
+      "content": "\"use client\"\n\nimport { ToggleGroup, ToggleGroupItem } from \"@/components/ui/toggle-group\"\n\n// The chamber pills a card's footer uses, shared: House (or Assembly) and\n// Senate, one or none pressed (Brendan, 2026-09-01). The chambers are handed\n// in (2026-09-12: the card foot names them from the jurisdiction), so the\n// pills travel with no hook behind them.\nexport function ChamberPills({ value, onChange, chambers }: { value: string; onChange: (chamber: string) => void; chambers: string[] }) {\n  return (\n    <ToggleGroup value={value ? [value] : []} onValueChange={(next) => onChange(String(next?.[0] ?? \"\"))} variant=\"outline\" spacing={1}>\n      {chambers.map((name) => (\n        // The pressed pill is the lit one — filled, in the foreground — and\n        // the other sits dim, so the pair reads as a choice made rather than\n        // two switched on (Brendan, 2026-09-07).\n        <ToggleGroupItem\n          key={name}\n          value={name}\n          className=\"text-muted-foreground hover:text-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background\"\n        >\n          {name}\n        </ToggleGroupItem>\n      ))}\n    </ToggleGroup>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/chamber-pills.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowRightIcon } from "lucide-react"
 
-import { LogoMark } from "@/components/logo-mark"
 import { NAV_ICONS as ICONS } from "@/components/page-icon"
 import { hasItems, type NavItem } from "@/lib/config"
 import { AnimateIcon } from "@govblock/ui/components/animate-ui/icons/icon"
@@ -51,10 +50,15 @@ export function MainNav({
     <nav className={cn("items-center gap-0", className)} {...props}>
       <NavigationMenu viewport={false} className="max-w-none">
         <NavigationMenuList className="gap-0">
-          {items.map((item) =>
+          {items.filter((item) => item.href !== "/").map((item) =>
             hasItems(item) ? (
               <NavigationMenuItem key={item.label}>
+                {/* Open on click, not on hover (Brendan, 2026-09-12): the
+                    pointer handlers Radix opens and closes on are cancelled,
+                    so only a click or the keyboard moves a menu. */}
                 <NavigationMenuTrigger
+                  onPointerMove={(e) => e.preventDefault()}
+                  onPointerLeave={(e) => e.preventDefault()}
                   data-active={
                     item.items.some((entry) => pathname === entry.href) ||
                     undefined
@@ -62,7 +66,7 @@ export function MainNav({
                 >
                   {item.label}
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="p-0!">
+                <NavigationMenuContent className="p-0!" onPointerEnter={(e) => e.preventDefault()} onPointerLeave={(e) => e.preventDefault()}>
                   <ul
                     className={cn(
                       "grid gap-y-1 p-2",
@@ -152,14 +156,10 @@ export function MainNav({
                   data-active={pathname === item.href || undefined}
                   className={cn(
                     navigationMenuTriggerStyle(),
-                    "flex-row gap-1.5"
+                    "flex-row gap-1.5",
                   )}
                 >
                   <Link href={item.href}>
-                    {/* The product's own item wears the blocks before its name
-                        (Brendan, 2026-09-11), and they move on hover like the
-                        menu icons do. */}
-                    {item.href === "/" && <LogoMark className="size-4 shrink-0" aria-hidden />}
                     {item.label}
                     {/* A flat entry can carry an icon as well. None does since
                         Creators moved into the Workspace menu (2026-09-09); the

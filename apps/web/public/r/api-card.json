@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "api-card",
+  "title": "API Card",
+  "description": "The request that returns the numbers on the page, ready to copy and try.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/copy-button",
+    "button",
+    "card"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/api-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CopyButton } from \"@/components/copy-button\"\nimport { Button } from \"@/components/ui/button\"\nimport { CardContent } from \"@/components/ui/card\"\n\n// API — the request that returns the numbers on the page, ready to copy and\n// try. The URL it shows is meant to be live.\nexport function ApiCardBody({ path, origin = SITE, title = \"API\", action, href }: CardBodyProps & { path: string; origin?: string }) {\n  const command = `curl ${origin}${path}`\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent>\n        <div className=\"relative rounded-lg bg-muted p-3 pr-10 font-mono text-xs break-all\">\n          {command}\n          <CopyButton value={command} className=\"absolute top-2 right-2\" variant=\"ghost\" />\n        </div>\n      </CardContent>\n      <CardFoot href={href ?? `${SITE}/docs/api`} label=\"The API\">\n        <Button size=\"sm\" nativeButton={false} render={<Link href={`${origin}${path}`} target=\"_blank\" />}>\n          Try it\n        </Button>\n      </CardFoot>\n    </>\n  )\n}\n\nexport function ApiCard(props: React.ComponentProps<typeof ApiCardBody>) {\n  return (\n    <CardShell>\n      <ApiCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/api-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

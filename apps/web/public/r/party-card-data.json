@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "party-card-data",
+  "title": "Party data",
+  "description": "Seats by chamber and party in the current Congress.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/seats.json",
+      "content": "[\n  {\n    \"chamber\": \"House\",\n    \"party\": \"R\",\n    \"seats\": 225\n  },\n  {\n    \"chamber\": \"House\",\n    \"party\": \"D\",\n    \"seats\": 223\n  },\n  {\n    \"chamber\": \"House\",\n    \"party\": \"I\",\n    \"seats\": 1\n  },\n  {\n    \"chamber\": \"Senate\",\n    \"party\": \"R\",\n    \"seats\": 57\n  },\n  {\n    \"chamber\": \"Senate\",\n    \"party\": \"D\",\n    \"seats\": 45\n  },\n  {\n    \"chamber\": \"Senate\",\n    \"party\": \"I\",\n    \"seats\": 2\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/seats.json"
+    }
+  ],
+  "type": "registry:file"
+}

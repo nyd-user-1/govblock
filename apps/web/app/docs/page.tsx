@@ -16,6 +16,16 @@ export const metadata: Metadata = { title, description }
 
 const SECTIONS = [
   {
+    href: "/docs/installation",
+    title: "Installation",
+    body: "Name the registry once; then the shadcn CLI adds anything here.",
+  },
+  {
+    href: "/docs/cli",
+    title: "CLI",
+    body: "add, view, search and build, as they work with @44gov.",
+  },
+  {
     href: "/docs/api",
     title: "API",
     body: "Every resource the site reads, on the same public routes the pages use.",
@@ -24,6 +34,11 @@ const SECTIONS = [
     href: "/docs/blocks",
     title: "Blocks",
     body: "The registry, and the blocks the site is built from with their props and their source.",
+  },
+  {
+    href: "/docs/components",
+    title: "Components",
+    body: "The parts the site is built from, installable into your own app with one command.",
   },
   {
     href: "/docs/datasets",
@@ -43,7 +58,7 @@ export default function DocsIndex() {
       title={title}
       description={description}
       slug="/docs"
-      next={{ name: "API", url: "/docs/api" }}
+      next={{ name: "Installation", url: "/docs/installation" }}
     >
       <div
         data-not-typeset="true"

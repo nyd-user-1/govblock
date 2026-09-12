@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "bills-card-data",
+  "title": "Bills data",
+  "description": "Every status and its count in the current Congress, and the total.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/bill-stages.json",
+      "content": "{\n  \"statuses\": [\n    {\n      \"value\": \"In House Committee\",\n      \"count\": 10753\n    },\n    {\n      \"value\": \"In Senate Committee\",\n      \"count\": 5973\n    },\n    {\n      \"value\": \"Introduced\",\n      \"count\": 807\n    },\n    {\n      \"value\": \"Senate Floor Calendar\",\n      \"count\": 340\n    },\n    {\n      \"value\": \"House Floor Calendar\",\n      \"count\": 248\n    },\n    {\n      \"value\": \"Engrossed\",\n      \"count\": 242\n    },\n    {\n      \"value\": \"Passed\",\n      \"count\": 104\n    },\n    {\n      \"value\": \"Vetoed\",\n      \"count\": 2\n    },\n    {\n      \"value\": \"Adopted\",\n      \"count\": 1\n    }\n  ],\n  \"total\": 18470,\n  \"chambers\": {\n    \"House\": {\n      \"statuses\": [\n        {\n          \"value\": \"In House Committee\",\n          \"count\": 10752\n        },\n        {\n          \"value\": \"In Senate Committee\",\n          \"count\": 493\n        },\n        {\n          \"value\": \"Introduced\",\n          \"count\": 309\n        },\n        {\n          \"value\": \"House Floor Calendar\",\n          \"count\": 248\n        },\n        {\n          \"value\": \"Engrossed\",\n          \"count\": 77\n        },\n        {\n          \"value\": \"Passed\",\n          \"count\": 64\n        },\n        {\n          \"value\": \"Senate Floor Calendar\",\n          \"count\": 57\n        },\n        {\n          \"value\": \"Vetoed\",\n          \"count\": 2\n        },\n        {\n          \"value\": \"Adopted\",\n          \"count\": 1\n        }\n      ],\n      \"total\": 12003\n    },\n    \"Senate\": {\n      \"statuses\": [\n        {\n          \"value\": \"In Senate Committee\",\n          \"count\": 5480\n        },\n        {\n          \"value\": \"Introduced\",\n          \"count\": 498\n        },\n        {\n          \"value\": \"Senate Floor Calendar\",\n          \"count\": 283\n        },\n        {\n          \"value\": \"Engrossed\",\n          \"count\": 165\n        },\n        {\n          \"value\": \"Passed\",\n          \"count\": 40\n        },\n        {\n          \"value\": \"In House Committee\",\n          \"count\": 1\n        }\n      ],\n      \"total\": 6467\n    }\n  }\n}\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/bill-stages.json"
+    }
+  ],
+  "type": "registry:file"
+}

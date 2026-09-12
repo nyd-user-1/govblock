@@ -1,3 +1,4 @@
+import { fmtBill } from "@/lib/format"
 import { notFound } from "next/navigation"
 
 import { readFilters } from "@/lib/filters"
@@ -95,7 +96,7 @@ export default async function TypesetFixturePage({
   }
 
   if (name === "notes") {
-    return <BillNotes billId={bill.bill_id} billNumber={bill.bill_number} title={bill.title} />
+    return <BillNotes billId={bill.bill_id} billNumber={bill.bill_number} state={bill.state} title={bill.title} />
   }
 
   // chat
@@ -103,7 +104,7 @@ export default async function TypesetFixturePage({
   return (
     <div className="flex min-h-[70vh] w-full flex-col gap-6">
       <div className="typeset w-full">
-        <h1>{bill.bill_number}</h1>
+        <h1>{fmtBill(bill.bill_number, bill.state)}</h1>
         <p>
           <em>{bill.title}</em>
         </p>
@@ -111,9 +112,9 @@ export default async function TypesetFixturePage({
       <AssistChat
         chatId={chatId}
         system={billSystemPrompt(bill, resolved.state)}
-        placeholder={`Ask about ${bill.bill_number}…`}
+        placeholder={`Ask about ${fmtBill(bill.bill_number, bill.state)}…`}
         starters={[
-          `What does ${bill.bill_number} do?`,
+          `What does ${fmtBill(bill.bill_number, bill.state)} do?`,
           "Who supports it and who might object?",
           "What happens next in the process?",
         ]}

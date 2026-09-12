@@ -11,7 +11,8 @@ import { layoutBillText } from "@/lib/policy/bill-text-layout"
 // Nothing here draws. `diff-view.tsx` turns blocks into hunks with context
 // and the expanders between them.
 
-export type Mark = { from: number; to: number }
+export type { Mark } from "@/lib/policy/bill-compare-types"
+import type { Mark } from "@/lib/policy/bill-compare-types"
 
 // CodeMirror's diff is Myers's: its cost grows with the square of the change.
 // A gut-and-amend (California's SB492: 28,000 words replaced) would hold the

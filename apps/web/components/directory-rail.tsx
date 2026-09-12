@@ -187,7 +187,11 @@ export function useRecordGroups(): RecordGroup[] {
       key: `${c.chamber}/${c.committee_name}`,
       href: `/bills${scope}&committee=${encodeURIComponent(c.committee_name)}`,
       label: truncate(c.committee_name, 40),
-      tooltip: c.committee_name,
+      // The chamber under the name (Brendan, 2026-09-12): Assembly and Senate
+      // both have an Environmental Conservation, and without it they read as
+      // one committee listed twice.
+      detail: `${state === "NY" ? "NYS" : state === "US" ? "U.S." : state} ${c.chamber}`,
+      tooltip: `${c.committee_name} · ${c.chamber}`,
       active: false,
     }))
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import Link from "next/link"
 import { CheckIcon, CopyIcon } from "lucide-react"
@@ -231,7 +232,7 @@ function ChatPicker() {
   const defaultId = bill ? `bill-${bill.bill_id}` : ""
   const current = params.chat || defaultId
   const items = [
-    ...(bill ? [{ value: defaultId, label: bill.bill_number }] : []),
+    ...(bill ? [{ value: defaultId, label: fmtBill(bill.bill_number, bill.state) }] : []),
     ...chats
       .filter((c) => c.id !== defaultId)
       .map((c) => ({ value: c.id, label: c.title })),
@@ -246,7 +247,7 @@ function ChatPicker() {
         if (next === NEW_CHAT) {
           const id = `chat-${Date.now().toString(36)}`
           const title = bill
-            ? `${bill.bill_number} · ${chats.length + 1}`
+            ? `${fmtBill(bill.bill_number, bill.state)} · ${chats.length + 1}`
             : `Chat ${chats.length + 1}`
           setChats((list) => [
             { id, title, created: new Date().toISOString() },
@@ -299,13 +300,13 @@ function AssistPanel() {
       compact
       placeholder={
         bill
-          ? `Ask about ${bill.bill_number}…`
+          ? `Ask about ${fmtBill(bill.bill_number, bill.state)}…`
           : "Ask about the bills in the rail…"
       }
       starters={
         bill
           ? [
-              `Summarize ${bill.bill_number} in three lines.`,
+              `Summarize ${fmtBill(bill.bill_number, bill.state)} in three lines.`,
               "Who are the sponsors?",
               "What's the next step?",
             ]

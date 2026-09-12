@@ -1,51 +1,32 @@
 "use client"
 
 import * as React from "react"
+import { FileText } from "lucide-react"
 
+import { CopyButton } from "@/components/copy-button"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/ny4/button"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@govblock/ui/components/ny4/collapsible"
-import { Separator } from "@govblock/ui/components/ny4/separator"
 
-export function CodeCollapsibleWrapper({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof Collapsible>) {
-  const [isOpened, setIsOpened] = React.useState(false)
-
+// A long source, folded (rebuilt 2026-09-12): the same frame as every code
+// figure, one Expand in the caption, and a fade over the fold — no second
+// button floating in the middle of the code.
+export function CodeCollapsibleWrapper({ title, code, className, children }: { title?: string; code: string; className?: string; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
   return (
-    <Collapsible
-      open={isOpened}
-      onOpenChange={setIsOpened}
-      className={cn("group/collapsible relative md:-mx-1", className)}
-      {...props}
-    >
-      <CollapsibleTrigger asChild>
-        <div className="absolute top-1.5 right-9 z-10 flex items-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 rounded-md px-2 text-muted-foreground"
-          >
-            {isOpened ? "Collapse" : "Expand"}
-          </Button>
-          <Separator orientation="vertical" className="mx-1.5 h-4!" />
-        </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent
-        forceMount
-        className="relative mt-6 overflow-hidden data-[state=closed]:max-h-64 data-[state=closed]:[content-visibility:auto] [&>figure]:mt-0 [&>figure]:md:mx-0!"
-      >
+    <figure data-rehype-pretty-code-figure="" data-titled="" data-state={open ? "open" : "closed"} className={cn("not-typeset group/fold relative mt-6 mb-6 overflow-hidden rounded-xl border border-border/50 bg-surface text-surface-foreground", className)}>
+      <figcaption data-rehype-pretty-code-title="" className="flex h-9 items-center gap-2 border-b border-border/50 px-3 font-mono text-[13px] text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:opacity-70">
+        <FileText />
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        <Button variant="ghost" size="sm" className="h-7 rounded-md px-2 text-xs text-muted-foreground" onClick={() => setOpen((o) => !o)}>
+          {open ? "Collapse" : "Expand"}
+        </Button>
+        <span aria-hidden className="mx-0.5 h-4 w-px bg-border/60" />
+        <CopyButton value={code} className="static! size-7" />
+      </figcaption>
+      <div data-not-typeset="" className={cn("relative", !open && "max-h-72 overflow-hidden")}>
         {children}
-      </CollapsibleContent>
-      <CollapsibleTrigger className="absolute inset-x-0 -bottom-2 flex h-20 items-center justify-center rounded-b-lg bg-gradient-to-b from-code/70 to-code text-sm text-muted-foreground group-data-[state=open]/collapsible:hidden">
-        {isOpened ? "Collapse" : "Expand"}
-      </CollapsibleTrigger>
-    </Collapsible>
+        {!open && <button type="button" aria-label="Expand" onClick={() => setOpen(true)} className="absolute inset-x-0 bottom-0 h-20 cursor-pointer bg-gradient-to-b from-transparent to-surface" />}
+      </div>
+    </figure>
   )
 }

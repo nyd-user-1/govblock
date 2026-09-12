@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "members-card",
+  "title": "Members Card",
+  "description": "The chamber's members as a grid of portraits with the party dot, faces first and seals where there is no photo.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "@44gov/seals",
+    "card",
+    "tooltip"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/members-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { honorific } from \"@/lib/format\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { MemberPortrait, PartyDot } from \"@/components/policy/seals\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Tooltip, TooltipContent, TooltipTrigger } from \"@/components/ui/tooltip\"\n\n// Members — the headshot grid. Real portraits where the jurisdiction\n// publishes them; the chamber's seal where none exists.\nexport type MemberRow = { people_id: number | string; name: string; party: string; role?: string | null; chamber: string; photo: string | null; serving?: boolean }\n\nexport function MembersCardBody({\n  rows,\n  state = \"US\",\n  title = \"Members\",\n  action,\n  href,\n  chamber,\n  onChamber,\n  memberHref,\n}: CardBodyProps & { rows: MemberRow[]; chamber?: string; onChamber?: (chamber: string) => void; memberHref?: (row: MemberRow) => string }) {\n  const link = memberHref ?? ((row: MemberRow) => `${SITE}/members/${row.people_id}?state=${state}`)\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent>\n        <div className=\"grid grid-cols-4 gap-3 sm:grid-cols-6\">\n          {rows.map((row) => (\n            <Tooltip key={row.people_id}>\n              <TooltipTrigger\n                render={\n                  <Link href={link(row)} className=\"flex flex-col items-center gap-1 no-underline\">\n                    <span className=\"relative\">\n                      <MemberPortrait name={row.name} photoUrl={row.photo} state={state} chamber={row.chamber} size={44} />\n                      <PartyDot party={row.party} serving={row.serving ?? true} className=\"absolute right-0 bottom-0 ring-2 ring-card\" />\n                    </span>\n                    <span className=\"w-full truncate text-center text-[11px] text-muted-foreground\">{row.name.split(\",\")[0]}</span>\n                  </Link>\n                }\n              />\n              <TooltipContent>{`${honorific(row.role ?? \"\", row.chamber)} ${row.name}`.trim()}</TooltipContent>\n            </Tooltip>\n          ))}\n        </div>\n      </CardContent>\n      <CardFoot chamber={chamber} onChamber={onChamber} state={state} href={href ?? `${SITE}/members?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : \"\"}`} label=\"All members\" />\n    </>\n  )\n}\n\n/** The card on its own: faces first, then the seals, twelve at most. */\nexport function MembersCard({ rows, limit = 12, ...props }: Omit<React.ComponentProps<typeof MembersCardBody>, \"chamber\" | \"onChamber\"> & { limit?: number }) {\n  const [chamber, setChamber] = React.useState(\"\")\n  const shown = React.useMemo(() => {\n    const sitting = rows.filter((r) => r.serving !== false && (!chamber || r.chamber === chamber))\n    return [...sitting.filter((r) => r.photo), ...sitting.filter((r) => !r.photo)].slice(0, limit)\n  }, [rows, chamber, limit])\n  return (\n    <CardShell>\n      <MembersCardBody {...props} rows={shown} chamber={chamber} onChamber={setChamber} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/members-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

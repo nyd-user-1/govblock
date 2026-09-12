@@ -1,41 +1,37 @@
 "use client"
 
-import { useLayoutEffect, type MouseEvent, type ReactNode } from "react"
+import type { MouseEvent, ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { ThemeToggleSlideLeft } from "@govblock/ui/components/animbits/theme-toggle-slide-left"
-import { ThemeToggleSlideRight } from "@govblock/ui/components/animbits/theme-toggle-slide-right"
+import { runCurtain, useCurtainArrival, type CurtainDirection } from "@/components/page-curtain"
 
-// Route-to-route slides between /unite and /unite-2 (Brendan, 2026-09-11):
-// forward is animbits' slide-left over the flag's blue, back is slide-right
-// over its red (app/unite/unite.css).
-//
-// A view transition takes its "after" snapshot when its callback settles, so
-// the callback returns a promise that the destination page resolves when it
-// mounts (`useSlideArrival`). If the route is slow to arrive — a dev compile —
-// the promise gives up after three seconds rather than holding the page
-// frozen, and the navigation lands without the slide.
+// Route-to-route moves between /unite and /unite-2 (Brendan, 2026-09-11).
+// Until 2026-09-12 they were animbits' slide-left over the flag's blue and
+// slide-right over its red; now they are the page curtain (page-curtain.tsx):
+// the same two colours, a tilted edge, and the name of the page being opened
+// carried across on the sheet.
 
-let arrive: (() => void) | null = null
-
-/** Called by the page a slide lands on; releases the waiting transition. */
-export function useSlideArrival() {
-  const pathname = usePathname()
-  useLayoutEffect(() => {
-    arrive?.()
-    arrive = null
-  }, [pathname])
+/** What the curtain says it is bringing. */
+const TITLES: Record<string, string> = {
+  "/unite": "Unite",
+  "/unite-2": "America Today",
 }
+
+/** Called by the page a curtain lands on; releases the sheet to draw back. */
+export const useSlideArrival = useCurtainArrival
 
 export function SlideLink({
   href,
   direction,
+  title,
   className,
   linkClassName,
   children,
 }: {
   href: string
-  direction: "forward" | "back"
+  direction: CurtainDirection
+  /** The name painted on the curtain; the destination's own by default. */
+  title?: string
   className?: string
   linkClassName?: string
   children: ReactNode
@@ -43,41 +39,20 @@ export function SlideLink({
   const router = useRouter()
   const pathname = usePathname()
 
-  const navigate = () => {
-    if (href === pathname) return
-    return new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, 3000)
-      arrive = () => {
-        clearTimeout(timer)
-        resolve()
-      }
-      router.push(href)
-    })
-  }
-
-  // The wrapper runs the slide; the anchor keeps a real href for new tabs and
-  // copy-link, and only a plain click is handed to the wrapper.
+  // The anchor keeps a real href for new tabs and copy-link; only a plain
+  // click is taken over by the curtain.
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-      e.stopPropagation()
-      return
-    }
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
     e.preventDefault()
+    if (href === pathname) return
+    void runCurtain({ direction, title: title ?? TITLES[href] ?? "", navigate: () => router.push(href) })
   }
 
-  const link = (
-    <a href={href} onClick={onClick} className={linkClassName}>
-      {children}
-    </a>
-  )
-
-  return direction === "forward" ? (
-    <ThemeToggleSlideLeft onToggle={navigate} className={className}>
-      {link}
-    </ThemeToggleSlideLeft>
-  ) : (
-    <ThemeToggleSlideRight onToggle={navigate} className={className}>
-      {link}
-    </ThemeToggleSlideRight>
+  return (
+    <span className={className}>
+      <a href={href} onClick={onClick} className={linkClassName}>
+        {children}
+      </a>
+    </span>
   )
 }

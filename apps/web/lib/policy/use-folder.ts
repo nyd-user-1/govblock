@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { billCitation } from "@/lib/policy/congress"
 import { useMyForks, type Fork } from "@/lib/policy/forks"
 
 import { committeeOf, monthName, monthOf, type Node, type Target, voteKind } from "@/lib/create/path"
@@ -146,7 +147,7 @@ function usePagedBills(resource: string, filters: Filters | null, extra: Record<
 
 const billRow = (b: BillRow, state: string): Row => ({
   key: `bills/${b.bill_id}`,
-  name: b.bill_number,
+  name: billCitation(b.bill_number, state),
   kind: "file",
   go: { bill: String(b.bill_id), rollcall: null, number: b.bill_number },
   description: b.title,
@@ -265,7 +266,7 @@ export function useFolder(node: Node, scope: Scope): Folder {
         return {
           rows: forks.map((f) => ({
             key: `forks/${f.id}`,
-            name: f.bill_number ?? `Bill ${f.bill_id}`,
+            name: f.bill_number ? billCitation(f.bill_number, f.state) : `Bill ${f.bill_id}`,
             kind: "file" as const,
             go: { bill: String(f.bill_id), fork: String(f.id), state: f.state, session: f.session_id ? String(f.session_id) : null, at: null, committee: null, member: null, rollcall: null },
             description: `${f.title ?? ""}`,

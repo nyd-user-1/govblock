@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import Link from "next/link"
 import { ChevronDown } from "lucide-react"
@@ -335,8 +336,8 @@ const usDate = (value: string) => {
 }
 
 /** `hb6500/passed-senate.md`: the file name a stage's summary block wears. */
-const summaryFile = (number: string, stage: string) =>
-  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${
+const summaryFile = (number: string, state: string | null | undefined, stage: string) =>
+  `${fmtBill(number, state).toLowerCase().replace(/[^a-z0-9]/g, "")}/${
     stage
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -415,7 +416,7 @@ export function BillSummaries({ fallback, chamber }: { fallback: React.ReactNode
                 {stage}
                 {summary.actionDate ? <> {fmtDate(summary.actionDate)}</> : null}
               </H3>
-              <FileBlock icon={<ChamberSeal state={c.state} chamber={chamber} size={16} />} title={summaryFile(c.billNumber, stage)} text={() => plain} collapsed="data-[state=closed]:max-h-[300px]" className="mb-0 last:mb-12">
+              <FileBlock icon={<ChamberSeal state={c.state} chamber={chamber} size={16} />} title={summaryFile(c.billNumber, c.state, stage)} text={() => plain} collapsed="data-[state=closed]:max-h-[300px]" className="mb-0 last:mb-12">
                 <SummaryBody stage={stage} date={summary.actionDate ?? null} blocks={blocks} />
               </FileBlock>
             </React.Fragment>
@@ -855,8 +856,8 @@ export function BillTitlesBlock({ bill }: { bill: string }) {
 export type HeldText = { document_id: number; version: string | null; chars: number; date: string | null; source: string | null }
 
 /** `hb6500/enrolled-bill.txt`: the file name the block wears. */
-const fileName = (number: string, version: string | null | undefined) =>
-  `${number.toLowerCase().replace(/[^a-z0-9]/g, "")}/${String(version ?? "text")
+const fileName = (number: string, state: string | null | undefined, version: string | null | undefined) =>
+  `${fmtBill(number, state).toLowerCase().replace(/[^a-z0-9]/g, "")}/${String(version ?? "text")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")}.txt`
@@ -945,7 +946,7 @@ export function BillTextBlock({
   )
 
   return (
-    <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={fileName(billNumber, shown?.version)} menu={menu || undefined} text={() => body ?? ""} collapsed="data-[state=closed]:max-h-96">
+    <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={fileName(billNumber, state, shown?.version)} menu={menu || undefined} text={() => body ?? ""} collapsed="data-[state=closed]:max-h-96">
       {body ? <BillText text={body} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground">Loading that version…</p>}
     </FileBlock>
   )

@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { ArrowHorizontalIcon, ParagraphSpacingIcon, TextSmallcapsIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
@@ -60,7 +61,7 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
         .map((m) => ({ value: String(m.people_id), label: m.name, hint: `${m.party}${m.district ? ` · ${m.district.replace(/^[A-Z]+-0*/, "")}` : ""}` })),
     [members, filters.member]
   )
-  const billOptions = React.useMemo<Option[]>(() => (bills?.rows ?? []).map((b) => ({ value: String(b.bill_id), label: b.bill_number, sub: b.title })), [bills])
+  const billOptions = React.useMemo<Option[]>(() => (bills?.rows ?? []).map((b) => ({ value: String(b.bill_id), label: fmtBill(b.bill_number, state), sub: b.title })), [bills])
   const currentMember = members?.find((m) => String(m.people_id) === filters.member)
   const currentBill = bills?.rows.find((b) => String(b.bill_id) === filters.bill)
   const pick = { isMobile, anchorRef }
@@ -97,7 +98,7 @@ export function LegislativeFields({ filters, setFilters, isMobile, anchorRef }: 
       <FilterPicker label="Status" param="status" value={filters.status ?? ""} options={toOptions(options?.statuses)} loading={optionsLoading} {...pick} onChange={(next) => setFilters({ status: next, bill: "" })} />
       <FilterPicker label="Topics" param="subject" value={filters.subject ?? ""} options={toOptions(subjects)} loading={!subjects} {...pick} onChange={(next) => setFilters({ subject: next, bill: "" })} />
       <FieldSeparator className="hidden md:block" />
-      <FilterPicker label="Bill" param="bill" value={filters.bill ?? ""} display={currentBill?.bill_number ?? (filters.bill ? undefined : "Latest")} options={billOptions} allLabel="Latest" loading={billsLoading} {...pick} onChange={(next) => setFilters({ bill: next })} />
+      <FilterPicker label="Bill" param="bill" value={filters.bill ?? ""} display={(currentBill ? fmtBill(currentBill.bill_number, state) : undefined) ?? (filters.bill ? undefined : "Latest")} options={billOptions} allLabel="Latest" loading={billsLoading} {...pick} onChange={(next) => setFilters({ bill: next })} />
     </>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 
 import { useLocal } from "@/lib/policy/use-local"
@@ -11,10 +12,12 @@ import { Textarea } from "@govblock/ui/components/nova/textarea"
 export function BillNotes({
   billId,
   billNumber,
+  state,
   title,
 }: {
   billId: number
   billNumber: string
+  state?: string | null
   title: string
 }) {
   const [notes, setNotes] = useLocal<Record<string, string>>("livingston:bill-notes", {})
@@ -25,7 +28,7 @@ export function BillNotes({
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="typeset w-full">
-        <h1>{billNumber} — Notes</h1>
+        <h1>{fmtBill(billNumber, state)} — Notes</h1>
         <p>
           <em>{title}</em>
         </p>

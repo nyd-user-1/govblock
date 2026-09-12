@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "committees-card-data",
+  "title": "Committees data",
+  "description": "The twenty-four busiest committees of the current Congress.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/committees.json",
+      "content": "[\n  {\n    \"label\": \"Judiciary\",\n    \"bills\": 2181,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Energy And Commerce\",\n    \"bills\": 1636,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Ways And Means\",\n    \"bills\": 1160,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Finance\",\n    \"bills\": 902,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Education and Workforce\",\n    \"bills\": 824,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Health, Education, Labor, And Pensions\",\n    \"bills\": 747,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Oversight And Government Reform\",\n    \"bills\": 696,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Foreign Affairs\",\n    \"bills\": 658,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Armed Services\",\n    \"bills\": 581,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Financial Services\",\n    \"bills\": 559,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Banking, Housing, And Urban Affairs\",\n    \"bills\": 465,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Commerce, Science, And Transportation\",\n    \"bills\": 458,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Homeland Security And Governmental Affairs\",\n    \"bills\": 444,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Natural Resources\",\n    \"bills\": 395,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Foreign Relations\",\n    \"bills\": 385,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Agriculture, Nutrition, And Forestry\",\n    \"bills\": 334,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Energy And Natural Resources\",\n    \"bills\": 314,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Veterans' Affairs\",\n    \"bills\": 285,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Environment And Public Works\",\n    \"bills\": 257,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Agriculture\",\n    \"bills\": 226,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Administration\",\n    \"bills\": 196,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Science, Space, And Technology\",\n    \"bills\": 178,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Subcommittee on Highways and Transit\",\n    \"bills\": 174,\n    \"chamber\": \"House\"\n  },\n  {\n    \"label\": \"Transportation And Infrastructure\",\n    \"bills\": 156,\n    \"chamber\": \"House\"\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/committees.json"
+    }
+  ],
+  "type": "registry:file"
+}

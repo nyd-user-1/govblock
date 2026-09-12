@@ -1,3 +1,4 @@
+import { typesetHref } from "@/lib/typeset/views"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
@@ -243,9 +244,10 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                     <DocsCopyPage
                       page={markdown}
                       url={`https://gov.nysgpt.com/bills/${bill.bill_id}`}
-                      typeset={`/workspace/typeset-2?item=article&state=${bill.state}&bill=${bill.bill_id}`}
+                      typeset={typesetHref(bill.bill_id)}
                       // Only when there are printings to compare — sponsor memos are not printings.
-                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? `/workspace/typeset?item=diff&state=${bill.state}&bill=${bill.bill_id}` : undefined}
+                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill.bill_id, "comp") : undefined}
+                      git={typesetHref(bill.bill_id, "git")}
                     />
                     {/* The neighbouring bills in the session, as shadcn's docs
                         header pages to the next document. */}

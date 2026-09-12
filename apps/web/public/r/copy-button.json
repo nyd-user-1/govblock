@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "copy-button",
+  "title": "Copy Button",
+  "description": "The small copy button a code figure wears, with its tick.",
+  "dependencies": [
+    "@tabler/icons-react"
+  ],
+  "registryDependencies": [
+    "button"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/copy-button.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { IconCheck, IconCopy } from \"@tabler/icons-react\"\n\nimport { cn } from \"@/lib/utils\"\nimport { Button } from \"@/components/ui/button\"\n\nexport function CopyButton({\n  value,\n  className,\n  variant = \"ghost\",\n  ...props\n}: React.ComponentProps<typeof Button> & { value: string }) {\n  const [hasCopied, setHasCopied] = React.useState(false)\n\n  React.useEffect(() => {\n    if (!hasCopied) return\n    const t = setTimeout(() => setHasCopied(false), 2000)\n    return () => clearTimeout(t)\n  }, [hasCopied])\n\n  return (\n    <Button\n      data-slot=\"copy-button\"\n      size=\"icon\"\n      variant={variant}\n      className={cn(\"size-7 hover:opacity-100 focus-visible:opacity-100\", className)}\n      onClick={() => {\n        navigator.clipboard?.writeText(value)\n        setHasCopied(true)\n      }}\n      {...props}\n    >\n      <span className=\"sr-only\">Copy</span>\n      {hasCopied ? <IconCheck /> : <IconCopy />}\n    </Button>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/copy-button.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

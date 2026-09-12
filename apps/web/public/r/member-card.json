@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "member-card",
+  "title": "Member Card",
+  "description": "A legislator as a row: portrait with its fallback, name, and the line under it.",
+  "registryDependencies": [
+    "@44gov/seals"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/policy/member-card.tsx",
+      "content": "\"use client\"\n\nimport Link from \"next/link\"\n\nimport { MemberPortrait } from \"@/components/policy/seals\"\n\n// One member on shadcn's registry card — the markup Brendan pasted on\n// 2026-09-05, class for class, with the member's portrait where a registry\n// shows its logo. The bill page drew it first for sponsors; a committee's\n// roster and an amendment's sponsors draw the same card (Brendan: \"we are\n// making reusable blocks\"). The whole card links to the member's page.\n\nexport type MemberCardRow = {\n  id: string\n  name: string\n  href: string | null\n  photo: string | null\n  chamber: string | null\n  /** \"Rep. · R–MO-8 · Sponsor\" */\n  line: string\n  /** \"Joined Dec 9, 2025 · Original\", on a Congress bill. */\n  detail: string | null\n}\n\nexport function MemberCard({ row, state }: { row: MemberCardRow; state: string }) {\n  const className = \"flex w-full flex-col rounded-2xl bg-surface p-6 text-surface-foreground transition-colors hover:bg-surface/80 sm:p-10 items-start text-sm md:p-6\"\n  const body = (\n    <>\n      <MemberPortrait name={row.name} photoUrl={row.photo} state={state} chamber={row.chamber} size={40} />\n      <div className=\"mt-4 font-medium\">{row.name}</div>\n      <div className=\"text-muted-foreground\">\n        <p>{row.line}</p>\n        {row.detail && <p>{row.detail}</p>}\n      </div>\n    </>\n  )\n  if (!row.href)\n    return (\n      <div data-not-typeset=\"true\" className={className}>\n        {body}\n      </div>\n    )\n  return (\n    <Link data-not-typeset=\"true\" className={className} href={row.href}>\n      {body}\n    </Link>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/policy/member-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

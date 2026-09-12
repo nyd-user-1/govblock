@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "navigation-card",
+  "title": "Navigation Card",
+  "description": "Groups of links drawn as a sidebar inside a card.",
+  "registryDependencies": [
+    "@44gov/card-shell",
+    "card",
+    "sidebar"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/navigation-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { CardHead, CardShell, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider } from \"@/components/ui/sidebar\"\n\n// Navigation — groups of links drawn as a sidebar inside a card.\nexport type NavGroup = { label: string; items: { name: string; href: string; icon?: React.ComponentType<{ className?: string }> }[] }\n\nexport function NavigationCardBody({ groups, title = \"Navigation\", action }: CardBodyProps & { groups: NavGroup[] }) {\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent className=\"px-0\">\n        <SidebarProvider className=\"min-h-0\">\n          <Sidebar collapsible=\"none\" className=\"w-full bg-transparent\">\n            <SidebarContent className=\"gap-0\">\n              {groups.map((group) => (\n                <SidebarGroup key={group.label} className=\"py-1\">\n                  <SidebarGroupLabel>{group.label}</SidebarGroupLabel>\n                  <SidebarGroupContent>\n                    <SidebarMenu>\n                      {group.items.map((item) => (\n                        <SidebarMenuItem key={item.name}>\n                          <SidebarMenuButton render={<Link href={item.href} />}>\n                            {item.icon && <item.icon />}\n                            <span>{item.name}</span>\n                          </SidebarMenuButton>\n                        </SidebarMenuItem>\n                      ))}\n                    </SidebarMenu>\n                  </SidebarGroupContent>\n                </SidebarGroup>\n              ))}\n            </SidebarContent>\n          </Sidebar>\n        </SidebarProvider>\n      </CardContent>\n    </>\n  )\n}\n\nexport function NavigationCard(props: React.ComponentProps<typeof NavigationCardBody>) {\n  return (\n    <CardShell>\n      <NavigationCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/navigation-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

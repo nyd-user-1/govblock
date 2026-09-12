@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleUserRoundIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
 
@@ -240,7 +241,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
   const nth = (v: TextVersion) => String(official.length - official.findIndex((x) => x.document_id === v.document_id)).padStart(2, "0")
   const label = (v: TextVersion) => (v.commit ? v.commit.message.toLowerCase() : `${(v.version ?? "original").toLowerCase()} ${nth(v)}`)
 
-  if (!picked) return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {bill.bill_number} yet.</p>
+  if (!picked) return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {fmtBill(bill.bill_number, bill.state)} yet.</p>
   const pickedStats = statsOf[picked.document_id]
   const pickedDate = picked.commit ? null : dateOfRecord(picked, bill)
 
@@ -322,7 +323,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         <div className="mb-3 rounded-lg border">
           <div className="px-4 py-3">
             <h2 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold">
-              <span className="min-w-0">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${bill.bill_number} — ${bill.title}`}</span>
+              <span className="min-w-0">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${fmtBill(bill.bill_number, bill.state)} — ${bill.title}`}</span>
               <span className="rounded bg-muted px-1.5 font-mono text-base font-medium">{picked.commit ? `commit ${picked.commit.id}` : `Version ${nth(picked)}`}</span>
             </h2>
             {picked.commit ? picked.commit.description && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{picked.commit.description}</p> : bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}

@@ -1,6 +1,8 @@
 import { atRow, isKnownKey, keyDef, normaliseKey, optionsFor, type CanonicalKey, type FieldKind } from "@/lib/forms/keys"
 import { formById, isFormId, sectionOf, type FormId, type ProgramForm } from "@/lib/forms/programs"
-import type { Step } from "@/lib/agents/run-client"
+// The shape of a run step this file reads — the kind and the tool's input.
+// The agent runner's own Step is wider; this is what travels with the widgets.
+type Step = { kind: string; input?: unknown }
 
 // The contract between the Filer's client-side tools and the widgets that
 // answer them. The model's `ask` input arrives here and is settled against

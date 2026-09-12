@@ -73,7 +73,7 @@ export const WORKSPACES: {
   },
   {
     key: "inbox",
-    label: "Agentic Inbox",
+    label: "Agent Inbox",
     href: "/workspace/inbox",
     icon: InboxIcon,
   },

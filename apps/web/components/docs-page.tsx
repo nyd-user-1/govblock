@@ -69,14 +69,14 @@ export function DocsPage({ title, description, lead, slug, previous, next, rail,
       {/* The right rail is the left rail, mirrored (Brendan, 2026-09-10): the
           same sticky offset, the same height, the same widths and the same
           hairline — moved to the inner edge — and the content padded away from
-          it on the other side. Only the breakpoint differs, because a narrow
-          window drops this rail before it drops the navigation. */}
+          it on the other side. The same lg breakpoint too (Brendan,
+          2026-09-12): the two rails come and go together. */}
       <Sidebar
         side="right"
         collapsible="none"
-        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] overflow-visible overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] xl:flex [[data-rail-right=closed]_&]:w-6"
+        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] overflow-visible overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex [[data-rail-right=closed]_&]:w-6"
       >
-        <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] xl:flex" />
+        <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex" />
         <RailToggle side="right" />
         {/* py-1: the scroller clipped the first card's top edge and shadow into a blurred line (Brendan, 2026-09-06). */}
         {/* The left rail's geometry, mirrored (Brendan, 2026-09-11): its content

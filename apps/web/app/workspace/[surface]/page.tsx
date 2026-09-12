@@ -8,7 +8,7 @@ import { Designer } from "@/components/create/designer"
 // surfaces, not rooms, 2026-09-11): the Agentic Inbox,
 // the finance explorer, the forms and the documents, each at its own path
 // now that /create is retired.
-const TITLES: Record<Surface, string> = { inbox: "Agentic Inbox", finance: "Finance", forms: "Forms", documents: "Documents" }
+const TITLES: Record<Surface, string> = { inbox: "Agent Inbox", finance: "Finance", forms: "Forms", documents: "Documents" }
 
 export function generateStaticParams() {
   return SURFACES.map((surface) => ({ surface }))

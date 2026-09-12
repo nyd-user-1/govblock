@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "votes-card",
+  "title": "Votes Card",
+  "description": "The latest roll calls with their aye/nay split: each row the vote, a two-tone bar sized by the tally, linking to the bill it decided.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "@44gov/seals",
+    "card",
+    "item"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/votes-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { fmtBill, fmtDate, fmtNumber } from \"@/lib/format\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { ChamberSeal } from \"@/components/policy/seals\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from \"@/components/ui/item\"\n\n// Votes — the latest roll calls with their aye/nay split. Each row is the\n// vote: a two-tone bar sized by the tally, linking to the bill it decided.\n// The body takes its rows; the site's card feeds it live, a consumer's the\n// data set or their own (2026-09-12).\n\nexport type VoteRow = { roll_call_id: number; bill_id: number; bill_number: string; description?: string; date: string; chamber: string; yea: number; nay: number }\n\nexport function Tally({ yea, nay }: { yea: number; nay: number }) {\n  const total = Math.max(yea + nay, 1)\n  return (\n    <span className=\"flex flex-col items-end gap-1\">\n      <span className=\"text-sm font-semibold tabular-nums\">\n        {fmtNumber(yea)}–{fmtNumber(nay)}\n      </span>\n      <span aria-hidden=\"true\" className=\"flex h-1.5 w-16 overflow-hidden rounded-full bg-muted\">\n        <span className=\"h-full\" style={{ width: `${(yea / total) * 100}%`, background: \"var(--chart-2)\" }} />\n        <span className=\"h-full\" style={{ width: `${(nay / total) * 100}%`, background: \"var(--chart-5)\" }} />\n      </span>\n    </span>\n  )\n}\n\nexport function VotesCardBody({\n  rows,\n  state = \"US\",\n  title = \"Votes\",\n  action,\n  href,\n  chamber,\n  onChamber,\n  billHref,\n}: CardBodyProps & { rows: VoteRow[]; chamber?: string; onChamber?: (chamber: string) => void; billHref?: (row: VoteRow) => string }) {\n  const link = billHref ?? ((row: VoteRow) => `${SITE}/bills/${row.bill_id}`)\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent>\n        <ItemGroup>\n          {rows.map((row) => (\n            <Item key={row.roll_call_id} variant=\"muted\" render={<Link href={link(row)} className=\"no-underline\" />}>\n              <ItemMedia>\n                <ChamberSeal state={state} chamber={row.chamber} size={32} />\n              </ItemMedia>\n              <ItemContent>\n                <ItemTitle>{fmtBill(row.bill_number, state)}</ItemTitle>\n                <ItemDescription>\n                  {fmtDate(row.date, false)} · {row.chamber}\n                </ItemDescription>\n              </ItemContent>\n              <Tally yea={row.yea} nay={row.nay} />\n            </Item>\n          ))}\n        </ItemGroup>\n      </CardContent>\n      <CardFoot chamber={chamber} onChamber={onChamber} state={state} href={href ?? `${SITE}/bills?state=${state}${chamber ? `&chamber=${encodeURIComponent(chamber)}` : \"\"}`} label=\"All bills\" />\n    </>\n  )\n}\n\n/** The card on its own: the pills filter the rows it was handed. */\nexport function VotesCard({ rows, limit = 5, ...props }: Omit<React.ComponentProps<typeof VotesCardBody>, \"chamber\" | \"onChamber\"> & { limit?: number }) {\n  const [chamber, setChamber] = React.useState(\"\")\n  const shown = rows.filter((r) => !chamber || r.chamber === chamber).slice(0, limit)\n  return (\n    <CardShell>\n      <VotesCardBody {...props} rows={shown} chamber={chamber} onChamber={setChamber} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/votes-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

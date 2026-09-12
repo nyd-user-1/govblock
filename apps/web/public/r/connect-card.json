@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "connect-card",
+  "title": "Connect Card",
+  "description": "An empty state with a row of marks and one call to action: connect a service, invite a team.",
+  "registryDependencies": [
+    "@44gov/card-shell",
+    "avatar",
+    "button",
+    "card",
+    "empty"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/connect-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { CardShell } from \"@/components/cards/card-shell\"\nimport { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from \"@/components/ui/avatar\"\nimport { Button } from \"@/components/ui/button\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from \"@/components/ui/empty\"\n\n// An empty state with a row of marks and one call to action: Connect (Slack,\n// Discord, Google Drive) and No Team Members on the home page are two of it.\n// The marks are in their own colours; padding on the image, not the Avatar,\n// and object-contain, because not every logo is square.\nexport type Mark = { name: string; src: string; fallback?: string }\n\nexport function ConnectCardBody({ marks, title, description, cta, href, onClick, grayscale = false, className }: { marks: Mark[]; title?: string; description: string; cta: string; href?: string; onClick?: () => void; grayscale?: boolean; className?: string }) {\n  return (\n    <CardContent>\n      <Empty className={className ?? \"border border-dashed\"}>\n        <EmptyHeader>\n          <EmptyMedia>\n            <AvatarGroup className={grayscale ? \"grayscale\" : undefined}>\n              {marks.map((s) => (\n                <Avatar key={s.name} size=\"lg\" className={grayscale ? undefined : \"bg-white\"}>\n                  <AvatarImage src={s.src} alt={s.name} className={grayscale ? undefined : \"object-contain p-1.5\"} />\n                  <AvatarFallback>{s.fallback ?? s.name[0]}</AvatarFallback>\n                </Avatar>\n              ))}\n            </AvatarGroup>\n          </EmptyMedia>\n          {title && <EmptyTitle>{title}</EmptyTitle>}\n          <EmptyDescription>{description}</EmptyDescription>\n        </EmptyHeader>\n        <EmptyContent>\n          {href ? (\n            <Button size=\"sm\" render={<Link href={href} />} nativeButton={false}>\n              {cta}\n            </Button>\n          ) : (\n            <Button size=\"sm\" onClick={onClick}>\n              {cta}\n            </Button>\n          )}\n        </EmptyContent>\n      </Empty>\n    </CardContent>\n  )\n}\n\nexport function ConnectCard(props: React.ComponentProps<typeof ConnectCardBody>) {\n  return (\n    <CardShell>\n      <ConnectCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/connect-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "adopted-card-data",
+  "title": "Adopted data",
+  "description": "Bills adopted in every Congress on file.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/adopted.json",
+      "content": "[\n  {\n    \"session_id\": 2009,\n    \"adopted\": 614,\n    \"bills\": 10964\n  },\n  {\n    \"session_id\": 2011,\n    \"adopted\": 648,\n    \"bills\": 12276\n  },\n  {\n    \"session_id\": 2013,\n    \"adopted\": 614,\n    \"bills\": 10639\n  },\n  {\n    \"session_id\": 2015,\n    \"adopted\": 640,\n    \"bills\": 12073\n  },\n  {\n    \"session_id\": 2017,\n    \"adopted\": 463,\n    \"bills\": 13557\n  },\n  {\n    \"session_id\": 2019,\n    \"adopted\": 344,\n    \"bills\": 16601\n  },\n  {\n    \"session_id\": 2021,\n    \"adopted\": 334,\n    \"bills\": 17817\n  },\n  {\n    \"session_id\": 2023,\n    \"adopted\": 180,\n    \"bills\": 19304\n  },\n  {\n    \"session_id\": 2025,\n    \"adopted\": 105,\n    \"bills\": 18470\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/adopted.json"
+    }
+  ],
+  "type": "registry:file"
+}

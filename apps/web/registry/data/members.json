@@ -1,0 +1,326 @@
+[
+  {
+    "people_id": 16271,
+    "name": "Alma Adams",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000370_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 9346,
+    "name": "Robert Aderholt",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000055_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 16496,
+    "name": "Pete Aguilar",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000371_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 23997,
+    "name": "Mark Alford",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000379_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 16447,
+    "name": "Rick Allen",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000372_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25924,
+    "name": "Angela Alsobrooks",
+    "party": "D",
+    "role": "Sen",
+    "chamber": "Senate",
+    "photo": "https://www.congress.gov/img/member/67acdbbf044eb506e25958f2_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 24963,
+    "name": "Gabe Amo",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/669ace45fa2fb0d731226768_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 13318,
+    "name": "Mark Amodei",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/a000369_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25893,
+    "name": "Yassamin Ansari",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/67741fc30b34857ecc90902e_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18286,
+    "name": "Jodey Arrington",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/115_rp_tx_19_arrington_jodey_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 21947,
+    "name": "Jake Auchincloss",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/67817e391f9ad6ea6fb1ebda_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 16449,
+    "name": "Brian Babin",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001291_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18287,
+    "name": "Don Bacon",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/115_rp_ne_2_bacon_don_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 20042,
+    "name": "James Baird",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/6a3aa8877d3b72f27fb69f15_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 19676,
+    "name": "Troy Balderson",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/116_rp_oh_12_balderson_troy_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 9004,
+    "name": "Tammy Baldwin",
+    "party": "D",
+    "role": "Sen",
+    "chamber": "Senate",
+    "photo": "https://www.congress.gov/img/member/b001230_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 24002,
+    "name": "Becca Balint",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001318_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18288,
+    "name": "Jim Banks",
+    "party": "R",
+    "role": "Sen",
+    "chamber": "Senate",
+    "photo": "https://www.congress.gov/img/member/677d83cbfdb6cf36bbb64998_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 15051,
+    "name": "Garland Barr",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001282_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18289,
+    "name": "Nanette Barragan",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001300_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 9483,
+    "name": "John Barrasso",
+    "party": "R",
+    "role": "Sen",
+    "chamber": "Senate",
+    "photo": "https://www.congress.gov/img/member/b001261_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25922,
+    "name": "Tom Barrett",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/6774207d0b34857ecc909034_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25911,
+    "name": "Michael Baumgartner",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/6774212e0b34857ecc90903a_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 23998,
+    "name": "Aaron Bean",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001314_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 14082,
+    "name": "Joyce Beatty",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001281_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25914,
+    "name": "Nicholas Begich",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/6774217e0b34857ecc909040_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25892,
+    "name": "Wesley Bell",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/677422240b34857ecc90904a_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 9463,
+    "name": "Michael Bennet",
+    "party": "D",
+    "role": "Sen",
+    "chamber": "Senate",
+    "photo": "https://www.congress.gov/img/member/b001267_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 21964,
+    "name": "Cliff Bentz",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b000668_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 15205,
+    "name": "Ami Bera",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001287_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18290,
+    "name": "Jack Bergman",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001301_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 16488,
+    "name": "Don Beyer",
+    "party": "D",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001292_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 21963,
+    "name": "Stephanie Bice",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b000740_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 18291,
+    "name": "Andy Biggs",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/b001302_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 25920,
+    "name": "Sheri Biggs",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/677422990b34857ecc909052_200.jpg",
+    "serving": true
+  },
+  {
+    "people_id": 9209,
+    "name": "Gus Bilirakis",
+    "party": "R",
+    "role": "Rep",
+    "chamber": "House",
+    "photo": "https://www.congress.gov/img/member/117_rp_fl_12_bilirakis_gus_200.jpg",
+    "serving": true
+  }
+]

@@ -1,8 +1,9 @@
+import { billCitation } from "@/lib/policy/congress"
 import "server-only"
 
 import { withScope } from "@/lib/config"
 import { layoutBillText } from "@/lib/policy/bill-text-layout"
-import { lineDiff, type Mark } from "@/lib/policy/line-diff"
+import { lineDiff } from "@/lib/policy/line-diff"
 import { getBill, getBillText } from "@/lib/policy/queries"
 
 // Every printing of a bill against the one before it, as rows a redline draws
@@ -12,26 +13,8 @@ import { getBill, getBillText } from "@/lib/policy/queries"
 //
 // Sponsor memos ride in the same texts table and are left out.
 
-export type CompareRow = {
-  change: "same" | "add" | "del"
-  text: string
-  marks?: Mark[]
-  /** Page furniture — running heads, page numbers — dimmed as the bill page dims it. */
-  furniture?: boolean
-  /** The change block a removed or added line belongs to, and its place among that block's removals or additions. */
-  block?: number
-  order?: number
-}
-
-export type ComparePass = { from: string; to: string; rows: CompareRow[] }
-
-export type BillComparison = {
-  href: string
-  number: string
-  title: string
-  printings: string[]
-  passes: ComparePass[]
-}
+export type { CompareRow, ComparePass, BillComparison } from "@/lib/policy/bill-compare-types"
+import type { CompareRow, ComparePass, BillComparison } from "@/lib/policy/bill-compare-types"
 
 type Printing = { document_id: number; version: string | null }
 
@@ -86,7 +69,7 @@ export async function getBillComparison(billId: number): Promise<BillComparison 
     .filter((p): p is { name: string; text: string } => !!p.text)
   return {
     href: withScope(`/bills/${billId}`, bill.state),
-    number: bill.bill_number,
+    number: billCitation(bill.bill_number, bill.state),
     title: bill.title,
     printings: named.map((p) => p.name),
     passes: named.slice(1).map((after, i) => ({ from: named[i].name, to: after.name, rows: redline(named[i].text, after.text) })),

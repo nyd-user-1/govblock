@@ -399,7 +399,7 @@ export default function Page() {
     // the reading pane sharing the inset pane beside it.
     <BlockShell
       defaultOpen={false}
-      title={<PathBar crumbs={[APP_CRUMB, { label: "Agentic Inbox" }]} folder onGo={() => {}} />}
+      title={<PathBar crumbs={[APP_CRUMB, { label: "Agent Inbox" }]} folder onGo={() => {}} />}
       sidebarWidth="calc(var(--spacing) * 56)"
       contentClassName="overflow-hidden"
       rail={

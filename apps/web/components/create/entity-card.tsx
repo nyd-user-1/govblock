@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import type { Target } from "@/lib/create/path"
 import { partyName } from "@/lib/filters"
 import { fmtDate, fmtNumber, honorific, truncate } from "@/lib/format"
@@ -72,7 +73,7 @@ export function BillCard({ bill, state, onOpen }: { bill: Bill; state: string; o
     <Shell
       id={`bill-${bill.bill_id}`}
       media={<ChamberSeal state={state} chamber={bill.body} size={96} />}
-      title={`${bill.bill_number} · ${truncate(bill.title, 90)}`}
+      title={`${fmtBill(bill.bill_number, state)} · ${truncate(bill.title, 90)}`}
       description={bill.description && bill.description !== bill.title ? truncate(bill.description, 140) : undefined}
       meta={[bill.status_desc || "Introduced", bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.committee, bill.sponsor].filter(Boolean).join(" · ")}
       actions={[

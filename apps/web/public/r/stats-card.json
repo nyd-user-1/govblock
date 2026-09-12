@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "stats-card",
+  "title": "Stats Card",
+  "description": "A row of number tiles and a ranked list under them: registrations, clients and spend; matched bills and their states.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "card"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/stats-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { CardContent } from \"@/components/ui/card\"\n\n// A stats card: a row of tiles, each a number and its label, and a ranked\n// list under them. Lobbying and Model bills on the home page are two of it.\nexport type Stat = { label: string; value: string }\n\nexport function StatsCardBody({\n  stats,\n  list,\n  columns,\n  title,\n  action,\n  href,\n  footLabel,\n}: Omit<CardBodyProps, \"href\"> & { stats: Stat[]; /** The ranked rows under the tiles, already in order. */ list?: React.ReactNode[]; columns?: 2 | 3; href: string; footLabel: string }) {\n  const cols = columns ?? (stats.length >= 3 ? 3 : 2)\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent className=\"flex flex-col gap-4\">\n        <div className={cols === 3 ? \"grid grid-cols-3 gap-3\" : \"grid grid-cols-2 gap-3\"}>\n          {stats.map((stat) => (\n            <div key={stat.label} className=\"rounded-xl bg-muted/50 p-3\">\n              <div className=\"text-lg font-semibold tabular-nums\">{stat.value}</div>\n              <div className=\"text-xs text-muted-foreground\">{stat.label}</div>\n            </div>\n          ))}\n        </div>\n        {list?.length ? <div className=\"flex flex-col gap-1.5 text-sm\">{list}</div> : null}\n      </CardContent>\n      <CardFoot href={href} label={footLabel} />\n    </>\n  )\n}\n\nexport function StatsCard(props: React.ComponentProps<typeof StatsCardBody>) {\n  return (\n    <CardShell>\n      <StatsCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/stats-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

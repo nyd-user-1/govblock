@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "chambers-card-data",
+  "title": "Chambers data",
+  "description": "The two chambers, with members and bills.",
+  "files": [
+    {
+      "path": "apps/web/registry/data/chambers.json",
+      "content": "[\n  {\n    \"label\": \"House\",\n    \"bills\": 12003,\n    \"members\": 449\n  },\n  {\n    \"label\": \"Senate\",\n    \"bills\": 6467,\n    \"members\": 104\n  }\n]\n",
+      "type": "registry:file",
+      "target": "lib/44gov/data/chambers.json"
+    }
+  ],
+  "type": "registry:file"
+}

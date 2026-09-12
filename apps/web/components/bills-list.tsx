@@ -1,5 +1,6 @@
 "use client"
 
+import { chamberFromNumber } from "@/lib/imagery"
 import * as React from "react"
 
 import * as F from "@/lib/fixtures"
@@ -84,7 +85,7 @@ export function BillsList() {
           <RecordItem
             key={bill.bill_id}
             href={`/bills/${bill.bill_id}`}
-            avatar={<RecordSeal state={state} chamber={bill.body} ordinal={searching ? index + 1 : (current - 1) * PAGE_SIZE + index + 1} />}
+            avatar={<RecordSeal state={state} chamber={bill.body ?? chamberFromNumber(bill.bill_number)} ordinal={searching ? index + 1 : (current - 1) * PAGE_SIZE + index + 1} />}
             title={fmtBill(bill.bill_number, state)}
             lead={bill.last_action}
             meta={[

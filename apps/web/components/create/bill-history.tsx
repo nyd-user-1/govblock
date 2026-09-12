@@ -1,5 +1,6 @@
 "use client"
 
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import { CheckIcon, CodeIcon, CopyIcon, FileTextIcon } from "lucide-react"
 
@@ -115,7 +116,7 @@ export function BillHistory({ bill, versions, onOpenText, onOpenChanges }: { bil
       <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-6 pt-6">
         <h2 className="text-lg font-semibold">History</h2>
         <span className="text-sm text-muted-foreground">
-          for <span className="font-medium text-foreground">{bill.bill_number}</span>
+          for <span className="font-medium text-foreground">{fmtBill(bill.bill_number, bill.state)}</span>
         </span>
         <div className="ml-auto flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
           {toggle("versions", `Versions · ${versions.length}`)}

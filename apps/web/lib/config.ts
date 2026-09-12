@@ -86,6 +86,59 @@ export function hasItems(
   return "items" in item && Array.isArray(item.items)
 }
 
+/**
+ * The six specialists and the Filer, one page each under /agents. They used
+ * to be a menu of their own in the header; Agents is one entry in the
+ * Workspace menu now (Brendan, 2026-09-12), and the rail and search still
+ * list the pages from here.
+ */
+export const AGENT_PAGES: NavLink[] = [
+  {
+    href: "/agents/bill-reader",
+    label: "Clerk",
+    description: "A bill you need to understand before the meeting.",
+    icon: "Stamp",
+  },
+  {
+    href: "/agents/form-filler",
+    label: "Filer",
+    description: "A benefits form filled in by answering questions.",
+    icon: "FileSignature",
+  },
+  {
+    href: "/agents/researcher",
+    label: "Librarian",
+    description: "A question that needs a report, not an answer.",
+    icon: "Library",
+  },
+  {
+    href: "/agents/jurisdiction-guide",
+    label: "Parliamentarian",
+    description:
+      "Whose district, which committee, and where the bill is stuck.",
+    icon: "Gavel",
+  },
+  {
+    href: "/agents/money-follower",
+    label: "Treasurer",
+    description: "Who paid, who filed, and what the record leaves out.",
+    icon: "Receipt",
+  },
+  {
+    href: "/agents/reporter",
+    label: "Reporter",
+    description:
+      "The day's press on your desk, with a source on every line.",
+    icon: "NotebookPen",
+  },
+  {
+    href: "/agents/tracker",
+    label: "Whip",
+    description: "A topic you cannot watch every day.",
+    icon: "Radar",
+  },
+]
+
 export const siteConfig = {
   name: "govblock",
   url: "https://gov.nysgpt.com",
@@ -109,7 +162,7 @@ export const siteConfig = {
     // The first item is the product itself, its block before the name (Brendan, 2026-09-11).
     { href: "/", label: "GovBlocks" },
     {
-      label: "Records",
+      label: "ArXiv",
       href: "/bills",
       promo: {
         title: "The Record",
@@ -251,6 +304,77 @@ export const siteConfig = {
       ],
     },
     {
+      label: "Docs",
+      href: "/docs",
+      promo: {
+        title: "Build on it",
+        description: "The API the pages are drawn from, the parts that install into your own app, the datasets, and what changed.",
+        href: "/docs",
+        tone: "blue",
+      },
+      groups: [
+        { label: "Start", items: ["/docs/installation", "/docs/cli"] },
+        { label: "Install", items: ["/docs/components", "/docs/blocks", "/workspace/blocks"] },
+        { label: "Read", items: ["/docs/api", "/docs/datasets", "/changelog"] },
+      ],
+      // Eight entries, alphabetical, two across (Brendan, 2026-09-12: API,
+      // Blocks, Block docs, Changelog and Datasets out of Workspace and into
+      // Docs, with Components beside them).
+      columns: 2,
+      items: [
+        {
+          href: "/docs/api",
+          label: "API",
+          description: "Build on the same numbers the pages are drawn from.",
+          icon: "Braces",
+        },
+        {
+          href: "/docs/blocks",
+          label: "Block docs",
+          description:
+            "Take a block into your own app, props and source with it.",
+          icon: "BookMarked",
+        },
+        {
+          href: "/workspace/blocks",
+          label: "Blocks",
+          description:
+            "Build a page from parts that arrive already holding data.",
+          icon: "Blocks",
+        },
+        {
+          href: "/changelog",
+          label: "Changelog",
+          description: "Know what changed, so a number is never a surprise.",
+          icon: "History",
+        },
+        {
+          href: "/docs/cli",
+          label: "CLI",
+          description: "add, view, search and build, as they work with @44gov.",
+          icon: "Terminal",
+        },
+        {
+          href: "/docs/components",
+          label: "Components",
+          description: "The @44gov registry: what installs into your own app, and the command that does it.",
+          icon: "Component",
+        },
+        {
+          href: "/docs/datasets",
+          label: "Datasets",
+          description: "Take a whole session away as a file and analyse it.",
+          icon: "FileDown",
+        },
+        {
+          href: "/docs/installation",
+          label: "Installation",
+          description: "Name the registry once; then the shadcn CLI adds anything here.",
+          icon: "Download",
+        },
+      ],
+    },
+    {
       label: "News",
       href: "/news",
       promo: {
@@ -294,12 +418,6 @@ export const siteConfig = {
           icon: "Coffee",
         },
         {
-          href: "/desk",
-          label: "Desk",
-          description: "What the legislature did, newest first, by stage.",
-          icon: "Newspaper",
-        },
-        {
           href: "/consensus/admin",
           label: "Consensus admin",
           description: "Configure a conversation, watch it fill, and keep the statements clean.",
@@ -316,6 +434,12 @@ export const siteConfig = {
           label: "Consensus survey",
           description: "One statement at a time: agree, disagree or pass.",
           icon: "ClipboardList",
+        },
+        {
+          href: "/desk",
+          label: "Desk",
+          description: "What the legislature did, newest first, by stage.",
+          icon: "Newspaper",
         },
         {
           href: "/discussions",
@@ -383,86 +507,6 @@ export const siteConfig = {
       ],
     },
     {
-      label: "Agents",
-      href: "/agents",
-      promo: {
-        title: "Six specialists",
-        description:
-          "One record, six narrower grants: each reads what it needs and refuses the rest.",
-        href: "/agents",
-        tone: "blue",
-      },
-      groups: [
-        {
-          label: "Read and write",
-          items: [
-            "/agents/bill-reader",
-            "/agents/researcher",
-            "/agents/reporter",
-          ],
-        },
-        {
-          label: "Find and follow",
-          items: [
-            "/agents/jurisdiction-guide",
-            "/agents/tracker",
-            "/agents/money-follower",
-          ],
-        },
-        { label: "Fill in", items: ["/agents/form-filler"] },
-      ],
-      // Six agents, alphabetical. The Inbox left this panel on 2026-09-08: it
-      // is a place work lands, not an agent you can ask a question, so it sits
-      // in the Workspace and the Filer takes its seat here.
-      columns: 2,
-      items: [
-        {
-          href: "/agents/bill-reader",
-          label: "Clerk",
-          description: "A bill you need to understand before the meeting.",
-          icon: "Stamp",
-        },
-        {
-          href: "/agents/form-filler",
-          label: "Filer",
-          description: "A benefits form filled in by answering questions.",
-          icon: "FileSignature",
-        },
-        {
-          href: "/agents/researcher",
-          label: "Librarian",
-          description: "A question that needs a report, not an answer.",
-          icon: "Library",
-        },
-        {
-          href: "/agents/jurisdiction-guide",
-          label: "Parliamentarian",
-          description:
-            "Whose district, which committee, and where the bill is stuck.",
-          icon: "Gavel",
-        },
-        {
-          href: "/agents/money-follower",
-          label: "Treasurer",
-          description: "Who paid, who filed, and what the record leaves out.",
-          icon: "Receipt",
-        },
-        {
-          href: "/agents/reporter",
-          label: "Reporter",
-          description:
-            "The day's press on your desk, with a source on every line.",
-          icon: "NotebookPen",
-        },
-        {
-          href: "/agents/tracker",
-          label: "Whip",
-          description: "A topic you cannot watch every day.",
-          icon: "Radar",
-        },
-      ],
-    },
-    {
       label: "Workspace",
       href: "/workspace/data",
       promo: {
@@ -478,52 +522,35 @@ export const siteConfig = {
           items: [
             "/workspace/data",
             "/workspace/dashboard",
-            "/workspace/blocks",
             "/workspace/typeset",
+            "/workspace/data/us/house/2026/bill",
             "/chat",
             "/diff",
+            "/agents",
           ],
         },
         {
           label: "Watch",
-          items: ["/map", "/calendar", "/workspace/inbox", "/desk", "/consensus"],
+          items: ["/map", "/calendar", "/workspace/inbox", "/consensus"],
         },
-        {
-          label: "Build on it",
-          items: ["/docs/api", "/docs/blocks", "/docs/datasets"],
-        },
-        { label: "Read", items: ["/changelog", "/clips"] },
+        { label: "Read", items: ["/clips"] },
       ],
-      // Thirteen entries, alphabetical, three across. Each line says what the
+      // Twelve entries, alphabetical (Agents leads Agent Inbox by Brendan's call), three across. Each line says what the
       // page is worth rather than restating its name (Brendan, 2026-09-08:
       // "stop calling an orange an orange").
       columns: 3,
       items: [
         {
+          href: "/agents",
+          label: "Agents",
+          description: "Six specialists, each reading only what it needs of the record.",
+          icon: "Bot",
+        },
+        {
           href: "/workspace/inbox",
-          label: "Agentic Inbox",
+          label: "Agent Inbox",
           description: "Hand a job to an agent and read it when it lands.",
           icon: "Inbox",
-        },
-        {
-          href: "/docs/api",
-          label: "API",
-          description: "Build on the same numbers the pages are drawn from.",
-          icon: "Braces",
-        },
-        {
-          href: "/docs/blocks",
-          label: "Block docs",
-          description:
-            "Take a block into your own app, props and source with it.",
-          icon: "BookMarked",
-        },
-        {
-          href: "/workspace/blocks",
-          label: "Blocks",
-          description:
-            "Build a page from parts that arrive already holding data.",
-          icon: "Blocks",
         },
         {
           href: "/calendar",
@@ -532,28 +559,22 @@ export const siteConfig = {
           icon: "CalendarDays",
         },
         {
-          href: "/changelog",
-          label: "Changelog",
-          description: "Know what changed, so a number is never a surprise.",
-          icon: "History",
-        },
-        {
           href: "/chat",
           label: "Chat",
           description: "Ask the Clerk about a bill, or fill a form with the Filer.",
           icon: "MessageSquare",
         },
         {
-          href: "/consensus",
-          label: "Consensus",
-          description: "Vote on each other's statements and see where agreement can be found.",
-          icon: "Handshake",
-        },
-        {
           href: "/clips",
           label: "Clips",
           description: "Short video from the record, and your own.",
           icon: "SquarePlay",
+        },
+        {
+          href: "/consensus",
+          label: "Consensus",
+          description: "Vote on each other's statements and find where agreement lies.",
+          icon: "Handshake",
         },
         {
           href: "/workspace/dashboard",
@@ -568,16 +589,16 @@ export const siteConfig = {
           icon: "Database",
         },
         {
-          href: "/docs/datasets",
-          label: "Datasets",
-          description: "Take a whole session away as a file and analyse it.",
-          icon: "FileDown",
-        },
-        {
           href: "/diff",
           label: "Diff",
-          description: "Two printings of a bill as one redline, the changes moving as you scroll.",
+          description: "Two printings of a bill as one redline that moves as you scroll.",
           icon: "GitCompare",
+        },
+        {
+          href: "/workspace/data/us/house/2026/bill",
+          label: "Git",
+          description: "A bill as a repository: each printing a commit, each change a diff.",
+          icon: "GitFork",
         },
         {
           href: "/map",
@@ -585,12 +606,6 @@ export const siteConfig = {
           description:
             "Every congressional district, coloured by what the Census counts there.",
           icon: "MapPin",
-        },
-        {
-          href: "/desk",
-          label: "Desk",
-          description: "Catch what the legislature did while you were away.",
-          icon: "Newspaper",
         },
         {
           href: "/workspace/typeset",

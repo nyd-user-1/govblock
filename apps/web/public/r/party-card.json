@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "party-card",
+  "title": "Party Card",
+  "description": "The seats of a chamber by party, as a two-tone bar and a list with counts and shares, for either chamber.",
+  "registryDependencies": [
+    "@44gov/card-foot",
+    "@44gov/card-shell",
+    "@44gov/format",
+    "@44gov/policy-filters",
+    "@44gov/policy-imagery",
+    "@44gov/seals",
+    "card",
+    "toggle-group"
+  ],
+  "files": [
+    {
+      "path": "apps/web/components/cards/party-card.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport Link from \"next/link\"\n\nimport { partyName } from \"@/lib/filters\"\nimport { fmtNumber } from \"@/lib/format\"\nimport { partyColor } from \"@/lib/imagery\"\nimport { CardFoot } from \"@/components/card-foot\"\nimport { CardHead, CardShell, SITE, type CardBodyProps } from \"@/components/cards/card-shell\"\nimport { PartyDot } from \"@/components/policy/seals\"\nimport { CardContent } from \"@/components/ui/card\"\nimport { ToggleGroup, ToggleGroupItem } from \"@/components/ui/toggle-group\"\n\n// Party — the two-tone proportion: who holds the seats, chamber by chamber.\nexport type SeatRow = { chamber: string; party: string; seats: number }\n\nexport function PartyCardBody({ rows, state = \"US\", title = \"Party\", action, href, memberHref }: CardBodyProps & { rows: SeatRow[]; memberHref?: (party: string, chamber: string) => string }) {\n  const [chamber, setChamber] = React.useState(\"\")\n  const chambers = React.useMemo(() => [...new Set(rows.map((row) => row.chamber))].sort(), [rows])\n  const active = chamber && chambers.includes(chamber) ? chamber : (chambers[0] ?? \"\")\n  const seats = rows.filter((row) => row.chamber === active)\n  const total = seats.reduce((sum, row) => sum + row.seats, 0)\n  const ordered = [...seats].sort((a, b) => b.seats - a.seats)\n  const link = memberHref ?? ((party: string, ch: string) => `${SITE}/members?state=${state}&party=${party}&chamber=${encodeURIComponent(ch)}`)\n  return (\n    <>\n      <CardHead title={title} action={action} />\n      <CardContent className=\"flex flex-col gap-3\">\n        <span aria-hidden=\"true\" className=\"flex h-3 w-full overflow-hidden rounded-full bg-muted\">\n          {ordered.map((row) => (\n            <span key={row.party} className=\"h-full\" style={{ width: `${(row.seats / Math.max(total, 1)) * 100}%`, background: partyColor(row.party) }} />\n          ))}\n        </span>\n        <div className=\"flex flex-col gap-1.5\">\n          {ordered.map((row) => (\n            <Link key={row.party} href={link(row.party, active)} className=\"flex items-center gap-2 text-sm no-underline\">\n              <PartyDot party={row.party} />\n              <span className=\"truncate text-foreground\">{partyName(row.party)}</span>\n              <span className=\"ml-auto shrink-0 font-medium tabular-nums\">{fmtNumber(row.seats)}</span>\n              <span className=\"w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums\">{Math.round((row.seats / Math.max(total, 1)) * 100)}%</span>\n            </Link>\n          ))}\n        </div>\n      </CardContent>\n      <CardFoot href={href ?? `${SITE}/members?state=${state}${active ? `&chamber=${encodeURIComponent(active)}` : \"\"}`} label=\"All members\">\n        <ToggleGroup value={active ? [active] : []} onValueChange={(value) => setChamber(String(value ?? \"\"))} variant=\"outline\" spacing={1}>\n          {chambers.map((name) => (\n            <ToggleGroupItem key={name} value={name} className=\"text-muted-foreground hover:text-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background\">\n              {name}\n            </ToggleGroupItem>\n          ))}\n        </ToggleGroup>\n      </CardFoot>\n    </>\n  )\n}\n\nexport function PartyCard(props: React.ComponentProps<typeof PartyCardBody>) {\n  return (\n    <CardShell>\n      <PartyCardBody {...props} />\n    </CardShell>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/cards/party-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

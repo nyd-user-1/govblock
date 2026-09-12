@@ -23,7 +23,7 @@ export type Stage = Mode | "canvas" | "inbox" | "finance" | "admin" | "forms" | 
 
 // Brendan, 2026-09-04: "Canvas, Data, Design" — the three ways of looking at
 // the jurisdiction come first, in that order, then the roots beside it.
-export const STAGE_LABEL: Record<Stage, string> = { canvas: "Canvas", state: "Data", design: "Design", inbox: "Agentic Inbox", finance: "Dashboard", admin: "Admin", forms: "Forms", documents: "Documents" }
+export const STAGE_LABEL: Record<Stage, string> = { canvas: "Canvas", state: "Data", design: "Design", inbox: "Agent Inbox", finance: "Dashboard", admin: "Admin", forms: "Forms", documents: "Documents" }
 export const STAGE_ICON: Record<Stage, typeof InboxIcon> = { canvas: LayoutGridIcon, state: SlidersHorizontalIcon, design: PaletteIcon, inbox: InboxIcon, finance: LayoutDashboardIcon, admin: Settings2Icon, forms: FileTextIcon, documents: ArchiveIcon }
 export const STAGE_GROUPS: Stage[][] = [
   ["canvas", "state", "design"],

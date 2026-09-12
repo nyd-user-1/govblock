@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@govblock/ui/lib/utils"
 import { displayValue, keyDef, normaliseKey } from "@/lib/forms/keys"
 import { askedSections, formById, sectionLabel, type FormId } from "@/lib/forms/programs"
 import { onProfileChange, sectionKeys, valuesFor } from "@/lib/forms/profile"

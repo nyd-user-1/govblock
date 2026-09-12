@@ -1,5 +1,7 @@
 "use client"
 
+import { typesetHref } from "@/lib/typeset/views"
+import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
@@ -216,7 +218,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   // ── Where you are, as crumbs ─────────────────────────────────────────────
 
   const memberLabel = member ? `${honorific(member.role, member.chamber)} ${member.name}` : location.member ? `Member ${location.member}` : ""
-  const billLabel = bill ? `${bill.bill_number} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
+  const billLabel = bill ? `${fmtBill(bill.bill_number, bill.state)} — ${truncate(bill.title, 90)}` : location.bill ? `Bill ${location.bill}` : ""
   const crumbs = React.useMemo<Crumb[]>(() => {
     const out: Crumb[] = [{ label: legislatureName(scope.state), go: listing("sessions") }]
     // The workspace's path starts at Workspace, then Data (Brendan, 2026-09-07: one breadcrumb, one component; 2026-09-11: Workspace at the root).
@@ -388,7 +390,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
       </BlockShell>
     )
   ) : (
-    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === first ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" })} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
+    <BlockShell defaultOpen={false} rail={<Tree scope={scope} location={location} node={node} onGo={go} />} title={header} actions={scrolled ? topButton : node.kind === "bill" ? <FileActions path={crumbs.map((c, i) => (i === first ? stateName(scope.state) : c.label)).join(" / ")} state={scope.state} billId={node.id} view={(["changes", "history", "record", "typeset"].includes(params.tab) ? params.tab : "text") as BillView} onOpen={(view) => (view === "typeset" ? router.push(typesetHref(node.id)) : writeUrlParams({ tab: view === "text" ? null : view, doc: view === "text" || view === "changes" ? params.doc || null : null }, { history: "push" }))} /> : lookToggle || undefined} headerClassName={scrolled ? "shadow-sm" : undefined} contentClassName="overflow-hidden">
       {node.kind === "bill" || node.kind === "member" || node.kind === "rollcall" ? (
         <FileView node={node} scope={scope} design={design} tab={params.tab} doc={params.doc} fork={params.fork} onTab={(tab) => writeUrlParams({ tab }, { history: "push" })} onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })} onGo={go} />
       ) : (

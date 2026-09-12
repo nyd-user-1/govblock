@@ -168,7 +168,7 @@ export function Unite2() {
               </p>
             </Section>
 
-            <Section id="inbox" title="Agentic Inbox" href="/workspace/inbox" still="/unite/inbox.jpg">
+            <Section id="inbox" title="Agent Inbox" href="/workspace/inbox" still="/unite/inbox.jpg">
               <p className="text-lg">
                 Send the work, not the prompt. Hand a task to an agent the way
                 you would email a colleague, close the tab and go about your
