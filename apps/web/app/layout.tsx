@@ -16,7 +16,9 @@ import {
 } from "@/lib/policy/scope-script"
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
+import { PageCurtainHost } from "@/components/page-curtain"
 import { DevTrace } from "@/components/dev/trace"
+import { DevInspector } from "@/components/dev/inspector"
 import { AssistPanel, AssistShell } from "@/components/assist-panel"
 import { CardGateProvider } from "@/components/card-gate"
 import { TooltipProvider } from "@govblock/ui/components/tooltip"
@@ -84,8 +86,15 @@ export default function RootLayout({
                       <SiteFooter />
                     </div>
                     <AssistPanel />
-                    {/* The visual inspector, on the dev server only. */}
+                    {/* The page curtain, over everything and outside the routed pages, so it outlives the navigation it covers. */}
+                    <PageCurtainHost />
+                    {/* Two inspectors, side by side until one wins (Brendan,
+                        2026-09-12): @react-trace/kit, and ours, which resolves
+                        a real file:line through /api/dev-locate. Both are
+                        development-only; next.config aliases ours to an empty
+                        stub in production. */}
                     <DevTrace />
+                    {process.env.NODE_ENV === "development" && <DevInspector />}
                   </AssistPanelProvider>
                 </CardGateProvider>
               </JurisdictionProvider>
