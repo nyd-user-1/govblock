@@ -8,11 +8,28 @@
  * make this worse, not safer. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, ChevronLeft, ChevronRight, Copy, SquareDashedMousePointer } from "lucide-react"
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Crosshair,
+  GripVertical,
+  SquareDashedMousePointer,
+} from "lucide-react"
 
 /**
- * The inspector — ⌥/⌘-hover to X-ray the page, ⌥/⌘-click to pin an element
- * and copy where it lives. The corner dock opens the panel.
+ * Two tools on one dock.
+ *
+ * INSPECTOR (the crosshair) is react-trace's, borrowed whole: click it and the
+ * cursor becomes a crosshair, a blue rule crosses the viewport at the pointer,
+ * and whatever is under it is boxed and named. Click to pin, Escape to leave.
+ * The one thing it adds is the file and line on the label.
+ *
+ * CLASSIFIER (the dashed pointer) opens the panel: hold ⌥ or ⌘ and hover to
+ * read one element, or SCAN PAGE to colour every element on the page by the
+ * layer of the file it comes from — design system, shared, page-local, or
+ * unresolved — and filter the page down to one of them.
  *
  * Ported from 44b (Brendan, 2026-09-12) to run beside @react-trace/kit until
  * one of them wins. The two differ in what they can answer: react-trace reads
@@ -168,8 +185,16 @@ export function DevInspector() {
   const [filter, setFilter] = useState<Set<Layer>>(new Set())
   const [scan, setScan] = useState<Map<Element, Layer> | null>(null)
   const [scanning, setScanning] = useState(false)
+  /** Inspect mode: react-trace's, to the pixel — a crosshair cursor, a blue
+   *  rule across the viewport at the pointer, and the element under it boxed
+   *  and named. No modifier held; the crosshair on the dock turns it on. */
+  const [inspecting, setInspecting] = useState(false)
+  const [mouse, setMouse] = useState<{ x: number; y: number } | null>(null)
+  /** Bumped on scroll and resize so the boxes re-measure; the rects are read
+   *  during render, so a re-render is the whole update. */
+  const [, setTick] = useState(0)
   const lastEl = useRef<Element | null>(null)
-  const armed = alt || latched
+  const armed = alt || latched || inspecting
 
   const read = useCallback(async (el: Element): Promise<Node> => {
     const chain = ownerChain(fiberOf(el))
@@ -234,6 +259,7 @@ export function DevInspector() {
         setAlt(false)
         setHover(null)
         setFrozen(null)
+        setInspecting(false)
       }
       if ((HELD(e) || latched) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
         const cur = lastEl.current
@@ -273,28 +299,50 @@ export function DevInspector() {
       // carries the flags, and they cannot go stale.
       const held = HELD(e)
       if (held !== alt) setAlt(held)
-      if (!(held || latched) || frozen) return
+      if (inspecting) setMouse({ x: e.clientX, y: e.clientY })
+      if (!(held || latched || inspecting) || frozen) return
       const el = document.elementFromPoint(e.clientX, e.clientY)
       if (!el || el === lastEl.current || el.closest("[data-devinspector]")) return
       lastEl.current = el
       void read(el)
     },
-    [alt, latched, frozen, read]
+    [alt, latched, inspecting, frozen, read]
   )
 
   const onClick = useCallback(
     async (e: MouseEvent) => {
-      if (!(HELD(e) || latched)) return
+      if (!(HELD(e) || latched || inspecting)) return
       const el = document.elementFromPoint(e.clientX, e.clientY)
       if (!el || el.closest("[data-devinspector]")) return
       e.preventDefault()
       e.stopPropagation()
       const n = await read(el)
       setFrozen(n)
-      setOpen(true)
+      if (!inspecting) setOpen(true)
     },
-    [latched, read]
+    [latched, inspecting, read]
   )
+
+  // react-trace clears the crosshair the moment something is selected, so the
+  // pointer goes back to being a pointer while you read the chip.
+  useEffect(() => {
+    if (!inspecting || frozen) return
+    document.body.style.cursor = "crosshair"
+    return () => {
+      document.body.style.cursor = ""
+    }
+  }, [inspecting, frozen])
+
+  useEffect(() => {
+    if (!inspecting) return
+    const update = () => setTick((t) => t + 1)
+    window.addEventListener("scroll", update, { passive: true, capture: true })
+    window.addEventListener("resize", update, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", update, { capture: true })
+      window.removeEventListener("resize", update)
+    }
+  }, [inspecting])
 
   useEffect(() => {
     if (!IS_DEV) return
@@ -350,11 +398,26 @@ export function DevInspector() {
         </div>
       )}
 
-      {(frozen ?? (armed ? hover : null)) && (
+      {/* Two visual languages, never at once: react-trace's blue while the
+          crosshair is on, ours — the layer colour — while a modifier is. */}
+      {inspecting && <TraceOverlay node={frozen ?? hover} selected={!!frozen} mouse={mouse} />}
+
+      {!inspecting && (frozen ?? (armed ? hover : null)) && (
         <Chip node={(frozen ?? hover)!} frozen={!!frozen} onRelease={() => setFrozen(null)} />
       )}
 
-      {!open && <Dock onOpen={() => setOpen(true)} />}
+      {!open && (
+        <Dock
+          onOpen={() => setOpen(true)}
+          inspecting={inspecting}
+          onInspect={() => {
+            setInspecting((v) => !v)
+            setFrozen(null)
+            setHover(null)
+            lastEl.current = null
+          }}
+        />
+      )}
 
       {open && (
         <Panel
@@ -480,6 +543,102 @@ function Chip({ node, frozen, onRelease }: { node: Node; frozen: boolean; onRele
   )
 }
 
+// ── inspect mode, in react-trace's colours ──────────────────────────────────
+
+/**
+ * @react-trace/core's Overlay, matched to its own numbers
+ * (core/dist/index.js:1248–1345): a 1px rule across the viewport at the
+ * pointer, a dashed box on what is under it, a solid one once it is picked,
+ * and the breadcrumb on a chip 24px above. The rules disappear the moment
+ * something is selected — there is nothing left to aim at.
+ */
+const BLUE = "#3b82f6"
+const BLUE_RULE = "rgba(59,130,246,0.5)"
+
+function TraceOverlay({
+  node,
+  selected,
+  mouse,
+}: {
+  node: Node | null
+  selected: boolean
+  mouse: { x: number; y: number } | null
+}) {
+  const r = node?.el.getBoundingClientRect() ?? null
+
+  return (
+    <div
+      data-devinspector
+      aria-hidden
+      style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2147483645 }}
+    >
+      {mouse && !selected && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: mouse.x,
+              width: 1,
+              height: "100dvh",
+              background: BLUE_RULE,
+            }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              left: 0,
+              top: mouse.y,
+              height: 1,
+              width: "100dvw",
+              background: BLUE_RULE,
+            }}
+          />
+        </>
+      )}
+
+      {r && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: r.top,
+              left: r.left,
+              width: r.width,
+              height: r.height,
+              background: selected ? "rgba(59,130,246,0.12)" : "rgba(59,130,246,0.07)",
+              border: selected ? `2px solid ${BLUE}` : "2px dashed rgba(59,130,246,0.7)",
+              borderRadius: 2,
+              boxSizing: "border-box",
+            }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: Math.max(0, r.top - 24),
+              left: r.left,
+              background: selected ? BLUE : "rgba(59,130,246,0.85)",
+              color: "#fff",
+              fontSize: 11,
+              fontFamily: "ui-monospace, monospace",
+              fontWeight: 600,
+              padding: "2px 6px",
+              borderRadius: 4,
+              whiteSpace: "nowrap",
+              lineHeight: "18px",
+            }}
+          >
+            {/* Their breadcrumb is the component chain; ours carries the file
+                and line too, which is the whole reason this exists. */}
+            {node!.chain.join(" › ") || node!.desc}
+            {where(node!.info) ? `  ${where(node!.info)}` : ""}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── dragging ────────────────────────────────────────────────────────────────
 
 function useDrag<T extends HTMLElement>(fallback: React.CSSProperties) {
@@ -532,85 +691,198 @@ function useDrag<T extends HTMLElement>(fallback: React.CSSProperties) {
 const DOCK = { bg: "#18181b", shadow: "0 4px 16px rgba(0,0,0,0.5)", h: 32, quiet: "#71717a", loud: "#fafafa" }
 const DOCK_BOTTOM = 32 + 36
 
-function Dock({ onOpen }: { onOpen: () => void }) {
+/** Their tooltip, to its own numbers (ui-components/dist/index.js:56–71 for
+ *  the popup, :13–30 for the keycap), and their 300ms delay. */
+function Tip({ label, shortcut, children }: { label: string; shortcut?: string; children: React.ReactNode }) {
+  const [shown, setShown] = useState(false)
+  const timer = useRef<number | undefined>(undefined)
+
+  const show = () => {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setShown(true), 300)
+  }
+  const hide = () => {
+    window.clearTimeout(timer.current)
+    setShown(false)
+  }
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  return (
+    <div style={{ position: "relative", display: "flex" }} onMouseEnter={show} onMouseLeave={hide}>
+      {children}
+      {shown && (
+        <div
+          role="tooltip"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: "#09090b",
+            border: "1px solid #3f3f46",
+            borderRadius: 6,
+            padding: "5px 8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+            whiteSpace: "nowrap",
+            fontFamily: "system-ui, sans-serif",
+            fontSize: 12,
+            color: "#d4d4d8",
+            pointerEvents: "none",
+            zIndex: 9999999,
+          }}
+        >
+          {label}
+          {shortcut && (
+            <kbd
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: 20,
+                minWidth: 20,
+                padding: "0 4px",
+                borderRadius: 4,
+                background: "#27272a",
+                border: "1px solid #52525b",
+                fontFamily: "system-ui, sans-serif",
+                fontSize: 11,
+                fontWeight: 500,
+                color: "#a1a1aa",
+              }}
+            >
+              {shortcut}
+            </kbd>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DockButton({
+  label,
+  shortcut,
+  on,
+  onClick,
+  children,
+  width = DOCK.h,
+}: {
+  label: string
+  shortcut?: string
+  on?: boolean
+  onClick: () => void
+  children: React.ReactNode
+  width?: number
+}) {
+  return (
+    <Tip label={label} shortcut={shortcut}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={on}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = DOCK.loud
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = on ? BLUE : DOCK.quiet
+        }}
+        style={{
+          display: "flex",
+          height: DOCK.h,
+          width,
+          alignItems: "center",
+          justifyContent: "center",
+          border: 0,
+          background: "transparent",
+          color: on ? BLUE : DOCK.quiet,
+          cursor: "pointer",
+          transition: "color 150ms",
+        }}
+      >
+        {children}
+      </button>
+    </Tip>
+  )
+}
+
+function Dock({
+  onOpen,
+  inspecting,
+  onInspect,
+}: {
+  onOpen: () => void
+  inspecting: boolean
+  onInspect: () => void
+}) {
   const [minimized, setMinimized] = useState(false)
   // Toward the edge closes, away from it opens — the rails' idiom.
   const Chevron = minimized ? ChevronLeft : ChevronRight
+  // The grip is the handle; useDrag already ignores a press that lands on a
+  // button, so the icons stay clickable while the bar itself drags.
+  const d = useDrag<HTMLDivElement>({ bottom: DOCK_BOTTOM, right: minimized ? 0 : 32 })
 
   return (
     <div
       data-devinspector
+      ref={d.ref}
+      {...d.handlers}
       style={{
         position: "fixed",
-        bottom: DOCK_BOTTOM,
-        right: minimized ? 0 : 32,
+        ...d.style,
         display: "flex",
         alignItems: "center",
-        overflow: "hidden",
+        overflow: "visible",
         background: DOCK.bg,
         borderRadius: minimized ? "10px 0 0 10px" : 10,
         boxShadow: DOCK.shadow,
         transition: "right 0.3s ease, border-radius 0.3s ease",
         userSelect: "none",
+        touchAction: "none",
         height: DOCK.h,
         boxSizing: "border-box",
         zIndex: 2147483647,
       }}
     >
       {!minimized && (
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label="Open the inspector"
-          title="Inspector — hold ⌥ or ⌘ to X-ray the page"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = DOCK.loud
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = DOCK.quiet
-          }}
-          style={{
-            display: "flex",
-            height: DOCK.h,
-            width: DOCK.h,
-            alignItems: "center",
-            justifyContent: "center",
-            border: 0,
-            background: "transparent",
-            color: DOCK.quiet,
-            cursor: "pointer",
-            transition: "color 150ms",
-          }}
-        >
-          <SquareDashedMousePointer className="size-4" aria-hidden />
-        </button>
+        <>
+          <div
+            aria-hidden
+            style={{
+              display: "flex",
+              height: DOCK.h,
+              width: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#3f3f46",
+              cursor: "grab",
+            }}
+          >
+            <GripVertical className="size-3.5" />
+          </div>
+          <DockButton
+            label="Inspector"
+            shortcut="Esc"
+            on={inspecting}
+            onClick={onInspect}
+          >
+            <Crosshair className="size-4" aria-hidden />
+          </DockButton>
+          <DockButton label="Classifier" onClick={onOpen}>
+            <SquareDashedMousePointer className="size-4" aria-hidden />
+          </DockButton>
+        </>
       )}
-      <button
-        type="button"
+      <DockButton
+        label={minimized ? "Show the dock" : "Send the dock to the edge"}
+        width={16}
         onClick={() => setMinimized((v) => !v)}
-        aria-label={minimized ? "Show the inspector dock" : "Send the inspector dock to the edge"}
-        aria-expanded={!minimized}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = DOCK.loud
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = DOCK.quiet
-        }}
-        style={{
-          display: "flex",
-          height: DOCK.h,
-          width: 16,
-          alignItems: "center",
-          justifyContent: "center",
-          border: 0,
-          background: "transparent",
-          color: DOCK.quiet,
-          cursor: "pointer",
-          transition: "color 150ms",
-        }}
       >
         <Chevron className="size-4" aria-hidden />
-      </button>
+      </DockButton>
     </div>
   )
 }
