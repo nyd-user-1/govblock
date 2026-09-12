@@ -9,13 +9,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
+  Boxes,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
+  Component,
   Copy,
   Crosshair,
+  FileCode,
+  FoldVertical,
   GripVertical,
   SquareDashedMousePointer,
+  UnfoldVertical,
 } from "lucide-react"
 
 /**
@@ -71,11 +78,29 @@ type Layer = "system" | "shared" | "page" | "unknown"
 type Verdict = "extract" | "local" | "watch" | "unique"
 
 const LAYERS: Layer[] = ["system", "shared", "page", "unknown"]
-const LAYER: Record<Layer, { color: string; label: string; note: string }> = {
-  system: { color: "#1c3f75", label: "Design system", note: "packages/ui/src" },
-  shared: { color: "#3b6b52", label: "Shared", note: "apps/web/components" },
-  page: { color: "#b0975f", label: "Page-local", note: "apps/web/app" },
-  unknown: { color: "#c4564a", label: "Unresolved", note: "no owning component" },
+
+/**
+ * One icon per layer, and the icon is the argument (Brendan, 2026-09-12 — the
+ * kit gets lucide's `Component`, the rest are mine to justify). They read as
+ * one scale: how far along the extraction path a piece of markup has got.
+ *
+ *   Component  — a formal, extracted part of the kit. Lucide's own name for
+ *                the thing, and the only one Brendan specified.
+ *   Boxes      — more than one box: extracted and reused, but living in the
+ *                app rather than the published registry. Plural is the point.
+ *   FileCode   — not a component at all. Markup written into the file that
+ *                uses it, which is what page-local means.
+ *   CircleHelp — we could not resolve it. Says "unknown" rather than dressing
+ *                a miss up as a finding.
+ */
+const LAYER: Record<
+  Layer,
+  { color: string; label: string; note: string; Icon: typeof Component }
+> = {
+  system: { color: "#1c3f75", label: "Design system", note: "packages/ui/src", Icon: Component },
+  shared: { color: "#3b6b52", label: "Shared", note: "apps/web/components", Icon: Boxes },
+  page: { color: "#b0975f", label: "Page-local", note: "apps/web/app", Icon: FileCode },
+  unknown: { color: "#c4564a", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
 }
 
 /** Max wash boxes drawn at once — beyond this the browser, not the tool, is
@@ -194,6 +219,10 @@ export function DevInspector() {
    *  during render, so a re-render is the whole update. */
   const [, setTick] = useState(0)
   const lastEl = useRef<Element | null>(null)
+  /** The key handler is mounted once; without this it would close over the
+   *  selection as it stood then, and walking would always start from null. */
+  const frozenRef = useRef<Node | null>(null)
+  frozenRef.current = frozen
   const armed = alt || latched || inspecting
 
   const read = useCallback(async (el: Element): Promise<Node> => {
@@ -261,8 +290,9 @@ export function DevInspector() {
         setFrozen(null)
         setInspecting(false)
       }
-      if ((HELD(e) || latched) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-        const cur = lastEl.current
+      if ((HELD(e) || latched || inspecting) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        // Walk from whatever is pinned, or from the last thing hovered.
+        const cur = frozenRef.current?.el ?? lastEl.current
         if (!cur) return
         e.preventDefault()
         const next =
@@ -271,7 +301,12 @@ export function DevInspector() {
             : (Array.from(cur.children).find((c) => !c.closest("[data-devinspector]")) ?? null)
         if (next && next !== document.documentElement) {
           lastEl.current = next
-          void read(next)
+          // A pinned selection MOVES (Brendan, 2026-09-12). Before this the
+          // walk only ever updated `hover`, and the pin drawn on top of it
+          // meant nothing on screen changed at all.
+          void read(next).then((n) => {
+            if (frozenRef.current) setFrozen(n)
+          })
         }
       }
     }
@@ -287,7 +322,7 @@ export function DevInspector() {
       window.removeEventListener("keyup", up)
       window.removeEventListener("blur", blur)
     }
-  }, [latched, read])
+  }, [latched, inspecting, read])
 
   const onMove = useCallback(
     (e: MouseEvent) => {
@@ -467,6 +502,10 @@ export function DevInspector() {
           shown={filtered.length}
           total={matches.length}
           hover={frozen ?? hover}
+          selected={frozen}
+          onSelect={(el) => {
+            void read(el).then(setFrozen)
+          }}
         />
       )}
     </>
@@ -943,6 +982,204 @@ function Dock({
   )
 }
 
+// ── the tree ────────────────────────────────────────────────────────────────
+
+/** Elements that are ours, or that carry nothing worth a row. */
+const kidsOf = (el: Element) =>
+  Array.from(el.children).filter((c) => !c.closest("[data-devinspector]"))
+
+/** Every descendant that could be opened, so "expand recursively" has a set to
+ *  add. Capped: a page's body has thousands, and a tree that long is not read,
+ *  it is scrolled past. */
+function descendants(el: Element, cap = 400): Element[] {
+  const out: Element[] = []
+  const walk = (n: Element) => {
+    for (const c of kidsOf(n)) {
+      if (out.length >= cap) return
+      if (kidsOf(c).length) out.push(c)
+      walk(c)
+    }
+  }
+  walk(el)
+  return out
+}
+
+function TreeRow({
+  el,
+  depth,
+  expanded,
+  toggle,
+  onSelect,
+  selectedEl,
+}: {
+  el: Element
+  depth: number
+  expanded: Set<Element>
+  toggle: (el: Element) => void
+  onSelect: (el: Element) => void
+  selectedEl: Element | null
+}) {
+  const [info, setInfo] = useState<Info | null>(null)
+  const chain = useMemo(() => ownerChain(fiberOf(el)), [el])
+  const kids = kidsOf(el)
+  const open = expanded.has(el)
+  const isSelected = el === selectedEl
+
+  useEffect(() => {
+    let live = true
+    void lookup(ownerOf(chain), el.getAttribute("class") ?? "").then((i) => {
+      if (live) setInfo(i)
+    })
+    return () => {
+      live = false
+    }
+  }, [el, chain])
+
+  const layer = info?.layer ?? "unknown"
+  const { Icon, color } = LAYER[layer]
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          paddingLeft: 4 + depth * 12,
+          paddingRight: 4,
+          borderRadius: 3,
+          background: isSelected ? "var(--accent)" : "transparent",
+          minWidth: 0,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => kids.length && toggle(el)}
+          aria-label={open ? "Collapse" : "Expand"}
+          style={{
+            ...bare,
+            width: 12,
+            display: "flex",
+            alignItems: "center",
+            visibility: kids.length ? "visible" : "hidden",
+          }}
+        >
+          {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+        </button>
+        <Icon className="size-3.5 shrink-0" style={{ color }} aria-hidden />
+        <button
+          type="button"
+          onClick={() => onSelect(el)}
+          title={info?.file ? `${info.file}:${info.line}` : "unresolved"}
+          style={{
+            ...bare,
+            display: "flex",
+            minWidth: 0,
+            gap: 6,
+            alignItems: "baseline",
+            color: "inherit",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: 11.5,
+          }}
+        >
+          <span style={{ fontWeight: isSelected ? 600 : 400 }}>
+            {chain[0] ?? el.tagName.toLowerCase()}
+          </span>
+          <span
+            style={{
+              color: "var(--muted-foreground)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {info?.line ? `:${info.line}` : ""}
+          </span>
+        </button>
+      </div>
+      {open &&
+        kids.map((c, i) => (
+          <TreeRow
+            key={i}
+            el={c}
+            depth={depth + 1}
+            expanded={expanded}
+            toggle={toggle}
+            onSelect={onSelect}
+            selectedEl={selectedEl}
+          />
+        ))}
+    </>
+  )
+}
+
+/**
+ * The DOM under what is selected, each row named by the component that owns it
+ * and carrying the layer it resolves to. Rooted at the SELECTION rather than at
+ * the document, so ⌥↑ re-roots it higher and the walk and the tree drive each
+ * other instead of competing.
+ */
+function Tree({ root, onSelect }: { root: Element; onSelect: (el: Element) => void }) {
+  const [expanded, setExpanded] = useState<Set<Element>>(() => new Set([root]))
+
+  // A new selection opens itself, and nothing else is forgotten — walking up
+  // and back down should not cost you the branch you had already opened.
+  useEffect(() => {
+    setExpanded((prev) => new Set(prev).add(root))
+  }, [root])
+
+  const toggle = (el: Element) =>
+    setExpanded((prev) => {
+      const n = new Set(prev)
+      if (n.has(el)) n.delete(el)
+      else n.add(el)
+      return n
+    })
+
+  const expandAll = () =>
+    setExpanded((prev) => {
+      const n = new Set(prev)
+      n.add(root)
+      for (const d of descendants(root)) n.add(d)
+      return n
+    })
+
+  // Devtools' sense of it: the node stays open, everything under it shuts.
+  const collapseKids = () =>
+    setExpanded((prev) => {
+      const n = new Set(prev)
+      for (const d of descendants(root)) n.delete(d)
+      return n.add(root)
+    })
+
+  return (
+    <div>
+      <Head>
+        <span>Tree</span>
+        <span style={{ display: "flex", gap: 10 }}>
+          <button type="button" onClick={expandAll} title="Expand recursively" style={bare}>
+            <UnfoldVertical className="size-3.5" />
+          </button>
+          <button type="button" onClick={collapseKids} title="Collapse children" style={bare}>
+            <FoldVertical className="size-3.5" />
+          </button>
+        </span>
+      </Head>
+      <div style={{ maxHeight: 260, overflowY: "auto", margin: "0 -7px" }}>
+        <TreeRow
+          el={root}
+          depth={0}
+          expanded={expanded}
+          toggle={toggle}
+          onSelect={onSelect}
+          selectedEl={root}
+        />
+      </div>
+      <p style={note}>⌥↑ / ⌥↓ walks. A row re-roots this and moves the highlight.</p>
+    </div>
+  )
+}
+
 // ── the panel ───────────────────────────────────────────────────────────────
 
 function Panel({
@@ -958,6 +1195,8 @@ function Panel({
   shown,
   total,
   hover,
+  selected,
+  onSelect,
 }: {
   onClose: () => void
   latched: boolean
@@ -971,6 +1210,8 @@ function Panel({
   shown: number
   total: number
   hover: Node | null
+  selected: Node | null
+  onSelect: (el: Element) => void
 }) {
   const d = useDrag<HTMLDivElement>({ top: 18, right: 18 })
   // Filtering needs the page scanned. Doing it here rather than in an effect
@@ -1076,18 +1317,18 @@ function Panel({
                   font: "inherit",
                 }}
               >
-                {/* The swatch dims when a filter is on elsewhere, which says
+                {/* The icon dims when a filter is on elsewhere, which says
                     "not this one" but never says "this one" outright. */}
-                <span
-                  style={{
-                    width: 11,
-                    height: 11,
-                    borderRadius: 2,
-                    flexShrink: 0,
-                    background: LAYER[l].color,
-                    opacity: on || !filter.size ? 1 : 0.35,
-                  }}
-                />
+                {(() => {
+                  const { Icon, color } = LAYER[l]
+                  return (
+                    <Icon
+                      className="size-4 shrink-0"
+                      style={{ color, opacity: on || !filter.size ? 1 : 0.35 }}
+                      aria-hidden
+                    />
+                  )
+                })()}
                 <span style={{ fontSize: 12.5, fontWeight: on ? 600 : 400 }}>{LAYER[l].label}</span>
                 {on && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: LAYER[l].color }} />}
                 <span
@@ -1145,14 +1386,10 @@ function Panel({
                   <div className="mt-3 grid grid-cols-3 border-t border-l border-border" style={{ borderRadius: 3 }}>
                     <Cell label="Layer">
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 2,
-                            background: LAYER[hover.info.layer].color,
-                          }}
-                        />
+                        {(() => {
+                          const { Icon, color } = LAYER[hover.info!.layer]
+                          return <Icon className="size-3.5" style={{ color }} aria-hidden />
+                        })()}
                         {LAYER[hover.info.layer].label}
                       </span>
                     </Cell>
@@ -1178,6 +1415,8 @@ function Panel({
             </>
           )}
         </div>
+
+        {selected && <Tree root={selected.el} onSelect={onSelect} />}
       </div>
     </div>
   )
