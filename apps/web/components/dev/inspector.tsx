@@ -81,17 +81,27 @@ const LAYERS: Layer[] = ["system", "shared", "page", "unknown"]
 
 /**
  * One icon per layer, and the icon is the argument (Brendan, 2026-09-12 — the
- * kit gets lucide's `Component`, the rest are mine to justify). They read as
- * one scale: how far along the extraction path a piece of markup has got.
+ * design system gets lucide's `Component`, the rest are mine to justify). They
+ * read as one scale: how far along the extraction path a piece of markup has
+ * got, WITHIN THIS PROJECT.
  *
- *   Component  — a formal, extracted part of the kit. Lucide's own name for
- *                the thing, and the only one Brendan specified.
+ *   Component  — an extracted component, part of this project's design system.
+ *                Lucide's own name for the thing, and the only one Brendan
+ *                specified.
  *   Boxes      — more than one box: extracted and reused, but living in the
- *                app rather than the published registry. Plural is the point.
+ *                app rather than the design system. Plural is the point.
  *   FileCode   — not a component at all. Markup written into the file that
  *                uses it, which is what page-local means.
  *   CircleHelp — we could not resolve it. Says "unknown" rather than dressing
  *                a miss up as a finding.
+ *
+ * ⚠ A PUBLISHED REGISTRY HAS NO BEARING ON ANY OF THIS (Brendan, 2026-09-12).
+ * The tool predates that project and audits one codebase at a time; publishing
+ * is a stage most projects never reach, and letting it decide what counts as a
+ * component would gate the early work this exists to help with. If a module
+ * ever lists the extracted components as registry-ready, that is a separate
+ * surface with its own affordance — not a fifth layer, and not a demotion of
+ * anything here.
  */
 const LAYER: Record<
   Layer,
