@@ -109,10 +109,12 @@ const LAYER: Record<
 > = {
   system: { color: "#7c3aed", label: "Design system", note: "packages/ui/src", Icon: Component },
   shared: { color: "#2f9e5e", label: "Shared", note: "apps/web/components", Icon: Boxes },
-  // The icon keeps the colour it wore while this row read "Page-local"
-  // (Brendan, 2026-09-12). The chip and the page wash stay orange, which is
-  // the change he asked for when a yellow chip on a yellow row would not read.
-  page: { color: "#e07a1f", label: "Page", note: "apps/web/app", Icon: FileCode, iconColor: "#b0975f" },
+  // Brendan's own, picked in devtools against the running page (2026-09-12):
+  // between Tailwind's yellow-400 and yellow-500, where the ported #b0975f was
+  // a duller, browner thing that three different adjectives from me failed to
+  // describe. The chip and the page wash stay orange — a yellow chip on a
+  // yellow row is what sent him to orange in the first place.
+  page: { color: "#e07a1f", label: "Page", note: "apps/web/app", Icon: FileCode, iconColor: "#f0b800" },
   unknown: { color: "#d92d20", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
 }
 
