@@ -105,13 +105,19 @@ const LAYERS: Layer[] = ["system", "shared", "page", "unknown"]
  */
 const LAYER: Record<
   Layer,
-  { color: string; label: string; note: string; Icon: typeof Component }
+  { color: string; label: string; note: string; Icon: typeof Component; iconColor?: string }
 > = {
   system: { color: "#7c3aed", label: "Design system", note: "packages/ui/src", Icon: Component },
   shared: { color: "#2f9e5e", label: "Shared", note: "apps/web/components", Icon: Boxes },
-  page: { color: "#e07a1f", label: "Page", note: "apps/web/app", Icon: FileCode },
+  // The icon keeps the colour it wore while this row read "Page-local"
+  // (Brendan, 2026-09-12). The chip and the page wash stay orange, which is
+  // the change he asked for when a yellow chip on a yellow row would not read.
+  page: { color: "#e07a1f", label: "Page", note: "apps/web/app", Icon: FileCode, iconColor: "#b0975f" },
   unknown: { color: "#d92d20", label: "Unresolved", note: "no owning component", Icon: CircleHelp },
 }
+
+/** What an icon is drawn in, which is not always what the layer is drawn in. */
+const inkOf = (l: Layer) => LAYER[l].iconColor ?? LAYER[l].color
 
 /** Max wash boxes drawn at once — beyond this the browser, not the tool, is
  *  the bottleneck. The panel says when it bites. */
@@ -1138,7 +1144,8 @@ function TreeRow({
   }, [isSelected])
 
   const layer = info?.layer ?? "unknown"
-  const { Icon, color } = LAYER[layer]
+  const { Icon } = LAYER[layer]
+  const color = inkOf(layer)
 
   return (
     <>
@@ -1457,11 +1464,11 @@ function Panel({
                 {/* The icon dims when a filter is on elsewhere, which says
                     "not this one" but never says "this one" outright. */}
                 {(() => {
-                  const { Icon, color } = LAYER[l]
+                  const { Icon } = LAYER[l]
                   return (
                     <Icon
                       className="size-4 shrink-0"
-                      style={{ color, opacity: on || !filter.size ? 1 : 0.35 }}
+                      style={{ color: inkOf(l), opacity: on || !filter.size ? 1 : 0.35 }}
                       aria-hidden
                     />
                   )
@@ -1525,8 +1532,14 @@ function Panel({
                         and the word was saying it a second time. */}
                     <Cell label="Layer">
                       {(() => {
-                        const { Icon, color, label } = LAYER[hover.info!.layer]
-                        return <Icon className="size-5" style={{ color }} aria-label={label} />
+                        const { Icon, label } = LAYER[hover.info!.layer]
+                        return (
+                          <Icon
+                            className="size-5"
+                            style={{ color: inkOf(hover.info!.layer) }}
+                            aria-label={label}
+                          />
+                        )
                       })()}
                     </Cell>
                     <Cell label="Repeats">
