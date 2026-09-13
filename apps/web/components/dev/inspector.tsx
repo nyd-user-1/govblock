@@ -455,7 +455,14 @@ export function DevInspector() {
     if (!inspecting) return
     const tag = document.createElement("style")
     tag.setAttribute("data-devinspector", "")
-    tag.textContent = "*, *::before, *::after { cursor: crosshair !important; }"
+    // Everything on the PAGE, and nothing of ours (Brendan, 2026-09-12: the
+    // crosshair was running over the panel and the dock too).
+    tag.textContent = [
+      "*, *::before, *::after { cursor: crosshair !important }",
+      "[data-devinspector], [data-devinspector] * { cursor: default !important }",
+      "[data-devinspector] button, [data-devinspector] [role=switch] { cursor: pointer !important }",
+      "[data-devinspector] [data-grip] { cursor: grab !important }",
+    ].join("\n")
     document.head.append(tag)
     return () => tag.remove()
   }, [inspecting])
@@ -1033,6 +1040,7 @@ function Dock({
         <>
           <div
             aria-hidden
+            data-grip
             style={{
               display: "flex",
               height: DOCK.h,
@@ -1353,22 +1361,44 @@ function Panel({
     >
       <div
         {...d.handlers}
+        data-grip
         className="flex shrink-0 items-center gap-2 border-b border-border px-5 py-4"
         style={{ cursor: "grab", touchAction: "none", userSelect: "none" }}
       >
         <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 500, letterSpacing: "-0.005em" }}>
           Inspector
         </span>
-        {/* The scan is the panel's work, not the Layers section's, so it sits
-            in the header with the other controls (Brendan, 2026-09-12). */}
+        {/* Bordered, and the switch beside it labelled — the word SCAN next to
+            a bare toggle read as that toggle's label, so the scan looked
+            broken while what was really being flipped was the latch
+            (Brendan, 2026-09-12). */}
         <button
           type="button"
           onClick={() => void scanPage()}
-          style={{ ...bare, fontSize: 10, letterSpacing: "0.12em" }}
           title="Resolve every element on the page"
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            padding: "3px 8px",
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "transparent",
+            color: "inherit",
+            cursor: "pointer",
+          }}
         >
           {scanning ? "SCANNING…" : scan ? "RESCAN" : "SCAN"}
         </button>
+        <span
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            color: "var(--muted-foreground)",
+            marginLeft: 4,
+          }}
+        >
+          ARM
+        </span>
         <Switch on={latched} onChange={setLatched} label="Keep the inspector armed (⌥⇧I)" />
         <button
           type="button"
