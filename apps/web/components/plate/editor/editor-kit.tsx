@@ -90,6 +90,8 @@ export const EditorKit = [
   ...FloatingToolbarKit,
 ];
 
+export { BillKit, billValue } from '@/components/plate/editor/bill-kit';
+
 export type MyEditor = TPlateEditor<Value, (typeof EditorKit)[number]>;
 
 export const useEditor = () => useEditorRef<MyEditor>();

@@ -1,5 +1,16 @@
 import type { NextConfig } from "next"
 
+// The dev box (Brendan, 2026-09-13: "maximize speed of page load"). The EC2
+// machine behind localhost:3001 has 16 GB and nothing else to do, so the
+// limits below — every one of them chosen for an 8 GB Mac — loosen there.
+// Its service unit sets this; the Mac never does. Loosen, not lift: on the
+// 16 GB box, 120 routes kept for eight hours and every route warmed put the
+// server at 14.3 GB and the box 6.5 GB into swap inside ninety minutes, which
+// read as "sluggish again". The box is 32 GB since 2026-09-13, which is what
+// the numbers below assume. The on-disk compile cache stays off even there:
+// the disk is 82% full and the cache reached 11 GB in a day on the Mac.
+const ROOMY = process.env.GOVBLOCK_DEV_BOX === "1"
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@govblock/ui"],
   // The block docs page reads each block's source at build time, and the
@@ -31,7 +42,7 @@ const nextConfig: NextConfig = {
     // a fresh server opened at 5 GB. Off. And Turbopack drops what it has
     // compiled once it holds this much, rather than growing without bound.
     turbopackFileSystemCacheForDev: false,
-    turbopackMemoryLimit: 1024 * 1024 * 1024,
+    turbopackMemoryLimit: (ROOMY ? 4 : 1) * 1024 * 1024 * 1024,
   },
   // Dev only, and the reason is the machine rather than the app (Brendan,
   // 2026-09-08, on an 8 GB Mac six days up with 46 million swapouts behind it).
@@ -47,9 +58,12 @@ const nextConfig: NextConfig = {
   // because the handler is
   // wired into Turbopack's hot reloader but how much it frees on the Rust side
   // is not something this note can promise.
+  //
+  // On the box: the last sixty routes stay compiled for two hours, so going
+  // back to a page costs its render and nothing more.
   onDemandEntries: {
-    maxInactiveAge: 30 * 1000,
-    pagesBufferLength: 2,
+    maxInactiveAge: ROOMY ? 2 * 60 * 60 * 1000 : 30 * 1000,
+    pagesBufferLength: ROOMY ? 60 : 2,
   },
   // "View as Markdown": a page's address with .md on the end answers with the
   // page as markdown (app/api/markdown), for the pages that have one.

@@ -3,7 +3,7 @@
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, PencilIcon, SearchIcon, SquareCodeIcon, XIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, HistoryIcon, PencilIcon, SearchIcon, SquareCodeIcon, XIcon } from "lucide-react"
 
 import { fmtNumber, truncate } from "@/lib/format"
 import { type BillLayout } from "@/lib/policy/bill-text-layout"
@@ -14,6 +14,9 @@ import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
+import { PaneAside } from "@/components/policy/pane-aside"
+import { VersionsList } from "@/components/policy/versions-aside"
+import { usePaneNoteSetter } from "@/lib/typeset/pane-note"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -58,7 +61,7 @@ type SearchAnswer = {
 }
 
 type Scope = "bill" | "session" | "all"
-type Panel = "outline" | "references" | "results" | null
+type Panel = "outline" | "references" | "results" | "versions" | "related" | null
 
 // ts_headline marks matches with <b>; nothing else from the database is markup.
 const safeSnippet = (html: string) => html.replace(/<(?!\/?b>)/g, "&lt;")
@@ -84,6 +87,7 @@ export function BillTextPane({
   history,
   related,
   onEdit,
+  onOpenChanges,
 }: {
   state: string
   session: number | null
@@ -96,12 +100,14 @@ export function BillTextPane({
   onChoose: (documentId: number) => void
   /** A result from another bill: open it (in the tree, or in a new tab). */
   onOpenBill?: (billId: number, documentId?: number) => void
-  /** The History button, drawn at the right of the search row. */
+  /** The fork chip, beside the file buttons. */
   history?: React.ReactNode
   /** What the search panel offers beside the scopes. */
   related?: Related[]
   /** The pencil: edit this bill. Absent, the pencil is disabled. */
   onEdit?: () => void
+  /** What a version changed, from the versions aside. */
+  onOpenChanges?: (documentId: number) => void
 }) {
   const [wrap] = useDocPref("wrap", true)
   const [fold] = useDocPref("fold", true)
@@ -149,6 +155,13 @@ export function BillTextPane({
     const kb = new Blob([text]).size / 1024
     return `${fmtNumber(lines.length)} lines (${fmtNumber(loc)} loc) · ${kb >= 100 ? Math.round(kb) : kb.toFixed(1)} KB`
   }, [text])
+  // In Typeset the size line goes to the workspace footer (Brendan, 2026-09-13).
+  const setNote = usePaneNoteSetter()
+  React.useEffect(() => {
+    if (!setNote) return
+    setNote(size ? <span className="font-mono text-xs text-muted-foreground">{size}</span> : null)
+    return () => setNote(null)
+  }, [setNote, size])
 
   const outline = layout?.headings ?? []
 
@@ -214,8 +227,8 @@ export function BillTextPane({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Row one: finding, and where else to go. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
+      {/* Row two: GitHub's file toolbar, in its order. */}
+      <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">
         <div className="relative min-w-64 flex-1">
           <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background pr-8 pl-2.5 text-sm focus-within:ring-1 focus-within:ring-ring">
             <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -263,7 +276,7 @@ export function BillTextPane({
           {query.trim() && scope === "bill" && !focused && <span className="absolute top-1/2 right-8 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">{fmtNumber(references.length)}</span>}
 
           {focused && (
-            <div className="absolute top-full left-0 z-30 mt-1 w-full min-w-96 rounded-lg border bg-popover text-popover-foreground shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+            <div className="absolute top-full left-0 z-30 mt-1 max-h-[70vh] w-full min-w-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg" onMouseDown={(e) => e.preventDefault()}>
               <div className="py-1">
                 {scopes.map((s) => (
                   <button
@@ -287,12 +300,25 @@ export function BillTextPane({
               {related && related.length > 0 && (
                 <div className="border-t py-1">
                   <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">Related</div>
-                  {related.map((r, i) => (
+                  {related.slice(0, 3).map((r, i) => (
                     <button key={`${r.label}-${r.action}-${i}`} type="button" onClick={r.onClick} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted">
                       <span className="truncate font-mono">{r.label}</span>
                       <span className="ml-auto shrink-0 text-xs text-muted-foreground">{r.action}</span>
                     </button>
                   ))}
+                  {related.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPanel("related")
+                        setFocused(false)
+                        input.current?.blur()
+                      }}
+                      className="flex w-full items-center px-3 py-1.5 text-left text-xs text-primary hover:underline"
+                    >
+                      See all {related.length} related bills
+                    </button>
+                  )}
                 </div>
               )}
               <div className="flex items-center justify-between border-t px-3 py-2 text-xs">
@@ -313,13 +339,9 @@ export function BillTextPane({
             </div>
           )}
         </div>
-        {history && <div className="ml-auto flex shrink-0 items-center gap-2">{history}</div>}
-      </div>
-
-      {/* Row two: GitHub's file toolbar, in its order. */}
-      <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">
-        {size && <span className="font-mono text-xs text-muted-foreground">{size}</span>}
+        {!setNote && size && <span className="shrink-0 font-mono text-xs text-muted-foreground">{size}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          {history}
           <div className="flex items-center overflow-hidden rounded-md border" role="group" aria-label="Raw, copy, download">
             <Button variant="ghost" size="sm" className="rounded-none px-2.5 font-medium" nativeButton={false} render={<a href={rawHref} target="_blank" rel="noreferrer" />}>
               Raw
@@ -378,6 +400,9 @@ export function BillTextPane({
           <Button variant="outline" size="icon-sm" aria-label={`Outline${outline.length ? ` · ${outline.length}` : ""}`} title={`Outline${outline.length ? ` · ${outline.length}` : ""}`} onClick={() => setPanel((p) => (p === "outline" ? null : "outline"))} data-active={panel === "outline"} className="data-[active=true]:bg-muted">
             <SquareCodeIcon />
           </Button>
+          <Button variant="ghost" size="sm" data-active={panel === "versions"} className="font-semibold data-[active=true]:bg-muted" onClick={() => setPanel((p) => (p === "versions" ? null : "versions"))}>
+            <HistoryIcon className="size-4" /> History
+          </Button>
         </div>
       </div>
 
@@ -395,14 +420,19 @@ export function BillTextPane({
         </div>
 
         {panel && (
-          <aside className="flex w-80 shrink-0 flex-col border-l">
-            <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-xs font-medium">
-              {panel === "outline" ? `Outline · ${outline.length}` : panel === "references" ? `${fmtNumber(references.length)} references` : results ? (results.loading ? "Searching…" : `Results · ${scopes.find((s) => s.value === results.scope)?.label}`) : "Results"}
-              <button type="button" aria-label="Close" className="ml-auto text-muted-foreground hover:text-foreground" onClick={() => setPanel(null)}>
-                <XIcon className="size-3.5" />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto py-1">
+          <PaneAside title={panel === "versions" ? `Versions · ${versions.length}` : panel === "related" ? `Related · ${related?.length ?? 0}` : panel === "outline" ? `Outline · ${outline.length}` : panel === "references" ? `${fmtNumber(references.length)} references` : results ? (results.loading ? "Searching…" : `Results · ${scopes.find((s) => s.value === results.scope)?.label}`) : "Results"} onClose={() => setPanel(null)}>
+              {panel === "versions" && <VersionsList versions={versions} current={current ?? shown?.document_id ?? null} onChoose={onChoose} onOpenChanges={onOpenChanges} />}
+              {panel === "related" &&
+                (related?.length ? (
+                  related.map((r, i) => (
+                    <button key={`${r.label}-${r.action}-${i}`} type="button" onClick={r.onClick} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted">
+                      <span className="truncate font-mono">{r.label}</span>
+                      <span className="ml-auto shrink-0 text-muted-foreground">{r.action}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-3 py-4 text-xs text-muted-foreground">No related bills.</p>
+                ))}
               {panel === "outline" &&
                 (outline.length ? (
                   outline.map((h) => (
@@ -449,8 +479,7 @@ export function BillTextPane({
                   {!results.loading && !results.answer?.texts.length && !results.answer?.bills.length && <p className="px-3 py-4 text-xs text-muted-foreground">Nothing matches “{results.q}”.</p>}
                 </>
               )}
-            </div>
-          </aside>
+          </PaneAside>
         )}
       </div>
     </div>

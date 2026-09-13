@@ -1,13 +1,12 @@
 'use client';
 
-import { AIChatPlugin } from '@platejs/ai/react';
 import {
   type CursorData,
   type CursorOverlayState,
   useCursorOverlay,
 } from '@platejs/selection/react';
 import { getTableGridAbove } from '@platejs/table';
-import { RangeApi } from 'platejs';
+import { KEYS, RangeApi } from 'platejs';
 import { useEditorRef, usePluginOption } from 'platejs/react';
 
 import { cn } from '@govblock/ui/lib/utils';
@@ -32,7 +31,12 @@ function Cursor({
   selectionRects,
 }: CursorOverlayState<CursorData>) {
   const editor = useEditorRef();
-  const streaming = usePluginOption(AIChatPlugin, 'streaming');
+  // Read by key, so the overlay does not import the AI plugin: a bill's editor
+  // has no AI kit until it is asked for, and the import carried the package
+  // onto every page with an editor (typeset-perf, 2026-09-13).
+  const streaming = usePluginOption({ key: KEYS.aiChat }, 'streaming') as
+    | boolean
+    | undefined;
   const { style, selectionStyle = style } = data ?? ({} as CursorData);
   const isCursor = RangeApi.isCollapsed(selection);
 

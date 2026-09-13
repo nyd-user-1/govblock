@@ -8,6 +8,7 @@ import {
   FileUpIcon,
   FilmIcon,
   ImageIcon,
+  ImagePlusIcon,
   LinkIcon,
 } from 'lucide-react';
 import { isUrl, KEYS } from 'platejs';
@@ -31,11 +32,15 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/plate/ui/dropdown-menu';
 import { Input } from '@/components/plate/ui/input';
 
 import {
+  ToolbarButton,
   ToolbarSplitButton,
   ToolbarSplitButtonPrimary,
   ToolbarSplitButtonSecondary,
@@ -153,6 +158,92 @@ export function MediaToolbarButton({
             nodeType={nodeType}
             setOpen={setDialogOpen}
           />
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+/**
+ * The four media buttons as one menu (Brendan, 2026-09-13): image, video,
+ * audio and file each had a split button, and the four together were what
+ * pushed the toolbar past the Typeset container and into horizontal
+ * scrolling. Each kind keeps both of its actions, as a submenu.
+ */
+const MEDIA_KINDS = [KEYS.img, KEYS.video, KEYS.audio, KEYS.file];
+
+/** The file picker one kind of media opens, wired the way each button's was. */
+function useMediaPicker(nodeType: string) {
+  const editor = useEditorRef();
+  return useFilePicker({
+    accept: MEDIA_CONFIG[nodeType].accept,
+    multiple: true,
+    onFilesSelected: ({ plainFiles: updatedFiles }) => {
+      editor.getTransforms(PlaceholderPlugin).insert.media(updatedFiles);
+    },
+  }).openFilePicker;
+}
+
+export function MediaToolbarMenu(props: DropdownMenuProps) {
+  const [open, setOpen] = React.useState(false);
+  const [urlFor, setUrlFor] = React.useState<string | null>(null);
+  // One picker per kind — a hook cannot be made in a loop.
+  const pick: Record<string, () => void> = {
+    [KEYS.img]: useMediaPicker(KEYS.img),
+    [KEYS.video]: useMediaPicker(KEYS.video),
+    [KEYS.audio]: useMediaPicker(KEYS.audio),
+    [KEYS.file]: useMediaPicker(KEYS.file),
+  };
+
+  return (
+    <>
+      <DropdownMenu modal={false} onOpenChange={setOpen} open={open} {...props}>
+        <DropdownMenuTrigger asChild>
+          <ToolbarButton isDropdown pressed={open} tooltip="Media">
+            <ImagePlusIcon />
+          </ToolbarButton>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuGroup>
+            {MEDIA_KINDS.map((kind) => (
+              <DropdownMenuSub key={kind}>
+                <DropdownMenuSubTrigger>
+                  {MEDIA_CONFIG[kind].icon}
+                  {MEDIA_CONFIG[kind].tooltip}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onSelect={() => pick[kind]()}>
+                    {MEDIA_CONFIG[kind].icon}
+                    Upload from computer
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setUrlFor(kind)}>
+                    <LinkIcon />
+                    Insert via URL
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog
+        onOpenChange={(value) => {
+          if (!value) setUrlFor(null);
+        }}
+        open={urlFor !== null}
+      >
+        <AlertDialogContent className="gap-6">
+          {urlFor && (
+            <MediaUrlDialogContent
+              currentConfig={MEDIA_CONFIG[urlFor]}
+              nodeType={urlFor}
+              setOpen={(value) => {
+                if (!value) setUrlFor(null);
+              }}
+            />
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>

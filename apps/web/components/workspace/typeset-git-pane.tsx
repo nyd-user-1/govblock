@@ -16,7 +16,7 @@ import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 // History button, Raw, copy, download, the pencil that duplicates to edit, the
 // outline, and every commit — mounted on Typeset's routes. Nothing here is
 // new; file-view.tsx is the view, and this maps its tabs to the routes:
-// text ↔ /git, changes and history ↔ /versions, edit and fork ↔ /fork. The
+// text ↔ /git, changes and history ↔ /diff, edit and fork ↔ /fork. The
 // document and the fork stay in the query, as they always did.
 
 const FileView = dynamic(() => import("@/components/create/file-view").then((m) => m.FileView), {
@@ -30,7 +30,7 @@ const FileView = dynamic(() => import("@/components/create/file-view").then((m) 
   ),
 })
 
-export type GitView = Extract<TypesetView, "git" | "versions" | "fork">
+export type GitView = Extract<TypesetView, "git" | "diff" | "fork">
 
 export function TypesetGitPane({ billId, view }: { billId: number; view: GitView }) {
   const router = useRouter()

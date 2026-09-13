@@ -1,9 +1,10 @@
-import { billCitation } from "@/lib/policy/congress"
 import { NextResponse } from "next/server"
+import { gzipSync } from "node:zlib"
 
-import { changelogHtml, esc } from "@/lib/policy/bill-html"
-import { fetchUslm, plainTextHtml } from "@/lib/policy/bill-uslm"
-import { getBill, getBillText } from "@/lib/policy/queries"
+import { currentSession, gate } from "@/lib/entitlements-server"
+import { changelogHtml } from "@/lib/policy/bill-html"
+import { getBill } from "@/lib/policy/queries"
+import { getTypesetDocument, type TypesetDocument } from "@/lib/typeset/document"
 
 // What the Typeset editor opens with (2026-09-09): one of the bill's pages
 // as HTML. `article` is the official text as the Government Publishing Office
@@ -17,9 +18,27 @@ import { getBill, getBillText } from "@/lib/policy/queries"
 // typeset to style. Documents with no XML behind them fall back to reading the
 // levels out of that plain text.
 //
-//   GET /api/typeset/content?item=article|changelog&bill=<id>[&version=<doc>]
+//   GET /api/typeset/content?item=article|changelog&bill=<id>[&version=<doc>][&value=1]
 
 export const dynamic = "force-dynamic"
+
+// The article is built and kept by lib/typeset/document.ts. The route keeps
+// each built article's JSON gzipped as well: the development server does not
+// compress route responses, and 358 KB of JSON took 0.3–0.7 s through the
+// tunnel (typeset-perf, 2026-09-13).
+type Body = { json: string; gzip: Buffer }
+const bodies = new WeakMap<TypesetDocument, { html?: Body; value?: Body }>()
+
+function articleResponse(request: Request, article: Body) {
+  const gzip = /\bgzip\b/.test(request.headers.get("accept-encoding") ?? "")
+  return new NextResponse(gzip ? new Uint8Array(article.gzip) : article.json, {
+    headers: {
+      "content-type": "application/json",
+      vary: "accept-encoding",
+      ...(gzip ? { "content-encoding": "gzip" } : {}),
+    },
+  })
+}
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams
@@ -30,6 +49,9 @@ export async function GET(request: Request) {
   const bill = await getBill(billId)
   if (!bill)
     return NextResponse.json({ error: "no such bill" }, { status: 404 })
+  // The bill's jurisdiction and session decide who may read it (2026-09-13).
+  const { refusal } = await gate(request, { state: bill.state, session: bill.session_id, current: await currentSession(bill.state).catch(() => null), entity: "bills" })
+  if (refusal) return NextResponse.json(refusal.body, { status: refusal.status, headers: { "cache-control": "private, no-store" } })
 
   if (item === "changelog") {
     return NextResponse.json({
@@ -41,25 +63,22 @@ export async function GET(request: Request) {
   }
 
   const version = Number(sp.get("version") ?? 0) || undefined
-  const text = await getBillText(bill.bill_id, version)
-  const shown = text
-    ? `${text.document_desc ?? text.version ?? ""}${text.date ? ` (${text.date})` : ""}`.trim()
-    : ""
-  const uslm = text ? await fetchUslm(text.url) : null
-  // The document names itself — "H. R. 5366", the way the GPO sets it — which
-  // beats the record's own key ("HB5366") at the top of a page a reader reads.
-  const heading = uslm?.title ?? billCitation(bill.bill_number, bill.state)
-  const head = `<h1>${esc(heading)}</h1><p><em>${esc(bill.title)}</em></p>${shown ? `<p><strong>Shown here:</strong> ${esc(shown)}</p>` : ""}`
-  const body = uslm
-    ? uslm.html
-    : text
-      ? plainTextHtml(text.text)
-      : "<p>The text of this bill has not been fetched yet.</p>"
-  const html = `${head}${body}`
-  return NextResponse.json({
-    item,
-    bill: bill.bill_number,
-    title: bill.title,
-    html,
-  })
+  const document = await getTypesetDocument(bill.bill_id, version, bill)
+  if (!document) return NextResponse.json({ error: "no such bill" }, { status: 404 })
+  // `&value=1` adds the HTML already read into Slate, so the editor can skip
+  // parsing it; it doubles the payload, so it is asked for, not sent by default.
+  const withValue = sp.get("value") === "1"
+  let kept = bodies.get(document)
+  if (!kept) {
+    kept = {}
+    bodies.set(document, kept)
+  }
+  const variant = withValue ? "value" : "html"
+  let body = kept[variant]
+  if (!body) {
+    const json = JSON.stringify({ item, bill: bill.bill_number, title: bill.title, html: document.html, ...(withValue ? { value: document.value } : {}) })
+    body = { json, gzip: gzipSync(json) }
+    kept[variant] = body
+  }
+  return articleResponse(request, body)
 }

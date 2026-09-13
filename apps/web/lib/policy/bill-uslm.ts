@@ -248,8 +248,11 @@ export function uslmToHtml(xml: string): BillDocument | null {
   const official = form ? find(form, "official-title") : null
   if (official) out.push(`<p>${html(official)}</p>`)
 
+  // An engrossed amendment (<amendment-doc>) carries the bill's text under
+  // its own body tag. Reading only the first two left H.R. 6644's House
+  // amendment as a heading and the Clerk's name (Brendan, 2026-09-13).
   const body = kids(bill).filter(
-    (c) => c.tag === "legis-body" || c.tag === "resolution-body"
+    (c) => c.tag === "legis-body" || c.tag === "resolution-body" || c.tag === "engrossed-amendment-body" || c.tag === "amendment-body"
   )
   for (const b of body) out.push(...kids(b).map((c) => render(c, 0)))
 

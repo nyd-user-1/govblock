@@ -36,6 +36,10 @@
       "persistent": true
     }
   },
+  "globalPassThroughEnv": [
+    "GOVBLOCK_DEV_BOX",
+    "DEV_HEAP"
+  ],
   "globalEnv": [
     "AWS_REGION",
     "EXA_API_KEY",

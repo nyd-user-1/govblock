@@ -2,9 +2,15 @@
 
 import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
+import type { RenderChunkProps } from 'platejs';
 import type { PlateContentProps, PlateViewProps } from 'platejs/react';
-import { PlateContainer, PlateContent, PlateView } from 'platejs/react';
-import type * as React from 'react';
+import {
+  PlateContainer,
+  PlateContent,
+  PlateView,
+  useEditorRef,
+} from 'platejs/react';
+import * as React from 'react';
 
 import { cn } from '@govblock/ui/lib/utils';
 
@@ -113,6 +119,136 @@ export const Editor = ({
 );
 
 Editor.displayName = 'Editor';
+
+// A long document mounted a screen at a time (typeset-perf, 2026-09-13). A
+// bill is thousands of blocks in Slate's chunks of 20; rendering them all at
+// mount was one 1–2 s task, every time Typeset opened. The first chunks render
+// with the editor and the rest one at a time while the browser is idle, a
+// chunk nearing the viewport first, so the page is editable after the first
+// screen and whole a moment later. Until a chunk renders it is a placeholder
+// of about its height, and find-in-page and selection cannot reach its text.
+// Pass as `renderChunk` to `Editor`.
+const FIRST_CHUNKS = 8;
+const CHUNKS_PER_SLICE = 1;
+const CHUNK_HEIGHT = 1000;
+
+type ChunkQueue = {
+  mounting: boolean;
+  rendered: number;
+  waiting: (() => void)[];
+  scheduled: boolean;
+};
+
+const chunkQueues = new WeakMap<object, ChunkQueue>();
+
+const chunkQueue = (editor: object) => {
+  let queue = chunkQueues.get(editor);
+
+  if (!queue) {
+    queue = { mounting: true, rendered: 0, waiting: [], scheduled: false };
+    chunkQueues.set(editor, queue);
+  }
+
+  return queue;
+};
+
+const idle = (callback: () => void) =>
+  typeof window.requestIdleCallback === 'function'
+    ? window.requestIdleCallback(callback, { timeout: 100 })
+    : window.setTimeout(callback, 16);
+
+const scrollParent = (node: HTMLElement) => {
+  for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) return parent;
+  }
+
+  return null;
+};
+
+const drain = (queue: ChunkQueue) => {
+  if (queue.scheduled) return;
+
+  queue.scheduled = true;
+  idle(() => {
+    queue.scheduled = false;
+    queue.waiting.splice(0, CHUNKS_PER_SLICE).forEach((release) => release());
+
+    if (queue.waiting.length > 0) drain(queue);
+    else queue.mounting = false;
+  });
+};
+
+function ProgressiveChunk({
+  attributes,
+  children,
+}: Pick<RenderChunkProps, 'attributes' | 'children'>) {
+  const editor = useEditorRef();
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [ready, setReady] = React.useState(() => {
+    const queue = chunkQueue(editor);
+
+    // A chunk created after the document has mounted (an edit split one)
+    // renders straight away.
+    return !queue.mounting || queue.rendered++ < FIRST_CHUNKS;
+  });
+
+  React.useEffect(() => {
+    if (ready) return;
+
+    const queue = chunkQueue(editor);
+    const release = () => {
+      queue.waiting = queue.waiting.filter((waiting) => waiting !== release);
+      // A transition, so React yields while it renders and chunks released
+      // back to back never add up to a long task.
+      React.startTransition(() => setReady(true));
+    };
+    const node = ref.current;
+    const observer =
+      node &&
+      new IntersectionObserver(
+        ([entry]) => {
+          // Near the viewport: first in line, still one chunk a slice.
+          if (!entry?.isIntersecting) return;
+          queue.waiting = [release, ...queue.waiting.filter((waiting) => waiting !== release)];
+          drain(queue);
+        },
+        { root: scrollParent(node), rootMargin: '200% 0px' }
+      );
+
+    queue.waiting.push(release);
+    drain(queue);
+    if (node) observer?.observe(node);
+
+    return () => {
+      observer?.disconnect();
+      queue.waiting = queue.waiting.filter((waiting) => waiting !== release);
+    };
+  }, [editor, ready]);
+
+  return (
+    <div
+      {...attributes}
+      ref={ref}
+      style={
+        ready
+          ? { containIntrinsicSize: `auto ${CHUNK_HEIGHT}px`, contentVisibility: 'auto' }
+          : { height: CHUNK_HEIGHT }
+      }
+    >
+      {ready ? children : null}
+    </div>
+  );
+}
+
+export function renderProgressiveChunk({
+  attributes,
+  children,
+  lowest,
+}: RenderChunkProps) {
+  if (!lowest) return children;
+
+  return <ProgressiveChunk attributes={attributes}>{children}</ProgressiveChunk>;
+}
 
 export function EditorView({
   className,

@@ -1,10 +1,9 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FileTextIcon, FoldHorizontalIcon, GitCompareArrowsIcon, HistoryIcon, LockIcon, LockOpenIcon, SparklesIcon, UnfoldHorizontalIcon } from "lucide-react"
-import { LinkSquare02Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 
 import { useAssistSubject } from "@/lib/assist-panel"
 import { readFilters, scopedFilters, type Filters } from "@/lib/filters"
@@ -13,11 +12,13 @@ import { billSystemPrompt } from "@/lib/policy/bill-html"
 import { PathScopeContext, useJurisdiction, type PathScope } from "@/lib/policy/jurisdiction"
 import type { Bill } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { ActionsPanelProvider } from "@/lib/typeset/actions-panel"
+import { PaneNoteProvider, usePaneNote } from "@/lib/typeset/pane-note"
 import { GIT_VIEWS, TYPESET_VIEWS, typesetHref, type TypesetView } from "@/lib/typeset/views"
 import { TypesetCustomizer } from "@/app/(typeset)/components/customizer"
 import { TypesetPreviewOverrideProvider } from "@/app/(typeset)/components/preview-override"
-import { OpenInNewTab, TypesetPages } from "@/app/(typeset)/components/toolbar"
-import { serializeTypesetSearchParams, useTypesetSearchParams } from "@/app/(typeset)/lib/search-params"
+import { TypesetPages } from "@/app/(typeset)/components/toolbar"
+import { useTypesetSearchParams } from "@/app/(typeset)/lib/search-params"
 import { previewFontVariables } from "@/app/preview/fonts"
 import { FileActions, type BillView } from "@/components/create/file-actions"
 import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
@@ -87,13 +88,12 @@ export type TypesetRoute = { billId: number; state: string; session: number | nu
 const EDITOR_OF: Partial<Record<TypesetView, { item: "article" | "changelog"; surface: "plate" | "potion" }>> = {
   typeset: { item: "article", surface: "plate" },
   outline: { item: "article", surface: "potion" },
-  actions: { item: "changelog", surface: "plate" },
 }
-const isGitView = (view: TypesetView): view is GitView => view === "git" || view === "versions" || view === "fork"
+const isGitView = (view: TypesetView): view is GitView => view === "git" || view === "diff" || view === "fork"
 
 //
 // /workspace/typeset (Brendan, 2026-09-07): /typeset in the shell. The
-// typeset document fills the pane; the numbered pages and Open in New Tab
+// typeset document fills the pane; the numbered pages and Getting started
 // sit in the footer after the mode switcher; the customizer is typeset's own,
 // summoned by the footer's hamburger; the chat drawer takes the bill in the
 // rail as its subject.
@@ -168,7 +168,7 @@ function ViewPills({ route }: { route: TypesetRoute }) {
               <Button
                 variant="ghost"
                 size="sm"
-                data-active={route.view === option.key || (option.key === "git" && isGitView(route.view))}
+                data-active={route.view === option.key || (option.key === "git" && route.view === "fork")}
                 className="h-7 min-w-7 cursor-pointer rounded-lg px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
                 onClick={() => router.push(typesetHref(route.billId, option.key))}
               />
@@ -185,19 +185,23 @@ function ViewPills({ route }: { route: TypesetRoute }) {
   )
 }
 
-/** Open in New Tab for a routed bill: the editor pages open on the preview route, the rest on themselves. */
-function OpenRouteInNewTab({ route }: { route: TypesetRoute }) {
-  const [params] = useTypesetSearchParams()
-  const editor = EDITOR_OF[route.view]
-  const href = editor
-    ? serializeTypesetSearchParams(`/preview/typeset/${editor.item}`, { ...params, bill: String(route.billId), state: route.state, item: editor.item })
-    : typesetHref(route.billId, route.view)
+/** The line a pane hands the footer: the Git view's size of the file. */
+function PaneNoteSlot() {
+  const note = usePaneNote()
+  if (!note) return null
+  return (
+    <>
+      <div className="mx-0.5 h-4 w-px bg-border" />
+      {note}
+    </>
+  )
+}
+
+/** Getting started, where Open in New Tab stood (Brendan, 2026-09-13). */
+function GettingStarted() {
   return (
     <Button asChild variant="ghost" size="sm" className="h-7 cursor-pointer rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-      <a href={href} target="_blank" rel="noreferrer">
-        <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
-        Open in New Tab
-      </a>
+      <Link href="/docs">Getting started</Link>
     </Button>
   )
 }
@@ -312,7 +316,7 @@ function WithToolbar({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
+export function TypesetWorkspace({ route, snapshot }: { route?: TypesetRoute; snapshot?: React.ReactNode }) {
   const router = useRouter()
   // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
   const [panelOpen, setPanelOpen] = React.useState(false)
@@ -330,9 +334,16 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
   const page = pageOf(params.item)
   const diff = useDiffSettings()
   const view: TypesetView | null = route?.view ?? null
+  // The other views' routes, fetched while this one is read (Brendan,
+  // 2026-09-13: a switch is a swap, not a wait).
+  const billId = route?.billId
+  React.useEffect(() => {
+    if (!billId) return
+    for (const option of TYPESET_VIEWS) if (option.key !== view) router.prefetch(typesetHref(billId, option.key))
+  }, [billId, view, router])
   // The path ends on the open file (Brendan, 2026-09-11): the bill, or the page when none is loaded.
   const file = bill ? fmtBill(bill.bill_number, bill.state) : route ? "Bill" : PAGES.find((p) => p.value === page)!.label
-  const showDiffControls = view ? view === "comp" : page === "diff"
+  const showDiffControls = view ? view === "redline" : page === "diff"
 
   const footer = (
     <WorkspaceFooter
@@ -342,7 +353,8 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
     >
       <div className="flex items-center gap-1">{route ? <ViewPills route={route} /> : <TypesetPages options={PAGES} />}</div>
       <div className="mx-0.5 h-4 w-px bg-border" />
-      {route ? <OpenRouteInNewTab route={route} /> : <OpenInNewTab />}
+      <GettingStarted />
+      <PaneNoteSlot />
       {showDiffControls && (
         <>
           <div className="mx-0.5 h-4 w-px bg-border" />
@@ -359,11 +371,11 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
         path={`Workspace / Typeset / ${file}`}
         state={route.state}
         billId={route.billId}
-        view={(view === "versions" ? "changes" : "text") as BillView}
+        view={(view === "diff" ? "changes" : "text") as BillView}
         onOpen={(open) => {
           if (open === "record") return router.push(`/bills/${route.billId}`)
           if (open === "typeset") return router.push(typesetHref(route.billId))
-          router.push(typesetHref(route.billId, open === "text" ? "git" : "versions"))
+          router.push(typesetHref(route.billId, open === "text" ? "git" : "diff"))
         }}
       />
     ) : undefined
@@ -372,8 +384,8 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
   if (route && view) {
     const editor = EDITOR_OF[view]
     if (editor) {
-      content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} />
-    } else if (view === "comp") {
+      content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
+    } else if (view === "redline") {
       content = (
         <WithToolbar>
           <DiffPane width={diff.width} locked={diff.locked} filters={filters} />
@@ -425,7 +437,7 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
               footer={footer}
               contentClassName="overflow-hidden"
             >
-              {content}
+              <ActionsPanelProvider bill={bill}>{content}</ActionsPanelProvider>
             </BlockShell>
           </div>
         </div>
@@ -445,17 +457,21 @@ export function TypesetWorkspace({ route }: { route?: TypesetRoute }) {
     </div>
   )
 
-  if (!route) return stage
+  if (!route) return <PaneNoteProvider>{stage}</PaneNoteProvider>
   // The bill's own jurisdiction, for every hook under the page (useScope, useJurisdiction, usePolicy).
   const pathScope: PathScope = { state: route.state, session: route.session, year: route.session, chamber: null, sessions: [] }
-  return <PathScopeContext.Provider value={pathScope}>{stage}</PathScopeContext.Provider>
+  return (
+    <PathScopeContext.Provider value={pathScope}>
+      <PaneNoteProvider>{stage}</PaneNoteProvider>
+    </PathScopeContext.Provider>
+  )
 }
 
 /** The providers the preview and customizer share, once, around the page. */
-export function TypesetWorkspacePage({ route }: { route?: TypesetRoute } = {}) {
+export function TypesetWorkspacePage({ route, snapshot }: { route?: TypesetRoute; snapshot?: React.ReactNode } = {}) {
   return (
     <TypesetPreviewOverrideProvider>
-      <TypesetWorkspace route={route} />
+      <TypesetWorkspace route={route} snapshot={snapshot} />
     </TypesetPreviewOverrideProvider>
   )
 }

@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "NEXT_PUBLIC_PROJECT_ROOT=$(cd ../.. && pwd) NODE_OPTIONS=--max-old-space-size=2048 next dev",
+    "dev": "NEXT_PUBLIC_PROJECT_ROOT=$(cd ../.. && pwd) NODE_OPTIONS=--max-old-space-size=${DEV_HEAP:-2048} next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -88,6 +88,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lib": "link:@/components @/hooks @/lib",
+    "linkedom": "^0.18.13",
     "lodash": "^4.18.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.38.0",

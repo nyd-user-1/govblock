@@ -13,15 +13,16 @@ import {
   WandSparklesIcon,
 } from 'lucide-react';
 import { KEYS } from 'platejs';
+import { ImagePlusIcon, ListCollapseIcon, MinusIcon, PlusIcon, SmileIcon } from 'lucide-react';
+import { cn } from '@govblock/ui/lib/utils';
+import dynamic from 'next/dynamic';
 import { useEditorReadOnly } from 'platejs/react';
 
-import { AIToolbarButton } from './ai-toolbar-button';
+import { ActionsToolbarButton } from './actions-toolbar-button';
 import { AlignToolbarButton } from './align-toolbar-button';
 import { CommentToolbarButton } from './comment-toolbar-button';
-import { EmojiToolbarButton } from './emoji-toolbar-button';
 import { ExportToolbarButton } from './export-toolbar-button';
 import { FontColorToolbarButton } from './font-color-toolbar-button';
-import { FontSizeToolbarButton } from './font-size-toolbar-button';
 import { RedoToolbarButton, UndoToolbarButton } from './history-toolbar-button';
 import { ImportToolbarButton } from './import-toolbar-button';
 import {
@@ -29,6 +30,7 @@ import {
   OutdentToolbarButton,
 } from './indent-toolbar-button';
 import { InsertToolbarButton } from './insert-toolbar-button';
+import { LazyKitButton } from './lazy-kit-button';
 import { LineHeightToolbarButton } from './line-height-toolbar-button';
 import { LinkToolbarButton } from './link-toolbar-button';
 import {
@@ -37,16 +39,25 @@ import {
   TodoListToolbarButton,
 } from './list-toolbar-button';
 import { MarkToolbarButton } from './mark-toolbar-button';
-import { MediaToolbarButton } from './media-toolbar-button';
 import { ModeToolbarButton } from './mode-toolbar-button';
 import { MoreToolbarButton } from './more-toolbar-button';
 import { TableToolbarButton } from './table-toolbar-button';
-import { ToggleToolbarButton } from './toggle-toolbar-button';
-import { ToolbarGroup } from './toolbar';
+import { ToolbarButton, ToolbarGroup } from './toolbar';
 import { TurnIntoToolbarButton } from './turn-into-toolbar-button';
+
+// The buttons whose kits load on demand load their own code the same way
+// (2026-09-13); until the kit is in the editor only their stand-in is drawn.
+const AIToolbarButton = dynamic(() => import('./ai-toolbar-button').then((m) => m.AIToolbarButton), { ssr: false });
+const EmojiToolbarButton = dynamic(() => import('./emoji-toolbar-button').then((m) => m.EmojiToolbarButton), { ssr: false });
+const FontSizeToolbarButton = dynamic(() => import('./font-size-toolbar-button').then((m) => m.FontSizeToolbarButton), { ssr: false });
+const MediaToolbarMenu = dynamic(() => import('./media-toolbar-button').then((m) => m.MediaToolbarMenu), { ssr: false });
+const ToggleToolbarButton = dynamic(() => import('./toggle-toolbar-button').then((m) => m.ToggleToolbarButton), { ssr: false });
 
 export function FixedToolbarButtons() {
   const readOnly = useEditorReadOnly();
+  // Every button is drawn (Brendan, 2026-09-13). One whose kit the editor was
+  // built without (BillKit leaves out AI, emoji, media, toggles and font
+  // sizes) loads its kit when it is used; see lazy-kit-button.tsx.
 
   return (
     <div className="flex w-full">
@@ -58,9 +69,11 @@ export function FixedToolbarButtons() {
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <AIToolbarButton tooltip="AI commands">
-              <WandSparklesIcon />
-            </AIToolbarButton>
+            <LazyKitButton kit="ai" pluginKey={KEYS.aiChat} tooltip="AI commands" icon={<WandSparklesIcon />}>
+              <AIToolbarButton tooltip="AI commands">
+                <WandSparklesIcon />
+              </AIToolbarButton>
+            </LazyKitButton>
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -74,7 +87,24 @@ export function FixedToolbarButtons() {
           <ToolbarGroup>
             <InsertToolbarButton />
             <TurnIntoToolbarButton />
-            <FontSizeToolbarButton />
+            <LazyKitButton
+              kit="fontSize"
+              pluginKey={KEYS.fontSize}
+              open={false}
+              placeholder={({ onPointerEnter, onClick, pending }) => (
+                <div className={cn('flex h-7 items-center gap-1 rounded-md bg-muted/60 p-0', pending && 'animate-pulse')} onPointerEnter={onPointerEnter}>
+                  <ToolbarButton onClick={onClick}>
+                    <MinusIcon />
+                  </ToolbarButton>
+                  <span className="h-full w-10 text-center text-sm leading-7">16</span>
+                  <ToolbarButton onClick={onClick}>
+                    <PlusIcon />
+                  </ToolbarButton>
+                </div>
+              )}
+            >
+              <FontSizeToolbarButton />
+            </LazyKitButton>
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -122,20 +152,23 @@ export function FixedToolbarButtons() {
             <NumberedListToolbarButton />
             <BulletedListToolbarButton />
             <TodoListToolbarButton />
-            <ToggleToolbarButton />
+            <LazyKitButton kit="toggle" pluginKey={KEYS.toggle} tooltip="Toggle" icon={<ListCollapseIcon />}>
+              <ToggleToolbarButton />
+            </LazyKitButton>
           </ToolbarGroup>
 
           <ToolbarGroup>
             <LinkToolbarButton />
             <TableToolbarButton />
-            <EmojiToolbarButton />
+            <LazyKitButton kit="emoji" pluginKey={KEYS.emoji} tooltip="Emoji" isDropdown icon={<SmileIcon />}>
+              <EmojiToolbarButton />
+            </LazyKitButton>
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <MediaToolbarButton nodeType={KEYS.img} />
-            <MediaToolbarButton nodeType={KEYS.video} />
-            <MediaToolbarButton nodeType={KEYS.audio} />
-            <MediaToolbarButton nodeType={KEYS.file} />
+            <LazyKitButton kit="media" pluginKey={KEYS.img} tooltip="Insert media" isDropdown icon={<ImagePlusIcon />}>
+              <MediaToolbarMenu />
+            </LazyKitButton>
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -157,6 +190,7 @@ export function FixedToolbarButtons() {
           <HighlighterIcon />
         </MarkToolbarButton>
         <CommentToolbarButton />
+        <ActionsToolbarButton />
       </ToolbarGroup>
 
       <ToolbarGroup>

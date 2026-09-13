@@ -1,6 +1,5 @@
 'use client';
 
-import { exportToDocx } from '@platejs/docx-io';
 import { MarkdownPlugin } from '@platejs/markdown';
 import type { DropdownMenuProps } from '@radix-ui/react-dropdown-menu';
 import { ArrowDownToLineIcon } from 'lucide-react';
@@ -9,8 +8,6 @@ import { createSlateEditor } from 'platejs';
 import { useEditorRef } from 'platejs/react';
 import { serializeHtml } from 'platejs/static';
 import * as React from 'react';
-import { BaseEditorKit } from '@/components/plate/editor/editor-base-kit';
-import { DocxExportKit } from '@/components/plate/editor/plugins/docx-export-kit';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +93,8 @@ export function ExportToolbarButton(props: DropdownMenuProps) {
   };
 
   const exportToHtml = async () => {
+    // The static kit arrives with the click, not the page (2026-09-13).
+    const { BaseEditorKit } = await import('@/components/plate/editor/editor-base-kit');
     const editorStatic = createSlateEditor({
       plugins: BaseEditorKit,
       value: editor.children,
@@ -147,6 +146,12 @@ export function ExportToolbarButton(props: DropdownMenuProps) {
   };
 
   const exportToWord = async () => {
+    // The Word writer and its XML builder arrive with the click, not the page (2026-09-13).
+    const [{ exportToDocx }, { BaseEditorKit }, { DocxExportKit }] = await Promise.all([
+      import('@platejs/docx-io'),
+      import('@/components/plate/editor/editor-base-kit'),
+      import('@/components/plate/editor/plugins/docx-export-kit'),
+    ]);
     const blob = await exportToDocx(editor.children, {
       editorPlugins: [...BaseEditorKit, ...DocxExportKit] as SlatePlugin[],
     });

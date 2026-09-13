@@ -9,7 +9,7 @@ import {
   AlignLeftIcon,
   AlignRightIcon,
 } from 'lucide-react';
-import { useEditorPlugin, useSelectionFragmentProp } from 'platejs/react';
+import { useEditorPlugin } from 'platejs/react';
 import * as React from 'react';
 
 import {
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/plate/ui/dropdown-menu';
 
+import { useSelectionBlockProp } from './use-selection-block-prop';
 import { ToolbarButton } from './toolbar';
 
 const items = [
@@ -44,7 +45,7 @@ const items = [
 export function AlignToolbarButton(props: DropdownMenuProps) {
   const { editor, tf } = useEditorPlugin(TextAlignPlugin);
   const value =
-    useSelectionFragmentProp({
+    useSelectionBlockProp({
       defaultValue: 'start',
       getProp: (node) => node.align,
     }) ?? 'left';

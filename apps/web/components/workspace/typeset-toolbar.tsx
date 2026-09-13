@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Plate, usePlateEditor } from "platejs/react"
 
-import { EditorKit } from "@/components/plate/editor/editor-kit"
+import { BillKit } from "@/components/plate/editor/bill-kit"
 import { FixedToolbar } from "@/components/plate/ui/fixed-toolbar"
 import { FixedToolbarButtons } from "@/components/plate/ui/fixed-toolbar-buttons"
 
@@ -15,7 +15,12 @@ import { FixedToolbarButtons } from "@/components/plate/ui/fixed-toolbar-buttons
 // to view. It is Plate's own toolbar over an empty editor, not a drawing of
 // one, so a button added to the editor's toolbar is added here too.
 export function StaticToolbar() {
-  const editor = usePlateEditor({ plugins: EditorKit, value: [{ type: "p", children: [{ text: "" }] }] })
+  // BillKit, not the template's every-kit EditorKit (2026-09-13): this editor
+  // exists only to draw the toolbar, and the full kit dragged the emoji data,
+  // the code grammars and the rest onto Git, Redline and Diff. The buttons
+  // for kits not in BillKit draw their stand-ins, which is all a disabled
+  // toolbar needs.
+  const editor = usePlateEditor({ plugins: BillKit, value: [{ type: "p", children: [{ text: "" }] }] })
   return (
     <div aria-disabled="true" className="pointer-events-none shrink-0 opacity-50 select-none" title="Formatting applies in Typeset">
       <Plate editor={editor}>

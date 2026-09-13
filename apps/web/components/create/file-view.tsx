@@ -105,21 +105,15 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
 
   if (node.kind === "bill") {
     const active = tab === "history" || tab === "edit" || tab === "fork" || BILL_TABS.some((t) => t.value === tab) ? tab : "text"
-    // GitHub's latest-commit line: the id, when, and the History button.
-    const latest = versions[0]
-    const latestDate = latest && bill ? dateOfRecord(latest, bill) : null
+    // The fork chip and the History button; the id-and-when line is gone (Brendan, 2026-09-13).
+    const forkChip = forkRow ? (
+      <span className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={`Your fork of ${bill ? fmtBill(bill.bill_number, bill.state) : "this bill"}`}>
+        <GitForkIcon className="size-3.5" /> your fork
+      </span>
+    ) : null
     const historyButton = (
       <span className="flex items-center gap-2">
-        {forkRow && (
-          <span className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={`Your fork of ${bill ? fmtBill(bill.bill_number, bill.state) : "this bill"}`}>
-            <GitForkIcon className="size-3.5" /> your fork
-          </span>
-        )}
-        {latest && (
-          <span className="font-mono text-xs text-muted-foreground">
-            {versionId(latest)} · {ago(latestDate) || "date unknown"}
-          </span>
-        )}
+        {forkChip}
         <Button variant="ghost" size="sm" data-active={active === "history"} className="font-semibold data-[active=true]:bg-muted" onClick={() => onTab("history")}>
           <HistoryIcon className="size-4" /> History
         </Button>
@@ -177,9 +171,10 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
                 onGo({ bill: String(billId) })
                 if (documentId) onDoc(documentId)
               }}
-              history={historyButton}
+              history={forkChip}
               related={related}
               onEdit={() => void duplicateToEdit()}
+              onOpenChanges={openChanges}
             />
           ) : (
             <div className="flex flex-col gap-2 p-4">

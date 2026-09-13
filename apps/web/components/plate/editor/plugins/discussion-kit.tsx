@@ -3,6 +3,7 @@
 import { createPlatePlugin } from 'platejs/react';
 import { BlockDiscussion } from '@/components/plate/ui/block-discussion';
 import type { TComment } from '@/components/plate/ui/comment';
+import { useBlockDiscussionStore } from '@/lib/block-discussion-index';
 
 export type TDiscussion = {
   id: string;
@@ -172,6 +173,8 @@ export const discussionPlugin = createPlatePlugin({
 })
   .configure({
     render: { aboveNodes: BlockDiscussion },
+    // Called, not referenced: the index module imports this one back.
+    useHooks: () => useBlockDiscussionStore(),
   })
   .extendSelectors(({ getOption }) => ({
     currentUser: () => getOption('users')[getOption('currentUserId')],

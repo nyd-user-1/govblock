@@ -1,6 +1,5 @@
 'use client';
 
-import { importDocx } from '@platejs/docx-io';
 import { MarkdownPlugin } from '@platejs/markdown';
 import type { DropdownMenuProps } from '@radix-ui/react-dropdown-menu';
 import { ArrowUpToLineIcon } from 'lucide-react';
@@ -70,6 +69,8 @@ export function ImportToolbarButton(props: DropdownMenuProps) {
     accept: ['.docx'],
     multiple: false,
     onFilesSelected: async ({ plainFiles }) => {
+      // The Word reader and its XML parser arrive with the file, not the page (2026-09-13).
+      const { importDocx } = await import('@platejs/docx-io');
       const arrayBuffer = await plainFiles[0].arrayBuffer();
       const result = await importDocx(editor, arrayBuffer);
 

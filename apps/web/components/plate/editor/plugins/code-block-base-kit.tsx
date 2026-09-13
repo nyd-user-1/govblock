@@ -3,7 +3,6 @@ import {
   BaseCodeLinePlugin,
   BaseCodeSyntaxPlugin,
 } from '@platejs/code-block';
-import { all, createLowlight } from 'lowlight';
 
 import {
   CodeBlockElementStatic,
@@ -11,12 +10,20 @@ import {
   CodeSyntaxLeafStatic,
 } from '@/components/plate/ui/code-block-node-static';
 
-const lowlight = createLowlight(all);
+import { currentLowlight, loadLowlight } from './lowlight';
+
+// Static editors (export, previews) read the grammars when they are built. The
+// first one built starts the load; on the server it starts with the module.
+if (typeof window === 'undefined') void loadLowlight();
 
 export const BaseCodeBlockKit = [
-  BaseCodeBlockPlugin.configure({
-    node: { component: CodeBlockElementStatic },
-    options: { lowlight },
+  BaseCodeBlockPlugin.configure(() => {
+    void loadLowlight();
+
+    return {
+      node: { component: CodeBlockElementStatic },
+      options: { lowlight: currentLowlight() },
+    };
   }),
   BaseCodeLinePlugin.withComponent(CodeLineElementStatic),
   BaseCodeSyntaxPlugin.withComponent(CodeSyntaxLeafStatic),

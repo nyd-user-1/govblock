@@ -1,18 +1,25 @@
-import { ActivityIcon, FileTextIcon, GitBranchIcon, GitCompareArrowsIcon, GitForkIcon, HistoryIcon, ListTreeIcon, type LucideIcon } from "lucide-react"
+import { FileDiffIcon, FileTextIcon, GitBranchIcon, GitCompareArrowsIcon, GitForkIcon, ListTreeIcon, type LucideIcon } from "lucide-react"
 
 // Typeset's views of one bill (Brendan, 2026-09-12): one route per view under
 // /workspace/typeset/bill/{id}, and the numbered switcher in the footer walks
-// the first five. Typeset is the editor; Outline is the same page in the
-// Notion posture with the table of contents beside it; Git is the bill as a
-// file in a repository, the way /workspace/data draws it; Diff is the
-// printings as one scrolling redline; Activity is what the legislature did to
-// the bill, by date. Versions and Fork are Git's own views — the printings as
-// commits with what each one changed, and the reader's editable copy — and
-// are reached from Git's History button and pencil, as on GitHub.
+// the five. Typeset is the editor; Outline is the same page with the table of
+// contents beside it; Redline is the printings as one scrolling redline, the
+// animated compare that used to live at /comp; Git is the bill as a file in a
+// repository, the way /workspace/data draws it; Diff is the real diff, each
+// version against the one before, unified or split. Fork is Git's own view,
+// the reader's editable copy, reached from Git's pencil.
 //
-// The old query form (?bill=…&item=…) redirects here; see app/workspace/typeset.
+// Settled 2026-09-13: they all started as separate products and are features
+// of one editor. The bill's actions and its versions are sidebars now, not
+// views, so the Activity and Versions routes are gone; their old slugs still
+// open the right thing (LEGACY_SLUGS). The old query form (?bill=…&item=…)
+// redirects here; see app/workspace/typeset.
 
-export type TypesetView = "typeset" | "outline" | "git" | "comp" | "actions" | "versions" | "fork"
+export type TypesetView = "typeset" | "outline" | "redline" | "git" | "diff" | "fork"
+
+/** The bill /workspace/typeset opens when none is named: H.R. 6644, the 21st
+ *  Century ROAD to Housing Act (Brendan, 2026-09-13). */
+export const DEFAULT_BILL = 2058568
 
 export type ViewSpec = { key: TypesetView; slug: string; label: string; icon: LucideIcon }
 
@@ -20,27 +27,27 @@ export type ViewSpec = { key: TypesetView; slug: string; label: string; icon: Lu
 export const TYPESET_VIEWS: readonly ViewSpec[] = [
   { key: "typeset", slug: "", label: "Typeset", icon: FileTextIcon },
   { key: "outline", slug: "outline", label: "Outline", icon: ListTreeIcon },
+  { key: "redline", slug: "redline", label: "Redline", icon: GitCompareArrowsIcon },
   { key: "git", slug: "git", label: "Git", icon: GitBranchIcon },
-  { key: "comp", slug: "comp", label: "Diff", icon: GitCompareArrowsIcon },
-  { key: "actions", slug: "actions", label: "Activity", icon: ActivityIcon },
+  { key: "diff", slug: "diff", label: "Diff", icon: FileDiffIcon },
 ]
 
 /** Git's own views, unnumbered. */
-export const GIT_VIEWS: readonly ViewSpec[] = [
-  { key: "versions", slug: "versions", label: "Versions", icon: HistoryIcon },
-  { key: "fork", slug: "fork", label: "Fork", icon: GitForkIcon },
-]
+export const GIT_VIEWS: readonly ViewSpec[] = [{ key: "fork", slug: "fork", label: "Fork", icon: GitForkIcon }]
 
 export const ALL_VIEWS: readonly ViewSpec[] = [...TYPESET_VIEWS, ...GIT_VIEWS]
+
+/** Slugs the routes used to have, and the view each opens now. */
+export const LEGACY_SLUGS: Record<string, TypesetView> = { comp: "redline", versions: "diff", actions: "typeset" }
 
 export function viewSpec(view: TypesetView): ViewSpec {
   return ALL_VIEWS.find((v) => v.key === view) ?? TYPESET_VIEWS[0]
 }
 
-/** The view a path segment names; the bare bill route is Typeset; anything else is nothing. */
+/** The view a path segment names; the bare bill route is Typeset; an old slug is its view; anything else is nothing. */
 export function viewFromSlug(slug: string | undefined): TypesetView | null {
   if (!slug) return "typeset"
-  return ALL_VIEWS.find((v) => v.slug === slug)?.key ?? null
+  return ALL_VIEWS.find((v) => v.slug === slug)?.key ?? LEGACY_SLUGS[slug] ?? null
 }
 
 export function typesetHref(billId: number | string, view: TypesetView = "typeset", query?: URLSearchParams | Record<string, string | null | undefined>): string {
@@ -56,14 +63,14 @@ export const LEGACY_ITEM_VIEW: Record<string, TypesetView> = {
   article: "typeset",
   docs: "typeset",
   potion: "outline",
-  changelog: "actions",
-  diff: "comp",
+  changelog: "typeset",
+  diff: "redline",
 }
 
 /** Which of Git's tabs (as file-view.tsx names them) a view shows, and back. */
-export const GIT_TAB_OF: Record<Extract<TypesetView, "git" | "versions" | "fork">, string> = { git: "text", versions: "changes", fork: "edit" }
-export function viewOfGitTab(tab: string | null | undefined): Extract<TypesetView, "git" | "versions" | "fork"> {
-  if (tab === "changes" || tab === "history") return "versions"
+export const GIT_TAB_OF: Record<Extract<TypesetView, "git" | "diff" | "fork">, string> = { git: "text", diff: "changes", fork: "edit" }
+export function viewOfGitTab(tab: string | null | undefined): Extract<TypesetView, "git" | "diff" | "fork"> {
+  if (tab === "changes" || tab === "history") return "diff"
   if (tab === "edit" || tab === "fork") return "fork"
   return "git"
 }

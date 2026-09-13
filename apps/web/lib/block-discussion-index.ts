@@ -69,15 +69,6 @@ type BuildBlockDiscussionIndexOptions = {
   isBlockSuggestion: (node: TElement | TSuggestionText) => boolean;
 };
 
-const discussionIndexCache = new WeakMap<
-  PlateEditor,
-  {
-    discussions: TDiscussion[];
-    index: BlockDiscussionIndex;
-    version: number;
-  }
->();
-
 const TYPE_TEXT_MAP: Record<string, (node?: TElement) => string> = {
   [KEYS.audio]: () => 'Audio',
   [KEYS.blockquote]: () => 'Blockquote',
@@ -450,52 +441,200 @@ export const buildBlockDiscussionIndex = ({
   };
 };
 
-const getDiscussionIndex = (
-  editor: PlateEditor,
-  discussions: TDiscussion[],
-  version: number
-) => {
-  const cached = discussionIndexCache.get(editor);
+// Each block's discussions and suggestions, published from one store per
+// editor (typeset-perf, 2026-09-13). The template had every top-level block
+// call useEditorVersion and rebuild this index itself, so a keystroke in a
+// 3,023-block bill re-rendered all 3,023 blocks: half a second a key. Now the
+// index is rebuilt once, after typing pauses, and a block re-renders only
+// when its own items change. Blocks are keyed by id, which survives blocks
+// being inserted above them; a path would not.
 
-  if (
-    cached &&
-    cached.version === version &&
-    cached.discussions === discussions
-  ) {
-    return cached.index;
-  }
-
-  const commentApi = editor.getApi(CommentPlugin).comment;
-  const suggestionApi = editor.getApi(SuggestionPlugin).suggestion;
-
-  const index = buildBlockDiscussionIndex({
-    discussions,
-    entries: [...editor.api.nodes({ at: [], mode: 'all' })],
-    getCommentId: (node) => commentApi.nodeId(node),
-    getSuggestionData: (node) => suggestionApi.suggestionData(node),
-    getSuggestionDataList: (node) => suggestionApi.dataList(node),
-    getSuggestionId: (node) => suggestionApi.nodeId(node),
-    isBlockSuggestion: (node) =>
-      ElementApi.isElement(node) && suggestionApi.isBlockSuggestion(node),
-  });
-
-  discussionIndexCache.set(editor, { discussions, index, version });
-
-  return index;
+export type BlockDiscussionItems = {
+  resolvedDiscussions: TDiscussion[];
+  resolvedSuggestions: ResolvedSuggestion[];
 };
 
-export const useBlockDiscussionItems = (blockPath: Path) => {
+const EMPTY_ITEMS: BlockDiscussionItems = {
+  resolvedDiscussions: [],
+  resolvedSuggestions: [],
+};
+
+const REBUILD_AFTER_MS = 120;
+
+type DiscussionStore = {
+  byBlock: Map<string, BlockDiscussionItems>;
+  signatures: Map<string, string>;
+  listeners: Set<() => void>;
+  subscribe: (listener: () => void) => () => void;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+const discussionStores = new WeakMap<PlateEditor, DiscussionStore>();
+
+const getDiscussionStore = (editor: PlateEditor) => {
+  let store = discussionStores.get(editor);
+
+  if (!store) {
+    const listeners = new Set<() => void>();
+    store = {
+      byBlock: new Map(),
+      signatures: new Map(),
+      listeners,
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      timer: null,
+    };
+    discussionStores.set(editor, store);
+  }
+
+  return store;
+};
+
+export const blockDiscussionKey = (editor: PlateEditor, element: TElement) =>
+  typeof element.id === 'string'
+    ? element.id
+    : getBlockKey(editor.api.findPath(element) ?? []);
+
+// Blocks are immutable: one scanned for comment and suggestion props stays
+// scanned until an edit replaces it, so a rebuild walks only changed blocks
+// and the few that carry marks.
+const blockMarks = new WeakMap<object, boolean>();
+
+const hasMarks = (node: object): boolean => {
+  const cached = blockMarks.get(node);
+
+  if (cached !== undefined) return cached;
+
+  let found = false;
+
+  for (const key in node) {
+    if (key.startsWith('comment') || key.startsWith('suggestion')) {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found && ElementApi.isElement(node)) {
+    found = node.children.some(hasMarks);
+  }
+
+  blockMarks.set(node, found);
+
+  return found;
+};
+
+const rebuildDiscussionStore = (
+  editor: PlateEditor,
+  discussions: TDiscussion[]
+) => {
+  const store = getDiscussionStore(editor);
+  const entries: BlockDiscussionEntry[] = [];
+
+  editor.children.forEach((block, index) => {
+    if (!hasMarks(block)) return;
+
+    for (const entry of editor.api.nodes({ at: [index], mode: 'all' })) {
+      entries.push(entry as BlockDiscussionEntry);
+    }
+  });
+
+  let index: BlockDiscussionIndex = {
+    discussionsByBlock: new Map(),
+    suggestionsByBlock: new Map(),
+  };
+
+  if (entries.length > 0) {
+    const commentApi = editor.getApi(CommentPlugin).comment;
+    const suggestionApi = editor.getApi(SuggestionPlugin).suggestion;
+
+    index = buildBlockDiscussionIndex({
+      discussions,
+      entries,
+      getCommentId: (node) => commentApi.nodeId(node),
+      getSuggestionData: (node) => suggestionApi.suggestionData(node),
+      getSuggestionDataList: (node) => suggestionApi.dataList(node),
+      getSuggestionId: (node) => suggestionApi.nodeId(node),
+      isBlockSuggestion: (node) =>
+        ElementApi.isElement(node) && suggestionApi.isBlockSuggestion(node),
+    });
+  }
+
+  const byBlock = new Map<string, BlockDiscussionItems>();
+  const signatures = new Map<string, string>();
+  const pathKeys = new Set([
+    ...index.discussionsByBlock.keys(),
+    ...index.suggestionsByBlock.keys(),
+  ]);
+
+  pathKeys.forEach((pathKey) => {
+    const block = editor.children[Number(pathKey)];
+
+    if (!block) return;
+
+    const key = blockDiscussionKey(editor, block as TElement);
+    const items = {
+      resolvedDiscussions: index.discussionsByBlock.get(pathKey) ?? [],
+      resolvedSuggestions: index.suggestionsByBlock.get(pathKey) ?? [],
+    };
+    const signature = JSON.stringify(items);
+    const previous = store.byBlock.get(key);
+
+    // Unchanged items keep their identity, so their block does not re-render.
+    byBlock.set(
+      key,
+      previous && store.signatures.get(key) === signature ? previous : items
+    );
+    signatures.set(key, signature);
+  });
+
+  const changed =
+    byBlock.size !== store.byBlock.size ||
+    [...byBlock].some(([key, items]) => store.byBlock.get(key) !== items);
+
+  store.byBlock = byBlock;
+  store.signatures = signatures;
+
+  if (changed) store.listeners.forEach((listener) => listener());
+};
+
+/** Keeps the editor's discussion store current; mounted once, by the discussion plugin. */
+export const useBlockDiscussionStore = () => {
   const editor = useEditorRef();
   const discussions = usePluginOption(discussionPlugin, 'discussions');
-  const version = useEditorVersion() ?? 0;
+  const version = useEditorVersion();
 
-  return React.useMemo(() => {
-    const index = getDiscussionIndex(editor, discussions, version);
-    const blockKey = getBlockKey(blockPath);
+  React.useEffect(() => {
+    const store = getDiscussionStore(editor);
 
-    return {
-      resolvedDiscussions: index.discussionsByBlock.get(blockKey) ?? [],
-      resolvedSuggestions: index.suggestionsByBlock.get(blockKey) ?? [],
-    };
-  }, [blockPath, discussions, editor, version]);
+    if (store.timer) clearTimeout(store.timer);
+
+    store.timer = setTimeout(() => {
+      store.timer = null;
+      rebuildDiscussionStore(editor, discussions);
+    }, REBUILD_AFTER_MS);
+  }, [discussions, editor, version]);
+
+  React.useEffect(
+    () => () => {
+      const store = getDiscussionStore(editor);
+
+      if (store.timer) clearTimeout(store.timer);
+    },
+    [editor]
+  );
+};
+
+export const useBlockDiscussionItems = (
+  editor: PlateEditor,
+  blockKey: string
+): BlockDiscussionItems => {
+  const store = getDiscussionStore(editor);
+
+  return React.useSyncExternalStore(
+    store.subscribe,
+    () => store.byBlock.get(blockKey) ?? EMPTY_ITEMS,
+    () => EMPTY_ITEMS
+  );
 };

@@ -21,22 +21,36 @@ import {
   FileCode,
   FoldVertical,
   GripVertical,
+  MessageSquare,
+  Settings as Cog,
   SquareDashedMousePointer,
   UnfoldVertical,
 } from "lucide-react"
 
 /**
- * Two tools on one dock.
+ * Four tools on one dock.
  *
  * INSPECTOR (the crosshair) is react-trace's, borrowed whole: click it and the
  * cursor becomes a crosshair, a blue rule crosses the viewport at the pointer,
  * and whatever is under it is boxed and named. Click to pin, Escape to leave.
  * The one thing it adds is the file and line on the label.
  *
- * CLASSIFIER (the dashed pointer) opens the panel: hold ⌥ or ⌘ and hover to
- * read one element, or SCAN PAGE to colour every element on the page by the
+ * CLASSIFIER (the dashed pointer) opens the panel: ARM it, or hold the key
+ * Settings names (none by default), and hover to read one element, or SCAN
+ * PAGE to colour every element on the page by the
  * layer of the file it comes from — design system, shared, page-local, or
  * unresolved — and filter the page down to one of them.
+ *
+ * COMMENTS (the bubble) keeps notes against pinned elements — the file and
+ * line, the owner chain, and the words — and copies the lot as one brief for
+ * whoever fixes them. Kept in localStorage, so a hot reload does not eat them.
+ *
+ * SETTINGS (the gear): which held key reads an element, which corner the dock
+ * sits in, whether a long ⌘C toggles the inspector, and the arm latch.
+ *
+ * Each icon turns its tool on and off, and the dock wears react-trace's blue
+ * ring while a mode is running (Brendan, 2026-09-13) — before this nothing on
+ * screen said whether the thing was on.
  *
  * Ported from 44b (Brendan, 2026-09-12) to run beside @react-trace/kit until
  * one of them wins. The two differ in what they can answer: react-trace reads
@@ -67,9 +81,20 @@ import {
 
 const IS_DEV = process.env.NODE_ENV === "development"
 
-/** ⌥ or ⌘ arms it. 44b was ⌥ alone; ⌘ is the one that gets reached for here,
- *  and the cost is that a ⌘-click is swallowed while the tool is armed. */
-const HELD = (e: MouseEvent | KeyboardEvent) => e.altKey || e.metaKey
+/** Which held key reads the element under the pointer. 44b was ⌥ alone; ⌘ was
+ *  added here because it is the key that gets reached for — and that is the
+ *  trouble with it (Brendan, 2026-09-13: ⌘ held for anything else raised the
+ *  chip). Off unless Settings says otherwise; ARM and the crosshair still work. */
+type Hold = "off" | "alt" | "meta" | "both"
+const HOLDS: { value: Hold; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "alt", label: "⌥" },
+  { value: "meta", label: "⌘" },
+  { value: "both", label: "⌥ or ⌘" },
+]
+const HOLD_NAME: Record<Hold, string> = { off: "", alt: "⌥", meta: "⌘", both: "⌥ or ⌘" }
+const heldBy = (hold: Hold) => (e: MouseEvent | KeyboardEvent) =>
+  hold === "both" ? e.altKey || e.metaKey : hold === "alt" ? e.altKey : hold === "meta" ? e.metaKey : false
 
 /** Wrappers that own an element without being where it is written. */
 const FRAMEWORK = /^(LinkComponent|Link|Image|Head|Script|Suspense|Fragment|Router|.*Provider|.*Boundary)$/
@@ -131,6 +156,29 @@ const VERDICT: Record<Verdict, string> = {
   watch: "one repeat — watch",
   unique: "no verbatim twin",
 }
+
+type Corner = "bottom-right" | "bottom-left" | "top-right" | "top-left"
+const CORNERS: { value: Corner; label: string }[] = [
+  { value: "bottom-right", label: "Bottom right" },
+  { value: "bottom-left", label: "Bottom left" },
+  { value: "top-right", label: "Top right" },
+  { value: "top-left", label: "Top left" },
+]
+
+/** The gear's settings, kept in this browser. */
+type Prefs = { corner: Corner; hold: Hold; minimized: boolean }
+const PREFS: Prefs = { corner: "bottom-right", hold: "off", minimized: false }
+const PREFS_KEY = "devinspector:prefs"
+
+/** A note against an element, kept in this browser: what the tool could say
+ *  about the element when the note was made, and the words. The element itself
+ *  is not kept — a reload makes a new one. */
+type Comment = { id: string; path: string; where: string | null; chain: string; desc: string; gist: string; text: string }
+const COMMENTS_KEY = "devinspector:comments"
+
+/** The comments as one brief, the file first — that is the point of the tool. */
+const briefOf = (cs: Comment[]) =>
+  cs.map((c) => `${c.where ?? "unresolved"}  <${c.chain || "—"}>  ${c.desc}  on ${c.path}\n  ${c.text}`).join("\n\n")
 
 type Info = {
   file: string | null
@@ -243,12 +291,51 @@ export function DevInspector() {
   /** Bumped on scroll and resize so the boxes re-measure; the rects are read
    *  during render, so a re-render is the whole update. */
   const [, setTick] = useState(0)
+  /** Which of the dock's popovers is up. */
+  const [tool, setTool] = useState<"comments" | "settings" | null>(null)
+  const [prefs, setPrefs] = useState<Prefs>(PREFS)
+  const [comments, setComments] = useState<Comment[]>([])
+  /** The dock waits for the saved prefs, or a dock you sent to the edge would
+   *  open on every reload and then jump shut (Brendan, 2026-09-13). */
+  const [ready, setReady] = useState(false)
   const lastEl = useRef<Element | null>(null)
+  /** The inspector on or off: the long press, the dock's crosshair and the gear's switch all pull this one handle. */
+  const toggleInspect = useCallback(() => {
+    setInspecting((v) => !v)
+    setFrozen(null)
+    setHover(null)
+    lastEl.current = null
+  }, [])
   /** The key handler is mounted once; without this it would close over the
    *  selection as it stood then, and walking would always start from null. */
   const frozenRef = useRef<Node | null>(null)
   frozenRef.current = frozen
   const armed = alt || latched || inspecting
+  const HELD = useMemo(() => heldBy(prefs.hold), [prefs.hold])
+
+  // Read once the browser is there, so the first render matches the server's.
+  useEffect(() => {
+    if (!IS_DEV) return
+    try {
+      const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null")
+      if (p) setPrefs({ ...PREFS, ...p })
+      const c = JSON.parse(localStorage.getItem(COMMENTS_KEY) ?? "[]")
+      if (Array.isArray(c)) setComments(c)
+    } catch {}
+    setReady(true)
+  }, [])
+  const savePrefs = (next: Prefs) => {
+    setPrefs(next)
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next))
+    } catch {}
+  }
+  const saveComments = (next: Comment[]) => {
+    setComments(next)
+    try {
+      localStorage.setItem(COMMENTS_KEY, JSON.stringify(next))
+    } catch {}
+  }
 
   const read = useCallback(async (el: Element): Promise<Node> => {
     const chain = ownerChain(fiberOf(el))
@@ -302,6 +389,12 @@ export function DevInspector() {
   useEffect(() => {
     if (!IS_DEV) return
     const down = (e: KeyboardEvent) => {
+      // Keys typed into the dock's own fields are text, not commands — an
+      // arrow in the comment box must not walk the tree.
+      if ((e.target as HTMLElement | null)?.closest?.("[data-devinspector] :is(input, textarea, select)")) {
+        if (e.key === "Escape") setTool(null)
+        return
+      }
       if (e.altKey && e.shiftKey && e.code === "KeyI") {
         e.preventDefault()
         setLatched((v) => !v)
@@ -314,6 +407,7 @@ export function DevInspector() {
         setHover(null)
         setFrozen(null)
         setInspecting(false)
+        setTool(null)
         // Including the full-page layer wash, which had no way out but the
         // panel (Brendan, 2026-09-12).
         setFilter(new Set())
@@ -364,7 +458,7 @@ export function DevInspector() {
       window.removeEventListener("keyup", up)
       window.removeEventListener("blur", blur)
     }
-  }, [latched, inspecting, read])
+  }, [latched, inspecting, read, HELD])
 
   const onMove = useCallback(
     (e: MouseEvent) => {
@@ -386,7 +480,7 @@ export function DevInspector() {
       lastEl.current = el
       void read(el)
     },
-    [alt, latched, inspecting, frozen, read]
+    [alt, latched, inspecting, frozen, read, HELD]
   )
 
   const onClick = useCallback(
@@ -400,7 +494,7 @@ export function DevInspector() {
       setFrozen(n)
       if (!inspecting) setOpen(true)
     },
-    [latched, inspecting, read]
+    [latched, inspecting, read, HELD]
   )
 
   /**
@@ -408,7 +502,10 @@ export function DevInspector() {
    * cancels). One deliberate difference: they preventDefault the keydown,
    * which kills native Cut for as long as the tool is mounted. ⌘C is Copy, and
    * a page you cannot copy from is a worse tool than no shortcut, so the
-   * default stands — a quick ⌘C still copies, and a held one also opens this.
+   * default stands — a quick ⌘C still copies, and a held one toggles this.
+   * Always live (Brendan, 2026-09-13): the shortcut and the gear's switch are
+   * two handles on the same state, the inspector itself — one is never a
+   * setting that disables the other.
    */
   useEffect(() => {
     if (!IS_DEV) return
@@ -422,7 +519,9 @@ export function DevInspector() {
       if (e.key !== "c" || !mod || e.repeat || timer !== null) return
       timer = window.setTimeout(() => {
         timer = null
-        setInspecting(true)
+        // A toggle, the same as the dock's crosshair (Brendan, 2026-09-13):
+        // the press that opens it closes it.
+        toggleInspect()
       }, 600)
     }
     const up = (e: KeyboardEvent) => {
@@ -435,7 +534,7 @@ export function DevInspector() {
       document.removeEventListener("keyup", up)
       cancel()
     }
-  }, [])
+  }, [toggleInspect])
 
   // Everything above the selection opens, so the row it lands on is drawn —
   // without re-rooting, which is what used to throw the ancestors off the top.
@@ -468,7 +567,8 @@ export function DevInspector() {
     tag.textContent = [
       "*, *::before, *::after { cursor: crosshair !important }",
       "[data-devinspector], [data-devinspector] * { cursor: default !important }",
-      "[data-devinspector] button, [data-devinspector] [role=switch] { cursor: pointer !important }",
+      "[data-devinspector] button, [data-devinspector] [role=switch], [data-devinspector] select { cursor: pointer !important }",
+      "[data-devinspector] textarea { cursor: text !important }",
       "[data-devinspector] [data-grip] { cursor: grab !important }",
     ].join("\n")
     document.head.append(tag)
@@ -550,16 +650,21 @@ export function DevInspector() {
 
       {/* The dock stays while the panel is open (Brendan, 2026-09-12) — the
           crosshair has to stay reachable with the module up. */}
-      <Dock
-        onOpen={() => setOpen(true)}
+      {ready && <Dock
         inspecting={inspecting}
-        onInspect={() => {
-          setInspecting((v) => !v)
-          setFrozen(null)
-          setHover(null)
-          lastEl.current = null
-        }}
-      />
+        onInspect={toggleInspect}
+        open={open}
+        onOpen={() => setOpen((v) => !v)}
+        latched={latched}
+        setLatched={setLatched}
+        tool={tool}
+        setTool={setTool}
+        pinned={frozen}
+        comments={comments}
+        setComments={saveComments}
+        prefs={prefs}
+        setPrefs={savePrefs}
+      />}
 
       {open && (
         <Panel
@@ -581,6 +686,7 @@ export function DevInspector() {
           }}
           expanded={expanded}
           setExpanded={setExpanded}
+          hold={prefs.hold}
         />
       )}
     </>
@@ -845,7 +951,7 @@ function useDrag<T extends HTMLElement>(fallback: React.CSSProperties) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("button:not([data-drag])")) return
+    if ((e.target as HTMLElement).closest("button:not([data-drag]), [data-nodrag]")) return
     const r = ref.current?.getBoundingClientRect()
     if (!r) return
     grab.current = { dx: e.clientX - r.left, dy: e.clientY - r.top }
@@ -871,6 +977,8 @@ function useDrag<T extends HTMLElement>(fallback: React.CSSProperties) {
     ref,
     style: pos ? { left: pos.x, top: pos.y } : fallback,
     moved,
+    /** Back to the fallback — for when the fallback itself changes. */
+    reset: () => setPos(null),
     handlers: { onPointerDown, onPointerMove, onPointerUp },
   }
 }
@@ -882,11 +990,12 @@ function useDrag<T extends HTMLElement>(fallback: React.CSSProperties) {
  * right: 32 and sliding flush to right: 0 when minimized, where the radius
  * goes flat on the edge it meets. The same tab RailToggle already wears.
  *
- * Theirs sits at bottom: 32. Ours sits 36 above that, so the two stack in the
- * corner and can be told apart at a glance while both are mounted.
+ * Theirs sits 32 from the edge. Ours sits 36 further in on the vertical, so the
+ * two stack in the corner and can be told apart at a glance while both are
+ * mounted.
  */
 const DOCK = { bg: "#18181b", shadow: "0 4px 16px rgba(0,0,0,0.5)", h: 32, quiet: "#71717a", loud: "#fafafa" }
-const DOCK_BOTTOM = 32 + 36
+const DOCK_INSET = 32 + 36
 
 /** Their tooltip, to its own numbers (ui-components/dist/index.js:56–71 for
  *  the popup, :13–30 for the keycap), and their 300ms delay. */
@@ -963,6 +1072,7 @@ function DockButton({
   label,
   shortcut,
   on,
+  badge,
   onClick,
   children,
   width = DOCK.h,
@@ -970,6 +1080,8 @@ function DockButton({
   label: string
   shortcut?: string
   on?: boolean
+  /** A count in the corner, the way their Comments button wears one. */
+  badge?: number
   onClick: () => void
   children: React.ReactNode
   width?: number
@@ -988,6 +1100,7 @@ function DockButton({
           e.currentTarget.style.color = on ? BLUE : DOCK.quiet
         }}
         style={{
+          position: "relative",
           display: "flex",
           height: DOCK.h,
           width,
@@ -1001,26 +1114,88 @@ function DockButton({
         }}
       >
         {children}
+        {badge ? (
+          <span
+            style={{
+              position: "absolute",
+              top: 3,
+              right: 3,
+              minWidth: 14,
+              height: 14,
+              padding: "0 3px",
+              borderRadius: 7,
+              background: BLUE,
+              color: "#fff",
+              font: "600 9px/14px system-ui, sans-serif",
+              textAlign: "center",
+            }}
+          >
+            {badge}
+          </span>
+        ) : null}
       </button>
     </Tip>
   )
 }
 
 function Dock({
-  onOpen,
   inspecting,
   onInspect,
+  open,
+  onOpen,
+  latched,
+  setLatched,
+  tool,
+  setTool,
+  pinned,
+  comments,
+  setComments,
+  prefs,
+  setPrefs,
 }: {
-  onOpen: () => void
   inspecting: boolean
   onInspect: () => void
+  open: boolean
+  onOpen: () => void
+  latched: boolean
+  setLatched: (v: boolean) => void
+  tool: "comments" | "settings" | null
+  setTool: (t: "comments" | "settings" | null) => void
+  pinned: Node | null
+  comments: Comment[]
+  setComments: (c: Comment[]) => void
+  prefs: Prefs
+  setPrefs: (p: Prefs) => void
 }) {
-  const [minimized, setMinimized] = useState(false)
+  // Whether the dock sits at the edge is remembered with the rest of the
+  // prefs, the way react-trace remembers its own (Brendan, 2026-09-13: a
+  // closed dock reopening on every reload).
+  const minimized = prefs.minimized
+  const right = prefs.corner.endsWith("right")
+  const top = prefs.corner.startsWith("top")
   // Toward the edge closes, away from it opens — the rails' idiom.
-  const Chevron = minimized ? ChevronLeft : ChevronRight
+  const Chevron = minimized === right ? ChevronLeft : ChevronRight
   // The grip is the handle; useDrag already ignores a press that lands on a
   // button, so the icons stay clickable while the bar itself drags.
-  const d = useDrag<HTMLDivElement>({ bottom: DOCK_BOTTOM, right: minimized ? 0 : 32 })
+  const fallback: React.CSSProperties = {}
+  fallback[top ? "top" : "bottom"] = DOCK_INSET
+  fallback[right ? "right" : "left"] = minimized ? 0 : 32
+  const d = useDrag<HTMLDivElement>(fallback)
+  const toggle = (
+    <DockButton
+      label={minimized ? "Show the dock" : "Send the dock to the edge"}
+      width={16}
+      onClick={() => {
+        setPrefs({ ...prefs, minimized: !minimized })
+        setTool(null)
+      }}
+    >
+      <Chevron className="size-4" aria-hidden />
+    </DockButton>
+  )
+  // A mode: the page under the pointer behaves differently while one is on.
+  // The popovers are not modes — their icons go blue, the bar does not.
+  const active = inspecting || latched || open
 
   return (
     <div
@@ -1034,9 +1209,12 @@ function Dock({
         alignItems: "center",
         overflow: "visible",
         background: DOCK.bg,
-        borderRadius: minimized ? "10px 0 0 10px" : 10,
+        borderRadius: minimized ? (right ? "10px 0 0 10px" : "0 10px 10px 0") : 10,
         boxShadow: DOCK.shadow,
-        transition: "right 0.3s ease, border-radius 0.3s ease",
+        // Their ring, to the number (core/dist/index.js:1708): 2px of blue
+        // while a mode runs, 2px of nothing otherwise so the bar never jumps.
+        outline: active ? `2px solid ${BLUE}` : "2px solid transparent",
+        transition: "right 0.3s ease, left 0.3s ease, border-radius 0.3s ease",
         userSelect: "none",
         touchAction: "none",
         height: DOCK.h,
@@ -1044,6 +1222,7 @@ function Dock({
         zIndex: 2147483647,
       }}
     >
+      {!right && toggle}
       {!minimized && (
         <>
           <div
@@ -1063,25 +1242,349 @@ function Dock({
           </div>
           <DockButton
             label="Inspector"
-            shortcut={inspecting ? "Esc to exit" : "Long-press ⌘C"}
+            shortcut={inspecting ? "Esc, or long-press ⌘C" : "Long-press ⌘C"}
             on={inspecting}
             onClick={onInspect}
           >
             <Crosshair className="size-4" aria-hidden />
           </DockButton>
-          <DockButton label="Classifier" onClick={onOpen}>
+          <DockButton label="Classifier" on={open} onClick={onOpen}>
             <SquareDashedMousePointer className="size-4" aria-hidden />
+          </DockButton>
+          <DockButton
+            label="Comments"
+            on={tool === "comments"}
+            badge={comments.length}
+            onClick={() => setTool(tool === "comments" ? null : "comments")}
+          >
+            <MessageSquare className="size-4" aria-hidden />
+          </DockButton>
+          <DockButton label="Settings" on={tool === "settings"} onClick={() => setTool(tool === "settings" ? null : "settings")}>
+            <Cog className="size-4" aria-hidden />
           </DockButton>
         </>
       )}
-      <DockButton
-        label={minimized ? "Show the dock" : "Send the dock to the edge"}
-        width={16}
-        onClick={() => setMinimized((v) => !v)}
-      >
-        <Chevron className="size-4" aria-hidden />
-      </DockButton>
+      {right && toggle}
+      {tool === "comments" && (
+        <CommentsPop top={top} right={right} pinned={pinned} comments={comments} setComments={setComments} hold={prefs.hold} onClose={() => setTool(null)} />
+      )}
+      {tool === "settings" && (
+        <PrefsPop
+          top={top}
+          right={right}
+          prefs={prefs}
+          setPrefs={(p) => {
+            setPrefs(p)
+            // A dragged bar goes back to its corner, or the new corner would
+            // never show.
+            d.reset()
+          }}
+          inspecting={inspecting}
+          onInspect={onInspect}
+          latched={latched}
+          setLatched={setLatched}
+          onClose={() => setTool(null)}
+        />
+      )}
     </div>
+  )
+}
+
+// ── the dock's popovers ─────────────────────────────────────────────────────
+
+/** Off the dock, on the side away from the edge it sits on. Their popup is
+ *  320 wide (core/dist/index.js:1550); the surface is the panel's, since it is
+ *  ours and not theirs. */
+function Pop({
+  top,
+  right,
+  title,
+  actions,
+  onClose,
+  children,
+}: {
+  top: boolean
+  right: boolean
+  title: string
+  actions?: React.ReactNode
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  const at: React.CSSProperties = {}
+  at[top ? "top" : "bottom"] = "calc(100% + 8px)"
+  at[right ? "right" : "left"] = 0
+  return (
+    <div
+      data-nodrag
+      role="dialog"
+      aria-label={title}
+      style={{
+        position: "absolute",
+        ...at,
+        width: 320,
+        maxHeight: "min(60vh, 480px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        borderRadius: 12,
+        border: "1px solid var(--border)",
+        background: "var(--popover)",
+        color: "var(--popover-foreground)",
+        boxShadow: "0 4px 32px rgba(0,0,0,0.18)",
+        font: "13px/1.6 var(--font-sans, ui-sans-serif), sans-serif",
+        textAlign: "left",
+        userSelect: "text",
+        cursor: "default",
+      }}
+    >
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+        <span className="min-w-0 flex-1 truncate" style={{ fontSize: 14, fontWeight: 500 }}>
+          {title}
+        </span>
+        {actions}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <span style={{ fontSize: 14, lineHeight: 1 }}>✕</span>
+        </button>
+      </div>
+      <div style={{ overflowY: "auto", padding: "10px 14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+    </div>
+  )
+}
+
+/** A note goes on whatever is pinned; the list is every note so far, on any
+ *  page, and the copy in the header is all of them as one brief. */
+function CommentsPop({
+  top,
+  right,
+  pinned,
+  comments,
+  setComments,
+  hold,
+  onClose,
+}: {
+  top: boolean
+  right: boolean
+  pinned: Node | null
+  comments: Comment[]
+  setComments: (c: Comment[]) => void
+  hold: Hold
+  onClose: () => void
+}) {
+  const [text, setText] = useState("")
+  const [copied, setCopied] = useState(false)
+  const words = text.trim()
+  const here = window.location.pathname
+
+  const add = () => {
+    if (!pinned || !words) return
+    setComments([
+      ...comments,
+      {
+        id: crypto.randomUUID(),
+        path: here,
+        where: where(pinned.info),
+        chain: pinned.chain.join(" ▸ "),
+        desc: pinned.desc,
+        gist: pinned.gist,
+        text: words,
+      },
+    ])
+    setText("")
+  }
+  const copyAll = () => {
+    void navigator.clipboard.writeText(briefOf(comments))
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <Pop
+      top={top}
+      right={right}
+      title={comments.length ? `Comments · ${comments.length}` : "Comments"}
+      onClose={onClose}
+      actions={
+        comments.length > 0 && (
+          <>
+            <button type="button" onClick={copyAll} title="Copy all as one brief" style={bare}>
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </button>
+            <button type="button" onClick={() => setComments([])} style={{ ...bare, fontSize: 11 }}>
+              clear
+            </button>
+          </>
+        )
+      }
+    >
+      <div>
+        {pinned ? (
+          <p style={{ fontFamily: "ui-monospace, monospace", fontSize: 11.5, margin: 0, wordBreak: "break-all" }}>
+            {where(pinned.info) ?? (pinned.chain.join(" ▸ ") || pinned.desc)}
+          </p>
+        ) : (
+          <p style={{ ...note, margin: 0 }}>
+            Pin an element first — the crosshair, {hold === "off" ? "or ARM and click" : `or ${HOLD_NAME[hold]}-click`} — and the note goes on it.
+          </p>
+        )}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={!pinned}
+          placeholder="Add comment"
+          rows={2}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault()
+              add()
+            }
+          }}
+          style={{
+            marginTop: 6,
+            width: "100%",
+            boxSizing: "border-box",
+            resize: "vertical",
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            color: "inherit",
+            font: "inherit",
+            fontSize: 12.5,
+            padding: "5px 8px",
+          }}
+        />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+          <button
+            type="button"
+            onClick={add}
+            disabled={!pinned || !words}
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.12em",
+              padding: "3px 8px",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "inherit",
+              cursor: "pointer",
+              opacity: !pinned || !words ? 0.5 : 1,
+            }}
+          >
+            ADD
+          </button>
+        </div>
+      </div>
+      {comments.length > 0 && (
+        <div>
+          {comments.map((c) => (
+            <div key={c.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", padding: "5px 0", borderTop: "1px solid var(--border)" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 11, wordBreak: "break-all", color: "var(--muted-foreground)" }}>
+                  {c.where ?? (c.chain || c.desc)}
+                  {c.path !== here ? ` · ${c.path}` : ""}
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: 12.5, whiteSpace: "pre-wrap" }}>{c.text}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Remove comment"
+                onClick={() => setComments(comments.filter((x) => x.id !== c.id))}
+                style={{ ...bare, fontSize: 13, lineHeight: 1, paddingTop: 3 }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Pop>
+  )
+}
+
+/** Their Core settings (the corner) and our two switches. */
+function PrefsPop({
+  top,
+  right,
+  prefs,
+  setPrefs,
+  inspecting,
+  onInspect,
+  latched,
+  setLatched,
+  onClose,
+}: {
+  top: boolean
+  right: boolean
+  prefs: Prefs
+  setPrefs: (p: Prefs) => void
+  inspecting: boolean
+  onInspect: () => void
+  latched: boolean
+  setLatched: (v: boolean) => void
+  onClose: () => void
+}) {
+  const row: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontSize: 12.5 }
+  return (
+    <Pop top={top} right={right} title="Settings" onClose={onClose}>
+      <label style={row}>
+        <span>Hold to read the element under the pointer</span>
+        <select
+          value={prefs.hold}
+          onChange={(e) => setPrefs({ ...prefs, hold: e.target.value as Hold })}
+          style={{
+            font: "inherit",
+            fontSize: 12,
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            color: "inherit",
+            padding: "3px 6px",
+            cursor: "pointer",
+          }}
+        >
+          {HOLDS.map((h) => (
+            <option key={h.value} value={h.value}>
+              {h.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={row}>
+        <span>Corner</span>
+        <select
+          value={prefs.corner}
+          onChange={(e) => setPrefs({ ...prefs, corner: e.target.value as Corner })}
+          style={{
+            font: "inherit",
+            fontSize: 12,
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+            background: "var(--background)",
+            color: "inherit",
+            padding: "3px 6px",
+            cursor: "pointer",
+          }}
+        >
+          {CORNERS.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div style={row}>
+        <span>Inspector (long-press ⌘C)</span>
+        <Switch on={inspecting} onChange={(v) => { if (v !== inspecting) onInspect() }} label="Inspector (long-press ⌘C)" />
+      </div>
+      <div style={row}>
+        <span>Keep armed (⌥⇧I)</span>
+        <Switch on={latched} onChange={setLatched} label="Keep the inspector armed (⌥⇧I)" />
+      </div>
+    </Pop>
   )
 }
 
@@ -1318,6 +1821,7 @@ function Panel({
   onSelect,
   expanded,
   setExpanded,
+  hold,
 }: {
   onClose: () => void
   latched: boolean
@@ -1335,6 +1839,7 @@ function Panel({
   onSelect: (el: Element) => void
   expanded: Set<Element>
   setExpanded: React.Dispatch<React.SetStateAction<Set<Element>>>
+  hold: Hold
 }) {
   const d = useDrag<HTMLDivElement>({ top: 18, right: 18 })
   // Filtering needs the page scanned. Doing it here rather than in an effect
@@ -1506,7 +2011,9 @@ function Panel({
             <span>Selection</span>
           </Head>
           {!hover ? (
-            <p style={note}>Hold ⌥ or ⌘ and hover. ⌥↑ / ⌥↓ walks up and down the tree.</p>
+            <p style={note}>
+              {hold === "off" ? "Turn ARM on and hover, or use the crosshair." : `Hold ${HOLD_NAME[hold]} and hover.`} ⌥↑ / ⌥↓ walks up and down the tree.
+            </p>
           ) : (
             <>
               {/* The path is the answer, so it reads at full ink and full size.

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import type { TElement } from 'platejs';
 import { KEYS } from 'platejs';
-import { useEditorRef, useSelectionFragmentProp } from 'platejs/react';
+import { useEditorRef } from 'platejs/react';
 import * as React from 'react';
 import { getBlockType, setBlockType } from '@/components/plate/editor/transforms';
 import {
@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/plate/ui/dropdown-menu';
 
+import { useSelectionBlockProp } from './use-selection-block-prop';
 import { ToolbarButton, ToolbarMenuGroup } from './toolbar';
 
 export const turnIntoItems = [
@@ -137,7 +138,7 @@ export function TurnIntoToolbarButton(props: DropdownMenuProps) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
 
-  const value = useSelectionFragmentProp({
+  const value = useSelectionBlockProp({
     defaultValue: KEYS.p,
     getProp: (node) => getBlockType(node as TElement),
   });
