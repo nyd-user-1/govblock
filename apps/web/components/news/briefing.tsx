@@ -12,7 +12,9 @@ import {
 } from "@/lib/agents/run-client"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import type { NewsBrief } from "@/lib/policy/news"
+import { Prose } from "@/app/agents/transcript"
 import { StreamingResponse } from "@/components/agents/streaming-response"
+import { BriefSources } from "@/components/news/brief-sources"
 import { SearchDirectory } from "@/components/directory-search"
 import { FlagChip } from "@/components/policy/imagery"
 import { NotebookPen } from "@govblock/ui/components/animate-ui/icons/notebook-pen"
@@ -52,50 +54,25 @@ function briefPhrase(brief: NewsBrief) {
 const sourceCount = (brief: NewsBrief) =>
   brief.grounding.find((g) => g.field === "content")?.citations?.length ?? 0
 
-const sourcesOf = (brief: NewsBrief): Source[] =>
+// The outlet is not on the citation; BriefSources looks it up.
+const sourcesOf = (brief: NewsBrief): Pick<Source, "id" | "title" | "url">[] =>
   (brief.grounding.find((g) => g.field === "content")?.citations ?? []).map(
-    (c) => ({
-      id: c.url,
-      title: c.title,
-      url: c.url,
-      domain: /^https?:/.test(c.url)
-        ? new URL(c.url).hostname.replace(/^www\./, "")
-        : "the record",
-    })
+    (c) => ({ id: c.url, title: c.title, url: c.url })
   )
 
 /**
- * A briefing as it reads: a lede, then the bullets. The same shape whether it
- * is arriving a word at a time or was filed days ago, so nothing shifts when
- * the run ends.
+ * A briefing as it reads: a lede, then the bullets, through the same small
+ * renderer the changelog and the agents' answers use (Brendan, 2026-09-13:
+ * nothing outside the editor renders through Plate). The wire writes its
+ * bullets as "• ", which the renderer reads as "- ".
  */
 function BriefBody({ text }: { text: string }) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-  const blocks: React.ReactNode[] = []
-  let bullets: string[] = []
-  const flush = (key: string) => {
-    if (!bullets.length) return
-    blocks.push(
-      <ul key={key}>
-        {bullets.map((b, i) => (
-          <li key={i}>{b}</li>
-        ))}
-      </ul>
-    )
-    bullets = []
-  }
-  lines.forEach((line, i) => {
-    if (/^[•\-*]\s/.test(line)) bullets.push(line.replace(/^[•\-*]\s+/, ""))
-    else {
-      flush(`u${i}`)
-      blocks.push(<p key={`p${i}`}>{line}</p>)
-    }
-  })
-  flush("u-last")
-  return <>{blocks}</>
+  const markdown = React.useMemo(() => text.replace(/^([ \t]*)•[ \t]+/gm, "$1- "), [text])
+  return (
+    <div className="whitespace-pre-wrap">
+      <Prose text={markdown} />
+    </div>
+  )
 }
 
 type Reply = {
@@ -278,7 +255,7 @@ function Briefing({
   heading: React.ReactNode
   byline: string
   text: string
-  sources: Source[]
+  sources: Pick<Source, "title" | "url">[]
   streaming: boolean
 }) {
   return (
@@ -289,12 +266,12 @@ function Briefing({
       <p className="text-sm text-muted-foreground">{byline}</p>
       <StreamingResponse
         status={streaming ? "streaming" : "complete"}
-        sources={sources}
         showActions={false}
         contentClassName="typeset text-base"
       >
         <BriefBody text={text} />
       </StreamingResponse>
+      {!streaming && <BriefSources sources={sources} />}
     </section>
   )
 }
