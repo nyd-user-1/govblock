@@ -120,23 +120,30 @@ setInterval(async () => {
     for (const [id, t] of mine) {
       tasks.delete(id)
       if (id === culprit || t.retried) t.resolve({ seq: id, ok: false, stage: "parse", reason: "front end did not finish", detail: `${t.task.info.work} ran past ${STALL_MS / 1000} s` })
-      else compile(t.task, true).then(t.resolve)
+      else submit(t.task, true).then(({ result }) => result.then(t.resolve))
     }
     wake()
   }
 }, 10_000).unref()
 
-/** A document to the least busy thread; resolves with its result. Waits while every thread is full. */
-async function compile(task, retried = false) {
+/**
+ * A document to the least busy thread, once one has room: resolves when it
+ * is handed over, with `result` for its outcome. A job reads its next
+ * document only after this resolves. (Handing every document over at once
+ * left New York 2025's 34,216 printings waiting in memory, each woken on
+ * every reply from every thread, and the controller did nothing else.)
+ */
+async function submit(task, retried = false) {
   for (;;) {
     const w = pool.reduce((a, b) => (b.pending < a.pending ? b : a))
     if (w.pending < CAPACITY) {
       w.pending++
       const id = ++seq
-      return new Promise((resolve) => {
+      const result = new Promise((resolve) => {
         tasks.set(id, { resolve, task, worker: w, retried })
         w.postMessage({ seq: id, frontEnd: task.frontEnd, source: task.source, info: task.info })
       })
+      return { result }
     }
     await new Promise((r) => waiters.push(r))
   }
@@ -226,7 +233,8 @@ async function runJob(job) {
         label: item.label ?? null, fidelity: item.info.fidelity, source_url: item.sourceUrl ?? null, source_ref: item.sourceRef ?? null,
         source_hash: sourceHash, builder: BUILDER, job_id: job.id,
       }
-      const p = compile({ frontEnd: item.frontEnd, source: item.source, info }).then(async (r) => {
+      const { result } = await submit({ frontEnd: item.frontEnd, source: item.source, info })
+      const p = result.then(async (r) => {
         inflight.delete(p)
         if (!r.ok) {
           counts.fellOut++
