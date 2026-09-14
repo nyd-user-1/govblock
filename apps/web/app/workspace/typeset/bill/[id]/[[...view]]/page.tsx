@@ -78,7 +78,7 @@ export default async function TypesetBillPage({ params, searchParams }: { params
         console.error("xml view: could not build", bill.bill_id, error)
         return null
       })
-      if (doc) xml = { snapshot: doc.html, meta: { documentId: doc.documentId, version: doc.version, date: doc.date, work: doc.work, expression: doc.expression, fidelity: doc.fidelity, dialect: doc.dialect, sourceUrl: doc.sourceUrl } }
+      if (doc) xml = { snapshot: doc.html, meta: { documentId: doc.documentId, version: doc.version, date: doc.date, work: doc.work, expression: doc.expression, fidelity: doc.fidelity, dialect: doc.dialect, sourceUrl: doc.sourceUrl, captured: doc.captured } }
     }
   }
   return (

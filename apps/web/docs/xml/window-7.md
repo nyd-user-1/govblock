@@ -3,6 +3,68 @@
 Report to the lead. Newest milestone first. Each part is taken by the window
 that claims its item in `apps/web/lib/xml/todo.ts`, under its own heading.
 
+## Part 3, California (`ca-captures`, claimed by window 4)
+
+### Milestone 1 — the count, why the drop rule missed them, the compile fixed (2026-09-14, 14:15 UTC)
+
+**The count.** California's `state_link` texts with any text: **581**, all
+in the 2025 session. Every one is a leginfo page: "Bill Text - AB-1969 …",
+then `/* Hide page by default*/ html { display : none; }` and the frame-busting
+script. (The other `state_link` rows, 2017–2023, hold no text: the walker
+recorded robots.txt's refusal.) Counted by session and source, the text
+read only from its first 4,000 characters, no random order.
+
+| Kind | Captures |
+|---|---|
+| Amended | 283 |
+| Enrolled | 249 |
+| Chaptered | 46 |
+| Introduced | 3 |
+
+**Window 5's reading holds, and it is worse than a name.** The clean feed
+(`ca-pubinfo`) names a printing "Amended Assembly (v96)", the capture
+"Amended", so the drop rule in `printings.mjs` dropped none of the 581. Matched
+by the version number in each capture's own link (`…AB1969#96AMD` against
+`(v96)`):
+
+- 170 captures are printings the clean feed already holds, 169 of them under
+  the loader's synthetic ids.
+- 408 are **newer printings the clean feed does not hold**: its 2025 rows were
+  last loaded 2026-08-29, before the enrollments and chapters. So re-fetching
+  is needed, not only dropping.
+- 3 bills (ACA 24, HR 141, SCR 198) have no clean text at all.
+
+**The compile, fixed** (`scripts/xml/sources/printings.mjs`):
+
+- A captured web page is never a printing, whatever it is called. Its row
+  still dates the printings around it.
+- The loader's synthetic-id copy of a printing that is also stored under its
+  real id counts once, under the real id.
+- Tested on a California-shaped bill: the page is dropped and v96 is kept once.
+  **Found, not fixed (window 2's or window 8's to rule):** printings are
+  ordered by `|document_id|`, and the loader's synthetic ids run to hundreds of
+  millions, so a synthetic introduced printing sorts after a real amended one
+  and takes the later date.
+
+**The reader** says so in the source line instead of drawing a captured page
+("The stored text of this printing is the legislature's web page, not the bill,
+so it is not drawn; a clean copy is being fetched."):
+`lib/typeset/xml-document.ts` flags it, and the bill page passes it into
+`XmlMeta`. Bounded type check: 0 diagnostics.
+
+**The re-fetch, next.** The existing loader, livingston
+`api/_lib/text-sources/ca-pubinfo.ts`, over the Legislative Counsel's
+2025 dump (`pubinfo_2025.zip`, 1.28 GB, refreshed 2026-09-14 04:26 UTC). It
+writes each version under the LegiScan `document_id` its link names, so a
+capture's row is replaced by the bill in the loader's own upsert. It runs where
+the loader reaches Aurora's private endpoint (not this Mac): the livingston
+worker box. It waits on Brendan's word for this write, asked directly.
+
+**Virginia, same check:** 14:05 UTC, 473 tried, 448 stored, 0 refused,
+0.78/s (34.4 h left). Window 8's controller is on the same box now (500 MB);
+Virginia's pace dropped from 0.90 to 0.78 a second, which is the Data API
+sharing, not the legislature refusing.
+
 ## Part 1, Virginia (`va-refetch`, claimed by window 4)
 
 ### Milestone 3 — the full run is going, on the pipeline box (2026-09-14, 13:58 UTC)

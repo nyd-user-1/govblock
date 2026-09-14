@@ -27,6 +27,9 @@ import type { Bill } from "@/lib/policy/types"
 /** Goes up when the front ends, uslmToDoc or the HTML converter change what they produce. */
 export const XML_BUILDER = 1
 
+/** A legislature's web page stored as the bill: California leginfo's hide-the-page style and frame-busting script (scripts/xml/sources/printings.mjs holds the same test). */
+const CAPTURED_PAGE = /\/\*\s*Hide page by default\s*\*\/|window\.top\.location\.replace|<script\b/i
+
 export type XmlTimings = { fetchMs: number; frontMs: number; docMs: number; htmlMs: number; totalMs: number }
 export type XmlBytes = { source: number; json: number; html: number }
 
@@ -41,6 +44,8 @@ export type XmlDocument = {
   fidelity: Fidelity
   dialect: string
   sourceUrl: string | null
+  /** The stored text is a web page captured in place of the printing, and is not drawn. */
+  captured: boolean
   json: unknown
   html: string
   front: ParseReport | null
@@ -72,12 +77,15 @@ export async function buildXmlDocument(bill: Bill, version?: number): Promise<Xm
 
   t = performance.now()
   let fidelity: Fidelity = "plain-text"
+  let captured = false
   let parsed
   if (xml) {
     parsed = frontEndFor(bill.state).parse({ kind: "xml", body: xml, url: text?.url, jurisdiction: bill.state })
     fidelity = "native-xml"
   } else {
-    const body = text?.text ?? ""
+    // A legislature's web page stored in place of the bill (California's leginfo captures) is not drawn as the bill; the source line says so.
+    captured = CAPTURED_PAGE.test((text?.text ?? "").slice(0, 4000))
+    const body = captured ? "" : (text?.text ?? "")
     try {
       parsed = frontEndFor(bill.state).parse({ kind: "text", body, url: text?.url, jurisdiction: bill.state })
     } catch {
@@ -111,6 +119,7 @@ export async function buildXmlDocument(bill: Bill, version?: number): Promise<Xm
     fidelity,
     dialect: parsed.report.dialect,
     sourceUrl: text?.url ?? null,
+    captured,
     json,
     html,
     front: parsed.report,

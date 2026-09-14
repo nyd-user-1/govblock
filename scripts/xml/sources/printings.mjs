@@ -3,6 +3,9 @@
 // gets the same address whichever read it first.
 import { sessionSegment, stageSlug, stateBillWork } from "../lib/address.mjs"
 
+/** A legislature's web page stored as the bill: California leginfo's hide-the-page style and frame-busting script. */
+export const CAPTURED_PAGE = /\/\*\s*Hide page by default\s*\*\/|window\.top\.location\.replace|<script\b/i
+
 // A document that rides along with a bill but is not a printing of it.
 export const NOT_A_PRINTING = /memo|fiscal|analysis|summary|note\b|report|statement|testimony|veto|vote|letter|fetch failed|crs/i
 
@@ -35,14 +38,31 @@ const isoDay = (v) => {
 export function* printingsOfBill({ state, unit, bill, docs, actions }) {
   const session = sessionSegment(unit, bill.session_title, bill.legiscan_session_id)
   const work = stateBillWork(state, session, bill.bill_number)
-  const printed = docs.filter((t) => !NOT_A_PRINTING.test(String(t.version ?? "")))
+  // A web page captured in place of the bill is never a printing, whatever it
+  // is called: California's leginfo pages ("/* Hide page by default*/" and the
+  // frame-busting script) did not match the clean feed's version names
+  // ("Amended" against "Amended Assembly (v96)"), so the rule below alone kept
+  // all 581 of them (window 7, 2026-09-14). Its row still dates the printings
+  // around it.
+  const printed = docs.filter((t) => !NOT_A_PRINTING.test(String(t.version ?? ""))).map((t) => (t.text && CAPTURED_PAGE.test(String(t.text).slice(0, 4000)) ? { ...t, text: null } : t))
   // The same printing read twice, once from the legislature's web page
   // (state_link) and once from a clean feed (California's pubinfo, New York's
-  // Senate API): the web page is dropped. Window 1 found 581 of California's
-  // newest 3,000 state_link texts were leginfo pages, not the bill.
+  // Senate API): the web page is dropped.
   const clean = new Set(printed.filter((t) => t.source && t.source !== "state_link").map((t) => String(t.version ?? "").toLowerCase()))
+  // California's pubinfo writes a version it cannot yet match to a LegiScan
+  // document under a synthetic negative id, and the same version under the
+  // real id once the document exists: one printing, kept once, the real id.
+  const seen = new Set()
   const list = printed
     .filter((t) => !(t.source === "state_link" && clean.has(String(t.version ?? "").toLowerCase())))
+    .sort((a, b) => (Number(b.document_id) > 0) - (Number(a.document_id) > 0) || Math.abs(Number(a.document_id)) - Math.abs(Number(b.document_id)))
+    .filter((t) => {
+      const v = /\(v\d+\)\s*$/.test(String(t.version ?? "")) ? `${t.source}:${String(t.version).toLowerCase()}` : null
+      if (!v) return true
+      if (seen.has(v)) return false
+      seen.add(v)
+      return true
+    })
     .sort((a, b) => Math.abs(Number(a.document_id)) - Math.abs(Number(b.document_id)))
   if (!list.length) return
   if (!work) {
