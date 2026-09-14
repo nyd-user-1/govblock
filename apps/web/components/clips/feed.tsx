@@ -223,10 +223,15 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             <PauseIcon className="size-14 fill-white/80 text-white/80" />
           </div>
         )}
-        {clip.visibility === "private" && (
-          <span className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">
-            <LockIcon className="size-3" /> Private
-          </span>
+        {(clip.visibility === "private" || clip.status === "processing") && (
+          <div className="absolute top-3 left-3 flex gap-1.5">
+            {clip.visibility === "private" && (
+              <span className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">
+                <LockIcon className="size-3" /> Private
+              </span>
+            )}
+            {clip.status === "processing" && <span className="rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">Processing</span>}
+          </div>
         )}
         {!clip.youtube && (
           <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>

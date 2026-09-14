@@ -6,6 +6,95 @@ milestone first.
 
 ---
 
+## 1 · Record wired to Stream, and Stream has no minutes — 2026-09-14
+
+> **Key takeaways**
+>
+> - Record now writes a row in Aurora and sends the take to Cloudflare
+>   Stream by tus; the feed reads every clip back from Aurora. Every route
+>   was driven on port 3003 with a signed-in session and passed.
+> - **Stream refuses every upload: the account has no storage.**
+>   `storage-usage` reads `totalStorageMinutesLimit: 0`, and a tus create
+>   answers `10011: Storage capacity exceeded`. Stream minutes are bought
+>   in the Cloudflare dashboard (Stream → Plans: $5 a month per 1,000
+>   minutes stored, $1 per 1,000 minutes delivered). That is Brendan's
+>   purchase. Until then Record says "Clips cannot take new video right
+>   now." and nothing is written.
+> - `sql/020_clips.sql` ran on Aurora: 12 statements, three tables, no
+>   existing table touched.
+
+### 1. What was built
+
+- **`lib/policy/cloudflare-stream.ts`**: `createUpload` (a tus direct
+  creator upload with `Upload-Creator` set to the reader's id,
+  `maxDurationSeconds` 65, and `requiresignedurls` for a private take),
+  `getVideo`, `setSignedUrls`, `enableDownload`, `playbackToken` (four
+  hours, `downloadable`), `playbackUrls`.
+- **`lib/clips/server.ts`**: the feed query. Each row's links are joined
+  from the record's own tables by its ids: `congress_committee_meetings`
+  for the hearing, `congress_bills` for the bill, the House or Senate vote
+  table for the roll call. A processing clip is settled on read: Stream
+  ready, then the MP4 asked for, then `published`. A private clip's MP4 and
+  poster go out under a token, to its owner only.
+- **`app/api/clips`**: GET the feed (anyone); POST a recording (signed in;
+  401 otherwise; 503 while Stream has no room). **`app/api/clips/[id]`**:
+  PATCH visibility, title, caption, with Stream's signed-URL setting
+  changed first; DELETE from Stream and Aurora. Someone else's clip
+  answers 404.
+- **`components/clips/store.ts`**: IndexedDB is gone. `saveClip` posts
+  the row, then PATCHes the take to Stream in 50 MiB chunks with progress;
+  a failed upload deletes its row. `loadFeed` and `loadMine` read
+  `/api/clips`. `updateClip`, `deleteClip`. The desks moved to
+  `components/clips/desks.ts` so the server can file under them (a
+  `"use client"` module cannot be read on the server); `store.ts`
+  re-exports them.
+- **Page**: published Aurora clips join the feed between the reader's own
+  and the stock. A take plays from the browser's copy while Stream
+  transcodes, wearing a "Processing" badge; the feed is re-read every eight
+  seconds until it is ready. The save button counts "Sending… 42%" and
+  shows the refusal if there is one. A clip's record links sit under its
+  caption in the right rail.
+- **Capture's file picker is gone.** It sent a device file with no rights
+  question. The upload button comes back in milestone 4, through Upload.
+
+Playback is Stream's MP4 (`downloads/default.mp4`), so the feed's
+`<video>` did not change and no HLS library was added. Stream bills an
+MP4 download as the video's full duration each time it loads; for clips of
+a minute or less that is close to streaming it.
+
+### 2. How it was verified
+
+Branch server: `~/govblock-clips` on the dev box, port 3003
+(`logs/dev-3003.log`). `/clips` 200 in 15.6 s cold; `/api/clips` 200.
+Bounded typecheck of the ten touched files: 0 diagnostics.
+
+A script minted an Auth.js session for a test reader and drove the routes:
+
+| Step | Result |
+|---|---|
+| session | `u-clips-window-test` |
+| POST a recording | 503, "Clips cannot take new video right now." (Stream quota) |
+| row inserted by hand, House roll 295, H.R. 4795 | GET `mine` returns it, links `/bills/2040899` and `/roll-call-votes/house-119-2/295` |
+| PATCH to public, new title | 200; `mine` shows it public |
+| anonymous GET | the clip is in `published` |
+| PATCH a clip not the reader's | 404 |
+| DELETE | 200; `mine` empty |
+
+The test row is deleted. Upload bytes, the transcode, the MP4 and the
+token are not verified: they wait on Stream minutes.
+
+### 3. Open
+
+- **Stream minutes** (above). Nothing video-bearing can be proven until
+  they exist: not a recording, not the render, not the cut's clips.
+- Likes, saves, follows and comments are still localStorage, keyed by clip
+  id, so they already work on an Aurora clip the same as a stock one.
+- Sign-in by email link from port 3003: `main` allowed only 3000 and 3001,
+  so this branch carries the same one-line change as c974e70 on
+  `feature/legislative-xml` (3002 and 3003 added).
+
+---
+
 ## 0 · Plan, licences, and the table before it runs — 2026-09-14
 
 > **Key takeaways**

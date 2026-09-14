@@ -90,6 +90,15 @@ export function CommentsPanel({
         <Row author={clip.author} at={clip.createdAt}>
           <span className="font-semibold">{clip.title}</span> {clip.caption}
         </Row>
+        {!!clip.links?.length && (
+          <div className="-mt-1 flex flex-col gap-1 pb-2 pl-11 text-sm">
+            {clip.links.map((l) => (
+              <Link key={l.href} href={l.href} className="text-sky-600 hover:underline dark:text-sky-400">
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        )}
         {comments.map((c) => (
           <Row key={c.id} author={c.author} at={c.at} likes={c.likes + (likedComments.has(c.id) ? 1 : 0)} liked={likedComments.has(c.id)} onLike={() => onLikeComment(c.id)}>
             {c.text}

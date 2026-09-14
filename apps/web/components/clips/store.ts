@@ -1,25 +1,26 @@
 "use client"
 
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
-import { flagUrl } from "@/lib/filters"
+
+import { creatorOf } from "./desks"
 
 // The clips a reader can see, who made them, and what was said under them.
-// This is the mock's store (Brendan, 2026-09-07: "have it be a mockup, just
-// to show me how it would really look and feel, and we'd wire it up later").
-// A recording never leaves the browser — it sits in IndexedDB as a blob —
-// likes and comments a reader adds sit in localStorage, and the published set
-// is five free stock clips (Mixkit licence, no attribution required)
-// streamed from Mixkit's CDN under the desks that would have shot them.
+// This began as the mock's store (Brendan, 2026-09-07: "have it be a mockup,
+// just to show me how it would really look and feel, and we'd wire it up
+// later"). Likes and comments a reader adds still sit in localStorage, and
+// the stock set is free Mixkit clips (no attribution required) under the
+// desks that would have shot them.
 //
-// When this is wired up, `saveClip` becomes a Cloudflare Stream direct
-// creator upload (one-time URL from our /api/stream, PUT the blob to it) with
-// the reader's id and the visibility in the video's `meta`; `loadMine`
-// becomes a `listVideos` filtered on that id; likes and comments become
-// rows. Nothing that renders changes.
+// Wired (2026-09-14): `saveClip` is a Cloudflare Stream direct creator
+// upload — /api/clips hands out a one-time tus address and writes the row in
+// Aurora, the browser sends the take straight to Stream — and `loadMine`
+// reads the reader's own rows back with Stream's state. Recorded, cut and
+// generated clips all come back through the same `loadFeed`. Nothing that
+// renders changes.
+
+export { CREATORS, creatorOf, type Creator } from "./desks"
 
 export type Visibility = "private" | "public"
-
-export type Creator = { id: string; name: string; handle: string; image?: string | null; state?: string; kind: "desk" | "user" }
 
 export type Clip = {
   id: string
@@ -39,20 +40,15 @@ export type Clip = {
   views: number
   likes: number
   mine?: boolean
+  /** How a clip in Aurora came to be; absent on a stock clip. */
+  origin?: "recorded" | "cut" | "generated"
+  /** `processing` while Stream transcodes; only a clip's owner sees it then. */
+  status?: "processing" | "review" | "published" | "removed"
+  /** The record's own pages the clip is keyed to: the hearing, the bill, the roll call. */
+  links?: { label: string; href: string }[]
 }
 
 export type Comment = { id: string; clipId: string; author: { name: string; handle: string; image?: string | null }; text: string; at: string; likes: number; mine?: boolean }
-
-export const CREATORS: Creator[] = [
-  { id: "govblock", name: "GovBlock", handle: "govblock", image: flagUrl("US"), state: "US", kind: "desk" },
-  { id: "ny", name: "New York Desk", handle: "nydesk", image: flagUrl("NY"), state: "NY", kind: "desk" },
-  { id: "tx", name: "Texas Desk", handle: "txdesk", image: flagUrl("TX"), state: "TX", kind: "desk" },
-  { id: "ca", name: "California Desk", handle: "cadesk", image: flagUrl("CA"), state: "CA", kind: "desk" },
-  // A committee's own channel, found by scripts/clips/shorts.mjs (2026-09-11).
-  { id: "house-ag", name: "House Agriculture", handle: "houseagriculture", image: flagUrl("US"), state: "US", kind: "desk" },
-]
-
-export const creatorOf = (id: string) => CREATORS.find((c) => c.id === id)
 
 // 720p, not 360 (Brendan, 2026-09-11: "the video quality is just pretty
 // shitty"): five times the bytes, still under 6 MB a clip; 1080 is fifty.
@@ -371,60 +367,74 @@ export const SEED_COMMENTS: Comment[] = [
   { id: "c11", clipId: "pub-40656", author: person("Lena Fischer", "lfischer"), text: "Did the amendment get out of committee?", at: "2026-08-09T17:05:00Z", likes: 0 },
 ]
 
-/* ---- what the reader adds: IndexedDB for recordings, localStorage for the rest ---- */
+/* ---- what the reader adds: Stream for the video, Aurora for the row, localStorage for the rest ---- */
 
-const DB = "govblock-clips"
-const STORE = "clips"
+// 50 MiB a request: Stream takes tus chunks of 5 to 200 MB, in multiples of
+// 256 KiB, the last one excepted. A sixty-second take is one request.
+const CHUNK = 200 * 262_144
 
-function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 2)
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: "id" })
-    }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
+/** Sends `blob` to a one-time tus address a chunk at a time, reporting the fraction sent. */
+export async function tusUpload(url: string, blob: Blob, onProgress?: (fraction: number) => void) {
+  let offset = 0
+  while (offset < blob.size) {
+    const end = Math.min(blob.size, offset + CHUNK)
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Tus-Resumable": "1.0.0", "Upload-Offset": String(offset), "Content-Type": "application/offset+octet-stream" },
+      body: blob.slice(offset, end),
+    })
+    if (!res.ok) throw new Error(`The upload stopped at ${Math.round((offset / blob.size) * 100)}%.`)
+    offset = Number(res.headers.get("Upload-Offset")) || end
+    onProgress?.(offset / blob.size)
+  }
 }
 
-type Stored = Omit<Clip, "src" | "mine">
+export type Feed = { published: Clip[]; mine: Clip[] }
 
-export async function loadMine(): Promise<Clip[]> {
-  if (typeof indexedDB === "undefined") return []
-  const db = await open()
-  const rows = await new Promise<Stored[]>((resolve, reject) => {
-    const req = db.transaction(STORE).objectStore(STORE).getAll()
-    req.onsuccess = () => resolve(req.result as Stored[])
-    req.onerror = () => reject(req.error)
-  })
-  db.close()
-  // A recording saved before the reader had a picture wears the site's default (Brendan, 2026-09-11: "george... the standard for any user who has not added a picture").
-  return rows
-    .map((r) => ({ ...r, author: { ...r.author, image: r.author.image || DEFAULT_AVATAR }, src: r.blob ? URL.createObjectURL(r.blob) : "", mine: true }))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+// A reader without a picture wears the site's default (Brendan, 2026-09-11: "george... the standard for any user who has not added a picture").
+const withAvatar = (c: Clip): Clip => ({ ...c, author: { ...c.author, image: c.author.image || DEFAULT_AVATAR } })
+
+/** Every published clip in Aurora, whatever its origin, and the reader's own. */
+export async function loadFeed(): Promise<Feed> {
+  const res = await fetch("/api/clips", { credentials: "same-origin", cache: "no-store" }).catch(() => null)
+  if (!res?.ok) return { published: [], mine: [] }
+  const body = (await res.json()) as Feed
+  return { published: body.published.map(withAvatar), mine: body.mine.map(withAvatar) }
 }
 
-export async function saveClip(clip: Clip) {
-  const db = await open()
-  const { src: _src, mine: _mine, ...row } = clip
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite")
-    tx.objectStore(STORE).put(row)
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-  db.close()
+export const loadMine = async () => (await loadFeed()).mine
+
+async function send<T>(url: string, method: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined })
+  const out = (await res.json().catch(() => ({}))) as T & { error?: string }
+  if (!res.ok) throw new Error(out.error ?? `${res.status} ${res.statusText}`)
+  return out
+}
+
+/**
+ * A take, to Stream. The row is written first and hands back the one-time
+ * address; the bytes go from the browser to Stream directly. Until Stream has
+ * transcoded it the clip plays from the browser's own copy.
+ */
+export async function saveClip(clip: Clip, onProgress?: (fraction: number) => void): Promise<Clip> {
+  if (!clip.blob) throw new Error("Nothing was recorded.")
+  const made = await send<{ clip: Clip; uploadUrl: string }>("/api/clips", "POST", { title: clip.title, caption: clip.caption, visibility: clip.visibility, bytes: clip.blob.size, duration: clip.duration })
+  try {
+    await tusUpload(made.uploadUrl, clip.blob, onProgress)
+  } catch (error) {
+    await send("/api/clips/" + encodeURIComponent(made.clip.id), "DELETE").catch(() => {})
+    throw error
+  }
+  // A fresh object URL: the recorder revokes its own when it closes.
+  return { ...made.clip, author: clip.author, src: URL.createObjectURL(clip.blob), blob: clip.blob, poster: clip.poster, duration: clip.duration, mine: true }
+}
+
+export async function updateClip(id: string, patch: { visibility?: Visibility; title?: string; caption?: string }) {
+  await send("/api/clips/" + encodeURIComponent(id), "PATCH", patch)
 }
 
 export async function deleteClip(id: string) {
-  const db = await open()
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite")
-    tx.objectStore(STORE).delete(id)
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-  db.close()
+  await send("/api/clips/" + encodeURIComponent(id), "DELETE")
 }
 
 function readJson<T>(key: string, fallback: T): T {

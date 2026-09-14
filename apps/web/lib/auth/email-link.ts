@@ -50,7 +50,7 @@ export function originFrom(headers: Headers): string | null {
  */
 export const LINK_HOSTS = {
   production: ["gov.nysgpt.com", "policy.nysgpt.com", "govblocks.nysgpt.com", "44gov.nysgpt.com"],
-  development: ["localhost:3000", "localhost:3001"],
+  development: ["localhost:3000", "localhost:3001", "localhost:3002", "localhost:3003"],
 } as const
 
 /** `origin` if a link may point at it: an allowed host, over https except on localhost. */

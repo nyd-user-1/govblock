@@ -128,6 +128,76 @@ export async function deleteLiveInput(uid: string) {
   await cf<unknown>(`/stream/live_inputs/${uid}`, { method: "DELETE" })
 }
 
+/* ---- Clips: direct creator uploads, one video's state, and playback ---- */
+
+// A clip's bytes go from the browser (or the worker box) straight to Stream;
+// the server only asks for the one-time address. tus, not the basic form
+// upload, so a sixty-second take and a two-hour hearing take the same path:
+// the basic upload stops at 200 MB.
+
+const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64")
+
+/** A one-time tus address for `bytes` of video, and the uid it will become. */
+export async function createUpload(o: { bytes: number; name: string; creator: string; maxDurationSeconds: number; requireSignedURLs: boolean }) {
+  if (!ACCOUNT) throw new Error("CLOUDFLARE_ACCOUNT_ID is not set")
+  if (!TOKEN) throw new Error("no Cloudflare token is set")
+  const metadata = [`name ${b64(o.name.slice(0, 120) || "clip")}`, `maxDurationSeconds ${b64(String(Math.ceil(o.maxDurationSeconds)))}`, ...(o.requireSignedURLs ? ["requiresignedurls"] : [])].join(",")
+  const res = await fetch(`${API}/accounts/${ACCOUNT}/stream?direct_user=true`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Tus-Resumable": "1.0.0", "Upload-Length": String(o.bytes), "Upload-Metadata": metadata, "Upload-Creator": o.creator },
+    cache: "no-store",
+  })
+  const uploadUrl = res.headers.get("location")
+  // The uid rides a header, and is also the upload address's last segment.
+  const uid = res.headers.get("stream-media-id") ?? (uploadUrl ? /\/([a-f0-9]{32})(?:\?|$)/.exec(uploadUrl)?.[1] ?? null : null)
+  if (!res.ok || !uploadUrl || !uid) {
+    const body = (await res.json().catch(() => null)) as Envelope<unknown> | null
+    const first = body?.errors?.[0]
+    const error = new Error(first ? `${first.code}: ${first.message}` : `${res.status} ${res.statusText}`) as Error & { code?: number }
+    error.code = first?.code
+    throw error
+  }
+  return { uid, uploadUrl }
+}
+
+export type ClipVideo = { uid: string; state: string; ready: boolean; duration: number | null; width: number | null; height: number | null; requireSignedURLs: boolean; error: string | null }
+
+/** One video's processing state, or null when Stream no longer has it. */
+export async function getVideo(uid: string): Promise<ClipVideo | null> {
+  try {
+    const v = await cf<RawVideo & { status?: { state?: string; errorReasonText?: string } }>(`/stream/${uid}`)
+    return { uid: v.uid, state: v.status?.state ?? "unknown", ready: Boolean(v.readyToStream), duration: v.duration && v.duration > 0 ? v.duration : null, width: v.input?.width || null, height: v.input?.height || null, requireSignedURLs: Boolean(v.requireSignedURLs), error: v.status?.errorReasonText || null }
+  } catch (error) {
+    if ((error as { code?: number }).code === 10003) return null // not found
+    throw error
+  }
+}
+
+/** Private or public at the source: a private video plays only through a token. */
+export async function setSignedUrls(uid: string, requireSignedURLs: boolean) {
+  await cf<unknown>(`/stream/${uid}`, { method: "POST", body: JSON.stringify({ uid, requireSignedURLs }) })
+}
+
+/** Asks Stream for the MP4 the feed's <video> plays; ready a few seconds after the video is. */
+export async function enableDownload(uid: string) {
+  const r = await cf<{ default?: { status?: string; url?: string } }>(`/stream/${uid}/downloads`, { method: "POST" })
+  return r.default?.status ?? "inprogress"
+}
+
+/** A playback token for a private video, good for `hours`, that also opens its MP4. */
+export async function playbackToken(uid: string, hours = 4) {
+  const r = await cf<{ token: string }>(`/stream/${uid}/token`, { method: "POST", body: JSON.stringify({ exp: Math.floor(Date.now() / 1000) + hours * 3600, downloadable: true }) })
+  return r.token
+}
+
+/** The MP4 and a poster frame, under the video's uid or, for a private one, its token. */
+export function playbackUrls(idOrToken: string) {
+  const code = process.env.CLOUDFLARE_STREAM_CUSTOMER_CODE
+  if (!code) return { mp4: "", poster: "" }
+  const base = `https://customer-${code}.cloudflarestream.com/${idOrToken}`
+  return { mp4: `${base}/downloads/default.mp4`, poster: `${base}/thumbnails/thumbnail.jpg?time=1s&height=960` }
+}
+
 /** Everything the page shows, in one read. */
 export async function getStream() {
   const state = await status()

@@ -15,7 +15,7 @@ import { Creators, type CreatorRow } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
-import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFollows, loadLikes, loadMine, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, type Clip, type Comment } from "./store"
+import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
@@ -79,6 +79,8 @@ export function ClipsApp() {
   const { account, ready } = useAccount()
   const signedIn = !!account
   const [mine, setMine] = React.useState<Clip[]>([])
+  /** Published clips from Aurora, every origin, other than the reader's own. */
+  const [live, setLive] = React.useState<Clip[]>([])
   const [creator, setCreator] = React.useState("all")
   const [view, setView] = React.useState<"feed" | "grid">("feed")
   const [activeId, setActiveId] = React.useState<string | null>(null)
@@ -93,8 +95,27 @@ export function ClipsApp() {
   const [focusKey, setFocusKey] = React.useState(0)
   const pendingId = React.useRef<string | null>(null)
 
+  // A take just sent keeps playing from the browser's copy until Stream's MP4 is ready.
+  const applyFeed = React.useCallback((feed: FeedData) => {
+    setLive(feed.published)
+    setMine((prev) =>
+      feed.mine.map((c) => {
+        const local = prev.find((p) => p.id === c.id)
+        return !c.src && local?.blob ? { ...c, src: local.src, blob: local.blob, poster: local.poster, duration: c.duration ?? local.duration } : c
+      })
+    )
+  }, [])
+
+  // While a take is still processing, the feed is read again every eight seconds.
+  const processing = mine.some((c) => c.status === "processing")
   React.useEffect(() => {
-    void loadMine().then(setMine)
+    if (!processing) return
+    const id = setInterval(() => void loadFeed().then(applyFeed), 8000)
+    return () => clearInterval(id)
+  }, [processing, applyFeed])
+
+  React.useEffect(() => {
+    void loadFeed().then(applyFeed)
     setLiked(loadLikes())
     setSaved(loadSaves())
     setFollowing(loadFollows())
@@ -105,9 +126,10 @@ export function ClipsApp() {
 
   const you: Clip["author"] = { name: account?.name ?? account?.email ?? "You", handle: (account?.email ?? "you").split("@")[0], image: account?.image || DEFAULT_AVATAR }
 
-  // What is on offer: the published set (the desks' clips and the reader's
-  // own public ones), narrowed to a creator when one is picked.
-  const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public"), ...PUBLISHED], [mine])
+  // What is on offer: the published set (the reader's own public ones, then
+  // every published clip in Aurora whether recorded, cut or generated, then
+  // the stock), narrowed to a creator when one is picked.
+  const published = React.useMemo(() => [...mine.filter((c) => c.visibility === "public" && c.status !== "processing"), ...live, ...PUBLISHED], [mine, live])
   const clips = React.useMemo(() => {
     if (creator === "you") return mine
     if (creator === "all") return published
@@ -195,13 +217,13 @@ export function ClipsApp() {
     })
   }
 
-  const saveRecording = async (clip: Clip) => {
-    await saveClip(clip)
-    setMine((m) => [clip, ...m])
+  const saveRecording = async (clip: Clip, onProgress: (fraction: number) => void) => {
+    const saved = await saveClip(clip, onProgress)
+    setMine((m) => [saved, ...m])
     setCreator("you")
     setView("feed")
     setMode(null)
-    pendingId.current = clip.id
+    pendingId.current = saved.id
   }
 
   const remove = async (clip: Clip) => {
@@ -209,9 +231,11 @@ export function ClipsApp() {
     setMine((m) => m.filter((c) => c.id !== clip.id))
   }
   const publish = async (clip: Clip) => {
-    const next: Clip = { ...clip, visibility: clip.visibility === "public" ? "private" : "public" }
-    await saveClip(next)
-    setMine((m) => m.map((c) => (c.id === clip.id ? next : c)))
+    const visibility = clip.visibility === "public" ? "private" : "public"
+    await updateClip(clip.id, { visibility })
+    // The MP4's address changes with it (a private one plays through a token), so the row is read again.
+    setMine((m) => m.map((c) => (c.id === clip.id ? { ...c, visibility } : c)))
+    void loadFeed().then(applyFeed)
   }
 
   const panel = (className?: string) =>
