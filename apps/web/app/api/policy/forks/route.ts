@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { identify } from "@/lib/auth/user-id"
 import { one, q } from "@/lib/policy/db"
 import { findExpression, sessionYear, stateOfJurisdiction } from "@/lib/typeset/expression-document"
+import { parseAddress } from "@/lib/xml/address"
 
 // A reader's forks — GitHub's model, put to a legislature (Brendan,
 // 2026-09-03: "so it's a fork?"). The public owns the legislature, and its
@@ -58,10 +59,15 @@ export async function GET(request: Request) {
   return NextResponse.json({ forks: forks.map(normalise) })
 }
 
-/** "§ 16" with the portion's own numbers after it: "§ 16(2-e)(ii)". */
+/** The base's name with the portion's numbers after it: "§ 16(2-e)(ii)", "10 U.S.C. 130i(b)(1)", "H.R. 6644 § 102". A bill's title and other big levels are left out; its section is named. */
 function labelOf(work: string, baseWork: string, baseLabel: string | null) {
-  const below = work.slice(baseWork.length).split("/").filter(Boolean)
-  return `${baseLabel ?? baseWork}${below.map((n) => `(${n})`).join("")}`
+  let out = baseLabel ?? baseWork
+  for (const seg of work.slice(baseWork.length).split("/").filter(Boolean)) {
+    const section = /^s(\d[\w.-]*)$/.exec(seg)
+    if (section) out += ` § ${section[1]}`
+    else if (!/^(?:t|st|d|sd|ch|sch|pt|spt|art|sart)[A-Z0-9]/.test(seg)) out += `(${seg})`
+  }
+  return out
 }
 
 export async function POST(request: Request) {
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
          insert into "Forks" (owner, state, session_id, bill_id, bill_number, title, work, base_work, base_expression, kind, label)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *
        ) select ${FORK} from f`,
-      [who.id, stateOfJurisdiction(row.jurisdiction), row.kind === "bill" ? sessionYear(row.jurisdiction, row.session) : null, Number(body.bill_id) || null, body.bill_number ?? null, body.title ?? row.label, work, row.work, row.expression, row.kind, labelOf(work, row.work, row.label)]
+      [who.id, stateOfJurisdiction(row.jurisdiction), row.kind === "bill" ? sessionYear(row.jurisdiction, row.session) : null, Number(body.bill_id) || null, body.bill_number ?? null, body.title ?? row.label, work, row.work, row.expression, parseAddress(row.work)?.kind ?? row.kind, labelOf(work, row.work, row.label)]
     )
     return NextResponse.json({ fork: made ? normalise(made) : null, existed: false })
   }

@@ -6,6 +6,7 @@ import { one, q } from "@/lib/policy/db"
 import { expressionOf } from "@/lib/policy/expressions"
 import { askOf, getExpressionDocument } from "@/lib/typeset/expression-document"
 import { portionOf, readCommitDoc } from "@/lib/typeset/fork-store"
+import { parseAddress } from "@/lib/xml/address"
 import type { ForkRow } from "@/app/api/policy/forks/route"
 
 // A fork of a published unit, as the Fork view opens it (window 5,
@@ -42,10 +43,12 @@ export async function GET(request: Request) {
   const { refusal } = await gate(request, { ...ask, current: ask.entity === "bills" ? await currentSession(ask.state!).catch(() => null) : undefined })
   if (refusal) return NextResponse.json(refusal.body, { status: refusal.status, headers: { "cache-control": "private, no-store" } })
 
+  // The index's kind is "bill" or "statute"; an amendment cites by the address's ("usc", "code", "const").
+  const kind = parseAddress(row.work)?.kind ?? row.kind
   const [document, commits, name] = await Promise.all([
     getExpressionDocument(row, null),
     q<CommitLine>(`select id, message, description, author, created_at::text as created_at, parent_commit_id, doc_bytes from "Commits" where fork_id = $1 order by id desc`, [id]),
-    lawNameOf(row.work, row.jurisdiction, row.kind),
+    lawNameOf(row.work, row.jurisdiction, kind),
   ])
   const base = fork.work === row.work ? document.json : portionOf(document.json, fork.work)
   if (!base) return NextResponse.json({ error: `${fork.work} is not in ${row.work}@${row.expression}` }, { status: 404 })
@@ -57,7 +60,7 @@ export async function GET(request: Request) {
     base: { address: `${row.work}@${row.expression}`, date: row.expression_date, label: row.label, fidelity: row.fidelity, coverage: row.coverage === null ? null : Number(row.coverage), json: base },
     head: head && headDoc ? { id: Number(head.id), json: headDoc } : null,
     commits: commits.map((c) => ({ ...c, id: Number(c.id), parent_commit_id: c.parent_commit_id === null ? null : Number(c.parent_commit_id), doc_bytes: c.doc_bytes === null ? null : Number(c.doc_bytes) })),
-    cite: { jurisdiction: row.jurisdiction, kind: row.kind, work: row.work, name },
+    cite: { jurisdiction: row.jurisdiction, kind, work: row.work, name },
   })
   const gzip = /\bgzip\b/.test(request.headers.get("accept-encoding") ?? "")
   return new NextResponse(gzip ? new Uint8Array(gzipSync(json)) : json, {

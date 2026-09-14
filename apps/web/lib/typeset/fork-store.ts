@@ -50,7 +50,8 @@ export async function readCommitDoc(commitId: number): Promise<unknown | null> {
   if (!size) return null
   const parts: Buffer[] = []
   for (let start = 1; start <= size; start += SLICE) {
-    const part = await one<{ part: string }>(`select encode(substring(doc_gz from $2 for $3), 'base64') as part from "Commits" where id = $1`, [commitId, start, SLICE])
+    // The Data API sends integers as bigint, and substring over bytea takes int.
+    const part = await one<{ part: string }>(`select encode(substring(doc_gz from $2::int for $3::int), 'base64') as part from "Commits" where id = $1`, [commitId, start, SLICE])
     if (!part) return null
     parts.push(Buffer.from(part.part, "base64"))
   }
