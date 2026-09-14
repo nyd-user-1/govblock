@@ -46,11 +46,10 @@ by the version number in each capture's own link (`…AB1969#96AMD` against
   millions, so a synthetic introduced printing sorts after a real amended one
   and takes the later date.
 
-**The reader** says so in the source line instead of drawing a captured page
-("The stored text of this printing is the legislature's web page, not the bill,
-so it is not drawn; a clean copy is being fetched."):
-`lib/typeset/xml-document.ts` flags it, and the bill page passes it into
-`XmlMeta`. Bounded type check: 0 diagnostics.
+**The reader** does not draw a captured page: `lib/typeset/xml-document.ts`
+flags it (`captured`) and the bill page passes the flag into `XmlMeta`. What the
+reader shows for it is the lead's, at d3e2cde. Bounded type check: 0
+diagnostics.
 
 **The re-fetch, next.** The existing loader, livingston
 `api/_lib/text-sources/ca-pubinfo.ts`, over the Legislative Counsel's
@@ -93,18 +92,41 @@ sharing, not the legislature refusing.
   archived reference material…". All are `state_link`, in sessions 2010–2015
   (every text of those sessions). Counted by session, the text read only from
   its first 300 characters.
-- **The legislature does not return them.** The stored links
-  (`www.leg.state.co.us/clics/clics2012a/csl.nsf/…/$FILE/1001_01.pdf`) redirect
-  to `archive.leg.state.co.us` behind a Cloudflare challenge (403). Today's
-  site, `leg.colorado.gov`, has no 2012 bill page and no file at its documents
-  path (404). The archive's `robots.txt` also names ClaudeBot and AI crawlers
-  as disallowed and signals `ai-train=no`.
-- **LegiScan returns them.** One `getBillText` for document 514349 returned
-  H.B. 12-1001 as introduced, a 13 KB PDF that `pdftotext` reads cleanly.
-  It is metered: one query a document against a 30,000-a-month key that
-  livingston's nightly delta shares, with a hard stop at 25,000 in
-  `api/bill-text.ts`. 20,194 documents would take most of a month's key.
-  **The spend waits for Brendan's word**, with this month's use counted first.
+- **Corrected.** Milestone 0 as first written (5aa96ee) said LegiScan's
+  metered API was the only source. That went into this report before S3 was
+  listed, and that is the error. Brendan's word: no LegiScan key is spent on
+  Colorado.
+
+### Milestone 1 — what S3 holds for Colorado, checked (2026-09-14, 15:00 UTC)
+
+Checked, and what each holds:
+
+| Place | What is there | The 20,194 banner documents |
+|---|---|---|
+| `s3://livingston-bill-pdfs-638175140432/pdf/CO/` | 21,303 PDFs, parked 2026-08-30, keyed by `document_id` (1,293,264 to 3,450,125) | **0 of 20,194** |
+| `s3://livingston-bill-pdfs-638175140432/text/CO/20260830/` | 8 sink objects, 2,737 bytes | none |
+| `s3://govblock-lake-638175140432/lake/v1/text/bill_texts/jurisdiction=co/` (the upper-case path holds nothing) | sessions 2010–2015 at 18–23 KB a session for about 3,500 rows each: banner-sized | banners |
+
+Seven PDF keys across the range, looked up one at a time: 2016 (S.R. 1, H.B.
+1323), 2020, 2022, 2023, 2026 documents, each with its text already extracted
+into `"BillTexts"` (5,010 to 106,152 characters). **The PDFs in S3 are Colorado's
+2016–2026 printings, and their text is stored. Colorado's 2010–2015 printings
+were never stored as text or as PDF.** The walk of 2026-08-29/30 fetched their
+`leg.state.co.us/clics` links and the archive answered with its banner page,
+which was stored as the text.
+
+Tried for 2010–2015 without spending anything:
+
+- The archive's wrapper page loads the PDF in an iframe from the same link with
+  `&bn=yes` appended: **404** from the pipeline box.
+- The Wayback Machine: no snapshot of H.B. 12-1001's PDF.
+- `leg.colorado.gov` and `content.leg.colorado.gov` documents path: 404.
+
+Not yet tried: every document through a different route. Brendan's fallback
+stands for what is left: LegiScan gives the URL (the same dead archive link),
+or the PDF, in which case the PDF goes into S3 first and a text-extract pass
+runs over it. Whether that fallback may spend the metered key is the lead's to
+carry to Brendan.
 
 ## Part 1, Virginia (`va-refetch`, claimed by window 4)
 
