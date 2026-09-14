@@ -26,8 +26,21 @@ export async function* uscTitle({ unit, log }) {
   if (!t) throw Object.assign(new Error(`${unit} is not a title of the Code`), { blocked: true })
   const url = `${BASE}/xml_usc${t}@${RELEASE.replace("/", "-")}.zip`
   const t0 = Date.now()
-  const response = await fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(600_000) })
-  const bytes = new Uint8Array(await response.arrayBuffer())
+  // Title 10 and Title 42 are tens of megabytes, and the OLRC's server drops
+  // a long transfer now and then ("terminated"); the whole read is retried.
+  let response
+  let bytes
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(600_000) })
+      bytes = new Uint8Array(await response.arrayBuffer())
+      break
+    } catch (error) {
+      if (attempt >= 4) throw error
+      log(`title ${t}: ${error?.message ?? error}; again in ${5 * (attempt + 1)} s`)
+      await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)))
+    }
+  }
   // A title that is not published (53 is reserved) is answered with a page and a 200.
   if (!response.ok || bytes[0] !== 0x50 || bytes[1] !== 0x4b) throw Object.assign(new Error(`title ${t} is not published at release point ${RELEASE}`), { blocked: true })
   const files = unzipSync(bytes)
