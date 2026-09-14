@@ -2,6 +2,114 @@
 
 Report to the lead. Newest milestone first.
 
+## Milestone 3 — on the pipeline box, every jurisdiction compiling, two million stored (2026-09-14, ~06:00 EDT)
+
+### Where it stands at 09:58 UTC
+
+**1,983,207 expressions stored**:
+
+| Class | Stored |
+|---|---|
+| Federal bills | 134,727 |
+| US Code | 59,849 |
+| State statutes | 703,674 |
+| State bills | 1,125,388 |
+
+Queue: 1,067 jobs done, 16 running, 1,802 queued (the first pass plus the rebuilds below), 2 blocked (the 111th and 112th Congresses).
+
+| | |
+|---|---|
+| Sustained rate, last 5 minutes | **1,312 expressions/s** (393,606) |
+| Best minute | 2,885/s (09:35 UTC, before the cluster filled) |
+| What remains | ~1.29 M state statute sections (1,989,119 leaves with text in `"Laws"`), ~1.83 M state printings, ~0.85 M rebuilds on the corrected front ends |
+| Finish at 1,300/s | **~10:50 UTC (06:50 EDT)** |
+| Finish at the lead's 500/s floor | ~12:15 UTC (08:15 EDT), still inside the window |
+
+**Validation:** 300 of 300 documents sampled at random across the store pass `xmllint --noout` (well-formed).
+
+### The switch
+
+The controllers moved to the pipeline box (`govblock-xml-direct`, c7g.4xlarge, 16 vCPU) at **09:31 UTC**. The dev box has run no controller since. Running there now:
+
+- 1 statutes controller: 6 job slots, 3 threads.
+- 4 bills controllers: 3 slots and 4 threads each.
+- 1 controller just for Illinois statutes.
+
+Parquet reader recreated at `~/xml-tools`.
+
+### The cluster was at its ceiling from 09:30 UTC
+
+aurora-2525 sat at its 8 ACU maximum with CPU at 100% from 09:30 UTC. Three causes:
+
+1. **Five orphaned coverage queries** from `scripts/xml/coverage.mjs` (the lead's), `order by random()` over `"BillTexts"` joined to `"Bills"`: full scans of 50 GB of text, running 37–41 minutes after their clients had stopped. Cancelled at 09:34 UTC with `pg_cancel_backend`, on the lead's word. The coverage script no longer samples that way.
+2. **ClaudeBot on production** (found by the lead in the Amplify access log): 2,444 requests from 09:18 to 09:38 UTC, almost all cache misses, each bill page running `getBillText`; 15 concurrent copies were on the cluster at 09:45. The site has no `robots.txt`; the lead has one ready on the branch.
+3. **Brendan's open tabs** polling the session aggregates about 35 times a minute (51 of their responses were 503s).
+
+The pipeline's own index writes are the rest. The site answered a bill-list request in 0.65 s at the worst of it. The compiler's rate fell to ~500/s while all three ran and recovered after.
+
+### The stall on the big sessions: the controller, fixed
+
+New York's 2025 session stalled two controllers in turn, and New York 2021 and 2023 stalled another two: minutes of full CPU with nothing built.
+
+- A V8 profile of the stuck process showed the main thread in the controller's own `wake()` and `compile()`, not in any front end.
+- The job loop handed every document to the pool at once without waiting for room. All 34,216 New York printings waited in memory, and every reply from every thread woke all of them to re-check. That's quadratic, and it only shows on the largest sessions.
+- **1ca3259** hands a document over only when a thread has room. New York 2025 then compiled dry in 17 s: 34,216 printings, 2,060/s, 99.05 % coverage, 0 fell out.
+
+Two guards stay:
+
+- **A watchdog.** A thread silent for 60 s on one document is replaced; that document falls out naming its work, and the thread's other tasks go again.
+- **Index backpressure.** The job stops reading while more than three index batches are waiting, and a waiting result no longer holds its document's text.
+
+### Rebuilds on corrected front ends
+
+The lead's front ends improved three times during the load; each change is a queue, not a restart of the corpus. A job under a `rebuild-` run rebuilds in place and then removes index rows an earlier build of the same unit addressed differently. Objects stay in S3.
+
+- `rebuild-ny-4d4e888`: New York statutes (dotted section numbers, Constitution headings). Done.
+- `rebuild-bills-5682861` and `rebuild-statutes-5682861`, 275 jobs at priority 95, after the first pass. They cover every state bill session and state statute unit built before 09:42:44 UTC: inserted units opening blocks, quoted law in all its shapes, a real statute parser for every state (Alabama statutes were at 48 % on the bill parser), and profiles for Michigan, North Carolina and Oregon.
+- `rebuild-*-requeued`: jobs caught mid-run by a controller restart, which rebuild what they already held.
+- `rebuild-il-700e533`: Illinois statutes (the citation line before "Sec."), rerunning after two fixes below.
+
+### Also built since milestone 2
+
+- **The nightly step:**
+  - `scripts/xml/nightly.mjs` queues what the night's loads changed under `run = nightly-<date>` and drains only those: the current Congress again (unchanged printings skipped by source hash), a `delta@<since>` job per state from `"BillTexts".fetched_at`, and a statute job per law `"Laws"` rewrote.
+  - `scripts/xml/sources/bill-delta.mjs` reads the delta from Aurora; the dating is shared with the Parquet reader (`printings.mjs`), so a printing gets the same address from either.
+  - **`ops/xml/lv-xml-nightly.json`** is the job definition in the worker box's manifest format. What it needs is written in the file: copy it to livingston `ops/box/jobs.d/`, a govblock checkout on the worker box, `apps/web/.env.local`, and an instance role with `s3:PutObject` under `lake/v1/xml/` and `rds-data` on aurora-2525. It ships `enabled: false`.
+- **The US Code's appendix titles** read their `<courtRule>`s (`/us/usc/t18a/courtRules/Crim/rule1`), kept as the OLRC writes them.
+- **A printing read twice** (a legislature's web page through `state_link` and a clean feed such as `ca-pubinfo` or `nysenate`) keeps the feed.
+- **Coverage fall-outs.** Each job writes its twenty most frequent unknown elements to `xml_fallouts` as stage `coverage`, for the Compiler page.
+- **Oversized statute sections.** A section over 1 MB on its own (Illinois has them) is read in 200k-character slices. Illinois failed twice getting there: first on the page size, then on an uncast offset.
+- **The Ingestion page's Nightly Ingestion card:** each feed's last write, with the XML step as the last line.
+
+### Coverage on the full load, first pass (before the rebuilds)
+
+Measured over every document built, not a sample:
+
+| Jurisdiction | Coverage |
+|---|---|
+| Federal bills | 99.88 % |
+| US Code | 99.60 % |
+| New York statutes | 97.42 % |
+| Hawaii bills | 99.64 % |
+| Minnesota bills (2025) | 99.79 % |
+| Maryland bills (2023) | 99.81 % |
+| Arizona bills (2026) | 97.9 % |
+| Oklahoma bills | 68.71 % |
+| Illinois bills | 30.99 % |
+
+Low first passes that the rebuild queue covers: Alabama statutes 48.40 %, Arizona 50.16 % and Arkansas 59.77 %, all read by the bill parser before dc02906.
+
+### For sources.md (window 3)
+
+- California's `state_link` texts are often leginfo web pages (window 1: 581 of the newest 3,000). `ca-pubinfo` is preferred wherever both exist, and the pipeline now drops the `state_link` copy.
+- New York's `"BillTexts"` carries 12,549 sponsor memos in its 2025 session alone (and ~11,700 in each of 2021 and 2023). They're left out as not printings.
+- `"Documents".date` is null for every state printing checked, so state printings are dated from BillHistory (`date_basis = 'history'`).
+- GovInfo's own metadata carries an impossible date ("2019-00-12") on a 116th-Congress printing; the package MODS `dateIssued` stands in.
+
+### Files since milestone 2
+
+`scripts/xml/run.mjs`, `worker.mjs`, `nightly.mjs`, `lib/store.mjs`, `sources/{index,usc,statutes,state-bills,printings,bill-delta}.mjs`, `ops/xml/lv-xml-nightly.json`, `apps/web/components/admin/pages/ingestion.tsx`.
+
 ## Milestone 2 — federal bills stored, the corpus queued, the dashboard and the export route (2026-09-14, ~05:30 EDT)
 
 ### Stored
