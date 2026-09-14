@@ -162,7 +162,7 @@ function marksFor(p: StateProfile) {
         run = []
       }
       for (const t of part.split(/(\s+)/)) {
-        const caps = /^[^a-z]*[A-Z][^a-z]*$/.test(t)
+        const caps = !/[a-z]/.test(t) && /[A-Z]/.test(t)
         if (caps || (run.length && /^\s+$/.test(t))) run.push(t)
         else {
           flush()

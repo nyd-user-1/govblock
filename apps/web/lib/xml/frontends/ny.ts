@@ -119,7 +119,9 @@ export function marks(text: string): IrChild[] {
       run = []
     }
     for (const t of tokens) {
-      const isCaps = /^[^a-z]*[A-Z][^a-z]*$/.test(t) && /[A-Z]/.test(t)
+      // Two linear tests, not one pattern that backtracks: a token with no
+      // whitespace can be a dotted leader thousands of characters long.
+      const isCaps = !/[a-z]/.test(t) && /[A-Z]/.test(t) && /[A-Z]/.test(t)
       if (isCaps || (run.length && /^\s+$/.test(t))) run.push(t)
       else {
         flush()
