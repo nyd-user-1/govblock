@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic"
 export default function IndexPage({ searchParams }: { searchParams: SignSearch }) {
   return (
     <RailsFrame>
-      <ParticleScroll className="h-[calc(100svh-var(--header-height))]">
+      <ParticleScroll point={0.8} className="h-[calc(100svh-var(--header-height))]">
         <div className="min-h-full bg-background text-foreground">
           <SignPage stage="root" searchParams={searchParams} />
           <UniteBody />
