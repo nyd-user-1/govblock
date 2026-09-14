@@ -13,8 +13,8 @@ import {
   type TabsTriggerProps as TabsTriggerPrimitiveProps,
   type TabsContentProps as TabsContentPrimitiveProps,
   type TabsContentsProps as TabsContentsPrimitiveProps,
-} from '@/components/animate-ui/primitives/animate/tabs';
-import { cn } from '@/lib/utils';
+} from '@govblock/ui/components/animate-ui/primitives/animate/tabs';
+import { cn } from '@govblock/ui/lib/utils';
 
 type TabsProps = TabsPrimitiveProps;
 

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { Tabs, TabsContent, TabsContents, TabsList, TabsTrigger } from "@/components/animate-ui/components/animate/tabs"
+import { Tabs, TabsContent, TabsContents, TabsList, TabsTrigger } from "@govblock/ui/components/animate-ui/components/animate/tabs"
 import { TableBlock } from "@/components/policy/table-block"
 import { Table } from "@/components/typeset"
 

@@ -8,9 +8,9 @@ import {
   HighlightItem,
   type HighlightItemProps,
   type HighlightProps,
-} from '@/components/animate-ui/primitives/effects/highlight';
-import { getStrictContext } from '@/lib/get-strict-context';
-import { Slot, type WithAsChild } from '@/components/animate-ui/primitives/animate/slot';
+} from '@govblock/ui/components/animate-ui/primitives/effects/highlight';
+import { getStrictContext } from '@govblock/ui/lib/get-strict-context';
+import { Slot, type WithAsChild } from '@govblock/ui/components/animate-ui/primitives/animate/slot';
 
 type TabsContextType = {
   activeValue: string;
