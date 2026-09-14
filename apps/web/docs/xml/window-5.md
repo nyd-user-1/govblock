@@ -2,6 +2,12 @@
 
 Report to the lead. Newest milestone first.
 
+## Next: `ca-captures` claimed (2026-09-14)
+
+The brief is done (milestone 2). Context under 60%, so this window claimed
+the first open item in `lib/xml/todo.ts`: California's printings stored as
+leginfo web pages. Its reports go to `window-7.md`, as its prompt says.
+
 ## Milestone 2 — the Fork view, forks by address, commits that hold documents (2026-09-14)
 
 ### Built
