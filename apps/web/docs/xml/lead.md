@@ -6,7 +6,7 @@ Read this first in the morning. Each window's own report is beside it: `window-1
 
 - **The XML reader works and proves the thesis.** H.R. 6644 and H.R. 2289 render in Tiptap from their USLM with zero rank violations on both federal dialects; the same bills through the old Typeset HTML drop every quote closing, cap three ranks at h6, and cannot draw USLM 2 printings at all. Texas and California bills round-trip exactly. `/workspace/typeset/bill/2058568/xml` on the 3002 server.
 - **The corpus is compiling.** Every federal printing of the 113th to 119th Congresses is stored as native XML (134,727 printings, one fell out). The US Code, New York's statutes and every state's bills were running through the pipeline box at over two thousand expressions a second when this was written; the Ingestion page (`/workspace/dashboard/ingestion`) shows the queue and takes run controls, and `/api/xml/uslm/<address>` serves any Expression as XML, at a date, with its DocHistory.
-- **Every state has a front end and a measured number, for bills and for statutes.** Federal 99.5%; New York 99.4% on bills and 96% on statutes; Texas and California ten of ten clean after Window 1's round trips; statutes at 95% or better for nine of ten states sampled. 25 of 43 coverage lines are at 95% or better and 5 under 85%. The Compiler page (`/workspace/dashboard/compiler`) is the grid; `sources.md` is the table; `window-3.md` the log of how each number moved.
+- **Every state has a front end and a measured number, for bills and for statutes.** Federal 99.5%; New York 99.4% on bills and 96% on statutes; Texas and California ten of ten clean after Window 1's round trips; statutes at 95% or better for nine of ten states sampled. 25 of 43 coverage lines are at 95% or better and 4 under 85%. The Compiler page (`/workspace/dashboard/compiler`) is the grid; `sources.md` is the table; `window-3.md` the log of how each number moved.
 - **The `/` command is stubbed in ⌘K** (`/119`, `/6644`, `/new-york-code`, full addresses); `@` is routed to it for the citations window.
 
 ## Decisions taken on your authority
@@ -19,7 +19,7 @@ Read this first in the morning. Each window's own report is beside it: `window-1
 
 ## What went wrong, and what it cost
 
-- The dev box stopped at 09:00 UTC: `govblock-stop.timer`, your daily shutdown, not memory. Both of its timers are stopped for the shift and the pipeline box has none. The stop timer fires again tomorrow at 09:00 UTC.
+- The dev box stopped at 09:00 UTC: `govblock-stop.timer`, your daily shutdown, not memory. Its idle timer was stopped for the shift and restarted at 09:43 UTC once the pipeline had moved off it and Window 1 was done, so it stops itself an hour after its dev server last answered; `~/bin/govblock-dev-up` brings it back. The stop timer fires again tomorrow at 09:00 UTC. The pipeline box has no timers.
 - Five orphaned coverage statements of mine (random order over `BillTexts`) pinned the cluster at its 8 ACU ceiling for about forty minutes from 09:30 UTC; the pipeline window found and cancelled them. The script no longer samples that way.
 - Two of my commits swept Window 1's unfinished files by staging a directory; no harm done, and every later commit staged by path.
 

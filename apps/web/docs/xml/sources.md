@@ -50,6 +50,7 @@ From `apps/web/lib/xml/coverage.generated.json`, the Compiler page's source. Bil
 | Missouri (MO) | bills | 16 | 0 | 92.4% | no sections · 13 |
 | Indiana (IN) | bills | 16 | 5 | 92.0% | subsection N after N · 12 |
 | Georgia (GA) | bills | 16 | 7 | 91.8% | subsection opens at H · 9 |
+| Illinois (IL) | statutes | 12 | 7 | 91.1% | no number at the start · 4 |
 | Alabama (AL) | bills | 16 | 6 | 90.9% | subsection opens at b · 5 |
 | North Carolina (NC) | bills | 12 | 2 | 89.5% | no sections · 4 |
 | Florida (FL) | bills | 16 | 4 | 88.6% | no sections · 5 |
@@ -59,5 +60,4 @@ From `apps/web/lib/xml/coverage.generated.json`, the Compiler page's source. Bil
 | Kentucky (KY) | bills | 8 | 0 | 84.9% | no sections · 6 |
 | Massachusetts (MA) | bills | 16 | 5 | 82.4% | no sections · 9 |
 | Illinois (IL) | bills | 16 | 8 | 82.0% | no sections · 6 |
-| Illinois (IL) | statutes | 12 | 0 | 81.8% | no number at the start · 12 |
 | Virginia (VA) | bills | 16 | 0 | 77.5% | no sections · 13 |
