@@ -139,7 +139,9 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     if (t) out.push(t)
     current = []
   }
-  let lines = unwrapInlineLineNumbers(clean(text))
+  // Private-use glyphs are a word processor's symbol-font marks and mean nothing in text: Kentucky's
+  // printings put U+F0E2 in front of every section opener, where it defeats "Section 1." unseen.
+  let lines = unwrapInlineLineNumbers(clean(text).replace(/[-]/g, ""))
   // Oklahoma's older captures space the margin number's digits apart ("1 0", "2 4"); Massachusetts numbers a bill's lines straight through, into the thousands.
   if (p.marginNumbers) lines = lines.split("\n").map((l) => l.replace(/^\s{0,3}(?:\d \d|\d{1,4})(?=\s|$)/, "")).join("\n")
   if (p.furniture) lines = lines.split("\n").filter((l) => !p.furniture!.test(l)).join("\n")

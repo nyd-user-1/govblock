@@ -139,6 +139,22 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Kentucky bills (window 8, from fifty printings of every session): the
+// Legislative Research Commission's printed bill, a line number down the
+// margin (1 to 27 a page), a running head "UNOFFICIAL COPY 21 RS BR 104", a
+// foot "Page 1 of 20" with "XXXX Jacketed" or a drafting code
+// "SB009410.100 - 852 - XXXX GA". "Section 1." or "SECTION 1. A NEW SECTION
+// OF KRS CHAPTER 120 IS CREATED TO READ AS FOLLOWS:" then the KRS section's
+// units, (1) (a) 1. a.
+PROFILES.KY = {
+  ...common("KY"),
+  enacting: /Be it enacted by the General Assembly of the Commonwealth of Kentucky/i,
+  // The older captures carry a stray mark before the opener: "®SECTION 1.".
+  section: /^®?(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)\.?\s*(.*)$/s,
+  marginNumbers: true,
+  furniture: /^\s*(?:UNOFFICIAL COPY\b.*|Page \d+ of \d+|XXXX\s+\S+|[A-Z]{2,3}\d{5,7}\.\d{3}\s+-\s+\d+\s+-\s+\S+.*)\s*$/,
+}
+
 // South Carolina statutes (window 8, from fifty sections of the Code of Laws):
 // the Legislative Council's chapter page as the loader writes it, "SECTION
 // 58-27-2760. Catchline" as the first block, the law, then one block "HISTORY:

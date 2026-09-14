@@ -536,28 +536,20 @@
     "name": "Kentucky",
     "source": "texts",
     "sampled": 100,
-    "clean": 7,
-    "coverage": 0.7597,
+    "clean": 99,
+    "coverage": 0.9992,
     "dialects": {
-      "ky-bill": 95,
-      "ky-resolution": 5
+      "ky-resolution": 29,
+      "ky-bill": 71
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 89,
-      "no enacting formula": 20,
-      "paragraph opens at N": 5,
-      "paragraph N after N": 3,
-      "subsection a after N": 3,
-      "subsection j after N": 2,
-      "subsection opens at N": 1,
-      "subsection N after N": 1,
-      "paragraph j after N": 1,
-      "subparagraph opens at l": 1,
-      "paragraph m after N": 1,
-      "subsection f after N": 1
+      "subsection a after N": 2,
+      "subsection opens at b": 1,
+      "subparagraph opens at N": 1,
+      "subparagraph N after N": 1
     },
-    "measuredAt": "2026-09-14T13:36:52.917Z"
+    "measuredAt": "2026-09-14T14:22:31.525Z"
   },
   "LA/texts": {
     "jurisdiction": "LA",

@@ -19,10 +19,15 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 | Utah bills | 36,096 | 66.3 | 64.7 | **100.0** | 17,570 refusal pages, 49% |
 | Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** | — |
 | South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** | — |
-| Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 | |
+| Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** | — |
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 | |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 14 — Kentucky bills, 76.0% to 99.9% (2026-09-14)
+
+- The shared fixes had already lifted Kentucky to 95.9%, but 67 of 71 bills still read "no sections". The cause was invisible: the Commission's word processor puts U+F0E2, a private-use symbol-font glyph, in front of every section opener, and "Section 1." never matched behind it. The block splitter now drops private-use characters before anything is read. Only Kentucky's samples hold any (305 across two fifties), and the eighteen other sampled lines are unchanged against HEAD, to the tenth of a point.
+- The profile sets the enacting formula, `marginNumbers`, `furniture` ("UNOFFICIAL COPY 21 RS BR 104", "Page 1 of 20", "XXXX Jacketed", the drafting code), and a section opener that tolerates the older captures' stray "®". Held-back fifty: 99.5%. Grammar: `grammars/ky.md`.
 
 ## Milestone 13 — South Carolina statutes, 72.7% to 99.5%; the first rebuild batch finished (2026-09-14)
 
