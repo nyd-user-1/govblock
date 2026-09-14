@@ -46,7 +46,8 @@ type Attrs = Record<string, unknown>
 function dataAttrs(name: string, attrs: Attrs, extra: Record<string, string> = {}) {
   const out: Record<string, string> = { "data-uslm": name, ...extra }
   for (const [k, v] of Object.entries(attrs)) {
-    if (v == null || v === "" || k === "xml") continue
+    // `identifier` is the element's id below; GPO's own random ids and layout classes are not worth a page's bytes.
+    if (v == null || v === "" || v === false || k === "xml" || k === "identifier" || k === "id" || k === "class") continue
     out[`data-${k.toLowerCase()}`] = String(v)
   }
   if (attrs.xml) out["data-xml"] = JSON.stringify(attrs.xml)
@@ -69,7 +70,7 @@ function block(name: string, tag: string, spec: Partial<NodeSpec> & { className?
 function readAttrs(dom: HTMLElement): Attrs {
   const attrs: Attrs = {}
   for (const key of Object.keys(BLOCK_ATTRS)) {
-    const v = dom.getAttribute(`data-${key}`)
+    const v = key === "identifier" ? dom.getAttribute("id") : dom.getAttribute(`data-${key}`)
     if (v != null) attrs[key] = key === "xml" ? JSON.parse(v) : v
   }
   return attrs

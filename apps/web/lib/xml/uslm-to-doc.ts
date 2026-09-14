@@ -72,6 +72,9 @@ const KNOWN_BLOCKS = new Set([
   "longTitle", "docTitle", "officialTitle", "enactingFormula", "resolvingClause", "preamble", "recital", "signatures", "signature", "appendix", "schedule", "br", "img",
   // A signature's parts, read as its one line.
   "name", "role", "affiliation", "signatureDate", "notation", "autograph",
+  // A preface's parts, each read as its one line.
+  "action", "actionDescription", "actionInstruction", "sponsor", "cosponsor", "nonsponsor", "committee", "docNumber", "docType", "docStage",
+  "congress", "session", "currentChamber", "enrolledDateline", "distributionCode", "citableAs", "publicPrivate", "relatedDocument", "entity",
 ])
 /** What a `content` holds as a block; anything else in it is running text. */
 const CONTENT_BLOCKS = new Set(["p", "quotedContent", "toc", "table", "note"])
@@ -376,6 +379,11 @@ class Converter {
         if (n) lines.push(n)
       }
       return lines.length ? [this.make("preface", blockAttrs(el, { element: tag === "preface" ? null : tag }), lines)] : []
+    }
+    // A known element with no node of its own (an action in an endorsement): its words, as a line.
+    if (KNOWN_BLOCKS.has(tag)) {
+      const n = this.textblock("p", el, ctx, { element: tag })
+      return n ? [n] : []
     }
     // An element the reader does not know: its structure read through, its words kept.
     this.rec.unknown(tag, path)

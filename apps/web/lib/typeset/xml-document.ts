@@ -3,7 +3,7 @@ import "server-only"
 import { gunzipSync, gzipSync } from "node:zlib"
 
 import { billWork, federalStage, printingStage } from "@/lib/xml/address"
-import { docToHtml } from "@/lib/xml/convert"
+import { docToHtml, docToJson } from "@/lib/xml/convert"
 import { frontEndFor, textFrontEnd } from "@/lib/xml/frontends"
 import type { ParseReport } from "@/lib/xml/ir"
 import { uslmToDoc, type DocReport, type Fidelity } from "@/lib/xml/uslm-to-doc"
@@ -94,7 +94,7 @@ export async function buildXmlDocument(bill: Bill, version?: number): Promise<Xm
   t = performance.now()
   const { doc, report } = uslmToDoc(parsed.doc, { dialect: parsed.report.dialect, identifier: work, expression, fidelity, title: bill.citation ?? null })
   const docMs = since(t)
-  const json = doc.toJSON()
+  const json = docToJson(doc)
 
   t = performance.now()
   const html = docToHtml(doc)

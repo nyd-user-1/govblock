@@ -28,6 +28,25 @@ export function docToHtml(doc: PmNode): string {
   return wrap.innerHTML
 }
 
+// ------------------------------------------------------------------ JSON ---
+
+type Json = { type: string; attrs?: Record<string, unknown>; content?: Json[]; marks?: Json[]; text?: string }
+
+/** The document as ProseMirror JSON with unset attributes left out; `Node.fromJSON` restores their defaults. */
+export function docToJson(doc: PmNode): Json {
+  const compact = (n: Json): Json => {
+    if (n.attrs) {
+      const attrs = Object.fromEntries(Object.entries(n.attrs).filter(([, v]) => v != null && v !== false && v !== ""))
+      if (Object.keys(attrs).length) n.attrs = attrs
+      else delete n.attrs
+    }
+    n.marks?.forEach(compact)
+    n.content?.forEach(compact)
+    return n
+  }
+  return compact(doc.toJSON() as Json)
+}
+
 // -------------------------------------------------------------- plain text ---
 
 const RANK = new Map<string, number>((SMALL_LEVELS as readonly string[]).map((name, i) => [name, i + 1]))

@@ -1,5 +1,66 @@
 # Window 1: the reader — report
 
+## Milestone 3 — the parse tile, the fallback, the numbers, 2026-09-14 07:30 EDT
+
+### Built
+
+- The "USLM parse" tile on the Data Pipeline dashboard
+  (`components/admin/blocks/uslm-parse-card.tsx`, placed after Jurisdictions
+  in `components/admin/pages/database.tsx`, five lines there). A bill id and an
+  optional document id in, Run; out come fetch, front end, `uslmToDoc` and HTML
+  times, XML, JSON and HTML sizes, node and mark counts by type, unknown
+  elements with their first path, rank violations, what was read through or
+  skipped, and "Open in XML view". Server side:
+  `app/api/typeset/uslm-parse/route.ts`, gated like the reader, every cache
+  skipped.
+- `docs/xml/reader.md`: the fidelity and performance notes, from
+  `scripts/typeset/xml-reader-measure.mjs` (runs on the box against 3002).
+- Smaller payloads: `docToJson` leaves unset attributes out (H.R. 6644's JSON
+  1.84 MB → 1.06 MB, 159 KB gzipped) and the HTML writes each identifier
+  once, as the element's `id` (1.23 MB → 1.06 MB; the page 2.95 → 2.60 MB).
+- The reader stamps `data-json-ms` and `data-mount-ms` on
+  `[data-xml-reader]`, the browser-side numbers the box cannot take.
+- Front-matter elements inside an endorsement (`action`, `committee`,
+  `sponsor`) are drawn as lines and no longer counted as unknown; a
+  `p role="ellipsis"` (the lead's generic state front end) is set centred.
+
+### Verified, on the box
+
+- Type check over every touched TypeScript file: 0 diagnostics.
+- `/api/typeset/uslm-parse?bill=2058568` and `?bill=2013923`: 200.
+  `/workspace/dashboard`: 200, compiled.
+- H.R. 6644 and H.R. 2289 (reported) measured against the Typeset HTML: 0
+  rank violations on both; the Typeset HTML drops every text that closes a
+  quoted amendment (90 and 13), caps clauses, subclauses and items at `h6`,
+  and turns 1,216 and 280 headless levels into bold-led paragraphs. Warm
+  pages: XML 274–593 ms, Typeset 285–658 ms. Full tables in `reader.md`.
+- New York A11559 through `frontEndFor("NY")` and through the plain-text
+  front end: both draw (810 paragraphs with `ins`/`del`; 152 generic levels).
+  Checked as a script on the box, not in the page: New York is outside the
+  free scope, so an anonymous curl gets the gate.
+
+### For Brendan
+
+- The stored text of New York A11559 is the Assembly's web page, navigation
+  and all, not the bill. The reader draws what is stored; the acquisition is
+  the pipeline's to fix.
+- `sql/010_typeset_documents_prosemirror.sql` still waits for your word (see
+  milestone 2).
+- Browser numbers (JSON parsed, editor mounted) are on the reader's root as
+  data attributes; typeset-perf's headless Chromium was not run, since the
+  box has no browser and the Mac runs no local build.
+
+### Files touched
+
+- `apps/web/app/api/typeset/uslm-parse/route.ts`,
+  `apps/web/components/admin/blocks/uslm-parse-card.tsx`,
+  `apps/web/components/admin/pages/database.tsx`
+- `apps/web/lib/xml/schema.ts`, `convert.ts`, `uslm-to-doc.ts`,
+  `apps/web/lib/typeset/xml-document.ts`
+- `apps/web/components/workspace/typeset-xml-reader.tsx`, `.css`
+- `apps/web/docs/xml/reader.md`, `apps/web/docs/xml/window-1.md`
+- `scripts/typeset/xml-reader-measure.mjs`
+
 ## Milestone 2 — H.R. 6644 in the XML view, 2026-09-14 06:40 EDT
 
 ### Built

@@ -85,3 +85,6 @@
 .uslm-ins { text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--color-green-600, green) 60%, transparent); }
 .uslm-del { text-decoration: line-through; }
 .uslm-designator { display: inline-block; min-width: 4.5em; }
+
+/* A "* * *" gap a state front end marks in quoted law */
+.uslm-p[data-role="ellipsis"] { text-align: center; letter-spacing: 0.5em; color: var(--muted-foreground); }

@@ -51,16 +51,25 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
   const [failed, setFailed] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  // Read in devtools on the reader's root: milliseconds from the component's first render to the JSON parsed and to the editor mounted.
+  const started = React.useRef(0)
+  const [clock, setClock] = React.useState<{ json?: number; mount?: number }>({})
 
   React.useEffect(() => {
     let live = true
     setLoaded(null)
     setMounted(false)
+    started.current = performance.now()
+    setClock({})
     const params = new URLSearchParams({ bill: String(billId) })
     if (version) params.set("version", version)
     fetch(`/api/typeset/xml?${params}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((body: Loaded) => live && setLoaded(body))
+      .then((body: Loaded) => {
+        if (!live) return
+        setClock({ json: Math.round(performance.now() - started.current) })
+        setLoaded(body)
+      })
       .catch(() => live && setFailed(true))
     return () => {
       live = false
@@ -75,7 +84,12 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
       content: loaded?.json ?? null,
       enableInputRules: false,
       enablePasteRules: false,
-      onCreate: () => setMounted(true),
+      onCreate: () => {
+        // The editor made before the JSON arrives is empty; the snapshot stays until the one holding the document exists.
+        if (!loaded) return
+        setClock((c) => ({ ...c, mount: Math.round(performance.now() - started.current) }))
+        setMounted(true)
+      },
     },
     [loaded]
   )
@@ -85,7 +99,7 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
   const dialect = meta?.dialect ?? undefined
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col" data-xml-reader data-json-ms={clock.json} data-mount-ms={clock.mount}>
       <XmlSourceLine meta={meta} />
       <div className="relative min-h-0 flex-1 overflow-y-auto">
         {!showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
