@@ -247,6 +247,8 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
   // "(1)(a) Notwithstanding …", "(3)(a)(A) At the election …": units of three ranks opening on
   // one line with no space between them (Oregon, Washington); the first is read and the rest carried.
   block = block.replace(/^(\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\))(?=\([0-9A-Za-z])/, "$1 ")
+  // "B.(1) In order to …": Louisiana's subsection and its first paragraph with no space between.
+  block = block.replace(/^([A-Z])\.(?=\(\s*[0-9A-Za-z]{1,4}\s*\)\s)/, "$1. ")
   let m =/^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
   if (m) return { style: "1.", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   block = block.replace(/^\(\s+([0-9A-Za-z.-]{1,6})\s+\)/, "($1)")
@@ -595,7 +597,8 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     body = blocks.slice(at + 1)
     // Kansas: "21-5604." alone, then "Incest; aggravated incest." as the next block.
     // A repealed section has no catchline: its next block is already "History:".
-    const heading = tidy(head[2] ?? "") || (p.headingNext && body.length > 1 && !p.creditStart?.test(body[0]) ? body.shift()! : "")
+    // Louisiana's next block says the number again, "§1402. Authority of commission": the restatement goes.
+    const heading = tidy(head[2] ?? "") || (p.headingNext && body.length > 1 && !p.creditStart?.test(body[0]) ? body.shift()!.replace(p.restated ?? /^$/, "").trim() : "")
     if (heading) level.children.push(node("heading", {}, [heading]))
   } else if (head && /\d/.test(head[1])) {
     level.children.push(node("num", {}, [head[1]]))

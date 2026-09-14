@@ -1039,27 +1039,21 @@
     "name": "Louisiana",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.7075,
+    "clean": 97,
+    "coverage": 0.9952,
     "dialects": {
       "la-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
-      "unmatched enumerator": 13,
-      "paragraph opens at N": 8,
-      "subsection opens at N": 7,
-      "paragraph opens at B": 5,
-      "subparagraph opens at b": 4,
-      "paragraph b after N": 3,
-      "subsection N after N": 3,
-      "subsection D after N": 3,
-      "paragraph opens at b": 2,
-      "subparagraph opens at C": 2,
-      "paragraph N after N": 2
+      "subsection N after N": 2,
+      "subsection opens at B": 1,
+      "subsection opens at N": 1,
+      "paragraph opens at C": 1,
+      "paragraph opens at G": 1,
+      "subparagraph opens at N": 1
     },
-    "measuredAt": "2026-09-14T13:36:35.615Z"
+    "measuredAt": "2026-09-14T14:15:13.476Z"
   },
   "SC/laws": {
     "jurisdiction": "SC",

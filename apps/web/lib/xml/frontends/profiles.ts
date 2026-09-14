@@ -139,6 +139,20 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Louisiana statutes (window 8, from fifty sections of the Revised Statutes
+// and codes): the Legislature's document page as text, "RS 48:1402" (or CC,
+// CCP, CCRP, CE, CHC, CONST) alone, then "§1402. Authority of commission",
+// then the law, then its history ("Acts 1968, No. 232, §2. Amended by …",
+// "Added by Acts 1968, No. 16, §4 …").
+PROFILES.LA = {
+  ...common("LA"),
+  statuteCite: /^(?:RS|CC|CCP|CCRP|CE|CHC|CONST(?:-AN)?)\s+/,
+  headingBlock: true,
+  headingNext: true,
+  restated: /^(?:§+|Art\.)\s*[\w.:-]+\.\s*/,
+  credit: /^(?:Acts \d{4}\b|Added by Acts\b|Amended by Acts\b|Redesignated\b|Acts No\.|\{\{NOTE:)/,
+}
+
 // Utah bills (window 8, from fifty printings of every session): half the
 // stored printings are a firewall's refusal and report as error pages. The
 // rest are the Legislature's printed bill: its lines numbered straight through,

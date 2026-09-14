@@ -6,23 +6,28 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 
 | Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current, sampled (100) | Held down by captures or the loader |
 |---|---|---|---|---|---|
-| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** | ~2,546 navigation pages |
+| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** (99.88 rebuilt) | 2,524 navigation pages fell out of the rebuild |
 | Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** (99.89 rebuilt) | — |
-| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** | 2011 placeholders, ~2% |
+| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** (99.03 rebuilt) | 2011 placeholders |
 | Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** (98.98 rebuilt) | — |
-| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** | 20,194 archive banners, 35% |
-| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** | — |
-| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) | — |
+| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (98.98 rebuilt) | 20,194 archive banners, 35% |
+| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** (99.16 rebuilt) | — |
+| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (96.93 rebuilt; no profile, lifted at 18c0ca1) | — |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** | — |
 | Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** | paragraphs the loader drops |
 | Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** | — |
 | Utah bills | 36,096 | 66.3 | 64.7 | **100.0** | 17,570 refusal pages, 49% |
-| Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 | |
+| Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** | — |
 | South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 | |
 | Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 | |
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 | |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 12 — Louisiana statutes, 70.8% to 99.5%; the first rebuild batch on the whole store (2026-09-14)
+
+- A Louisiana section is "RS 24:513.3" alone, then "§513.3. Catchline", the law, and its history ("Acts 1995, No. 1315, §1 …"). Louisiana sets `statuteCite` for the code prefixes, `headingBlock`, `headingNext`, `restated` and `credit`; the heading taken from the next block now drops its restated number. One shared fix: "B.(1)", a capital subsection and its first paragraph with no space between. Against HEAD: Indiana, Oregon, Washington, Kansas, Nevada, Maryland, Florida and Alabama statutes, Arizona and Oklahoma bills, unchanged. Held-back fifty: 98.9%. Grammar: `grammars/la.md`.
+- **Rebuild `rebuild-w8-3962289`, on the whole store** (the table's "rebuilt" figures): Oklahoma bills 128,799 at 99.88% with 2,524 navigation pages fallen out; Indiana statutes 80,485 at 99.89%; Massachusetts bills 55,807 at 99.03% (20 placeholders out); Oregon statutes 60,136 at 98.98% (1,005 out under the repeated-section-number rule); Colorado bills 37,156 at 98.98% with 13,655 banners out (two jobs left); Washington statutes 51,380 at 99.16%; South Carolina bills 42,514 at 96.93%. The fall-out column on the Ingestion page now fills for these states.
 
 ## Milestone 11 — Utah bills, 64.7% to 100.0% on real printings (2026-09-14)
 
