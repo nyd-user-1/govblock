@@ -2,6 +2,24 @@
 
 Read this first in the morning. Each window's own report is beside it: `window-1.md` (reader), `window-2.md` (pipeline), `window-3.md` (grammars and the Compiler page, the lead's own work), `reader.md` (the reader's numbers), `sources.md` (the acquisition review with measured coverage), `schema.md` (the address and the node list, the shared contract), and `grammars/`.
 
+## The finish line
+
+The corpus is compiled. The queue emptied at 10:24 UTC (06:24 EDT); the pipeline box is stopped, not terminated, so its clone and install survive for the nightly step and the rebuilds; start it again with `aws ec2 start-instances --instance-ids i-09c2fbf8624d91bdf` (its 100 GB volume costs about $8 a month at rest).
+
+| | |
+|---|---|
+| USLM Expressions stored | 5,021,727, 14.97 GB gzipped in S3 |
+| Federal bill printings, 113th to 119th | 134,727 |
+| US Code sections | 59,849 |
+| State bill printings | 2,865,305 |
+| State statute sections | 1,961,846 |
+| Jobs | 2,886 done, 440 of them rebuilds, 0 failed, 2 blocked by design (the 111th and 112th, no XML exists) |
+| Last rate | 2,578 a second over the final five minutes |
+| Well-formed | 800 of 800 sampled; S3 matches the index exactly for Delaware and Wyoming |
+| Fell out on the first pass | 55,083 (1.1%) |
+
+Virginia's stored bill texts are 74% captured error pages (84,630 of them): they fall out asking for a re-fetch, and that re-fetch is the first acquisition job. Coverage under 80% is listed in `window-2.md` by jurisdiction; the profiles for those states are the next grammar work. The nightly step ran once for real: the 119th re-read with 21,640 unchanged and no state or law deltas since 09:00 UTC. Open items in `window-2.md`: a reconcile-and-delete pass for orphaned objects from re-addressed rebuilds (needs a role that can delete), the generic front ends' fall-outs surfacing as notes rather than unknown elements, and the run controls and export route exercised in a browser under an admin session.
+
 ## Where things stand
 
 - **The XML reader works and proves the thesis.** H.R. 6644 and H.R. 2289 render in Tiptap from their USLM with zero rank violations on both federal dialects; the same bills through the old Typeset HTML drop every quote closing, cap three ranks at h6, and cannot draw USLM 2 printings at all. Texas and California bills round-trip exactly. `/workspace/typeset/bill/2058568/xml` on the 3002 server.
