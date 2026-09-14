@@ -139,6 +139,22 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Vermont bills (window 8, from fifty printings of every session): the
+// Legislative Counsel's printed bill, a line number down the margin, a running
+// head "BILL AS INTRODUCED H.429" over "2023 Page 1 of 10", a foot
+// "VT LEG #366703 v.4". "It is hereby enacted by the General Assembly of the
+// State of Vermont:", "* * * Sore Loser Law * * *" over a group of sections,
+// "Sec. 1. 17 V.S.A. § 2381(c) is added to read:" and the quoted section
+// "§ 2401. APPLICABILITY OF SUBCHAPTER". Resolutions "Resolved by the Senate:";
+// short-form bills carry "(TEXT OMITTED IN SHORT-FORM BILLS)" and no sections.
+PROFILES.VT = {
+  ...common("VT"),
+  enacting: /It is hereby enacted by the General Assembly of the State of Vermont/i,
+  quotedSection: /^§\s*(\d[\w.-]*[\w])\.\s*(.*)$/s,
+  marginNumbers: true,
+  furniture: /^\s*(?:VT LEG #\d+ v\.\d+.*|BILL AS (?:INTRODUCED|PASSED BY THE (?:HOUSE|SENATE)(?: AND (?:HOUSE|SENATE))?)(?: AND AS AMENDED)?\s+[HSJR.\d ]+|\d{4}\s+Page \d+ of \d+|R-\d+\s+Page \d+ of \d+\s+\d{4}|Page \d+ of \d+)\s*$/,
+}
+
 // New Mexico bills (window 8, from fifty printings of every session): the
 // Legislative Council Service's printed bill as text, a line number set
 // thirty-two spaces in (1 to 25 a page), the legend "[bracketed material] =

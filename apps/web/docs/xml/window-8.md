@@ -22,7 +22,14 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 | Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** | — |
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | **100.0** | — |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | **96.5** | — |
-| Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+| Vermont bills | 13,036 | 74.9 | 81.1 | **97.4** | — |
+
+## Milestone 17 — Vermont bills, 81.1% to 97.4%; every line of the seventeen at 90% or better (2026-09-14)
+
+- Vermont's resolutions open "Resolved by the Senate and House of Representatives:" in mixed case after a caption the line joins, and the resolving-clause test took only capitals and "Be it resolved"; it now takes "Resolved by the Senate", "House" or "General Assembly" anywhere in a block. The profile sets the enacting formula, `marginNumbers`, `furniture` ("BILL AS INTRODUCED H.429", "2023 Page 1 of 10", "VT LEG #366703 v.4") and quoted sections opening "§ 2401.". The twenty-one other sampled lines unchanged against HEAD. Held-back fifty: 98.4%. Grammar: `grammars/vt.md`.
+- **The bar is met on all seventeen lines, measured on a fresh hundred each:** the lowest is Nevada statutes at 94.8%, held there by paragraphs its loader drops; New Mexico 96.5%, South Carolina bills 97.0%, Vermont 97.4%, and the other thirteen at 98.5% or better. No line needed the 85% write-up. Four lines are held down in the store by captured pages rather than grammar (Colorado, Utah, Oklahoma, Massachusetts), and one by its loader (Nevada); each is named in the table and with the lead.
+- **What the parser gained, shared by every state**, each checked against HEAD on the regression set as it landed: units of several ranks on one line ("(3)(a)(A)", "B.(1)", "B. 1."); inserted units by hyphen or decimal ("(1.5)", "(II.5)"); "(i)" after "(h)" read as a letter when "(j)" follows; a quoted catchline running into its first unit; resolutions in mixed case; struck words after a capital unit; private-use glyphs dropped. Every other change is an optional `StateProfile` field a state opts into: `marginNumbers`, `marginIndent`, `furniture`, `openersAtLineHead`, `bodyOnly`, `romanDot`, `lowerAfterCapital`, `prepare` for bills; `statuteCite`, `headingBlock`, `headingNext`, `restated`, `credit`, `creditStart`, `notesStart`, `versionOpens` for statutes.
+- Next: the second rebuild batch for the ten lines committed since 3962289.
 
 ## Milestone 16 — New Mexico bills, 65.3% to 96.5% (2026-09-14)
 
@@ -117,7 +124,7 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 
 ## Files touched
 
-`apps/web/lib/xml/todo.ts`, `scripts/xml/worker.mjs`, `scripts/xml/run.mjs`, `scripts/xml/coverage.mjs`, `apps/web/lib/xml/coverage.generated.json`, `apps/web/lib/xml/frontends/generic.ts`, `apps/web/lib/xml/frontends/profiles.ts`, `apps/web/docs/xml/grammars/ok.md`, `apps/web/docs/xml/window-8.md`
+`apps/web/lib/xml/todo.ts`, `scripts/xml/worker.mjs`, `scripts/xml/run.mjs`, `scripts/xml/coverage.mjs`, `apps/web/lib/xml/coverage.generated.json`, `apps/web/lib/xml/frontends/generic.ts`, `apps/web/lib/xml/frontends/profiles.ts`, `apps/web/docs/xml/window-8.md`, and a grammar each under `apps/web/docs/xml/grammars/`: `ok.md`, `in.md`, `ma.md`, `or.md`, `co.md`, `wa.md`, `ks.md`, `nv.md`, `md.md`, `ut.md`, `la.md`, `sc.md` (statutes and bills), `ky.md`, `nh.md`, `nm.md`, `vt.md`. Never `lib/xml/frontends/us.ts` (the federal front end) or the schema.
 
 ## For Brendan
 

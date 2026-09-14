@@ -410,8 +410,9 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   const opensWithSection = blocks.length > 0 && p.section.test(blocks[0])
   if (start < 0 && !opensWithSection) {
     // A resolution: recitals and a resolving clause, no enacting formula.
-    // "Be It Resolved by the Senate …" (Colorado) as well as "RESOLVED, That …".
-    const resolving = (b: string) => /\bRESOLVED\b/.test(b) || /\bbe it resolved\b/i.test(b)
+    // "Be It Resolved by the Senate …" (Colorado) as well as "RESOLVED, That …", and "Resolved by the
+    // Senate and House of Representatives:" in mixed case, which Vermont's caption lines run into.
+    const resolving = (b: string) => /\bRESOLVED\b/.test(b) || /\bbe it resolved\b/i.test(b) || /\bResolved by the (?:Senate|House|General Assembly)\b/.test(b)
     if (blocks.some((b) => /^WHEREAS\b/i.test(b)) || blocks.some(resolving)) {
       doc.tag = "resolution"
       for (const b of blocks) {

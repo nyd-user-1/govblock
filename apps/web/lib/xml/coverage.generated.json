@@ -1088,28 +1088,29 @@
     "jurisdiction": "VT",
     "name": "Vermont",
     "source": "texts",
-    "sampled": 96,
-    "clean": 55,
-    "coverage": 0.8112,
+    "sampled": 100,
+    "clean": 76,
+    "coverage": 0.9741,
     "dialects": {
-      "vt-bill": 96
+      "vt-bill": 70,
+      "vt-resolution": 30
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 27,
-      "no enacting formula": 25,
-      "paragraph opens at N": 7,
-      "subsection a after N": 5,
-      "clause opens at B": 5,
-      "paragraph N after N": 5,
-      "subsection A after N": 3,
-      "subparagraph opens at N": 3,
-      "subsection d after N": 3,
-      "subparagraph opens at B": 3,
-      "subsection e after N": 2,
-      "subsection N after N": 2
+      "subsection a after N": 15,
+      "unmatched enumerator": 7,
+      "subsection N after N": 7,
+      "no sections": 5,
+      "subparagraph opens at b": 5,
+      "subparagraph opens at N": 4,
+      "paragraph A after N": 4,
+      "no enacting formula": 4,
+      "clause ii after N": 3,
+      "subsection opens at e": 3,
+      "subsection g after N": 3,
+      "subsection opens at b": 3
     },
-    "measuredAt": "2026-09-14T13:37:16.817Z"
+    "measuredAt": "2026-09-14T14:33:01.795Z"
   },
   "CO/texts": {
     "jurisdiction": "CO",
