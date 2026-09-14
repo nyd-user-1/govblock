@@ -72,15 +72,23 @@ from his testing, in his words:
 
 Open, on `feature/legislative-xml`, for the lead or one window:
 
-1. **The Git view's header and footer on every Typeset view.** The file
-   row (search, Raw, copy, download, edit, History) above the rich-text
-   toolbar, then the content; and the Git view's footer (the numbered
-   pills, the size line, the assist toggle, the links) on all seven views
-   and on the Work page. Done on Git's views (04–05) by a `toolbar` slot
-   on `BillTextPane`; lift the row out of `bill-text-pane.tsx` into its
-   own component with a search callback so Plate (01), Outline (02),
-   Redline (03), XML (06), Library (07), the Fork view and
-   `/workspace/typeset/work/…` wear it too.
+1. **The Git view's header and footer on every Typeset view.** Done
+   2026-09-14 evening by clips-2 taking over the lead's list. The row is
+   `components/policy/file-row.tsx`; Git's pane wears it as before, and
+   `components/workspace/typeset-file-chrome.tsx` puts it over Typeset
+   (01), Outline (02), Redline (03), Diff (05), XML (06), Library (07),
+   the bill's Fork view and the Work page, with the rich-text toolbar
+   under it wherever the view has no editor of its own. Find in this file
+   marks matches on the page as drawn (CSS Custom Highlight API, rules set
+   at run time because Turbopack's CSS parser refuses `::highlight`);
+   Enter walks them. Outline reads the page's headings and USLM sections;
+   History lists the printings (a choice opens it in Git); the pencil opens
+   the Fork view; the size line goes to the footer. `TypesetFrame` wears
+   the Git footer's parts (`typeset-footer-parts.tsx`), with the bill's
+   pills on a bill's Work. Not on the standalone Library page or the
+   standalone fork page (`/workspace/typeset/fork/<id>`): they open no file.
+   `/` focuses the search on every view but XML and the Work page, left
+   free for item 4.
 2. **Comments save.** A table keyed to bill, document and block; the
    discussion plugin reads and writes it instead of the in-memory demo.
 3. **Search.** ⌘K for "6644" returns H.Res. 1299 (its title mentions the

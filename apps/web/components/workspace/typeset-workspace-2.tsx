@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FileTextIcon, FoldHorizontalIcon, GitCompareArrowsIcon, HistoryIcon, LockIcon, LockOpenIcon, SparklesIcon, UnfoldHorizontalIcon } from "lucide-react"
 
@@ -13,7 +12,7 @@ import { PathScopeContext, useJurisdiction, type PathScope } from "@/lib/policy/
 import type { Bill } from "@/lib/policy/types"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { ActionsPanelProvider } from "@/lib/typeset/actions-panel"
-import { PaneNoteProvider, usePaneNote } from "@/lib/typeset/pane-note"
+import { PaneNoteProvider } from "@/lib/typeset/pane-note"
 import { GIT_VIEWS, TYPESET_VIEWS, typesetHref, type TypesetView } from "@/lib/typeset/views"
 import { TypesetCustomizer } from "@/app/(typeset)/components/customizer"
 import { TypesetPreviewOverrideProvider } from "@/app/(typeset)/components/preview-override"
@@ -36,6 +35,8 @@ import { Button } from "@govblock/ui/components/ny4/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 import { BlockShell } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
+import { TypesetBillChrome } from "@/components/workspace/typeset-file-chrome"
+import { GettingStarted, PaneNoteSlot, ViewPills } from "@/components/workspace/typeset-footer-parts"
 import {
   SidebarContent,
   SidebarGroup,
@@ -158,56 +159,6 @@ function RouteRail({ route }: { route: TypesetRoute }) {
       {group("Typeset", TYPESET_VIEWS, true)}
       {group("Git", GIT_VIEWS, false)}
     </SidebarContent>
-  )
-}
-
-/** The footer's numbered pills for the routed views, 01–05, each a link. */
-function ViewPills({ route }: { route: TypesetRoute }) {
-  const router = useRouter()
-  return (
-    <>
-      {TYPESET_VIEWS.map((option, index) => (
-        <Tooltip key={option.key}>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="sm"
-                data-active={route.view === option.key || (option.key === "git" && route.view === "fork")}
-                className="h-7 min-w-7 cursor-pointer rounded-lg px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
-                onClick={() => router.push(typesetHref(route.billId, option.key))}
-              />
-            }
-          >
-            {String(index + 1).padStart(2, "0")}
-          </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={10}>
-            {option.label}
-          </TooltipContent>
-        </Tooltip>
-      ))}
-    </>
-  )
-}
-
-/** The line a pane hands the footer: the Git view's size of the file. */
-function PaneNoteSlot() {
-  const note = usePaneNote()
-  if (!note) return null
-  return (
-    <>
-      <div className="mx-0.5 h-4 w-px bg-border" />
-      {note}
-    </>
-  )
-}
-
-/** Getting started, where Open in New Tab stood (Brendan, 2026-09-13). */
-function GettingStarted() {
-  return (
-    <Button asChild variant="ghost" size="sm" className="h-7 cursor-pointer rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-      <Link href="/docs">Getting started</Link>
-    </Button>
   )
 }
 
@@ -359,7 +310,7 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
       panelOpen={panelOpen}
       onTogglePanel={() => setPanelOpen((open) => !open)}
     >
-      <div className="flex items-center gap-1">{route ? <ViewPills route={route} /> : <TypesetPages options={PAGES} />}</div>
+      <div className="flex items-center gap-1">{route ? <ViewPills billId={route.billId} view={view} /> : <TypesetPages options={PAGES} />}</div>
       <div className="mx-0.5 h-4 w-px bg-border" />
       <GettingStarted />
       <PaneNoteSlot />
@@ -390,13 +341,18 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
 
   let content: React.ReactNode
   if (route && view) {
+    // The Git view's file row over every view (Brendan, 2026-09-14), with the
+    // rich-text toolbar under it wherever the view has no editor of its own.
+    const chrome = (children: React.ReactNode, toolbar?: React.ReactNode) => (
+      <TypesetBillChrome billId={route.billId} state={route.state} session={route.session} view={view} toolbar={toolbar}>
+        {children}
+      </TypesetBillChrome>
+    )
     const editor = EDITOR_OF[view]
     if (editor) {
-      content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
+      content = chrome(<TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />)
     } else if (view === "xml") {
-      // The rich-text toolbar on the XML view too (Brendan, 2026-09-14): the file row above it is the next step, once it is lifted out of the text pane.
-      content = (
-        <WithToolbar>
+      content = chrome(
         <ForkAction expression={xml?.meta?.expression ?? null} billId={route.billId}>
           <TypesetXmlReader
             billId={route.billId}
@@ -405,24 +361,19 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
             meta={xml?.meta}
             cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
           />
-        </ForkAction>
-        </WithToolbar>
+        </ForkAction>,
+        <StaticToolbar />
       )
     } else if (view === "fork") {
       // The reader's fork of the printing on the USLM schema (window 5, 2026-09-14): its own toolbar, amendment and redline.
-      content = <TypesetBillFork bill={bill} />
+      content = chrome(<TypesetBillFork bill={bill} />)
     } else if (view === "library") {
-      content = (
-        <WithToolbar>
-          <TypesetLibraryPane />
-        </WithToolbar>
-      )
+      content = chrome(<TypesetLibraryPane />, <StaticToolbar />)
     } else if (view === "redline") {
-      content = (
-        <WithToolbar>
-          <DiffPane width={diff.width} locked={diff.locked} filters={filters} />
-        </WithToolbar>
-      )
+      content = chrome(<DiffPane width={diff.width} locked={diff.locked} filters={filters} />, <StaticToolbar />)
+    } else if (view === "diff") {
+      // Git's Changes, under the same row; the pane's own History row stands down.
+      content = chrome(<TypesetGitPane billId={route.billId} view={view} chromed />, <StaticToolbar />)
     } else if (isGitView(view)) {
       // The file row first, the rich-text toolbar under it (Brendan, 2026-09-14): the pane draws the toolbar between its row and the text.
       content = <TypesetGitPane billId={route.billId} view={view} toolbar={<StaticToolbar />} />

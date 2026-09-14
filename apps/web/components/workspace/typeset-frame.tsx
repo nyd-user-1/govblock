@@ -7,12 +7,16 @@ import { TypesetPreviewOverrideProvider } from "@/app/(typeset)/components/previ
 import { previewFontVariables } from "@/app/preview/fonts"
 import { APP_CRUMB, PathBar, type Crumb } from "@/components/create/path-bar"
 import { BlockShell } from "@/components/policy/block-shell"
+import { GettingStarted, PaneNoteSlot, ViewPills } from "@/components/workspace/typeset-footer-parts"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
+import { PaneNoteProvider } from "@/lib/typeset/pane-note"
 import { cn } from "@govblock/ui/lib/utils"
 
 // Typeset's stage for the pages that open no bill (window 4, 2026-09-14): the
 // Library and a Work opened by its address. The same card, rail, path bar,
-// footer and customizer typeset-workspace-2.tsx draws around a bill.
+// footer and customizer typeset-workspace-2.tsx draws around a bill. The
+// footer is the Git view's (2026-09-14): the bill's numbered views when the
+// page is a bill's, Getting started, and the size line the page hands it.
 
 export const TYPESET_CRUMB: Crumb = { label: "Typeset", href: "/workspace/typeset" }
 
@@ -22,6 +26,7 @@ export function TypesetFrame({
   actions,
   footer,
   railOpen = false,
+  billId,
   children,
 }: {
   rail: React.ReactNode
@@ -30,11 +35,14 @@ export function TypesetFrame({
   actions?: React.ReactNode
   footer?: React.ReactNode
   railOpen?: boolean
+  /** A bill's Work: the footer's numbered pills open the bill's views. */
+  billId?: number | null
   children: React.ReactNode
 }) {
   const [panelOpen, setPanelOpen] = React.useState(false)
   return (
     <TypesetPreviewOverrideProvider>
+      <PaneNoteProvider>
       <div
         className={cn(
           "relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(48)] [--gap:--spacing(4)] md:[--gap:--spacing(6)] 2xl:[--customizer-width:--spacing(56)]",
@@ -52,6 +60,14 @@ export function TypesetFrame({
                 actions={actions}
                 footer={
                   <WorkspaceFooter mode="typeset" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)}>
+                    {billId ? (
+                      <>
+                        <ViewPills billId={billId} view={null} />
+                        <div className="mx-0.5 h-4 w-px bg-border" />
+                      </>
+                    ) : null}
+                    <GettingStarted />
+                    <PaneNoteSlot />
                     {footer}
                   </WorkspaceFooter>
                 }
@@ -74,6 +90,7 @@ export function TypesetFrame({
           </div>
         </div>
       </div>
+      </PaneNoteProvider>
     </TypesetPreviewOverrideProvider>
   )
 }
