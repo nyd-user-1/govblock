@@ -2,8 +2,94 @@
 
 Report to the lead. Newest milestone first. Run by window 5's session after
 its brief was accepted (`lib/xml/todo.ts`, claimed by window-5). Milestone 3
-goes to a fresh window, `window-6b`, on the lead's word at 60% context; its
-brief is the next section.
+went to a fresh window, `window-6b`, on the lead's word at 60% context; its
+brief is further down. Window 6 is done.
+
+**Open this, signed in:** `http://localhost:3002/workspace/typeset/fork/202`,
+then **In context**. H.R. 139, as introduced, against 15 U.S.C. 261: nine
+instructions, all applied, and the redline moves each time zone's offset down
+an hour. For more than one tab: `/workspace/typeset/fork/203`, H.R. 395
+against 18 U.S.C. 2241 and 2242.
+
+## Milestone 4 — a redline to see, and the instruction reader corrected (window 6b, 2026-09-14)
+
+### Where the instructions apply
+
+Stored bases need not predate an enacted bill to show a redline. A bill that
+was only introduced never became law, so the stored US Code still reads as
+it did before the bill, and its instructions apply to the text as held. No
+acquisition item follows from this. Enacted bills still read as already made
+until earlier release points are stored.
+
+A scan of 400 short introduced printings of the 119th Congress, with each
+instruction carried out on the Code section it cites, found 198 bills
+instructing stored sections. Forks made on the branch server:
+
+| Fork | Bill | Tabs | What the view draws |
+|---|---|---|---|
+| 202 | H.R. 139 | 15 U.S.C. 261 | 9 of 9 applied: "4" struck, "3" inserted, and so on through every zone; 18 marks, no whole units |
+| 203 | H.R. 395 | 18 U.S.C. 2241, 2242 | 3 of 3 applied: "any term of" struck, "not less than 30" inserted |
+| 200 | H.R. 286 | 18 U.S.C. 1038 | 3 of 3 applied: (a)(1) and (b) rewritten, drawn as whole units struck and inserted; (e) added |
+| 201 | H.R. 557 | 26 U.S.C. 63, 67, 68 | Not yet read: each instruction chains a place and three actions in one sentence |
+
+Each served payload (`GET /api/typeset/fork?id=`) was run through
+`billContext` and `billRedline`, with the statute read from its stored
+Expression in S3 as the tab loads it. The results are the table above.
+`/workspace/typeset/fork/202` answers 200.
+
+### The instruction reader, corrected
+
+The first scan's "applied" hid three misreadings in `lib/typeset/instruct.ts`.
+Each is fixed, with a test:
+
+- **Quotation marks that are markup.** GPO's introduced printings mark
+  quoted words as `quotedText` and print no quotation marks, so "by striking
+  4 hours and inserting 3 hours" matched no form. Words are now read with
+  the marks put back. Across the 400 bills, unread instructions fell from 323
+  to 165, and strike-and-insert instructions carried out went from 0 to 64
+  applied, plus 50 not found.
+- **Instructions longer than their form.** "by striking “and” at the end of
+  paragraph (3), by striking the period … and by adding at the end the
+  following" was read as a bare strike of the first "and" in the section,
+  which sat inside "standard". Every form must now be the whole instruction,
+  or it is Not yet read. A quoted phrase never matches inside a word.
+- **Quoted matter without addresses.** Matter carried into a statute now
+  takes the statute's identifiers, so a lightly amended unit redlines word by
+  word. A unit mostly rewritten, under 60% words in common, stays whole: a
+  shredded paragraph read worse than a struck unit and a new one.
+- A citation's own portion ("Section 63(b) of …") now narrows the
+  instruction where the citation carries it.
+
+### Verified
+
+- **37 of 37 tests** across the four files. The new tests:
+  - H.R. 139 as served: nine strike-and-insert instructions, all applied,
+    "4, 5, 6" struck and "3, 4, 5" inserted.
+  - H.R. 557's chained sentence and a section redesignation chained with an
+    insertion: both Not yet read.
+  - "or" struck as a word, never inside one.
+  - H.R. 286: (e) takes `/us/usc/t18/s1038/e`, and the rewritten units stay
+    whole.
+- Bounded type check over `instruct.ts`, `amend.ts` (`similarity` exported,
+  one word), `in-context.ts` and `typeset-context.tsx`: 0 diagnostics.
+
+### Open
+
+- Still unread: chained instructions in one sentence, "at the end of
+  paragraph (n)", "each place it appears", table-of-contents items, "before
+  the period at the end". Together they are most of the 165.
+- H.R. 139's eighth instruction inserts "by 7 hours" where the Code prints a
+  codifier's note ("Probably should be followed by “by”"). The redline is
+  faithful to the bill.
+- Test rows: forks 199–203, under a throwaway claim.
+
+### Files
+
+`apps/web/lib/typeset/instruct.ts`, `apps/web/lib/typeset/amend.ts`
+(`similarity` exported), `scripts/typeset/instruct.test.mjs`,
+`scripts/typeset/fixtures/us-bill-119-hr-139@2025-01-03_ih.json`,
+`us-usc-t15-s261@2026-09-09.xml`, `us-bill-119-hr-286@2025-01-09_ih.json`,
+`us-usc-t18-s1038@2026-05-04.xml`, `apps/web/docs/xml/window-6.md`.
 
 ## Milestone 3 — the in-context view (window 6b, 2026-09-14)
 

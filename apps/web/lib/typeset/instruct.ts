@@ -1,8 +1,8 @@
 import type { Node as PmNode } from "@tiptap/pm/model"
 import { Transform } from "@tiptap/pm/transform"
 
-import { isLevel } from "../xml/schema"
-import { elementOf, numOf, textOf } from "./amend"
+import { isLevel, SMALL_LEVELS } from "../xml/schema"
+import { elementOf, numOf, similarity, textOf } from "./amend"
 import { citationsOf, type Cite, type CiteContext } from "./cite"
 
 // A bill's amendment instructions, read and carried out (window 6,
@@ -55,6 +55,7 @@ export type BillInstruction = {
 const RANK_WORD = "(?:subsections?|paragraphs?|subparagraphs?|clauses?|subclauses?|items?|subitems?|sections?)"
 const QUOTE = `[“"]([^”"]*)[”"]`
 const singular = (word: string) => word.toLowerCase().replace(/s$/, "")
+const SMALL = new Set<string>(SMALL_LEVELS)
 const valuesOf = (s: string) => [...s.matchAll(/\(([A-Za-z0-9-]+)\)|\b(\d+[A-Za-z]?(?:-\d+)?)\b/g)].map((m) => m[1] ?? m[2])
 
 /** "in subsection (a)(4)(C)," → the portion; "in the heading," → the part. The rest of the words are the action. */
@@ -79,22 +80,25 @@ function prefixOf(words: string): { portion: string[] | null; absolute: boolean;
 
 /** One instruction's action from its words; `matter` is the quoted law that follows it, if any. */
 export function parseAction(words: string, matter: PmNode[] = []): Action {
-  const w = words.replace(/\s+/g, " ").trim().replace(/[;.]?\s*(?:and|or)?\s*$/i, "").replace(/[;,]$/, "")
+  const w = words.replace(/\s+/g, " ").trim().replace(/^[,\s]+/, "").replace(/[;.]?\s*(?:and|or)?\s*$/i, "").replace(/[;,]$/, "")
   let m: RegExpExecArray | null
-  if ((m = new RegExp(`by striking ${QUOTE}(?: and all that follows through ${QUOTE})?,? and inserting ${QUOTE}`, "i").exec(w))) return { kind: "strike-insert", strike: m[1], through: m[2] ?? null, insert: m[3] }
-  if ((m = new RegExp(`by inserting ${QUOTE} (after|before) ${QUOTE}`, "i").exec(w))) return { kind: m[2].toLowerCase() === "after" ? "insert-after" : "insert-before", insert: m[1], anchor: m[3] }
-  if ((m = new RegExp(`by striking ${QUOTE}(?: and all that follows through ${QUOTE})?`, "i").exec(w))) return { kind: "strike", strike: m[1], through: m[2] ?? null }
-  if (/by adding at the end(?: thereof)? the following/i.test(w)) return { kind: "add-end", matter }
-  if ((m = new RegExp(`by inserting (after|before) (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)? the following`, "i").exec(w))) return { kind: m[1].toLowerCase() === "after" ? "insert-unit-after" : "insert-unit-before", unit: { element: singular(m[2]), value: m[3] }, matter }
-  if ((m = new RegExp(`by striking (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)? and inserting the following`, "i").exec(w))) return { kind: "replace-unit", unit: { element: singular(m[1]), value: m[2] }, matter }
-  if ((m = new RegExp(`by redesignating (${RANK_WORD}) (.+?) as (?:${RANK_WORD}) (.+?)(?:, respectively)?$`, "i").exec(w))) {
+  // The words forms must be the whole instruction: "by striking “and” at the end of paragraph (3), by striking the period …"
+  // names a place and two more actions, and read as a bare strike it would take the first “and” anywhere.
+  if ((m = new RegExp(`^by striking ${QUOTE}(?: and all that follows through ${QUOTE})?,? and inserting ${QUOTE}$`, "i").exec(w))) return { kind: "strike-insert", strike: m[1], through: m[2] ?? null, insert: m[3] }
+  if ((m = new RegExp(`^by inserting ${QUOTE} (after|before) ${QUOTE}$`, "i").exec(w))) return { kind: m[2].toLowerCase() === "after" ? "insert-after" : "insert-before", insert: m[1], anchor: m[3] }
+  if ((m = new RegExp(`^by striking ${QUOTE}(?: and all that follows through ${QUOTE})?$`, "i").exec(w))) return { kind: "strike", strike: m[1], through: m[2] ?? null }
+  const FOLLOWING = "the following(?: new [a-z]+)?:?"
+  if (new RegExp(`^by adding at the end(?: thereof)? ${FOLLOWING}$`, "i").test(w)) return { kind: "add-end", matter }
+  if ((m = new RegExp(`^by inserting (after|before) (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)? ${FOLLOWING}$`, "i").exec(w))) return { kind: m[1].toLowerCase() === "after" ? "insert-unit-after" : "insert-unit-before", unit: { element: singular(m[2]), value: m[3] }, matter }
+  if ((m = new RegExp(`^by striking (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)? and inserting ${FOLLOWING}$`, "i").exec(w))) return { kind: "replace-unit", unit: { element: singular(m[1]), value: m[2] }, matter }
+  if ((m = new RegExp(`^by redesignating (${RANK_WORD}) (.+?) as (?:${RANK_WORD}) (.+?)(?:, respectively)?$`, "i").exec(w))) {
     const element = singular(m[1])
     const from = valuesOf(m[2]).map((value) => ({ element, value }))
     const to = valuesOf(m[3]).map((value) => ({ element, value }))
     if (from.length && from.length === to.length) return { kind: "redesignate", from, to }
   }
-  if ((m = new RegExp(`by striking (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)?$`, "i").exec(w))) return { kind: "strike-unit", unit: { element: singular(m[1]), value: m[2] } }
-  if (/(?:is amended )?to read as follows/i.test(w)) return { kind: "read-as-follows", matter }
+  if ((m = new RegExp(`^by striking (${RANK_WORD}) \\(?([A-Za-z0-9-]+)\\)?$`, "i").exec(w))) return { kind: "strike-unit", unit: { element: singular(m[1]), value: m[2] } }
+  if (/^(?:is amended )?to read as follows:?$/i.test(w)) return { kind: "read-as-follows", matter }
   return { kind: "unread", text: w }
 }
 
@@ -108,6 +112,36 @@ export function parseInstruction(words: string, matter: PmNode[] = []): { portio
 
 const AMENDED = /\b(?:is|are)\s+(?:hereby\s+)?amended\b/i
 const TARGET_KINDS = new Set(["usc", "code", "const", "pl", "bill"])
+
+/**
+ * A block's words as an instruction is read: quotation marks put back where
+ * the document marks quoted text without printing them. GPO's introduced
+ * printings carry “4 hours” as <quotedText>4 hours</quotedText>, so the text
+ * alone reads "by striking 4 hours and inserting 3 hours". Positions are not
+ * taken from these words.
+ */
+function wordsOf(block: PmNode): string {
+  let out = ""
+  let open = false
+  const close = () => {
+    if (open && !/[”"]$/.test(out)) out += "”"
+    open = false
+  }
+  block.forEach((child) => {
+    const quoted = child.isText && child.marks.some((m) => m.type.name === "quotedText")
+    const text = child.isText ? child.text! : child.type.name === "br" ? "\n" : "￼"
+    if (quoted && !open) {
+      if (!/[“"]$/.test(out) && !/^[“"]/.test(text)) out += "“"
+      open = true
+    } else if (!quoted && open) {
+      if (/^[”"]/.test(text)) open = false
+      else close()
+    }
+    out += text
+  })
+  close()
+  return out
+}
 
 /** A level's own words (its chapeau, or its content's first paragraph) and the quoted law that follows them, not crossing into child levels. */
 function ownParts(level: PmNode, levelPos: number): { block: PmNode | null; blockPos: number; matter: PmNode[] } {
@@ -143,6 +177,8 @@ function ownParts(level: PmNode, levelPos: number): { block: PmNode | null; bloc
 export function instructionsOf(doc: PmNode, ctx: CiteContext): BillInstruction[] {
   const cites = citationsOf(doc, ctx)
   const out: BillInstruction[] = []
+  /** The portion a citation names below its Work: "Section 63(b) of the Internal Revenue Code" → ["b"]. */
+  const citedPortion = (c: Cite | null) => (c?.work && c.address?.startsWith(`${c.work}/`) ? c.address.slice(c.work.length + 1).split("/").filter(Boolean) : [])
 
   const items = (parent: PmNode, parentPos: number, afterIndex: number, work: string | null, cite: Cite | null, portion: string[]) => {
     parent.forEach((child, offset, index) => {
@@ -150,7 +186,7 @@ export function instructionsOf(doc: PmNode, ctx: CiteContext): BillInstruction[]
       const pos = parentPos + 1 + offset
       const { block, blockPos, matter } = ownParts(child, pos)
       if (!block) return
-      const words = textOf(block)
+      const words = wordsOf(block)
       const prefix = prefixOf(words.trim())
       const here = prefix.portion ? (prefix.absolute ? prefix.portion : [...portion, ...prefix.portion]) : portion
       if (/[—–-]\s*$/.test(words)) {
@@ -169,7 +205,7 @@ export function instructionsOf(doc: PmNode, ctx: CiteContext): BillInstruction[]
       if (isLevel(child.type.name)) {
         const { block, blockPos } = ownParts(child, childPos)
         if (block && AMENDED.test(textOf(block))) {
-          const words = textOf(block)
+          const words = wordsOf(block)
           const target = cites.filter((c) => c.from >= blockPos && c.to <= blockPos + block.nodeSize && c.work && TARGET_KINDS.has(c.kind)).pop() ?? null
           const after = words.slice(words.search(AMENDED)).replace(AMENDED, "").trim()
           if (/^[—–-]?\s*$/.test(after)) {
@@ -178,11 +214,13 @@ export function instructionsOf(doc: PmNode, ctx: CiteContext): BillInstruction[]
             child.forEach((grand, o, i) => {
               if (childPos + 1 + o <= blockPos) blockIndex = i
             })
-            items(child, childPos, blockIndex, target?.work ?? null, target, [])
+            items(child, childPos, blockIndex, target?.work ?? null, target, citedPortion(target))
           } else {
             const { matter } = ownParts(child, childPos)
-            const prefix = prefixOf(after)
-            out.push({ from: blockPos + 1, to: blockPos + 1 + block.content.size, text: words, work: target?.work ?? null, cite: target, portion: prefix.portion ?? [], part: prefix.part, action: parseAction(prefix.rest, matter) })
+            const prefix = prefixOf(after.replace(/^[,\s]+/, ""))
+            const cited = citedPortion(target)
+            const portion = prefix.portion ? (prefix.absolute ? prefix.portion : [...cited, ...prefix.portion]) : cited
+            out.push({ from: blockPos + 1, to: blockPos + 1 + block.content.size, text: words, work: target?.work ?? null, cite: target, portion, part: prefix.part, action: parseAction(prefix.rest, matter) })
           }
           return
         }
@@ -227,8 +265,38 @@ function childUnit(parent: Found, unit: Unit): Found | null {
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-/** A phrase as a pattern that forgives spacing, quotation marks and dashes. */
-const loose = (phrase: string) => new RegExp(escape(phrase.trim()).replace(/\s+/g, "\\s+").replace(/[“”"]/g, "[“”\"]").replace(/[–—-]/g, "[–—-]"))
+const WORDISH = /[\p{L}\p{N}]/u
+/** A phrase as a pattern that forgives spacing, quotation marks and dashes, and never matches inside a word: “and” is not in “standard”. */
+const loose = (phrase: string) => {
+  const p = phrase.trim()
+  const body = escape(p).replace(/\s+/g, "\\s+").replace(/[“”"]/g, "[“”\"]").replace(/[–—-]/g, "[–—-]")
+  return new RegExp(`${WORDISH.test(p.charAt(0)) ? "(?<![\\p{L}\\p{N}])" : ""}${body}${WORDISH.test(p.charAt(p.length - 1)) ? "(?![\\p{L}\\p{N}])" : ""}`, "u")
+}
+
+const parentOf = (identifier: string) => identifier.slice(0, identifier.lastIndexOf("/"))
+
+/** Quoted matter as it will stand in the statute: the level and every level under it addressed there, so the diff pairs it with the unit it replaces. */
+function readdress(node: PmNode, identifier: string): PmNode {
+  const children: PmNode[] = []
+  const under = (parent: PmNode, id: string, out: PmNode[]) =>
+    parent.forEach((child) => {
+      const n = isLevel(child.type.name) ? numOf(child) : null
+      if (n) out.push(readdress(child, `${id}/${n}`))
+      else if (!child.isTextblock && !child.isLeaf && !isLevel(child.type.name)) {
+        const inner: PmNode[] = []
+        under(child, id, inner)
+        out.push(child.type.create(child.attrs, inner, child.marks))
+      } else out.push(child)
+    })
+  under(node, identifier, children)
+  return node.type.create({ ...node.attrs, identifier }, children, node.marks)
+}
+
+/** A quoted unit inserted under a parent: a small level takes the parent's address and its own number; a section or larger keeps its own. */
+const addressedUnder = (node: PmNode, parent: string) => {
+  const n = isLevel(node.type.name) && SMALL.has(elementOf(node)) ? numOf(node) : null
+  return n ? readdress(node, `${parent}/${n}`) : node
+}
 
 /** The first text block under a unit holding the words, and where they start and end in the document. */
 function locate(unit: Found, strike: string, through: string | null): { from: number; to: number } | null {
@@ -333,7 +401,7 @@ export function carryOut(statute: PmNode, instructions: BillInstruction[]): { do
             }
             pos = a.kind === "insert-unit-after" ? beside.pos + beside.node.nodeSize : beside.pos
           }
-          tr.insert(pos, matter)
+          tr.insert(pos, matter.map((n) => addressedUnder(n, identifier)))
           break
         }
         case "replace-unit":
@@ -348,7 +416,12 @@ export function carryOut(statute: PmNode, instructions: BillInstruction[]): { do
             say("already-made", "the text already reads as the instruction sets it")
             continue
           }
-          tr.replaceWith(target.pos, target.pos + target.node.nodeSize, matter)
+          const targetId = (target.node.attrs.identifier as string | null) ?? null
+          // Matter that mostly keeps the unit's words takes its address, so the redline shows the words changed;
+          // a unit rewritten stays a unit struck and a unit inserted, which reads better than a shredded paragraph.
+          const edited = similarity(target.node.textContent, matter.map((n) => n.textContent).join(" ")) >= 0.6
+          const placed = !targetId || !edited ? matter : matter.length === 1 && !SMALL.has(elementOf(matter[0])) ? [readdress(matter[0], targetId)] : matter.map((n) => addressedUnder(n, parentOf(targetId)))
+          tr.replaceWith(target.pos, target.pos + target.node.nodeSize, placed)
           break
         }
         case "strike-unit": {

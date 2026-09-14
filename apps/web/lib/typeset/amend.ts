@@ -219,7 +219,8 @@ function lcsPairs(a: string[], b: string[]): [number, number][] {
   return out
 }
 
-function similarity(a: string, b: string): number {
+/** The share of two texts' words they have in common, 0 to 1. */
+export function similarity(a: string, b: string): number {
   const A = words(a.toLowerCase())
   const B = words(b.toLowerCase())
   if (!A.length && !B.length) return 1

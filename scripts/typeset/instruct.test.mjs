@@ -61,6 +61,51 @@ test("carried out on the stored text, which already holds the amendment: nothing
   assert.equal(E.diffDocs(usc, doc).status === "same", outcomes.every((o) => o.status === "already-made"))
 })
 
+test("quotation marks the printing marks but does not print: H.R. 139's nine instructions to 15 U.S.C. 261 apply", () => {
+  // An introduced printing carries “4 hours” as quoted text with no quotation marks in its words.
+  const bill = S.nodeFromJSON(JSON.parse(fixture("us-bill-119-hr-139@2025-01-03_ih.json")))
+  const statute = E.uslmToDoc(E.parseXml(fixture("us-usc-t15-s261@2026-09-09.xml")), { identifier: "/us/usc/t15/s261", dialect: "uslm" }).doc
+  const list = E.instructionsOf(bill, { jurisdiction: "us", work: "/us/bill/119/hr/139" })
+  assert.equal(list.length, 9)
+  assert.deepEqual(list[0].action, { kind: "strike-insert", strike: "4 hours", through: null, insert: "3 hours" })
+  const { doc, outcomes } = E.carryOut(statute, list)
+  assert.deepEqual([...new Set(outcomes.map((o) => o.status))], ["applied"])
+  const specs = E.marked(E.diffDocs(statute, doc))
+  assert.deepEqual(specs.filter((s) => s.kind === "strike").slice(0, 3).map((s) => statute.textBetween(s.from, s.to)), ["4", "5", "6"])
+  assert.deepEqual(specs.filter((s) => s.kind === "insert").slice(0, 3).map((s) => s.text), ["3", "4", "5"])
+})
+
+test("an instruction the words forms do not wholly read is not guessed at", () => {
+  // Section 63(b) of H.R. 557: a place and two more actions after the struck word.
+  assert.equal(E.parseAction("by striking “and” at the end of paragraph (3), by striking the period at the end of paragraph (4) and inserting “, and”, and by adding at the end the following:").kind, "unread")
+  assert.equal(E.parseAction("by redesignating section 224 as section 225 and by inserting after section 223 the following new section:").kind, "unread")
+  assert.equal(E.parseAction("by inserting after section 223 the following new section:").kind, "insert-unit-after")
+})
+
+test("a struck phrase is never found inside a word", () => {
+  const ins = { from: 0, to: 0, text: "", work: "/us/usc/t12/s1701x", cite: null, portion: ["a", "4", "C"], part: null, action: { kind: "strike", strike: "or", through: null } }
+  const { doc, outcomes } = E.carryOut(usc, [ins])
+  assert.equal(outcomes[0].status, "applied", outcomes[0].detail ?? "")
+  const [struck] = E.marked(E.diffDocs(usc, doc)).filter((s) => s.kind === "strike")
+  // The strike's hunk carries the spaces around the word: " or " in "urban or rural", never the "or" of "for".
+  assert.match(usc.textBetween(struck.from, struck.to), /^\s*or\s*$/)
+  assert.match(usc.textBetween(struck.from - 1, struck.to + 1), /(?<![\p{L}\p{N}])or(?![\p{L}\p{N}])/u)
+})
+
+test("quoted matter carried into a statute takes the statute's addresses; a unit rewritten stays whole", () => {
+  // H.R. 286 rewrites 18 U.S.C. 1038(a)(1) and (b) to read as follows, and adds subsection (e).
+  const bill = S.nodeFromJSON(JSON.parse(fixture("us-bill-119-hr-286@2025-01-09_ih.json")))
+  const statute = E.uslmToDoc(E.parseXml(fixture("us-usc-t18-s1038@2026-05-04.xml")), { identifier: "/us/usc/t18/s1038", dialect: "uslm" }).doc
+  const list = E.instructionsOf(bill, { jurisdiction: "us", work: "/us/bill/119/hr/286" })
+  const { doc, outcomes } = E.carryOut(statute, list)
+  assert.deepEqual(outcomes.map((o) => o.status), ["applied", "applied", "applied"])
+  const ids = []
+  doc.descendants((n) => void (n.attrs?.identifier && ids.push(n.attrs.identifier)))
+  assert.ok(ids.includes("/us/usc/t18/s1038/e"), ids.join(" "))
+  const kinds = E.marked(E.diffDocs(statute, doc)).map((s) => s.kind)
+  assert.ok(kinds.includes("strike-block") && kinds.includes("insert-block"), kinds.join(" "))
+})
+
 test("carried out on the text before it: applied, and the engine draws the redline", () => {
   // The words the bill strikes, put back into (a)(4)(C) to stand for the text before enactment.
   const json = structuredClone(usc.toJSON())
