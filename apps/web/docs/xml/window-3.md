@@ -2,6 +2,13 @@
 
 The lead's own support work; no subagent. Newest milestone first.
 
+## Milestone 4 — the quoted-law fix across every state (2026-09-14 ~06:50 EDT)
+
+- Window 1's round trip of Texas and California through the reader found quoted law flattened into the bill's own section. Cause: "(2-a)"-style inserted units did not open a block, so the first quoted line merged into the instruction. Fixed at 4d4e888 for every state, with "(iii)" and longer romans, the enacting formula split from the block it shares, Oklahoma's and Kentucky's inline line numbers, Virginia's error-page captures reporting themselves, Texas's bracketed omissions as `del`, and New York's dotted section numbers ("§ 20.05") kept whole (the pipeline's spot check).
+- Re-measured after the fix: 16 of 33 coverage lines at 95% or better, 7 under 85% (Kentucky, Virginia, Oregon, Illinois, Massachusetts, Michigan, North Carolina, and Texas at 95). Virginia's low number is data: the legislature's error page was captured in place of the bill for a share of printings; those report "re-fetch".
+- The pipeline rebuilds New York statutes on this hash now and every state's bills after its first pass.
+- Five orphaned coverage statements (random order over `BillTexts`) pinned the cluster at 8 ACU for about forty minutes from 09:30 UTC; the pipeline window cancelled them. The script samples through `Bills` only now, and the rule is in the memory and in `sources.md`.
+
 ## Milestone 3 — every state has a front end; the Compiler page (2026-09-14 ~06:00 EDT)
 
 - `lib/xml/frontends/generic.ts` reads any state's printed bill through a profile (`frontends/profiles.ts`): preface, enacting formula, sections, quoted law, the levels below by rank of appearance, resolutions, line numbers stripped, blank-per-line captures collapsed, bracketed omissions as `del`. Illinois, Texas, New Jersey, California, Pennsylvania and Massachusetts were read from the corpus; the rest run on the common form. Every state is registered in `frontEndFor`.
