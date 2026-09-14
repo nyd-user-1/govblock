@@ -46,7 +46,7 @@ async function readParquet(prefix, columns) {
   return out
 }
 
-// BillHistory by jurisdiction, the last eight kept: the queue runs every
+// BillHistory by jurisdiction, the last four kept: the queue runs every
 // state's newest session before anyone's older one, so a controller moves
 // between states job by job and would otherwise read a history file each time.
 const historyCache = new Map()
@@ -56,7 +56,7 @@ async function historyOf(jurisdiction) {
     historyCache.delete(jurisdiction)
     historyCache.set(jurisdiction, hit)
   } else {
-    if (historyCache.size >= 8) historyCache.delete(historyCache.keys().next().value)
+    if (historyCache.size >= 4) historyCache.delete(historyCache.keys().next().value)
     const rows = await readParquet(`lake/v1/legislative/history_table/jurisdiction=${jurisdiction}/`, ["bill_id", "date", "sequence", "action"])
     const byBill = new Map()
     for (const r of rows) {

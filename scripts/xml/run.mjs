@@ -186,11 +186,18 @@ async function runJob(job) {
         info.dateBasis = "fetched"
       }
 
+      // What the index row needs, taken off the item now, so a result waiting
+      // on a slow index write does not keep the document's whole text alive.
+      const row = {
+        work: item.work, kind: item.info.kind, jurisdiction: job.jurisdiction, session: item.session ?? null, unit: item.unit ?? "",
+        label: item.label ?? null, fidelity: item.info.fidelity, source_url: item.sourceUrl ?? null, source_ref: item.sourceRef ?? null,
+        source_hash: sourceHash, builder: BUILDER, job_id: job.id,
+      }
       const p = compile({ frontEnd: item.frontEnd, source: item.source, info }).then(async (r) => {
         inflight.delete(p)
         if (!r.ok) {
           counts.fellOut++
-          const w = fallouts.add({ work: item.work, sourceRef: item.sourceRef, stage: r.stage, reason: r.reason, detail: r.detail })
+          const w = fallouts.add({ work: row.work, sourceRef: row.source_ref, stage: r.stage, reason: r.reason, detail: r.detail })
           if (w && !DRY) await w
           return
         }
@@ -200,14 +207,13 @@ async function runJob(job) {
         for (const [tag, n] of r.unknown) unknown.set(tag, (unknown.get(tag) ?? 0) + n)
         if (!DRY)
           await index.add({
-            work: item.work, expression: r.expression, expression_date: r.date, date_basis: r.dateBasis, kind: item.info.kind,
-            jurisdiction: job.jurisdiction, session: item.session ?? null, unit: item.unit ?? "", label: item.label ?? null,
-            fidelity: item.info.fidelity, coverage: Number(r.coverage.toFixed(4)), dialect: r.dialect, front_end: r.frontEnd, builder: BUILDER,
-            source_url: item.sourceUrl ?? null, source_ref: item.sourceRef ?? null, s3_key: r.key, source_hash: sourceHash,
-            content_hash: r.contentHash, bytes: r.bytes, gz_bytes: r.gzBytes, job_id: job.id,
+            ...row, expression: r.expression, expression_date: r.date, date_basis: r.dateBasis, coverage: Number(r.coverage.toFixed(4)),
+            dialect: r.dialect, front_end: r.frontEnd, s3_key: r.key, content_hash: r.contentHash, bytes: r.bytes, gz_bytes: r.gzBytes,
           })
       })
       inflight.add(p)
+      // When the cluster is slow the index falls behind the compiler; reading on would only pile rows up in memory.
+      while (!DRY && index.backlog > 3) await new Promise((r) => setTimeout(r, 250))
       if (Date.now() - lastBeat > 30_000) {
         lastBeat = Date.now()
         await beat()

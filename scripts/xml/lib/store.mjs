@@ -55,8 +55,10 @@ export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
   let rows = []
   let chain = Promise.resolve()
   let written = 0
+  let backlog = 0
   const params = (r) => COLUMNS.map((c) => ({ name: c, value: field(r[c]) }))
   const flushNow = async (batch) => {
+    backlog--
     try {
       await send(new BatchExecuteStatementCommand({ ...base, sql: UPSERT, parameterSets: batch.map(params) }))
       written += batch.length
@@ -77,6 +79,7 @@ export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
       if (rows.length >= size) {
         const batch = rows
         rows = []
+        backlog++
         chain = chain.then(() => flushNow(batch))
         return chain
       }
@@ -86,6 +89,7 @@ export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
       if (rows.length) {
         const batch = rows
         rows = []
+        backlog++
         chain = chain.then(() => flushNow(batch))
       }
       await chain
@@ -93,6 +97,10 @@ export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
     },
     get written() {
       return written
+    },
+    /** Batches cut and not yet sent. */
+    get backlog() {
+      return backlog
     },
   }
 }
