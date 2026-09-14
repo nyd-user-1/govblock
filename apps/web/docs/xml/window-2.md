@@ -2,6 +2,123 @@
 
 Report to the lead. Newest milestone first.
 
+## Finish line — the corpus is compiled (2026-09-14, 10:24 UTC / 06:24 EDT)
+
+### Stored
+
+**5,021,727 USLM Expressions, 14.97 GB gzipped**, under `s3://govblock-lake-638175140432/lake/v1/xml/`, each with its row in `expressions`. The queue is empty: 2,886 jobs done (440 of them rebuilds on corrected front ends), 0 failed, 2 blocked by design. Run window: 08:55 to 10:24 UTC, 89 minutes, over the dev box and the pipeline box.
+
+| Class | Expressions |
+|---|---|
+| Federal bill printings, 113th–119th Congresses | 134,727 |
+| United States Code sections and court rules | 59,849 |
+| State bill printings, every state and D.C. | 2,865,305 |
+| State statute sections, every state and D.C. | 1,961,846 |
+
+Blocked, with the reason on the job: the 111th and 112th Congresses. GovInfo publishes no bill XML before the 113th, and `"BillTexts"` holds no federal text before 2013.
+
+**Validation:** 800 documents sampled at random pass `xmllint --noout` (300 across the store, 300 state bills and statutes built in the final hour, 200 state statute sections), 0 failures. S3 and the index agree object for object where they were compared (Delaware 18,976, Wyoming 9,892).
+
+**Rate:** 2,000–2,600 expressions/s sustained on the pipeline box once the cluster cleared (2,578/s over the last five minutes of the rebuilds). The best minute was 2,885/s.
+
+### Coverage by jurisdiction, on the front ends as they stood at the end
+
+Coverage is the mean over every stored document of the share that parsed cleanly into the vocabulary. The fidelity tier stays `native-xml` federally and `plain-text` for the states, whose sources are text.
+
+| Jurisdiction | Bill printings | Coverage | Statute sections | Coverage |
+|---|---|---|---|---|
+| `us` | 134,727 | 99.9 % | 59,849 | 99.6 % |
+| `us-ak` | 13,205 | 94.4 % | 20,226 | 93.0 % |
+| `us-al` | 39,529 | 97.4 % | 48,530 | 98.7 % |
+| `us-ar` | 17,182 | 98.6 % | 38,188 | 94.5 % |
+| `us-az` | 45,938 | 98.7 % | 24,960 | 98.9 % |
+| `us-ca` | 170,178 | 95.9 % | 161,426 | 99.5 % |
+| `us-co` | 57,350 | 73.0 % | 35,101 | 97.1 % |
+| `us-ct` | 60,217 | 92.9 % | 29,671 | 96.7 % |
+| `us-dc` | 12,202 | 97.2 % | 23,492 | 98.3 % |
+| `us-de` | 11,076 | 80.4 % | 10,020 | 99.6 % |
+| `us-fl` | 61,810 | 93.6 % | 24,866 | 96.7 % |
+| `us-ga` | 50,417 | 95.3 % | 29,411 | 95.9 % |
+| `us-hi` | 150,483 | 99.1 % | 10,120 | 99.2 % |
+| `us-ia` | 29,239 | 99.1 % | 26,680 | 98.0 % |
+| `us-id` | 7,305 | 99.4 % | 20,465 | 99.3 % |
+| `us-il` | 157,825 | 91.6 % | 72,646 | 89.9 % |
+| `us-in` | 36,724 | 97.1 % | 80,485 | 72.2 % |
+| `us-ks` | 2,717 | 95.9 % | 46,930 | 56.4 % |
+| `us-ky` | 28,715 | 77.4 % | 35,484 | 99.3 % |
+| `us-la` | 94,632 | 91.6 % | 33,706 | 71.7 % |
+| `us-ma` | 69,255 | 72.9 % | 24,150 | 96.1 % |
+| `us-md` | 79,533 | 99.8 % | 40,053 | 78.5 % |
+| `us-me` | 27,676 | 94.9 % | 32,753 | 99.6 % |
+| `us-mi` | 71,851 | 94.5 % | 41,752 | 99.2 % |
+| `us-mn` | 82,973 | 99.5 % | 50,191 | 97.3 % |
+| `us-mo` | 49,546 | 93.5 % | 29,275 | 99.9 % |
+| `us-ms` | 87,342 | 99.4 % | 29,982 | 96.7 % |
+| `us-mt` | 43 | 98.4 % | 41,188 | 99.5 % |
+| `us-nc` | 51,786 | 96.1 % | 41,291 | 98.5 % |
+| `us-nd` | 6,515 | 95.5 % | 16,973 | 99.6 % |
+| `us-ne` | 19,881 | 94.9 % | 55,676 | 93.7 % |
+| `us-nh` | 27,612 | 73.5 % | 28,122 | 91.6 % |
+| `us-nj` | 106,394 | 97.3 % | 56,267 | 90.6 % |
+| `us-nm` | 24,254 | 64.8 % | 31,321 | 99.9 % |
+| `us-nv` | 21,369 | 98.5 % | 43,461 | 74.6 % |
+| `us-ny` | 226,379 | 97.9 % | 40,543 | 97.9 % |
+| `us-oh` | 7,551 | 95.5 % | 33,830 | 97.0 % |
+| `us-ok` | 146,968 | 79.2 % | 35,658 | 98.6 % |
+| `us-or` | 54,539 | 92.7 % | 60,136 | 77.9 % |
+| `us-pa` | 58,784 | 87.6 % | 14,045 | 99.7 % |
+| `us-ri` | 46,231 | 91.0 % | 32,167 | 99.3 % |
+| `us-sc` | 49,119 | 74.5 % | 30,973 | 75.4 % |
+| `us-sd` | 10,425 | 99.2 % | 18,012 | 99.6 % |
+| `us-tn` | 110,905 | 99.1 % | 35,419 | 95.7 % |
+| `us-tx` | 174,255 | 98.9 % | 123,322 | 98.5 % |
+| `us-ut` | 36,096 | 66.3 % | 28,310 | 100.0 % |
+| `us-va` | 30,872 | 93.3 % | 33,355 | 99.1 % |
+| `us-vt` | 13,036 | 74.9 % | 22,349 | 96.1 % |
+| `us-wa` | 39,729 | 98.6 % | 51,380 | 78.7 % |
+| `us-wi` | 23,461 | 89.5 % | 16,344 | 100.0 % |
+| `us-wv` | 52,570 | 97.6 % | 31,297 | 94.3 % |
+| `us-wy` | 11,611 | 88.2 % | 19,844 | 97.3 % |
+
+Below 80 %, the profiles to look at next:
+
+- **Statutes:** Kansas 56 %, Louisiana 72 %, Indiana 72 %, Nevada 75 %, South Carolina 75 %, Oregon 78 %, Maryland 79 %, Washington 79 %.
+- **Bills:** New Mexico 65 %, Utah 66 %, Massachusetts 73 %, Colorado 73 %, New Hampshire 74 %, South Carolina 75 %, Vermont 75 %, Kentucky 77 %, Oklahoma 79 %.
+
+### What fell out
+
+55,083 documents fell out of the first pass (1.1 %). The index keeps samples, fifty per reason per job.
+
+- **Captured error pages**: Virginia's `"BillTexts"` holds 84,630 error pages where the bill should be (74 % of its bill documents). The first pass stored them as empty bills. They're now fall-outs that name the re-fetch. Their index rows are removed, and 69,630 of their objects are deleted from S3 (the other 15,000 went in the first, interrupted pass). Virginia's 30,872 stored printings are the real ones.
+- **Section number repeats in its container**: a state code whose section numbers repeat where the front end declares them code-wide. The second of each pair is held back rather than guessed (2,487 samples).
+- **Bill number does not split**: `"Bills".bill_number` values with no leading letters (300 samples).
+- **One printing** with no date anywhere, and **one index row** the database refused.
+
+### The floor: how Brendan runs what is left
+
+The Ingestion page (`/workspace/dashboard/ingestion`, admin only) queues jobs; a controller on a box compiles them.
+
+1. Start the pipeline box. `ssh govblock-xml-direct`.
+2. `cd ~/govblock-xml && nohup node --max-old-space-size=8192 scripts/xml/run.mjs --watch --slots 3 --workers 4 > logs/watch.log 2>&1 &`
+3. On the page, **Run**: pick a jurisdiction (or every state), bills or statutes, optionally sessions or laws. Tick "Again, if built" to rebuild on an improved front end. Progress shows in **Queue** within 30 seconds.
+
+A rebuild on a corrected front end is a job queued again under a run named `rebuild-…` (the page's "Again, if built", or `scripts/xml/enqueue.mjs --run rebuild-<hash>`). It rebuilds in place and removes index rows the earlier build addressed differently.
+
+### The nightly run
+
+`scripts/xml/nightly.mjs` ran once for real at 10:10 UTC. It queued the 119th Congress under `nightly-2026-09-14`, re-read GovInfo's zips, and found all 21,640 printings unchanged, in 2 min 47 s; the unchanged-row touch that took most of that is now batched. No state printing and no law had been written since 09:00 UTC. The last `"BillTexts"` write of any state was before the Parquet export of 2026-09-01, so the Parquet backfill is current. `ops/xml/lv-xml-nightly.json` is the worker box's job definition, shipped `enabled: false`, with what it needs in the file.
+
+### Open
+
+- **Orphan objects.** A rebuild that re-addressed a printing (a duplicate `state_link` copy dropped, a stage renumbered) removed the old index row but not its object; the box cannot delete from S3. Virginia shows 4,091 objects beyond its index rows. The stream under `lake/v1/xml/` should be reconciled before it is sold: list the prefix against `expressions.s3_key` and delete the difference, from a role that can delete.
+- **Coverage fall-outs are empty for the states.** The generic front ends report problems in `report.notes`, not unknown element names, so the per-job `coverage` fall-outs only fill for federal documents. Aggregating the notes is the Compiler page's next input.
+- **Not exercised in a browser:** the Ingestion page's run controls and the export route under an admin session. Both compile on the branch server and answer 403 unsigned; their SQL was run against the cluster directly.
+- **Idle boxes.** The pipeline box is idle and can be stopped. The dev box's idle timer is back on.
+
+### Files since milestone 3
+
+`scripts/xml/run.mjs` (hand-over only when a thread has room, watchdog, index backpressure, rebuild runs and pruning, coverage fall-outs), `scripts/xml/worker.mjs` (error pages fall out), `scripts/xml/lib/store.mjs` (backlog, batched touch), `scripts/xml/lib/emit.mjs` (a section's number and heading from the loader when the front end finds none), `scripts/xml/sources/statutes.mjs` (oversized sections in slices), `scripts/xml/sources/state-bills.mjs` (four histories kept), `apps/web/lib/policy/expressions.ts` and `apps/web/components/admin/pages/ingestion.tsx` (reads that fit the cluster, the Nightly Ingestion card).
+
 ## Milestone 3 — on the pipeline box, every jurisdiction compiling, two million stored (2026-09-14, ~06:00 EDT)
 
 ### Where it stands at 09:58 UTC
