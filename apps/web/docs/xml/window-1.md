@@ -1,5 +1,19 @@
 # Window 1: the reader — report
 
+## Milestone 7 — the state check closed on dc02906, 2026-09-14 09:35 EDT
+
+- Every amending section on TX H.B. 18, CA A.B. 1607 and A.B. 2052 now holds
+  the law it amends as `quotedContent` (1, 2, 1). Coverage 100%, 100%, 98%;
+  the schema refuses nothing, 0 violations, both round trips exact; both
+  enacting formulas read whole. Final counts in `reader.md`.
+- Left for the lead, minor: H.B. 18 splits its instruction at the first
+  "Subchapter G", so the quotation opens with "Subchapter G to read as
+  follows:" and the quoted subchapter is a paragraph rather than a
+  `subchapter`; 301.101's heading carries "In this subchapter:"; A.B. 2052's
+  spaced "( l )" is unmatched.
+
+Files: `apps/web/docs/xml/reader.md`, `apps/web/docs/xml/window-1.md`.
+
 ## Milestone 6 — the state check against 4d4e888, 2026-09-14 09:10 EDT
 
 - Re-run on the lead's fixed front ends; numbers in `reader.md`, "Texas and
