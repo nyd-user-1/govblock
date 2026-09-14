@@ -139,7 +139,7 @@ export function ClipsApp() {
     else next.add(id)
     return next
   }
-  const record = () => setMode(signedIn ? "capture" : "gate")
+  const record = () => setMode("capture")
   const goToPost = (clip: Clip) => {
     window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(clip.id)}`)
     setView("feed")
@@ -154,7 +154,6 @@ export function ClipsApp() {
     commentCount: (id) => commentsFor(id).length,
     onDelete: (clip) => void remove(clip),
     onLike: (clip) => {
-      if (!signedIn) return setMode("gate")
       setLiked((s) => {
         const n = toggleIn(s, clip.id)
         storeLikes(n)
@@ -162,7 +161,6 @@ export function ClipsApp() {
       })
     },
     onSave: (clip) => {
-      if (!signedIn) return setMode("gate")
       setSaved((s) => {
         const n = toggleIn(s, clip.id)
         storeSaves(n)
@@ -170,7 +168,6 @@ export function ClipsApp() {
       })
     },
     onFollow: (creatorId) => {
-      if (!signedIn) return setMode("gate")
       setFollowing((s) => {
         const n = toggleIn(s, creatorId)
         storeFollows(n)

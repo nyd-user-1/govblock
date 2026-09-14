@@ -1,5 +1,5 @@
+import { ClipsApp } from "@/components/clips/clips-app"
 import { DocsSidebar } from "@/components/docs-sidebar"
-import { PublicRail } from "@/components/block-card"
 import { RailStrip, RailToggle } from "@/components/rail-toggle"
 import { railScript } from "@/lib/rail-script"
 import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
@@ -19,7 +19,8 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // The right rail is a second screen (Brendan, 2026-09-14): open, it reaches
 // all the way across until its hairline sits on the left rail's, wherever
 // that is — 1rem in when the left rail is closed, 17.5rem when it is open —
-// and it lies over the page like the left one does.
+// and it lies over the page like the left one does. On it: Clips, the same
+// page /clips draws, in the space the sheet gives it.
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&_[data-slot=sidebar-content]]:flex!"
 
 export function RailsFrame({ children }: { children: React.ReactNode }) {
@@ -43,12 +44,13 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
           <Sidebar
             side="right"
             collapsible="none"
-            className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex"
+            className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
           >
             <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex" />
             <RailToggle side="right" />
-            <SidebarContent className="scrollbar-none ml-16 w-(--sidebar-menu-width) scroll-fade gap-6 overflow-x-hidden py-1 pr-2.5">
-              <PublicRail />
+            {/* Past the tab's 16px and a little air; the page scrolls inside the sheet. */}
+            <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
+              <ClipsApp />
             </SidebarContent>
           </Sidebar>
         </div>

@@ -240,8 +240,10 @@ export function askOfPath(pathname: string): PathAsk {
       return { entity: "calendar" }
     case "map":
       return { entity: "members" }
-    case "watches":
     case "clips":
+      // Open (Brendan, 2026-09-14): nothing in Clips needs an account yet.
+      return { entity: "meta" }
+    case "watches":
     case "connectors":
     case "agent":
     case "agents":
