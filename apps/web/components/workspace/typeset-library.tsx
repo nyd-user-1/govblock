@@ -395,6 +395,6 @@ export function TypesetLibraryPane() {
       live = false
     }
   }, [])
-  if (!listing) return <p className="p-8 text-sm text-muted-foreground">{failed ? "The library could not be read." : "Reading the library…"}</p>
+  if (!listing) return <p className="p-8 text-sm text-muted-foreground">{failed ? "The library could not be read." : "Loading…"}</p>
   return <LibraryBody listing={listing} replace={false} />
 }

@@ -14,7 +14,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 // it, reading the levels the reader already draws with their addresses as
 // element ids.
 
-type Target = { id: string; label: string; top: number }
+type Target = { id: string; label: string; top: number; /** The chip's left edge: 96px before the text column, so it is always in the same spot on the unit's line (Brendan, 2026-09-14). */ left: number }
 
 export function ForkAction({ expression, billId, children }: { expression: string | null; billId?: number | null; children: React.ReactNode }) {
   const router = useRouter()
@@ -39,7 +39,9 @@ export function ForkAction({ expression, billId, children }: { expression: strin
     }
     const label = nums.map((n) => n.replace(/^(SEC(TION)?\.?|§)\s*/i, "")).join("").replace(/^(\d)/, "§ $1")
     setFailed(false)
-    setTarget({ id: level.id, label, top: level.getBoundingClientRect().top - wrap.current.getBoundingClientRect().top })
+    const box = wrap.current.getBoundingClientRect()
+    const at = level.getBoundingClientRect()
+    setTarget({ id: level.id, label, top: at.top - box.top, left: Math.max(8, at.left - box.left - 96) })
   }
 
   const fork = async () => {
@@ -55,8 +57,7 @@ export function ForkAction({ expression, billId, children }: { expression: strin
     <div ref={wrap} className="relative h-full min-h-0" onMouseMove={onMove} onMouseLeave={() => !busy && setTarget(null)} onScrollCapture={() => !busy && setTarget(null)}>
       {children}
       {target && (
-        // On the left, beside the text (Brendan, 2026-09-14): closer to the unit than the far edge.
-        <div className="absolute left-4 z-10 flex items-center gap-2" style={{ top: Math.max(44, target.top + 4) }}>
+        <div className="absolute z-10 flex items-center gap-2" style={{ top: Math.max(44, target.top), left: target.left }}>
           {failed && <span className="rounded bg-background px-1.5 text-xs text-destructive">This unit is not in the XML store.</span>}
           <Button ref={button} variant="outline" size="sm" disabled={busy} className="h-7 gap-1.5 bg-background px-2 text-xs shadow-sm" onClick={() => void fork()}>
             <GitForkIcon className="size-3.5" /> Fork {target.label}
