@@ -9,6 +9,7 @@ import { stateName } from "@/lib/filters"
 import { num, useProvenance, useStates, type Provenance } from "@/components/admin/data"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
+import { TodoCard } from "@/components/admin/blocks/todo-card"
 import { UslmParseCard } from "@/components/admin/blocks/uslm-parse-card"
 import { ComponentActions } from "@/components/card-frame"
 import { FlagChip } from "@/components/policy/imagery"
@@ -168,6 +169,10 @@ export function DatabasePage() {
     <div>
       <div className="mt-4 sm:mt-5">
         <StatDatabaseGrid stats={tiles} />
+      </div>
+
+      <div className="mt-4 sm:mt-5">
+        <TodoCard />
       </div>
 
       <div className="mt-4 sm:mt-5">
