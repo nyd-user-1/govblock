@@ -488,11 +488,15 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   // the number is read after them.
   const cites: string[] = []
   let m: RegExpExecArray | null
-  while ((m = /^\(([^)]{3,60})\)\s+/.exec(first))) {
+  let at = 0
+  while ((m = /^\(([^)]{3,60})\)(?:\s+|$)/.exec(first))) {
     cites.push(m[1])
     first = first.slice(m[0].length)
+    // A citation that was the whole first block: the number is in the next.
+    if (!first && blocks.length > at + 1) first = blocks[++at]
   }
   if (cites.length) level.attrs.cite = cites.join("; ")
+  if (at > 0) body = blocks.slice(at)
   const head = /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
   if (head && /\d/.test(head[1])) {
     level.children.push(node("num", {}, [head[1]]))
@@ -501,14 +505,14 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     const isHeading = candidate.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(candidate)
     if (isHeading && split) {
       level.children.push(node("heading", {}, [split[1]]))
-      body = [split[2], ...blocks.slice(1)]
+      body = [split[2], ...blocks.slice(at + 1)]
     } else if (isHeading) {
       level.children.push(node("heading", {}, [head[2]]))
-      body = blocks.slice(1)
-    } else body = [head[2], ...blocks.slice(1)]
+      body = blocks.slice(at + 1)
+    } else body = [head[2], ...blocks.slice(at + 1)]
   } else if (tag !== "section") {
     level.children.push(node("heading", {}, [first]))
-    body = blocks.slice(1)
+    body = blocks.slice(at + 1)
   } else problems.push(`no number at the start: ${first.slice(0, 40)}`)
   const nested = nest(body, problems, inline, false)
   if (nested.length && nested[0].tag === "p" && tag === "section") {
