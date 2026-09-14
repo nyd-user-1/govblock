@@ -95,14 +95,18 @@ grammars with measured coverage, is the artifact nobody else has.
 5b. **Export.** A route under `app/api/xml/` that returns an Expression as USLM,
    gated as datasets are (`lib/entitlements.ts`, entity `datasets`), with the
    right content type, so the stream is a real artifact from day one.
-6. **The Legislative XML dashboard, the project's own.** A new page under
-   `/workspace/dashboard` (`components/admin/pages/xml.tsx`, registered in
-   `components/admin/pages/index.tsx` beside Data Pipeline): expressions
-   stored by jurisdiction, kind and session; the queue, with what is done,
+6. **The Pipeline dashboard, the project's own and the nightly run's.**
+   Duplicate `components/admin/pages/database.tsx` (the Data Pipeline) into
+   `components/admin/pages/pipeline.tsx`, registered in
+   `components/admin/pages/index.tsx`, and repurpose it (Brendan,
+   2026-09-14) as (a) the monitor of this project's progress until
+   completion and (b) the control and observability surface for all
+   nightly ingestion and hashing, not only the XML work: expressions stored
+   by jurisdiction, kind and session; the queue, with what is done,
    running, waiting and failed; run controls that enqueue a jurisdiction
    and its sessions or titles and show progress as it goes; coverage per
-   jurisdiction from window 3's file; last night's run; and each window's
-   report rendered from `apps/web/docs/xml/`. This is the floor Brendan
+   jurisdiction from the lead's coverage file; every nightly job's last
+   run; and each window's report rendered from `apps/web/docs/xml/`. This is the floor Brendan
    named: if the corpus is not finished by morning, this page is how he
    finishes it. The run controls call a route under `app/api/xml/` that
    writes to the queue the controller reads; the controller runs on the box.

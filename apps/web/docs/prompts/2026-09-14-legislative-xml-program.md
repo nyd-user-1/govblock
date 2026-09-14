@@ -151,9 +151,13 @@ provisions boxes.
     `/workspace/dashboard`: a Compiler page, the fifty front ends as a grid
     with each jurisdiction's profile, measured coverage, the units it does
     not name yet and sample fall-outs, with the grammar catalogue readable;
-    and a Legislative XML page, the program's own dashboard: expressions
-    stored by jurisdiction, kind and session, the queue with run controls,
-    last night's run, and each window's report.
+    and a Pipeline page, duplicated from an existing dashboard page (the
+    Data Pipeline is the donor) and repurposed (Brendan, 2026-09-14) as
+    the monitor of this project's progress until completion and as the
+    control and observability surface for all nightly ingestion and
+    hashing, not only the XML work: expressions stored by jurisdiction,
+    kind and session, the queue with run controls, every nightly job's
+    last run, and each window's report.
 14. Prior art is not the model. The fork edit page that commits an edited
    copy to a reader's fork already exists in this codebase; the amendment
    engine derives instructions from an edited copy because that is how this
@@ -165,15 +169,16 @@ provisions boxes.
 |---|---|---|---|
 | 1 Reader | `2026-09-14-typeset-xml-reader.md` | schema, address, `uslmToDoc`, `lib/xml/` converters, the XML view, the parse tile | now (Brendan opens it) |
 | 2 Pipeline | `2026-09-14-xml-pipeline.md` | `expressions` DDL, S3 store, the run queue and shards, federal and state loads, the Legislative XML dashboard | now (Brendan opens it) |
-| 3 Grammars and the Compiler surface | `2026-09-14-grammars-and-compiler.md` | one front end per jurisdiction, coverage measurement, the Compiler page | now (the lead spawns it) |
-| 4 Library and My Files | `2026-09-14-library.md` | libraries by family, browse/filter/sort/load in Typeset, the `/` command, the My Files rename | when window 1 has written the address (its first hour) |
+| 3 Grammars and the Compiler surface | `2026-09-14-grammars-and-compiler.md` | one front end per jurisdiction, coverage measurement, the Compiler page | now (the lead does this work itself, in support) |
+| 4 Library and My Files | `2026-09-14-library.md` | libraries by family, browse/filter/sort/load in Typeset, the `/` command, the My Files rename | when window 1 has written the address; the lead or a window Brendan opens |
 | 5 Fork and amend | `2026-09-14-fork-and-amend.md` | the true fork, the engine, the Fork view, the proposed-versions removal | when 1 and 2 report done |
 | 6 Citations and context | `2026-09-14-citations-and-context.md` | `@`, decorations, the in-context view | when 5 reports done |
 
-Three to four run at once. The lead reads each report as it lands, reviews
-the diff on the branch, rules on every question in a report, spawns the
-next window, and provisions a second box when a window's measured
-throughput says the corpus will not finish on one. Windows 3 and 2 hand
+Brendan opens the windows; the lead never spawns subagents (Brendan,
+2026-09-14: they burn tokens too quickly). The lead is the monitor and does
+the support work itself: the front ends, the coverage file, the Compiler
+page, answers to reports, a second box when a window's measured throughput
+says the corpus will not finish on one. Windows 3 and 2 hand
 each other work through files on the branch: window 3's front ends are
 `lib/xml/frontends/<jurisdiction>.ts` with a coverage line each in
 `lib/xml/coverage.generated.json`; window 2 runs whatever front ends exist

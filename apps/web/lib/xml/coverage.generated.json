@@ -1,0 +1,22 @@
+{
+  "US": {
+    "jurisdiction": "US",
+    "name": "Congress and the United States Code",
+    "source": "documents",
+    "sampled": 60,
+    "clean": 51,
+    "coverage": 0.9945,
+    "dialects": {
+      "bill-dtd": 58,
+      "uslm": 2
+    },
+    "unknown": {
+      "colspec": 7,
+      "citableAs": 6,
+      "associated-doc": 4,
+      "publicPrivate": 2,
+      "enrolledDateline": 2
+    },
+    "measuredAt": "2026-09-14T08:41:43.426Z"
+  }
+}
