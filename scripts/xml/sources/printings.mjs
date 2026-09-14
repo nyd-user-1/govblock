@@ -35,7 +35,15 @@ const isoDay = (v) => {
 export function* printingsOfBill({ state, unit, bill, docs, actions }) {
   const session = sessionSegment(unit, bill.session_title, bill.legiscan_session_id)
   const work = stateBillWork(state, session, bill.bill_number)
-  const list = docs.filter((t) => !NOT_A_PRINTING.test(String(t.version ?? ""))).sort((a, b) => Math.abs(Number(a.document_id)) - Math.abs(Number(b.document_id)))
+  const printed = docs.filter((t) => !NOT_A_PRINTING.test(String(t.version ?? "")))
+  // The same printing read twice, once from the legislature's web page
+  // (state_link) and once from a clean feed (California's pubinfo, New York's
+  // Senate API): the web page is dropped. Window 1 found 581 of California's
+  // newest 3,000 state_link texts were leginfo pages, not the bill.
+  const clean = new Set(printed.filter((t) => t.source && t.source !== "state_link").map((t) => String(t.version ?? "").toLowerCase()))
+  const list = printed
+    .filter((t) => !(t.source === "state_link" && clean.has(String(t.version ?? "").toLowerCase())))
+    .sort((a, b) => Math.abs(Number(a.document_id)) - Math.abs(Number(b.document_id)))
   if (!list.length) return
   if (!work) {
     for (const t of list) if (t.text) yield { fallout: { stage: "source", reason: "bill number does not split", detail: String(bill.bill_number), sourceRef: `BillTexts:${t.document_id}` } }

@@ -22,7 +22,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Worker } from "node:worker_threads"
 
-import { one } from "../laws/lib/db.mjs"
+import { exec, one } from "../laws/lib/db.mjs"
 import { load } from "./bundle.mjs"
 import { claim, falloutLog, finish, heartbeat, holdings, indexWriter, reclaimStale, touch, WORKER } from "./lib/store.mjs"
 import { sourceFor } from "./sources/index.mjs"
@@ -140,6 +140,8 @@ async function runJob(job) {
   if (held.size) jlog(`${held.size.toLocaleString()} works already indexed under ${prefixes.join(", ")}`)
   const seen = []
   const inflight = new Set()
+  // Element names the front end did not know, summed over the job: what holds its coverage down.
+  const unknown = new Map()
   let lastBeat = Date.now()
 
   const beat = async () => {
@@ -195,6 +197,7 @@ async function runJob(job) {
         counts.built++
         counts.bytes += r.bytes
         coverageSum += r.coverage
+        for (const [tag, n] of r.unknown) unknown.set(tag, (unknown.get(tag) ?? 0) + n)
         if (!DRY)
           await index.add({
             work: item.work, expression: r.expression, expression_date: r.date, date_basis: r.dateBasis, kind: item.info.kind,
@@ -211,10 +214,23 @@ async function runJob(job) {
       }
     }
     await Promise.all(inflight)
+    // The job's twenty most frequent unknown elements, as coverage fall-outs, for the grammar work (window 3).
+    for (const [tag, n] of [...unknown].sort((a, b) => b[1] - a[1]).slice(0, 20)) fallouts.add({ work: null, sourceRef: null, stage: "coverage", reason: `<${tag}>`, detail: `${n} in ${job.jurisdiction} ${job.kind} ${job.unit}` })
     if (!DRY) {
       await index.flush()
       await fallouts.flush()
       await touch(seen)
+      // A rebuild re-addresses what moved (a printing dropped as a duplicate,
+      // a stage renumbered): rows an earlier job of this unit wrote and this
+      // one did not rewrite are no longer in the corpus. Their objects stay.
+      if (rebuild && counts.fellOut === 0) {
+        const pruned = await exec(
+          `delete from expressions where jurisdiction = $1 and kind = $2 and built_at < $3::timestamptz
+             and job_id in (select id from xml_jobs where jurisdiction = $1 and kind = $2 and unit = $4 and id <> $5)`,
+          [job.jurisdiction, job.kind, new Date(t0).toISOString(), job.unit, job.id]
+        )
+        if (pruned.numberOfRecordsUpdated) jlog(`${pruned.numberOfRecordsUpdated.toLocaleString()} expressions an earlier build addressed differently, removed from the index`)
+      }
     }
     counts.coverage = counts.built ? coverageSum / counts.built : null
     if (!DRY) await finish(job, counts, "done")

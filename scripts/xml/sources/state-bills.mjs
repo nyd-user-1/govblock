@@ -76,7 +76,7 @@ export async function* stateBills({ jurisdiction, unit, log }) {
   const state = jurisdiction.replace(/^us-/, "")
   const t0 = Date.now()
   const [texts, bills] = await Promise.all([
-    readParquet(`lake/v1/text/bill_texts/jurisdiction=${state}/session=${unit}/`, ["document_id", "bill_id", "version", "text", "fetched_at"]),
+    readParquet(`lake/v1/text/bill_texts/jurisdiction=${state}/session=${unit}/`, ["document_id", "bill_id", "version", "source", "text", "fetched_at"]),
     readParquet(`lake/v1/legislative/bills/jurisdiction=${state}/session=${unit}/`, ["bill_id", "bill_number", "session_title", "legiscan_session_id", "title"]),
   ])
   const history = await historyOf(state)

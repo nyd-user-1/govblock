@@ -34,7 +34,7 @@ export async function* billDelta({ jurisdiction, unit, log }) {
     const ids = inList(billIds.slice(i, i + 200))
     const [bills, docs, history] = await Promise.all([
       q(`select bill_id, session_id, bill_number, session_title, legiscan_session_id, title from "Bills" where bill_id = any(string_to_array($1, ',')::bigint[])`, [ids]),
-      q(`select document_id, bill_id, version, fetched_at::text as fetched_at from "BillTexts" where bill_id = any(string_to_array($1, ',')::bigint[])`, [ids]),
+      q(`select document_id, bill_id, version, source, fetched_at::text as fetched_at from "BillTexts" where bill_id = any(string_to_array($1, ',')::bigint[])`, [ids]),
       q(`select bill_id, date::text as date, sequence, action from "History Table" where bill_id = any(string_to_array($1, ',')::bigint[])`, [ids]),
     ])
     const docsOf = new Map()
