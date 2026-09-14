@@ -2,6 +2,76 @@
 
 Report to the lead. Newest milestone first.
 
+## Milestone 1 — the engine, tested on published law (2026-09-14)
+
+### Built
+
+`apps/web/lib/typeset/amend.ts`, pure functions over the reader's schema:
+
+- **`diffDocs(base, fork)`.** Children are matched by `identifier`, then by
+  element and number, with the longest increasing run of keyed matches as
+  anchors. Unkeyed children pair by exact text, then by type and likeness
+  between the anchors. Inside a changed text block the diff is word by word.
+  Each hunk comes out as one strike and one insertion, and a stretch of bare
+  punctuation between two changes goes into the change. Positions are the
+  base's and the fork's own, so the redline lands where the words are.
+  Marks are not compared: formatting is not an amendment.
+- **`instructions(diff, citation)`** in the jurisdiction's convention
+  (`CONVENTIONS`):
+  - **Federal, a bill's own form:** "In section 102(a), strike “18” and
+    insert “12”."; "In section 102(b)— (1) strike paragraph (5); and (2)
+    redesignate paragraphs (6), (7), and (8) as paragraphs (5), (6), and (7),
+    respectively."; "In section 102, add at the end the following:" with the
+    quoted subsection. A subsection more than half rewritten becomes "Strike
+    section 102(f) and insert the following:".
+  - **Federal, the codified form:** "Section 130i(b)(1)(D) of title 10,
+    United States Code, is amended by striking “exercise” and inserting
+    “assume”."; ", in the heading, by striking"; "by inserting “promptly”
+    after “Defense may”". An anchor or struck phrase grows a word at a time
+    until it appears once in its part, else it takes "the second place it
+    appears".
+  - **New York:** "Section 1. Subdivision 1 of section 16 of the agriculture
+    and markets law is amended to read as follows:" with the subdivision
+    restated, new matter as insert runs (underscored) and omitted matter as
+    delete runs (bracketed in text: `products, [aquaculture, ]and`).
+    "…Subdivision 2-c … is REPEALED and subdivision 2-d is renumbered
+    subdivision 2-c."; "…is amended by adding a new subdivision 2-h to read
+    as follows:". Several changes become "Section 1.", "§ 2." in the order of
+    the law, each at the smallest unit that holds it.
+  - **Every other state** takes New York's shape ("Section 1.", "Sec. 2.")
+    until it gets its own row. Page-and-line instructions need the printing's
+    page and line markers, which `uslmToDoc` skips today, so no row uses them.
+- **`marked(diff)`**: the redline as specs over the base: `strike` and
+  `insert` inside text blocks, `strike-block` and `insert-block` for whole
+  units. The Fork view turns them into decorations. **`clean(diff)`**: the
+  fork.
+- **`conflicts(a, b, form)`**. Under strike and insert, two amendments
+  conflict where they change the same words or insert at the same place.
+  Under read as follows, they conflict where they restate the same unit.
+  Either way the pair is refused with the rule: text already amended is not
+  open to a second amendment except by a substitute, and once both are
+  enacted the later in time prevails.
+
+### Verified
+
+`node --test scripts/typeset/amend.test.mjs`: **18 of 18 pass** in 0.34 s.
+The cases run on N.Y. Agric. & Mkts. Law § 16, H.R. 6644 § 102 as enrolled,
+and 10 U.S.C. 130i, including a fork of a portion (130i(b)(1) alone, cited
+through (b) from its address). All three are read from their stored
+Expressions in S3 and committed as fixtures under `scripts/typeset/fixtures/`.
+Bounded type check on the engine and the rename files: 0 diagnostics.
+
+### `sql/011` ran
+
+On aurora-2525 at Brendan's word, 10 statements, each under 200 ms, as
+milestone 0 describes.
+
+### Files
+
+`apps/web/lib/typeset/amend.ts`, `scripts/typeset/amend.test.mjs`,
+`scripts/typeset/amend-entry.ts`, `scripts/typeset/fixtures/*`,
+`apps/web/docs/xml/window-5.md`.
+
 ## Milestone 0 — the plan, the migration, My Files (2026-09-14)
 
 ### Plan
