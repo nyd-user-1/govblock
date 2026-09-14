@@ -88,6 +88,23 @@ PROFILES.NC = {
   quotedSection: /^"?§\s*([\w.-]+)\.\s*(.*)$/s,
 }
 
+// Oklahoma (window 8, read from fifty printings of every session): a number
+// down the margin of every line, blank lines included, and a page footer
+// ("Req. No. 11796 Page 1", "ENGR. H. B. NO. 2394 Page 1") with a drafting
+// code ("60-1-11796 GRS 01/13/25") at the end. "SECTION 1. AMENDATORY 22 O.S.
+// 2021, Section 461, is amended to read as follows:" or "SECTION 2. NEW LAW A
+// new section of law … reads as follows:"; the quoted section opens "Section
+// 461." or "Section 11-1401.2" with no full stop.
+PROFILES.OK = {
+  ...common("OK"),
+  enacting: /BE IT ENACTED BY THE PEOPLE OF THE STATE OF OKLAHOMA/i,
+  section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
+  quotedSection: /^Section\s+(\d(?:[\w.-]*\w)?)\.?\s+(.*)$/s,
+  quotesAfter: /(as follows|to read|reads as follows|read as follows)[:.]?-?$/i,
+  marginNumbers: true,
+  furniture: /^\s*(?:.{0,60}\bPage\s+\d+|\d{1,3}-\d-\d{2,6}\s+\S{1,6}\s+\d{1,2}\/\d{1,2}\/\d{2,4}|(?:UNDERLINED|BOLD FACE CAPITALIZED|Strike thru) language denotes .*|(?:HOUSE OF REPRESENTATIVES|SENATE) - FLOOR VERSION)\s*$/,
+}
+
 // Massachusetts: a petition and docket furniture precede the bill; "SECTION 1."
 PROFILES.MA = {
   ...common("MA"),

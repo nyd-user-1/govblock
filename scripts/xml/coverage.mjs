@@ -98,6 +98,12 @@ for (const s of docs) {
     continue
   }
   const { doc, report } = fe.parse(s)
+  // A captured error page falls out of the pipeline asking for a re-fetch and is never stored,
+  // so it stays out of the mean here too; the count is printed.
+  if (report.dialect === "error-page") {
+    failed.push(`${s.url}: error page`)
+    continue
+  }
   measured++
   if (measured <= show) {
     const { outline } = await load("lib/xml/ir.ts")

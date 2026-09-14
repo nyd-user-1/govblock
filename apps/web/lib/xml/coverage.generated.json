@@ -242,28 +242,16 @@
     "jurisdiction": "OK",
     "name": "Oklahoma",
     "source": "texts",
-    "sampled": 100,
-    "clean": 24,
-    "coverage": 0.7419,
+    "sampled": 97,
+    "clean": 97,
+    "coverage": 1,
     "dialects": {
-      "ok-bill": 100
+      "ok-bill": 93,
+      "ok-resolution": 4
     },
     "unknown": {},
-    "fallouts": {
-      "no sections": 43,
-      "subsection opens at B": 20,
-      "unmatched enumerator": 20,
-      "subsection opens at N": 5,
-      "subsection N after N": 5,
-      "subsection J after N": 3,
-      "paragraph B after N": 3,
-      "paragraph opens at b": 3,
-      "subparagraph opens at C": 3,
-      "no enacting formula": 3,
-      "subsection opens at C": 3,
-      "paragraph opens at B": 2
-    },
-    "measuredAt": "2026-09-14T13:35:06.658Z"
+    "fallouts": {},
+    "measuredAt": "2026-09-14T13:43:33.164Z"
   },
   "VA/texts": {
     "jurisdiction": "VA",

@@ -29,6 +29,10 @@ export type StateProfile = {
   del?: RegExp
   /** New matter in CAPITALS (New York's convention in a text capture). */
   capsAreNew?: boolean
+  /** A line number down the margin of every line, blank lines too (Oklahoma): always stripped, not by share. */
+  marginNumbers?: boolean
+  /** Page furniture, whole lines dropped before blocks are read: a running footer, a drafting code. */
+  furniture?: RegExp
 }
 
 const RANK_TAG = ["subsection", "paragraph", "subparagraph", "clause", "subclause", "item", "subitem"] as const
@@ -113,7 +117,11 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     if (t) out.push(t)
     current = []
   }
-  for (const raw of dropBlankPerLine(stripLineNumbers(unwrapInlineLineNumbers(clean(text)))).split("\n")) {
+  let lines = unwrapInlineLineNumbers(clean(text))
+  // Older captures space the margin number's digits apart ("1 0", "2 4").
+  if (p.marginNumbers) lines = lines.split("\n").map((l) => l.replace(/^\s{0,3}\d(?: ?\d)?(?=\s|$)/, "")).join("\n")
+  if (p.furniture) lines = lines.split("\n").filter((l) => !p.furniture!.test(l)).join("\n")
+  for (const raw of dropBlankPerLine(p.marginNumbers ? lines : stripLineNumbers(lines)).split("\n")) {
     const stripped = raw.trim()
     if (!stripped) {
       close()
@@ -125,7 +133,10 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     // continuation line ("… adding Subsection" / "(f) to read as follows:"),
     // so an opener closes the block only after a sentence ended, or on the
     // deeper indent a new paragraph gets (three spaces or more).
-    if (isOpener(stripped, p) && (prevEnded || indent >= 3)) close()
+    // Under margin numbers every line is indented alike; a lettered or numbered item ("a.", "12.")
+    // at a line's head is an item there, since running prose does not wrap onto one.
+    const dotItem = !!p.marginNumbers && /^(?:[a-z]|\d{1,3})\.\s+\S/.test(stripped)
+    if (isOpener(stripped, p) && (prevEnded || indent >= 3 || dotItem)) close()
     const last = current.length - 1
     if (last >= 0 && current[last].endsWith("-") && /^[a-z]/.test(stripped)) current[last] = current[last].slice(0, -1) + stripped
     else current.push(stripped)
@@ -232,7 +243,8 @@ function enumerator(block: string, expectRoman: boolean): Enumerator | null {
   }
   m = /^([a-z])\.\s+(?=\S)(.*)$/s.exec(block)
   if (m) return { style: "a.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
-  m = /^([A-Z])\.\s+(?=[A-Z(])(.*)$/s.exec(block)
+  // "B. 1. Notwithstanding …": a subsection whose first paragraph opens on its line (Oklahoma, Arizona).
+  m = /^([A-Z])\.\s+(?=[A-Z(]|\d{1,3}\.\s)(.*)$/s.exec(block)
   if (m) return { style: "A.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
   return null
 }
@@ -294,7 +306,8 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
 
 // ------------------------------------------------------------------ bills ---
 
-const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied)/i
+// Oklahoma's: the legislature site's navigation ("Home / Legislature Home / Senate Home …") in place of the bill.
+const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home)/i
 
 export function parseStateBill(source: Source, p: StateProfile): FrontEndResult {
   const problems: string[] = []
@@ -415,6 +428,12 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
           // chapeau when what follows ends in a colon, else the section's text.
           const rest = tidy(qs[2] ?? "")
           const sec = node("section", {}, [node("num", {}, [qs[1]])])
+          // "Section 461. A. If the defendant …": the first line opens the section's first
+          // subsection, which is not a catchline and goes to the hierarchy.
+          if (enumerator(rest, false)) {
+            groups.push({ section: sec, blocks: [rest] })
+            continue
+          }
           const stop = /^(.{1,80}?\.)\s+(.*)$/s.exec(rest)
           const first = stop ? stop[1] : rest
           const catchline = first.length > 0 && first.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(first)
