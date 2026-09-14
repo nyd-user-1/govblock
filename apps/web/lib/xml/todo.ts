@@ -26,7 +26,8 @@ export const TODO: TodoItem[] = [
   {
     id: "va-refetch",
     title: "Virginia: fetch the 84,630 bills the scraper stored as error pages",
-    status: "open",
+    status: "claimed",
+    claimedBy: "window-4",
     prompt: `${PROGRAM}, then apps/web/docs/prompts/2026-09-14-acquisition.md whole; this item is its part 1, Virginia. Plan, then build. 84,630 of Virginia's stored bill texts are its legislature's error page; the pipeline removed their rows and logged each as a fall-out naming a re-fetch. Rank LegiScan's state_link against Virginia's LIS on a sample of fifty, run the winner over the 84,630 one request at a time under nohup with a log, write the texts through the existing loaders' shape into "BillTexts" (never a delete, never a random-order sample), then start the pipeline box govblock-xml (i-09c2fbf8624d91bdf), queue Virginia's bills from /workspace/dashboard/ingestion, and stop the box when the queue empties. ${RULES} Report to apps/web/docs/xml/window-7.md at every milestone.`,
   },
   {
