@@ -11,6 +11,7 @@ import { CommitteePage } from "./committee"
 import { ComponentsPage } from "./components"
 import { CryptoPage } from "./crypto"
 import { CustomersPage } from "./customers"
+import { CompilerPage } from "./compiler"
 import { DatabasePage } from "./database"
 import { EducationPage } from "./education"
 import { EmailPage } from "./email"
@@ -51,6 +52,7 @@ const TITLES: Record<string, string> = {
   committee: "Labor",
   crypto: "Crypto Wallet",
   database: "Data Pipeline",
+  compiler: "Compiler",
   ingestion: "Ingestion",
   finance: "Finance",
   invitees: "Invitees",
@@ -110,6 +112,8 @@ export function AdminPage({ page }: { page: string }) {
       return <CryptoPage />
     case "database":
       return <DatabasePage />
+    case "compiler":
+      return <CompilerPage />
     case "finance":
       return <FinancePage />
     case "ingestion":

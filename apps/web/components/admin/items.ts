@@ -45,6 +45,7 @@ export const ADMIN_MENU: MenuItem[] = [
   // were. Nothing else changes until he has been through them.
   { label: "Committee", page: "committee", tag: "trend" },
   { label: "Database", page: "database", tag: "trend" },
+  { label: "Compiler", page: "compiler", tag: "trend" },
   { label: "Finance", page: "finance", tag: "trend" },
   { label: "Member", page: "member" },
   { label: "Roll Call", page: "roll-call" },
