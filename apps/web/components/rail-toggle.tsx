@@ -80,6 +80,7 @@ export function RailToggle({ side, className }: { side: Side; className?: string
   return (
     <button
       type="button"
+      data-rail-tab=""
       onClick={toggle}
       aria-label={closed ? `Open the ${side} rail` : `Close the ${side} rail`}
       aria-expanded={!closed}

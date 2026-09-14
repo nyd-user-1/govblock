@@ -14,7 +14,8 @@ export function DocsSidebar(props: React.ComponentProps<typeof Sidebar>) {
     <Sidebar className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-10rem)] overflow-visible overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex [[data-rail-left=closed]_&]:w-6" collapsible="none" {...props}>
       {/* The tab on the hairline opens and closes the rail; closed, the rail is a 24px strip that keeps the line and the tab (Brendan, 2026-09-11). The content clips itself, so the sidebar can let the tab overhang. */}
       <RailToggle side="left" />
-      <div className="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex" />
+      {/* The hairline answers the hover the tab answers (Brendan, 2026-09-14): while the tab or the strip is hovered, the line moves the tab's 1.5px away from the viewport's edge, the same beat. */}
+      <div className="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] transition-transform duration-200 ease-out lg:flex [[data-rail-strip]:hover~*_&]:translate-x-[1.5px] [[data-rail-tab]:hover~&]:translate-x-[1.5px]" />
       <SidebarContent data-docs-sidebar-content="" className="scrollbar-none w-(--sidebar-menu-width) scroll-fade overflow-x-hidden pl-2.5 [[data-rail-left=closed]_&]:hidden">
         <RecentsRecorder />
         <SiteRail />
