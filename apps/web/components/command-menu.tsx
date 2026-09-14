@@ -15,6 +15,7 @@ import { policyUrl } from "@/lib/policy/use-policy"
 import { PageIcon } from "@/components/page-icon"
 import { districtLabel, legislativeBody } from "@/lib/legislative-body"
 import { matchPages, SEARCH_PAGES } from "@/lib/search-pages"
+import { SlashResults, useSlashLibrary } from "@/components/slash-library"
 import {
   Command,
   CommandEmpty,
@@ -278,8 +279,15 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
   const [term, setTerm] = React.useState("")
   const recents = useRecents(5)
   const lead = recents[0] ? `recent-${recents[0].href}` : undefined
-  const search = useSiteSearch({ active: open, term, lead })
-  const showRecents = search.query.length < 2 && recents.length > 0
+  // A query that starts with "/" (or "@") reads the corpus by address instead of searching the site (window 1, 2026-09-14).
+  const slash = useSlashLibrary(term, open)
+  const search = useSiteSearch({ active: open && !slash.mode, term, lead })
+  const [slashSelected, setSlashSelected] = React.useState("")
+  React.useEffect(() => {
+    const first = slash.result?.items[0]
+    setSlashSelected(first ? `slash-${first.href ?? first.address}` : "")
+  }, [slash.result])
+  const showRecents = !slash.mode && search.query.length < 2 && recents.length > 0
 
   React.useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -322,7 +330,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
           <DialogDescription>Search bills, members, committees and pages...</DialogDescription>
         </DialogHeader>
         <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 sm:max-w-[62rem]" showCloseButton={false}>
-          <Command shouldFilter={false} value={search.selected} onValueChange={search.setSelected}>
+          <Command shouldFilter={false} value={slash.mode ? slashSelected : search.selected} onValueChange={slash.mode ? setSlashSelected : search.setSelected}>
             <CommandInput
               onFocus={warmFlags}
               placeholder="Search"
@@ -341,7 +349,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
                   ))}
                 </CommandGroup>
               )}
-              <SearchResults search={search} state={state} go={go} />
+              {slash.mode ? <SlashResults mode={slash.mode} result={slash.result} pending={slash.pending} term={term} go={go} /> : <SearchResults search={search} state={state} go={go} />}
             </CommandList>
           </Command>
         </DialogContent>

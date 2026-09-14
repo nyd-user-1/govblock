@@ -1,5 +1,71 @@
 # Window 1: the reader — report
 
+## Milestone 4 — the `/` stub and one parser; done, 2026-09-14 08:10 EDT
+
+### Built
+
+- The `/` command, stubbed, in the site's ⌘K menu: a query starting with `/`
+  reads the corpus by address instead of searching the site
+  (`components/slash-library.tsx`, twelve lines in
+  `components/command-menu.tsx`), through `app/api/typeset/slash/route.ts` and
+  `resolveSlash` in `lib/xml/address.ts`. `/119` lists the 119th Congress's
+  bills, most recent action first; `/6644` every bill numbered 6644 in any
+  jurisdiction; `/hr6644` H.R. 6644 in any Congress; `/new-york-code` New
+  York's laws; a full address (`/us/bill/119/hr/6644`) the Work itself. Bills
+  open in the XML view. A named library (`/arkansas-agricultural-law`)
+  resolves to itself and says it is not built yet: window 4's. `@` is routed
+  to the same list by `corpusMode` with nothing in it yet: the seam for
+  window 4.
+- One XML parser: `lib/policy/bill-uslm.ts` imports `parseXml`, `find`,
+  `kids` and `text` from `lib/xml/ir.ts`; its own parser, entity table and
+  second decode are gone (approved by the lead).
+
+### Verified, on the box
+
+- Type check over the touched files, with Next's declarations loaded: 0
+  diagnostics.
+- The slash route on five queries (`/119`, `/6644`, `/hr6644`,
+  `/new-york-code`, `/us/bill/119/hr/6644`): each resolves and lists (20, 20,
+  15, 100, 1). `/workspace/dashboard` and the XML view compile with the
+  changed menu; dev log clean.
+- `uslmToHtml` before and after the parser switch, byte for byte: identical
+  on H.R. 6644 introduced and House amendment, H.R. 2289 reported, and the
+  enrolled bill. `/api/typeset/content` answers 200.
+
+### Done, against the brief
+
+- H.R. 6644 renders in the XML view from native XML, structurally faithful,
+  beside the untouched Plate reader: milestones 2–3, `reader.md`.
+- The schema is written down: `schema.md`, address frozen, schema v1.
+- The parse tile runs on the Data Pipeline dashboard: milestone 3.
+- The fallback draws a state bill with a note: milestone 3, checked as a
+  script; in the page it needs a reader entitled to New York.
+- Fidelity and performance notes: `docs/xml/reader.md`.
+- Everything committed on the branch and compiling in `~/govblock-xml`.
+
+### Open
+
+- Browser-side cold load and mount, from `data-json-ms` and `data-mount-ms`
+  in Brendan's browser.
+- `sql/010` not run (for Brendan).
+- Typeset's own reader returns nothing for USLM 2 printings (enrolled bills,
+  public laws) and drops the text that closes each quoted amendment. Both are
+  in `lib/policy/bill-uslm.ts`'s renderer, which this window left
+  byte-identical on purpose; the XML view has neither problem.
+
+### For Brendan
+
+- Look at `http://localhost:3002/workspace/typeset/bill/2058568/xml` (tunnel
+  3002), the "USLM parse" tile at `http://localhost:3002/workspace/dashboard`,
+  and ⌘K then `/6644` on any page of 3002.
+
+### Files touched
+
+- `apps/web/app/api/typeset/slash/route.ts`, `apps/web/components/slash-library.tsx`,
+  `apps/web/components/command-menu.tsx`, `apps/web/lib/xml/address.ts`
+- `apps/web/lib/policy/bill-uslm.ts`
+- `apps/web/docs/xml/reader.md`, `apps/web/docs/xml/window-1.md`
+
 ## Milestone 3 — the parse tile, the fallback, the numbers, 2026-09-14 07:30 EDT
 
 ### Built

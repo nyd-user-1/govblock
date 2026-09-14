@@ -143,7 +143,9 @@ export function resolveSlash(input: string): SlashTarget | null {
   if (congress && Number(congress[1]) >= 93 && Number(congress[1]) <= 130) return { kind: "prefix", prefix: `/us/bill/${Number(congress[1])}`, label: `${congress[1]}th Congress` }
   const number = /^([a-z]+)?-?0*(\d{1,6})$/.exec(q)
   if (number) {
-    const type = number[1] ? (FEDERAL_TYPES[number[1]] ?? number[1]) : null
+    // Typed letters are GPO's ("hr" is H.R.); LegiScan's own forms that GPO does not use ("hb", "sjr") are read as theirs.
+    const typed = number[1] ?? null
+    const type = typed && typed !== "hr" ? (FEDERAL_TYPES[typed] ?? typed) : typed
     return { kind: "number", number: number[2], type, label: `${type ? `${type.toUpperCase()} ` : ""}${number[2]}` }
   }
   if (PREFIX_SLUGS[q]) return { kind: "prefix", ...PREFIX_SLUGS[q] }

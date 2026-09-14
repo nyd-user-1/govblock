@@ -98,6 +98,20 @@ subparagraphs, 454 clauses, 117 subclauses, 33 items, 439 chapeaux, 88 quoted
 amendments, 541 `amendingAction`s and 917 `inline` runs carried as marks, 0
 rank violations. Front end 47 ms, `uslmToDoc` 111 ms.
 
+The Typeset reader cannot draw this printing from its XML at all:
+`uslmToHtml` looks for the Bill DTD's `legis-body` and returns nothing for
+USLM 2's `main`, so an enrolled bill or a public law opens in Typeset from its
+stored plain text. Checked with the old and the new parser (below): both
+return nothing.
+
+## One parser
+
+`lib/policy/bill-uslm.ts` now reads XML with `lib/xml/ir.ts`'s parser, which
+decodes entities as it parses, and no longer decodes a second time. The
+Typeset HTML is byte-identical before and after on H.R. 6644 as introduced
+(138,516 bytes) and as amended by the House (355,106), H.R. 2289 as reported
+(102,003), and the enrolled bill (nothing, both times).
+
 ## A state bill: the fallback
 
 New York A11559 (bill 2152620) has no XML. Through the New York front end it
