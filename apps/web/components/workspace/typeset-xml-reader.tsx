@@ -41,11 +41,8 @@ type Loaded = XmlMeta & { json: JSONContent; timings?: Record<string, number>; b
 export function XmlSourceLine({ meta }: { meta: XmlMeta | null }) {
   if (!meta) return <div aria-hidden className="h-10 shrink-0 border-b border-b-border" />
   const printing = [meta.version, meta.date?.slice(0, 10)].filter(Boolean).join(" · ")
-  const note = meta.captured
-    ? "The stored text of this printing is the legislature's web page, not the bill, so it is not drawn; a clean copy is being fetched."
-    : meta.fidelity === "plain-text"
-      ? "Read from the stored plain text: this printing has no XML yet, so its levels are inferred from the numbering."
-      : null
+  // A captured page says nothing here (Brendan, 2026-09-14): the card in the body is the whole of it.
+  const note = meta.fidelity === "plain-text" && !meta.captured ? "Read from the stored plain text: this printing has no XML yet, so its levels are inferred from the numbering." : null
   return (
     <div className="flex h-10 shrink-0 items-center gap-3 border-b border-b-border px-4 text-xs text-muted-foreground">
       {printing && <span className="truncate font-medium text-foreground">{printing}</span>}
@@ -147,9 +144,15 @@ export function TypesetXmlReader({
     <div className="flex h-full min-h-0 flex-col" data-xml-reader data-json-ms={clock.json} data-mount-ms={clock.mount}>
       <XmlSourceLine meta={meta} />
       <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
-        {!showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
-        {!showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Reading the printing…"}</p>}
-        <div className={cn("uslm-doc", !showEditor && "hidden")} data-dialect={dialect}>
+        {/* A legislature's web page stored in place of the printing (Brendan, 2026-09-14): the card, and nothing else. */}
+        {meta?.captured && (
+          <div className="flex h-full items-center justify-center p-8">
+            <img src="/captured-page.png" alt="404" className="w-full max-w-md rounded-lg" />
+          </div>
+        )}
+        {!meta?.captured && !showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
+        {!meta?.captured && !showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Reading the printing…"}</p>}
+        <div className={cn("uslm-doc", (!showEditor || meta?.captured) && "hidden")} data-dialect={dialect}>
           <EditorContent editor={editor} />
         </div>
       </div>
