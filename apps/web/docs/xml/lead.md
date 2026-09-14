@@ -25,6 +25,8 @@ Read this first in the morning. Each window's own report is beside it: `window-1
 
 ## For you
 
+- **Production was under load from outside the program.** The site's access log for 09:14 to 09:38 UTC shows ClaudeBot (Anthropic's crawler, from 216.73.217.22) making 2,444 requests in twenty minutes across bill, committee and lobbying pages, every one a fresh read of the bill's text and lobbying joins, and your own open tabs (47.20.253.93, referers /workspace/blocks, /home, /) polling six policy API routes about thirty-five times a minute for the session aggregates over Sponsors, History and Roll Call; fifty-one of those answers were 503. Together they held the cluster at its 8 ACU ceiling and cut the pipeline's rate from about 2,900 to about 500 expressions a second. The site has no robots.txt. `app/robots.ts` is on the branch, ready: AI crawlers off the site, every crawler off the API, the workspace and the doors. It ships to main on your word. The polling is the home and blocks pages' cards refetching; worth a look.
+
 - `sql/010` (Window 1) is written and not run; the browser mount numbers ride `data-mount-ms`.
 - Window 4 (the library and My Files) waits for you to open a window; Window 1 declined to take it without your word, correctly. Windows 5 and 6 (fork and amend, citations) follow.
 - Data: California's `state_link` captures are leginfo web pages for a share of printings (the pipeline now prefers the clean feed); Virginia captured its legislature's error page in place of some bills; Illinois and Massachusetts hold synopsis and petition texts as printings. Each is in `sources.md`.
