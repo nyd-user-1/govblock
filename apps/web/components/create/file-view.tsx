@@ -121,7 +121,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     )
     // Duplicate to edit (Brendan, 2026-09-11): the pencil opens the editor
     // at once, with no fork screen in the way. The copy is the reader's
-    // fork, made here in the background or reused, and it lives in Your forks.
+    // fork, made here in the background or reused, and it lives in My Files.
     const duplicateToEdit = async () => {
       if (forkId) return onGo({ bill: String(node.id), tab: "edit", doc: doc || null })
       if (!bill) return

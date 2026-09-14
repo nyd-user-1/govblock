@@ -254,7 +254,7 @@ export function askOfPath(pathname: string): PathAsk {
         const year = seg[4] && /^\d{4}$/.test(seg[4]) ? Number(seg[4]) : undefined
         const node = year ? seg[5] : seg[4]
         if (node === "votes" || node === "roll-call") return { entity: "votes", state, session: year }
-        if (node === "forks") return { entity: "account", state, session: year }
+        if (node === "my-files" || node === "forks") return { entity: "account", state, session: year }
         if (node === "committees" || node === "committee") return { entity: "committees", state, session: year }
         if (node === "members" || node === "member") return { entity: "members", state, session: year }
         return { entity: "bills", state, session: year }

@@ -11,7 +11,7 @@ import { chambersOf } from "@/lib/workspace/datasets"
 //   /workspace/data/us/house                           the dataset, current session
 //   /workspace/data/us/house/sessions                  every session of the dataset (Brendan, 2026-09-13: where a dataset card opens)
 //   /workspace/data/us/house/2025                      the session root
-//   /workspace/data/us/house/2025/bills                a listing: bills, committees, members, votes, votes/2026-05, votes/2026-05/floor, sessions, forks
+//   /workspace/data/us/house/2025/bills                a listing: bills, committees, members, votes, votes/2026-05, votes/2026-05/floor, sessions, my-files
 //   /workspace/data/us/house/2025/bill/hb9329          a bill, by its number (or by id, when only the id is known)
 //   /workspace/data/us/house/2025/member/schumer-12345 a member, by name and id
 //   /workspace/data/us/house/2025/committee/labor      a committee, by its name's slug; /members and /bill/… beneath it
@@ -67,8 +67,12 @@ export function parseWorkspacePath(segments: string[]): ParsedPath {
     case "committees":
     case "members":
     case "sessions":
-    case "forks":
       location.at = head
+      break
+    // My Files; `forks` is the folder's old segment, kept so links already out resolve.
+    case "my-files":
+    case "forks":
+      location.at = "my-files"
       break
     case "votes":
       location.at = ["votes", a, b].filter(Boolean).join("/")
