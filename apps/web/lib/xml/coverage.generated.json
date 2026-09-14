@@ -1060,27 +1060,22 @@
     "name": "South Carolina",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.7273,
+    "clean": 95,
+    "coverage": 0.9949,
     "dialects": {
       "sc-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
-      "subsection N after N": 7,
-      "paragraph opens at B": 3,
-      "subparagraph opens at B": 2,
-      "paragraph opens at C": 2,
-      "subsection opens at B": 1,
-      "subsection J after N": 1,
-      "paragraph opens at N": 1,
-      "paragraph N after N": 1,
-      "subsection a after N": 1,
-      "subparagraph opens at ii": 1,
-      "subsection opens at N": 1
+      "subsection opens at B": 2,
+      "subsection N after N": 2,
+      "subparagraph a after N": 1,
+      "paragraph opens at b": 1,
+      "subparagraph opens at c": 1,
+      "subparagraph opens at N": 1,
+      "clause opens at B": 1
     },
-    "measuredAt": "2026-09-14T13:36:45.135Z"
+    "measuredAt": "2026-09-14T14:17:15.363Z"
   },
   "NH/texts": {
     "jurisdiction": "NH",

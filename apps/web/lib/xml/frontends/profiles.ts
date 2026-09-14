@@ -139,6 +139,18 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// South Carolina statutes (window 8, from fifty sections of the Code of Laws):
+// the Legislative Council's chapter page as the loader writes it, "SECTION
+// 58-27-2760. Catchline" as the first block, the law, then one block "HISTORY:
+// 1962 Code SECTION 65-1675; 1952 Code …". Subsections (A), items (1),
+// subitems (a), sub-subitems (i), the Council's own words for its ranks.
+PROFILES.SC = {
+  ...common("SC"),
+  statuteCite: /^SECTION\s+/,
+  headingBlock: true,
+  credit: /^HISTORY:\s/,
+}
+
 // Louisiana statutes (window 8, from fifty sections of the Revised Statutes
 // and codes): the Legislature's document page as text, "RS 48:1402" (or CC,
 // CCP, CCRP, CE, CHC, CONST) alone, then "§1402. Authority of commission",

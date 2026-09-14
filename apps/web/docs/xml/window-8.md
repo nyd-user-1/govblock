@@ -6,23 +6,28 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 
 | Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current, sampled (100) | Held down by captures or the loader |
 |---|---|---|---|---|---|
-| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** (99.88 rebuilt) | 2,524 navigation pages fell out of the rebuild |
-| Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** (99.89 rebuilt) | — |
-| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** (99.03 rebuilt) | 2011 placeholders |
-| Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** (98.98 rebuilt) | — |
-| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (98.98 rebuilt) | 20,194 archive banners, 35% |
-| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** (99.16 rebuilt) | — |
-| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (96.93 rebuilt; no profile, lifted at 18c0ca1) | — |
+| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** (99.87 rebuilt, 144,548) | 2,526 navigation pages fell out of the rebuild |
+| Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** (99.89 rebuilt, 80,485) | — |
+| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** (99.11 rebuilt, 69,094) | 161 placeholders fell out |
+| Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** (98.98 rebuilt, 60,136) | — |
+| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (98.97 rebuilt, 37,156) | 20,194 archive banners fell out, 35% |
+| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** (99.06 rebuilt, 51,380) | — |
+| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (97.05 rebuilt, 49,119; no profile, lifted at 18c0ca1) | — |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** | — |
 | Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** | paragraphs the loader drops |
 | Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** | — |
 | Utah bills | 36,096 | 66.3 | 64.7 | **100.0** | 17,570 refusal pages, 49% |
 | Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** | — |
-| South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 | |
+| South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** | — |
 | Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 | |
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 | |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 13 — South Carolina statutes, 72.7% to 99.5%; the first rebuild batch finished (2026-09-14)
+
+- Every section opens "SECTION 58-27-2760. Catchline" and the uppercase "SECTION" failed the number test on every one; the history is one block, "HISTORY: 1962 Code SECTION …". South Carolina sets `statuteCite`, `headingBlock` and `credit`; no change to `generic.ts`. South Carolina bills, which share the profile, re-checked against HEAD: unchanged. Held-back fifty: 97.7%. Grammar: `grammars/sc.md`, statutes and bills together.
+- **`rebuild-w8-3962289` finished**, 185 jobs, no job failed. Colorado's fall-outs came to exactly 20,194, the banner count, so the store's count and the test agree to the document. Final figures are in the table.
 
 ## Milestone 12 — Louisiana statutes, 70.8% to 99.5%; the first rebuild batch on the whole store (2026-09-14)
 
