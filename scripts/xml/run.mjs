@@ -182,6 +182,8 @@ async function runJob(job) {
   const inflight = new Set()
   // Element names the front end did not know, summed over the job: what holds its coverage down.
   const unknown = new Map()
+  // What the state front ends said did not parse, by pattern: the count of documents and the first one.
+  const notes = new Map()
   let lastBeat = Date.now()
 
   const beat = async () => {
@@ -246,6 +248,11 @@ async function runJob(job) {
         counts.bytes += r.bytes
         coverageSum += r.coverage
         for (const [tag, n] of r.unknown) unknown.set(tag, (unknown.get(tag) ?? 0) + n)
+        for (const note of r.notes ?? []) {
+          const seenNote = notes.get(note)
+          if (seenNote) seenNote.n++
+          else notes.set(note, { n: 1, work: row.work, ref: row.source_ref })
+        }
         if (!DRY)
           await index.add({
             ...row, expression: r.expression, expression_date: r.date, date_basis: r.dateBasis, coverage: Number(r.coverage.toFixed(4)),
@@ -263,6 +270,8 @@ async function runJob(job) {
     await Promise.all(inflight)
     // The job's twenty most frequent unknown elements, as coverage fall-outs, for the grammar work (window 3).
     for (const [tag, n] of [...unknown].sort((a, b) => b[1] - a[1]).slice(0, 20)) fallouts.add({ work: null, sourceRef: null, stage: "coverage", reason: `<${tag}>`, detail: `${n} in ${job.jurisdiction} ${job.kind} ${job.unit}` })
+    // And the twenty most frequent notes, the same way, each with the first document that raised it (window 8).
+    for (const [note, { n, work, ref }] of [...notes].sort((a, b) => b[1].n - a[1].n).slice(0, 20)) fallouts.add({ work, sourceRef: ref, stage: "coverage", reason: note, detail: `${n} documents in ${job.jurisdiction} ${job.kind} ${job.unit}` })
     if (!DRY) {
       await index.flush()
       await fallouts.flush()

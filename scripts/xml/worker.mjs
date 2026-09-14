@@ -90,10 +90,13 @@ async function handle(task) {
     if (!DRY) await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: gz, ContentType: "application/xml", ContentEncoding: "gzip" }))
 
     const unknown = Object.entries(report.unknown).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    // The state front ends name no unknown elements; they say what did not parse in notes,
+    // folded to a pattern as scripts/xml/coverage.mjs folds them ("subsection N after N").
+    const notes = [...new Set(report.notes.map((note) => note.replace(/\d+/g, "N").replace(/:\s.*$/, "").slice(0, 60)))]
     return {
       seq: task.seq, ok: true, key, expression, date, dateBasis, contentHash,
       bytes: body.length, gzBytes: gz.length, coverage: report.coverage, dialect: report.dialect,
-      frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase(), unknown,
+      frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase(), unknown, notes,
     }
   } catch (error) {
     return { seq: task.seq, ok: false, stage, reason: String(error?.name ?? "Error"), detail: String(error?.message ?? error).slice(0, 300) }
