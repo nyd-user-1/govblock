@@ -157,7 +157,8 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
 
   // The amendment, rewritten as the fork changes.
   React.useEffect(() => {
-    if (!editor || !data) return
+    // The editor made with immediatelyRender off can arrive before its schema is (2026-09-14, fork 265 threw on nodeFromJSON of null); the effect runs again when it is whole.
+    if (!editor || !data || editor.isDestroyed || !editor.schema) return
     const base = editor.schema.nodeFromJSON(data.base.json)
     const head = data.head ? editor.schema.nodeFromJSON(data.head.json) : base
     let timer = 0
