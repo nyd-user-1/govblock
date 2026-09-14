@@ -2,6 +2,13 @@
 
 The lead's own support work; no subagent. Newest milestone first.
 
+## Milestone 5 — statutes for every state; the quoted-law seam closed (2026-09-14 ~06:10 EDT)
+
+- A generic statute parser reads any state's `Laws` row (the bill parser had been reading them as bills: Alabama 48%, Arizona 50% on the pipeline's first pass). Measured on 11 states' statutes: nine of ten at 95% or better, Illinois at 82%.
+- Quoted law in its remaining shapes, from Window 1's probes of Texas and California bills through the reader: the catchline on the instruction's line, California's bare section-number line, a section opener alone on its line, "amended by adding Subchapter G to read as follows:" splitting at the strongest introducer, a quoted SUBCHAPTER as a level, catchline versus chapeau, "( l )". Texas and California sample ten of ten clean with `quotedContent` under every amending section; Window 1 confirms exact round trips and zero schema violations on five bills (`reader.md`).
+- Profiles read from the corpus: Michigan, North Carolina; Oregon's amendment documents (page-and-line instructions) read as `amendmentInstruction` blocks. 25 of 43 coverage lines at 95% or better, 5 under 85%.
+- The pipeline rebuilds on 5682861: New York statutes first, then every state's statutes and bills after the first pass.
+
 ## Milestone 4 — the quoted-law fix across every state (2026-09-14 ~06:50 EDT)
 
 - Window 1's round trip of Texas and California through the reader found quoted law flattened into the bill's own section. Cause: "(2-a)"-style inserted units did not open a block, so the first quoted line merged into the instruction. Fixed at 4d4e888 for every state, with "(iii)" and longer romans, the enacting formula split from the block it shares, Oklahoma's and Kentucky's inline line numbers, Virginia's error-page captures reporting themselves, Texas's bracketed omissions as `del`, and New York's dotted section numbers ("§ 20.05") kept whole (the pipeline's spot check).
