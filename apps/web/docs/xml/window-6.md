@@ -5,6 +5,124 @@ its brief was accepted (`lib/xml/todo.ts`, claimed by window-5). Milestone 3
 goes to a fresh window, `window-6b`, on the lead's word at 60% context; its
 brief is the next section.
 
+## Milestone 3 — the in-context view (window 6b, 2026-09-14)
+
+### Built
+
+The Fork view has a third mode: Edit | Redline | **In context**.
+
+- **Left:** the fork's own editor, with an `@` marker on each amendment
+  instruction. Each marker is a widget decoration (`at-marker`), so it is
+  never written into the document. Clicking a marker opens its tab and
+  scrolls to the unit; in the editable document it does not place the
+  cursor. The markers are read again 400 ms after an edit pauses, and they
+  are removed when the mode closes.
+  - A fork of a **bill**: a marker at the end of each instruction's words
+    (`instructionsOf`). Instructions that end in the same words share one
+    marker, and its title names the unit ("12 U.S.C. 1701x(a)(4)(C)").
+  - A fork of a **statute**: a marker at the end of the first line of each
+    unit the engine's instructions name. Its title is that instruction.
+- **Right:** one tab per affected Work, named by the index's label ("12
+  U.S.C. 1701x"). Beside the tabs are the text's date and a link that opens
+  the Work in Typeset.
+  - A bill's Works resolve through `POST /api/typeset/cite` as of the bill's
+    date. The tab then loads `GET /api/typeset/work?address=<work>@<expression>`.
+    It goes by the Expression, not `at=`, because `expressionAt` finds nothing
+    when every stored text is later than the bill, which is the case for the
+    whole US Code.
+  - The text is drawn read-only, with the redline laid over it. The redline
+    is `carryOut`, then `diffDocs` against the text itself, then `marked`.
+  - Under the text, each instruction's outcome: Applied, Already made, Not
+    found, Refused, Not yet read. The reason follows unless it applied.
+    Clicking a row brings its unit into view.
+  - When every instruction is already made, the tab says "The stored text,
+    dated Jul 23, 2026, already carries these amendments." It does not draw
+    an empty redline.
+  - A statute fork's one tab is the whole section, from the base's own
+    Expression, with the fork grafted in place of the portion it copies. The
+    engine's instructions are listed under the text.
+  - A tab the reader may not open shows the gate's own words ("Sign in to
+    open laws. …"). A Work not in the corpus shows the advisory.
+- **Pure half**, `lib/typeset/in-context.ts`, on top of milestones 1 and 2
+  and not replacing them:
+  - `billContext`
+  - `billRedline`, which gives a text served without its identifier the
+    tab's Work
+  - `forkContext`
+  - `graft`, `forkRedline`
+  - `byIdentifier`, and `unitPos`, which falls back to the nearest unit above
+    one the text lacks
+  - `OUTCOME_WORDS`
+- The redline decorations (`decorate`, `Redline`, `redlineKey`) moved
+  unchanged from `typeset-fork.tsx` to `typeset-redline.ts`, so the Redline
+  mode and the tabs share them without a circular import.
+
+### Verified
+
+- **33 of 33 tests** (`node --test scripts/typeset/in-context.test.mjs
+  scripts/typeset/instruct.test.mjs scripts/typeset/cite.test.mjs
+  scripts/typeset/amend.test.mjs`). The five new tests:
+  - H.R. 6644 § 101: five markers, each at its instruction's end, one Work.
+  - On the stored 1701x: five outcomes and no specs.
+  - On the text before it, served without an identifier: applied. The specs
+    strike "adequate distribution" and insert "geographically diverse" at the
+    statute's own positions.
+  - `unitPos` falls back to the nearest unit.
+  - A fork of 10 U.S.C. 130i(b)(1): one marker on (b)(1)(D). Grafted into
+    the whole section, the redline strikes "exercise", inserts "assume", and
+    stays inside (D). A portion the section lacks does not graft.
+- Bounded type check over the six touched TypeScript files: 0 diagnostics.
+- **On the branch server** (clone fast-forwarded to d67fd96):
+  - Fork 199 of `/us/bill/119/hr/6644/tI/s101@2026-06-25_enr` was made.
+    `/workspace/typeset/fork/199` answers 200, with no errors from these
+    requests in the dev log.
+  - Resolving 1701x as of 2026-06-25 gives Expression `2026-07-23`, labelled
+    "12 U.S.C. 1701x", which is the tab's address.
+  - The served payload for fork 199, run through the pure half:
+    - one tab, `/us/usc/t12/s1701x`
+    - five markers: (a)(4)(C), (e), (i) twice, and the section
+    - zero specs
+    - five outcomes, all Already made: "the inserted words are already in the
+      text", "paragraph (6) is already in …/e", "the units already carry
+      their new numbers", "paragraph (3) is already in …/i", "subsection (j)
+      is already in /us/usc/t12/s1701x"
+  - Anonymously, the tab's load answers 403 "Sign in to open laws.", which
+    is what the tab shows.
+- **Not yet looked at in a browser:** the markers, the tabs and the redline
+  over a US Code or New York text. Those need a signed-in reader, so they are
+  Brendan's.
+
+### Open
+
+- The redline for H.R. 6644 draws only once the store holds a text of 1701x
+  from before 2026-06-25. Today every instruction reads as already made.
+- A bill that cites many Works opens a tab's text only when the tab is first
+  shown. Its outcomes are not counted on the tab until then.
+- The toolbar's unit buttons work in Edit only. In context, the editor still
+  takes typing, and the markers follow after the pause.
+- Test row: fork 199, under a throwaway claim.
+
+### For Brendan
+
+Signed in, on `http://localhost:3002`:
+
+1. Open `/workspace/typeset/fork/199` and press **In context**. There should
+   be five `@` markers in § 101 and one tab, 12 U.S.C. 1701x. The tab should
+   show the "already carries these amendments" line and five outcomes marked
+   Already made. Click the (e) marker: the tab should scroll to subsection (e).
+2. Open `/workspace/typeset/work/us/usc/t10/s130i`, fork (b)(1), and change
+   "exercise" to "assume". In context, there should be one marker on (D). The
+   tab should show the whole of 130i with "exercise" struck and "assume"
+   inserted in (b)(1)(D).
+
+### Files
+
+`apps/web/lib/typeset/in-context.ts`, `scripts/typeset/in-context.test.mjs`,
+`scripts/typeset/amend-entry.ts`,
+`apps/web/components/workspace/typeset-context.tsx`, `typeset-redline.ts`,
+`typeset-fork.tsx` (the third mode; the redline moved out), `typeset-cite.css`,
+`apps/web/docs/xml/window-6.md`.
+
 ## Milestone 3 brief: the in-context view (for window 6b)
 
 Read `apps/web/docs/prompts/2026-09-14-legislative-xml-program.md` and
