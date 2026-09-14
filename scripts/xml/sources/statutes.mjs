@@ -41,7 +41,7 @@ async function* rowsOf(state, lawId) {
       if (!head.length) return
       const parts = []
       for (let from = 1; from <= Number(head[0].chars ?? 0); from += 200_000) {
-        const part = await q(`select substring(text from $4 for 200000) as part from "Laws" where state = $1 and law_id = $2 and sequence_no = $3`, [state, lawId, head[0].sequence_no, from])
+        const part = await q(`select substring(text from $4::int for 200000) as part from "Laws" where state = $1 and law_id = $2 and sequence_no = $3`, [state, lawId, head[0].sequence_no, from])
         parts.push(part[0]?.part ?? "")
       }
       rows = [{ ...head[0], text: parts.join("") || null }]
