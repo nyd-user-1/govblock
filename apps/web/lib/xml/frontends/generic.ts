@@ -36,7 +36,7 @@ const RANK_TAG = ["subsection", "paragraph", "subparagraph", "clause", "subclaus
 // ---------------------------------------------------------------- blocks ---
 
 // "(2-a)" and "(b-1)" are insertions between numbered units; they open a block too.
-const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\)|[0-9]{1,3}(?:[.-][0-9A-Za-z]{1,2})?\.|[A-Za-z]\.)\s+/
+const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\)|[0-9]{1,3}(?:[.-][0-9A-Za-z]{1,2})?\.|[A-Za-z]\.|(?:SUBCHAPTER|CHAPTER|ARTICLE|SUBTITLE|TITLE|PART|SUBPART|DIVISION)\s+[\w.-]+)\s+/
 /** The enacting formula alone, when it shares a block with the title before it or the first section after it. */
 const ENACTING_SENTENCE = /(be it (?:further )?enacted|(?:hereby )?enacts? as follows|do enact as follows|enacted by the)[^:.]*[:.]?/i
 const isOpener = (line: string, p: StateProfile) => p.section.test(line) || (p.quotedSection?.test(line) ?? false) || ENUM_OPEN.test(line) || /^\*\s*\*\s*\*/.test(line)
@@ -207,6 +207,7 @@ const split = (label: string) => {
 function enumerator(block: string, expectRoman: boolean): Enumerator | null {
   let m = /^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
   if (m) return { style: "1.", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
+  block = block.replace(/^\(\s+([0-9A-Za-z.-]{1,6})\s+\)/, "($1)")
   m = /^\((\d{1,3}(?:-[a-z]{1,2})?)\)\s+(.*)$/s.exec(block)
   if (m) return { style: "(1)", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   m = /^\(([a-z])\.(\d{1,2})\)\s+(.*)$/s.exec(block)
@@ -302,6 +303,20 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   const main = node("main")
   doc.children.push(preface, main)
   let start = blocks.findIndex((b, i) => i < blocks.length * 0.7 && p.enacting.test(b))
+  // An amendment document (Oregon's "HOUSE AMENDMENTS TO HOUSE BILL 2999"):
+  // page-and-line instructions against the printed bill, not a bill. Each
+  // instruction is its own block, kept as such for the amendment engine.
+  if (blocks.slice(0, 3).some((b) => /\bAMENDMENTS? TO (?:HOUSE|SENATE|ASSEMBLY) BILL\b/i.test(b)) && blocks.some((b) => /^(?:On page|In line|Delete|After line|Before line)\b/i.test(b))) {
+    doc.tag = "amendment"
+    for (const b of blocks) main.children.push(node(/^(?:On page|In line|Delete|After line|Before line)\b/i.test(b) ? "amendmentInstruction" : "p", {}, inline(b)))
+    let elements = 0
+    const count = (n: IrNode) => {
+      elements++
+      for (const c of n.children) if (typeof c !== "string") count(c)
+    }
+    count(doc)
+    return { doc, report: { dialect: `${p.jurisdiction.toLowerCase()}-amendment`, elements, known: elements, unknown: {}, renamed: {}, coverage: 1, notes: [] } }
+  }
   // Massachusetts prints no enacting formula: the bill opens at "SECTION 1."
   const opensWithSection = blocks.length > 0 && p.section.test(blocks[0])
   if (start < 0 && !opensWithSection) {
@@ -363,7 +378,12 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       // The introducer followed by more text on the same block ("… to read as
       // follows: SUBCHAPTER G. PROHIBITED ACTIONS"): the rest is the first
       // quoted block, and the instruction ends at the introducer.
-      const intro = /(as follows|to read|read as follows|amended by adding|inserting|the following(?: \w+){0,3}|thereof)[:.]?-?(\s+)(?=\S)/i.exec(instruction)
+      // "… amended by adding Subchapter G to read as follows: SUBCHAPTER G …"
+      // splits after "as follows:", the strongest introducer, not the first.
+      const intro =
+        /(read as follows|as follows|to read)[:.]?-?(\s+)(?=\S)/i.exec(instruction) ??
+        /(the following(?: \w+){0,3}|thereof)[:.]?-?(\s+)(?=\S)/i.exec(instruction) ??
+        /(amended by adding|inserting)[:.]?-?(\s+)(?=\S)/i.exec(instruction)
       if (intro && contentNode && intro.index + intro[0].length < instruction.length) {
         const cut = intro.index + intro[0].length - intro[2].length
         pending.unshift(instruction.slice(cut).trim())
@@ -373,19 +393,31 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       const quoted = p.quotesAfter.test(instruction)
       // Inside quoted law, a quoted section opener starts a section of its own.
       const groups: { section: IrNode | null; blocks: string[] }[] = [{ section: null, blocks: [] }]
+      const QUOTED_LEVEL = /^(SUBCHAPTER|CHAPTER|ARTICLE|SUBTITLE|TITLE|PART|SUBPART|DIVISION)\s+([\w.-]+)\.?\s*(.*)$/s
       for (const b of pending) {
+        const ql = quoted ? QUOTED_LEVEL.exec(b) : null
         const qs = quoted && p.quotedSection ? p.quotedSection.exec(b) : null
-        if (qs) {
-          // The rest of a quoted section's first line is its catchline when it
-          // reads as one (short, no verb); otherwise it is the section's text.
+        if (ql) {
+          // A quoted level above the section ("SUBCHAPTER G. PROHIBITED …").
+          const lvl = node(ql[1].toLowerCase(), {}, [node("num", {}, [ql[2]])])
+          if (tidy(ql[3])) lvl.children.push(node("heading", {}, inline(tidy(ql[3]))))
+          groups.push({ section: lvl, blocks: [] })
+        } else if (qs) {
+          // The rest of a quoted section's first line: a catchline when it
+          // reads as one (short, no verb, ending at its full stop), then a
+          // chapeau when what follows ends in a colon, else the section's text.
           const rest = tidy(qs[2] ?? "")
-          const catchline = rest.length > 0 && rest.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(rest)
           const sec = node("section", {}, [node("num", {}, [qs[1]])])
-          if (catchline) sec.children.push(node("heading", {}, inline(rest)))
-          else if (rest) sec.children.push(node("content", {}, inline(rest)))
+          const stop = /^(.{1,80}?\.)\s+(.*)$/s.exec(rest)
+          const first = stop ? stop[1] : rest
+          const catchline = first.length > 0 && first.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(first)
+          if (catchline) {
+            sec.children.push(node("heading", {}, inline(first)))
+            const after = stop ? tidy(stop[2]) : ""
+            if (after) sec.children.push(node(/:$/.test(after) ? "chapeau" : "content", {}, inline(after)))
+          } else if (rest) sec.children.push(node("content", {}, inline(rest)))
           groups.push({ section: sec, blocks: [] })
-        }
-        else groups[groups.length - 1].blocks.push(b)
+        } else groups[groups.length - 1].blocks.push(b)
       }
       const parts: IrNode[] = []
       for (const g of groups) {

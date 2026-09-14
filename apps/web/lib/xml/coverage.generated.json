@@ -67,15 +67,15 @@
     "jurisdiction": "TX",
     "name": "Texas",
     "source": "texts",
-    "sampled": 12,
-    "clean": 12,
+    "sampled": 10,
+    "clean": 10,
     "coverage": 1,
     "dialects": {
-      "tx-bill": 12
+      "tx-bill": 10
     },
     "unknown": {},
     "fallouts": {},
-    "measuredAt": "2026-09-14T09:39:45.334Z"
+    "measuredAt": "2026-09-14T09:42:10.727Z"
   },
   "NJ/texts": {
     "jurisdiction": "NJ",
@@ -172,15 +172,15 @@
     "jurisdiction": "CA",
     "name": "California",
     "source": "texts",
-    "sampled": 12,
-    "clean": 12,
+    "sampled": 10,
+    "clean": 10,
     "coverage": 1,
     "dialects": {
-      "ca-bill": 12
+      "ca-bill": 10
     },
     "unknown": {},
     "fallouts": {},
-    "measuredAt": "2026-09-14T09:39:45.965Z"
+    "measuredAt": "2026-09-14T09:42:11.741Z"
   },
   "HI/texts": {
     "jurisdiction": "HI",
@@ -385,47 +385,42 @@
     "jurisdiction": "MI",
     "name": "Michigan",
     "source": "texts",
-    "sampled": 16,
-    "clean": 0,
-    "coverage": 0.83,
+    "sampled": 12,
+    "clean": 4,
+    "coverage": 0.9652,
     "dialects": {
-      "mi-bill": 16
+      "mi-bill": 8,
+      "mi-resolution": 4
     },
     "unknown": {},
     "fallouts": {
-      "no enacting formula": 15,
-      "subsection opens at N": 4,
-      "paragraph opens at N": 4,
-      "subsection a after N": 4,
-      "no sections": 4,
-      "paragraph j after N": 2
+      "subsection opens at N": 11,
+      "paragraph a after N": 1,
+      "paragraph j after N": 1,
+      "subparagraph opens at l": 1,
+      "paragraph m after N": 1
     },
-    "measuredAt": "2026-09-14T09:36:32.142Z"
+    "measuredAt": "2026-09-14T09:41:19.646Z"
   },
   "NC/texts": {
     "jurisdiction": "NC",
     "name": "North Carolina",
     "source": "texts",
-    "sampled": 16,
-    "clean": 0,
-    "coverage": 0.8376,
+    "sampled": 12,
+    "clean": 2,
+    "coverage": 0.8947,
     "dialects": {
-      "nc-bill": 16
+      "nc-bill": 12
     },
     "unknown": {},
     "fallouts": {
-      "no enacting formula": 16,
-      "subsection a after N": 15,
-      "unmatched enumerator": 14,
-      "paragraph N after N": 5,
-      "clause opens at I": 2,
-      "clause V after N": 2,
-      "clause I after N": 2,
-      "subsection c after N": 2,
-      "paragraph opens at N": 2,
-      "subsection opens at N": 2
+      "no sections": 4,
+      "unmatched enumerator": 4,
+      "subsection opens at b": 2,
+      "subsection opens at e": 2,
+      "subsection b after N": 2
     },
-    "measuredAt": "2026-09-14T09:36:33.114Z"
+    "measuredAt": "2026-09-14T09:41:20.735Z"
   },
   "AZ/texts": {
     "jurisdiction": "AZ",
@@ -539,21 +534,22 @@
     "jurisdiction": "KY",
     "name": "Kentucky",
     "source": "texts",
-    "sampled": 16,
-    "clean": 2,
-    "coverage": 0.5676,
+    "sampled": 8,
+    "clean": 0,
+    "coverage": 0.8486,
     "dialects": {
-      "ky-bill": 16
+      "ky-bill": 8
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 13,
-      "no enacting formula": 6,
-      "paragraph opens at N": 2,
-      "subsection a after N": 2,
-      "subsection opens at c": 1
+      "no sections": 6,
+      "subsection opens at N": 2,
+      "subsection N after N": 2,
+      "paragraph c after N": 1,
+      "paragraph e after N": 1,
+      "no enacting formula": 1
     },
-    "measuredAt": "2026-09-14T09:36:28.839Z"
+    "measuredAt": "2026-09-14T09:40:37.537Z"
   },
   "LA/texts": {
     "jurisdiction": "LA",
@@ -648,26 +644,26 @@
     "jurisdiction": "OR",
     "name": "Oregon",
     "source": "texts",
-    "sampled": 16,
-    "clean": 0,
-    "coverage": 0.7951,
+    "sampled": 12,
+    "clean": 3,
+    "coverage": 0.9249,
     "dialects": {
-      "or-bill": 16
+      "or-bill": 10,
+      "or-amendment": 2
     },
     "unknown": {},
     "fallouts": {
-      "paragraph opens at N": 18,
-      "paragraph b after N": 9,
-      "subsection a after N": 7,
-      "subsection opens at N": 7,
-      "subsection b after N": 6,
-      "no sections": 5,
-      "no enacting formula": 4,
-      "subsection N after N": 4,
-      "paragraph opens at b": 2,
-      "subparagraph opens at N": 1
+      "subsection opens at N": 9,
+      "paragraph opens at N": 5,
+      "paragraph opens at b": 3,
+      "subsection a after N": 3,
+      "subparagraph opens at N": 2,
+      "paragraph N after N": 2,
+      "no sections": 1,
+      "subsection N after N": 1,
+      "subsection opens at b": 1
     },
-    "measuredAt": "2026-09-14T09:36:35.534Z"
+    "measuredAt": "2026-09-14T09:41:21.992Z"
   },
   "IA/texts": {
     "jurisdiction": "IA",
@@ -701,27 +697,184 @@
     "name": "Alabama",
     "source": "laws",
     "sampled": 12,
-    "clean": 12,
-    "coverage": 1,
+    "clean": 11,
+    "coverage": 0.9857,
     "dialects": {
       "al-statute": 12
     },
     "unknown": {},
-    "fallouts": {},
-    "measuredAt": "2026-09-14T09:38:33.927Z"
+    "fallouts": {
+      "subsection N after N": 2,
+      "subparagraph opens at b": 1,
+      "paragraph opens at c": 1,
+      "paragraph opens at d": 1
+    },
+    "measuredAt": "2026-09-14T09:40:34.930Z"
   },
   "AZ/laws": {
     "jurisdiction": "AZ",
     "name": "Arizona",
     "source": "laws",
     "sampled": 12,
-    "clean": 12,
-    "coverage": 1,
+    "clean": 11,
+    "coverage": 0.9962,
     "dialects": {
       "az-statute": 12
     },
     "unknown": {},
-    "fallouts": {},
-    "measuredAt": "2026-09-14T09:38:38.289Z"
+    "fallouts": {
+      "subsection opens at B": 1
+    },
+    "measuredAt": "2026-09-14T09:40:36.844Z"
+  },
+  "TX/laws": {
+    "jurisdiction": "TX",
+    "name": "Texas",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 11,
+    "coverage": 0.9849,
+    "dialects": {
+      "tx-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection opens at b": 1,
+      "subsection j after N": 1,
+      "paragraph opens at l": 1,
+      "subsection m after N": 1
+    },
+    "measuredAt": "2026-09-14T09:40:26.480Z"
+  },
+  "CA/laws": {
+    "jurisdiction": "CA",
+    "name": "California",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 10,
+    "coverage": 0.9785,
+    "dialects": {
+      "ca-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection j after N": 1,
+      "paragraph opens at b": 1
+    },
+    "measuredAt": "2026-09-14T09:40:29.228Z"
+  },
+  "IL/laws": {
+    "jurisdiction": "IL",
+    "name": "Illinois",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 0,
+    "coverage": 0.8176,
+    "dialects": {
+      "il-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "no number at the start": 12,
+      "subsection j after N": 1
+    },
+    "measuredAt": "2026-09-14T09:40:32.178Z"
+  },
+  "PA/laws": {
+    "jurisdiction": "PA",
+    "name": "Pennsylvania",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 11,
+    "coverage": 0.9904,
+    "dialects": {
+      "pa-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection j after N": 1,
+      "paragraph opens at l": 1,
+      "subsection m after N": 1
+    },
+    "measuredAt": "2026-09-14T09:40:34.368Z"
+  },
+  "AR/laws": {
+    "jurisdiction": "AR",
+    "name": "Arkansas",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 10,
+    "coverage": 0.9738,
+    "dialects": {
+      "ar-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "paragraph opens at B": 2,
+      "subparagraph opens at ii": 2,
+      "paragraph opens at N": 1,
+      "subparagraph opens at N": 1,
+      "subsection opens at N": 1,
+      "paragraph J after N": 1
+    },
+    "measuredAt": "2026-09-14T09:40:44.595Z"
+  },
+  "FL/laws": {
+    "jurisdiction": "FL",
+    "name": "Florida",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 10,
+    "coverage": 0.9901,
+    "dialects": {
+      "fl-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "paragraph b after N": 1,
+      "paragraph j after N": 1
+    },
+    "measuredAt": "2026-09-14T09:40:56.610Z"
+  },
+  "OH/laws": {
+    "jurisdiction": "OH",
+    "name": "Ohio",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 9,
+    "coverage": 0.9589,
+    "dialects": {
+      "oh-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection J after N": 1,
+      "paragraph opens at L": 1,
+      "subsection M after N": 1,
+      "paragraph opens at V": 1,
+      "subsection W after N": 1,
+      "paragraph opens at N": 1,
+      "subsection D after N": 1,
+      "subparagraph opens at N": 1
+    },
+    "measuredAt": "2026-09-14T09:41:19.144Z"
+  },
+  "GA/laws": {
+    "jurisdiction": "GA",
+    "name": "Georgia",
+    "source": "laws",
+    "sampled": 12,
+    "clean": 8,
+    "coverage": 0.9485,
+    "dialects": {
+      "ga-statute": 12
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection opens at N": 2,
+      "paragraph opens at N": 2,
+      "subparagraph opens at B": 1
+    },
+    "measuredAt": "2026-09-14T09:41:30.963Z"
   }
 }

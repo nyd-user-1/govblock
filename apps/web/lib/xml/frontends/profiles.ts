@@ -14,7 +14,7 @@ const STATES: Record<string, string> = {
 const common = (jurisdiction: string): StateProfile => ({
   jurisdiction,
   name: STATES[jurisdiction] ?? jurisdiction,
-  enacting: /\b(be it (further )?enacted|(hereby )?enacts? as follows|do enact as follows|ordained|enacted by the)\b/i,
+  enacting: /\b(be it (further )?enacted|(hereby )?enacts? as follows|do enact as follows|ordained|enacted by the|enacts?:)/i,
   section: /^(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)\.?\s*(.*)$/s,
   strict: false,
   quotesAfter: /(as follows|to read|read as follows|amended by adding|inserting|the following(?: \w+){0,3}|thereof)[:.]?-?$/i,
@@ -70,6 +70,22 @@ PROFILES.PA = {
   section: /^Section\s+(\d{1,3}(?:\.\d+)?)\.\s*(.*)$/s,
   quotedSection: /^§\s*([\w.-]+)\.\s*(.*)$/s,
   del: /\[([^\]]+)\]/,
+}
+
+// Michigan: "the people of the state of michigan enact:" in lower case, then
+// "Sec. 272." for the section of the act it amends.
+PROFILES.MI = {
+  ...common("MI"),
+  enacting: /the people of the state of michigan enact:/i,
+  quotedSection: /^Sec\.\s*([\d][\w.-]*)\.\s*(.*)$/s,
+}
+
+// North Carolina: "The General Assembly of North Carolina enacts:", quoted
+// statute sections as "§ 160A-536." or "\"§ 160A-536."
+PROFILES.NC = {
+  ...common("NC"),
+  enacting: /The General Assembly of North Carolina enacts:/i,
+  quotedSection: /^"?§\s*([\w.-]+)\.\s*(.*)$/s,
 }
 
 // Massachusetts: a petition and docket furniture precede the bill; "SECTION 1."
