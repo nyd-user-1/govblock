@@ -8,17 +8,6 @@ export const USLM_NS = "http://schemas.gpo.gov/xml/uslm"
 export const DC_NS = "http://purl.org/dc/elements/1.1/"
 export const DCTERMS_NS = "http://purl.org/dc/terms/"
 
-const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-const attr = (s) => esc(String(s)).replace(/"/g, "&quot;")
-
-/** IrNode → XML. The IR decodes entities at parse time, so text is escaped once here. */
-export function toXml(n) {
-  if (typeof n === "string") return esc(n)
-  if (n.tag === "#root") return n.children.map(toXml).join("")
-  const attrs = Object.entries(n.attrs).map(([k, v]) => ` ${k}="${attr(v)}"`).join("")
-  return n.children.length ? `<${n.tag}${attrs}>${n.children.map(toXml).join("")}</${n.tag}>` : `<${n.tag}${attrs}/>`
-}
-
 const el = (tag, attrs = {}, children = []) => ({ tag, attrs, children })
 const kids = (n) => n.children.filter((c) => typeof c !== "string")
 const ROOTS = new Set(["bill", "resolution", "amendment", "lawDoc", "uscDoc", "pLaw", "statutesAtLarge"])
@@ -43,8 +32,9 @@ export const textOf = (n) => (typeof n === "string" ? n : n.children.map(textOf)
  *
  * info: { root, work, stage, date, title, number, publisher, source, fidelity,
  *         coverage, dialect, frontEnd, builder, dateBasis, path, section }
+ * toXml: lib/xml/ir.ts's serializer, bundled.
  */
-export function wrap(doc, info) {
+export function wrap(doc, info, toXml) {
   let top = doc.tag === "#root" ? kids(doc)[0] ?? el("main") : doc
   if (!ROOTS.has(top.tag)) {
     const body = top.tag === "main" ? top : el("main", {}, [top])

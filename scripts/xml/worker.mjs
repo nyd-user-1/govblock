@@ -15,6 +15,7 @@ const require = createRequire(import.meta.url)
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
 
 const { frontEndFor } = await import(pathToFileURL(workerData.bundle).href)
+const { toXml } = await import(pathToFileURL(workerData.ir).href)
 const s3 = new S3Client({ region: "us-east-1", maxAttempts: 8 })
 const DRY = !!workerData.dry
 
@@ -67,7 +68,7 @@ async function handle(task) {
     const expression = info.expression ?? expressionOf(date, info.stage)
 
     stage = "emit"
-    const xml = wrap(doc, { ...info, date, dateBasis, coverage: report.coverage, dialect: report.dialect, frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase() })
+    const xml = wrap(doc, { ...info, date, dateBasis, coverage: report.coverage, dialect: report.dialect, frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase() }, toXml)
     const body = Buffer.from(xml, "utf8")
     const contentHash = createHash("sha256").update(body).digest("hex")
     const gz = gzipSync(body, { level: 6 })

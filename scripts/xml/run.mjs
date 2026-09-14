@@ -11,6 +11,7 @@
 //   node scripts/xml/run.mjs --slots 2            jobs at once (default 2)
 //   node scripts/xml/run.mjs --workers 7          compiler threads (default: cores - 1)
 //   node scripts/xml/run.mjs --job 12 --dry       one job, nothing written
+//   node scripts/xml/run.mjs --rebuild            rebuild held Expressions in place (a front end improved)
 //
 // Long runs go under nohup with a log in ~/govblock-xml/logs/ (program brief).
 import { createHash } from "node:crypto"
@@ -25,7 +26,7 @@ import { claim, falloutLog, finish, heartbeat, holdings, indexWriter, reclaimSta
 import { sourceFor } from "./sources/index.mjs"
 
 /** The build of this controller and its emitter. A bump rebuilds every Expression on its next run. */
-export const BUILDER = 1
+export const BUILDER = 2
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const argv = process.argv.slice(2)
@@ -43,6 +44,8 @@ const INFLIGHT = Number(value("inflight", 24))
 const ONLY = value("only")?.split(",").map((s) => s.trim().toLowerCase()) ?? null
 const KIND = value("kind")
 const JOB = value("job")
+// A front end that improved without changing its name: build what is held again, in place.
+const REBUILD = flag("rebuild")
 
 const stamp = () => new Date().toISOString().replace("T", " ").slice(0, 19)
 const log = (m) => console.log(`${stamp()} ${m}`)
@@ -51,14 +54,16 @@ const log = (m) => console.log(`${stamp()} ${m}`)
 
 // bundle.mjs writes the front ends to one module; the threads import that file.
 const frontEnds = await load("lib/xml/frontends/index.ts")
+await load("lib/xml/ir.ts")
 const bundle = join(HERE, "..", "..", "node_modules/.cache/govblock-xml/lib__xml__frontends__index.mjs")
+const ir = join(HERE, "..", "..", "node_modules/.cache/govblock-xml/lib__xml__ir.mjs")
 /** What `expressions.front_end` records for a jurisdiction: its own grammar's code, or "text". */
 const frontEndName = (code) => (frontEnds.frontEndFor(code).profile.jurisdiction === "*" ? "text" : code.toLowerCase())
 
 const pool = await Promise.all(
   Array.from({ length: WORKERS }, () =>
     new Promise((resolve) => {
-      const w = new Worker(join(HERE, "worker.mjs"), { workerData: { bundle, inflight: INFLIGHT, dry: DRY } })
+      const w = new Worker(join(HERE, "worker.mjs"), { workerData: { bundle, ir, inflight: INFLIGHT, dry: DRY } })
       w.pending = 0
       w.on("message", (msg) => {
         if (msg.ready) return resolve(w)
@@ -147,7 +152,7 @@ async function runJob(job) {
 
       const sourceHash = createHash("sha256").update(item.source.body).digest("hex")
       const prior = held.get(item.work)?.find((p) => p.unit === (item.unit ?? ""))
-      if (prior && prior.source_hash === sourceHash && Number(prior.builder) === BUILDER && prior.front_end === frontEndName(item.frontEnd)) {
+      if (!REBUILD && prior && prior.source_hash === sourceHash && Number(prior.builder) === BUILDER && prior.front_end === frontEndName(item.frontEnd)) {
         counts.unchanged++
         seen.push([item.work, prior.expression])
         continue

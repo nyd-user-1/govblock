@@ -118,7 +118,7 @@ export async function holdings(prefix) {
 
 /** Jobs whose controller stopped answering go back in the queue. */
 export async function reclaimStale(minutes = 10) {
-  const r = await exec(`update xml_jobs set status = 'queued', worker = null, error = 'reclaimed: heartbeat stopped' where status = 'running' and heartbeat_at < now() - make_interval(mins => $1)`, [minutes])
+  const r = await exec(`update xml_jobs set status = 'queued', worker = null, error = 'reclaimed: heartbeat stopped' where status = 'running' and heartbeat_at < now() - make_interval(mins => $1::int)`, [minutes])
   return r.numberOfRecordsUpdated ?? 0
 }
 
