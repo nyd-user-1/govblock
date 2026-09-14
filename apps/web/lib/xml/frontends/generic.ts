@@ -336,8 +336,12 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
     // part goes where it belongs.
     const block = blocks[start]
     const at = ENACTING_SENTENCE.exec(block)
-    if (at && at.index > 0) preface.children.push(node("p", {}, [block.slice(0, at.index).trim()]))
-    preface.children.push(node("enactingFormula", {}, [at ? at[0].trim() : block]))
+    // The formula's sentence begins after the last full stop before the
+    // match, so "The people of the State of California do enact as follows:"
+    // stays whole.
+    const from = at ? Math.max(0, block.lastIndexOf(". ", at.index) + 2, block.lastIndexOf(": ", at.index) + 2) : 0
+    if (at && from > 0) preface.children.push(node("p", {}, [block.slice(0, from).trim()]))
+    preface.children.push(node("enactingFormula", {}, [at ? block.slice(from, at.index + at[0].length).trim() : block]))
     const after = at ? block.slice(at.index + at[0].length).trim() : ""
     start += 1
     if (after) blocks.splice(start, 0, after)
@@ -348,13 +352,39 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   const closeSection = () => {
     if (!section) return
     if (pending.length) {
-      const instruction = tidy(section.children.filter((c) => typeof c !== "string" && c.tag === "content").map((c) => (typeof c === "string" ? "" : c.children.map((x) => (typeof x === "string" ? x : "")).join(""))).join(" "))
+      const contentNode = section.children.find((c): c is IrNode => typeof c !== "string" && c.tag === "content")
+      const contentText = (n: IrNode | undefined) => tidy(n ? n.children.map((x) => (typeof x === "string" ? x : "")).join("") : "")
+      // A section opener alone on its line ("SECTION 1." then the instruction
+      // on the next): the first pending block is the instruction.
+      if (contentNode && !contentText(contentNode) && pending.length && !enumerator(pending[0], false) && !(p.quotedSection && p.quotedSection.test(pending[0]))) {
+        contentNode.children = inline(pending.shift()!)
+      }
+      let instruction = contentText(contentNode)
+      // The introducer followed by more text on the same block ("… to read as
+      // follows: SUBCHAPTER G. PROHIBITED ACTIONS"): the rest is the first
+      // quoted block, and the instruction ends at the introducer.
+      const intro = /(as follows|to read|read as follows|amended by adding|inserting|the following(?: \w+){0,3}|thereof)[:.]?-?(\s+)(?=\S)/i.exec(instruction)
+      if (intro && contentNode && intro.index + intro[0].length < instruction.length) {
+        const cut = intro.index + intro[0].length - intro[2].length
+        pending.unshift(instruction.slice(cut).trim())
+        contentNode.children = inline(instruction.slice(0, cut).trim())
+        instruction = contentText(contentNode)
+      }
       const quoted = p.quotesAfter.test(instruction)
       // Inside quoted law, a quoted section opener starts a section of its own.
       const groups: { section: IrNode | null; blocks: string[] }[] = [{ section: null, blocks: [] }]
       for (const b of pending) {
         const qs = quoted && p.quotedSection ? p.quotedSection.exec(b) : null
-        if (qs) groups.push({ section: node("section", {}, [node("num", {}, [qs[1]]), node("heading", {}, inline(qs[2] ?? ""))]), blocks: [] })
+        if (qs) {
+          // The rest of a quoted section's first line is its catchline when it
+          // reads as one (short, no verb); otherwise it is the section's text.
+          const rest = tidy(qs[2] ?? "")
+          const catchline = rest.length > 0 && rest.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(rest)
+          const sec = node("section", {}, [node("num", {}, [qs[1]])])
+          if (catchline) sec.children.push(node("heading", {}, inline(rest)))
+          else if (rest) sec.children.push(node("content", {}, inline(rest)))
+          groups.push({ section: sec, blocks: [] })
+        }
         else groups[groups.length - 1].blocks.push(b)
       }
       const parts: IrNode[] = []
@@ -400,12 +430,66 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   return { doc, report: { dialect: `${p.jurisdiction.toLowerCase()}-bill`, elements, known: elements, unknown: {}, renamed: {}, coverage: Number(coverage.toFixed(4)), notes: problems.slice(0, 5) } }
 }
 
+// -------------------------------------------------------------- statutes ---
+
+const DOC_TYPE_TAG: Record<string, string> = { SECTION: "section", ARTICLE: "article", CHAPTER: "chapter", SUBCHAPTER: "subchapter", TITLE: "title", SUBTITLE: "subtitle", PART: "part", SUBPART: "subpart", DIVISION: "division", SUBDIVISION: "subdivision", RULE: "section" }
+
+/**
+ * A statute row from `Laws`, any state: the row's own level from its
+ * doc_type, the section's number and heading read off the first block
+ * ("§ 1-1-1. Heading. Body", "Sec. 12.5. Heading", "12.5 Heading."), then
+ * the body by rank of appearance. A heading is taken only when it reads as
+ * one, short and without a verb.
+ */
+export function parseStateStatute(source: Source, p: StateProfile): FrontEndResult {
+  const problems: string[] = []
+  const inline = marksFor({ ...p, capsAreNew: false })
+  const meta = (source.meta ?? {}) as { doc_type?: string; location_id?: string; law_id?: string }
+  const docType = String(meta.doc_type ?? "SECTION").toUpperCase()
+  const tag = DOC_TYPE_TAG[docType] ?? "level"
+  const level = node(tag, { ...(tag === "level" ? { role: docType.toLowerCase() } : {}), ...(meta.location_id ? { identifier: String(meta.location_id) } : {}) })
+  const blocks = stateBlocks(source.body.replace(/^\s*\*\s*/, ""), p)
+  let body = blocks
+  const first = blocks[0] ?? ""
+  const head = /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
+  if (head && /\d/.test(head[1])) {
+    level.children.push(node("num", {}, [head[1]]))
+    const split = /^(.*?\.)\s+(?=[A-Z(\d§])(.*)$/s.exec(head[2])
+    const candidate = split ? split[1] : head[2]
+    const isHeading = candidate.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(candidate)
+    if (isHeading && split) {
+      level.children.push(node("heading", {}, [split[1]]))
+      body = [split[2], ...blocks.slice(1)]
+    } else if (isHeading) {
+      level.children.push(node("heading", {}, [head[2]]))
+      body = blocks.slice(1)
+    } else body = [head[2], ...blocks.slice(1)]
+  } else if (tag !== "section") {
+    level.children.push(node("heading", {}, [first]))
+    body = blocks.slice(1)
+  } else problems.push(`no number at the start: ${first.slice(0, 40)}`)
+  const nested = nest(body, problems, inline, false)
+  if (nested.length && nested[0].tag === "p" && tag === "section") {
+    level.children.push(node("content", {}, nested[0].children))
+    nested.shift()
+  }
+  level.children.push(...nested)
+  let elements = 0
+  const count = (n: IrNode) => {
+    elements++
+    for (const c of n.children) if (typeof c !== "string") count(c)
+  }
+  count(level)
+  const coverage = blocks.length ? Math.max(0, 1 - problems.length / blocks.length) : 0
+  return { doc: level, report: { dialect: `${p.jurisdiction.toLowerCase()}-statute`, elements, known: elements, unknown: {}, renamed: {}, coverage: Number(coverage.toFixed(4)), notes: problems.slice(0, 5) } }
+}
+
 export function stateFrontEnd(p: StateProfile): FrontEnd {
   return {
     profile: {
       jurisdiction: p.jurisdiction,
       name: p.name,
-      dialects: [`${p.jurisdiction.toLowerCase()}-bill`, "text"],
+      dialects: [`${p.jurisdiction.toLowerCase()}-bill`, `${p.jurisdiction.toLowerCase()}-statute`, "text"],
       units: [
         { name: "section", uslm: "section", signal: p.section.source },
         { name: "quoted law", uslm: "quotedContent", signal: `after ${p.quotesAfter.source}` + (p.quotedSection ? `; sections open with ${p.quotedSection.source}` : "") },
@@ -414,6 +498,9 @@ export function stateFrontEnd(p: StateProfile): FrontEnd {
         ...(p.capsAreNew ? [{ name: "new matter", uslm: "ins", signal: "CAPITALS" }] : []),
       ],
     },
-    parse: (source) => parseStateBill(source, p),
+    parse: (source) => {
+      const kind = (source.meta as { kind?: string } | undefined)?.kind ?? (source.meta && "doc_type" in (source.meta as object) ? "law" : "bill")
+      return kind === "law" ? parseStateStatute(source, p) : parseStateBill(source, p)
+    },
   }
 }

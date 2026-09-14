@@ -58,7 +58,7 @@ PROFILES.CA = {
   ...common("CA"),
   enacting: /The people of the State of California do enact as follows/i,
   section: /^(?:SECTION|SEC\.)\s*(\d{1,3})\.\s*(.*)$/s,
-  quotedSection: /^(\d{1,5}(?:\.\d+)*[a-z]?)\.\s+(?=[A-Z(“"])(.*)$/s,
+  quotedSection: /^(\d{1,5}(?:\.\d+)*[a-z]?)\.(?:\s+(?=[A-Z(“"])(.*)|\s*)$/s,
 }
 
 // Pennsylvania: line numbers down the margin (stripped), "Section 1." for
