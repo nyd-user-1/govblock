@@ -113,14 +113,16 @@ export function ScopeGuard({ children }: { children: React.ReactNode }) {
   // same card (2026-09-14), with the rule itself already open for them.
   const admin = j.reader.admin === true
   const verdict: Verdict = exempt ? "open" : entitled({ ...j.reader, admin: false }, ask)
-  // The x, the admin's alone: the card closes for this page and this scope,
-  // and comes back on the next one.
+  // The x, the admin's alone on production, everyone's on a dev server
+  // (Brendan, 2026-09-14): the card closes for this page and this scope,
+  // and comes back on the next one. The gate itself stands in both.
+  const dismissible = admin || process.env.NODE_ENV === "development"
   const [closed, setClosed] = React.useState<string | null>(null)
   const key = `${pathname}|${state}|${session ?? ""}|${entity}`
   // Nothing until the account is known: a flash of the gate at a signed-in
   // New Yorker is worse than a moment without it. And nothing until the
   // session in question can be compared with the current one.
-  const show = verdict !== "open" && j.readerReady && (session == null || current != null) && !(admin && closed === key)
+  const show = verdict !== "open" && j.readerReady && (session == null || current != null) && !(dismissible && closed === key)
   if (!show) return <>{children}</>
   const reason = reasonFor(j.reader, ask)
   // No thanks, Back: the page the reader came from, with Congress remembered;
@@ -131,7 +133,7 @@ export function ScopeGuard({ children }: { children: React.ReactNode }) {
     else router.push(congressHref(pathname))
   }
   return (
-    <ScopeOverlay reason={reason} state={state} verdict={verdict} onDecline={decline} onClose={admin ? () => setClosed(key) : undefined}>
+    <ScopeOverlay reason={reason} state={state} verdict={verdict} onDecline={decline} onClose={dismissible ? () => setClosed(key) : undefined}>
       {children}
     </ScopeOverlay>
   )

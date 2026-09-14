@@ -34,7 +34,8 @@ export function CardGateProvider({ children }: { children: React.ReactNode }) {
           library the rest of the kit is built from. It carries its own border
           and close cross, and still closes on a click past it. */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogPopup from="top" showCloseButton={false} className="sm:max-w-lg">
+        {/* The x on a dev server only (Brendan, 2026-09-14): the gate stays in place on production, and he can put it aside while working. */}
+        <DialogPopup from="top" showCloseButton={process.env.NODE_ENV === "development"} className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl">Make our home page your home page.</DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
