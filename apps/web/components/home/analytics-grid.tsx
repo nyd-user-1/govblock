@@ -7,6 +7,7 @@ import { Area, AreaChart, CartesianGrid, YAxis } from "recharts"
 import { fmtDate, fmtNumber } from "@/lib/format"
 import type { MetricKey, MetricSeries } from "@/lib/policy/metrics"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { useManualFetch } from "@/lib/policy/manual-fetch"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -299,6 +300,8 @@ export function AnalyticsGrid() {
   const [nonce, setNonce] = React.useState(0)
   const grid = React.useRef<HTMLDivElement>(null)
   const [columnWidth, setColumnWidth] = React.useState(0)
+  // A tile's own Refresh counts as the page's press when the page is gated.
+  const manual = useManualFetch()
 
   React.useEffect(() => {
     setSaved(load())
@@ -369,7 +372,7 @@ export function AnalyticsGrid() {
       <div ref={grid} className="grid auto-rows-[224px] grid-cols-4 gap-4">
         {ready &&
           tiles.map((tile) => (
-            <MetricTile key={tile.id} tile={tile} days={days} nonce={nonce} columnWidth={columnWidth} onSpan={(span) => setTile(tile.id, { span })} onRemove={() => remove(tile.id)} onRefresh={() => setNonce((n) => n + 1)} />
+            <MetricTile key={tile.id} tile={tile} days={days} nonce={nonce} columnWidth={columnWidth} onSpan={(span) => setTile(tile.id, { span })} onRemove={() => remove(tile.id)} onRefresh={() => (manual ? manual.refresh() : setNonce((n) => n + 1))} />
           ))}
         {ready &&
           Array.from({ length: blanks }, (_, i) => (

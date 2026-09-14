@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { useManualFetch } from "@/lib/policy/manual-fetch"
 import { resolve, resolveCongress } from "@/lib/policy/snapshot"
 
 // livingston-v3 lib/policy/use-policy.ts: one hook for every widget,
@@ -24,9 +25,21 @@ export function policyUrl(resource: string, filters: Filters = {}, extra: Record
 
 export function useSnapshot<T>(key: string | null) {
   const [state, setState] = React.useState<{ key: string | null; data: T | undefined; locked?: boolean }>({ key: null, data: undefined })
+  // Under a ManualFetchProvider (home, blocks) the page asks the API only on
+  // its refresh button: generation 0 is "not yet pressed", and each press
+  // runs every key on the page again. -1 is a page with no such gate.
+  const manual = useManualFetch()
+  const generation = manual ? manual.generation : -1
   React.useEffect(() => {
     if (!key) {
       setState({ key: null, data: undefined })
+      return
+    }
+    if (generation === 0) {
+      // No request. Congress may show its committed snapshot, which is on
+      // disk; any other scope shows nothing until the button is pressed.
+      const scope = new URL(key, "http://snapshot").searchParams.get("state") || "US"
+      setState({ key, data: scope === "US" ? (resolve(key) as T | undefined) : undefined })
       return
     }
     let cancelled = false
@@ -73,7 +86,7 @@ export function useSnapshot<T>(key: string | null) {
     }
     // The previous key's rows stay on screen until the new ones land, which is
     // what SWR's keepPreviousData did for these callers.
-  }, [key])
+  }, [key, generation])
   return { data: state.data, error: undefined as Error | undefined, isLoading: !!key && state.key !== key, locked: !!state.locked }
 }
 
