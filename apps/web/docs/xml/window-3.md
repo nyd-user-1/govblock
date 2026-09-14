@@ -2,6 +2,11 @@
 
 The lead's own support work; no subagent. Newest milestone first.
 
+## Milestone 6 — the front ends were quadratic on long blocks (2026-09-14 ~06:25 EDT)
+
+- The pipeline's watchdog caught threads pinned on New York and Oklahoma sessions. The controller's own wake loop was the main cause (its fix, 1ca3259, is the pipeline's), but the front ends had a second one: both block builders appended each line to one growing string and tested its end every line, quadratic once a block ran long, which happens whenever a run of enumerators passes the opener's three digits or a budget bill's tables go on. Found by profiling a synthetic bill (77% of the time in the block builder); fixed at b09b809 by collecting lines and joining once. Sixty thousand blocks: ninety-three seconds to under one. Output unchanged, no rebuild.
+- Also: the capitals test is two linear regexes (11972ea); Illinois statutes open with their citation (700e533, 82% to 91%).
+
 ## Milestone 5 — statutes for every state; the quoted-law seam closed (2026-09-14 ~06:10 EDT)
 
 - A generic statute parser reads any state's `Laws` row (the bill parser had been reading them as bills: Alabama 48%, Arizona 50% on the pipeline's first pass). Measured on 11 states' statutes: nine of ten at 95% or better, Illinois at 82%.
