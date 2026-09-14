@@ -40,7 +40,8 @@ export const TODO: TodoItem[] = [
   {
     id: "window-6",
     title: "Window 6: the @ resolver, citations, decorations and the in-context view",
-    status: "open",
+    status: "claimed",
+    claimedBy: "window-5",
     prompt: `${PROGRAM}, then apps/web/docs/prompts/2026-09-14-citations-and-context.md whole, then apps/web/docs/xml/schema.md, the storage section of window-2.md, and window-5.md for the engine. Plan, then build. Windows 4 and 5 are done: the library and the Work-by-address load at /workspace/typeset/work/<address> (window 4), the fork, editor and amendment engine at lib/typeset/amend.ts (window 5). Resolve every ref node to a Work in the corpus through the address scheme, decorate the reader, and build the in-context view the brief describes. ${RULES} Report to apps/web/docs/xml/window-6.md at every milestone.`,
   },
   {

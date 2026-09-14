@@ -2,11 +2,13 @@
 
 Report to the lead. Newest milestone first.
 
-## Next: `ca-captures` claimed (2026-09-14)
+## Next: window 6 claimed (2026-09-14)
 
-The brief is done (milestone 2). Context under 60%, so this window claimed
-the first open item in `lib/xml/todo.ts`: California's printings stored as
-leginfo web pages. Its reports go to `window-7.md`, as its prompt says.
+The brief is done and accepted (milestone 2). Context is about half used, so
+this window claimed window 6 in `lib/xml/todo.ts`, which builds on the
+engine. `ca-captures` was claimed first by mistake: it belongs to window 4's
+Virginia and California run. It is released to "open", with nothing touched
+for it beyond reading. Window 6 reports go to `window-6.md`.
 
 ## Milestone 2 — the Fork view, forks by address, commits that hold documents (2026-09-14)
 
