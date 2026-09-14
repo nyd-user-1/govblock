@@ -73,14 +73,18 @@ function Frame({ children, onClose }: { children: React.ReactNode; onClose: () =
   )
 }
 
-const FEED_HEIGHT = "h-[calc(100svh-var(--header-height)-3.5rem)]"
+// The feed, the creators and the comments fit the page under the header, or the right rail's sheet (Brendan, 2026-09-14): the sheet is 1.2rem shorter than the page and its content sits in 0.5rem of padding. The page's feed gives back a rem so its foot is never cut.
+type Frame = "page" | "sheet"
+const FEED_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height)-4.5rem)]", sheet: "h-[calc(100svh-var(--header-height)-5.2rem)]" }
+const COLUMN_HEIGHT: Record<Frame, string> = { page: "h-[calc(100svh-var(--header-height))]", sheet: "h-[calc(100svh-var(--header-height)-1.7rem)]" }
 
-export function ClipsApp() {
+export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const { account, ready } = useAccount()
   const signedIn = !!account
   const [mine, setMine] = React.useState<Clip[]>([])
   const [creator, setCreator] = React.useState("all")
-  const [view, setView] = React.useState<"feed" | "grid">("feed")
+  // The grid first (Brendan, 2026-09-14); a clip opens the feed.
+  const [view, setView] = React.useState<"feed" | "grid">("grid")
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [muted, setMuted] = React.useState(true)
   const [liked, setLiked] = React.useState<Set<string>>(new Set())
@@ -240,7 +244,7 @@ export function ClipsApp() {
     <div data-slot="clips" className="container-wrapper">
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
-          <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", "h-[calc(100svh-var(--header-height))]")}>
+          <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", COLUMN_HEIGHT[frame])}>
             <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} />
           </div>
         </aside>
@@ -299,7 +303,7 @@ export function ClipsApp() {
           ) : view === "grid" ? (
             <Grid clips={clips} onOpen={goToPost} className="-mx-2 lg:mx-0" />
           ) : (
-            <Feed clips={clips} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT, "-mx-2 lg:mx-0")} />
+            <Feed clips={clips} activeId={activeId} onActive={setActiveId} muted={muted} onMuted={setMuted} reactions={reactions} className={cn(FEED_HEIGHT[frame], "-mx-2 lg:mx-0")} />
           )}
 
           {creator === "you" && active?.mine && view === "feed" && (
@@ -316,7 +320,7 @@ export function ClipsApp() {
         </main>
 
         <aside className="hidden lg:block">
-          <div className={cn("sticky top-(--header-height) py-4", "h-[calc(100svh-var(--header-height))]")}>
+          <div className={cn("sticky top-(--header-height) py-4", COLUMN_HEIGHT[frame])}>
             <div className="h-full overflow-hidden rounded-xl border bg-card">{panel()}</div>
           </div>
         </aside>

@@ -52,13 +52,13 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
           <Sidebar
             side="right"
             collapsible="none"
-            className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
+            className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
           >
             <div className={LINE} />
             <RailToggle side="right" />
             {/* Past the tab's 16px and a little air; the page scrolls inside the sheet. */}
             <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
-              <ClipsApp />
+              <ClipsApp frame="sheet" />
             </SidebarContent>
             {/* The rail within the rail: the whole second screen's width, so its line lands on the second screen's when open. */}
             <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-2=closed]_&]:bg-transparent`}>
