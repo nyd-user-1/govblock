@@ -20,7 +20,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // row per jurisdiction and source, with its measured coverage, the dialects
 // it met, what fell out, and the profile's units under the row. The numbers
 // are lib/xml/coverage.generated.json, written by scripts/xml/coverage.mjs;
-// Measure takes a fresh small sample through /api/xml/coverage without a
+// Measure takes a fresh small sample through /api/xml/measure without a
 // terminal. The grammar catalogue is docs/xml/grammars on the branch.
 
 type Line = CoverageLine & { fallouts?: Record<string, number> }
@@ -167,7 +167,7 @@ export function CompilerPage() {
     const key = `${line.jurisdiction}/${line.source}`
     setMeasuring(key)
     try {
-      const res = await fetch(`/api/xml/coverage?jurisdiction=${line.jurisdiction}&source=${line.source}&sample=8`)
+      const res = await fetch(`/api/xml/measure?jurisdiction=${line.jurisdiction}&source=${line.source}&sample=8`)
       if (res.ok) {
         const fresh = (await res.json()) as Line
         setLines((prev) => ({ ...prev, [key]: fresh }))
