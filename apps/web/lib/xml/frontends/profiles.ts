@@ -105,6 +105,20 @@ PROFILES.OK = {
   furniture: /^\s*(?:.{0,60}\bPage\s+\d+|\d{1,3}-\d-\d{2,6}\s+\S{1,6}\s+\d{1,2}\/\d{1,2}\/\d{2,4}|(?:UNDERLINED|BOLD FACE CAPITALIZED|Strike thru) language denotes .*|(?:HOUSE OF REPRESENTATIVES|SENATE) - FLOOR VERSION)\s*$/,
 }
 
+// Indiana statutes (window 8, from fifty sections of the Code): the loader
+// writes "IC 6-3.6-7-9 Heading" as the first block, then an optional "Note:"
+// on versions, then "Sec. 9." opening the body, then the history credit ("As
+// added by P.L.243-2015, SEC.10. Amended by …"), with a recodification
+// citation in brackets before it. Subsections (a), subdivisions (1), clauses
+// (A), items (i).
+PROFILES.IN = {
+  ...common("IN"),
+  statuteCite: /^IC\s+/,
+  headingBlock: true,
+  restated: /^Sec\.\s*[\w.-]+\.\s*/,
+  credit: /^(?:As added by|As amended by|Amended by|Repealed by|Formerly:|\[(?:Pre-|\d{4} )[\w\s-]*Recodification Citation)/,
+}
+
 // Massachusetts: a petition and docket furniture precede the bill; "SECTION 1."
 PROFILES.MA = {
   ...common("MA"),

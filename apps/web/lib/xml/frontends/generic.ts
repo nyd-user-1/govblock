@@ -33,6 +33,14 @@ export type StateProfile = {
   marginNumbers?: boolean
   /** Page furniture, whole lines dropped before blocks are read: a running footer, a drafting code. */
   furniture?: RegExp
+  /** Statutes: the citation before a section's number ("IC 6-3.6-7-9"), removed before the number is read. */
+  statuteCite?: RegExp
+  /** Statutes: the first block is the number and the whole heading, however long, verbs and all. */
+  headingBlock?: boolean
+  /** Statutes: the number said again where the body opens ("Sec. 9. (a) …"), removed once. */
+  restated?: RegExp
+  /** Statutes: the history credit closing a section ("As added by P.L.2-2006, SEC.163."), kept as sourceCredit. */
+  credit?: RegExp
 }
 
 const RANK_TAG = ["subsection", "paragraph", "subparagraph", "clause", "subclause", "item", "subitem"] as const
@@ -523,8 +531,15 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   }
   if (cites.length) level.attrs.cite = cites.join("; ")
   if (at > 0) body = blocks.slice(at)
-  const head = /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
-  if (head && /\d/.test(head[1])) {
+  if (p.statuteCite) first = first.replace(p.statuteCite, "")
+  const head = p.headingBlock
+    ? /^([0-9][\w.:-]*[\w)]|[0-9])\.?(?:\s+(.*))?$/s.exec(first)
+    : /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
+  if (head && /\d/.test(head[1]) && p.headingBlock) {
+    level.children.push(node("num", {}, [head[1]]))
+    if (tidy(head[2] ?? "")) level.children.push(node("heading", {}, [tidy(head[2])]))
+    body = blocks.slice(at + 1)
+  } else if (head && /\d/.test(head[1])) {
     level.children.push(node("num", {}, [head[1]]))
     const split = /^(.*?\.)\s+(?=[A-Z(\d§])(.*)$/s.exec(head[2])
     const candidate = split ? split[1] : head[2]
@@ -540,12 +555,24 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     level.children.push(node("heading", {}, [first]))
     body = blocks.slice(at + 1)
   } else problems.push(`no number at the start: ${first.slice(0, 40)}`)
+  body = body.slice()
+  if (p.restated) {
+    const i = body.findIndex((b) => p.restated!.test(b))
+    if (i >= 0) {
+      const rest = body[i].replace(p.restated, "").trim()
+      body.splice(i, 1, ...(rest ? [rest] : []))
+    }
+  }
+  const credits: string[] = []
+  if (p.credit) while (body.length && p.credit.test(body[body.length - 1])) credits.unshift(body.pop()!)
   const nested = nest(body, problems, inline, false)
   if (nested.length && nested[0].tag === "p" && tag === "section") {
     level.children.push(node("content", {}, nested[0].children))
     nested.shift()
   }
   level.children.push(...nested)
+  // A recodification citation in brackets is a note; the history of enactment is the source credit.
+  for (const c of credits) level.children.push(node(/^\[/.test(c) ? "note" : "sourceCredit", {}, [c]))
   let elements = 0
   const count = (n: IrNode) => {
     elements++

@@ -888,24 +888,24 @@
     "name": "Indiana",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.6975,
+    "clean": 96,
+    "coverage": 0.9962,
     "dialects": {
       "in-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
-      "subsection opens at b": 17,
-      "paragraph opens at b": 14,
-      "subsection N after N": 9,
-      "subparagraph opens at b": 3,
-      "paragraph opens at c": 2,
-      "paragraph opens at d": 1,
-      "clause opens at c": 1,
-      "subparagraph opens at d": 1
+      "subsection j after N": 2,
+      "subsection m after N": 2,
+      "paragraph J after N": 1,
+      "subparagraph opens at L": 1,
+      "paragraph M after N": 1,
+      "paragraph opens at l": 1,
+      "clause opens at l": 1,
+      "paragraph opens at b": 1,
+      "subsection N after N": 1
     },
-    "measuredAt": "2026-09-14T13:35:16.044Z"
+    "measuredAt": "2026-09-14T13:47:01.918Z"
   },
   "OR/laws": {
     "jurisdiction": "OR",

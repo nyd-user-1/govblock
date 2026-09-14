@@ -5,7 +5,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current, sampled (100) |
 |---|---|---|---|---|
 | Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** |
-| Indiana statutes | 80,485 | 72.2 | 69.8 | 69.8 |
+| Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** |
 | Massachusetts bills | 69,255 | 72.9 | 71.4 | 71.4 |
 | Oregon statutes | 60,136 | 77.9 | 76.7 | 76.7 |
 | Colorado bills | 57,350 | 73.0 | 71.0 | 71.0 |
@@ -21,6 +21,10 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 3 — Indiana statutes, 69.8% to 99.6% (2026-09-14)
+
+- Every Indiana section opens "IC 6-3.6-7-9 Heading", and the "IC" defeated the number test: 100 of 100 "no number at the start", then the "Sec. 9. (a)" restatement hid each section's first subsection. Four optional statute fields on `StateProfile`, set only by Indiana: `statuteCite`, `headingBlock`, `restated`, `credit`. History credits become `sourceCredit` and recodification citations `note`. A held-back fifty: 50 of 50 clean. Grammar: `grammars/in.md`.
 
 ## Milestone 2 — Oklahoma bills, 74.2% to 100.0% (2026-09-14)
 
