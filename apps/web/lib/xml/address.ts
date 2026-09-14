@@ -116,7 +116,8 @@ const PREFIX_SLUGS: Record<string, { prefix: string; label: string }> = {
   "us-constitution": { prefix: "/us/const", label: "Constitution of the United States" },
 }
 
-const STATE_NAMES: Record<string, string> = {
+/** A state's name as a slug → its two-letter code. */
+export const STATE_NAMES: Record<string, string> = {
   alabama: "al", alaska: "ak", arizona: "az", arkansas: "ar", california: "ca", colorado: "co", connecticut: "ct", delaware: "de",
   "district-of-columbia": "dc", florida: "fl", georgia: "ga", hawaii: "hi", idaho: "id", illinois: "il", indiana: "in", iowa: "ia",
   kansas: "ks", kentucky: "ky", louisiana: "la", maine: "me", maryland: "md", massachusetts: "ma", michigan: "mi", minnesota: "mn",

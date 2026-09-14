@@ -14,6 +14,9 @@ import "./typeset-xml-reader.css"
 // markup, from the same schema tables); the reader fetches the ProseMirror
 // JSON and takes over without the page moving. Read-only: editing, forks and
 // amendments are later windows'.
+//
+// A stored Expression opened by its address (window 4) hands its own
+// `jsonUrl` instead of a bill, and a `portion` to open at.
 
 export type XmlMeta = {
   documentId: number | null
@@ -47,10 +50,25 @@ export function XmlSourceLine({ meta }: { meta: XmlMeta | null }) {
   )
 }
 
-export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta }: { billId: number; version?: string; snapshot?: string | null; meta?: XmlMeta | null }) {
+export function TypesetXmlReader({
+  billId,
+  version,
+  snapshot,
+  meta: initialMeta,
+  jsonUrl,
+  portion,
+}: {
+  billId?: number
+  version?: string
+  snapshot?: string | null
+  meta?: XmlMeta | null
+  jsonUrl?: string
+  portion?: string | null
+}) {
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
   const [failed, setFailed] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  const scroller = React.useRef<HTMLDivElement>(null)
   // Read in devtools on the reader's root: milliseconds from the component's first render to the JSON parsed and to the editor mounted.
   const started = React.useRef(0)
   const [clock, setClock] = React.useState<{ json?: number; mount?: number }>({})
@@ -59,11 +77,12 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
     let live = true
     setLoaded(null)
     setMounted(false)
+    setFailed(false)
     started.current = performance.now()
     setClock({})
-    const params = new URLSearchParams({ bill: String(billId) })
+    const params = new URLSearchParams({ bill: String(billId ?? "") })
     if (version) params.set("version", version)
-    fetch(`/api/typeset/xml?${params}`)
+    fetch(jsonUrl ?? `/api/typeset/xml?${params}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((body: Loaded) => {
         if (!live) return
@@ -74,7 +93,7 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
     return () => {
       live = false
     }
-  }, [billId, version])
+  }, [billId, version, jsonUrl])
 
   const editor = useEditor(
     {
@@ -98,10 +117,17 @@ export function TypesetXmlReader({ billId, version, snapshot, meta: initialMeta 
   const showEditor = Boolean(loaded && editor && mounted)
   const dialect = meta?.dialect ?? undefined
 
+  // Open at the portion the address named, on the snapshot and again once the editor has replaced it.
+  React.useEffect(() => {
+    if (!portion) return
+    const target = [...(scroller.current?.querySelectorAll<HTMLElement>(`[id="${CSS.escape(portion)}"]`) ?? [])].find((el) => el.offsetParent !== null)
+    target?.scrollIntoView({ block: "start" })
+  }, [portion, showEditor, snapshot])
+
   return (
     <div className="flex h-full min-h-0 flex-col" data-xml-reader data-json-ms={clock.json} data-mount-ms={clock.mount}>
       <XmlSourceLine meta={meta} />
-      <div className="relative min-h-0 flex-1 overflow-y-auto">
+      <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
         {!showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
         {!showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Reading the printing…"}</p>}
         <div className={cn("uslm-doc", !showEditor && "hidden")} data-dialect={dialect}>
