@@ -21,8 +21,13 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 | South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** | — |
 | Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** | — |
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | **100.0** | — |
-| New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
+| New Mexico bills | 24,254 | 64.8 | 65.3 | **96.5** | — |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 16 — New Mexico bills, 65.3% to 96.5% (2026-09-14)
+
+- New Mexico sets each line's number thirty-two spaces in, past the three-space margin rule, so "SECTION 1." and "WHEREAS," never reached an opener: 37 of 50 read "no sections". The profile sets `marginNumbers` with a new optional `marginIndent` (the number at any distance from the edge), `furniture` (the legend beside every page, the drafting code, "- 2 -"), the enacting formula, quoted NMSA sections opening `"52-1-1.1.`, `del`, and a new optional `lowerAfterCapital`: "A. pertaining to …" is a subsection, where elsewhere "A." before a lowercase word stays prose.
+- One shared change: a struck word may follow a capital-letter unit ("D. [Any] A person …"). The twenty other sampled lines unchanged against HEAD, including Texas, Utah, New Hampshire and South Carolina, which bracket struck matter too. Held-back fifty: 98.2%. Grammar: `grammars/nm.md`.
 
 ## Milestone 15 — New Hampshire bills, 77.1% to 100.0% (2026-09-14)
 

@@ -139,6 +139,27 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// New Mexico bills (window 8, from fifty printings of every session): the
+// Legislative Council Service's printed bill as text, a line number set
+// thirty-two spaces in (1 to 25 a page), the legend "[bracketed material] =
+// delete" and "underscored material = new" beside every page, a drafting code
+// ".202884.1" and a page number "- 2 -". "BE IT ENACTED BY THE LEGISLATURE OF
+// THE STATE OF NEW MEXICO:", "SECTION 1. APPROPRIATION.--…", quoted law after
+// "is amended to read:" opening "\"52-1-1.1. DEFINITIONS.--"; memorials and
+// resolutions "WHEREAS, …" and "NOW, THEREFORE, BE IT RESOLVED …". Units A.,
+// (1), (a); struck matter in brackets.
+PROFILES.NM = {
+  ...common("NM"),
+  enacting: /BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF NEW MEXICO/i,
+  section: /^SECTION\s+(\d{1,3}[A-Z]?)\.\s*(.*)$/s,
+  quotedSection: /^["“]?(\d{1,2}[A-Z]?-\d{1,3}[A-Z]?-\d{1,4}(?:\.\d{1,2})?)\.\s+(.*)$/s,
+  del: /\[([^\]]+)\]/,
+  lowerAfterCapital: true,
+  marginNumbers: true,
+  marginIndent: true,
+  furniture: /^\s*(?:\[bracketed material\] = delete|underscored material = new|\.\d{5,7}\.\d{1,2}[A-Za-z]{0,3}|-\s*\d{1,3}\s*-)\s*$/,
+}
+
 // New Hampshire bills (window 8, from fifty printings of every session): the
 // General Court's web text, the docket and "ANALYSIS" first, "Explanation:
 // Matter added to current law appears in bold italics. Matter removed …

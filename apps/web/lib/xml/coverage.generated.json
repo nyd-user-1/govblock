@@ -1161,19 +1161,27 @@
     "name": "New Mexico",
     "source": "texts",
     "sampled": 100,
-    "clean": 26,
-    "coverage": 0.6526,
+    "clean": 81,
+    "coverage": 0.9649,
     "dialects": {
-      "nm-bill": 79,
-      "nm-resolution": 21
+      "nm-resolution": 29,
+      "nm-bill": 71
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 68,
-      "unmatched enumerator": 25,
-      "subsection opens at E": 1,
-      "no enacting formula": 1
+      "subsection opens at B": 16,
+      "no sections": 8,
+      "no enacting formula": 6,
+      "paragraph N after N": 3,
+      "subsection N after N": 3,
+      "subsection K after N": 2,
+      "paragraph opens at B": 2,
+      "subparagraph a after N": 2,
+      "subsection P after N": 1,
+      "subparagraph opens at B": 1,
+      "paragraph opens at E": 1,
+      "paragraph opens at C": 1
     },
-    "measuredAt": "2026-09-14T13:37:08.710Z"
+    "measuredAt": "2026-09-14T14:30:21.309Z"
   }
 }
