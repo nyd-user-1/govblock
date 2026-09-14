@@ -47,7 +47,8 @@ export const TODO: TodoItem[] = [
   {
     id: "window-7",
     title: "Window 7: acquisition — Virginia, the orphaned S3 objects, California",
-    status: "open",
+    status: "claimed",
+    claimedBy: "window-6b",
     prompt: `${PROGRAM}, then apps/web/docs/prompts/2026-09-14-acquisition.md whole, then the sections of apps/web/docs/xml/window-2.md it names. Plan, then build. If the Virginia and California items on the Database dashboard's To Do are already claimed or done, skip those parts and do the orphan reconcile alone: list lake/v1/xml/ against expressions.s3_key, report count and bytes by jurisdiction as a dry run, then delete the difference from the Mac's credentials (the pipeline box's role cannot delete). The pipeline box govblock-xml (i-09c2fbf8624d91bdf) is stopped; start it for the compiles and stop it after. "BillTexts" is written only through the existing loaders' shape, never deleted from, never sampled by random order. ${RULES} Report to apps/web/docs/xml/window-7.md at every milestone.`,
   },
   {
