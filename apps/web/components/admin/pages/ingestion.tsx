@@ -5,6 +5,7 @@ import { PlayIcon, RefreshCwIcon, RotateCcwIcon, XIcon, ArrowUpToLineIcon } from
 
 import { fmtCompact } from "@/lib/format"
 import { stateName, STATE_CODES } from "@/lib/filters"
+import { useProvenance } from "@/components/admin/data"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
 import { FlagChip } from "@/components/policy/imagery"
@@ -319,6 +320,10 @@ export function IngestionPage() {
         </Card>
       </div>
 
+      <div className="mt-4 sm:mt-5">
+        <NightlyFeeds lastXml={s?.runs.find((r) => r.run.startsWith("nightly-")) ?? null} />
+      </div>
+
       {s?.reports.length ? (
         <div className="mt-4 sm:mt-5">
           <Card className="gap-4">
@@ -345,6 +350,68 @@ export function IngestionPage() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * The whole nightly ingestion as the record shows it: each feed's last write
+ * (the Data Pipeline page's provenance), with the XML step as the last line.
+ * The other feeds run from the worker box's manifest (livingston
+ * ops/box/jobs.d); their controls are there, the XML step's are above.
+ */
+function NightlyFeeds({ lastXml }: { lastXml: PipelineStatus["runs"][number] | null }) {
+  const prov = useProvenance()
+  const f = prov.data?.feeds
+  const rows = [
+    { name: "LegiScan delta", runsOn: "worker box", at: f?.legiscan_delta_at },
+    { name: "National sweep", runsOn: "worker box, Sunday", at: f?.legiscan_at },
+    { name: "Congress.gov and GovInfo", runsOn: "worker box", at: f?.congress_at },
+    { name: "Text walk and delta", runsOn: "worker box", at: f?.texts_at },
+    { name: "Laws", runsOn: "cron", at: f?.laws_at },
+    { name: "House directory", runsOn: "cron", at: f?.house_at },
+    { name: "Senate contact", runsOn: "cron", at: f?.senate_at },
+    { name: "Legislative XML", runsOn: "pipeline box", at: lastXml?.finished ?? null },
+  ]
+  const tone = (at: string | null | undefined) => {
+    if (!at) return { label: "No run on record", className: "text-muted-foreground" }
+    const hours = (Date.now() - new Date(at.includes("T") ? at : `${at.replace(" ", "T")}${/[+Z]/.test(at) ? "" : "Z"}`).getTime()) / 36e5
+    return hours < 36 ? { label: "Ran last night", className: "text-green-600" } : hours < 24 * 8 ? { label: "This week", className: "text-amber-600" } : { label: "Stale", className: "text-destructive" }
+  }
+  return (
+    <Card className="gap-4">
+      <CardHeader className="max-md:px-4">
+        <CardAnchor>Nightly Ingestion</CardAnchor>
+      </CardHeader>
+      <CardContent className="max-md:px-4">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/60">
+              <TableHead>Feed</TableHead>
+              <TableHead>Runs On</TableHead>
+              <TableHead>Last Write</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => {
+              const t = tone(r.at)
+              return (
+                <TableRow key={r.name}>
+                  <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.runsOn}</TableCell>
+                  <TableCell className="whitespace-nowrap">{prov.data || r.name === "Legislative XML" ? fmtWhen(r.at) : <Skeleton className="h-4 w-24" />}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn("h-5", t.className)}>
+                      {t.label}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }
 
