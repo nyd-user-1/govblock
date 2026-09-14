@@ -25,7 +25,8 @@ async function* rowsOf(state, lawId) {
         [state, lawId, after, size]
       )
     } catch (error) {
-      if (/response size|exceeded|too large/i.test(String(error?.message)) && size > 1) {
+      // "The result exceeds the size limit 1 MB."
+      if (/size limit|exceed|too large|response size/i.test(String(error?.message)) && size > 1) {
         size = Math.max(1, Math.floor(size / 4))
         continue
       }
