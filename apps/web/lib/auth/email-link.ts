@@ -23,7 +23,7 @@ export const LANDING = { newReader: "/sign-up#welcome", returning: "/home" } as 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const TOKEN = /^[A-Za-z0-9_-]{43}$/
 
-export type RequestLinkResult = { ok: true } | { ok: false; reason: "invalid" | "too-soon" | "send-failed" }
+export type RequestLinkResult = { ok: true } | { ok: false; reason: "invalid" | "origin" | "too-soon" | "send-failed" }
 export type ConsumeLinkResult = { ok: true; id: string; email: string; newReader: boolean } | { ok: false; reason: "expired" | "used" | "unknown" }
 
 export const normalizeEmail = (email: unknown) => String(email ?? "").trim().toLowerCase()
@@ -50,7 +50,7 @@ export function originFrom(headers: Headers): string | null {
  */
 export const LINK_HOSTS = {
   production: ["gov.nysgpt.com", "policy.nysgpt.com", "govblocks.nysgpt.com", "44gov.nysgpt.com"],
-  development: ["localhost:3000", "localhost:3001"],
+  development: ["localhost:3000", "localhost:3001", "localhost:3002", "localhost:3003"],
 } as const
 
 /** `origin` if a link may point at it: an allowed host, over https except on localhost. */
@@ -120,7 +120,8 @@ export async function requestLink(email: string, origin: string): Promise<Reques
   const allowed = allowedOrigin(origin)
   if (!allowed) {
     console.warn(`email-link: refused origin ${JSON.stringify(origin)}`)
-    return { ok: false, reason: "invalid" }
+    // Its own reason (2026-09-14): a refused origin used to read as a bad email address.
+    return { ok: false, reason: "origin" }
   }
   origin = allowed
   const address = normalizeEmail(email)

@@ -33,6 +33,7 @@ export type Mode = "sign-in" | "sign-up"
 
 const REASONS: Record<Exclude<RequestLinkResult, { ok: true }>["reason"], string> = {
   invalid: "That does not look like an email address.",
+  origin: "Sign-in links are not sent from this address; the allowed hosts are in lib/auth/email-link.ts.",
   "too-soon": "A link is already on its way. Give it a minute before asking for another.",
   "send-failed": "The link could not be sent just now. Try again in a moment.",
 }
