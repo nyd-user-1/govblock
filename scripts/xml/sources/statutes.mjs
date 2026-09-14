@@ -26,11 +26,25 @@ async function* rowsOf(state, lawId) {
       )
     } catch (error) {
       // "The result exceeds the size limit 1 MB."
-      if (/size limit|exceed|too large|response size/i.test(String(error?.message)) && size > 1) {
+      if (!/size limit|exceed|too large|response size/i.test(String(error?.message))) throw error
+      if (size > 1) {
         size = Math.max(1, Math.floor(size / 4))
         continue
       }
-      throw error
+      // One section over a megabyte on its own (Illinois has them): its row without the text, then the text in slices.
+      const head = await q(
+        `select location_id, doc_type, doc_level_id, title, parent_location_id, sequence_no, law_name, law_type,
+                active_date::text as active_date, fetched_at::date::text as fetched_date, repealed, length(text) as chars
+           from "Laws" where state = $1 and law_id = $2 and sequence_no > $3 order by sequence_no limit 1`,
+        [state, lawId, after]
+      )
+      if (!head.length) return
+      const parts = []
+      for (let from = 1; from <= Number(head[0].chars ?? 0); from += 200_000) {
+        const part = await q(`select substring(text from $4 for 200000) as part from "Laws" where state = $1 and law_id = $2 and sequence_no = $3`, [state, lawId, head[0].sequence_no, from])
+        parts.push(part[0]?.part ?? "")
+      }
+      rows = [{ ...head[0], text: parts.join("") || null }]
     }
     for (const r of rows) yield r
     if (rows.length < size) return
