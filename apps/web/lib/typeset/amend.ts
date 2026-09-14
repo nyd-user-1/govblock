@@ -394,7 +394,7 @@ export type Citation = {
 }
 
 /** New York's consolidated laws as a bill names them, by the address's code. */
-const NY_LAWS: Record<string, string> = {
+export const NY_LAWS: Record<string, string> = {
   agm: "agriculture and markets law", abc: "alcoholic beverage control law", bnk: "banking law", bsc: "business corporation law",
   cvp: "civil practice law and rules", cvr: "civil rights law", cvs: "civil service law", cpl: "criminal procedure law",
   dom: "domestic relations law", edn: "education law", eln: "election law", env: "environmental conservation law", exc: "executive law",
