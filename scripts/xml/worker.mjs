@@ -44,6 +44,8 @@ function dateIn(doc) {
 async function handle(task) {
   const { info } = task
   let stage = "parse"
+  // The controller's watchdog reads this: the document a thread is stuck on is the one it named last.
+  parentPort.postMessage({ parsing: task.seq })
   try {
     const fe = frontEndFor(task.frontEnd)
     const { doc, report } = fe.parse(task.source)

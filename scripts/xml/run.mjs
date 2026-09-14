@@ -66,24 +66,9 @@ const ir = join(HERE, "..", "..", "node_modules/.cache/govblock-xml/lib__xml__ir
 /** What `expressions.front_end` records for a jurisdiction: its own grammar's code, or "text". */
 const frontEndName = (code) => (frontEnds.frontEndFor(code).profile.jurisdiction === "*" ? "text" : code.toLowerCase())
 
-const pool = await Promise.all(
-  Array.from({ length: WORKERS }, () =>
-    new Promise((resolve) => {
-      const w = new Worker(join(HERE, "worker.mjs"), { workerData: { bundle, ir, inflight: INFLIGHT, dry: DRY } })
-      w.pending = 0
-      w.on("message", (msg) => {
-        if (msg.ready) return resolve(w)
-        w.pending--
-        const cb = callbacks.get(msg.seq)
-        callbacks.delete(msg.seq)
-        cb?.(msg)
-        wake()
-      })
-      w.on("error", (e) => log(`worker error: ${e?.stack ?? e}`))
-    })
-  )
-)
-const callbacks = new Map()
+// A task is kept here until its thread answers: `resolve` for the caller,
+// `task` so it can go to another thread, `worker` to know whose it is.
+const tasks = new Map()
 let seq = 0
 let waiters = []
 const wake = () => {
@@ -92,16 +77,64 @@ const wake = () => {
   for (const fn of w) fn()
 }
 const CAPACITY = INFLIGHT * 2
+// A front end that has not returned from one document in a minute has met
+// input its patterns cannot finish on (New York 2025, 2026-09-14): the thread
+// is replaced, that document falls out, and the thread's other tasks go again.
+const STALL_MS = 60_000
+
+function spawnWorker() {
+  return new Promise((resolve) => {
+    const w = new Worker(join(HERE, "worker.mjs"), { workerData: { bundle, ir, inflight: INFLIGHT, dry: DRY } })
+    w.pending = 0
+    w.parsing = null
+    w.lastWord = Date.now()
+    w.on("message", (msg) => {
+      w.lastWord = Date.now()
+      if (msg.ready) return resolve(w)
+      if (msg.parsing !== undefined) {
+        w.parsing = msg.parsing
+        return
+      }
+      w.pending--
+      const t = tasks.get(msg.seq)
+      tasks.delete(msg.seq)
+      t?.resolve(msg)
+      wake()
+    })
+    w.on("error", (e) => log(`worker error: ${e?.stack ?? e}`))
+  })
+}
+
+const pool = await Promise.all(Array.from({ length: WORKERS }, spawnWorker))
+
+setInterval(async () => {
+  for (let i = 0; i < pool.length; i++) {
+    const w = pool[i]
+    if (!w.pending || w.parsing === null || Date.now() - w.lastWord < STALL_MS) continue
+    const culprit = w.parsing
+    const mine = [...tasks].filter(([, t]) => t.worker === w)
+    log(`a thread has been on one document for ${Math.round((Date.now() - w.lastWord) / 1000)} s; replacing it and sending its ${mine.length - 1} other tasks again`)
+    w.pending = Number.POSITIVE_INFINITY // nothing more goes to it while it is replaced
+    void w.terminate()
+    pool[i] = await spawnWorker()
+    for (const [id, t] of mine) {
+      tasks.delete(id)
+      if (id === culprit || t.retried) t.resolve({ seq: id, ok: false, stage: "parse", reason: "front end did not finish", detail: `${t.task.info.work} ran past ${STALL_MS / 1000} s` })
+      else compile(t.task, true).then(t.resolve)
+    }
+    wake()
+  }
+}, 10_000).unref()
 
 /** A document to the least busy thread; resolves with its result. Waits while every thread is full. */
-async function compile(task) {
+async function compile(task, retried = false) {
   for (;;) {
     const w = pool.reduce((a, b) => (b.pending < a.pending ? b : a))
     if (w.pending < CAPACITY) {
       w.pending++
       const id = ++seq
       return new Promise((resolve) => {
-        callbacks.set(id, resolve)
+        tasks.set(id, { resolve, task, worker: w, retried })
         w.postMessage({ seq: id, frontEnd: task.frontEnd, source: task.source, info: task.info })
       })
     }
