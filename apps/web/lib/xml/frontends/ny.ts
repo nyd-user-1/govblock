@@ -147,11 +147,14 @@ const OPENS = /^(§\s*\d|Section\s+\d|\d{1,3}(?:-[a-z]{1,2})?\.\s|\([A-Za-z0-9]{
  */
 export function blocksOf(text: string): string[] {
   const blocks: string[] = []
-  let current = ""
+  // Lines are collected and joined once at the close: appending to one
+  // growing string and testing its end on every line is quadratic when a
+  // block runs long, and a budget bill's tables run for thousands of lines.
+  let current: string[] = []
   const close = () => {
-    const t = tidy(current)
+    const t = tidy(current.join(" "))
     if (t) blocks.push(t)
-    current = ""
+    current = []
   }
   for (const raw of text.replace(/\r/g, "").split("\n")) {
     const stripped = raw.trim()
@@ -161,8 +164,9 @@ export function blocksOf(text: string): string[] {
     }
     const indent = raw.length - raw.trimStart().length
     if (indent >= 2 && OPENS.test(stripped)) close()
-    if (current.endsWith("-") && /^[a-z]/.test(stripped)) current = current.slice(0, -1) + stripped
-    else current += (current ? " " : "") + stripped
+    const last = current.length - 1
+    if (last >= 0 && current[last].endsWith("-") && /^[a-z]/.test(stripped)) current[last] = current[last].slice(0, -1) + stripped
+    else current.push(stripped)
   }
   close()
   return blocks
@@ -185,9 +189,14 @@ function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrCh
   type Open = { kind: Kind; rank: number; node: IrNode; last: number }
   const stack: Open[] = []
   const container = () => (stack.length ? stack[stack.length - 1].node : ({ children: out } as IrNode))
-  const queue = [...blocks]
-  while (queue.length) {
-    const block = queue.shift()!
+  // A cursor, not shift and unshift: a budget bill is tens of thousands of
+  // blocks, and shifting an array that size on every block is quadratic
+  // (ninety seconds at sixty thousand; the pipeline's watchdog cut it off).
+  let i = 0
+  let carry: string | null = null
+  while (carry !== null || i < blocks.length) {
+    const block = carry !== null ? carry : blocks[i++]
+    carry = null
     const e = enumeratorOf(block)
     if (!e) {
       if (/^\(?[0-9A-Za-z]{1,3}[.)]\s/.test(block)) problems.push(`unmatched enumerator: ${block.slice(0, 40)}`)
@@ -234,7 +243,7 @@ function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrCh
     const level = node(RANK_TAG[rank], { role }, [node("num", {}, [e.label])])
     // "1. (a) The …": the content belongs to the inner unit, which is next in the queue.
     const inner = enumeratorOf(e.rest)
-    if (inner && inner.kinds.some((k) => (FIXED_RANK[k] ?? rank + 1) > rank)) queue.unshift(e.rest)
+    if (inner && inner.kinds.some((k) => (FIXED_RANK[k] ?? rank + 1) > rank)) carry = e.rest
     else level.children.push(node("content", {}, inline(e.rest)))
     container().children.push(level)
     stack.push({ kind, rank, node: level, last: hasSuffix(e.label) && same ? same.last : n })

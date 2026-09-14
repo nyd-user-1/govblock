@@ -105,12 +105,13 @@ function dropBlankPerLine(text: string): string {
  */
 export function stateBlocks(text: string, p: StateProfile): string[] {
   const out: string[] = []
-  let current = ""
+  // Lines are collected and joined once at the close (see ny.ts's blocksOf).
+  let current: string[] = []
   let prevEnded = true
   const close = () => {
-    const t = tidy(current)
+    const t = tidy(current.join(" "))
     if (t) out.push(t)
-    current = ""
+    current = []
   }
   for (const raw of dropBlankPerLine(stripLineNumbers(unwrapInlineLineNumbers(clean(text)))).split("\n")) {
     const stripped = raw.trim()
@@ -125,8 +126,9 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     // so an opener closes the block only after a sentence ended, or on the
     // deeper indent a new paragraph gets (three spaces or more).
     if (isOpener(stripped, p) && (prevEnded || indent >= 3)) close()
-    if (current.endsWith("-") && /^[a-z]/.test(stripped)) current = current.slice(0, -1) + stripped
-    else current += (current ? " " : "") + stripped
+    const last = current.length - 1
+    if (last >= 0 && current[last].endsWith("-") && /^[a-z]/.test(stripped)) current[last] = current[last].slice(0, -1) + stripped
+    else current.push(stripped)
     prevEnded = /[.:;]$/.test(stripped)
   }
   close()
@@ -247,9 +249,14 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
   type Open = { style: Style; rank: number; node: IrNode; last: number }
   const stack: Open[] = []
   const container = () => (stack.length ? stack[stack.length - 1].node : ({ children: out } as IrNode))
-  const queue = [...blocks]
-  while (queue.length) {
-    const block = queue.shift()!
+  // A cursor, not shift and unshift: a budget bill is tens of thousands of
+  // blocks, and shifting an array that size on every block is quadratic
+  // (ninety seconds at sixty thousand; the pipeline's watchdog cut it off).
+  let i = 0
+  let carry: string | null = null
+  while (carry !== null || i < blocks.length) {
+    const block = carry !== null ? carry : blocks[i++]
+    carry = null
     if (/^\*\s*\*\s*\*$/.test(block)) {
       container().children.push(node("p", { role: "ellipsis" }, ["* * *"]))
       continue
@@ -277,7 +284,7 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
     }
     const level = node(RANK_TAG[rank], {}, [node("num", {}, [e.label])])
     const inner = enumerator(e.rest, false)
-    if (inner && inner.style !== e.style) queue.unshift(e.rest)
+    if (inner && inner.style !== e.style) carry = e.rest
     else level.children.push(node("content", {}, inline(e.rest)))
     container().children.push(level)
     stack.push({ style: e.style, rank, node: level, last: e.ordinal })
