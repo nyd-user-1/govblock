@@ -1074,17 +1074,15 @@
     "name": "New Hampshire",
     "source": "texts",
     "sampled": 100,
-    "clean": 1,
-    "coverage": 0.7715,
+    "clean": 100,
+    "coverage": 1,
     "dialects": {
-      "nh-bill": 100
+      "nh-bill": 99,
+      "nh-resolution": 1
     },
     "unknown": {},
-    "fallouts": {
-      "no sections": 99,
-      "no enacting formula": 2
-    },
-    "measuredAt": "2026-09-14T13:37:00.004Z"
+    "fallouts": {},
+    "measuredAt": "2026-09-14T14:26:40.427Z"
   },
   "VT/texts": {
     "jurisdiction": "VT",

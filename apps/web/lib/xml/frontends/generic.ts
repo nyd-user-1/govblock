@@ -35,6 +35,10 @@ export type StateProfile = {
   furniture?: RegExp
   /** Every unit opens its own line: an enumerator at a line's head opens a block whatever the line before ended with. */
   openersAtLineHead?: boolean
+  /** Roman numerals with a full stop are a rank of their own ("I.", "II.", "IV."), not the letters I, V, X and L (New Hampshire). */
+  romanDot?: boolean
+  /** A rewrite of the capture before its blocks are read, for a signal no pattern can say alone (New Hampshire's chapter prefix). */
+  prepare?: (text: string) => string
   /** The capture may hold the body alone, no title and no formula; an act with no section opener is one unnumbered section. */
   bodyOnly?: boolean
   /** Statutes: the citation before a section's number ("IC 6-3.6-7-9"), removed before the number is read. */
@@ -65,7 +69,8 @@ const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\)|[0-9]
 const ENACTING_SENTENCE = /(be it (?:further )?enacted|(?:hereby )?enacts? as follows|do enact as follows|enacted by the)[^:.]*[:.]?/i
 /** Units named in an instruction, not units opening: "(3)(a) as follows:", "(1.1) (e) introductory portion, (1.2) (a) …". */
 const REFERENCE = /^(?:\(\s*[0-9A-Za-z.]{1,6}\s*\)\s*)+(?:as follows|introductory portion|and\b|or\b|to read|of this|,|;)/i
-const isOpener = (line: string, p: StateProfile) => p.section.test(line) || (p.quotedSection?.test(line) ?? false) || ENUM_OPEN.test(line) || /^\*\s*\*\s*\*/.test(line)
+const isOpener = (line: string, p: StateProfile) =>
+  p.section.test(line) || (p.quotedSection?.test(line) ?? false) || ENUM_OPEN.test(line) || /^\*\s*\*\s*\*/.test(line) || (!!p.romanDot && /^[IVXL]{1,6}\.\s/.test(line))
 
 /** Line numbers down the left margin, as Pennsylvania prints them: stripped when most lines carry one. */
 function stripLineNumbers(text: string): string {
@@ -141,7 +146,7 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
   }
   // Private-use glyphs are a word processor's symbol-font marks and mean nothing in text: Kentucky's
   // printings put U+F0E2 in front of every section opener, where it defeats "Section 1." unseen.
-  let lines = unwrapInlineLineNumbers(clean(text).replace(/[-]/g, ""))
+  let lines = unwrapInlineLineNumbers(clean(p.prepare ? p.prepare(text) : text).replace(/[-]/g, ""))
   // Oklahoma's older captures space the margin number's digits apart ("1 0", "2 4"); Massachusetts numbers a bill's lines straight through, into the thousands.
   if (p.marginNumbers) lines = lines.split("\n").map((l) => l.replace(/^\s{0,3}(?:\d \d|\d{1,4})(?=\s|$)/, "")).join("\n")
   if (p.furniture) lines = lines.split("\n").filter((l) => !p.furniture!.test(l)).join("\n")
@@ -219,7 +224,7 @@ function marksFor(p: StateProfile) {
 
 // ------------------------------------------------------------ enumerators ---
 
-type Style = "1." | "(1)" | "(a)" | "a." | "(i)" | "(A)" | "A." | "(I)" | "(a.1)"
+type Style = "1." | "(1)" | "(a)" | "a." | "(i)" | "(A)" | "A." | "(I)" | "(a.1)" | "I."
 type Enumerator = { style: Style; label: string; ordinal: number; rest: string; inserted: boolean }
 
 const romanToInt = (s: string) => {
@@ -245,7 +250,7 @@ const split = (label: string) => {
   return { base: m?.[1] ?? label, inserted: !!m?.[2] }
 }
 
-function enumerator(block: string, expectRoman: boolean, letter = false): Enumerator | null {
+function enumerator(block: string, expectRoman: boolean, letter = false, romanDot = false): Enumerator | null {
   // "(1)(a) Notwithstanding …", "(3)(a)(A) At the election …": units of three ranks opening on
   // one line with no space between them (Oregon, Washington); the first is read and the rest carried.
   block = block.replace(/^(\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\))(?=\([0-9A-Za-z])/, "$1 ")
@@ -277,6 +282,10 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
   }
   m = /^([a-z])\.\s+(?=\S)(.*)$/s.exec(block)
   if (m) return { style: "a.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
+  if (romanDot) {
+    m = /^([IVXL]{1,6})\.\s+(.*)$/s.exec(block)
+    if (m) return { style: "I.", label: m[1], ordinal: romanToInt(m[1]), rest: m[2], inserted: false }
+  }
   // "B. 1. Notwithstanding …": a subsection whose first paragraph opens on its line (Oklahoma, Arizona).
   m = /^([A-Z])\.\s+(?=[A-Z(“"]|\d{1,3}\.\s)(.*)$/s.exec(block)
   if (m) return { style: "A.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
@@ -290,7 +299,7 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
  * open is a sibling at its rank; a new style opens one rank below the open
  * one. Sequence is checked between siblings of one style outside quoted law.
  */
-function nest(blocks: string[], problems: string[], inline: (t: string) => IrChild[], quoted: boolean): IrNode[] {
+function nest(blocks: string[], problems: string[], inline: (t: string) => IrChild[], quoted: boolean, romanDot = false): IrNode[] {
   const out: IrNode[] = []
   type Open = { style: Style; rank: number; node: IrNode; last: number }
   const stack: Open[] = []
@@ -324,7 +333,7 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
         if (next[1] === successor || /^[ivx]+$/.test(next[1])) break
       }
     }
-    const e = enumerator(block, expectRoman, letter)
+    const e = enumerator(block, expectRoman, letter, romanDot)
     if (!e) {
       if (ENUM_OPEN.test(block)) problems.push(`unmatched enumerator: ${block.slice(0, 40)}`)
       if (top) top.node.children.push(node("continuation", {}, inline(block)))
@@ -344,7 +353,7 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
       if (e.ordinal !== 1 && !quoted && !e.inserted && e.style !== "(a.1)") problems.push(`${RANK_TAG[rank]} opens at ${e.label}`)
     }
     const level = node(RANK_TAG[rank], {}, [node("num", {}, [e.label])])
-    const inner = enumerator(e.rest, false)
+    const inner = enumerator(e.rest, false, false, romanDot)
     if (inner && inner.style !== e.style) carry = e.rest
     else level.children.push(node("content", {}, inline(e.rest)))
     container().children.push(level)
@@ -445,7 +454,7 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       const contentText = (n: IrNode | undefined) => tidy(n ? n.children.map((x) => (typeof x === "string" ? x : "")).join("") : "")
       // A section opener alone on its line ("SECTION 1." then the instruction
       // on the next): the first pending block is the instruction.
-      if (contentNode && !contentText(contentNode) && pending.length && !enumerator(pending[0], false) && !(p.quotedSection && p.quotedSection.test(pending[0]))) {
+      if (contentNode && !contentText(contentNode) && pending.length && !enumerator(pending[0], false, false, !!p.romanDot) && !(p.quotedSection && p.quotedSection.test(pending[0]))) {
         contentNode.children = inline(pending.shift()!)
       }
       let instruction = contentText(contentNode)
@@ -484,7 +493,7 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
           const sec = node("section", {}, [node("num", {}, [qs[1]])])
           // "Section 461. A. If the defendant …": the first line opens the section's first
           // subsection, which is not a catchline and goes to the hierarchy.
-          if (enumerator(rest, false)) {
+          if (enumerator(rest, false, false, !!p.romanDot)) {
             groups.push({ section: sec, blocks: [rest] })
             continue
           }
@@ -509,7 +518,7 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       }
       const parts: IrNode[] = []
       for (const g of groups) {
-        const nested = nest(g.blocks, problems, inline, quoted)
+        const nested = nest(g.blocks, problems, inline, quoted, !!p.romanDot)
         if (g.section) {
           g.section.children.push(...nested)
           parts.push(g.section)

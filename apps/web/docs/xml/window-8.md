@@ -20,9 +20,14 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 | Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** | — |
 | South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** | — |
 | Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** | — |
-| New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 | |
+| New Hampshire bills | 27,612 | 73.5 | 77.1 | **100.0** | — |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 15 — New Hampshire bills, 77.1% to 100.0% (2026-09-14)
+
+- A New Hampshire section is a bare number and its catchline ("1 Definitions; Animal Shelter Facility. Amend RSA 437:1, I to read as follows:"), which no opener took: 48 of 50 read "no sections". The profile sets the enacting formula, that opener with `strict` numbering, quoted RSA sections ("654:1", "21-I:5", "204-C:8-b"), `del` for bracketed struck matter, and three new optional fields: `romanDot` (I. II. III. as a rank, not letters), `openersAtLineHead`, and `prepare`, a rewrite before blocks are read, which takes a chaptered law's own prefix off its sections ("55:1" under "CHAPTER 55" reads as 1) and leaves quoted "654:1" alone.
+- The nineteen other sampled lines unchanged against HEAD. Held-back fifty: 99.4%. Grammar: `grammars/nh.md`.
 
 ## Milestone 14 — Kentucky bills, 76.0% to 99.9% (2026-09-14)
 

@@ -139,6 +139,33 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// New Hampshire bills (window 8, from fifty printings of every session): the
+// General Court's web text, the docket and "ANALYSIS" first, "Explanation:
+// Matter added to current law appears in bold italics. Matter removed …
+// appears [in brackets and struckthrough.]", then "Be it Enacted by the Senate
+// and House of Representatives in General Court convened:" and sections that
+// are a bare number and a catchline, "1 Voter; Office Holder. Amend RSA 654:1,
+// I to read as follows:", strictly 1, 2, 3. The RSA it quotes opens a section
+// "654:1" or "21-I:5" and numbers paragraphs in roman, "I.", subparagraphs
+// "(a)", items "(1)".
+PROFILES.NH = {
+  ...common("NH"),
+  enacting: /Be it Enacted by the Senate and House of Representatives in General Court convened/i,
+  section: /^(\d{1,3})\s+(?=[A-Z])(.*)$/s,
+  strict: true,
+  quotedSection: /^(\d{1,3}(?:-[A-Z])?:\d{1,3}(?:-[a-z])?)\s+(.*)$/s,
+  del: /\[([^\]]+)\]/,
+  romanDot: true,
+  // The web text never wraps a paragraph, so a unit at a line's head is a unit ("…; and" then "III.").
+  openersAtLineHead: true,
+  // A chaptered law ("CHAPTER 55", the final version) numbers its sections "55:1", "55:2": the
+  // chapter's own prefix is taken off so they read as 1, 2; a quoted "654:1" or "204-C:8-b" is left.
+  prepare: (text) => {
+    const chapter = /^\s*CHAPTER\s+(\d{1,4})\b/.exec(text)?.[1]
+    return chapter ? text.replace(new RegExp(`^(\\s*)${chapter}:(\\d{1,3})(?=\\s)`, "gm"), "$1$2") : text
+  },
+}
+
 // Kentucky bills (window 8, from fifty printings of every session): the
 // Legislative Research Commission's printed bill, a line number down the
 // margin (1 to 27 a page), a running head "UNOFFICIAL COPY 21 RS BR 104", a
