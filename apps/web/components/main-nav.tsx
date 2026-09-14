@@ -54,12 +54,9 @@ export function MainNav({
           {items.filter((item) => item.href !== "/").map((item) =>
             hasItems(item) ? (
               <NavigationMenuItem key={item.label}>
-                {/* Open on click, not on hover (Brendan, 2026-09-12): the
-                    pointer handlers Radix opens and closes on are cancelled,
-                    so only a click or the keyboard moves a menu. */}
+                {/* Open on hover again (Brendan, 2026-09-14; it was hover,
+                    then click from 2026-09-12): Radix's own pointer handlers. */}
                 <NavigationMenuTrigger
-                  onPointerMove={(e) => e.preventDefault()}
-                  onPointerLeave={(e) => e.preventDefault()}
                   data-active={
                     item.items.some((entry) => pathname === entry.href) ||
                     undefined
@@ -67,7 +64,10 @@ export function MainNav({
                 >
                   {item.label}
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="p-0!" onPointerEnter={(e) => e.preventDefault()} onPointerLeave={(e) => e.preventDefault()}>
+                {/* The panel centred under its button (Brendan, 2026-09-14):
+                    the buttons sit in the middle of the header now, so a
+                    panel hung off the button's left edge ran off to one side. */}
+                <NavigationMenuContent className="p-0! md:left-1/2 md:-translate-x-1/2">
                   <ul
                     className={cn(
                       "grid gap-y-1 p-2",
