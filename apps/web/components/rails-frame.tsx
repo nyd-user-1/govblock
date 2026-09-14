@@ -27,7 +27,8 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // second screen until its line sits on the second screen's, its tab where
 // the outer tab sits. Closed, it paints nothing but its line and tab, so no
 // sheet edge shows beside the line (Brendan, 2026-09-14). On it: the Map.
-const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&_[data-slot=sidebar-content]]:flex!"
+// The sheet's overrides reach its own sidebar only (the direct child), never a shell inside it: the Map's block shell has a sidebar of its own, and a descendant selector once forced it open and full width (2026-09-14).
+const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&>[data-slot=sidebar]>[data-slot=sidebar-content]]:flex!"
 const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
 
 export function RailsFrame({ children }: { children: React.ReactNode }) {
@@ -39,14 +40,14 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
         className="relative min-h-min flex-1 items-start px-0 [--top-spacing:0] lg:[--top-spacing:calc(var(--spacing)*4)] 3xl:fixed:container 3xl:fixed:px-3"
         style={{ "--sidebar-width": "calc(var(--spacing) * 72)" } as React.CSSProperties}
       >
-        <div className={`${SHEET} left-0 [&_[data-slot=sidebar]]:w-72! [[data-rail-left=closed]_&]:-translate-x-[calc(var(--spacing)*66)]`}>
+        <div className={`${SHEET} left-0 [&>[data-slot=sidebar]]:w-72! [[data-rail-left=closed]_&]:-translate-x-[calc(var(--spacing)*66)]`}>
           <RailStrip side="left" />
           <DocsSidebar />
         </div>
         {/* The strips' 24px kept clear on either side. */}
         <div className="flex min-w-0 flex-1 flex-col px-6">{children}</div>
         {/* The right sheet's left edge is half a rem short of the left line, so its own line (left-2) lands on it; closed, 24px stay in view. */}
-        <div className={`${SHEET} right-0 w-[calc(100%-17rem)] [&_[data-slot=sidebar]]:w-full! [[data-rail-left=closed]_&]:w-[calc(100%-0.5rem)] [[data-rail-right=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
+        <div className={`${SHEET} right-0 w-[calc(100%-17rem)] [&>[data-slot=sidebar]]:w-full! [[data-rail-left=closed]_&]:w-[calc(100%-0.5rem)] [[data-rail-right=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
           <RailStrip side="right" />
           <Sidebar
             side="right"
