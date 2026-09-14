@@ -12,7 +12,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** |
 | South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** |
-| Nevada statutes | 43,461 | 74.6 | 73.4 | 73.4 |
+| Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** (the rest is paragraphs the loader drops) |
 | Maryland statutes | 40,053 | 78.5 | 78.6 | 78.6 |
 | Utah bills | 36,096 | 66.3 | 64.7 | 64.7 |
 | Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 |
@@ -22,12 +22,22 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
 
+## Milestone 9 — Nevada statutes, 73.4% to 94.8% (2026-09-14)
+
+- Every section opens "NRS 33.090 Catchline" and the "NRS" defeated the number test: 50 of 50 "no number at the start". Nevada sets `statuteCite`, `headingBlock` and `credit` for the Bureau's source notes ("(Added to NRS by …)", "[Part 12:190:1941; …]—(NRS A …)"). No change to `generic.ts`. Held-back fifty: 92.9%. Grammar: `grammars/nv.md`.
+- **Acquisition, for window 7:** most of what still falls out is text the loader never stored. `scripts/laws/adapters/nv.mjs` skips every paragraph whose markup holds an in-page `#` link, to leave out the chapter's table of contents, and a paragraph of law that cross-references by anchor carries one. NRS 704.6623 is stored without its "1. A public utility that:"; NRS 483.270 without its "(b)" and "(d)". The fix is to tell contents from law by position, then reload Nevada's `"Laws"` and rebuild.
+- **Rebuild, measured on the whole store:** Indiana statutes 80,485 rebuilt at 99.89% (stored 72.2% before), Oregon 60,136 at 98.98% (77.9% before; 1,005 fell out, under the known section-number rule, to confirm when Oregon's job is read), Washington under way.
+
 ## Milestone 8 — Kansas statutes, 55.6% to 98.8%; South Carolina bills at 97.0% without a profile; the first rebuild batch (2026-09-14)
 
 - **Kansas.** A section is "21-5604." alone, the catchline as the next block, the law, then "History:" and the session laws. Kansas sets `headingBlock` and two new optional fields: `headingNext` (the heading is the next block, unless that block is already "History:", as in a repealed section) and `creditStart` (the blocks after "History:" are the `sourceCredit`). Section numbers may carry a comma ("68-5,101."). Indiana, Oregon, Washington, Florida and Alabama re-checked against HEAD: unchanged. Held-back Kansas fifty: 99.7%. Grammar: `grammars/ks.md`.
 - **South Carolina bills** measure 97.0% on a hundred with no profile of their own. The same fifty printings run through each window-8 commit's front end moved only at 18c0ca1, 73.4% to 93.6%: a quarter of South Carolina's printings are resolutions opening "Whereas," and closing "Be it resolved", which Colorado's commit made a resolving clause. Left above the bar; a profile of its own can wait for the long tail.
 - **Rebuilds.** The pipeline box (govblock-xml, 100.54.86.169, window 4's Virginia re-fetch running on it) was pulled fast-forward to 3962289, which carries every front end through Washington, and a controller started there at 14:04 UTC: `nohup node --max-old-space-size=8192 scripts/xml/run.mjs --watch --slots 3 --workers 4 > logs/watch-window8.log`. Queued under run `rebuild-w8-3962289` with `scripts/xml/enqueue.mjs` (the same rows the Ingestion page's "Again, if built" writes; the page was not driven from this session): Oklahoma, Massachusetts, Colorado and South Carolina bills, Indiana, Oregon and Washington statutes, 185 jobs. Indiana was building first, 10,846 rebuilt and none fallen out at the last look. The controller stays up for the later batches.
-- **Open on the rebuild:** a rebuild prunes index rows only when a job has no fall-outs, so the Colorado archive banners and the Oklahoma and Massachusetts captured pages will fall out without their old rows being removed from `expressions`. Those rows need the removal window 2 gave Virginia's error pages; not done from here.
+- **The captured pages, for acquisition** (the lead hands the Colorado re-fetch to window-4-va-ca beside Virginia and California). Each is caught by `ERROR_PAGE` in `lib/xml/frontends/generic.ts` and reports as dialect `error-page`, which the worker turns into a fall-out asking for a re-fetch:
+  - Colorado: `Accessibility Archive\s+Archived Content`, 20,194 of 57,350 stored printings (every one a 201-character body), counted as the `us-co` bill rows at coverage 0.333 with `gz_bytes` under 700.
+  - Oklahoma: `Home\s+Legislature Home\s+Senate Home`, the site's navigation (3,046 characters); 2,546 stored printings at coverage 0 is the likely count.
+  - Massachusetts: `To view the text of (House|Senate),? No\.`, the 2011 placeholder; about one printing in fifty in each sample.
+  A rebuild prunes index rows only when a job has no fall-outs, so these old rows stay in `expressions`; on the lead's word they are left for the re-fetch's compile to prune.
 
 ## Milestone 7 — Washington statutes, 79.8% to 98.8% (2026-09-14)
 

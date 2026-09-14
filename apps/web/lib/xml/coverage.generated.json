@@ -987,27 +987,27 @@
     "name": "Nevada",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.7336,
+    "clean": 73,
+    "coverage": 0.9482,
     "dialects": {
       "nv-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
+      "paragraph opens at N": 9,
+      "subsection a after N": 9,
       "subsection opens at N": 9,
-      "paragraph opens at N": 6,
-      "subsection a after N": 6,
-      "subsection N after N": 4,
-      "paragraph d after N": 2,
-      "subparagraph opens at N": 2,
-      "paragraph opens at b": 2,
-      "paragraph h after N": 1,
-      "subsection c after N": 1,
-      "paragraph N after N": 1,
-      "paragraph a after N": 1
+      "subsection N after N": 7,
+      "subparagraph opens at N": 4,
+      "paragraph opens at b": 3,
+      "paragraph opens at l": 3,
+      "unmatched enumerator": 3,
+      "subsection opens at b": 3,
+      "paragraph N after N": 3,
+      "subsection m after N": 2,
+      "paragraph c after N": 2
     },
-    "measuredAt": "2026-09-14T13:36:10.090Z"
+    "measuredAt": "2026-09-14T14:08:10.537Z"
   },
   "MD/laws": {
     "jurisdiction": "MD",

@@ -139,6 +139,19 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Nevada statutes (window 8, from fifty sections of the NRS): the loader
+// writes "NRS 33.090 Catchline" as the first block, then the law (subsections
+// "1.", paragraphs "(a)", subparagraphs "(1)", sub-subparagraphs "(I)"), then
+// the Legislative Counsel Bureau's source note: "(Added to NRS by 1985, 2286;
+// A 1997, 1810)" or, for a section older than the NRS, "[Part 1:49:1883; …]—(NRS
+// A 1971, 827)".
+PROFILES.NV = {
+  ...common("NV"),
+  statuteCite: /^NRS\s+/,
+  headingBlock: true,
+  credit: /^(?:\(Added to NRS by\b|\((?:NRS )?A \d{4}\b|\[(?:Part \d|\d+:\d+:\d{4})|\(Substituted in revision\b)/,
+}
+
 // Kansas statutes (window 8, from fifty sections of the K.S.A.): the Revisor's
 // section file as text, "21-5604." alone, the catchline as the next block
 // ("Same; meetings; quorum." carries the article's subject forward), the law,
