@@ -46,16 +46,19 @@ async function sources() {
     return out
   }
   if (source === "laws") {
-    const rows = await q(`select location_id as id, text from "Laws" where state = $1 and text is not null and length(text) > 200 order by random() limit $2`, [state, sample])
-    return rows.map((r) => ({ kind: "text", body: r.text, url: `laws:${r.id}` }))
+    const rows = await q(`select location_id as id, law_id, law_name, doc_type, depth, text from "Laws" where state = $1 and text is not null and length(text) > 200 order by random() limit $2`, [state, sample])
+    return rows.map((r) => ({ kind: "text", body: r.text, url: `laws:${r.law_id}/${r.id}`, meta: { kind: "law", doc_type: r.doc_type, depth: r.depth, location_id: r.id, law_id: r.law_id, law_name: r.law_name } }))
   }
   const rows = await q(`select t.document_id as id, t.text from "BillTexts" t join "Bills" b on b.bill_id = t.bill_id where b.state = $1 and t.text is not null and length(t.text) > 200 order by random() limit $2`, [state, sample])
-  return rows.map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}` }))
+  return rows.map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}`, meta: { kind: "bill" } }))
 }
+const show = Number(arg("show", 0))
 
 const docs = await sources()
 const dialects = {}
 const unknown = {}
+const fallouts = {}
+const pattern = (note) => note.replace(/\d+/g, "N").replace(/:\s.*$/, "").slice(0, 60)
 let clean = 0
 let coverageSum = 0
 let measured = 0
@@ -65,13 +68,20 @@ for (const s of docs) {
     failed.push(`${s.url}: ${s.failed ?? "empty"}`)
     continue
   }
-  const { report } = fe.parse(s)
+  const { doc, report } = fe.parse(s)
   measured++
+  if (measured <= show) {
+    const { outline } = await load("lib/xml/ir.ts")
+    console.log(`--- ${s.url} (${report.dialect}, coverage ${report.coverage})`, report.notes.length ? report.notes : "")
+    console.log(outline(doc).slice(0, 40).join("\n"))
+  }
   dialects[report.dialect] = (dialects[report.dialect] ?? 0) + 1
   coverageSum += report.coverage
   if (report.coverage === 1 && report.dialect !== "unknown") clean++
   for (const [k, v] of Object.entries(report.unknown)) unknown[k] = (unknown[k] ?? 0) + v
+  for (const n of report.notes) fallouts[pattern(n)] = (fallouts[pattern(n)] ?? 0) + 1
 }
+const topFallouts = Object.fromEntries(Object.entries(fallouts).sort((a, b) => b[1] - a[1]).slice(0, 12))
 const top = Object.fromEntries(Object.entries(unknown).sort((a, b) => b[1] - a[1]).slice(0, 15))
 const line = {
   jurisdiction: jurisdiction.toUpperCase(),
@@ -82,6 +92,7 @@ const line = {
   coverage: measured ? Number((coverageSum / measured).toFixed(4)) : 0,
   dialects,
   unknown: top,
+  fallouts: topFallouts,
   measuredAt: new Date().toISOString(),
 }
 
@@ -89,10 +100,13 @@ let file = {}
 try {
   file = JSON.parse(readFileSync(OUT, "utf8"))
 } catch {}
-file[line.jurisdiction] = line
+// One line per jurisdiction and source, so statutes and bills sit side by side.
+file[`${line.jurisdiction}/${source}`] = line
+delete file[line.jurisdiction]
 writeFileSync(OUT, JSON.stringify(file, null, 2) + "\n")
 
 console.log(`${line.jurisdiction} (${line.name}) via ${source}: ${measured} sampled, ${clean} clean, coverage ${(line.coverage * 100).toFixed(1)}%`)
 console.log("dialects:", dialects)
 if (Object.keys(top).length) console.log("unknown elements:", top)
+if (Object.keys(topFallouts).length) console.log("fall-outs:", topFallouts)
 if (failed.length) console.log(`failed to read ${failed.length}:`, failed.slice(0, 5))

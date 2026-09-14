@@ -1,5 +1,6 @@
 import type { FrontEnd } from "../ir"
 import { textFrontEnd } from "./text"
+import { ny } from "./ny"
 import { us } from "./us"
 
 // One front end per jurisdiction, by the two-letter code the corpus uses.
@@ -9,10 +10,11 @@ import { us } from "./us"
 
 export const FRONT_ENDS: Readonly<Record<string, FrontEnd>> = {
   US: us,
+  NY: ny,
 }
 
 export function frontEndFor(jurisdiction: string): FrontEnd {
   return FRONT_ENDS[jurisdiction.toUpperCase()] ?? textFrontEnd
 }
 
-export { textFrontEnd, us }
+export { ny, textFrontEnd, us }

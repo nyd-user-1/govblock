@@ -17,7 +17,7 @@ const STRUCTURE = [
   "enactingFormula", "resolvingClause", "recital", "recitals", "preamble", "action", "actionDescription", "date", "currentChamber", "congress", "session",
   "sponsor", "cosponsor", "committee", "property", "relatedDocument", "relatedDocuments", "identifier", "publisher", "creator", "created", "type", "title",
   "dc:title", "dc:type", "dc:publisher", "dc:creator", "dc:identifier", "dc:date", "dc:format", "dc:language", "dc:rights", "dc:description", "dcterms:created", "dcterms:issued",
-  "processedBy", "processedDate", "amendmentInstruction", "amendmentContent", "instruction", "toc", "tocItem", "referenceItem", "layout", "header", "column", "row",
+  "processedBy", "processedDate", "citableAs", "publicPrivate", "enrolledDateline", "associatedDoc", "colspec", "tgroup", "amendmentInstruction", "amendmentContent", "instruction", "toc", "tocItem", "referenceItem", "layout", "header", "column", "row",
   "notes", "note", "sourceCredit", "statutoryNote", "editorialNote", "changeNote", "authorityNote", "footnote", "endnote",
 ]
 
@@ -106,4 +106,5 @@ export const DTD_TO_USLM: Readonly<Record<string, string>> = {
   "fraction": "inline",
   "calendar": "property",
   "action-instruction": "actionDescription",
+  "associated-doc": "associatedDoc",
 }

@@ -36,6 +36,23 @@ export function outline(n: IrNode, depth = 0, out: string[] = []): string[] {
   return out
 }
 
+// -------------------------------------------------------------- serialize ---
+
+const escText = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+const escAttr = (s: string) => escText(s).replace(/"/g, "&quot;")
+
+/** The tree back out as XML, the way the pipeline stores an Expression. */
+export function toXml(n: IrChild, indent = ""): string {
+  if (typeof n === "string") return escText(n)
+  if (n.tag === "#root") return n.children.map((c) => toXml(c, indent)).join("")
+  const attrs = Object.entries(n.attrs).map(([k, v]) => ` ${k}="${escAttr(v)}"`).join("")
+  if (!n.children.length) return `${indent}<${n.tag}${attrs}/>`
+  const inlineOnly = n.children.every((c) => typeof c === "string" || !c.children.some(isNode))
+  if (inlineOnly) return `${indent}<${n.tag}${attrs}>${n.children.map((c) => toXml(c, "")).join("")}</${n.tag}>`
+  const inner = n.children.map((c) => (typeof c === "string" ? (tidy(c) ? `${indent}  ${escText(tidy(c))}` : "") : toXml(c, indent + "  "))).filter(Boolean).join("\n")
+  return `${indent}<${n.tag}${attrs}>\n${inner}\n${indent}</${n.tag}>`
+}
+
 // ------------------------------------------------------------------ parse ---
 
 const ENTITIES: Record<string, string> = {

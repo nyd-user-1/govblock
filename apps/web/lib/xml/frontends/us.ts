@@ -20,6 +20,22 @@ function dialectOf(top: IrNode | null): "uslm" | "bill-dtd" | "unknown" {
   return "unknown"
 }
 
+/**
+ * A GovInfo parsable-cite as an address in the scheme of
+ * apps/web/docs/xml/schema.md (USLM's path form): usc/42/1437f →
+ * /us/usc/t42/s1437f, public-law/117/58 → /us/pl/117/58. Anything else is
+ * kept as it came, so nothing is lost and the resolver window can extend it.
+ */
+export function addressOf(cite: string): string {
+  const usc = /^usc\/(\d+[a-z]?)\/(.+)$/i.exec(cite)
+  if (usc) return `/us/usc/t${usc[1].toLowerCase()}/s${usc[2].replace(/^s/i, "")}`
+  const pl = /^public-law\/(\d+)\/(\d+)$/i.exec(cite)
+  if (pl) return `/us/pl/${pl[1]}/${pl[2]}`
+  const stat = /^statutes-at-large\/(\d+)\/(\d+)$/i.exec(cite)
+  if (stat) return `/us/stat/${stat[1]}/${stat[2]}`
+  return cite
+}
+
 /** The Bill DTD's names to USLM's, in place, with the chapeau rule. */
 function normalize(top: IrNode, renamed: Record<string, number>): IrNode {
   const rename = (n: IrNode) => {
@@ -38,7 +54,7 @@ function normalize(top: IrNode, renamed: Record<string, number>): IrNode {
       }
       if (from === "external-xref" || from === "internal-xref") {
         const cite = c.attrs["parsable-cite"] ?? c.attrs["idref"]
-        if (cite && !c.attrs.href) c.attrs.href = cite
+        if (cite && !c.attrs.href) c.attrs.href = addressOf(cite)
       }
       if (to && to !== from) {
         c.tag = to

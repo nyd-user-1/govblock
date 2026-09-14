@@ -18,5 +18,30 @@
       "enrolledDateline": 2
     },
     "measuredAt": "2026-09-14T08:41:43.426Z"
+  },
+  "NY": {
+    "jurisdiction": "NY",
+    "name": "New York",
+    "source": "laws",
+    "sampled": 80,
+    "clean": 74,
+    "coverage": 0.9755,
+    "dialects": {
+      "ny-statute": 80
+    },
+    "unknown": {},
+    "fallouts": {
+      "subdivision N after N": 5,
+      "paragraph opens at b": 3,
+      "no § at the start": 2,
+      "subdivision opens at N": 2,
+      "paragraph e after N": 1,
+      "subparagraph iii after N": 1,
+      "subparagraph ix after N": 1,
+      "subparagraph opens at ii": 1,
+      "subparagraph i after N": 1,
+      "paragraph opens at d": 1
+    },
+    "measuredAt": "2026-09-14T08:55:47.955Z"
   }
 }
