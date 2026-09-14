@@ -5,6 +5,43 @@ that claims its item in `apps/web/lib/xml/todo.ts`, under its own heading.
 
 ## Part 1, Virginia (`va-refetch`, claimed by window 4)
 
+### Milestone 3 — the full run is going, on the pipeline box (2026-09-14, 13:58 UTC)
+
+| | |
+|---|---|
+| Started | **2026-09-14 13:54:55 UTC**, on the pipeline box (`govblock-xml`, i-09c2fbf8624d91bdf, now at 100.54.86.169) |
+| Targets | 97,015 documents, sessions 2010–2024, every one a legacy LIS link under its own bill |
+| Pace | one request at a time, 1,000 ms pause at the fastest (slowing by half on each refusal, to 8 s) |
+| Measured, first three minutes | **0.90 documents a second**, 0 refusals, 0 not a bill; 84 stored of the first 109 (the rest in the open batch of 50) |
+| Projected finish | **about 2026-09-15 19:50 UTC** (29.9 h at 0.90/s), later if legacy LIS starts refusing |
+
+The pace is the one the trial and the refusals set: the 13 refusals in the
+ranking came at 2.5 a second, none has come at 0.9. The box has no stop timer,
+so a day-long run survives; it holds 125 MB.
+
+**Watching it.** On the box, `~/govblock-xml/logs/va-refetch/`:
+
+- `run.log`: a line a minute with tried, stored, not a bill, refused, the pace
+  and the hours left.
+- `failures.jsonl`: every document not stored, and why.
+- `cursor`: the last document settled; the run resumes after it.
+
+A restart is the same line:
+`cd ~/govblock-xml && (setsid nohup node --max-old-space-size=1024 scripts/xml/va-refetch.mjs --run --pause-ms 1000 >> logs/va-refetch/run.log 2>&1 < /dev/null &)`.
+Documents refused four times each are asked again at the end with
+`--retry-refused`.
+
+**Sharing the box.** Window 8's rebuilds run on the same box and the same Data
+API. The re-fetch writes 50 rows about every minute. If the two contend, the
+re-fetch yields: it is the longer job and bound by the legislature's pace
+anyway.
+
+**After the run.** Count what is still 323 characters, retry the refused, then
+queue Virginia's bills from the Ingestion page (Run, Virginia, bills, "Again,
+if built") and re-measure its coverage line. Before stopping the box, check
+that the queue is empty and that no other window's controller or jobs are
+pending.
+
 ### Milestone 2 — the trial, a wrong join caught and corrected (2026-09-14, 13:50 UTC)
 
 **The trial (300 documents from the Mac, 750 ms pause) found a bug in the
