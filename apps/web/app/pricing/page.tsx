@@ -20,10 +20,10 @@ const STATE_ADD_ON = 49
 type Plan = { name: string; icon: React.ReactNode; blurb: string; price: number; cta: string; href: string; dark?: boolean; popular?: boolean; points: string[] }
 
 const PLANS: Plan[] = [
-  { name: "Free", icon: <LeafIcon />, blurb: "Congress and your home state, as they move.", price: 0, cta: "Get started for free", href: "/auth#sign-up", points: ["1 seat", "Congress and your home state", "Bills, members, committees, calendar"] },
-  { name: "Team", icon: <TreeDeciduousIcon />, blurb: `The whole record for the states you work. Add a state for $${STATE_ADD_ON} a month.`, price: 99, cta: "Purchase Now", href: "/auth#sign-up", points: ["Per seat", `Congress, your home state, and any state for $${STATE_ADD_ON} a month`, "Every session for 20 years"] },
-  { name: "Pro", icon: <SproutIcon />, blurb: "All fifty states, the District and Congress, for 20 years.", price: 399, cta: "Purchase Now", href: "/auth#sign-up", popular: true, points: ["Per seat", "All 50 states, D.C. and Congress", "Every alert, every agent, the API"] },
-  { name: "Custom", icon: <TreePineIcon />, blurb: "A whole office on the record, with the support to match.", price: 799, cta: "Purchase Plan", href: "/auth#sign-up", dark: true, points: ["Custom seats", "Single sign-on and a dedicated contact", "Custom agents and data feeds"] },
+  { name: "Free", icon: <LeafIcon />, blurb: "Congress and your home state, as they move.", price: 0, cta: "Get started for free", href: "/sign-up", points: ["1 seat", "Congress and your home state", "Bills, members, committees, calendar"] },
+  { name: "Team", icon: <TreeDeciduousIcon />, blurb: `The whole record for the states you work. Add a state for $${STATE_ADD_ON} a month.`, price: 99, cta: "Purchase Now", href: "/sign-up", points: ["Per seat", `Congress, your home state, and any state for $${STATE_ADD_ON} a month`, "Every session for 20 years"] },
+  { name: "Pro", icon: <SproutIcon />, blurb: "All fifty states, the District and Congress, for 20 years.", price: 399, cta: "Purchase Now", href: "/sign-up", popular: true, points: ["Per seat", "All 50 states, D.C. and Congress", "Every alert, every agent, the API"] },
+  { name: "Custom", icon: <TreePineIcon />, blurb: "A whole office on the record, with the support to match.", price: 799, cta: "Purchase Plan", href: "/sign-up", dark: true, points: ["Custom seats", "Single sign-on and a dedicated contact", "Custom agents and data feeds"] },
 ]
 
 type Row = { feature: string; cells: (string | boolean)[] }

@@ -39,12 +39,12 @@ export function AccountAffordance() {
   const pathname = usePathname() ?? "/"
 
   if (!account) {
-    // On /auth the page itself is the invitation (Brendan, 2026-09-13).
-    if (pathname === "/auth") return null
+    // On /, /auth, /sign-in and /sign-up the page itself is the invitation (Brendan, 2026-09-13).
+    if (pathname === "/auth" || pathname === "/sign-in" || pathname === "/sign-up" || pathname === "/") return null
     // The primary button where the New button stood (Brendan's markup,
     // 2026-09-07): "Sign In", to the account page.
     return (
-      <Button render={<Link href="/auth" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
+      <Button render={<Link href="/sign-in" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
         Sign In
       </Button>
     )

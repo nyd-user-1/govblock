@@ -14,21 +14,32 @@ import { cacheAccount } from "@/lib/auth/use-account"
 import { stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 
-// /auth (Brendan, 2026-09-13): the flag dead centre, the motto under it,
-// three buttons under that. Sign-Up or Sign-In smoothly scrolls the page to
+// The hero (Brendan, 2026-09-13): the flag dead centre, the motto under it,
+// the buttons under that. Sign-Up or Sign-In smoothly scrolls the page to
 // the section below, which becomes the form that was asked for — login-05 or
-// signup-05 — and the address takes a hash, /auth#sign-in or /auth#sign-up,
-// so a reload or a link lands on the same form. The form emails a magic
-// link; opening it brings a new reader back here signed in, at /auth#welcome,
-// where the welcome steps wait: the form, then the people who sit for the
-// address, then the interests, the desk, the alerts, and the close.
+// signup-05 — and the address takes a hash, #sign-in or #sign-up, so a
+// reload or a link lands on the same form. The form emails a magic link;
+// opening it brings a new reader to /sign-up#welcome, where the welcome
+// steps wait: the form, then the people who sit for the address, then the
+// interests, the desk, the alerts, and the close.
+//
+// One hero, four pages (Brendan, 2026-09-14): the root wears all three
+// buttons and sends Sign-Up and Sign-In to their own pages; /sign-up wears
+// Sign-Up alone and holds the whole onboarding; /sign-in wears Sign-In alone
+// and its form, and a signed-in reader is sent to /home; /auth keeps the
+// three and its scroll. The form's cross-link on /sign-in or /sign-up goes
+// to the other page.
+export type Stage = "root" | "sign-up" | "sign-in" | "auth"
+
 export function SignStage({
+  stage = "auth",
   welcome,
   email,
   saved: savedInitial,
   google,
   interests,
 }: {
+  stage?: Stage
   /** Signed in with no finished profile: the welcome steps are on the page from the start and the sign-in buttons are not. */
   welcome: boolean
   /** The signed-in reader's address, for the welcome form. */
@@ -43,10 +54,15 @@ export function SignStage({
   const scrollTo = (ref: React.RefObject<HTMLElement | null>) => requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
 
   const choose = (next: Mode) => {
+    // The root sends each button to its page; a sign page sends the other
+    // form's cross-link to the other page, with the hash that opens it.
+    if (stage === "root") return window.location.assign(`/${next}`)
+    if (stage !== "auth" && next !== stage) return window.location.assign(`/${next}#${next}`)
     setMode(next)
     window.history.replaceState(null, "", `#${next}`)
     scrollTo(section)
   }
+  const shows = (button: Mode | "explore") => stage === "root" || stage === "auth" || button === stage
 
   // The order of arrival (Brendan, 2026-09-13): the state flags cycle while the
   // field loads; the flag comes first, once its particles are on screen and the
@@ -166,19 +182,21 @@ export function SignStage({
           <Motto />
           {/* The flag's own red and blue, the mark's colours (Brendan, 2026-09-13); Explore has nowhere to go yet. */}
           <div className="mt-10 flex items-center gap-3">
-            {!welcome && (
-              <>
-                <Button size="lg" onClick={() => choose("sign-up")} className="bg-[#b31942] text-white hover:bg-[#b31942]/90">
-                  Sign-Up
-                </Button>
-                <Button variant="outline" size="lg" onClick={() => choose("sign-in")}>
-                  Sign-In
-                </Button>
-              </>
+            {!welcome && shows("sign-up") && (
+              <Button size="lg" onClick={() => choose("sign-up")} className="bg-[#b31942] text-white hover:bg-[#b31942]/90">
+                Sign-Up
+              </Button>
             )}
-            <Button size="lg" type="button" className="bg-[#0a3161] text-white hover:bg-[#0a3161]/90">
-              Explore
-            </Button>
+            {!welcome && shows("sign-in") && (
+              <Button variant="outline" size="lg" onClick={() => choose("sign-in")}>
+                Sign-In
+              </Button>
+            )}
+            {shows("explore") && (
+              <Button size="lg" type="button" className="bg-[#0a3161] text-white hover:bg-[#0a3161]/90">
+                Explore
+              </Button>
+            )}
           </div>
         </motion.div>
       </div>

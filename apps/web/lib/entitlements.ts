@@ -149,7 +149,7 @@ export function reasonFor(reader: Reader, ask: Ask): Reason {
 }
 
 /** Where a closed door leads. */
-export const doorHref = (verdict: Verdict) => (verdict === "plan" ? "/pricing" : "/auth")
+export const doorHref = (verdict: Verdict) => (verdict === "plan" ? "/pricing" : "/sign-in")
 
 // ---------------------------------------------------------------------------
 // What the policy API's resources are, in the terms above. Anything not named

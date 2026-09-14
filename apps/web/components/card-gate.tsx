@@ -46,7 +46,7 @@ export function CardGateProvider({ children }: { children: React.ReactNode }) {
               2026-09-08). A click past the dialog still closes it. */}
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-            <Button render={<Link href="/auth" />} nativeButton={false} onClick={() => setOpen(false)}>
+            <Button render={<Link href="/sign-in" />} nativeButton={false} onClick={() => setOpen(false)}>
               Continue
             </Button>
           </DialogFooter>

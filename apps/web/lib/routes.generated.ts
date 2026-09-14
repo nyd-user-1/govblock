@@ -338,6 +338,10 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
+    "path": "/erd",
+    "kind": "page"
+  },
+  {
     "path": "/forms",
     "kind": "page"
   },
@@ -491,6 +495,18 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/search",
+    "kind": "page"
+  },
+  {
+    "path": "/sign-in",
+    "kind": "page"
+  },
+  {
+    "path": "/sign-up",
+    "kind": "page"
+  },
+  {
+    "path": "/signed-out",
     "kind": "page"
   },
   {

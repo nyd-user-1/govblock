@@ -141,7 +141,7 @@ export function Gate({ what }: { what: string }) {
       <div className="flex flex-col items-center gap-3 px-6 py-24 text-center">
         <GavelIcon className="size-6 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">{what} are yours. Sign in to see them.</p>
-        <Button render={<Link href="/auth" />} size="sm">
+        <Button render={<Link href="/sign-in" />} size="sm">
           Sign in
         </Button>
       </div>

@@ -16,7 +16,7 @@ export default function SignedOutPage() {
       <div className="flex w-full max-w-xl flex-col items-center gap-6 text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-6xl">You&rsquo;ve signed out.</h1>
         <p className="max-w-md text-lg text-muted-foreground text-balance">This device&rsquo;s session is closed. Sign back in anytime.</p>
-        <Button render={<Link href="/auth" />} nativeButton={false} size="lg" className="mt-2 h-11 rounded-lg px-6 text-base">
+        <Button render={<Link href="/sign-in" />} nativeButton={false} size="lg" className="mt-2 h-11 rounded-lg px-6 text-base">
           Sign back in
         </Button>
       </div>

@@ -287,7 +287,7 @@ export function ClipsApp() {
 
           {creator === "you" && ready && !signedIn ? (
             <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
-              <Button render={<Link href="/auth" />} size="sm">
+              <Button render={<Link href="/sign-in" />} size="sm">
                 Sign in
               </Button>
             </Empty>
@@ -347,7 +347,7 @@ export function ClipsApp() {
             <CameraIcon className="size-8 text-muted-foreground" />
             <p className="text-base font-medium">Sign in to take part</p>
             <p className="text-sm text-muted-foreground">Recording, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
-            <Button render={<Link href="/auth" />}>Sign in</Button>
+            <Button render={<Link href="/sign-in" />}>Sign in</Button>
             <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
               Not now
             </Button>

@@ -118,7 +118,7 @@ const nextAuth = NextAuth({
   session: { strategy: "jwt" },
 
   // Our own page, in the site's vocabulary, rather than Auth.js's default.
-  pages: { signIn: "/auth", signOut: "/auth", error: "/auth" },
+  pages: { signIn: "/sign-in", signOut: "/auth", error: "/sign-in" },
 
   // Amplify's WEB_COMPUTE Lambda believes it is localhost:3000 and only the
   // forwarded headers carry the real host — the trap `lib/agents/connections/

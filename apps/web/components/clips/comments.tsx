@@ -133,7 +133,7 @@ export function CommentsPanel({
           </form>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            <Link href="/auth" className="font-medium text-sky-600 dark:text-sky-400">
+            <Link href="/sign-in" className="font-medium text-sky-600 dark:text-sky-400">
               Sign in
             </Link>{" "}
             to like or comment.

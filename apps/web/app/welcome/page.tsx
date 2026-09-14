@@ -21,7 +21,7 @@ export default async function WelcomePage() {
     session = null
   }
   const user = session?.user
-  if (!user?.id) redirect("/auth")
+  if (!user?.id) redirect("/sign-in")
   const profile = await getProfile(user.id)
   if (profile?.completed_at) redirect("/home")
   const initial = {

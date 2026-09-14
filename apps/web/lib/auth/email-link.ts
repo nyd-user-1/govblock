@@ -18,7 +18,7 @@ import { userIdForSubject } from "./contract"
 // `sign_in_links` hands nobody a working link.
 
 /** Where an opened link lands. One place, so the pages' owner can move them. */
-export const LANDING = { newReader: "/auth#welcome", returning: "/home" } as const
+export const LANDING = { newReader: "/sign-up#welcome", returning: "/home" } as const
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const TOKEN = /^[A-Za-z0-9_-]{43}$/
