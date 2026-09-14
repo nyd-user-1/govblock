@@ -38,8 +38,17 @@ export const textOf = (n) => (typeof n === "string" ? n : n.children.map(textOf)
 export function wrap(doc, info, toXml) {
   let top = doc.tag === "#root" ? kids(doc)[0] ?? el("main") : doc
   if (!ROOTS.has(top.tag)) {
-    // A front end that returns the section itself: it is the Work.
-    if (LEVELS.has(top.tag)) top.attrs = { ...top.attrs, identifier: info.work }
+    // A front end that returns the section itself: it is the Work. Where it
+    // found no number or heading in the text (Louisiana's rows open "RS 33:4755.1"),
+    // the loader's own columns supply them.
+    if (LEVELS.has(top.tag)) {
+      top.attrs = { ...top.attrs, identifier: info.work }
+      const has = (tag) => top.children.some((c) => typeof c !== "string" && c.tag === tag)
+      const lead = []
+      if (info.section?.num && !has("num")) lead.push(el("num", {}, [info.section.num]))
+      if (info.section?.heading && !has("heading")) lead.push(el("heading", {}, [info.section.heading]))
+      if (lead.length) top.children = has("num") ? [top.children[0], ...lead, ...top.children.slice(1)] : [...lead, ...top.children]
+    }
     const body = top.tag === "main" ? top : el("main", {}, [top])
     // A statute section read as plain text carries its number and heading
     // from the loader's own columns, so the section element is the Work.
