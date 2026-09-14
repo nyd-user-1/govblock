@@ -1,0 +1,94 @@
+// One compiler thread: a source document in, a stored USLM object out. The
+// controller (run.mjs) reads sources and writes the index; this thread runs
+// the front end, writes the document, hashes and gzips it, and PUTs it to S3,
+// holding up to `inflight` PUTs open at once while it parses the next.
+import { createHash } from "node:crypto"
+import { createRequire } from "node:module"
+import { pathToFileURL } from "node:url"
+import { gzipSync } from "node:zlib"
+import { parentPort, workerData } from "node:worker_threads"
+
+import { BUCKET, expressionOf, keyOf } from "./lib/address.mjs"
+import { first, textOf, wrap } from "./lib/emit.mjs"
+
+const require = createRequire(import.meta.url)
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
+
+const { frontEndFor } = await import(pathToFileURL(workerData.bundle).href)
+const s3 = new S3Client({ region: "us-east-1", maxAttempts: 8 })
+const DRY = !!workerData.dry
+
+/** A printing's own date, where the document states one: Dublin Core first, then a dated action. */
+function dateIn(doc) {
+  const dc = first(doc, "dc:date")
+  const iso = dc && /\d{4}-\d{2}-\d{2}/.exec(textOf(dc))
+  if (iso) return iso[0]
+  const created = first(doc, "dcterms:created")
+  const iso2 = created && /\d{4}-\d{2}-\d{2}/.exec(textOf(created))
+  if (iso2) return iso2[0]
+  const dated = first(doc, "date")
+  const attr = dated?.attrs?.date
+  if (attr && /^\d{8}$/.test(attr)) return `${attr.slice(0, 4)}-${attr.slice(4, 6)}-${attr.slice(6, 8)}`
+  if (attr && /^\d{4}-\d{2}-\d{2}/.test(attr)) return attr.slice(0, 10)
+  return null
+}
+
+async function handle(task) {
+  const { info } = task
+  let stage = "parse"
+  try {
+    const fe = frontEndFor(task.frontEnd)
+    const { doc, report } = fe.parse(task.source)
+    if (report.dialect === "unknown") return { seq: task.seq, ok: false, stage, reason: "unrecognised document", detail: report.notes.join("; ").slice(0, 300) }
+
+    let date = info.date
+    let dateBasis = info.dateBasis
+    if (!date || info.preferDocDate) {
+      const own = dateIn(doc)
+      if (own) {
+        date = own
+        dateBasis = info.docDateBasis ?? "printed"
+      }
+    }
+    if (!date) return { seq: task.seq, ok: false, stage, reason: "no date", detail: info.source ?? null }
+    const expression = info.expression ?? expressionOf(date, info.stage)
+
+    stage = "emit"
+    const xml = wrap(doc, { ...info, date, dateBasis, coverage: report.coverage, dialect: report.dialect, frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase() })
+    const body = Buffer.from(xml, "utf8")
+    const contentHash = createHash("sha256").update(body).digest("hex")
+    const gz = gzipSync(body, { level: 6 })
+    const key = keyOf(info.work, expression)
+
+    stage = "store"
+    if (!DRY) await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: gz, ContentType: "application/xml", ContentEncoding: "gzip" }))
+
+    const unknown = Object.entries(report.unknown).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    return {
+      seq: task.seq, ok: true, key, expression, date, dateBasis, contentHash,
+      bytes: body.length, gzBytes: gz.length, coverage: report.coverage, dialect: report.dialect,
+      frontEnd: fe.profile.jurisdiction === "*" ? "text" : task.frontEnd.toLowerCase(), unknown,
+    }
+  } catch (error) {
+    return { seq: task.seq, ok: false, stage, reason: String(error?.name ?? "Error"), detail: String(error?.message ?? error).slice(0, 300) }
+  }
+}
+
+let open = 0
+const queue = []
+const pump = () => {
+  while (open < workerData.inflight && queue.length) {
+    const task = queue.shift()
+    open++
+    handle(task).then((result) => {
+      open--
+      parentPort.postMessage(result)
+      pump()
+    })
+  }
+}
+parentPort.on("message", (task) => {
+  queue.push(task)
+  pump()
+})
+parentPort.postMessage({ ready: true })
