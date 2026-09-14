@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation"
 import { EditorContent, Extension, useEditor, type JSONContent } from "@tiptap/react"
 import { history, redo, undo } from "@tiptap/pm/history"
 import { keymap } from "@tiptap/pm/keymap"
-import { DOMSerializer, type Node as PmNode } from "@tiptap/pm/model"
-import { Plugin, PluginKey } from "@tiptap/pm/state"
-import { Decoration, DecorationSet } from "@tiptap/pm/view"
 import { CheckIcon, CopyIcon, FolderIcon, ScrollTextIcon } from "lucide-react"
 
 import { createCommit, forkAddress, type Fork } from "@/lib/policy/forks"
@@ -17,7 +14,9 @@ import { billWork } from "@/lib/xml/address"
 import { workHref } from "@/lib/xml/library"
 import { AtPalette, AtTrigger } from "@/components/workspace/typeset-at-palette"
 import { CiteDecorations, useCitations } from "@/components/workspace/typeset-cite-layer"
+import { ContextMarkers, TypesetContextPane, type Focus } from "@/components/workspace/typeset-context"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
+import { Redline, redlineKey } from "@/components/workspace/typeset-redline"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
 import { TypesetXmlToolbar } from "@/components/workspace/typeset-xml-toolbar"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -52,66 +51,7 @@ const ForkHistory = Extension.create({
   addProseMirrorPlugins: () => [history(), keymap({ "Mod-z": undo, "Shift-Mod-z": redo, "Mod-y": redo })],
 })
 
-const redlineKey = new PluginKey<DecorationSet>("redline")
-
-/** The engine's specs as decorations over the base: strikes inline and on whole units, insertions as widgets. */
-function decorate(doc: PmNode, specs: MarkedSpec[]): DecorationSet {
-  const schema = doc.type.schema
-  const serializer = DOMSerializer.fromSchema(schema)
-  const out: Decoration[] = []
-  for (const s of specs) {
-    try {
-      if (s.kind === "strike") out.push(Decoration.inline(s.from, s.to, { class: "amend-del" }))
-      else if (s.kind === "strike-block") out.push(Decoration.node(s.from, s.to, { class: "amend-del-block" }))
-      else if (s.kind === "insert")
-        out.push(
-          Decoration.widget(
-            s.at,
-            () => {
-              const el = document.createElement("ins")
-              el.className = "amend-ins"
-              el.textContent = s.text
-              return el
-            },
-            { side: 1, key: `i:${s.at}:${s.text}` }
-          )
-        )
-      else
-        out.push(
-          Decoration.widget(
-            s.at,
-            () => {
-              const el = document.createElement("div")
-              el.className = "amend-ins-block"
-              el.appendChild(serializer.serializeNode(schema.nodeFromJSON(s.node.toJSON())))
-              return el
-            },
-            { side: -1, key: `b:${s.at}:${s.node.textContent}` }
-          )
-        )
-    } catch {
-      // A spec that no longer fits the base is left out rather than breaking the view.
-    }
-  }
-  return DecorationSet.create(doc, out)
-}
-
-const Redline = Extension.create({
-  name: "redline",
-  addProseMirrorPlugins: () => [
-    new Plugin<DecorationSet>({
-      key: redlineKey,
-      state: {
-        init: () => DecorationSet.empty,
-        apply: (tr, set) => {
-          const specs = tr.getMeta(redlineKey) as MarkedSpec[] | undefined
-          return specs ? decorate(tr.doc, specs) : set.map(tr.mapping, tr.doc)
-        },
-      },
-      props: { decorations: (state) => redlineKey.getState(state) },
-    }),
-  ],
-})
+const MODES = { edit: "Edit", redline: "Redline", context: "In context" } as const
 
 function RunText({ run, convention }: { run: Run; convention: Convention }) {
   if (run.op === "insert") return <span className={cn(convention.newMatter === "underscored" && "underline decoration-1 underline-offset-2", convention.newMatter === "italic" && "italic")}>{run.text}</span>
@@ -163,7 +103,9 @@ function Instructions({ amendment }: { amendment: Amendment | null }) {
 export function TypesetForkView({ forkId }: { forkId: number }) {
   const [data, setData] = React.useState<ForkPayload | null>(null)
   const [failed, setFailed] = React.useState<string | null>(null)
-  const [mode, setMode] = React.useState<"edit" | "redline">("edit")
+  const [mode, setMode] = React.useState<keyof typeof MODES>("edit")
+  // The tab and unit an `@` marker opened in the in-context view (window 6b).
+  const [focus, setFocus] = React.useState<Focus | null>(null)
   const [amendment, setAmendment] = React.useState<Amendment | null>(null)
   const [dirty, setDirty] = React.useState(false)
   const [asking, setAsking] = React.useState(false)
@@ -193,7 +135,7 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
 
   const editor = useEditor(
     {
-      extensions: [...XML_EXTENSIONS, ForkHistory, CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href) }), AtTrigger.configure({ onAt: (pos) => setAtPos(pos) })],
+      extensions: [...XML_EXTENSIONS, ForkHistory, CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href) }), AtTrigger.configure({ onAt: (pos) => setAtPos(pos) }), ContextMarkers.configure({ onOpen: (m) => setFocus({ work: m.work, unit: m.unit, n: Date.now() }) })],
       editable: true, immediatelyRender: false, content: data ? (data.head?.json ?? data.base.json) : null, enableInputRules: false, enablePasteRules: false },
     [data?.fork.id, data?.head?.id]
   )
@@ -266,9 +208,9 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
     <div className="flex h-full min-h-0 flex-col">
       <TypesetXmlToolbar editor={mode === "edit" ? editor : null}>
         <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-          {(["edit", "redline"] as const).map((m) => (
-            <button key={m} type="button" data-active={mode === m} onClick={() => setMode(m)} className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
-              {m === "edit" ? "Edit" : "Redline"}
+          {(Object.keys(MODES) as (keyof typeof MODES)[]).map((m) => (
+            <button key={m} type="button" data-active={mode === m} onClick={() => setMode(m)} className="rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-sm">
+              {MODES[m]}
             </button>
           ))}
         </div>
@@ -303,16 +245,22 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
               ))}
             </div>
           )}
-          <div className={cn("uslm-doc amend-edit", mode !== "edit" && "hidden")}>
+          <div className={cn("uslm-doc amend-edit", mode === "redline" && "hidden")}>
             <EditorContent editor={editor} />
           </div>
           <div className={cn("uslm-doc amend-redline", mode !== "redline" && "hidden")}>
             <EditorContent editor={redline} />
           </div>
         </div>
-        <aside className="hidden w-[26rem] shrink-0 overflow-y-auto border-l lg:block">
-          <Instructions amendment={data ? amendment : null} />
-        </aside>
+        {mode === "context" && data ? (
+          <aside className="hidden min-h-0 min-w-0 flex-1 flex-col border-l md:flex">
+            <TypesetContextPane editor={editor} forkWork={data.fork.work ?? data.cite.work} base={data.base} cite={data.cite} focus={focus} onFocus={setFocus} />
+          </aside>
+        ) : (
+          <aside className="hidden w-[26rem] shrink-0 overflow-y-auto border-l lg:block">
+            <Instructions amendment={data ? amendment : null} />
+          </aside>
+        )}
       </div>
 
       {atPos !== null && editor && data && <AtPalette editor={editor} pos={atPos} jurisdiction={data.cite.jurisdiction} state={data.fork.state} onClose={() => setAtPos(null)} />}

@@ -38,3 +38,14 @@
   user-select: none;
   vertical-align: 1px;
 }
+
+.uslm-doc .at-marker:hover {
+  background: color-mix(in oklab, currentColor 20%, transparent);
+}
+
+/* The unit an `@` marker or an outcome brought into view in its tab (window 6b). */
+.uslm-doc .context-focus {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary, #2563eb) 35%, transparent);
+  transition: box-shadow 0.6s ease-out;
+}
