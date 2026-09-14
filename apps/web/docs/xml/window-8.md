@@ -13,16 +13,23 @@ Coverage is the grammar's number over the documents that are law. A captured pag
 | Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (98.97 rebuilt, 37,156) | 20,194 archive banners fell out, 35% |
 | Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** (99.06 rebuilt, 51,380) | — |
 | South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (97.05 rebuilt, 49,119; no profile, lifted at 18c0ca1) | — |
-| Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** | — |
-| Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** | paragraphs the loader drops |
-| Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** | — |
-| Utah bills | 36,096 | 66.3 | 64.7 | **100.0** | 17,570 refusal pages, 49% |
-| Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** | — |
-| South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** | — |
-| Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** | — |
-| New Hampshire bills | 27,612 | 73.5 | 77.1 | **100.0** | — |
-| New Mexico bills | 24,254 | 64.8 | 65.3 | **96.5** | — |
-| Vermont bills | 13,036 | 74.9 | 81.1 | **97.4** | — |
+| Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** (98.47 rebuilt, 46,930) | — |
+| Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** (95.24 rebuilt, 43,461) | paragraphs the loader drops |
+| Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** (99.47 rebuilt, 40,053) | — |
+| Utah bills | 36,096 | 66.3 | 64.7 | **100.0** (99.86 rebuilt, 18,526) | 17,570 refusal pages fell out, 49% |
+| Louisiana statutes | 33,706 | 71.7 | 70.8 | **99.5** (98.98 rebuilt, 33,706) | — |
+| South Carolina statutes | 30,973 | 75.4 | 72.7 | **99.5** (98.94 rebuilt, 30,973) | — |
+| Kentucky bills | 28,715 | 77.4 | 76.0 | **99.9** (99.86 rebuilt, 28,715) | — |
+| New Hampshire bills | 27,612 | 73.5 | 77.1 | **100.0** (99.03 rebuilt, 27,612) | — |
+| New Mexico bills | 24,254 | 64.8 | 65.3 | **96.5** (96.29 rebuilt, 24,254) | — |
+| Vermont bills | 13,036 | 74.9 | 81.1 | **97.4** (97.47 rebuilt, 13,036) | — |
+
+## Milestone 18 — the second rebuild finished; window 8 done (2026-09-14)
+
+- `rebuild-w8-c51724f` finished at 14:45 UTC: 317 jobs, none failed, 307,266 Expressions rebuilt. Every one of the seventeen lines is now on the store at the grammar's number; the "rebuilt" figures in the table are the store's own, weighted by document.
+- Utah's fall-outs came to exactly 17,570, its refusal-page count, as Colorado's came to its 20,194 banners. Nevada's 307 and South Carolina statutes' 18 are the pipeline's existing "section number repeats in its container" rule, not grammar.
+- Lowest on the store: Nevada statutes 95.24% (the loader), New Mexico bills 96.29%, South Carolina bills 97.05%, Vermont bills 97.47%; the other thirteen 98.47% or better.
+- The controller (pid 5240, `logs/watch-window8-2.log`) is left running on c51724f and idle; window 4's Virginia re-fetch runs beside it. Window-8 is set to "done" in `todo.ts`. Window 7 (the orphan reconcile) is not taken: this session is past 60% of its context, and the lead is giving it to a fresh window.
 
 ## Milestone 17 — Vermont bills, 81.1% to 97.4%; every line of the seventeen at 90% or better (2026-09-14)
 
@@ -121,6 +128,21 @@ Coverage is the grammar's number over the documents that are law. A captured pag
   - statutes were sampled at `length(text) > 200`, which drops the history-note stubs ("401.834 [1989 c.1063 §6; renumbered 403.335 in 2009]"): 43% of Oregon's sections, 38% of Kansas's, 17% of Indiana's. Oregon sampled 97.9% against 77.9% stored.
   - bills were read with their texts in one statement, which passed the Data API's megabyte for Oklahoma, Colorado, Utah and New Mexico, and only from the last three sessions.
   Now every leaf section with text, every printing (the pipeline's `NOT_A_PRINTING` filter) of every session (`--since <year>` narrows it), each text read on its own in 200,000-character slices. Sampled at 100, the numbers land within two points of window 2's stored ones.
+
+## Restarting the controller safely
+
+The controller bundles the front ends when it starts, so a front-end change reaches the store only after a restart. Find it among node processes only; a `pgrep -f` pattern also matches the shell that runs it (`pgrep -f "node .*run.mjs"` matches its own `bash -c` line, since `.*` matches the literal `.*`), and a `kill` on that list kills the caller.
+
+```
+ssh govblock-xml-direct
+cd ~/govblock-xml && git pull --ff-only origin feature/legislative-xml
+ps -C node -o pid=,args= | awk '/scripts\/xml\/run\.mjs --watch/ {print $1}'   # the controller's pid, nothing else
+kill <that pid>                                                                  # never va-refetch.mjs or another window's node
+nohup node --max-old-space-size=8192 scripts/xml/run.mjs --watch --slots 3 --workers 4 > logs/watch.log 2>&1 < /dev/null &
+ps -C node -o pid=,args=                                                         # one run.mjs --watch again
+```
+
+Restart only with the queue empty or holding jobs of your own run.
 
 ## Files touched
 

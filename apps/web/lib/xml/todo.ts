@@ -53,7 +53,7 @@ export const TODO: TodoItem[] = [
   {
     id: "window-8",
     title: "Window 8: grammars, round two — the seventeen coverage lines under 80%",
-    status: "claimed",
+    status: "done",
     claimedBy: "window-8-grammar",
     prompt: `${PROGRAM} ("The compiler" especially), then apps/web/docs/prompts/2026-09-14-grammars-and-compiler.md, then apps/web/docs/prompts/2026-09-14-grammars-round-two.md whole, then apps/web/docs/xml/window-3.md and sources.md. Plan, then build. Coverage is the parser's score: the share of a stored document's text the state's front end placed into USLM elements, not how much law is held. First aggregate the state front ends' report.notes into xml_fallouts so the Compiler page shows why a state is low; then take the seventeen lines largest corpus first, derive each grammar from the stored corpus sampled through "Bills" or "Laws" (never "BillTexts" by random order), measure with scripts/xml/coverage.mjs before and after, one jurisdiction per commit with the numbers in the message, to 90% or a written reason. Never touch lib/xml/frontends/federal.ts or the schema. Rebuilds queue from the Ingestion page and need the pipeline box running. ${RULES} Report to apps/web/docs/xml/window-8.md at every milestone with the seventeen-line table, start and current.`,
   },
