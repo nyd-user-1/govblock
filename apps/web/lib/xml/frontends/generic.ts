@@ -354,7 +354,8 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
 // Oklahoma's: the legislature site's navigation ("Home / Legislature Home / Senate Home …") in place of the bill.
 // Massachusetts's: "To view the text of House, No. 4215, please copy and paste the following URL …".
 // Colorado's: the archive site's banner, "Accessibility Archive / Archived Content / This is archived reference material."
-const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home|To view the text of (?:House|Senate),? No\.|Accessibility Archive\s+Archived Content)/i
+// Utah's: a firewall's refusal, "The requested URL was rejected. Please consult with your administrator."
+const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home|To view the text of (?:House|Senate),? No\.|Accessibility Archive\s+Archived Content|The requested URL was rejected)/i
 
 export function parseStateBill(source: Source, p: StateProfile): FrontEndResult {
   const problems: string[] = []

@@ -2,25 +2,32 @@
 
 Report to the lead. The table is kept current; milestones below it, newest first.
 
-| Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current, sampled (100) |
-|---|---|---|---|---|
-| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** |
-| Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** |
-| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** |
-| Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** |
-| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (real printings; 35% are archive banners) |
-| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** |
-| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) |
-| Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** |
-| Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** (the rest is paragraphs the loader drops) |
-| Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** |
-| Utah bills | 36,096 | 66.3 | 64.7 | 64.7 |
-| Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 |
-| South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 |
-| Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 |
-| New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
-| New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
-| Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+Coverage is the grammar's number over the documents that are law. A captured page (an error page, a banner, a placeholder where the bill should be) reports as `error-page`, falls out of the pipeline asking for a re-fetch, and stays out of the current number; the start numbers counted them. The last column is what acquisition holds down, not grammar.
+
+| Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current, sampled (100) | Held down by captures or the loader |
+|---|---|---|---|---|---|
+| Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** | ~2,546 navigation pages |
+| Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** (99.89 rebuilt) | — |
+| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** | 2011 placeholders, ~2% |
+| Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** (98.98 rebuilt) | — |
+| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** | 20,194 archive banners, 35% |
+| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** | — |
+| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) | — |
+| Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** | — |
+| Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** | paragraphs the loader drops |
+| Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** | — |
+| Utah bills | 36,096 | 66.3 | 64.7 | **100.0** | 17,570 refusal pages, 49% |
+| Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 | |
+| South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 | |
+| Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 | |
+| New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 | |
+| New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 | |
+| Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 | |
+
+## Milestone 11 — Utah bills, 64.7% to 100.0% on real printings (2026-09-14)
+
+- **Acquisition, passed by the lead to window-4-va-ca:** 17,570 of Utah's 36,096 stored printings are a firewall's refusal, 122 characters: "The requested URL was rejected. Please consult with your administrator. Your support ID is: …". Caught by `The requested URL was rejected` in `ERROR_PAGE`; counted as the `us-ut` bill rows at coverage 0.333 with `gz_bytes` under 700. 61 of the hundred sampled.
+- The real printings are the Legislature's printed bill, lines numbered straight through, with a running head and foot of the printing's date, time and bill. Utah sets `marginNumbers`, `openersAtLineHead`, `del` for bracketed struck matter, `furniture` (the date-and-bill stamps, "-4-", the bar code "*SB0169S03*", the bill number against the right margin), "Section 1." as the bill section and "10-8-22 . Water rates." as the quoted section. No change to the parser beyond the refusal test. Held-back fifty: 28 of 28 real printings clean. Texas, Oklahoma, Massachusetts and Colorado re-checked against HEAD: unchanged. Grammar: `grammars/ut.md`.
 
 ## Milestone 10 — Maryland statutes, 78.6% to 99.0% (2026-09-14)
 

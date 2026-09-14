@@ -139,6 +139,26 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Utah bills (window 8, from fifty printings of every session): half the
+// stored printings are a firewall's refusal and report as error pages. The
+// rest are the Legislature's printed bill: its lines numbered straight through,
+// a page number "-4-", a running head and foot with the printing's date and
+// time and the bill ("02-05 09:17 1st Sub. (Buff) H.B. 274"), the bar code
+// "*SB0169S03*", the bill number set against the right margin. "Section 1.
+// Section 10-8-22 is amended to read:" then "10-8-22 . Water rates." (a space
+// before the full stop from 2025) and the section's units, (1) (a) (i) (A);
+// struck matter in brackets, "[and]".
+PROFILES.UT = {
+  ...common("UT"),
+  enacting: /Be it enacted by the Legislature of the state of Utah/i,
+  section: /^Section\s+(\d{1,3})\.\s+(.*)$/s,
+  quotedSection: /^(\d{1,2}[A-Z]?-\d{1,3}[a-z]?-\d{1,4}(?:\.\d{1,2})?)\s?\.\s+(.*)$/s,
+  del: /\[([^\]]+)\]/,
+  marginNumbers: true,
+  openersAtLineHead: true,
+  furniture: /^(?:\s{30,}\S.{0,40}|\s*-\d{1,3}-|\s*\*[A-Z]{2,3}\d{3,4}\w*\*|.*\b\d{1,2}:\d{2}\b.*\b[HS]\.\s?[BJCR]\.(?:R\.)?\s?\d+.*|.*\b[HS]\.\s?[BJCR]\.(?:R\.)?\s?\d+.*\b\d{1,2}:\d{2}\b.*|\s*LEGISLATIVE GENERAL COUNSEL.*|\s*\d?\s*Approved for Filing:.*)\s*$/,
+}
+
 // Maryland statutes (window 8, from fifty sections of the Annotated Code):
 // the General Assembly's section page as text, "§16–702." alone (an en dash,
 // not a hyphen; "§21–2A–03."), no catchline, then the law: subsections (a),

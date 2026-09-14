@@ -1164,28 +1164,18 @@
     "jurisdiction": "UT",
     "name": "Utah",
     "source": "texts",
-    "sampled": 100,
-    "clean": 24,
-    "coverage": 0.647,
+    "sampled": 39,
+    "clean": 35,
+    "coverage": 0.9998,
     "dialects": {
-      "ut-bill": 94,
+      "ut-bill": 33,
       "ut-resolution": 6
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 72,
-      "no enacting formula": 51,
-      "subsection opens at N": 2,
-      "paragraph opens at N": 2,
-      "subsection i after N": 2,
-      "subsection opens at b": 1,
-      "paragraph N after N": 1,
-      "subsection a after N": 1,
-      "subsection opens at iv": 1,
-      "subparagraph opens at N": 1,
-      "paragraph opens at b": 1
+      "unmatched enumerator": 7
     },
-    "measuredAt": "2026-09-14T13:36:28.420Z"
+    "measuredAt": "2026-09-14T14:12:38.149Z"
   },
   "NM/texts": {
     "jurisdiction": "NM",
