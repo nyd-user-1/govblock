@@ -75,14 +75,14 @@ type RollCallAnswer = {
 
 type MemberRecordAnswer = { sponsored: (BillRow & { role: number })[]; counts: { sponsored: number } }
 
-export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void }) {
+export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo, toolbar }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode }) {| "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void }) {
   const { state, session } = scope
   const sessionTitle = useSessionTitle(state, session)
   const sessionParam = scope.filters.session ? session : undefined
 
   const { data: bill } = usePolicy<Bill>(node.kind === "bill" ? "bill" : null, { state }, { id: node.kind === "bill" ? node.id : undefined })
-  const { data: member } = usePolicy<Member>(node.kind === "member" ? "member" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined })
-  const { data: sponsored } = usePolicy<MemberRecordAnswer>(node.kind === "member" && tab === "bills" ? "record" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined, limit: 100 })
+  const { data: member } = usePolicy<Member>(node.kind ===export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo, toolbar }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode }) {? "member" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined })
+  const { data: sponsored } = usePolicy<MemberRecordAnswer>(node.kind ===export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo, toolbar }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode }) {&& tab === "bills" ? "record" : null, { state, session: scope.filters.session }, { id: node.kind === "member" ? node.id : undefined, limit: 100 })
   const { data: rollcall } = usePolicy<RollCallAnswer>(node.kind === "rollcall" ? "rollcall" : null, { state }, { id: node.kind === "rollcall" ? node.id : undefined })
   // One array per bill, newest first, so the tabs that key effects on it do
   // not re-run every render. Seen through a fork, the fork's commits sit in
@@ -174,6 +174,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
               history={forkChip}
               related={related}
               onEdit={() => void duplicateToEdit()}
+              toolbar={toolbar}
               onOpenChanges={openChanges}
             />
           ) : (

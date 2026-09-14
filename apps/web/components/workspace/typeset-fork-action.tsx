@@ -55,7 +55,8 @@ export function ForkAction({ expression, billId, children }: { expression: strin
     <div ref={wrap} className="relative h-full min-h-0" onMouseMove={onMove} onMouseLeave={() => !busy && setTarget(null)} onScrollCapture={() => !busy && setTarget(null)}>
       {children}
       {target && (
-        <div className="absolute right-4 z-10 flex items-center gap-2" style={{ top: Math.max(44, target.top + 4) }}>
+        {/* On the left, beside the text (Brendan, 2026-09-14): closer to the unit than the far edge. */}
+        <div className="absolute left-4 z-10 flex items-center gap-2" style={{ top: Math.max(44, target.top + 4) }}>
           {failed && <span className="rounded bg-background px-1.5 text-xs text-destructive">This unit is not in the XML store.</span>}
           <Button ref={button} variant="outline" size="sm" disabled={busy} className="h-7 gap-1.5 bg-background px-2 text-xs shadow-sm" onClick={() => void fork()}>
             <GitForkIcon className="size-3.5" /> Fork {target.label}

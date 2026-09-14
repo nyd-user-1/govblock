@@ -88,6 +88,7 @@ export function BillTextPane({
   related,
   onEdit,
   onOpenChanges,
+  toolbar,
 }: {
   state: string
   session: number | null
@@ -108,6 +109,8 @@ export function BillTextPane({
   onEdit?: () => void
   /** What a version changed, from the versions aside. */
   onOpenChanges?: (documentId: number) => void
+  /** Drawn under the file row and over the text (Brendan, 2026-09-14): Typeset's rich-text toolbar. */
+  toolbar?: React.ReactNode
 }) {
   const [wrap] = useDocPref("wrap", true)
   const [fold] = useDocPref("fold", true)
@@ -405,6 +408,7 @@ export function BillTextPane({
           </Button>
         </div>
       </div>
+      {toolbar}
 
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">

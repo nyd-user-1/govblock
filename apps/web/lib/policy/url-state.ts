@@ -26,7 +26,10 @@ let patched = false
 function ensurePatched() {
   if (patched || typeof window === "undefined") return
   patched = true
-  const notify = () => window.dispatchEvent(new Event(SEARCH_EVENT))
+  // Dispatched a tick later (2026-09-14): a replaceState made inside a
+  // React insertion effect (the Fork view's) would otherwise have the
+  // subscribers set state synchronously, which React refuses.
+  const notify = () => queueMicrotask(() => window.dispatchEvent(new Event(SEARCH_EVENT)))
   const push = window.history.pushState.bind(window.history)
   const replace = window.history.replaceState.bind(window.history)
   window.history.pushState = function (...args) {

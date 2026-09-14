@@ -32,7 +32,7 @@ const FileView = dynamic(() => import("@/components/create/file-view").then((m) 
 
 export type GitView = Extract<TypesetView, "git" | "diff" | "fork">
 
-export function TypesetGitPane({ billId, view }: { billId: number; view: GitView }) {
+export function TypesetGitPane({ billId, view, toolbar }: { billId: number; view: GitView; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode }) {
   const router = useRouter()
   const scope = useScope()
   const q = useUrlParams(["doc", "fork"] as const)
@@ -68,6 +68,7 @@ export function TypesetGitPane({ billId, view }: { billId: number; view: GitView
       tab={tab}
       doc={q.doc}
       fork={q.fork}
+      toolbar={toolbar}
       onTab={(t) => navigate({ tab: t })}
       onDoc={(id) => writeUrlParams({ doc: id ? String(id) : null }, { history: "push" })}
       onGo={navigate}

@@ -417,11 +417,8 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
         </WithToolbar>
       )
     } else if (isGitView(view)) {
-      content = (
-        <WithToolbar>
-          <TypesetGitPane billId={route.billId} view={view} />
-        </WithToolbar>
-      )
+      // The file row first, the rich-text toolbar under it (Brendan, 2026-09-14): the pane draws the toolbar between its row and the text.
+      content = <TypesetGitPane billId={route.billId} view={view} toolbar={<StaticToolbar />} />
     }
   } else {
     content =

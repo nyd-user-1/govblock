@@ -16,7 +16,6 @@ import { KEYS } from 'platejs';
 import { ImagePlusIcon, ListCollapseIcon, MinusIcon, PlusIcon, SmileIcon } from 'lucide-react';
 import { cn } from '@govblock/ui/lib/utils';
 import dynamic from 'next/dynamic';
-import { useEditorReadOnly } from 'platejs/react';
 
 import { ActionsToolbarButton } from './actions-toolbar-button';
 import { AlignToolbarButton } from './align-toolbar-button';
@@ -54,14 +53,15 @@ const MediaToolbarMenu = dynamic(() => import('./media-toolbar-button').then((m)
 const ToggleToolbarButton = dynamic(() => import('./toggle-toolbar-button').then((m) => m.ToggleToolbarButton), { ssr: false });
 
 export function FixedToolbarButtons() {
-  const readOnly = useEditorReadOnly();
   // Every button is drawn (Brendan, 2026-09-13). One whose kit the editor was
   // built without (BillKit leaves out AI, emoji, media, toggles and font
   // sizes) loads its kit when it is used; see lazy-kit-button.tsx.
+  // Drawn in Viewing too (Brendan, 2026-09-14): the mode changes what a
+  // button does, not whether the toolbar is there.
 
   return (
     <div className="flex w-full">
-      {!readOnly && (
+      {(
         <>
           <ToolbarGroup>
             <UndoToolbarButton />
