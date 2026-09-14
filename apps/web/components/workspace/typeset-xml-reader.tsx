@@ -3,7 +3,11 @@
 import * as React from "react"
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react"
 
+import { useRouter } from "next/navigation"
+
+import { CiteDecorations, useCitations } from "@/components/workspace/typeset-cite-layer"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
+import type { CiteContext } from "@/lib/typeset/cite"
 import { cn } from "@govblock/ui/lib/utils"
 
 import "./typeset-xml-reader.css"
@@ -27,6 +31,8 @@ export type XmlMeta = {
   fidelity: "native-xml" | "structured-html" | "plain-text" | "pdf"
   dialect: string
   sourceUrl: string | null
+  /** The stored text is a web page captured in place of the printing. */
+  captured?: boolean
 }
 
 type Loaded = XmlMeta & { json: JSONContent; timings?: Record<string, number>; bytes?: Record<string, number> }
@@ -35,7 +41,11 @@ type Loaded = XmlMeta & { json: JSONContent; timings?: Record<string, number>; b
 export function XmlSourceLine({ meta }: { meta: XmlMeta | null }) {
   if (!meta) return <div aria-hidden className="h-10 shrink-0 border-b border-b-border" />
   const printing = [meta.version, meta.date?.slice(0, 10)].filter(Boolean).join(" · ")
-  const note = meta.fidelity === "plain-text" ? "Read from the stored plain text: this printing has no XML yet, so its levels are inferred from the numbering." : null
+  const note = meta.captured
+    ? "The stored text of this printing is the legislature's web page, not the bill, so it is not drawn; a clean copy is being fetched."
+    : meta.fidelity === "plain-text"
+      ? "Read from the stored plain text: this printing has no XML yet, so its levels are inferred from the numbering."
+      : null
   return (
     <div className="flex h-10 shrink-0 items-center gap-3 border-b border-b-border px-4 text-xs text-muted-foreground">
       {printing && <span className="truncate font-medium text-foreground">{printing}</span>}
@@ -57,6 +67,7 @@ export function TypesetXmlReader({
   meta: initialMeta,
   jsonUrl,
   portion,
+  cite,
 }: {
   billId?: number
   version?: string
@@ -64,7 +75,14 @@ export function TypesetXmlReader({
   meta?: XmlMeta | null
   jsonUrl?: string
   portion?: string | null
+  /** Who is citing (window 6): the document's jurisdiction, Work and date, for its citations to be found, resolved and decorated. */
+  cite?: (CiteContext & { at?: string | null; citing?: string | null }) | null
 }) {
+  const router = useRouter()
+  const routerRef = React.useRef(router)
+  routerRef.current = router
+  // Made once with the editor: the citations layer when a citing context is given.
+  const extensions = React.useMemo(() => (cite ? [...XML_EXTENSIONS, CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href) })] : XML_EXTENSIONS), [Boolean(cite)]) // eslint-disable-line react-hooks/exhaustive-deps
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
   const [failed, setFailed] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -97,7 +115,7 @@ export function TypesetXmlReader({
 
   const editor = useEditor(
     {
-      extensions: XML_EXTENSIONS,
+      extensions,
       editable: false,
       immediatelyRender: false,
       content: loaded?.json ?? null,
@@ -115,6 +133,7 @@ export function TypesetXmlReader({
 
   const meta = loaded ?? initialMeta ?? null
   const showEditor = Boolean(loaded && editor && mounted)
+  useCitations(showEditor ? editor : null, cite ?? null)
   const dialect = meta?.dialect ?? undefined
 
   // Open at the portion the address named, on the snapshot and again once the editor has replaced it.

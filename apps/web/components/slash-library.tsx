@@ -3,6 +3,7 @@
 import * as React from "react"
 import { LibraryIcon } from "lucide-react"
 
+import type { AtItem, AtResponse } from "@/app/api/typeset/at/route"
 import type { SlashItem, SlashResponse } from "@/app/api/typeset/slash/route"
 import { FlagChip } from "@/components/policy/imagery"
 import { CommandEmpty, CommandGroup, CommandItem } from "@govblock/ui/components/nova/command"
@@ -19,22 +20,30 @@ export const corpusMode = (term: string): CorpusMode => (term.startsWith("/") ? 
 
 export function useSlashLibrary(term: string, active: boolean) {
   const [result, setResult] = React.useState<SlashResponse | null>(null)
+  const [at, setAt] = React.useState<AtResponse | null>(null)
   const [pending, setPending] = React.useState(false)
   const mode = corpusMode(term)
   React.useEffect(() => {
-    if (!active || mode !== "slash" || term.length < 2) {
+    if (!active || !mode || term.length < (mode === "at" ? 3 : 2)) {
       setResult(null)
+      setAt(null)
       return
     }
     let cancelled = false
     setPending(true)
     const handle = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/typeset/slash?q=${encodeURIComponent(term)}`)
-        const body = (await response.json()) as SlashResponse
-        if (!cancelled) setResult(body)
+        // "@" is references (window 6): citations, members and committees in one palette.
+        const response = await fetch(mode === "at" ? `/api/typeset/at?q=${encodeURIComponent(term)}` : `/api/typeset/slash?q=${encodeURIComponent(term)}`)
+        const body = await response.json()
+        if (cancelled) return
+        if (mode === "at") setAt(body as AtResponse)
+        else setResult(body as SlashResponse)
       } catch {
-        if (!cancelled) setResult(null)
+        if (!cancelled) {
+          setResult(null)
+          setAt(null)
+        }
       } finally {
         if (!cancelled) setPending(false)
       }
@@ -44,13 +53,39 @@ export function useSlashLibrary(term: string, active: boolean) {
       clearTimeout(handle)
     }
   }, [active, mode, term])
-  return { mode, result, pending }
+  return { mode, result, at, pending }
+}
+
+function AtGroup({ heading, items, go }: { heading: string; items: AtItem[]; go: (href: string) => void }) {
+  if (!items.length) return null
+  return (
+    <CommandGroup heading={heading}>
+      {items.map((item) => (
+        <CommandItem key={`${item.kind}-${item.label}-${item.href}`} className="group/row" value={`at-${item.kind}-${item.label}-${item.href}`} disabled={!item.href} onSelect={() => item.href && go(item.href)}>
+          {item.state ? <FlagChip state={item.state} width={20} /> : <LibraryIcon className="text-muted-foreground" />}
+          <span className={LABEL}>{item.label}</span>
+          <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{item.detail}</span>
+          {item.kind === "citation" && item.insert.href && <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground md:inline">{item.insert.href}</span>}
+        </CommandItem>
+      ))}
+    </CommandGroup>
+  )
 }
 
 const LABEL = "w-48 shrink-0 truncate font-medium"
 
-export function SlashResults({ mode, result, pending, term, go }: { mode: CorpusMode; result: SlashResponse | null; pending: boolean; term: string; go: (href: string) => void }) {
-  if (mode === "at") return <CommandEmpty>Citations by @ arrive with the library.</CommandEmpty>
+export function SlashResults({ mode, result, at, pending, term, go }: { mode: CorpusMode; result: SlashResponse | null; at?: AtResponse | null; pending: boolean; term: string; go: (href: string) => void }) {
+  if (mode === "at") {
+    if (term.length < 3) return <CommandEmpty>@10 U.S.C. 130i, @section 16 of the agriculture and markets law, or a member or committee by name</CommandEmpty>
+    if (!at || !(at.citations.length || at.members.length || at.committees.length)) return <CommandEmpty>{pending ? "Reading the corpus…" : "Nothing by that reference."}</CommandEmpty>
+    return (
+      <>
+        <AtGroup heading="Citations" items={at.citations} go={go} />
+        <AtGroup heading="Members" items={at.members} go={go} />
+        <AtGroup heading="Committees" items={at.committees} go={go} />
+      </>
+    )
+  }
   if (term.length < 2) return <CommandEmpty>/119, /6644, /hr6644, /new-york-code, or an address like /us/bill/119/hr/6644</CommandEmpty>
   if (!result) return <CommandEmpty>{pending ? "Reading the corpus…" : "Nothing at that address."}</CommandEmpty>
   if (!result.items.length && !result.href) return <CommandEmpty>{pending ? "Reading the corpus…" : `Nothing under ${result.label || term}.`}</CommandEmpty>

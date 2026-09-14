@@ -26,6 +26,7 @@ import { TypesetEditor } from "@/components/workspace/typeset-editor"
 import { TypesetGitPane, type GitView } from "@/components/workspace/typeset-git-pane"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
 import { ForkAction } from "@/components/workspace/typeset-fork-action"
+import { jurisdictionOf } from "@/lib/xml/address"
 import { TypesetBillFork } from "@/components/workspace/typeset-fork"
 import { TypesetLibraryPane } from "@/components/workspace/typeset-library"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
@@ -395,7 +396,13 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
     } else if (view === "xml") {
       content = (
         <ForkAction expression={xml?.meta?.expression ?? null} billId={route.billId}>
-          <TypesetXmlReader billId={route.billId} version={params.version ? String(params.version) : undefined} snapshot={xml?.snapshot} meta={xml?.meta} />
+          <TypesetXmlReader
+            billId={route.billId}
+            version={params.version ? String(params.version) : undefined}
+            snapshot={xml?.snapshot}
+            meta={xml?.meta}
+            cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
+          />
         </ForkAction>
       )
     } else if (view === "fork") {

@@ -1,0 +1,40 @@
+/* Citations over the reader and the Fork view's editor (window 6, 2026-09-14):
+   decorations from lib/typeset/cite.ts and the corpus's answer, never marks. */
+
+.uslm-doc .cite-found {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.uslm-doc .cite-found:hover {
+  text-decoration-style: solid;
+  text-decoration-color: currentColor;
+}
+
+.uslm-doc .cite-missing {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in oklab, currentColor 18%, transparent);
+  text-underline-offset: 3px;
+}
+
+.uslm-doc .cite-advisory {
+  background: color-mix(in oklab, #f59e0b 14%, transparent);
+  border-radius: 2px;
+}
+
+.uslm-doc .at-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: 0.35em;
+  padding: 0 0.3em;
+  border-radius: 4px;
+  font: 600 11px/1.5 ui-monospace, monospace;
+  color: var(--primary, #2563eb);
+  background: color-mix(in oklab, currentColor 10%, transparent);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: 1px;
+}

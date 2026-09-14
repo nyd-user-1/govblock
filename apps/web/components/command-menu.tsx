@@ -287,6 +287,10 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
     const first = slash.result?.items[0]
     setSlashSelected(slash.result?.href ? `slash-open-${slash.result.href}` : first ? `slash-${first.href ?? first.address}` : "")
   }, [slash.result])
+  React.useEffect(() => {
+    const first = slash.at ? [...slash.at.citations, ...slash.at.members, ...slash.at.committees].find((i) => i.href) : null
+    setSlashSelected(first ? `at-${first.kind}-${first.label}-${first.href}` : "")
+  }, [slash.at])
   const showRecents = !slash.mode && search.query.length < 2 && recents.length > 0
 
   React.useEffect(() => {
@@ -358,7 +362,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
                   ))}
                 </CommandGroup>
               )}
-              {slash.mode ? <SlashResults mode={slash.mode} result={slash.result} pending={slash.pending} term={term} go={go} /> : <SearchResults search={search} state={state} go={go} />}
+              {slash.mode ? <SlashResults mode={slash.mode} result={slash.result} at={slash.at} pending={slash.pending} term={term} go={go} /> : <SearchResults search={search} state={state} go={go} />}
             </CommandList>
           </Command>
         </DialogContent>

@@ -96,7 +96,13 @@ export function TypesetWork(props: TypesetWorkProps) {
       {jsonUrl ? (
         // Fork the unit under the pointer from this Expression (window 5).
         <ForkAction expression={props.expression}>
-          <TypesetXmlReader jsonUrl={jsonUrl} snapshot={snapshot} meta={meta} portion={portion} />
+          <TypesetXmlReader
+            jsonUrl={jsonUrl}
+            snapshot={snapshot}
+            meta={meta}
+            portion={portion}
+            cite={{ jurisdiction: props.work.split("/")[1] ?? "us", work: props.work, at: meta?.date?.slice(0, 10) ?? null, citing: `${props.work}@${props.expression}` }}
+          />
         </ForkAction>
       ) : (
         <p className="p-8 text-sm text-muted-foreground">{door === "sign-in" ? "Sign in to read this." : "Reading this takes a plan that covers its jurisdiction."}</p>

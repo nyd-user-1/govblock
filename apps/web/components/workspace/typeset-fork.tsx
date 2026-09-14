@@ -15,6 +15,8 @@ import type { Bill } from "@/lib/policy/types"
 import { amendmentText, diffDocs, instructions, marked, type Amendment, type Citation, type Convention, type MarkedSpec, type Run } from "@/lib/typeset/amend"
 import { billWork } from "@/lib/xml/address"
 import { workHref } from "@/lib/xml/library"
+import { AtPalette, AtTrigger } from "@/components/workspace/typeset-at-palette"
+import { CiteDecorations, useCitations } from "@/components/workspace/typeset-cite-layer"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
 import { TypesetXmlToolbar } from "@/components/workspace/typeset-xml-toolbar"
@@ -169,6 +171,11 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
   const [message, setMessage] = React.useState("")
   const [description, setDescription] = React.useState("")
   const specs = React.useRef<MarkedSpec[]>([])
+  const router = useRouter()
+  const routerRef = React.useRef(router)
+  routerRef.current = router
+  // Where "@" was typed, while the references palette is open (window 6).
+  const [atPos, setAtPos] = React.useState<number | null>(null)
 
   const load = React.useCallback(() => {
     setFailed(null)
@@ -185,7 +192,9 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
   }, [load])
 
   const editor = useEditor(
-    { extensions: [...XML_EXTENSIONS, ForkHistory], editable: true, immediatelyRender: false, content: data ? (data.head?.json ?? data.base.json) : null, enableInputRules: false, enablePasteRules: false },
+    {
+      extensions: [...XML_EXTENSIONS, ForkHistory, CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href) }), AtTrigger.configure({ onAt: (pos) => setAtPos(pos) })],
+      editable: true, immediatelyRender: false, content: data ? (data.head?.json ?? data.base.json) : null, enableInputRules: false, enablePasteRules: false },
     [data?.fork.id, data?.head?.id]
   )
   const redline = useEditor(
@@ -200,6 +209,9 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
     },
     [data?.base.address, data?.fork.id]
   )
+
+  // The fork's citations, found, resolved as of its base's date and decorated (window 6).
+  useCitations(data ? editor : null, data ? { jurisdiction: data.cite.jurisdiction, work: data.cite.work, at: data.base.date.slice(0, 10), citing: data.base.address } : null)
 
   // The amendment, rewritten as the fork changes.
   React.useEffect(() => {
@@ -260,6 +272,9 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
             </button>
           ))}
         </div>
+        <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-xs" disabled={!editor || mode !== "edit"} aria-label="Insert a reference" onClick={() => editor && setAtPos(editor.state.selection.from)}>
+          @
+        </Button>
         <Button size="sm" disabled={!dirty || !data} className="h-7 bg-[#1f883d] text-xs text-white hover:bg-[#1a7f37]" onClick={() => setAsking(true)}>
           Commit…
         </Button>
@@ -299,6 +314,8 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
           <Instructions amendment={data ? amendment : null} />
         </aside>
       </div>
+
+      {atPos !== null && editor && data && <AtPalette editor={editor} pos={atPos} jurisdiction={data.cite.jurisdiction} state={data.fork.state} onClose={() => setAtPos(null)} />}
 
       <Dialog open={asking} onOpenChange={setAsking}>
         <DialogContent className="sm:max-w-lg">
