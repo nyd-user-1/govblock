@@ -143,9 +143,13 @@ export async function reclaimStale(minutes = 10) {
 }
 
 /** The next queued job, taken. `only` narrows to jurisdictions or a kind. */
-export async function claim({ jurisdictions = null, kind = null } = {}) {
+export async function claim({ jurisdictions = null, kind = null, run = null } = {}) {
   const where = ["status = 'queued'"]
   const params = [WORKER]
+  if (run) {
+    params.push(`${run.replace(/[%_]/g, "\\$&")}%`)
+    where.push(`run like $${params.length}`)
+  }
   if (jurisdictions?.length) {
     params.push(jurisdictions.join(","))
     where.push(`jurisdiction = any(string_to_array($${params.length}, ','))`)

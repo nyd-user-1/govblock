@@ -26,6 +26,15 @@ const SOURCES = [
     read: (job, ctx) => statutes({ jurisdiction: job.jurisdiction, unit: job.unit, ...ctx }),
   },
   {
+    name: '"BillTexts" since the last run',
+    matches: (job) => job.jurisdiction !== "us" && job.kind === "bill" && String(job.unit).startsWith("delta@"),
+    prefixes: (job) => [`/${job.jurisdiction}/bill/`],
+    read: async function* (job, ctx) {
+      const { billDelta } = await import("./bill-delta.mjs")
+      yield* billDelta({ jurisdiction: job.jurisdiction, unit: job.unit, ...ctx })
+    },
+  },
+  {
     name: "lake Parquet: bill_texts, bills, history_table",
     matches: (job) => job.jurisdiction !== "us" && job.kind === "bill",
     prefixes: (job) => [`/${job.jurisdiction}/bill/${job.unit}`],

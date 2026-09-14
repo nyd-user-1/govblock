@@ -3,13 +3,14 @@
 // the BillHistory that dates them (legislative/history_table). Aurora holds
 // the same rows, but reads "BillTexts" at about a row a second over the Data
 // API; the Parquet export reads a session in seconds. Printings fetched after
-// the export are the next nightly run's (the job definition in window-2.md).
+// the export are the nightly run's (bill-delta.mjs).
 import { createRequire } from "node:module"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 
-import { BUCKET, sessionSegment, stageSlug, stateBillWork } from "../lib/address.mjs"
+import { BUCKET } from "../lib/address.mjs"
+import { historyList, NOT_A_PRINTING, printingsOfBill } from "./printings.mjs"
 
 const require = createRequire(import.meta.url)
 const { S3Client, GetObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3")
@@ -55,41 +56,22 @@ async function historyOf(jurisdiction) {
     const byBill = new Map()
     for (const r of rows) {
       const id = Number(r.bill_id)
-      const date = r.date ? String(r.date instanceof Date ? r.date.toISOString() : r.date).slice(0, 10) : null
-      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
       const list = byBill.get(id) ?? []
-      list.push({ date, sequence: Number(r.sequence ?? 0), action: String(r.action ?? "") })
+      list.push(r)
       byBill.set(id, list)
     }
-    for (const list of byBill.values()) list.sort((a, b) => a.date.localeCompare(b.date) || a.sequence - b.sequence)
+    for (const [id, list] of byBill) byBill.set(id, historyList(list))
     historyCache.set(jurisdiction, byBill)
   }
   return historyCache.get(jurisdiction)
 }
 
-// A document that rides along with a bill but is not a printing of it.
-const NOT_A_PRINTING = /memo|fiscal|analysis|summary|note\b|report|statement|testimony|veto|vote|letter|fetch failed|crs/i
-
-/** The BillHistory action that produced a printing, by what the printing is called. */
-function actionFor(name) {
-  if (/introduc|original|^(as )?filed|prefiled|first reading/i.test(name)) return /./
-  if (/enroll/i.test(name)) return /enroll|passed both|delivered to (the )?governor|sent to (the )?governor/i
-  if (/chapter|signed|act\b|public act|session law/i.test(name)) return /chapter|signed|approved by (the )?governor|became law|act no/i
-  if (/engross/i.test(name)) return /engross|passed|third reading/i
-  return /amend|substitut|print number|reprint|committee substitute|reported/i
-}
-
-/**
- * The job's documents. `unit` is the session's first year. Each printing is
- * dated by the BillHistory action that produced it, at or after the printing
- * before it; where none matches, it takes that earlier printing's date, and
- * only with no history at all the day it was read.
- */
+/** The job's documents. `unit` is the session's first year. */
 export async function* stateBills({ jurisdiction, unit, log }) {
   const state = jurisdiction.replace(/^us-/, "")
   const t0 = Date.now()
   const [texts, bills] = await Promise.all([
-    readParquet(`lake/v1/text/bill_texts/jurisdiction=${state}/session=${unit}/`, ["document_id", "bill_id", "version", "mime", "text", "text_hash", "fetched_at"]),
+    readParquet(`lake/v1/text/bill_texts/jurisdiction=${state}/session=${unit}/`, ["document_id", "bill_id", "version", "text", "fetched_at"]),
     readParquet(`lake/v1/legislative/bills/jurisdiction=${state}/session=${unit}/`, ["bill_id", "bill_number", "session_title", "legiscan_session_id", "title"]),
   ])
   const history = await historyOf(state)
@@ -111,56 +93,10 @@ export async function* stateBills({ jurisdiction, unit, log }) {
 
   for (const [billId, docs] of byBill) {
     const bill = billById.get(billId)
-    const list = docs.filter((t) => t.text && !NOT_A_PRINTING.test(String(t.version ?? ""))).sort((a, b) => Math.abs(Number(a.document_id)) - Math.abs(Number(b.document_id)))
-    if (!list.length) continue
     if (!bill) {
-      for (const t of list) yield { fallout: { stage: "source", reason: "printing with no bill in the lake", detail: `bill_id ${billId}`, sourceRef: `BillTexts:${t.document_id}` } }
+      for (const t of docs) if (t.text && !NOT_A_PRINTING.test(String(t.version ?? ""))) yield { fallout: { stage: "source", reason: "printing with no bill in the lake", detail: `bill_id ${billId}`, sourceRef: `BillTexts:${t.document_id}` } }
       continue
     }
-    const session = sessionSegment(unit, bill.session_title, bill.legiscan_session_id)
-    const work = stateBillWork(state, session, bill.bill_number)
-    if (!work) {
-      for (const t of list) yield { fallout: { stage: "source", reason: "bill number does not split", detail: String(bill.bill_number), sourceRef: `BillTexts:${t.document_id}` } }
-      continue
-    }
-    const actions = history.get(billId) ?? []
-    let floor = null
-    const used = new Map()
-    for (const t of list) {
-      const name = String(t.version ?? "text")
-      const lettered = /^amendment\s+([a-z])$/i.exec(name)
-      const stageBase = lettered ? lettered[1].toLowerCase() : stageSlug(name)
-      let date = null
-      let basis = "history"
-      const wanted = actionFor(name)
-      const hit = actions.find((a) => (!floor || a.date >= floor) && wanted.test(a.action))
-      if (hit) date = hit.date
-      else if (floor) date = floor
-      else if (actions.length) date = actions[0].date
-      else {
-        date = t.fetched_at ? new Date(t.fetched_at).toISOString().slice(0, 10) : null
-        basis = "fetched"
-      }
-      if (!date) {
-        yield { fallout: { work, stage: "source", reason: "no date", detail: name, sourceRef: `BillTexts:${t.document_id}` } }
-        continue
-      }
-      floor = date
-      const key = `${date}_${stageBase}`
-      const n = (used.get(key) ?? 0) + 1
-      used.set(key, n)
-      const stage = n > 1 ? `${stageBase}-${n}` : stageBase
-      yield {
-        work,
-        unit: stage,
-        session,
-        label: String(bill.bill_number),
-        sourceUrl: null,
-        sourceRef: `BillTexts:${t.document_id}`,
-        frontEnd: state.toUpperCase(),
-        source: { kind: "text", body: t.text, meta: { kind: "bill" } },
-        info: { kind: "bill", root: "bill", stage, number: String(bill.bill_number), title: bill.title ?? null, publisher: null, fidelity: "plain-text", date, dateBasis: basis },
-      }
-    }
+    yield* printingsOfBill({ state, unit, bill, docs, actions: history.get(billId) ?? [] })
   }
 }

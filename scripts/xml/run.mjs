@@ -8,6 +8,7 @@
 //   node scripts/xml/run.mjs --watch              keep polling for jobs (the dashboard's run controls)
 //   node scripts/xml/run.mjs --only us,us-ny      only these jurisdictions
 //   node scripts/xml/run.mjs --kind bill          only bills (or statute)
+//   node scripts/xml/run.mjs --run nightly-       only jobs of runs named so
 //   node scripts/xml/run.mjs --slots 2            jobs at once (default 2)
 //   node scripts/xml/run.mjs --workers 7          compiler threads (default: cores - 1)
 //   node scripts/xml/run.mjs --job 12 --dry       one job, nothing written
@@ -46,6 +47,8 @@ const KIND = value("kind")
 const JOB = value("job")
 // A front end that improved without changing its name: build what is held again, in place.
 const REBUILD = flag("rebuild")
+// Only jobs whose run starts with this: the nightly run drains its own ("nightly-").
+const RUN = value("run")
 
 const stamp = () => new Date().toISOString().replace("T", " ").slice(0, 19)
 const log = (m) => console.log(`${stamp()} ${m}`)
@@ -239,7 +242,7 @@ if (JOB) {
   let idle = 0
   const slot = async () => {
     for (;;) {
-      const job = await claim({ jurisdictions: ONLY, kind: KIND })
+      const job = await claim({ jurisdictions: ONLY, kind: KIND, run: RUN })
       if (job) {
         idle = 0
         await runJob(job)

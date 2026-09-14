@@ -55,16 +55,18 @@ export async function* uscTitle({ unit, log }) {
   const meta = metaAt >= 0 ? xml.slice(metaAt, xml.indexOf("</meta>", metaAt) + 7) : ""
   const root = /<uscDoc\b[^>]*>/.exec(xml)?.[0] ?? `<uscDoc xmlns="http://xml.house.gov/schemas/uslm/1.0">`
 
-  // A section of the Code is a <section> whose identifier is the section's
-  // own path. Sections quoted inside notes carry none, or repeat one already
+  // A section of the Code is a <section> whose identifier is its own path; in
+  // the appendix titles the Federal Rules are <courtRule>s
+  // (/us/usc/t18a/courtRules/Crim/rule1), kept as the OLRC writes them.
+  // Sections quoted inside notes carry no identifier, or repeat one already
   // taken, and are skipped with the section that holds them.
-  const open = /<section\b[^>]*\bidentifier="(\/us\/usc\/t[0-9A-Za-z]+\/s[^"/]+)"[^>]*>/g
+  const open = /<(section|courtRule)\b[^>]*\bidentifier="(\/us\/usc\/t[0-9A-Za-z]+\/[^"]+)"[^>]*>/g
   const seen = new Set()
   let m
   let count = 0
   while ((m = open.exec(xml))) {
-    const identifier = m[1]
-    const end = endOf(xml, "section", m.index)
+    const identifier = m[2]
+    const end = endOf(xml, m[1], m.index)
     open.lastIndex = end
     if (seen.has(identifier)) continue
     seen.add(identifier)
@@ -76,8 +78,8 @@ export async function* uscTitle({ unit, log }) {
       work: identifier,
       unit: "",
       session: null,
-      label: `${Number(t.replace(/\D/g, ""))}${t.replace(/\d/g, "").toUpperCase()} U.S.C. ${identifier.replace(/^.*\/s/, "")}`,
-      sourceUrl: `https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title${t.replace(/^0/, "")}-section${identifier.replace(/^.*\/s/, "")}`,
+      label: m[1] === "courtRule" ? `${Number(t.replace(/\D/g, ""))}${t.replace(/\d/g, "").toUpperCase()} U.S.C. App., ${num.replace(/\.$/, "")}` : `${Number(t.replace(/\D/g, ""))}${t.replace(/\d/g, "").toUpperCase()} U.S.C. ${identifier.replace(/^.*\/s/, "")}`,
+      sourceUrl: m[1] === "courtRule" ? null : `https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title${t.replace(/^0/, "")}-section${identifier.replace(/^.*\/s/, "")}`,
       sourceRef: `olrc:${RELEASE}:${identifier}`,
       frontEnd: "US",
       source: { kind: "xml", body: `${root}${meta}<main>${section}</main></uscDoc>`, url },
