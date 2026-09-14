@@ -1,5 +1,79 @@
 # Window 1: the reader — report
 
+## Milestone 5 — Texas and California through the reader, 2026-09-14 08:45 EDT
+
+Asked by the lead after acceptance: the state-profile front ends
+(`frontends/generic.ts`, `profiles.ts`) on a Texas and a California printing,
+through the XML view's build path, reporting anything the schema refuses.
+
+### What ran
+
+The build the XML view runs (front end for the state, `uslmToDoc`,
+`docToHtml`, `docToJson`), bundled once so a single copy of prosemirror-model
+is loaded, plus two round trips: the compact JSON back through
+`Node.fromJSON` (what the editor loads) and the first-paint HTML back through
+the schema's parse rules. As a script on the box, not in the page, because
+Texas and California are outside the free scope and the box has no internal
+key for an anonymous request.
+
+| Printing | Front end, coverage | Nodes | Schema refused | Rank violations | JSON / HTML round trip |
+|---|---|---|---|---|---|
+| TX H.B. 18, enrolled (`/us-tx/bill/2025s2/hb/18`) | Texas, 77% | 3 sections, 9 subsections, 7 paragraphs, 6 subparagraphs, 9 continuations | nothing | 0 | exact / exact |
+| TX H.R. 128, enrolled (resolution) | Texas, 100% | 1 resolvingClause, 24 p | nothing | 0 | exact / exact |
+| CA A.B. 1607, enrolled (`ca-pubinfo` printing) | California, 100% | 2 sections, 11 subsections, 7 paragraphs, 7 subparagraphs | nothing | 0 | exact / exact |
+| CA S.B. 908, enrolled (newest printing, `state_link`) | California, 96% | 48 p, no sections | nothing | 0 | exact / exact |
+| NY A11559; H.R. 6644 as plain text | New York; text | as milestone 3 | nothing | 0 | exact / exact |
+
+### Fixed in the schema
+
+The HTML round trip was not exact at first: the parse rules read back only
+the attributes every block shares, so a `num` lost its `value`, a `p` its
+`implicit`, a `quotedContent` its `origin`, a cell its spans. `readAttrs` now
+reads every attribute a node's spec declares. The editor loads from JSON and
+was not affected; pasting or reparsing the first paint was. GPO's random `id`s
+and layout `class`es stay out of the HTML on purpose (bytes); they are in the
+JSON and the IR.
+
+### For the lead: the front ends, not the schema
+
+1. **Quoted law is not `quotedContent` in the Texas and California front
+   ends.** California A.B. 1607 SECTION 1: "Section 76000.5 of the Government
+   Code is amended to read: 76000.5." is followed by that Code section's
+   subdivisions (a), (1), (A) as the *bill section's* own subsection,
+   paragraph and subparagraph. Texas H.B. 18 SECTION 1 does the same with
+   "is amended by adding Subchapter G to read as follows:" and Sec. 301.101.
+   Both have 0 `quotedContent`. The schema accepts it because the ranks are
+   legal, but it is structurally wrong: the amendment engine would read the
+   Government Code's subdivisions as the bill's. The New York front end's
+   "as follows:" rule is the one to generalise ("amended to read:", "to read
+   as follows:").
+2. **Texas H.B. 18 at 77%:** "(iii) issued civil warrants" is not matched
+   and runs on inside clause (ii); the notes show subsection and paragraph
+   sequences restarting inside the quoted subchapter, which is the same
+   problem as 1.
+3. **Front matter is one paragraph.** Texas and California put the title,
+   the Legislative Counsel's digest and the enacting formula ("BE IT ENACTED
+   BY THE LEGISLATURE OF THE STATE OF TEXAS:", "The people of the State of
+   California do enact as follows:") in one `preface` paragraph; USLM has
+   `longTitle`, `enactingFormula`, and a note for the digest.
+4. **Texas deletions are not marked.** H.R. 128 prints struck text in
+   brackets ("[or]", "[the]", "[of $500]"); 0 `del` marks. The brackets are
+   Texas's convention for struck language in plain text and can be `del`.
+5. **The stored text is a web page for California's `state_link` printings.**
+   Of the newest 3,000 California 2025 texts, 581 have `source = 'state_link'`
+   and every one of them opens with leginfo's page furniture (script, styles,
+   "skip to content"); the 2,419 `ca-pubinfo` texts are clean. New York: 31
+   of its newest 1,500 are `state_link`, all web pages. Texas's `state_link`
+   texts (1,500) are clean. Typeset and the XML view open a bill's newest
+   printing, so for S.B. 908 both draw leginfo's JavaScript as the bill. The
+   pipeline should skip or rank below `ca-pubinfo` any `state_link` row for
+   California and New York.
+
+### Files touched
+
+- `apps/web/lib/xml/schema.ts` (`readAttrs`)
+- `apps/web/docs/xml/window-1.md`
+
 ## Milestone 4 — the `/` stub and one parser; done, 2026-09-14 08:10 EDT
 
 ### Built

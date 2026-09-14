@@ -59,19 +59,21 @@ const cls = (...names: (string | null | undefined | false)[]) => names.filter(Bo
 
 function block(name: string, tag: string, spec: Partial<NodeSpec> & { className?: (attrs: Attrs) => string } = {}): NodeSpec {
   const { className, ...rest } = spec
+  const keys = Object.keys(rest.attrs ?? BLOCK_ATTRS)
   return {
     attrs: BLOCK_ATTRS,
     ...rest,
     toDOM: (node: PmNode): DOMOutputSpec => [tag, dataAttrs(name, node.attrs, { class: cls(`uslm-${name}`, className?.(node.attrs)) }), 0],
-    parseDOM: [{ tag: `[data-uslm="${name}"]`, getAttrs: readAttrs }],
+    parseDOM: [{ tag: `[data-uslm="${name}"]`, getAttrs: (dom) => readAttrs(dom as HTMLElement, keys) }],
   }
 }
 
-function readAttrs(dom: HTMLElement): Attrs {
+/** A node's attributes read back from its markup: every attribute its spec declares, so a num keeps its value and a p its `implicit`. */
+function readAttrs(dom: HTMLElement, keys: string[]): Attrs {
   const attrs: Attrs = {}
-  for (const key of Object.keys(BLOCK_ATTRS)) {
-    const v = key === "identifier" ? dom.getAttribute("id") : dom.getAttribute(`data-${key}`)
-    if (v != null) attrs[key] = key === "xml" ? JSON.parse(v) : v
+  for (const key of keys) {
+    const v = key === "identifier" ? dom.getAttribute("id") : dom.getAttribute(`data-${key.toLowerCase()}`)
+    if (v != null) attrs[key] = key === "xml" ? JSON.parse(v) : v === "true" ? true : v
   }
   return attrs
 }
