@@ -179,7 +179,7 @@ export function SignStage({
             </div>
           )}
         </div>
-        <motion.div {...arrive} animate={flagIn ? { opacity: 1 } : { opacity: 0 }} transition={{ ...arrive.transition, delay: 0.45 }} className="flex flex-col items-center">
+        <motion.div {...arrive} animate={flagIn ? { opacity: 1 } : { opacity: 0 }} transition={{ ...arrive.transition, delay: 0.95 }} className="flex flex-col items-center">
           <Motto />
           {/* The flag's own red and blue, the mark's colours (Brendan, 2026-09-13); Explore has nowhere to go yet. */}
           <div className="mt-10 flex items-center gap-3">
