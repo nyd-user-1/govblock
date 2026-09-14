@@ -67,3 +67,42 @@ from his testing, in his words:
 - A window's question goes to the lead, never into Brendan's terminal.
 - Say what a thing is in plain words ("Virginia's leftover files"), not
   the program's name for it ("the orphan dry run").
+
+## Brendan's road-test list, 2026-09-14 12:20, in his order
+
+Open, on `feature/legislative-xml`, for the lead or one window:
+
+1. **The Git view's header and footer on every Typeset view.** The file
+   row (search, Raw, copy, download, edit, History) above the rich-text
+   toolbar, then the content; and the Git view's footer (the numbered
+   pills, the size line, the assist toggle, the links) on all seven views
+   and on the Work page. Done on Git's views (04–05) by a `toolbar` slot
+   on `BillTextPane`; lift the row out of `bill-text-pane.tsx` into its
+   own component with a search callback so Plate (01), Outline (02),
+   Redline (03), XML (06), Library (07), the Fork view and
+   `/workspace/typeset/work/…` wear it too.
+2. **Comments save.** A table keyed to bill, document and block; the
+   discussion plugin reads and writes it instead of the in-memory demo.
+3. **Search.** ⌘K for "6644" returns H.Res. 1299 (its title mentions the
+   number) and not H.R. 6644 itself: a bill number typed bare must find
+   the bill first. And search across the XML store (the Expressions in
+   S3, indexed) from the Library and the reader: none exists.
+4. **The XML reader's keys.** `@`, `/` and ⌘J did nothing on the Work page
+   (`/workspace/typeset/work/us/usc/t7/s1`); they exist in ⌘K and the Fork
+   editor (window 6) but the read-only reader does not wire them. Wire
+   `@` (citations), `/` (the library) and ⌘J (jump to a section) on every
+   reader.
+5. **A section sidebar for the Library**, like the Git view's outline.
+6. **Editing on the XML reader.** Plate's toolbar acts on Plate; the XML
+   view is read-only until a fork. Brendan expects the toolbar's editing
+   on the XML view itself (the Tiptap editor window 5 built for forks,
+   on the bill).
+7. **The block view** — Brendan asks where it went (the Plate "blocks"
+   layout). Find whether it is a view that dropped out of `views.ts` on
+   2026-09-12 (Activity and Versions did) and restore it if so.
+8. The reader loads slower than Git: mount from the server HTML without
+   fetching the JSON when read-only.
+9. The XML reader's links go to full-size PDFs; fine, but note it.
+
+`main`'s commits in the `main-wt` worktree are ready; Brendan pushes
+when he wants the build.
