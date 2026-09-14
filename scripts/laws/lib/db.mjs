@@ -26,13 +26,20 @@ const base = { resourceArn: env.POLICY_CLUSTER_ARN, secretArn: env.POLICY_SECRET
 // first statements with DatabaseResumingException while it wakes (~20 s). A
 // long load also meets the odd throttle. Both are waited out rather than
 // thrown, which is what makes an overnight run survive the night.
+//
+// A statement timeout is not retried (2026-09-14): every statement here runs
+// with continueAfterTimeout, so the timed-out copy is still running on the
+// cluster, and sending it again stacks another copy on top. One read did
+// that 38 times and held aurora-2525 at its ceiling for half an hour. The
+// caller gets the timeout and decides; the statement finishes on its own.
 async function send(command, attempts = 30) {
   for (let attempt = 0; ; attempt++) {
     try {
       return await client.send(command)
     } catch (error) {
       const message = String(error?.name ?? "") + " " + String(error?.message ?? error)
-      const transient = /Resuming|resuming after being auto-paused|Throttl|TooManyRequests|ServiceUnavailable|StatementTimeout|timed out|ECONNRESET|EPIPE/i.test(message)
+      const stillRunning = /StatementTimeout|timed out/i.test(message) && command?.input?.continueAfterTimeout
+      const transient = !stillRunning && /Resuming|resuming after being auto-paused|Throttl|TooManyRequests|ServiceUnavailable|StatementTimeout|timed out|ECONNRESET|EPIPE/i.test(message)
       if (!transient || attempt >= attempts) throw error
       await new Promise((r) => setTimeout(r, Math.min(15000, 2000 + attempt * 1000)))
     }
