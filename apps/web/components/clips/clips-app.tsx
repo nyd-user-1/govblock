@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { CameraIcon, LayoutGridIcon, LockIcon, PlaySquareIcon } from "lucide-react"
 
@@ -73,6 +74,9 @@ function Frame({ children, onClose }: { children: React.ReactNode; onClose: () =
   )
 }
 
+// Remotion loads only when Generate opens.
+const Generate = dynamic(() => import("./generate").then((m) => m.Generate), { ssr: false })
+
 const FEED_HEIGHT = "h-[calc(100svh-var(--header-height)-3.5rem)]"
 
 export function ClipsApp() {
@@ -90,7 +94,7 @@ export function ClipsApp() {
   const [following, setFollowing] = React.useState<Set<string>>(new Set())
   const [likedComments, setLikedComments] = React.useState<Set<string>>(new Set())
   const [myComments, setMyComments] = React.useState<Comment[]>([])
-  const [mode, setMode] = React.useState<"capture" | "gate" | null>(null)
+  const [mode, setMode] = React.useState<"capture" | "generate" | "gate" | null>(null)
   const [sheet, setSheet] = React.useState(false)
   const [focusKey, setFocusKey] = React.useState(0)
   const pendingId = React.useRef<string | null>(null)
@@ -268,7 +272,7 @@ export function ClipsApp() {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", "h-[calc(100svh-var(--header-height))]")}>
-            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} />
+            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
 
@@ -363,6 +367,11 @@ export function ClipsApp() {
       {mode === "capture" && (
         <Frame onClose={() => setMode(null)}>
           <Capture author={you} onSaved={saveRecording} onClose={() => setMode(null)} />
+        </Frame>
+      )}
+      {mode === "generate" && (
+        <Frame onClose={() => setMode(null)}>
+          <Generate onClose={() => setMode(null)} />
         </Frame>
       )}
       {mode === "gate" && (

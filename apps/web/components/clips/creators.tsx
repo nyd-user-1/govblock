@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CameraIcon, LayoutGridIcon } from "lucide-react"
+import { CameraIcon, FilmIcon, LayoutGridIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -15,7 +15,7 @@ import type { Creator } from "./store"
 
 export type CreatorRow = Creator & { count: number }
 
-export function Creators({ rows, selected, onSelect, you, onRecord, className }: { rows: CreatorRow[]; selected: string; onSelect: (id: string) => void; you: CreatorRow | null; onRecord: () => void; className?: string }) {
+export function Creators({ rows, selected, onSelect, you, onRecord, onGenerate, className }: { rows: CreatorRow[]; selected: string; onSelect: (id: string) => void; you: CreatorRow | null; onRecord: () => void; onGenerate?: () => void; className?: string }) {
   const Item = ({ id, name, sub, image, fallback }: { id: string; name: string; sub: string; image?: string | null; fallback: React.ReactNode }) => (
     <button type="button" onClick={() => onSelect(id)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent", selected === id && "bg-accent")}>
       <Avatar className="size-9">
@@ -44,10 +44,15 @@ export function Creators({ rows, selected, onSelect, you, onRecord, className }:
           </>
         )}
       </div>
-      <div className="mt-auto pt-4">
-        <Button className="w-full gap-1.5" onClick={onRecord}>
+      <div className="mt-auto flex gap-2 pt-4">
+        <Button className="flex-1 gap-1.5" onClick={onRecord}>
           <CameraIcon className="size-4" /> Record
         </Button>
+        {onGenerate && (
+          <Button variant="outline" className="flex-1 gap-1.5" onClick={onGenerate}>
+            <FilmIcon className="size-4" /> Generate
+          </Button>
+        )}
       </div>
     </div>
   )

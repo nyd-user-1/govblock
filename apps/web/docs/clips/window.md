@@ -6,6 +6,64 @@ milestone first.
 
 ---
 
+## 2 · A roll call as a tally, previewed in the browser — 2026-09-14
+
+> **Key takeaways**
+>
+> - Generate, beside Record in the rail, opens Remotion's `<Player>` on the
+>   newest House roll call: roll 295, H.R. 4795, "Protect Economic and
+>   Academic Freedom Act of 2026", On Passage, 237–169, 27 not voting.
+>   Passed. Any roll call loads by its page's address (`senate-119-2/231`).
+> - The render is not done. It waits on three things: the lead's word on
+>   the Remotion licence, the worker box, and Stream minutes.
+> - The dev box stopped itself mid-milestone (its idle timer counts only
+>   port 3000's requests). It was started again with `govblock-dev-up`,
+>   the idle timer was stopped for this window's work, and the 3003 server
+>   restarted. The XML window's 3002 server went down with the box and was
+>   not restarted by this window.
+
+### 1. What was built
+
+- **`components/clips/templates/roll-call-tally.tsx`**: the composition,
+  1080×1920, 30 fps, 15 seconds. Heading (chamber, roll, date), the
+  citation, the bill's title, the question; a seat per member lighting yea,
+  nay, present, not voting in order while the counters run; the parties at
+  8 s; the result stamped at 11 s; "Source: clerk.house.gov via
+  congress.gov" (or senate.gov) and GovBlock at the foot. Every word is a
+  field of the vote row or the bill row. React and Remotion only, inline
+  styles, so the render bundles the same file.
+- **`lib/clips/templates.ts`** and **`/api/clips/templates/roll-call`**:
+  the props from `getRollCallVote`, counted from the member positions
+  (Yea/Aye, Nay/No, Present, Not Voting) and grouped by party, with the
+  bill's `display_title` and the ids a clip of it is keyed to
+  (`roll_call_key` 11922026295, `bill_key` 119-HR-4795).
+- **`components/clips/generate.tsx`**: the panel, in the same phone frame
+  as Record. Template select (one entry), the Player with its controls
+  looping, and the roll call's address with Preview. Loaded on demand, so
+  Remotion stays out of `/clips` until Generate is opened.
+- `remotion` and `@remotion/player` pinned at 4.0.524 in `apps/web`.
+  `acknowledgeRemotionLicense` is not set: the Player's licence notice
+  stays in the console until the licence is settled.
+
+### 2. How it was verified
+
+- Bounded typecheck of the six files: 0 diagnostics.
+- `/api/clips/templates/roll-call` 200, props as above; named Senate roll
+  231 200. `/clips` 200 in 16.6 s cold; the Generate chunk, Remotion
+  included, compiled with no error in `logs/dev-3003.log`.
+- The Player itself is for review on localhost:3003 (tunnel
+  `-L 3003:127.0.0.1:3003 govblock-dev-direct`); this window did not drive
+  a browser against it.
+
+### 3. Open
+
+- The render (`scripts/clips/render`, next), once the lead carries the
+  licence to Brendan.
+- The box's idle timer is stopped. It re-arms at the box's next boot; the
+  daily 09:00 UTC stop still stands.
+
+---
+
 ## 1 · Record wired to Stream, and Stream has no minutes — 2026-09-14
 
 > **Key takeaways**
