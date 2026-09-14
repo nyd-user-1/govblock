@@ -587,7 +587,7 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   if (at > 0) body = blocks.slice(at)
   if (p.statuteCite) first = first.replace(p.statuteCite, "")
   const head = p.headingBlock
-    ? /^([0-9][\w.:,-]*[\w)]|[0-9])\.?(?:\s+(.*))?$/s.exec(first)
+    ? /^([0-9][\w.:,–-]*[\w)]|[0-9])\.?(?:\s+(.*))?$/s.exec(first)
     : /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
   if (head && /\d/.test(head[1]) && p.headingBlock) {
     level.children.push(node("num", {}, [head[1]]))

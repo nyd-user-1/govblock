@@ -139,6 +139,17 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Maryland statutes (window 8, from fifty sections of the Annotated Code):
+// the General Assembly's section page as text, "§16–702." alone (an en dash,
+// not a hyphen; "§21–2A–03."), no catchline, then the law: subsections (a),
+// paragraphs (1), subparagraphs (i), sub-subparagraphs 1. and 2., often
+// opening on one line, "(a) (1) In this section …".
+PROFILES.MD = {
+  ...common("MD"),
+  statuteCite: /^§\s*/,
+  headingBlock: true,
+}
+
 // Nevada statutes (window 8, from fifty sections of the NRS): the loader
 // writes "NRS 33.090 Catchline" as the first block, then the law (subsections
 // "1.", paragraphs "(a)", subparagraphs "(1)", sub-subparagraphs "(I)"), then

@@ -1014,26 +1014,25 @@
     "name": "Maryland",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.7863,
+    "clean": 95,
+    "coverage": 0.9904,
     "dialects": {
       "md-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
-      "subsection j after N": 3,
-      "subsection N after N": 3,
-      "clause N after N": 2,
-      "paragraph opens at b": 2,
-      "subparagraph opens at ii": 1,
-      "paragraph N after N": 1,
-      "clause opens at d": 1,
-      "subparagraph i after N": 1,
-      "subsection opens at N": 1,
-      "paragraph opens at c": 1
+      "unmatched enumerator": 3,
+      "subparagraph opens at l": 2,
+      "subsection m after N": 2,
+      "paragraph N after N": 2,
+      "subparagraph i after N": 2,
+      "paragraph i after N": 2,
+      "subsection N after N": 2,
+      "subsection opens at b": 1,
+      "subparagraph opens at N": 1,
+      "subsection b after N": 1
     },
-    "measuredAt": "2026-09-14T13:36:19.100Z"
+    "measuredAt": "2026-09-14T14:10:24.475Z"
   },
   "LA/laws": {
     "jurisdiction": "LA",

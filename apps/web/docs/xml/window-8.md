@@ -13,7 +13,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** |
 | Nevada statutes | 43,461 | 74.6 | 73.4 | **94.8** (the rest is paragraphs the loader drops) |
-| Maryland statutes | 40,053 | 78.5 | 78.6 | 78.6 |
+| Maryland statutes | 40,053 | 78.5 | 78.6 | **99.0** |
 | Utah bills | 36,096 | 66.3 | 64.7 | 64.7 |
 | Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 |
 | South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 |
@@ -21,6 +21,10 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 10 — Maryland statutes, 78.6% to 99.0% (2026-09-14)
+
+- A Maryland section is "§5–230." alone, the parts joined by an en dash, then the law; the site serves no catchline. Both the "§" and the en dash failed the number test on every section. Maryland sets `statuteCite` and `headingBlock`, and the headingBlock number now takes an en dash. Indiana, Oregon, Washington, Kansas and Nevada re-checked against HEAD: unchanged. Held-back fifty: 50 of 50 clean. Grammar: `grammars/md.md`.
 
 ## Milestone 9 — Nevada statutes, 73.4% to 94.8% (2026-09-14)
 
