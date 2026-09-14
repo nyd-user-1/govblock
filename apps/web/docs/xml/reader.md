@@ -125,6 +125,33 @@ all ("Skip to main content", "Javascript must be enabled"), not the bill. That
 is the source, not the reader, and it belongs to the pipeline's acquisition
 review for New York.
 
+## Texas and California, on the state front ends
+
+Against `4d4e888`, the front ends the pipeline stores with. Each printing's
+stored text through its state's front end, `uslmToDoc`, and both round trips
+(the compact JSON through `Node.fromJSON`; the first-paint HTML through the
+schema's parse rules). Run as a script on the box: these states are outside
+the free scope, so the page needs an entitled reader.
+
+| Printing | Coverage | What the reader holds | Refused | Violations | Round trips |
+|---|---|---|---|---|---|
+| TX H.B. 18, enrolled, `/us-tx/bill/2025s2/hb/18` | 80% | 3 sections, 9 subsections, 7 paragraphs, 7 subparagraphs, 8 continuations; `enactingFormula` | nothing | 0 | exact, exact |
+| TX H.R. 128, enrolled | 100% | `resolvingClause`, 27 p, 3 `del` (the struck "[or]", "[the]", "[of $500]") | nothing | 0 | exact, exact |
+| CA A.B. 1607, enrolled, `/us-ca/bill/2025/ab/1607` | 100% | 2 sections, 11 subsections, 7 paragraphs, 7 subparagraphs; `enactingFormula` | nothing | 0 | exact, exact |
+| CA A.B. 2052, enrolled | 85% | 2 sections, 22 subsections, 10 paragraphs, 7 continuations; `longTitle`, `enactingFormula` | nothing | 0 | exact, exact |
+| CA S.B. 908, enrolled (`state_link`) | 96% | 48 p: the stored text is leginfo's web page | nothing | 0 | exact, exact |
+
+Build under 8 ms for the front end and under 8 ms for `uslmToDoc` on each.
+
+What the state front ends still get wrong, on these printings at `4d4e888`:
+none of the three amending bills has a `quotedContent`. The instruction
+and the first quoted line share one block ("…to read as follows: SUBCHAPTER
+G. PROHIBITED ACTIONS…", "…is amended to read: 76000.5.") or the instruction
+is a `continuation` followed by the section number as another ("1050."), and
+the amended Code's subdivisions are drawn as the bill section's own. The
+California enacting formula is split mid-phrase: "The people of the State of
+California" stays in the preface and "do enact as follows:" is the formula.
+
 ## Not measured here
 
 - **Cold load to readable and editor mount in the browser.** typeset-perf

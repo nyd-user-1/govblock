@@ -67,6 +67,7 @@ const NOTE_ELEMENTS = new Set([
 const TRANSPARENT = new Set(["#root", "main", "amendment", "amendmentInstruction", "notes", "lawDoc", "bill", "resolution", "uscDoc", "pLaw", "statute", "document", "legislativeHistory", "collection", "component", "block", "div", "tbody", "thead", "tfoot", "fragment"])
 const SKIPPED = new Set(["meta", "property", "page", "line", "leftRunningHead", "rightRunningHead", "centerRunningHead", "ear", "endMarker", "marker", "processedBy", "processedDate", "citableAs", "colspec", "colgroup", "col", "caption"])
 const FRONT = new Set(["preface", "engrossed-amendment-form", "form"])
+const LIFTED = new Set(["longTitle", "enactingFormula", "resolvingClause", "preamble"])
 const KNOWN_BLOCKS = new Set([
   ...TEXTBLOCKS, "content", "p", "quotedContent", "toc", "tocItem", "referenceItem", "headingItem", "groupItem", "table", "tr", "td", "th", "layout", "header", "row", "column",
   "longTitle", "docTitle", "officialTitle", "enactingFormula", "resolvingClause", "preamble", "recital", "signatures", "signature", "appendix", "schedule", "br", "img",
@@ -368,17 +369,26 @@ class Converter {
     if (FRONT.has(tag)) {
       // The printing's front matter: which Congress, which chamber, the action. One line each.
       const lines: PmNode[] = []
+      // A long title or an enacting formula a front end set inside the preface is the document's own block, as USLM places it, after the preface.
+      const after: PmNode[] = []
       if (tag !== "preface") this.rec.unknown(tag, path)
       for (const c of el.children) {
-        if (!isNode(c)) continue
+        if (!isNode(c)) {
+          if (c.trim()) lines.push(this.make("p", { implicit: true }, [S.text(tidy(c))]))
+          continue
+        }
         if (SKIPPED.has(c.tag) || c.tag.startsWith("dc:")) {
           this.rec.bump(this.rec.report.skipped, c.tag)
           continue
         }
-        const n = this.textblock("p", c, { ...ctx, path }, { element: c.tag })
+        if (LIFTED.has(c.tag)) {
+          after.push(...this.block(c, { ...ctx, path }, null))
+          continue
+        }
+        const n = this.textblock("p", c, { ...ctx, path }, c.tag === "p" ? {} : { element: c.tag })
         if (n) lines.push(n)
       }
-      return lines.length ? [this.make("preface", blockAttrs(el, { element: tag === "preface" ? null : tag }), lines)] : []
+      return [...(lines.length ? [this.make("preface", blockAttrs(el, { element: tag === "preface" ? null : tag }), lines)] : []), ...after]
     }
     // A known element with no node of its own (an action in an endorsement): its words, as a line.
     if (KNOWN_BLOCKS.has(tag)) {

@@ -1,5 +1,25 @@
 # Window 1: the reader — report
 
+## Milestone 6 — the state check against 4d4e888, 2026-09-14 09:10 EDT
+
+- Re-run on the lead's fixed front ends; numbers in `reader.md`, "Texas and
+  California". The schema refuses nothing, 0 violations, both round trips
+  exact on TX H.B. 18, H.R. 128, CA A.B. 1607, A.B. 2052, S.B. 908.
+- Confirmed fixed upstream: "(iii)" (H.B. 18 77% → 80%), Texas brackets as
+  `del` (3 on H.R. 128), the enacting formula split out.
+- Fixed here: the front ends put `longTitle` and `enactingFormula` inside
+  `preface`, where `uslmToDoc` flattened them to paragraphs. They are now
+  lifted to the document's own blocks after the preface, as USLM places them.
+  H.R. 6644's counts are unchanged; H.R. 2289 as introduced gains its
+  `longTitle`.
+- Not fixed upstream on these printings: quoted law. All three amending bills
+  still have 0 `quotedContent` (the instruction shares a block with the first
+  quoted line, or is a `continuation`), and California's formula is split
+  mid-phrase. Sent to the lead with the IR excerpts.
+
+Files: `apps/web/lib/xml/uslm-to-doc.ts`, `apps/web/docs/xml/reader.md`,
+`apps/web/docs/xml/window-1.md`.
+
 ## Milestone 5 — Texas and California through the reader, 2026-09-14 08:45 EDT
 
 Asked by the lead after acceptance: the state-profile front ends
