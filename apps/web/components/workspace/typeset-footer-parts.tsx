@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { usePaneNote } from "@/lib/typeset/pane-note"
+import { usePaneNotes } from "@/lib/typeset/pane-note"
 import { TYPESET_VIEWS, typesetHref, type TypesetView } from "@/lib/typeset/views"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
@@ -42,14 +42,17 @@ export function ViewPills({ billId, view }: { billId: number; view: TypesetView 
   )
 }
 
-/** The line a pane hands the footer: the file's size. */
+/** The lines a pane hands the footer: the file's size, then which printing and its address. */
 export function PaneNoteSlot() {
-  const note = usePaneNote()
-  if (!note) return null
+  const notes = usePaneNotes()
   return (
     <>
-      <div className="mx-0.5 h-4 w-px bg-border" />
-      {note}
+      {notes.map(({ key, note }) => (
+        <React.Fragment key={key}>
+          <div className="mx-0.5 h-4 w-px shrink-0 bg-border" />
+          {note}
+        </React.Fragment>
+      ))}
     </>
   )
 }

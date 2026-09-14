@@ -7,20 +7,20 @@ import type { Node as PmNode } from "@tiptap/pm/model"
 import { TextSelection, type EditorState } from "@tiptap/pm/state"
 import { IndentIncreaseIcon, ListPlusIcon, Redo2Icon, Trash2Icon, Undo2Icon } from "lucide-react"
 
-import { FixedToolbar } from "@/components/plate/ui/fixed-toolbar"
 import { ToolbarButton, ToolbarGroup } from "@/components/plate/ui/toolbar"
 import { BIG_LEVELS, isLevel, SMALL_LEVELS } from "@/lib/xml/schema"
 
-// The toolbar over the Tiptap editor on the USLM schema (window 5,
-// 2026-09-14): typeset-toolbar.tsx's sibling, in the same frame and with the
-// same buttons where they mean something for law. Undo and redo stand where
+// The Tiptap editor's buttons on the USLM schema (window 5, 2026-09-14),
+// drawn at the front of the rich-text toolbar on the XML views
+// (typeset-toolbar.tsx), with the same buttons where they mean something for
+// law. Undo and redo stand where
 // they stand in Plate's. Formatting does not: a legislative amendment changes
 // words and units, never their weight or colour, so in place of marks the
 // editor adds a unit after the one at the cursor, adds one under it, or
 // removes it. The schema's rank rules decide what may go where.
 
 /** The innermost level holding the cursor. */
-function levelAt(state: EditorState): { node: PmNode; pos: number } | null {
+export function levelAt(state: EditorState): { node: PmNode; pos: number } | null {
   const { $from } = state.selection
   for (let d = $from.depth; d > 0; d--) {
     const node = $from.node(d)
@@ -43,7 +43,7 @@ export function nextNum(text: string): string {
 const ELEMENT = (n: PmNode) => (n.type.name === "level" ? String(n.attrs.element ?? "level") : n.type.name)
 
 /** The level a unit holds next: a section holds subsections, a subsection paragraphs; a big level holds sections. */
-function childElement(parent: PmNode): string | null {
+export function childElement(parent: PmNode): string | null {
   const element = ELEMENT(parent)
   if ((BIG_LEVELS as readonly string[]).includes(element)) return "section"
   if (element === "section") return "subsection"
@@ -59,7 +59,7 @@ function freshLevel(state: EditorState, element: string, role: string | null, nu
   return type.create({ role }, [schema.nodes.num.create(null, num ? schema.text(num) : null), schema.nodes.content.create(null, schema.nodes.p.create())])
 }
 
-function insertLevel(editor: Editor, where: "after" | "under") {
+export function insertLevel(editor: Editor, where: "after" | "under") {
   const { state, view } = editor
   const at = levelAt(state)
   if (!at) return
@@ -88,7 +88,7 @@ function insertLevel(editor: Editor, where: "after" | "under") {
   }
 }
 
-function removeLevel(editor: Editor) {
+export function removeLevel(editor: Editor) {
   const { state, view } = editor
   const at = levelAt(state)
   if (!at) return
@@ -100,7 +100,8 @@ function removeLevel(editor: Editor) {
   }
 }
 
-export function TypesetXmlToolbar({ editor, children }: { editor: Editor | null; children?: React.ReactNode }) {
+/** The USLM editor's groups, at the front of the rich-text toolbar on the XML views (Brendan, 2026-09-14); disabled over a reader with no editor. */
+export function XmlToolbarGroups({ editor }: { editor: Editor | null }) {
   const status = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -113,29 +114,26 @@ export function TypesetXmlToolbar({ editor, children }: { editor: Editor | null;
   const keep = (e: React.MouseEvent) => e.preventDefault()
 
   return (
-    <FixedToolbar className="shrink-0 rounded-none">
-      <div className="flex">
-        <ToolbarGroup>
-          <ToolbarButton tooltip="Undo" disabled={!status.undo} onMouseDown={keep} onClick={run((e) => undo(e.state, e.view.dispatch))}>
-            <Undo2Icon />
-          </ToolbarButton>
-          <ToolbarButton tooltip="Redo" disabled={!status.redo} onMouseDown={keep} onClick={run((e) => redo(e.state, e.view.dispatch))}>
-            <Redo2Icon />
-          </ToolbarButton>
-        </ToolbarGroup>
-        <ToolbarGroup>
-          <ToolbarButton tooltip="Add a unit after this one" disabled={!status.level} onMouseDown={keep} onClick={run((e) => insertLevel(e, "after"))}>
-            <ListPlusIcon />
-          </ToolbarButton>
-          <ToolbarButton tooltip="Add a unit under this one" disabled={!status.under} onMouseDown={keep} onClick={run((e) => insertLevel(e, "under"))}>
-            <IndentIncreaseIcon />
-          </ToolbarButton>
-          <ToolbarButton tooltip="Remove this unit" disabled={!status.level} onMouseDown={keep} onClick={run(removeLevel)}>
-            <Trash2Icon />
-          </ToolbarButton>
-        </ToolbarGroup>
-      </div>
-      {children && <div className="flex items-center gap-2 pr-1">{children}</div>}
-    </FixedToolbar>
+    <>
+      <ToolbarGroup>
+        <ToolbarButton tooltip="Undo" disabled={!status.undo} onMouseDown={keep} onClick={run((e) => undo(e.state, e.view.dispatch))}>
+          <Undo2Icon />
+        </ToolbarButton>
+        <ToolbarButton tooltip="Redo" disabled={!status.redo} onMouseDown={keep} onClick={run((e) => redo(e.state, e.view.dispatch))}>
+          <Redo2Icon />
+        </ToolbarButton>
+      </ToolbarGroup>
+      <ToolbarGroup>
+        <ToolbarButton tooltip="Add a unit after this one" disabled={!status.level} onMouseDown={keep} onClick={run((e) => insertLevel(e, "after"))}>
+          <ListPlusIcon />
+        </ToolbarButton>
+        <ToolbarButton tooltip="Add a unit under this one" disabled={!status.under} onMouseDown={keep} onClick={run((e) => insertLevel(e, "under"))}>
+          <IndentIncreaseIcon />
+        </ToolbarButton>
+        <ToolbarButton tooltip="Remove this unit" disabled={!status.level} onMouseDown={keep} onClick={run(removeLevel)}>
+          <Trash2Icon />
+        </ToolbarButton>
+      </ToolbarGroup>
+    </>
   )
 }

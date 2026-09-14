@@ -52,7 +52,7 @@ const FontSizeToolbarButton = dynamic(() => import('./font-size-toolbar-button')
 const MediaToolbarMenu = dynamic(() => import('./media-toolbar-button').then((m) => m.MediaToolbarMenu), { ssr: false });
 const ToggleToolbarButton = dynamic(() => import('./toggle-toolbar-button').then((m) => m.ToggleToolbarButton), { ssr: false });
 
-export function FixedToolbarButtons() {
+export function FixedToolbarButtons({ history = true }: { /** Off where another editor's undo and redo lead the row (the XML views, 2026-09-14). */ history?: boolean } = {}) {
   // Every button is drawn (Brendan, 2026-09-13). One whose kit the editor was
   // built without (BillKit leaves out AI, emoji, media, toggles and font
   // sizes) loads its kit when it is used; see lazy-kit-button.tsx.
@@ -63,10 +63,12 @@ export function FixedToolbarButtons() {
     <div className="flex w-full">
       {(
         <>
-          <ToolbarGroup>
-            <UndoToolbarButton />
-            <RedoToolbarButton />
-          </ToolbarGroup>
+          {history && (
+            <ToolbarGroup>
+              <UndoToolbarButton />
+              <RedoToolbarButton />
+            </ToolbarGroup>
+          )}
 
           <ToolbarGroup>
             <LazyKitButton kit="ai" pluginKey={KEYS.aiChat} tooltip="AI commands" icon={<WandSparklesIcon />}>

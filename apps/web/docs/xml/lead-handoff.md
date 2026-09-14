@@ -95,7 +95,11 @@ Open, on `feature/legislative-xml`, for the lead or one window:
    number) and not H.R. 6644 itself: a bill number typed bare must find
    the bill first. And search across the XML store (the Expressions in
    S3, indexed) from the Library and the reader: none exists.
-4. **The XML reader's keys.** `@`, `/` and ⌘J did nothing on the Work page
+4. **The XML reader's keys.** Partly done 2026-09-14 evening, in the Fork
+   editor only: `@` typed in the text names a person (members), `/` opens
+   the unit commands and the references (citations, defined terms,
+   committees), Plate's way (`typeset-inline-menu.tsx`); the toolbar's `@`
+   button is gone. The read-only readers still take neither. Before that: `@`, `/` and ⌘J did nothing on the Work page
    (`/workspace/typeset/work/us/usc/t7/s1`); they exist in ⌘K and the Fork
    editor (window 6) but the read-only reader does not wire them. Wire
    `@` (citations), `/` (the library) and ⌘J (jump to a section) on every

@@ -2,6 +2,7 @@
 // the engine, the parser and the schema together, so one copy of
 // prosemirror-model builds the documents and diffs them.
 export * from "../../apps/web/lib/typeset/amend"
+export * from "../../apps/web/lib/typeset/fork-marked"
 export * from "../../apps/web/lib/typeset/cite"
 export * from "../../apps/web/lib/typeset/instruct"
 export * from "../../apps/web/lib/typeset/in-context"

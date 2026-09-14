@@ -350,7 +350,7 @@ export function TypesetBillChrome({ billId, state, session, view, toolbar, child
     onOpenResult: (id, documentId) => (id === billId && documentId ? openGit(documentId) : router.push(typesetHref(id, view))),
   }
   return (
-    <FileChrome file={file} toolbar={toolbar} slashFocuses={view !== "xml"}>
+    <FileChrome file={file} toolbar={toolbar} slashFocuses={view !== "xml" && view !== "fork"}>
       {children}
     </FileChrome>
   )
@@ -399,6 +399,35 @@ export function TypesetWorkChrome({ work, expression, label, history, toolbar, c
   }
   return (
     <FileChrome file={file} toolbar={toolbar} slashFocuses={false}>
+      {children}
+    </FileChrome>
+  )
+}
+
+/** A fork opened from My Files: its base's XML as Raw, the page's text for copy and download, the base and My Files under History. */
+export function TypesetForkChrome({ label, baseAddress, baseLabel, myFiles, children }: { label: string; baseAddress: string; baseLabel: string; myFiles: string; children: React.ReactNode }) {
+  const router = useRouter()
+  const jurisdiction = baseAddress.split("/")[1] ?? "us"
+  const state = jurisdiction === "us" ? "US" : (jurisdiction.split("-")[1] ?? "").toUpperCase()
+  const row = (text: string, detail: string, href: string) => (
+    <button type="button" onClick={() => router.push(href)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted">
+      <span className="truncate">{text}</span>
+      <span className="ml-auto shrink-0 text-muted-foreground">{detail}</span>
+    </button>
+  )
+  const file: ChromeFile = {
+    qualifier: `fork:${label}`,
+    state,
+    session: null,
+    rawHref: `/api/xml/uslm${baseAddress}`,
+    text: null,
+    textReady: false,
+    fileName: `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-fork.txt`,
+    versions: { title: "History", body: <div className="py-1">{[row(baseLabel, "The base", workHref(baseAddress)), row("My Files", "Every commit", myFiles)]}</div> },
+    onOpenResult: (id) => router.push(typesetHref(id)),
+  }
+  return (
+    <FileChrome file={file} slashFocuses={false}>
       {children}
     </FileChrome>
   )

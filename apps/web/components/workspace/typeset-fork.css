@@ -8,24 +8,37 @@
 }
 
 .amend-redline .amend-del,
-.amend-redline .amend-del-block {
+.amend-redline .amend-del-block,
+.amend-edit.redline-on .amend-del,
+.amend-edit.redline-on .amend-del-block {
   text-decoration: line-through;
   text-decoration-color: #dc2626;
   background: color-mix(in oklab, #dc2626 10%, transparent);
 }
 
-.amend-redline .amend-ins {
+.amend-redline .amend-ins,
+.amend-edit.redline-on .amend-ins {
   text-decoration: underline;
   text-decoration-color: #16a34a;
   text-underline-offset: 2px;
   background: color-mix(in oklab, #16a34a 14%, transparent);
 }
 
-.amend-redline .amend-ins-block {
+.amend-redline .amend-ins-block,
+.amend-edit.redline-on .amend-ins-block {
   border-left: 2px solid #16a34a;
   padding-left: 0.5rem;
   background: color-mix(in oklab, #16a34a 8%, transparent);
   text-decoration: underline;
   text-decoration-color: #16a34a;
   text-underline-offset: 2px;
+}
+
+/* On the editable fork, the struck words stand between the fork's own and cannot be selected into. */
+.amend-edit.redline-on del.amend-del {
+  user-select: none;
+}
+.amend-edit:not(.redline-on) .amend-del,
+.amend-edit:not(.redline-on) .amend-del-block {
+  display: none;
 }

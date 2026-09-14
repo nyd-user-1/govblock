@@ -5,7 +5,7 @@ import { EditorContent, Extension, useEditor, type Editor, type JSONContent } fr
 import type { Node as PmNode } from "@tiptap/pm/model"
 import { Plugin, PluginKey } from "@tiptap/pm/state"
 import { Decoration, DecorationSet } from "@tiptap/pm/view"
-import { ArrowUpRightIcon } from "lucide-react"
+import { ArrowUpRightIcon, CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 
 import type { Citation, Instruction } from "@/lib/typeset/amend"
 import { billContext, billRedline, forkContext, forkRedline, OUTCOME_WORDS, unitPos, type Marker, type TabRedline } from "@/lib/typeset/in-context"
@@ -14,8 +14,10 @@ import type { Resolution } from "@/lib/typeset/resolve"
 import { workHref } from "@/lib/xml/library"
 import { Redline, redlineKey } from "@/components/workspace/typeset-redline"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
+import { PaneAside } from "@/components/policy/pane-aside"
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@govblock/ui/components/nova/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components/nova/popover"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "@govblock/ui/components/nova/tabs"
 import { cn } from "@govblock/ui/lib/utils"
 
 import "./typeset-xml-reader.css"
@@ -24,7 +26,8 @@ import "./typeset-cite.css"
 
 // The in-context view (window 6b, 2026-09-14), a mode of the Fork view: the
 // fork on the left with an `@` marker on each amendment instruction, and on
-// the right a tab per statute it affects, drawn from that statute's dated
+// the right each statute it affects, chosen from a dropdown (Brendan,
+// 2026-09-14, in the Git view's sidebar chrome), drawn from that statute's dated
 // Expression with the redline in place. A bill's instructions are carried out
 // on each cited Work (lib/typeset/instruct.ts); a statute fork is grafted back
 // into its section. The pure half is lib/typeset/in-context.ts. Markers and
@@ -204,7 +207,7 @@ function StatuteTab({ work, address, date, source, focus, hidden }: { work: stri
         <EditorContent editor={editor} />
       </div>
       {source.kind === "bill" && outcomes.length > 0 && (
-        <ol className="flex flex-col border-t text-sm">
+        <ol className="flex flex-col border-t text-xs">
           {outcomes.map((o, i) => (
             <OutcomeRow key={i} outcome={o} onReveal={() => reveal([work, ...o.instruction.portion].join("/"))} />
           ))}
@@ -238,7 +241,7 @@ function OutcomeRow({ outcome, onReveal }: { outcome: Outcome; onReveal: () => v
   const words = outcome.instruction.text.replace(/\s+/g, " ").trim()
   return (
     <li className="border-b last:border-b-0">
-      <button type="button" onClick={onReveal} className="flex w-full items-baseline gap-3 px-4 py-2.5 text-left hover:bg-muted/50">
+      <button type="button" onClick={onReveal} className="flex w-full items-baseline gap-3 px-3 py-1.5 text-left text-xs hover:bg-muted">
         <span className={cn("w-24 shrink-0 text-xs font-medium", TONE[outcome.status])}>{OUTCOME_WORDS[outcome.status]}</span>
         <span className="min-w-0 flex-1">
           <span className="line-clamp-2">{words}</span>
@@ -261,6 +264,7 @@ export function TypesetContextPane({
   cite,
   focus,
   onFocus,
+  onClose,
 }: {
   editor: Editor | null
   forkWork: string
@@ -268,12 +272,14 @@ export function TypesetContextPane({
   cite: Citation
   focus: Focus | null
   onFocus: (focus: Focus) => void
+  onClose: () => void
 }) {
   const isBill = cite.kind === "bill"
   const [doc, setDoc] = React.useState<PmNode | null>(null)
   const [resolutions, setResolutions] = React.useState<Record<string, Resolution>>({})
   const [active, setActive] = React.useState<string | null>(null)
   const [visited, setVisited] = React.useState<Set<string>>(() => new Set())
+  const [picking, setPicking] = React.useState(false)
   const at = base.date.slice(0, 10)
 
   // The fork's document, read again on a pause after an edit.
@@ -366,28 +372,61 @@ export function TypesetContextPane({
     return out
   }, [context, isBill, doc, cite.work, forkWork])
 
-  if (!context) return <Skeleton className="m-6 h-40 rounded-xl" />
-  if (!tabs.length) return <p className="p-6 text-sm text-muted-foreground">{isBill ? "No amendment instructions in this text." : "No changes from the base."}</p>
+  const shell = (title: React.ReactNode, body: React.ReactNode) => (
+    <PaneAside title={title} onClose={onClose} className="hidden min-w-0 flex-1 md:flex" bodyClassName="flex flex-col overflow-hidden py-0">
+      {body}
+    </PaneAside>
+  )
+  if (!context) return shell("In context", <Skeleton className="m-6 h-40 rounded-xl" />)
+  if (!tabs.length) return shell("In context", <p className="p-6 text-sm text-muted-foreground">{isBill ? "No amendment instructions in this text." : "No changes from the base."}</p>)
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b px-3">
-        <Tabs value={current?.work ?? null} onValueChange={(v) => v && onFocus({ work: String(v), unit: String(v), n: Date.now() })} className="min-w-0 flex-1 overflow-x-auto">
-          <TabsList variant="line" className="h-10">
-            {tabs.map((t) => (
-              <TabsTrigger key={t.work} value={t.work} className="flex-none px-2 text-xs">
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        {current?.date && (
-          <a href={workHref(current.work, at)} className="flex shrink-0 items-center gap-1 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground">
-            {fmtDay(current.date)}
-            <ArrowUpRightIcon className="size-3.5" />
-          </a>
-        )}
-      </div>
+  const title = (
+    <span className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="shrink-0">In context · {tabs.length}</span>
+      <Popover open={picking} onOpenChange={setPicking}>
+        <PopoverTrigger
+          render={
+            <button type="button" className="flex h-6 min-w-0 items-center gap-1 rounded-md border bg-background px-2 text-xs font-normal hover:bg-muted" aria-label="The statute shown" />
+          }
+        >
+          <span className="truncate">{current?.label ?? "Choose a statute"}</span>
+          <ChevronsUpDownIcon className="size-3 shrink-0 text-muted-foreground" />
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-max max-w-[32rem] min-w-64 p-0">
+          <Command>
+            <CommandInput placeholder="Find a statute" />
+            <CommandList className="max-h-72">
+              <CommandEmpty>No statute by that name.</CommandEmpty>
+              {tabs.map((t) => (
+                <CommandItem
+                  key={t.work}
+                  value={`${t.label} ${t.work}`}
+                  className="text-xs whitespace-nowrap"
+                  onSelect={() => {
+                    onFocus({ work: t.work, unit: t.work, n: Date.now() })
+                    setPicking(false)
+                  }}
+                >
+                  <CheckIcon className={cn("size-3.5", t.work === current?.work ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{t.label}</span>
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {current?.date && (
+        <a href={workHref(current.work, at)} className="flex shrink-0 items-center gap-1 font-normal whitespace-nowrap text-muted-foreground hover:text-foreground">
+          {fmtDay(current.date)}
+          <ArrowUpRightIcon className="size-3.5" />
+        </a>
+      )}
+    </span>
+  )
+
+  return shell(
+    title,
+    <>
       {current?.missing && <p className="p-6 text-sm text-muted-foreground">{current.missing}</p>}
       {current && !current.missing && !current.address && <Skeleton className="m-6 h-40 rounded-xl" />}
       {tabs.map((t) =>
@@ -395,6 +434,6 @@ export function TypesetContextPane({
           <StatuteTab key={t.address} work={t.work} address={t.address} date={t.date} source={sources.get(t.work)!} focus={focus} hidden={t.work !== current?.work} />
         ) : null
       )}
-    </div>
+    </>
   )
 }

@@ -362,7 +362,7 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
             cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
           />
         </ForkAction>,
-        <StaticToolbar />
+        <StaticToolbar xml={{ editor: null }} />
       )
     } else if (view === "fork") {
       // The reader's fork of the printing on the USLM schema (window 5, 2026-09-14): its own toolbar, amendment and redline.

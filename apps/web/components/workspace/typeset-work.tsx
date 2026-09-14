@@ -99,7 +99,7 @@ export function TypesetWork(props: TypesetWorkProps) {
     >
       {jsonUrl ? (
         // The Git view's file row and the toolbar over the reader (2026-09-14); fork the unit under the pointer from this Expression (window 5).
-        <TypesetWorkChrome work={props.work} expression={props.expression} label={label} history={props.history} toolbar={<StaticToolbar />}>
+        <TypesetWorkChrome work={props.work} expression={props.expression} label={label} history={props.history} toolbar={<StaticToolbar xml={{ editor: null }} />}>
         <ForkAction expression={props.expression}>
           <TypesetXmlReader
             jsonUrl={jsonUrl}
