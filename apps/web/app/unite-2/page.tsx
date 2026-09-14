@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 
 import { Unite2 } from "@/components/unite-2"
 
-import "../unite/unite.css"
+import "./unite.css"
 
-// /unite-2 (Brendan, 2026-09-11): the ecosystem landing page, its own
-// component so /unite is untouched. The slide between the two routes and the
-// Red state / Blue state pair come from unite.css, shared.
+// /unite-2 (Brendan, 2026-09-11): the ecosystem landing page under the
+// particle scroller. Its body below the hero is the root page's too
+// (Brendan, 2026-09-14); /unite, the sandbox it was forked from, is gone.
 export const metadata: Metadata = {
   title: "Unite",
   description:

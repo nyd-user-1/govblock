@@ -25,7 +25,6 @@ const NOTES: Record<string, string> = {
   "/workspace/typeset-2": "redirects to /workspace/typeset",
   "/preview/typeset/[name]": "the bill workspace's five pages in a preview frame",
   "/docs/changelog-v2": "a second changelog, ported from livingston-v3",
-  "/unite": "sandbox: the particle flag and canvasui's particle scroll",
   "/unite-2": "sandbox: the ecosystem landing page",
   "/diff": "redirects to the RAISE Act's compare page",
   "/welcome": "onboarding after sign-in",

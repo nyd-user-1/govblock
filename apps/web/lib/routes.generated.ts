@@ -534,10 +534,6 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
-    "path": "/unite",
-    "kind": "page"
-  },
-  {
     "path": "/unite-2",
     "kind": "page"
   },
