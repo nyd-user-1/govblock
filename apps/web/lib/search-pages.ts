@@ -14,7 +14,8 @@ export const SEARCH_PAGES: SearchPage[] = [
       : [{ name: item.label, href: item.href, group: "Pages", icon: item.icon }]
   ),
   ...AGENT_PAGES.map((entry) => ({ name: entry.label, href: entry.href, group: "Agents", description: entry.description, icon: entry.icon })),
-].filter((page, index, all) => all.findIndex((other) => other.href === page.href) === index)
+  // The landing page is not a page to find (Brendan, 2026-09-13): the list sits under a Pages heading already.
+].filter((page, index, all) => page.href !== "/" && all.findIndex((other) => other.href === page.href) === index)
 
 export function matchPages(term: string, limit = 6) {
   const t = term.trim().toLowerCase()

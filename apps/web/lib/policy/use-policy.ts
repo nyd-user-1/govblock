@@ -23,7 +23,7 @@ export function policyUrl(resource: string, filters: Filters = {}, extra: Record
 }
 
 export function useSnapshot<T>(key: string | null) {
-  const [state, setState] = React.useState<{ key: string | null; data: T | undefined }>({ key: null, data: undefined })
+  const [state, setState] = React.useState<{ key: string | null; data: T | undefined; locked?: boolean }>({ key: null, data: undefined })
   React.useEffect(() => {
     if (!key) {
       setState({ key: null, data: undefined })
@@ -40,10 +40,17 @@ export function useSnapshot<T>(key: string | null) {
         const waits = [3000, 8000, 15000]
         let response = await fetch(key)
         for (const wait of waits) {
-          if (response.ok || cancelled) break
+          if (response.ok || response.status === 403 || cancelled) break
           await new Promise((resolve) => setTimeout(resolve, wait))
           if (cancelled) return
           response = await fetch(key)
+        }
+        // A locked door (Brendan, 2026-09-13): the reader may not open this
+        // scope. Nothing stands in for it — not the committed Congress
+        // snapshot either, which would hand over exactly what was refused.
+        if (response.status === 403) {
+          if (!cancelled) setState({ key, data: undefined, locked: true })
+          return
         }
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
         const data = (await response.json()) as T
@@ -67,7 +74,7 @@ export function useSnapshot<T>(key: string | null) {
     // The previous key's rows stay on screen until the new ones land, which is
     // what SWR's keepPreviousData did for these callers.
   }, [key])
-  return { data: state.data, error: undefined as Error | undefined, isLoading: !!key && state.key !== key }
+  return { data: state.data, error: undefined as Error | undefined, isLoading: !!key && state.key !== key, locked: !!state.locked }
 }
 
 export function usePolicy<T>(resource: string | null, filters: Filters = {}, extra: Record<string, string | number | undefined> = {}) {

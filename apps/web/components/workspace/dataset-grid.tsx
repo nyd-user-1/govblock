@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { BuildingIcon, CheckIcon, LandmarkIcon, LockIcon, MapIcon } from "lucide-react"
 
-import { useAccount } from "@/lib/auth/use-account"
+import { doorHref, type Reader } from "@/lib/entitlements"
 import { stateName } from "@/lib/filters"
 import type { Look } from "@/components/create/folder-view"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
@@ -22,13 +22,16 @@ import { DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, Dropdo
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // /workspace/data (Brendan, 2026-09-07): every dataset as a card on the
-// standard grid. The lock at the top left is the plan: open for Congress,
+// standard grid. The mark at the bottom left is the plan: open for Congress,
 // open for a signed-in reader's home state, shut for everything else until
-// there is a plan to buy. Explore opens the dataset at its path,
-// /workspace/data/us/house; Download takes a session as a file. The current
-// session is free, an earlier one waits on the plan too.
+// there is a plan to buy. A shut card sends a reader who is not signed in to
+// sign in (Brendan, 2026-09-13). Explore opens the dataset on its sessions,
+// /workspace/data/us/house/sessions (Brendan, 2026-09-13: the current session
+// is the default, but the others are not skipped), or on the year Choose
+// Year picked; Download takes a session as a file. The current session is
+// free, an earlier one waits on the plan too.
 
-function Seal({ seal, size = 96 }: { seal: Dataset["seal"]; size?: number }) {
+export function Seal({ seal, size = 96 }: { seal: Dataset["seal"]; size?: number }) {
   if (seal.kind === "chamber") return <ChamberSeal state={seal.state} chamber={seal.chamber} size={size} />
   return (
     <span data-slot="chamber-seal" className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border/60" style={{ width: size, height: size }}>
@@ -87,8 +90,8 @@ function FileItems({ dataset, chosen, disabled }: { dataset: Dataset; chosen?: n
 }
 
 /** The mark, and what it means for this reader: a green check on what is open (Brendan, 2026-09-07), the lock on what waits. */
-function Plan({ dataset, access, signedIn, home }: { dataset: Dataset; access: Access; signedIn: boolean; home: string }) {
-  const title = dataset.group === "congress" ? "Open to everyone" : dataset.group === "department" && access === "open" ? "Open: its forms and filings are on file" : dataset.group === "state" && dataset.state === home ? (signedIn ? `Yours: ${stateName(home)} is your home state` : `Sign in to open ${stateName(home)}, your home state`) : "Waits on a paid plan"
+function Plan({ dataset, access, reader }: { dataset: Dataset; access: Access; reader: Reader }) {
+  const title = access === "open" ? (dataset.group === "congress" ? "Open to everyone" : `Yours: ${stateName(reader.home ?? "")} is your home state`) : access === "sign-in" ? "Sign in to open it" : "Waits on a paid plan"
   if (access === "open")
     return (
       <span title={title}>
@@ -106,10 +109,7 @@ const SESSIONS_KEY = "govblock:workspace:data:sessions"
 
 export function DatasetGrid({ look = "cards" }: { look?: Look }) {
   const router = useRouter()
-  const { account, signedIn } = useAccount()
-  const { state: flag } = useJurisdiction()
-  // The profile's home state (onboarding, 2026-09-11), or the header's flag for a reader who has none.
-  const home = account?.home ?? flag
+  const { reader } = useJurisdiction()
   const [chosen, setChosen] = React.useState<Record<string, number>>({})
   React.useEffect(() => {
     try {
@@ -135,18 +135,19 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
   const items = React.useMemo<GridItem[]>(
     () =>
       ordered.map((d) => {
-        const access = accessTo(d, { signedIn, home })
-        const locked = access === "locked"
-        const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : (d.href ?? null)
+        const access = accessTo(d, reader)
+        const locked = access !== "open"
+        const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: chosen[d.key] ? "" : "sessions", committee: "", member: "", bill: "", rollcall: "" } }) : (d.href ?? null)
         const explore = () => path && router.push(path)
         return {
           key: `dataset-${d.key}`,
           group: d.group,
-          badge: <Plan dataset={d} access={access} signedIn={signedIn} home={home} />,
+          badge: <Plan dataset={d} access={access} reader={reader} />,
           media: <Seal seal={d.seal} />,
           title: d.title,
-          // No buttons (Brendan, 2026-09-07): the card opens the dataset; the files are in its menu.
-          onOpen: locked || !path ? undefined : explore,
+          // No buttons (Brendan, 2026-09-07): the card opens the dataset; the files are in its menu. Shut, it opens the door — sign-in, or the plan.
+          onOpen: locked ? () => router.push(doorHref(access)) : path ? explore : undefined,
+          workspace: { kind: "dataset", key: d.key },
           menu: (
             <>
               {d.state && <ChooseSession dataset={d} chosen={chosen[d.key]} onChoose={(session) => choose(d.key, session)} />}
@@ -158,7 +159,7 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
           ),
         }
       }),
-    [ordered, signedIn, home, chosen, router]
+    [ordered, reader, chosen, router]
   )
 
   if (look === "table") return <DatasetTable chosen={chosen} rows={ordered} />
@@ -168,10 +169,7 @@ export function DatasetGrid({ look = "cards" }: { look?: Look }) {
 /** The datasets as the standard table: the seal and name, the jurisdiction, the plan. */
 function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: Dataset[] }) {
   const router = useRouter()
-  const { account, signedIn } = useAccount()
-  const { state: flag } = useJurisdiction()
-  // The profile's home state (onboarding, 2026-09-11), or the header's flag for a reader who has none.
-  const home = account?.home ?? flag
+  const { reader } = useJurisdiction()
   const columns = ["Dataset", "Jurisdiction", "Plan"]
   return (
     <div className="m-4 overflow-hidden rounded-lg border">
@@ -187,11 +185,12 @@ function DatasetTable({ chosen, rows }: { chosen: Record<string, number>; rows: 
         </TableHeader>
         <TableBody>
           {rows.map((d) => {
-            const access = accessTo(d, { signedIn, home })
+            const access = accessTo(d, reader)
             const path = d.state && d.chamber ? buildWorkspacePath({ state: d.state, chamber: d.chamber, session: chosen[d.key] ?? null, location: { at: "", committee: "", member: "", bill: "", rollcall: "" } }) : (d.href ?? null)
             const open = access === "open" && !!path
+            const go = open ? () => router.push(path!) : () => router.push(doorHref(access))
             return (
-              <TableRow key={d.key} className={cn("group/row", open && "cursor-pointer")} onClick={() => open && router.push(path!)}>
+              <TableRow key={d.key} className="group/row cursor-pointer" onClick={go}>
                 <TableCell className="max-w-0">
                   <span className="flex items-center gap-2.5 font-medium">
                     <Seal seal={d.seal} size={22} />

@@ -28,8 +28,11 @@ const CHAPTER = (n) => `https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/B
 // through 2-60.  Repealed and transferred by Session Laws 1971, c. 363." The
 // General Assembly prints that as one entry of the chapter, and it is one
 // citable place in the Statutes, so it is kept as one rather than lost.
+// The full stop that ends the number must be followed by space, or the lazy
+// number stops at the first one it meets and "§ 1-42.1." becomes section 1-42
+// with a heading of "1" — which is a third of the chapter renumbered wrongly.
 const SECTION =
-  /^§+\s*([0-9A-Za-z][0-9A-Za-z.‐-―-]*?)(?:\s+(?:through|to|and)\s+([0-9A-Za-z][0-9A-Za-z.‐-―-]*?))?\s*[.:]\s*(.*)$/s
+  /^§+\s*([0-9A-Za-z][0-9A-Za-z.‐-―-]*?)(?:\s+(?:through|to|and)\s+([0-9A-Za-z][0-9A-Za-z.‐-―-]*?))?\s*[.:](?:\s+|$)(.*)$/s
 const ARTICLE = /^(Article|Part|Subpart)\s+([0-9A-Za-z.-]+?)\.?\s*(?:\.|$)\s*(.*)$/i
 const SUBCHAPTER = /^(SUBCHAPTER|ARTICLE|PART)\s+([0-9A-Za-z.-]+?)\.?\s*[.:]?\s*(.*)$/i
 
@@ -41,12 +44,24 @@ export default {
 
   async *laws({ state, only, have, log }) {
     const toc = await fetchDoc(state, TOC)
+    // Each row links the chapter's HTML file by its icon, and then links the
+    // chapter twice more by name: once as "Chapter 1" and once as "Civil
+    // Procedure". The second of those is the name.
     const chapters = []
+    const names = new Map()
     for (const a of elements(toc, "a")) {
+      const named = /GeneralStatuteSections\/Chapter([0-9A-Za-z]+)\b/.exec(a.head)
+      if (named) {
+        const label = line(a.inner).replace(/\s+/g, " ").trim()
+        if (label && !/^Chapter\s+[0-9A-Za-z]+$/i.test(label)) names.set(named[1], titleCase(label))
+        continue
+      }
       const m = /Chapter_([0-9A-Za-z]+)\.html/.exec(a.head)
       if (!m || chapters.some((c) => c.number === m[1])) continue
-      chapters.push({ number: m[1], name: titleCase(line(a.inner).replace(/^Chapter\s+[0-9A-Za-z]+\s*[-.]?\s*/i, "")) })
+      chapters.push({ number: m[1], name: "" })
     }
+    for (const c of chapters) c.name = names.get(c.number) ?? ""
+
     log(`${chapters.length} chapters`)
 
     const wanted = chapters.filter((c) => (!only || `C${c.number}` === only.toUpperCase()) && !have?.has(`C${c.number}`))

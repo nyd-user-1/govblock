@@ -23,7 +23,8 @@ import Google from "next-auth/providers/google"
 
 import { getProfile } from "@/lib/profile"
 
-import { USER_ID_PATTERN, userIdForSubject } from "./contract"
+import { USER_ID_PATTERN, isUserId, userIdForSubject } from "./contract"
+import { claimReader, consumeLink, linkOutcome } from "./email-link"
 
 const clientId = process.env.AUTH_GOOGLE_ID
 const clientSecret = process.env.AUTH_GOOGLE_SECRET
@@ -65,10 +66,50 @@ const devProvider = Credentials({
   },
 })
 
+/**
+ * The magic link (2026-09-13). `/api/auth/link` hands the token here; a live,
+ * unused one signs in the reader it names, and the id returned is already the
+ * `readers` id. The result also goes back to that route through
+ * `linkOutcome`, which is how it knows where to land the reader.
+ */
+const emailLinkProvider = Credentials({
+  id: "email-link",
+  name: "Email link",
+  credentials: { token: { label: "Token", type: "text" } },
+  authorize: async (credentials) => {
+    const result = await consumeLink(String(credentials?.token ?? ""))
+    const store = linkOutcome.getStore()
+    if (store) store.result = result
+    return result.ok ? { id: result.id, email: result.email } : null
+  },
+})
+
+/**
+ * The id that reaches the token: one person, one id, however they arrive. An
+ * email link's subject already is the reader's id. A Google reader whose
+ * address Google has verified takes the id of the reader holding that address,
+ * or becomes that reader under the Google-derived id. An unverified address
+ * joins nobody, or anyone could claim an email reader's grants by typing their
+ * address into a Google account.
+ */
+async function readerId(provider: string, subject: string, email: string | null | undefined, verified: boolean): Promise<string | null> {
+  if (provider === "email-link") return isUserId(subject) ? subject : null
+  const derived = userIdForSubject(subject)
+  if (provider !== "google" || !derived || !email || !verified) return derived
+  try {
+    return (await claimReader(email, derived)).id
+  } catch (error) {
+    // Aurora unreachable: the Google-derived id is right for every reader who
+    // did not start with an email link, and sign-in keeps working.
+    console.error("auth: readers unavailable, using the Google-derived id", error)
+    return derived
+  }
+}
+
 const nextAuth = NextAuth({
   // With no client there is no provider, so Auth.js renders no sign-in route
   // rather than a broken one. /auth reads `signInConfigured` and says why.
-  providers: [...(signInConfigured ? [Google({ clientId, clientSecret })] : []), ...(devSignIn ? [devProvider] : [])],
+  providers: [...(signInConfigured ? [Google({ clientId, clientSecret })] : []), emailLinkProvider, ...(devSignIn ? [devProvider] : [])],
 
   // No database. The session is a signed, encrypted cookie the reader carries,
   // which is what keeps SSR free of a network round trip: measured at 1.4 ms
@@ -96,9 +137,9 @@ const nextAuth = NextAuth({
     // Pinning it ourselves instead of leaning on `token.sub` is deliberate: the
     // contract's stability guarantee is ours to keep, not Auth.js's to change
     // in a beta release.
-    async jwt({ token, account, trigger, session }) {
+    async jwt({ token, account, user, profile, trigger, session }) {
       if (account?.providerAccountId) {
-        const id = userIdForSubject(account.providerAccountId)
+        const id = await readerId(account.provider, account.providerAccountId, user?.email ?? profile?.email, profile?.email_verified === true)
         if (id) token.uid = id
         else delete token.uid
       }

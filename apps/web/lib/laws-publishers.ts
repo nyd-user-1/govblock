@@ -49,8 +49,10 @@ export const PUBLISHERS: Record<string, Publisher> = {
   CO: { name: "the Colorado General Assembly", url: "https://leg.colorado.gov/colorado-revised-statutes" },
   AL: { name: "the Alabama Legislature", url: "https://alison.legislature.state.al.us/code-of-alabama" },
   HI: { name: "the Hawaii State Legislature", url: "https://www.capitol.hawaii.gov/docs/hrs.htm" },
-  GA: { name: "the Georgia General Assembly", url: "https://www.legis.ga.gov/legislation/ocga", vendor: "LexisNexis" },
-  AR: { name: "the Arkansas General Assembly", url: "https://www.arkleg.state.ar.us/", vendor: "LexisNexis" },
+  GA: { name: "the Georgia Code Revision Commission", url: "https://www.lexisnexis.com/hottopics/gacode/", vendor: "LexisNexis" },
+  AR: { name: "the Arkansas Bureau of Legislative Research", url: "https://www.lexisnexis.com/hottopics/arcode/", vendor: "LexisNexis" },
+  MS: { name: "the Mississippi Joint Legislative Committee on Compilation", url: "https://www.lexisnexis.com/hottopics/mscode/", vendor: "LexisNexis" },
+  TN: { name: "the Tennessee Code Commission", url: "https://www.lexisnexis.com/hottopics/tncode/", vendor: "LexisNexis" },
   IL: { name: "the Illinois General Assembly", url: "https://www.ilga.gov/" },
   MI: { name: "the Michigan Legislature", url: "https://www.legislature.mi.gov/" },
 }

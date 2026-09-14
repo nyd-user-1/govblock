@@ -1,16 +1,10 @@
 import { redirect } from "next/navigation"
 import type { Session } from "next-auth"
 
-import {
-  auth,
-  devSignIn,
-  signIn,
-  signInConfigured,
-  signOut,
-} from "@/lib/auth/config"
-import { Button } from "@govblock/ui/components/nova/button"
-import { LoginForm } from "@/components/login-form"
-import ParticleMark from "@/components/flag-particles"
+import { auth, signIn, signInConfigured, signOut } from "@/lib/auth/config"
+import { getProfile, INTERESTS } from "@/lib/profile"
+import { SignOutButton } from "@/components/sign-out-button"
+import { SignStage } from "@/components/sign-stage"
 
 // The account surface. State and buttons — nothing else.
 //
@@ -31,8 +25,8 @@ const description =
  * /home"), and this constant is the only thing that had to change.
  */
 const HOME = "/home"
-/** Where sign-in lands: onboarding, which sends a reader with a finished profile on to /home (2026-09-11). */
-const WELCOME = "/welcome"
+/** Where sign-in lands (2026-09-13): back here, at the welcome step, which a reader with a finished profile is sent past to /home. */
+const WELCOME = "/auth#welcome"
 
 export const metadata = { title, description }
 export const dynamic = "force-dynamic"
@@ -45,20 +39,6 @@ async function signInWithGoogle() {
 async function signOutEverywhere() {
   "use server"
   await signOut({ redirectTo: "/" })
-}
-
-// The email form has nowhere to go in production: no credentials or email
-// provider is configured, and pressing Login says so through the error path
-// every other failure takes. On the dev server it signs the developer in
-// (lib/auth/config.ts, `devSignIn`).
-async function signInWithEmail(form: FormData) {
-  "use server"
-  if (!devSignIn) redirect("/auth?error=EmailSignin")
-  await signIn("dev", {
-    email: String(form.get("email") ?? ""),
-    password: String(form.get("password") ?? ""),
-    redirectTo: WELCOME,
-  })
 }
 
 // Auth.js sends its failures back here because `pages.error` points at this
@@ -75,6 +55,7 @@ const ERRORS: Record<string, string> = {
   AccessDenied:
     "Google would not hand over the sign-in — consent declined, or this address is not on the test-user list.",
   Verification: "That sign-in link has already been used, or it expired.",
+  LinkExpired: "That sign-in link has expired or has already been used. Request a new one.",
   OAuthSignin: "We could not start the handoff to Google.",
   OAuthCallback: "Google answered and we could not read the answer.",
   OAuthAccountNotLinked:
@@ -102,71 +83,44 @@ export default async function AuthPage({
   }
   const user = session?.user
 
-  // Signed in: this page has nothing to say. Sending them on is the ruling.
-  // The one exception is arriving here deliberately to sign out — without it
-  // the header's account affordance would lead somewhere that bounces, and a
-  // signed-in reader would have no way out at all.
-  if (user?.id && signout === undefined) redirect(HOME)
+  // Signed in with a finished profile: this page has nothing to say, and
+  // sending them on is the ruling. The one exception is arriving here
+  // deliberately to sign out — without it the header's account affordance
+  // would lead somewhere that bounces, and a signed-in reader would have no
+  // way out at all. A signed-in reader with no finished profile meets the
+  // welcome steps on this page (2026-09-13), where the magic link lands them.
+  const profile = user?.id ? await getProfile(user.id) : null
+  const welcome = !!user?.id && !profile?.completed_at
+  if (user?.id && signout === undefined && !welcome) redirect(HOME)
 
   return (
-    // shadcn's login-02 (Brendan, 2026-09-10): the form in a column of its
-    // own on the left, the flag with the whole right half of the screen. The
-    // grid stands under the site header rather than over it, so a reader can
-    // still get back out.
-    <div className="grid min-h-[calc(100svh-var(--header-height))] lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex w-full max-w-sm flex-col gap-6">
-            {user?.id ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-5">
-                <span className="min-w-0 truncate text-sm">
-                  {user.name ?? user.email ?? "Signed in"}
-                </span>
-                <form action={signOutEverywhere} className="ml-auto">
-                  <Button type="submit" variant="outline" size="sm">
-                    Sign out
-                  </Button>
-                </form>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <h1 className="text-2xl font-bold">Welcome back</h1>
-                  <p className="text-balance text-muted-foreground">
-                    Login to your GovBlock account
-                  </p>
-                </div>
-                {error ? (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                    <p className="text-sm text-destructive">
-                      {ERRORS[error] ?? "Sign-in failed."}{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                        {error}
-                      </code>
-                    </p>
-                  </div>
-                ) : null}
-                <LoginForm
-                  google={signInWithGoogle}
-                  email={signInWithEmail}
-                  googleReady={signInConfigured}
-                />
-                <p className="text-center text-xs text-balance text-muted-foreground">
-                  By clicking continue, you agree to our{" "}
-                  <a href="#">Terms of Service</a> and{" "}
-                  <a href="#">Privacy Policy</a>.
-                </p>
-              </>
-            )}
+    <>
+      {user?.id && signout !== undefined && (
+        <div className="flex justify-center px-6 pt-6">
+          <div className="flex w-full max-w-sm flex-wrap items-center gap-3 rounded-xl border bg-card p-5">
+            <span className="min-w-0 truncate text-sm">{user.name ?? user.email ?? "Signed in"}</span>
+            <form action={signOutEverywhere} className="ml-auto">
+              <SignOutButton />
+            </form>
           </div>
         </div>
-      </div>
-      {/* The flag, drawn as 45,000 particles that scatter under the pointer
-          and spring back (Brendan, 2026-09-09). It had half a card; on
-          login-02 it has half the screen, which is the room it wanted. */}
-      <div className="relative hidden bg-card lg:block">
-        <ParticleMark className="absolute inset-0" />
-      </div>
-    </div>
+      )}
+      {error && (
+        <div className="flex justify-center px-6 pt-6">
+          <div className="w-full max-w-sm rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">
+              {ERRORS[error] ?? "Sign-in failed."} <code className="rounded bg-muted px-1 py-0.5 text-xs">{error}</code>
+            </p>
+          </div>
+        </div>
+      )}
+      <SignStage
+        welcome={welcome}
+        email={user?.email ?? ""}
+        saved={welcome && profile ? { name: profile.name ?? "", home_state: profile.home_state, zip: profile.zip, address: profile.address, phone: profile.phone, interests: profile.interests ?? [], lng: profile.lng, lat: profile.lat } : undefined}
+        google={signInConfigured ? signInWithGoogle : undefined}
+        interests={INTERESTS}
+      />
+    </>
   )
 }

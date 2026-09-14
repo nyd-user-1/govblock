@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { STATE_CODES, STATE_NAMES, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { ACCOUNT_CACHE_KEY } from "@/lib/auth/use-account"
+import { cacheAccount } from "@/lib/auth/use-account"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@govblock/ui/components/nova/field"
@@ -49,11 +49,12 @@ export function Onboarding({ initial, roles, interests }: { initial: OnboardingI
       setBusy(false)
       return setError("That did not save. Try again in a moment.")
     }
-    // The header's flag follows the home state, and the tab's cached account is stale until the next read.
-    try {
-      sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
-    } catch {}
-    setState(form.home_state)
+    // The header's flag follows the home state. The tab's cached account
+    // learns it now, so the flag is theirs on the next page rather than
+    // after the next read; `force`, because the rule that gates setState
+    // reads the account, which is a beat behind (2026-09-13).
+    cacheAccount({ home: form.home_state })
+    setState(form.home_state, { force: true })
     router.push("/home")
   }
 

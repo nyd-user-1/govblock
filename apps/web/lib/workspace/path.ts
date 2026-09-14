@@ -9,6 +9,7 @@ import { chambersOf } from "@/lib/workspace/datasets"
 //
 //   /workspace/data                                    the datasets
 //   /workspace/data/us/house                           the dataset, current session
+//   /workspace/data/us/house/sessions                  every session of the dataset (Brendan, 2026-09-13: where a dataset card opens)
 //   /workspace/data/us/house/2025                      the session root
 //   /workspace/data/us/house/2025/bills                a listing: bills, committees, members, votes, votes/2026-05, votes/2026-05/floor, sessions, forks
 //   /workspace/data/us/house/2025/bill/hb9329          a bill, by its number (or by id, when only the id is known)
@@ -47,9 +48,11 @@ export function parseWorkspacePath(segments: string[]): ParsedPath {
   if (!isJurisdiction(state)) return { kind: "missing", reason: `No jurisdiction "${st}".` }
   const chamber = chamberFor(state, ch ?? "") ?? (ch ? undefined : chambersOf(state)[0])
   if (!chamber) return { kind: "missing", reason: `${state} has no chamber "${ch}".` }
+  const location: Location = { at: "", committee: "", member: "", bill: "", rollcall: "" }
+  // The sessions are the dataset's, not a session's: /us/house/sessions names no year.
+  if (sess === "sessions" && !rest.length) return { kind: "node", state, chamber, session: null, location: { ...location, at: "sessions" } }
   const session = sess && /^\d+$/.test(sess) ? Number(sess) : null
   if (sess && session === null) return { kind: "missing", reason: `"${sess}" is not a year.` }
-  const location: Location = { at: "", committee: "", member: "", bill: "", rollcall: "" }
   const out: ParsedPath = { kind: "node", state, chamber, session, location }
   const [head, a, b, c, d] = rest
   const bill = (x: string | undefined) => {
@@ -98,7 +101,8 @@ export function parseWorkspacePath(segments: string[]): ParsedPath {
 export function buildWorkspacePath(args: { state: string; chamber: string | null; session: number | null; location: Location; number?: string | null; slug?: string | null }): string {
   const { state, chamber, session, location: loc } = args
   const parts = [WORKSPACE_DATA, state.toLowerCase(), (chamber ?? chambersOf(state)[0]).toLowerCase()]
-  if (session) parts.push(String(session))
+  // The sessions listing sits above every session, so it carries no year.
+  if (session && loc.at !== "sessions") parts.push(String(session))
   const billSeg = () => (args.number ? slugify(args.number) : loc.bill)
   if (loc.committee) {
     parts.push("committee", slugify(loc.committee))

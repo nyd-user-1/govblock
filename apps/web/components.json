@@ -24,6 +24,7 @@
     "@animate-ui": "https://animate-ui.com/r/{name}.json",
     "@animbits": "https://animbits.dev/r/{name}.json",
     "@44gov": "https://44gov.nysgpt.com/r/{name}.json",
-    "@plate": "https://platejs.org/r/{name}.json"
+    "@plate": "https://platejs.org/r/{name}.json",
+    "@bklit": "https://bklit.com/r/{name}.json"
   }
 }

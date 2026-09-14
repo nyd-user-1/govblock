@@ -58,7 +58,8 @@ function NavigationMenuItem({
 }
 
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-8 w-max items-center justify-center rounded-md px-2.5 py-2 text-sm font-medium transition-colors outline-none hover:bg-muted hover:text-accent-foreground focus:bg-muted focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-muted/50 data-[state=open]:bg-muted/50"
+  // The site's focus ring while a menu is pressed open, and on keyboard focus (Brendan, 2026-09-13).
+  "group inline-flex h-8 w-max items-center justify-center rounded-md px-2.5 py-2 text-sm font-medium transition-[color,background-color,box-shadow] outline-none hover:bg-muted hover:text-accent-foreground focus:bg-muted focus:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:ring-[3px] data-[state=open]:ring-ring/50"
 )
 
 function NavigationMenuTrigger({

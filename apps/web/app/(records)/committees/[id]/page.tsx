@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
+import { ScopeMark } from "@/components/scope-mark"
 import { fmtNumber } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
 import { getLobbyingOnBills, referredKeys } from "@/lib/policy/lobbying-queries"
@@ -185,6 +186,7 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
 
   return (
     <PendingSessionProvider>
+      <ScopeMark state={state} session={session} current={latest} entity="committees" />
       <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="h-(--top-spacing) shrink-0" />

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 
-import { useHomeState } from "@/lib/policy/home-state"
 import { CONGRESS, DISTRICT, flagUrl, STATE_CODES, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { FlagChip } from "@/components/policy/imagery"
@@ -21,7 +20,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components
 // Ported from livingston-v3 components/state-switcher.tsx. The scope control:
 // the two-letter code in a monospace badge plus the flag. Choosing a row writes
 // the jurisdiction to the URL and to this browser's memory; every legislative
-// surface reads it back through useJurisdiction.
+// surface reads it back through useJurisdiction. Every jurisdiction is listed
+// and none wears a lock (Brendan, 2026-09-13); choosing one the reader may
+// not open goes to sign-in or the plan instead — the rule lives in setState.
 
 function Rows({ codes, current, onSelect }: { codes: string[]; current: string; onSelect: (code: string) => void }) {
   return (
@@ -40,8 +41,8 @@ function Rows({ codes, current, onSelect }: { codes: string[]; current: string; 
 }
 
 // Active (Brendan, 2026-09-11): what the reader is entitled to — Congress,
-// and once they have signed in, their home state beside it. Everyone else
-// sees Congress alone at the top.
+// and once they have signed in and chosen a home state, that state beside
+// it. Everyone else sees Congress alone at the top.
 function StatePicker({ state, active, onSelect, className }: { state: string; active: string[]; onSelect: (code: string) => void; className?: string }) {
   return (
     <Command className={className} loop>
@@ -77,10 +78,9 @@ function FlagStack({ home }: { home: string }) {
 }
 
 export function StateSwitcher({ className, compact = false }: { className?: string; compact?: boolean }) {
-  const { state, setState, resolved } = useJurisdiction()
-  // The profile's home, or the last state a signed-in reader was in — never
-  // Congress, and never lost by stepping into Congress (2026-09-12).
-  const home = useHomeState()
+  const { state, setState, resolved, reader } = useJurisdiction()
+  // The profile's home state, and nothing else (2026-09-13): the flag is the entitlement.
+  const home = reader.home && reader.home !== CONGRESS ? reader.home : null
   const active = home ? [CONGRESS, home] : [CONGRESS]
   const [open, setOpen] = React.useState(false)
   const select = React.useCallback(

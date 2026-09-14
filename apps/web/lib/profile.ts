@@ -25,6 +25,10 @@ export type Profile = {
   interests: string[]
   brief_opt_in: boolean
   bio: string | null
+  /** How many times the home state has changed since onboarding (2026-09-13): once is allowed, then support. */
+  home_changes: number
+  /** The plan the reader is on (2026-09-13): free until Stripe exists, set by hand meanwhile. */
+  plan: string
   completed_at: string | null
   created_at: string | null
 }
@@ -33,12 +37,14 @@ export const ROLES = ["Resident", "Legislative staff", "Elected official", "Advo
 
 export const INTERESTS = ["Housing", "Health", "Education", "Labor", "Environment", "Taxes and budget", "Public safety", "Elections", "Transportation", "Technology", "Agriculture", "Veterans"] as const
 
-const COLUMNS = "user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, completed_at::text as completed_at, created_at::text as created_at"
+const COLUMNS = "user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, home_changes, plan, completed_at::text as completed_at, created_at::text as created_at"
 
 const parse = (row: Record<string, unknown>): Profile => ({
   ...(row as Profile),
   interests: Array.isArray(row.interests) ? (row.interests as string[]) : typeof row.interests === "string" ? row.interests.replace(/^\{|\}$/g, "").split(",").filter(Boolean) : [],
   brief_opt_in: !!row.brief_opt_in,
+  home_changes: Number(row.home_changes ?? 0) || 0,
+  plan: typeof row.plan === "string" && row.plan ? row.plan : "free",
 })
 
 export async function getProfile(userId: string): Promise<Profile | null> {
@@ -63,8 +69,8 @@ export async function saveProfile(userId: string, patch: ProfilePatch): Promise<
   const home = text(patch.home_state, 2)?.toUpperCase() ?? null
   const interests = (patch.interests ?? []).filter((i): i is string => typeof i === "string").map((i) => i.trim().slice(0, 40)).filter(Boolean).slice(0, 20)
   const row = await one<Record<string, unknown>>(
-    `insert into reader_profiles (user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, completed_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, case when $16 then now() else null end)
+    `insert into reader_profiles (user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, completed_at, home_changes)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, case when $16 then now() else null end, coalesce($17::int, 0))
      on conflict (user_id) do update set
        email = coalesce(excluded.email, reader_profiles.email),
        name = coalesce(excluded.name, reader_profiles.name),
@@ -81,6 +87,7 @@ export async function saveProfile(userId: string, patch: ProfilePatch): Promise<
        brief_opt_in = excluded.brief_opt_in,
        bio = coalesce(excluded.bio, reader_profiles.bio),
        completed_at = coalesce(reader_profiles.completed_at, excluded.completed_at),
+       home_changes = case when $17::int is null then reader_profiles.home_changes else $17::int end,
        updated_at = now()
      returning ${COLUMNS}`,
     [
@@ -100,6 +107,7 @@ export async function saveProfile(userId: string, patch: ProfilePatch): Promise<
       !!patch.brief_opt_in,
       text(patch.bio, 1000),
       !!patch.complete,
+      typeof patch.home_changes === "number" ? patch.home_changes : null,
     ]
   )
   return row ? parse(row) : null

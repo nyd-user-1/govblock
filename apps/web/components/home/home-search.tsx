@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { History, Search } from "lucide-react"
 
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { SearchResults, useSiteSearch } from "@/components/command-menu"
+import { SearchResults, useSiteSearch, warmFlags } from "@/components/command-menu"
 import { useRecents } from "@/components/home/recents"
 import { cn } from "@govblock/ui/lib/utils"
 import { Command, CommandGroup, CommandItem, CommandList, CommandRawInput } from "@govblock/ui/components/nova/command"
@@ -64,7 +64,10 @@ export function HomeSearch() {
       value={search.selected}
       onValueChange={search.setSelected}
       className="relative w-full overflow-visible rounded-none! bg-transparent p-0 text-foreground"
-      onFocusCapture={() => setOpen(true)}
+      onFocusCapture={() => {
+        warmFlags()
+        setOpen(true)
+      }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
       }}

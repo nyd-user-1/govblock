@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react"
-import { codeToHtml, type ShikiTransformer } from "shiki"
+import { createHighlighterCore, type HighlighterCore, type ShikiTransformer } from "shiki/core"
+import { createJavaScriptRegexEngine } from "shiki/engine/javascript"
 
 import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { CopyButton } from "@/components/copy-button"
@@ -64,9 +65,37 @@ const marks = (highlighted?: Set<number>, numbers?: boolean): ShikiTransformer =
   },
 })
 
+// A fine-grained highlighter (2026-09-13): the full `shiki` bundle carried
+// every grammar and theme into each server route that draws a code block —
+// seven routes, ~80 MB, and the production build over Amplify's 220 MB cap.
+// These eleven grammars are 544 KB, the two themes ride along, and the
+// JavaScript engine needs no WebAssembly. Anything else prints plain.
+const LANGS = new Set(["ts", "tsx", "js", "jsx", "json", "css", "bash", "xml", "html", "yaml", "sql"])
+let highlighter: Promise<HighlighterCore> | null = null
+const getHighlighter = () =>
+  (highlighter ??= createHighlighterCore({
+    engine: createJavaScriptRegexEngine(),
+    themes: [import("@shikijs/themes/github-light-default"), import("@shikijs/themes/github-dark-default")],
+    langs: [
+      import("@shikijs/langs/ts"),
+      import("@shikijs/langs/tsx"),
+      import("@shikijs/langs/js"),
+      import("@shikijs/langs/jsx"),
+      import("@shikijs/langs/json"),
+      import("@shikijs/langs/css"),
+      import("@shikijs/langs/bash"),
+      import("@shikijs/langs/xml"),
+      import("@shikijs/langs/html"),
+      import("@shikijs/langs/yaml"),
+      import("@shikijs/langs/sql"),
+    ],
+  }))
+
 async function highlight(code: string, lang: string, highlighted?: Set<number>, numbers?: boolean) {
+  if (!LANGS.has(lang)) return null
   try {
-    return await codeToHtml(code, {
+    const h = await getHighlighter()
+    return h.codeToHtml(code, {
       lang,
       themes: { light: "github-light-default", dark: "github-dark-default" },
       defaultColor: false,

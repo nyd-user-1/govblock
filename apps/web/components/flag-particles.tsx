@@ -171,7 +171,7 @@ function parseHex(hex: string): [number, number, number] {
 }
 
 // ── Scene ──────────────────────────────────────────────────────────────────
-function Field({ src, fit }: { src: string; fit?: number }) {
+function Field({ src, fit, onReady }: { src: string; fit?: number; onReady?: () => void }) {
   const groupRef = useRef<THREE.Group>(null)
   const mouseRef = useRef(new THREE.Vector3(999, 999, 999))
   const hoverActive = useRef(false)
@@ -185,6 +185,17 @@ function Field({ src, fit }: { src: string; fit?: number }) {
     sample(DENSITY, src).then((d) => { if (alive) setData(d) })
     return () => { alive = false }
   }, [src])
+
+  // Ready once the field has been built from the sample and had a frame to
+  // draw (Brendan, 2026-09-13): what a page waits on before it lets the rest
+  // of itself arrive.
+  const readyRef = useRef(onReady)
+  readyRef.current = onReady
+  useEffect(() => {
+    if (!data || data.positions.length === 0) return
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => readyRef.current?.()))
+    return () => cancelAnimationFrame(id)
+  }, [data])
 
   // With `fit`, the camera dollies until the sampled image spans that
   // fraction of whichever canvas edge binds first, on every resize — /unite
@@ -276,7 +287,7 @@ function Field({ src, fit }: { src: string; fit?: number }) {
   )
 }
 
-function Scene({ src, fit }: { src: string; fit?: number }) {
+function Scene({ src, fit, onReady }: { src: string; fit?: number; onReady?: () => void }) {
   // The LAB shipped this opaque (alpha: false, BG_COLOR as clear colour) so
   // screen recordings stayed sRGB. Here the canvas sits in a themed panel and
   // paints no background of its own — a transparent clear, and the panel's
@@ -294,7 +305,7 @@ function Scene({ src, fit }: { src: string; fit?: number }) {
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
       style={{ touchAction: 'none' }}
     >
-      <Field src={src} fit={fit} />
+      <Field src={src} fit={fit} onReady={onReady} />
     </Canvas>
   )
 }
@@ -307,10 +318,10 @@ const SceneNoSSR = dynamic(() => Promise.resolve(Scene), { ssr: false })
  * so only that shell changed; the field, the shaders and every constant above
  * are the generated file untouched.
  */
-export default function ParticleMark({ src = '/hi-res-am-flag.webp', className, fit }: { src?: string; className?: string; fit?: number } = {}) {
+export default function ParticleMark({ src = '/hi-res-am-flag.webp', className, fit, onReady }: { src?: string; className?: string; fit?: number; /** Fires once the particles are on screen. */ onReady?: () => void } = {}) {
   return (
     <div className={className}>
-      <SceneNoSSR src={src} fit={fit} />
+      <SceneNoSSR src={src} fit={fit} onReady={onReady} />
     </div>
   )
 }

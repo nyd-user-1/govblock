@@ -7,6 +7,10 @@ vendor sits between the legislature and the reader.
 It is written as the work goes and is not finished. A row with no adapter is a
 row nobody has built yet, not a jurisdiction whose law cannot be had.
 
+As of 13 September 2026: **all 52 are loaded** — 25,215 laws, 2,055,954
+sections, 2,217,980 rows. Every one of them was taken from the source its own
+government publishes it at.
+
 ## Every page says what it is current to
 
 Each `/laws/<state>` page prints one small line at its foot: **Snapshot: <date>**.
@@ -54,14 +58,14 @@ says so, and the adapter takes the statute and nothing the vendor wrote.
 
 ## The jurisdictions
 
-Status: **loaded** · **building** · **sized** (source confirmed, adapter not
-written) · **open** (not yet looked at).
+Status: **loaded** — every row. A row still says how the law was got, because
+what a source does today it may not do next year.
 
 | | Jurisdiction | Publisher | Format | Vendor in front | Status |
 | --- | --- | --- | --- | --- | --- |
-| US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 titles, 61,009 sections |
-| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,428 sections |
-| NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,551 sections |
+| US | U.S. Congress | Office of the Law Revision Counsel, `uscode.house.gov` | USLM XML, bulk, one file per title, at a release point | no | **loaded** — 57 titles, 60,473 sections |
+| CA | California | Legislative Counsel, `downloads.leginfo.legislature.ca.gov` | tab-delimited tables in `pubinfo_<year>.zip`, section text as CAML XML | no | **loaded** — 30 codes, 161,427 sections |
+| NY | New York | NY Senate, `legislation.nysenate.gov` | JSON API, whole law in one call, free key | no | **loaded** — 137 laws, 40,516 sections |
 | DC | District of Columbia | DC Council, `code.dccouncil.gov` | XML on GitHub, one index per title and one file per section | no | **loaded** — 54 titles, 23,492 sections |
 | MA | Massachusetts | `malegislature.gov/api` | JSON API, no key, one request per section | no | **loaded** — 611 laws, 26,326 sections |
 | TX | Texas | Legislative Council, `tcss.legis.texas.gov` | one API call per code for its whole tree, then one HTML file per chapter | no | **loaded** — 30 codes, 145,592 sections |
@@ -69,28 +73,28 @@ written) · **open** (not yet looked at).
 | WA | Washington | Code Reviser, `app.leg.wa.gov/RCW` | the same page at three depths; one request per section | no | **loaded** — 100 laws, 51,380 sections. The bulk file was never needed |
 | VA | Virginia | Division of Legislative Automated Systems, `law.lis.virginia.gov` | one page per section; the full-chapter view renders on the client | no | **loaded** — 61 laws, 33,355 sections. The API registration has not come back, and nothing waited on it |
 | OH | Ohio | Legislative Service Commission, `codes.ohio.gov` | the chapter page carries every section in full | no | **loaded** — 976 laws, 33,830 sections |
-| AZ | Arizona | Legislative Council, `azleg.gov` | one small HTML file per section | no | **loaded** — 47 laws, 24,960 sections. Sucuri answers a bare 307 once a count is passed and holds the AWS address there, so it runs from another |
+| AZ | Arizona | Legislative Council, `azleg.gov` | one small HTML file per section | no | **loaded** — 47 titles, 24,960 sections. Sucuri answers a bare 307 once a count is passed and holds the AWS address there, so it runs from another |
 | DE | Delaware | Code Revisors, `delcode.delaware.gov` | one HTML page per chapter | no | **loaded** — 31 laws, 10,081 sections. 403s AWS at width; four lanes and a quarter-second apart passes |
 | CT | Connecticut | General Assembly, `cga.ct.gov/current/pub` | one HTML page per chapter, the whole chapter on it | no | **loaded** — 71 laws, 29,671 sections. Serves an incomplete certificate chain; the intermediate its own certificate names is fetched and added |
-| AK | Alaska | Legislative Affairs Agency, `akleg.gov/basis` | the site's own TOC and print endpoints; the print view is a window that is paged | no | **building** — 12,846 sections so far |
+| AK | Alaska | Legislative Affairs Agency, `akleg.gov/basis` | the site's own TOC and print calls; the print view is a scrolling window rather than a document, so a chapter is asked for by its start and the window is walked to its end | no | **loaded** — 727 chapters, 20,226 sections |
 | CO | Colorado | Office of Legislative Legal Services, `olls.info/crs` | the whole Code as one 37 MB HTML archive, a file per title | no | **loaded** — 44 titles, 35,101 sections. The PDFs the ledger recorded are beside it; the HTML is better |
-| AL | Alabama | Legislative Services Agency, `gql.api.alison.legislature.state.al.us` | GraphQL: one call returns the whole hierarchy, one call per section returns its content | no | **building** — 25,803 sections so far. The viewer is a Next.js client; introspection is off, so the queries are the ones its own bundle sends |
-| GA | Georgia | `legis.ga.gov/legislation/ocga` | the page is an application shell of 1.5 KB that names no code; the OCGA itself is served by LexisNexis's viewer | yes — take the statute, leave the OCGA annotations | **blocked** — no open address for the text has been found. Next: the viewer's own API from its network calls, and the General Assembly's bulk request |
+| AL | Alabama | Legislative Services Agency, `gql.api.alison.legislature.state.al.us` | GraphQL: one call returns the whole hierarchy as a delimited table, one call per section returns its content | no | **loaded** — 1,445 chapters, 48,531 sections. The viewer is a Next.js client and introspection is off, so the queries are the ones its own bundle sends |
+| GA | Georgia | Code Revision Commission, through `lexisnexis.com/hottopics/gacode` | the same viewer; `legis.ga.gov` is a 1.5 KB application shell that names no code | yes — LexisNexis; take the statute, leave the OCGA annotations | **loaded** — 53 titles, 29,558 sections. Current through the 2026 Special Session |
 | HI | Hawaii | Legislative Reference Bureau, `capitol.hawaii.gov/hrscurrent` | a directory listing: one file per section | no | **loaded** — 696 chapters, 10,120 sections. Refuses the AWS address with a 403, so it runs from another |
 | IL | Illinois | General Assembly, `ilga.gov` | an act's full-text view is the whole act in one request | no | **loaded** — 2,816 acts, 72,652 sections. The rebuilt site's paths are `/Legislation/ILCS/Chapters` → `Acts?ChapterID=` → `details?…ChapAct=FullText` |
 | MI | Michigan | Legislative Service Bureau, `legislature.mi.gov` | `/Home/RenderDoc?objectName=mcl-chapN` renders a whole chapter | no | **loaded** — 199 laws, 41,752 sections. The old MCL paths answer 400; the render endpoint is the one the site itself uses |
-| NC | North Carolina | General Assembly, `ncleg.gov` | one HTML file per chapter, the whole chapter in it | no | **loaded** — 396 laws, 41,481 sections |
+| NC | North Carolina | General Assembly, `ncleg.gov` | one HTML file per chapter, the whole chapter in it | no | **loaded** — 396 chapters, 41,458 sections. The General Assembly prints a decimal section as "§ 1-42.1.", and a lazy number stopped at the first full stop, so a third of the state was filed under the wrong citation until the separator was made to require a space after it |
 | PA | Pennsylvania | Legislative Reference Bureau, `legis.state.pa.us` | one HTML file per title, every unit marked by a `<div class="Comment">` | no | **loaded** — 51 laws, 14,045 sections. Black-holes the AWS range, so it is fetched from elsewhere; the unconsolidated statutes are a second pass |
 | SC | South Carolina | Legislative Council, `scstatehouse.gov/code` | one HTML page per chapter, unannotated | no | **loaded** — 63 laws, 30,991 sections |
 | OR | Oregon | Legislative Counsel, `oregonlegislature.gov/bills_laws/ors` | one HTML file per chapter, ISO-8859-1 | no | **loaded** — 552 laws, 61,141 sections |
 | NV | Nevada | Legislative Counsel Bureau, `leg.state.nv.us/NRS` | one HTML file per chapter, windows-1252 | no | **loaded** — 834 laws, 43,768 sections |
-| VT | Vermont | Office of Legislative Counsel, `legislature.vermont.gov` | one page per section | no | **loaded** — 1,321 laws, 19,019 sections |
+| VT | Vermont | Office of Legislative Counsel, `legislature.vermont.gov` | one page per section | no | **loaded** — 1,567 laws, 22,805 sections |
 | MN | Minnesota | Office of the Revisor, `revisor.mn.gov` | one page per section; no machine-readable chapter list, so chapters are enumerated | no | **loaded** — 1,016 laws, 51,103 sections |
 | MO | Missouri | Revisor of Statutes, `revisor.mo.gov` | one page per section | no | **loaded** — 452 laws, 29,275 sections |
 | MD | Maryland | General Assembly, `mgaleg.maryland.gov` | `/api/Laws/GetSections` lists an article's sections; one page each | LexisNexis prints the annotated edition; the site serves the statute alone | **loaded** — 36 articles, 40,053 sections |
 | WI | Wisconsin | Legislative Reference Bureau, `docs.legis.wisconsin.gov` | one page per section; the chapter's contents scroll sixty entries at a time | no | **loaded** — 470 laws, 16,344 sections |
-| WV | West Virginia | Legislature, `code.wvlegislature.gov` | chapter, article and section pages | no | **building** — 45 laws, 11,294 sections |
-| ID | Idaho | Legislative Services Office, `legislature.idaho.gov` | titles, chapters and sections; the statute carries no class of its own and is cut out of the page's prose | no | **building** — 121 laws, 1,316 sections |
+| WV | West Virginia | Legislature, `code.wvlegislature.gov` | one page per chapter, every article and section inside it; the chapter list is the page's own `<select>` | no | **loaded** — 139 chapters, 31,297 sections |
+| ID | Idaho | Legislative Services Office, `legislature.idaho.gov` | titles, chapters and sections out of a WordPress theme that puts no class on the statute, so the section is cut out of the page's prose | no | **loaded** — 1,405 chapters, 20,469 sections |
 | KY | Kentucky | Legislative Research Commission, `apps.legislature.ky.gov` | one PDF per section | no | **loaded** — 542 laws, 35,577 sections |
 | ND | North Dakota | Legislative Council, `ndlegis.gov/cencode` | one PDF per chapter; the chapters are enumerated | no | **loaded** — 872 laws, 17,949 sections |
 | IA | Iowa | Legislative Services Agency, `legis.iowa.gov/docs/code` | one PDF per chapter; the chapters are enumerated | no | **loaded** — 1,120 laws, 26,680 sections |
@@ -99,18 +103,90 @@ written) · **open** (not yet looked at).
 | RI | Rhode Island | General Assembly, `webserver.rilegislature.gov/Statutes` | a file tree: title, chapter and section pages | no | **loaded** — 2,468 laws, 32,458 sections |
 | MT | Montana | Legislative Services Division, `archive.legmt.gov/bills/mca` | index pages four deep, one file per section | annotations are licensed for the printed edition; the site serves the statute | **loaded** — 869 laws, 44,150 sections |
 | OK | Oklahoma | Legislature, `oklegislature.gov/OK_Statutes` | one PDF per complete title | no | **loaded** — 82 laws, 35,658 sections |
-| UT | Utah | `le.utah.gov/xcode` | the pages render on the client and name no chapter; only `Title1/1.html` answers, and every chapter and section path tried returns 404 | no | **blocked** — the data endpoint has not been found; the bundle names only `searchCode.jsp`. Next: the Office of Legislative Research and General Counsel's bulk publication, and the search endpoint as an index |
-| SD | South Dakota | `sdlegislature.gov` | `/api/Statutes/Title` returns all 71 titles as JSON; every other path under `/api/Statutes` falls through to the application shell | no | **blocked** — the children endpoint has not been found. Next: the statute route's own lazily-loaded chunk, and the Codified Laws PDFs |
+| UT | Utah | Office of Legislative Research and General Counsel, `le.utah.gov/xcode` | under the client-rendered pages is a file tree keyed by version, and beside every HTML file the same unit as **XML** — `Title3/Chapter1/C3-1_<version>.xml` — with the Office's own structure in it | no | **loaded** — 1,356 chapters, 28,310 sections |
+| SD | South Dakota | Legislative Research Council, `sdlegislature.gov` | `/api/Statutes/<cite>.html?all=true` — the call behind the site's own Printer Friendly button — is the whole of a chapter as one document | no | **loaded** — 738 chapters, 18,012 sections |
 | NE | Nebraska | Revisor of Statutes, `nebraskalegislature.gov` | `display-chapters.php` is a whole chapter with its text | no | **loaded** — 90 chapters, 55,676 sections |
-| NH | New Hampshire | General Court, `gencourt.state.nh.us/rsa/html` | a file tree; each chapter has a merged file that is the whole of it | no | **building** — 1,787 chapters; the host hangs up under width, so it runs at three lanes and a failure is a gap rather than a stop |
-| LA | Louisiana | `legis.la.gov` | the table of contents navigates by ASP.NET postbacks, so no address addresses a title or a chapter; `Law.aspx?d=<id>` does address a section | no | **blocked** — the tree cannot be walked by address. Next: enumerate the document ids, which are dense, and rebuild the tree from each section's own citation |
-| NJ | New Jersey | `lis.njleg.state.nj.us` | the statutes sit behind a Folio `nxt/gateway.dll` viewer, which refuses a plain GET | no | **blocked**. Next: the viewer's own query strings, and the OLS bulk request |
-| KS | Kansas | `ksrevisor.gov` / `kslegislature.gov` | the Revisor's chapter paths answer 404 and the Legislature's statute index carries no link | no | **blocked** — the current address has not been found. Next: the Revisor's own index page and the Legislature's search endpoint |
-| MS | Mississippi | `billstatus.ls.state.ms.us` | answers 403; the Code is published through a vendor viewer | yes | **blocked**. Next: the Secretary of State's publication and the Legislature's own bulk request |
-| NM | New Mexico | `nmonesource.com` | the Compilation Commission's viewer; the paths tried answer 404 | yes — the Commission publishes under contract | **blocked**. Next: the viewer's own API, and the Commission's bulk terms |
-| IN | Indiana | `iga.in.gov` | a React application with no statute in its HTML; the MyIGA key was requested and has not come back | no | **blocked** — no open address for the text has been found. Next: the application's own data calls, and the key |
-| AR | Arkansas | `arkleg.state.ar.us` | the code path answers with 42 bytes; the Code is published through LexisNexis | yes | **blocked**. Next: the Bureau of Legislative Research's own files |
-| TN | Tennessee | `lexisnexis.com/hottopics/tncode` | a vendor viewer, 3.7 KB of shell | yes — take the statute, leave the annotations | **blocked**. Next: the viewer's API, and the Secretary of State's publication |
+| NH | New Hampshire | General Court, `gencourt.state.nh.us/rsa/html` | a file tree; each chapter has a merged file that is the whole of it | no | **loaded** — 1,310 chapters, 28,213 sections. The host hangs up under width, so it runs at three lanes and a failed chapter is a gap rather than a stop |
+| LA | Louisiana | Legislature, `legis.la.gov` | the contents navigate by ASP.NET postbacks, so no address addresses a title; `Law.aspx?d=<id>` addresses one section and the page names its own citation, so the ids are enumerated and the tree rebuilt from the documents | no | **loaded** — 53 titles, 33,706 sections. Every section is served at two document ids, differing only in whether the Legislature's note sits above the law, and one citation is one section, so the fuller copy is kept. The Administrative Code shares the store and is left where it is |
+| NJ | New Jersey | Office of Legislative Services, `lis.njleg.state.nj.us` | a Folio NXT viewer that navigates by postback, over its own contents API — `gateway.dll?f=xmlcontents&command=getchildren&basepathid=<id>` — and one addressable document per node | no — the Office's edition is unannotated | **loaded** — 69 titles, 56,290 sections. Title 8A, Cemeteries, is an empty node in the Office's own edition |
+| KS | Kansas | Office of Revisor of Statutes, `ksrevisor.gov` | `ksa.html` names every chapter; a chapter page lists its articles and sections, and a section is its own file | no | **loaded** — 88 chapters, 46,930 sections. The Office's index says the authenticated text is the printed bound volumes; the snapshot line on `/laws/ks` carries that |
+| MS | Mississippi | Joint Legislative Committee on Compilation, through `lexisnexis.com/hottopics/mscode` | the same viewer; `billstatus.ls.state.ms.us` answers 403 | yes — LexisNexis | **loaded** — 51 titles, 30,180 sections. Current with legislation from the 2026 Regular Session |
+| NM | New Mexico | Compilation Commission, `nmonesource.com` | Lexum's viewer draws on the client, but its own frame answers: `nav_date.do?iframe=true` lists every chapter and `/{id}/1/document.do` is the chapter as a PDF | yes — the Commission publishes under contract; the annotations it prints under each section are left behind, the History line stays | **loaded** — 82 chapters, 31,321 sections. Chapters 32 and 59 are repealed in whole and carry no section |
+| IN | Indiana | General Assembly, `iga.in.gov` | the React application's own bundle names a static document per title, `ic/<year>/Title_<n>.html`, with the Assembly's structure in the markup | no | **loaded** — 32 titles, 80,485 sections. The MyIGA key was asked for and never came back; it was not needed |
+| AR | Arkansas | Bureau of Legislative Research, through `lexisnexis.com/hottopics/arcode` | the viewer's own contents call, then one document per section — see *The four the vendor holds* | yes — LexisNexis serves it; the free edition carries the statute and its history and no annotations | **loaded** — 28 titles, 38,342 sections. Current through the First Extraordinary Session, 2026 |
+| TN | Tennessee | Tennessee Code Commission, through `lexisnexis.com/hottopics/tncode` | the same viewer | yes — LexisNexis; take the statute, leave the annotations | **loaded** — 69 titles, 35,617 sections. Current through the 2026 Regular Session and the 2026 2nd Extraordinary Session |
+
+## The four the vendor holds
+
+Arkansas, Georgia, Mississippi and Tennessee publish their codes in one place
+and one place only: LexisNexis's free public-access viewer, which each state
+links to from its own site. There is no second official address for any of the
+four, and the viewer is an application rather than a document. It is read the
+way a reader reads it, and `scripts/laws/lib/lexis.mjs` is that reading in one
+file:
+
+1. `lexisnexis.com/hottopics/<x>code` redirects to a container page whose only
+   job is to write an `LNDOMENV` cookie describing the browser and reload
+   itself. Writing that cookie honestly — the same user agent that is sent, a
+   plain desktop screen — and asking again returns the real container. Nothing
+   is signed in to and no credential is used: the identity the site hands out
+   is the anonymous public one it hands every reader.
+
+2. The container carries the top of the table of contents in its own page
+   model: the root, and one node per title, each with the count of what hangs
+   beneath it at every level.
+
+3. Below that the tree is drawn by a component. Its bundle — `/bundles/
+   container-default-usresearch-en-us`, the one the container defers — says in
+   plain terms how it asks for children:
+
+   ```
+   PATCH /r/tocprovider/<component>/toc/<component>
+   {"id":"<component>","props":{"action":"open-to",
+     "items":[{"fieldName":"nodeId","value":"AAB"},
+              {"fieldName":"targetLevel","value":4}]}}
+   ```
+
+   which answers with that node's whole subtree — chapters, subchapters, parts
+   and every section — each leaf carrying the content item its document lives
+   at. A node that turns out to go deeper than the level asked for is asked
+   for again on its own terms.
+
+4. A document is `api/document?collection=statutes-legislation&id=<urn>`, which
+   redirects to the page the reader would see. The statute, its heading and its
+   history are in it, server-rendered.
+
+**What is taken and what is left.** This free edition carries the statute and
+its history and nothing else — no case notes, no research references, no
+headnotes. The State's copyright block printed at the foot of each section is
+left where it is, as are the publisher's own chapter and title notes, which
+carry no statute. The session lasts about an hour and a state takes longer, so
+a document that comes back as anything but a document is taken as the session
+having ended, and the door is opened again.
+
+**The earlier dead ends,** kept because they say what does not work: the
+container serves only its navigation, sidebar and polyfill bundles, so a click
+on the expander in a browser sends no request and nothing populates;
+`/tocprovider/expandnode`, `/tocprovider/expand`, `/toc/getchildren` and eight
+more answer `/error/notfound`; `/tocprint/tocprintclick`, `/toc/indextoc` and
+`/toc/tocsearch` answer with pages carrying no node; `api/tableofcontents`
+answers 500 for the root. The bundle was the way in.
+
+**What it cost.** The viewer meters a session rather than an address: one
+session answers about one document a second however many lanes are pointed at
+it, and six sessions answer about six. Lanes were the wrong knob and hours
+were lost turning it — measured, width 4, 16 and 48 all gave 1.4 documents a
+second, while 1, 3, 6 and 12 sessions gave 1.2, 3.2, 6.8 and 9.7. So the
+reader keeps a few sessions and uses them in turn, which is what a person does
+by opening a second tab. Opening a session is itself metered — several in a
+row from one address and the sign-in service starts answering
+`ERR_DATA_INVALID` — so opens are spaced and a refusal is waited out. Across
+roughly 134,000 documents the viewer never once answered 429 or 403.
+
+**The bulk requests** at `apps/web/docs/requests/*.md` were drafted while this
+was blocked and are not needed now. They are kept, unsent, against the day the
+viewer changes shape.
+
 
 ## Notes per source
 

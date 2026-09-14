@@ -20,8 +20,8 @@ import { cn } from "@govblock/ui/lib/utils"
 
 // paceui's Settings, seven pages under one tab strip, rebuilt from the
 // rendered pages with their sample content. The account is the experience's
-// demo account; the API page's keys are placeholders, since the site's own
-// API needs no key.
+// demo account; the API page is real (2026-09-13): the reader's keys and
+// usage, from /api/keys.
 
 export const SETTINGS_TABS = [
   { page: "settings/profile", label: "My profile" },
@@ -84,6 +84,7 @@ function Profile() {
   const [form, setForm] = React.useState<ProfileRow | null>(null)
   const [saving, setSaving] = React.useState(false)
   const [saved, setSaved] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
   React.useEffect(() => {
     if (profile !== undefined && form === null) setForm(profile ?? { name: "", email: "", phone: "", bio: "", home_state: null, zip: "", role: "", organization: "", created_at: null })
   }, [profile, form])
@@ -91,6 +92,7 @@ function Profile() {
   const save = async () => {
     if (!form) return
     setSaving(true)
+    setError(null)
     const r = await fetch("/api/profile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) })
     setSaving(false)
     if (r.ok) {
@@ -98,6 +100,9 @@ function Profile() {
       setProfile(d.profile)
       setSaved(true)
       window.setTimeout(() => setSaved(false), 1500)
+    } else {
+      const d = (await r.json().catch(() => ({}))) as { error?: string }
+      setError(d.error ?? "That did not save.")
     }
   }
   const initials = (form?.name ?? "")
@@ -157,6 +162,7 @@ function Profile() {
           <Button onClick={save} disabled={saving || signedOut || !form}>
             {saving ? "Saving…" : saved ? "Saved" : "Save changes"}
           </Button>
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button variant="outline" onClick={() => setForm(profile ?? null)} disabled={!profile}>
             Cancel
           </Button>
@@ -663,63 +669,141 @@ function AccountSecurity() {
   )
 }
 
+type KeyRow = { id: string; keyPrefix: string; name: string | null; createdAt: string; lastUsedAt: string | null; revokedAt: string | null }
+type KeysPayload = { plan: string; spec: { label: string; maxKeys: number; monthlyApiLimit?: number; dailyBurstLimit?: number }; keys: KeyRow[]; usage: { day: number; month: number } }
+
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "never")
+
+/** Settings → API (2026-09-13): the reader's real keys, on /api/keys. A key is shown once, at creation; the store holds only its hash. */
 function Api() {
-  const keys = [
-    ["Production", "pk_live_••••••••••••3a9f", "2024/01/05", "2 min ago"],
-    ["Development", "pk_test_••••••••••••7b2c", "2023/11/20", "1 hour ago"],
-    ["Staging", "pk_stag_••••••••••••4e1d", "2023/09/14", "5 days ago"],
-  ]
+  const [data, setData] = React.useState<KeysPayload | null | undefined>(undefined)
+  const [name, setName] = React.useState("")
+  const [fresh, setFresh] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const load = React.useCallback(async () => {
+    const r = await fetch("/api/keys", { credentials: "same-origin" })
+    setData(r.ok ? ((await r.json()) as KeysPayload) : null)
+  }, [])
+  React.useEffect(() => {
+    void load()
+  }, [load])
+  const create = async () => {
+    setBusy(true)
+    setError(null)
+    const r = await fetch("/api/keys", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) })
+    const j = (await r.json()) as { ok?: boolean; key?: string; error?: string }
+    setBusy(false)
+    if (!r.ok || !j.key) return setError(j.error ?? "The key could not be created.")
+    setFresh(j.key)
+    setName("")
+    await load()
+  }
+  const revoke = async (id: string) => {
+    if (!window.confirm("Revoke this key? Any client still using it will start getting 401s.")) return
+    await fetch(`/api/keys/${id}`, { method: "DELETE" })
+    await load()
+  }
+  const copy = async () => {
+    if (!fresh) return
+    await navigator.clipboard.writeText(fresh)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1500)
+  }
+  const active = data?.keys.filter((k) => !k.revokedAt) ?? []
+  const max = data?.spec.maxKeys ?? 0
+  const canCreate = !!data && max > 0 && active.length < max
   return (
     <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
           <CardAnchor>API keys</CardAnchor>
-          <CardAction>
-            <CardTools className="gap-2">
-              <Button size="sm" className="gap-1.5">
-                <PlusIcon className="size-3.5" />
-                Create new key
-              </Button>
-            </CardTools>
-          </CardAction>
+          <CardDescription>Each key is shown once, at creation. Only its hash is kept; lose one and you revoke it and mint another.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {keys.map(([n, k, c, u]) => (
-            <div key={n} className="flex items-center gap-3 rounded-lg border p-3">
+          {fresh && (
+            <div className="grid gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3">
+              <p className="text-sm font-medium">Copy this key now. It will not be shown again.</p>
+              <div className="flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-xs">{fresh}</code>
+                <Button variant="outline" size="sm" onClick={copy} className="gap-1.5">
+                  {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
+          )}
+          {data === null && <p className="text-sm text-muted-foreground">Sign in to manage keys.</p>}
+          {data && max === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Keys come with a plan.{" "}
+              <a href="/pricing" className="underline underline-offset-4">
+                See plans
+              </a>
+              .
+            </p>
+          )}
+          {data && max > 0 && (
+            <div className="flex items-end gap-2">
+              <div className="grid flex-1 gap-1.5">
+                <Label htmlFor="key-name">Name</Label>
+                <Input id="key-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Production" maxLength={80} />
+              </div>
+              <Button onClick={create} disabled={!canCreate || busy} className="gap-1.5">
+                <PlusIcon className="size-3.5" />
+                {busy ? "Working…" : "Create key"}
+              </Button>
+            </div>
+          )}
+          {data && max > 0 && !canCreate && (
+            <p className="text-xs text-muted-foreground">
+              {max} of {max} keys in use. Revoke one to add another.
+            </p>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {data && data.keys.length === 0 && max > 0 && <p className="text-sm text-muted-foreground">No keys yet.</p>}
+          {data?.keys.map((k) => (
+            <div key={k.id} className={cn("flex items-center gap-3 rounded-lg border p-3", k.revokedAt && "opacity-60")}>
               <div className="flex size-9 items-center justify-center rounded-md bg-muted">
                 <KeyIcon className="size-4" />
               </div>
               <div className="min-w-0 grow">
-                <p className="text-sm font-medium">{n}</p>
-                <p className="truncate font-mono text-xs text-muted-foreground">{k}</p>
+                <p className="text-sm font-medium">{k.name ?? "Untitled key"}</p>
+                <p className="truncate font-mono text-xs text-muted-foreground">{k.keyPrefix}…</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Created {c} - Last used {u}
+                  Created {when(k.createdAt)} · Last used {when(k.lastUsedAt)}
                 </p>
               </div>
-              <Button variant="ghost" size="icon-sm" aria-label="Copy">
-                <CopyIcon className="size-4" />
-              </Button>
+              {k.revokedAt ? (
+                <Badge variant="outline">Revoked {when(k.revokedAt)}</Badge>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => revoke(k.id)}>
+                  Revoke
+                </Button>
+              )}
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
-            GovBlock's own API needs no key: every route under <code className="rounded bg-muted px-1">/api/policy</code> is open. See the API docs for the routes.
+            Send it as <code className="rounded bg-muted px-1">Authorization: Bearer gb_…</code> on any route under <code className="rounded bg-muted px-1">/api/policy</code>. See the API docs.
           </p>
+          <div className="grid gap-1.5">
+            <Label>Connect Claude to the record</Label>
+            <code className="block overflow-x-auto rounded bg-muted px-2 py-1.5 font-mono text-xs whitespace-nowrap">claude mcp add --transport http govblocks {typeof window !== "undefined" ? window.location.origin : ""}/api/mcp --header &quot;Authorization: Bearer gb_…&quot;</code>
+          </div>
         </CardContent>
       </Card>
       <div className="flex flex-col gap-4 sm:gap-5">
         <Card>
           <CardHeader>
             <CardAnchor>API usage</CardAnchor>
-            <CardAction>
-              <CardTools />
-            </CardAction>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
             {[
-              ["Requests today", "1,247"],
-              ["Avg response time", "124ms"],
-              ["Success rate", "99.8%"],
-              ["Rate limit", "10,000/day"],
+              ["Requests today", data ? data.usage.day.toLocaleString() : "—"],
+              ["This month", data ? data.usage.month.toLocaleString() : "—"],
+              ["Daily limit", data?.spec.dailyBurstLimit ? data.spec.dailyBurstLimit.toLocaleString() : "—"],
+              ["Monthly limit", data?.spec.monthlyApiLimit ? data.spec.monthlyApiLimit.toLocaleString() : "—"],
             ].map(([k, v]) => (
               <div key={k} className="rounded-lg border p-3">
                 <p className="text-xs text-muted-foreground">{k}</p>
@@ -730,27 +814,13 @@ function Api() {
         </Card>
         <Card>
           <CardHeader>
-            <CardAnchor>Webhook endpoint</CardAnchor>
-            <CardAction>
-              <CardTools />
-            </CardAction>
+            <CardAnchor>Plan</CardAnchor>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <Field label="Endpoint URL">
-              <div className="flex gap-2">
-                <Input defaultValue="https://hooks.example.com/govblock" />
-                <Button variant="outline">Verify</Button>
-              </div>
-            </Field>
-            <div className="flex items-center justify-between rounded-lg border p-3 text-sm">
-              <div>
-                <p className="font-medium">Connection status</p>
-                <p className="text-xs text-muted-foreground">Active - Last ping 2 min ago</p>
-              </div>
-              <Badge variant="outline" className="h-5 text-green-600">
-                Connected
-              </Badge>
-            </div>
+          <CardContent className="flex items-center justify-between text-sm">
+            <span>{data ? data.spec.label : "—"}</span>
+            <a href="/pricing" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              See plans
+            </a>
           </CardContent>
         </Card>
       </div>

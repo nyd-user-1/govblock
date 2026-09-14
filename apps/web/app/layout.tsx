@@ -5,6 +5,7 @@ import { siteConfig } from "@/lib/config"
 import { ORIGIN_TRIALS } from "@/lib/origin-trials"
 import { fontVariables } from "@/lib/fonts"
 import { SiteFooter } from "@/components/site-footer"
+import { railScript } from "@/lib/rail-script"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { JurisdictionProvider } from "@/lib/policy/jurisdiction"
@@ -14,6 +15,7 @@ import {
   SCOPE_SCRIPT,
   SCOPE_STYLE,
 } from "@/lib/policy/scope-script"
+import { ScopeGuard } from "@/components/scope-guard"
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
 import { PageCurtainHost } from "@/components/page-curtain"
@@ -59,6 +61,8 @@ export default function RootLayout({
             is the page and nothing else: no site header, no footer. */}
         <script dangerouslySetInnerHTML={{ __html: EMBED_SCRIPT }} />
         <style dangerouslySetInnerHTML={{ __html: EMBED_STYLE }} />
+        {/* The rails as this browser last left them, before anything is laid out. */}
+        <script dangerouslySetInnerHTML={{ __html: railScript(false) }} />
       </head>
       <body className="group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]">
         <NuqsAdapter>
@@ -80,7 +84,8 @@ export default function RootLayout({
                           data-scope-content
                           className="flex min-h-0 flex-1 flex-col"
                         >
-                          {children}
+                          {/* The gate (Brendan, 2026-09-13): any page whose scope the reader may not open sits blurred under a card with the two ways on. */}
+                          <ScopeGuard>{children}</ScopeGuard>
                         </main>
                       </AssistShell>
                       <SiteFooter />

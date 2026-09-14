@@ -54,9 +54,14 @@ export function useAssistPanel(): Value {
 
 /** A page's subject for the panel while the page is mounted; cleared when it leaves. */
 export function useAssistSubject(subject: AssistSubject | null) {
-  const { setSubject } = useAssistPanel()
+  // Read, not required (2026-09-13): on the first server render after the dev
+  // server compiles a route, the drawer's context can arrive as null, and the
+  // page's HTML was thrown away and redrawn on the client for it. A page with
+  // no drawer above it simply has no subject to set.
+  const setSubject = React.useContext(AssistPanelContext)?.setSubject
   const key = subject ? `${subject.chatId}|${subject.system}|${subject.placeholder ?? ""}|${subject.title ?? ""}` : ""
   React.useEffect(() => {
+    if (!setSubject) return
     setSubject(subject)
     return () => setSubject(null)
     // The key captures every field; the object identity changes each render.

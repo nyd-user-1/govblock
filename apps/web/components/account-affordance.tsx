@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { XIcon } from "lucide-react"
 
 import { DEFAULT_AVATAR, useAccount } from "@/lib/auth/use-account"
@@ -41,6 +42,7 @@ const HINT_KEY = "govblock:portrait-hint:dismissed"
 export function AccountAffordance() {
   // The session, over the wire, cached in the tab: lib/auth/use-account.ts.
   const { account } = useAccount()
+  const pathname = usePathname() ?? "/"
 
   const label = account?.name ?? account?.email ?? null
 
@@ -64,6 +66,8 @@ export function AccountAffordance() {
   }
 
   if (!account) {
+    // On /auth the page itself is the invitation (Brendan, 2026-09-13).
+    if (pathname === "/auth") return null
     // The primary button where the New button stood (Brendan's markup,
     // 2026-09-07): "Sign In", to the account page.
     return (

@@ -353,7 +353,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
   )
 
   const stage = route?.datasets ? (
-    <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto bg-muted dark:bg-background">
+    <BlockShell defaultOpen={false} rail={<DatasetRail />} title={header} actions={datasetsToggle} contentClassName="overflow-y-auto">
       <DatasetGrid look={datasetsLook} />
     </BlockShell>
   ) : routeNode?.pending ? (

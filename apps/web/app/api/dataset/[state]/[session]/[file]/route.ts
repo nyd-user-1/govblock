@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { gate } from "@/lib/entitlements-server"
 import { STATE_NAMES } from "@/lib/filters"
 import { DATASET_FAMILY_NAMES, type DatasetFamily, datasetStream } from "@/lib/policy/datasets"
 
@@ -10,7 +11,7 @@ import { DATASET_FAMILY_NAMES, type DatasetFamily, datasetStream } from "@/lib/p
 
 export const dynamic = "force-dynamic"
 
-export async function GET(_request: Request, { params }: { params: Promise<{ state: string; session: string; file: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ state: string; session: string; file: string }> }) {
   const { state: rawState, session: rawSession, file } = await params
   const state = rawState.toUpperCase()
   const session = Number(rawSession)
@@ -18,6 +19,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sta
   if (!STATE_NAMES[state] || !Number.isInteger(session) || session < 1900 || !match || !DATASET_FAMILY_NAMES.includes(match[1] as DatasetFamily)) {
     return NextResponse.json({ error: "unknown dataset", state: rawState, session: rawSession, file }, { status: 404 })
   }
+  // A session as a file is a plan's (Brendan, 2026-09-13), whoever's session it is.
+  const { refusal } = await gate(request, { state, session, entity: "datasets" })
+  if (refusal) return NextResponse.json(refusal.body, { status: refusal.status, headers: { "cache-control": "private, no-store" } })
   const family = match[1] as DatasetFamily
   const format = match[2] as "json" | "csv"
   const name = `${state.toLowerCase()}-${session}-${family}.${format}`

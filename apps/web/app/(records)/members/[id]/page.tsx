@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
+import { ScopeMark } from "@/components/scope-mark"
 import { fmtNumber, honorific } from "@/lib/format"
 import {
   getCommittees,
@@ -154,6 +155,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state} who={title}>
+      <ScopeMark state={state} entity="members" />
       <PendingSessionProvider>
         <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
           <div className="flex min-w-0 flex-1 flex-col">

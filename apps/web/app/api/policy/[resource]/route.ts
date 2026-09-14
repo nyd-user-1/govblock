@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 
+import { entityOfResource } from "@/lib/entitlements"
+import { apiKeyOf, cacheFor, currentSession, gate } from "@/lib/entitlements-server"
+import { limitExceeded, presentedKey, rateLimitHeaders, recordUsage, touchApiKey } from "@/lib/api-keys"
+import { hasApiAccess } from "@/lib/plans"
+import { getStateStats } from "@/lib/policy/state-stats"
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillComparison } from "@/lib/policy/bill-compare"
 import { getBillDiff } from "@/lib/policy/bill-diff"
@@ -226,6 +231,10 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     }
     case "states":
       return getStates()
+    // A jurisdiction's numbers as one JSON (2026-09-13), for the studio; the
+    // state pages call getStateStats directly.
+    case "state-stats":
+      return getStateStats(state)
     case "sessions":
       // Titles cost a cold read of "Bills" (15 s for Texas); only the surfaces
       // that actually show one ask for them.
@@ -1009,6 +1018,33 @@ export async function GET(
 ) {
   const { resource } = await params
   const sp = new URL(request.url).searchParams
+  // The rule (Brendan, 2026-09-13): who is asking, for which jurisdiction,
+  // which session and which entity — refused here, with the gate's own
+  // sentence, before a row is read. A session named in the request is
+  // measured against the jurisdiction's current one.
+  const state = (sp.get("state") || DEFAULT_STATE).toUpperCase()
+  const sessionParam = sp.get("session")
+  const session = sessionParam && /^\d+$/.test(sessionParam) ? Number(sessionParam) : null
+  const ask = { state, session, current: session != null ? await currentSession(state).catch(() => null) : null, entity: entityOfResource(resource) }
+  // A keyed call (2026-09-13): the key must be on a plan, and it is metered
+  // against the plan's day and month before a row is read. The key outlives
+  // the plan — a lapsed subscriber keeps the key and loses the access.
+  const apiKey = await apiKeyOf(request)
+  // A key was sent and is unknown or revoked: say so, rather than answering as a stranger.
+  if (!apiKey && presentedKey(request)) return NextResponse.json({ error: "invalid_api_key", message: "That key is unknown or revoked. Mint one under Settings → API." }, { status: 401, headers: { "cache-control": "private, no-store" } })
+  let rate: Record<string, string> = {}
+  if (apiKey) {
+    if (!hasApiAccess(apiKey.plan)) return NextResponse.json({ error: "plan_required", message: "API access comes with a plan. See /pricing." }, { status: 403, headers: { "cache-control": "private, no-store" } })
+    const usage = await recordUsage(apiKey.keyId)
+    const over = limitExceeded(usage, apiKey.plan)
+    rate = rateLimitHeaders(usage, apiKey.plan)
+    if (over) return NextResponse.json({ error: "rate_limited", ...over }, { status: 429, headers: { ...rate, "X-RateLimit-Remaining": "0", "cache-control": "private, no-store" } })
+    void touchApiKey(apiKey.keyId)
+  }
+  const { refusal } = await gate(request, ask)
+  if (refusal) return NextResponse.json(refusal.body, { status: refusal.status, headers: { "cache-control": "private, no-store" } })
+  // Search reaches every jurisdiction for every reader (Brendan, 2026-09-13):
+  // the results are public; the record a result opens is what the gate is on.
   try {
     const data = await dispatch(resource, sp)
     if (data instanceof Response) return data
@@ -1018,7 +1054,7 @@ export async function GET(
         { status: 404 }
       )
     }
-    return NextResponse.json(data, { headers: { "cache-control": CACHE } })
+    return NextResponse.json(data, { headers: { ...rate, "cache-control": apiKey ? "private, no-store" : cacheFor(ask, CACHE) } })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(`policy/${resource} failed`, message)

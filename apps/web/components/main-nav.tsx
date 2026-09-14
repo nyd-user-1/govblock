@@ -49,7 +49,8 @@ export function MainNav({
   return (
     <nav className={cn("items-center gap-0", className)} {...props}>
       <NavigationMenu viewport={false} className="max-w-none">
-        <NavigationMenuList className="gap-0">
+        {/* 8px between the buttons (Brendan, 2026-09-13): the focus ring is 3px, so the ring of a pressed one clears its neighbours with 2px to spare. */}
+        <NavigationMenuList className="gap-2">
           {items.filter((item) => item.href !== "/").map((item) =>
             hasItems(item) ? (
               <NavigationMenuItem key={item.label}>

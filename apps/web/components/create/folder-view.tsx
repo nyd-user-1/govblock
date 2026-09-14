@@ -2,9 +2,12 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
-import { CornerLeftUpIcon, FileTextIcon, FolderIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { CheckIcon, CornerLeftUpIcon, FileTextIcon, FolderIcon, LockIcon } from "lucide-react"
 
 import { type Node, type Target } from "@/lib/create/path"
+import { doorHref } from "@/lib/entitlements"
+import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { partyName, stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import type { Scope } from "@/lib/policy/scope"
@@ -16,7 +19,6 @@ import { useUrlParams } from "@/lib/policy/url-state"
 import { readSort, sortRows } from "@/lib/workspace/sort"
 import { ago } from "@/components/create/timeline"
 import { ChamberSeal, MemberPortrait, PartyDot } from "@/components/policy/imagery"
-import { EditDetailsDialog, useProjectDetails, type ProjectDetails } from "@/components/project-card"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
 import { DropdownMenuItem } from "@govblock/ui/components/dropdown-menu"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
@@ -38,7 +40,12 @@ import { cn } from "@govblock/ui/lib/utils"
 // changes rather than the bill.
 //
 // The Cards look draws the large card for a bill, a member or a committee and
-// the small folder card for anything without a face or a seal.
+// the small folder card for anything without a face or a seal. No buttons on
+// any of them (Brendan, 2026-09-13): the card opens the record, the second
+// place — Typeset, Record, Calendar — is in its menu, and Pin to top and Edit
+// details are the grid's own. A session's card wears the check when it is the
+// current one and the lock otherwise; a shut session opens sign-in for a
+// reader who has none.
 
 export type Look = "table" | "cards"
 
@@ -187,11 +194,11 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
   }
 }
 
-export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, up, tab, onTab, onGo }: { node: Node; scope: Scope; look: Look; /** Names the folder for its pinned-row and details storage. */ scopeKey: string; scroller: React.RefObject<HTMLDivElement | null>; onScrolled: (scrolled: boolean) => void; up: Target | null; tab: string; onTab: (tab: string) => void; onGo: (go: Target) => void }) {
+export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, up, tab, onTab, onGo }: { node: Node; scope: Scope; look: Look; /** Names the folder for the grid's layout — order, pins, details. */ scopeKey: string; scroller: React.RefObject<HTMLDivElement | null>; onScrolled: (scrolled: boolean) => void; up: Target | null; tab: string; onTab: (tab: string) => void; onGo: (go: Target) => void }) {
   const folder = useFolder(node, scope)
   const { state } = scope
-  const { pinned, togglePin, details, setDetails } = useProjectDetails(`tree:${state}:${scopeKey}`)
-  const [editing, setEditing] = React.useState<string | null>(null)
+  const router = useRouter()
+  const { reader } = useJurisdiction()
 
   const { sort: sortParam } = useUrlParams(["sort"] as const)
   const sort = readSort(sortParam)
@@ -200,15 +207,8 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
   const listsBills = node.kind === "bills" || node.kind === "root" || (node.kind === "committee" && node.sub === "bills")
   const { data: sessionMembers } = usePolicy<MemberRow[]>(scope.resolved && listsBills ? "members" : null, { state, session: scope.filters.session })
   const memberById = React.useMemo(() => new Map((sessionMembers ?? []).map((m) => [m.people_id, m])), [sessionMembers])
-  const rows = React.useMemo(() => {
-    const rank = (p: string) => {
-      const index = pinned.indexOf(p)
-      return index < 0 ? Infinity : index
-    }
-    const pinnedFirst = [...folder.rows].sort((a, b) => rank(a.key) - rank(b.key))
-    // The footer's Filter chip: folders before records when by type; the newest activity first when by time.
-    return sortRows(pinnedFirst, sort, { name: (r) => r.name, kind: (r) => (r.kind === "folder" ? "0" : `1-${r.record?.kind ?? "z"}`), time: (r) => r.date })
-  }, [folder.rows, pinned, sort])
+  // The footer's Filter chip: folders before records when by type; the newest activity first when by time.
+  const rows = React.useMemo(() => sortRows(folder.rows, sort, { name: (r) => r.name, kind: (r) => (r.kind === "folder" ? "0" : `1-${r.record?.kind ?? "z"}`), time: (r) => r.date }), [folder.rows, sort])
 
   // A committee's tabs are its two folders and its calendar; Bills and Members
   // are the same places the tree shows, so the tab writes the same key.
@@ -248,7 +248,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
           <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">{tabs.map((t) => toggle(t, activeTab === t, () => pickTab(t), tabLabel(t)))}</div>
         </div>
       )}
-      <div ref={scroller} className={cn("min-h-0 flex-1 overflow-y-auto", look === "cards" && "bg-muted dark:bg-background")} onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto" onScroll={(e) => onScrolled(e.currentTarget.scrollTop > 8)}>
         {look === "cards" ? (
           <div className="p-6">
             {up && (
@@ -280,6 +280,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                     description: truncate(b.title, 140),
                     meta: [b.last_action_date ? fmtDate(b.last_action_date) : null, b.status_desc || "Introduced"].filter(Boolean).join(" · "),
                     onOpen: () => onGo(go),
+                    workspace: { kind: "bill", state, chamber: b.body ?? null, session: scope.session, billId: b.bill_id, number: b.bill_number, title: b.title },
                     menu: (
                       <>
                         <DropdownMenuItem onClick={() => onGo(go)}>Open Bill</DropdownMenuItem>
@@ -297,10 +298,13 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                     title: row.name,
                     description: [m.chamber, m.district ? m.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(m.party)].filter(Boolean).join(" · "),
                     meta: m.leadership_title ?? null,
-                    actions: [
-                      { label: "Open Member", onClick: () => onGo(go) },
-                      { label: "Record", onClick: () => onGo({ ...go, tab: "votes" }) },
-                    ],
+                    onOpen: () => onGo(go),
+                    menu: (
+                      <>
+                        <DropdownMenuItem onClick={() => onGo(go)}>Open Member</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onGo({ ...go, tab: "votes" })}>Record</DropdownMenuItem>
+                      </>
+                    ),
                   }
                 }
                 if (row.record?.kind === "committee") {
@@ -312,23 +316,46 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                     title: c.committee_name,
                     description: `${c.chamber} committee`,
                     meta: `${fmtNumber(c.bills)} bills before it`,
-                    actions: [
-                      { label: "Open Committee", onClick: () => onGo(go) },
-                      { label: "Calendar", onClick: () => onGo({ ...go, tab: "calendar" }) },
-                    ],
+                    onOpen: () => onGo(go),
+                    menu: (
+                      <>
+                        <DropdownMenuItem onClick={() => onGo(go)}>Open Committee</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onGo({ ...go, tab: "calendar" })}>Calendar</DropdownMenuItem>
+                      </>
+                    ),
                   }
                 }
-                const detail = details[row.key] ?? {}
+                if (row.record?.kind === "session") {
+                  const s = row.record.session
+                  // The current session is free (Brendan, 2026-09-13); the others are on the plan, and behind a sign-in first.
+                  const open = row.record.current
+                  const door = doorHref(reader.signedIn ? "plan" : "sign-in")
+                  return {
+                    key: row.key,
+                    badge: open ? (
+                      <span title="Open: the current session">
+                        <CheckIcon className="size-4 text-emerald-500" aria-label="Open" />
+                      </span>
+                    ) : (
+                      <span title={reader.signedIn ? "Waits on a paid plan" : "Sign in to open it"}>
+                        <LockIcon className="size-4" aria-label="Locked" />
+                      </span>
+                    ),
+                    media: <FolderIcon className="size-12 text-muted-foreground" />,
+                    title: row.name,
+                    meta: [row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
+                    onOpen: open ? () => onGo(row.go) : () => router.push(door),
+                    workspace: { kind: "session", state, chamber: scope.filters.chamber ?? "", session: Number(s.session_id), title: row.name, bills: s.bills ?? null },
+                    menu: <DropdownMenuItem disabled={!open} onClick={() => onGo(row.go)}>Open</DropdownMenuItem>,
+                  }
+                }
                 return {
                   key: row.key,
                   media: row.avatar.kind === "folder" ? <FolderIcon className="size-12 text-muted-foreground" /> : <RowAvatar avatar={row.avatar} size={96} />,
-                  title: detail.label || row.name,
-                  meta: [detail.note, row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
-                  actions: [
-                    { label: "Open", onClick: () => onGo(row.go) },
-                    { label: pinned.includes(row.key) ? "Unpin" : "Pin", onClick: () => togglePin(row.key) },
-                  ],
-                  menu: <DropdownMenuItem onClick={() => setEditing(row.key)}>Edit details</DropdownMenuItem>,
+                  title: row.name,
+                  meta: [row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
+                  onOpen: () => onGo(row.go),
+                  menu: <DropdownMenuItem onClick={() => onGo(row.go)}>Open</DropdownMenuItem>,
                 }
               })}
             />
@@ -362,7 +389,6 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                         {index === 0 ? (
                           <span className="flex items-center gap-2">
                             <span className="min-w-0 truncate">{c.cell(row)}</span>
-                            {pinned.includes(row.key) && <span className="text-xs text-muted-foreground">pinned</span>}
                           </span>
                         ) : (
                           <span className="block truncate">{c.cell(row)}</span>
@@ -393,7 +419,6 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
         <Sentinel active={!folder.done && !folder.loading} onVisible={folder.more} />
         {folder.done && folder.total != null && folder.total > 50 && <p className="py-6 text-center text-xs text-muted-foreground">That is every one of the {fmtNumber(folder.total)}.</p>}
       </div>
-      <EditDetailsDialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)} id={editing} fallbackLabel={editing ? (rows.find((r) => r.key === editing)?.name ?? editing) : ""} value={(editing ? details[editing] : undefined) ?? {}} onSave={(next: ProjectDetails) => setDetails((current) => ({ ...current, [editing ?? ""]: next }))} />
     </div>
   )
 }

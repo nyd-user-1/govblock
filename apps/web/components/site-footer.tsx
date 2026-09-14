@@ -1,11 +1,20 @@
+"use client"
+
+import { usePathname } from "next/navigation"
+
 import { siteConfig } from "@/lib/config"
 
 // Ported from livingston-v3 components/site-footer.tsx; the credit is ours (Brendan, 2026-09-07).
+// On /unite and /unite-2 only (Brendan, 2026-09-13): every other page goes without it.
+const WHERE = new Set(["/unite", "/unite-2"])
+
 export function SiteFooter() {
+  const pathname = usePathname() ?? "/"
+  if (!WHERE.has(pathname.replace(/\/+$/, "") || "/")) return null
   return (
     <footer
       data-slot="site-footer"
-      className="group-has-[.docs-nav]/body:pb-20 group-has-[.section-soft]/body:bg-surface/40 group-has-[[data-slot=designer]]/body:hidden group-has-[[data-slot=docs]]/body:hidden group-has-[[data-slot=inbox]]/layout:hidden group-has-[[data-slot=view]]/layout:hidden group-has-[[data-slot=unite]]/layout:hidden group-has-[[data-slot=clips]]/layout:hidden group-has-[.docs-nav]/body:sm:pb-0 dark:bg-transparent dark:group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent"
+      className="group-has-[.section-soft]/body:bg-surface/40 dark:bg-transparent dark:group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent"
     >
       <div className="container-wrapper px-4 xl:px-6">
         <div className="flex h-(--footer-height) items-center justify-between">

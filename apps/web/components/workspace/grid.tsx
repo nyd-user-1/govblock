@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { EllipsisVerticalIcon, GripVerticalIcon } from "lucide-react"
+import { CheckIcon, EllipsisVerticalIcon, GripVerticalIcon, PlusIcon } from "lucide-react"
 
 import { useLocal } from "@/lib/policy/use-local"
 import {
@@ -12,11 +12,14 @@ import {
   reorder,
   sameSize,
   SIZE_CHOICES,
+  type CardDetails,
   type Color,
   type Columns,
   type Layout,
   type Size,
 } from "@/lib/workspace/datasets"
+import { pinKey, useWorkspacePins, type WorkspacePin } from "@/lib/workspace/pins"
+import { EditDetailsDialog } from "@/components/project-card"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Button as MenuButton } from "@govblock/ui/components/button"
 import {
@@ -24,7 +27,6 @@ import {
   CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@govblock/ui/components/card"
@@ -43,15 +45,18 @@ import {
 import { cn } from "@govblock/ui/lib/utils"
 
 // The standard card grid under /workspace (Brendan, 2026-09-07): four
-// columns, a fixed row, every card the same chrome — a badge at the top
-// left opposite the ⋮ menu, the media, the title, a line or two, two footer
-// buttons, the resize corner. The menu carries the record's own actions
-// first, then Rearrange, Size, Color, Reset Component, Reset layout, Delete
-// Component. Sizes are spans on the grid; the corner drags them; Rearrange
-// drags the cards into a new order; the layout lives in this browser under
-// the grid's key. Datasets, bills, members, committees, roll calls: what
-// changes per kind is the media, the text, the two buttons and the first
-// group of menu items, never the chrome.
+// columns, a fixed row, every card the same chrome — the + that adds the
+// card to /workspace at the top left opposite the grip and the ⋮ (both only
+// while the pointer is over the card), the media, the title, a line or two,
+// the badge at the bottom left opposite the resize corner (Brendan,
+// 2026-09-13: the footer buttons are gone; the card is the button, the menu
+// carries the rest). The menu carries the record's own actions first, then
+// Edit details, Pin to top, Rearrange, Grid, Size, Reset Component, Reset
+// layout, Delete Component. Sizes are spans on the grid; the corner drags
+// them; Rearrange drags the cards into a new order; the layout lives in this
+// browser under the grid's key. Datasets, bills, members, committees, roll
+// calls: what changes per kind is the media, the text, the badge and the
+// first group of menu items, never the chrome.
 
 const COLS: Record<Size["cols"], string> = {
   1: "",
@@ -68,30 +73,25 @@ const ROWS: Record<Size["rows"], string> = {
   4: "row-span-4",
 }
 
-export type GridAction = {
-  label: string
-  onClick?: () => void
-  disabled?: boolean
-  title?: string
-  /** A menu in place of a plain button: the trigger is rendered by the item. */ render?: React.ReactNode
-}
+/** How long a press has to last before the card lifts (Brendan, 2026-09-13: a click opens, a hold drags). */
+const HOLD_MS = 280
 
 export type GridItem = {
   key: string
   /** The group the card belongs to, for the rail's jump links. */
   group?: string
-  /** Top left, opposite the ⋮: the datasets' lock. Absent inside a dataset. */
+  /** Bottom left, opposite the corner: the datasets' lock, a bill's sponsor, a session's check. */
   badge?: React.ReactNode
   media: React.ReactNode
   title: string
   description?: string | null
   meta?: string | null
-  /** The two footer buttons; a card without them is opened by clicking it. */
-  actions?: [GridAction, GridAction]
-  /** What a click on the card does when it has no buttons. */
+  /** What a click on the card does. */
   onOpen?: () => void
   /** The record's own menu entries, above the layout verbs. Mounted only while the menu is open. */
   menu?: React.ReactNode
+  /** The card as it would sit on /workspace: the + at the top left adds it there (Brendan, 2026-09-13). */
+  workspace?: WorkspacePin
   /** A colour the record itself chooses, when the reader has not. */
   color?: Color
   /** The size the block needs on the four-column grid; doubled on the eight-column one. */
@@ -141,6 +141,8 @@ export type GridCell = {
   color?: Color
   columns: Columns
   rearranging: boolean
+  pinned: boolean
+  onPin: () => void
   onSize: (size: Size) => void
   onColor: (color: Color | null) => void
   onColumns: (columns: Columns) => void
@@ -170,6 +172,9 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
           <DropdownMenuSeparator />
         </>
       )}
+      <DropdownMenuItem onClick={cell.onPin}>
+        {cell.pinned ? "Unpin" : "Pin to top"}
+      </DropdownMenuItem>
       <DropdownMenuItem onClick={() => cell.onRearranging(!cell.rearranging)}>
         {cell.rearranging ? "Done rearranging" : "Rearrange"}
       </DropdownMenuItem>
@@ -256,16 +261,22 @@ export function GridCellItems({ cell }: { cell: GridCell }) {
   )
 }
 
+/** The card's ⋮ (Brendan, 2026-09-13): the record's own items, then Edit details, Pin to top and Add to Workspace, then the layout verbs. No Color here — the cards have no button left to paint. */
 function CardActions({
   item,
   size,
   color,
   columns,
   rearranging,
+  pinned,
+  inWorkspace,
   onSize,
   onColor,
   onColumns,
   onRearranging,
+  onPin,
+  onEdit,
+  onWorkspace,
   onResetLayout,
   onDelete,
 }: {
@@ -274,10 +285,15 @@ function CardActions({
   color?: Color
   columns: Columns
   rearranging: boolean
+  pinned: boolean
+  inWorkspace: boolean
   onSize: (size: Size) => void
   onColor: (color: Color | null) => void
   onColumns: (columns: Columns) => void
   onRearranging: (on: boolean) => void
+  onPin: () => void
+  onEdit: () => void
+  onWorkspace: () => void
   onResetLayout: () => void
   onDelete: () => void
 }) {
@@ -309,6 +325,16 @@ function CardActions({
             <DropdownMenuSeparator />
           </>
         )}
+        <DropdownMenuItem onClick={onEdit}>Edit details</DropdownMenuItem>
+        <DropdownMenuItem onClick={onPin}>
+          {pinned ? "Unpin" : "Pin to top"}
+        </DropdownMenuItem>
+        {item.workspace && (
+          <DropdownMenuItem onClick={onWorkspace}>
+            {inWorkspace ? "Remove from Workspace" : "Add to Workspace"}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRearranging(!rearranging)}>
           {rearranging ? "Done rearranging" : "Rearrange"}
         </DropdownMenuItem>
@@ -350,32 +376,6 @@ function CardActions({
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Color</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-max min-w-44">
-            <DropdownMenuRadioGroup
-              value={color ?? ""}
-              onValueChange={(value) => onColor((value as Color) || null)}
-            >
-              {COLORS.map((c) => (
-                <DropdownMenuRadioItem
-                  key={c.value}
-                  value={c.value}
-                  className="whitespace-nowrap"
-                >
-                  <span
-                    className={cn(
-                      "mr-1 inline-block size-3.5 rounded-full",
-                      c.swatch
-                    )}
-                    aria-hidden
-                  />
-                  {c.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuItem
           disabled={!changed}
           onClick={() => {
@@ -396,11 +396,41 @@ function CardActions({
   )
 }
 
+/** The + at the top left (Brendan, 2026-09-13): the ⋮'s twin, there while the pointer is over the card; a check, always, once the card is on /workspace. */
+function WorkspaceButton({
+  inWorkspace,
+  onClick,
+}: {
+  inWorkspace: boolean
+  onClick: () => void
+}) {
+  return (
+    <MenuButton
+      variant="ghost"
+      size="icon-sm"
+      aria-label={inWorkspace ? "Remove from Workspace" : "Add to Workspace"}
+      title={inWorkspace ? "In your workspace" : "Add to Workspace"}
+      onClick={onClick}
+      className={cn(
+        "transition-opacity",
+        inWorkspace
+          ? "text-emerald-600"
+          : "opacity-0 group-hover/cell:opacity-100 focus-visible:opacity-100"
+      )}
+    >
+      {inWorkspace ? <CheckIcon /> : <PlusIcon />}
+    </MenuButton>
+  )
+}
+
 function GridCard({
   item,
   size,
   color,
   columns,
+  details,
+  pinned,
+  inWorkspace,
   onColumns,
   rearranging,
   dragging,
@@ -408,6 +438,9 @@ function GridCard({
   onSize,
   onColor,
   onRearranging,
+  onPin,
+  onEdit,
+  onWorkspace,
   onResetLayout,
   onDelete,
   onDragStart,
@@ -418,6 +451,9 @@ function GridCard({
   size: Size
   color?: Color
   columns: Columns
+  details: CardDetails
+  pinned: boolean
+  inWorkspace: boolean
   onColumns: (columns: Columns) => void
   rearranging: boolean
   dragging: boolean
@@ -425,6 +461,9 @@ function GridCard({
   onSize: (size: Size) => void
   onColor: (color: Color | null) => void
   onRearranging: (on: boolean) => void
+  onPin: () => void
+  onEdit: () => void
+  onWorkspace: () => void
   onResetLayout: () => void
   onDelete: () => void
   onDragStart: () => void
@@ -470,20 +509,64 @@ function GridCard({
     window.addEventListener("pointerup", up)
   }
 
-  // The card itself is the first button (Brendan, 2026-09-07): a click
-  // anywhere that is not a button, a menu or the corner opens the record.
-  const primary = item.actions?.[0]
-  const open =
-    item.onOpen ?? (primary && !primary.disabled ? primary.onClick : undefined)
+  // Rearrange mode makes the whole cell draggable. The grip makes one cell
+  // draggable for as long as it is held, so a block can be moved without
+  // finding a menu first (Brendan, 2026-09-10) — `draggable` has to be true
+  // before the drag starts, which is what pressing the grip sets. A press
+  // held anywhere on the card does the same after a beat (Brendan,
+  // 2026-09-13: the grip is small; a click opens, a hold lifts), and the
+  // release that ends a hold is not a click.
+  const [byHandle, setByHandle] = React.useState(false)
+  const held = React.useRef(false)
+  const holdTimer = React.useRef<number | null>(null)
+  const clearHold = () => {
+    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+    holdTimer.current = null
+  }
+  React.useEffect(() => clearHold, [])
+  const isChrome = (target: EventTarget | null) =>
+    !!(target as HTMLElement | null)?.closest(
+      "button, a, input, textarea, select, [role=menuitem], [role=menu], [data-slot=card-action]"
+    )
+  const holdProps = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0 || rearranging || isChrome(e.target)) return
+      held.current = false
+      clearHold()
+      holdTimer.current = window.setTimeout(() => {
+        holdTimer.current = null
+        held.current = true
+        setByHandle(true)
+      }, HOLD_MS)
+    },
+    onPointerUp: () => {
+      clearHold()
+      // A hold that never moved: let go of the lift; the click that follows is swallowed.
+      if (held.current) setByHandle(false)
+    },
+    // A native drag begins with pointercancel: the lift stays until dragend clears it.
+    onPointerCancel: clearHold,
+    onPointerLeave: () => {
+      // Leaving the card before the beat is over is a scroll or a miss, not a hold.
+      if (holdTimer.current !== null) clearHold()
+    },
+  }
+  const handleProps = {
+    onPointerDown: () => {
+      held.current = true
+      setByHandle(true)
+    },
+    onPointerUp: () => setByHandle(false),
+  }
+
+  // The card itself is the button (Brendan, 2026-09-07): a click anywhere
+  // that is not a button, a menu or the corner opens the record.
+  const open = item.onOpen
   const openable = !!open && !rearranging
   const onCardClick = (e: React.MouseEvent) => {
-    if (!openable) return
-    if (
-      (e.target as HTMLElement).closest(
-        "button, a, input, [role=menuitem], [role=menu]"
-      )
-    )
-      return
+    const wasHeld = held.current
+    held.current = false
+    if (wasHeld || !openable || isChrome(e.target)) return
     open?.()
   }
 
@@ -494,21 +577,14 @@ function GridCard({
     color,
     columns,
     rearranging,
+    pinned,
+    onPin,
     onSize,
     onColor,
     onColumns,
     onRearranging,
     onResetLayout,
     onDelete,
-  }
-  // Rearrange mode makes the whole cell draggable. The grip makes one cell
-  // draggable for as long as it is held, so a block can be moved without
-  // finding a menu first (Brendan, 2026-09-10) — `draggable` has to be true
-  // before the drag starts, which is what pressing the grip sets.
-  const [byHandle, setByHandle] = React.useState(false)
-  const handleProps = {
-    onPointerDown: () => setByHandle(true),
-    onPointerUp: () => setByHandle(false),
   }
 
   const dragProps = {
@@ -523,6 +599,7 @@ function GridCard({
     onDrop: (e: React.DragEvent) => e.preventDefault(),
     onDragEnd: () => {
       setByHandle(false)
+      held.current = false
       onDragEnd()
     },
   }
@@ -552,6 +629,8 @@ function GridCard({
           data-component={item.key}
           data-group={item.group}
           {...dragProps}
+          {...holdProps}
+          onClick={onCardClick}
           style={
             paint
               ? ({
@@ -564,7 +643,8 @@ function GridCard({
             "group/cell relative h-full min-h-0 rounded-[min(var(--radius-4xl),24px)] transition-shadow hover:ring-1 hover:ring-foreground/50 **:data-[slot=card]:h-full",
             COLS[size.cols],
             ROWS[size.rows],
-            rearranging && "cursor-grab select-none active:cursor-grabbing",
+            (rearranging || byHandle) && "cursor-grab select-none active:cursor-grabbing",
+            byHandle && "ring-2 ring-foreground/30",
             dragging && "opacity-40",
             resizing && "ring-2 ring-ring/40"
           )}
@@ -595,10 +675,15 @@ function GridCard({
                 color={color}
                 columns={columns}
                 rearranging={rearranging}
+                pinned={pinned}
+                inWorkspace={inWorkspace}
                 onSize={onSize}
                 onColor={onColor}
                 onColumns={onColumns}
                 onRearranging={onRearranging}
+                onPin={onPin}
+                onEdit={onEdit}
+                onWorkspace={onWorkspace}
                 onResetLayout={onResetLayout}
                 onDelete={onDelete}
               />
@@ -610,37 +695,15 @@ function GridCard({
     )
   }
 
-  const button = (action: GridAction, index: number) =>
-    action.render ?? (
-      <Button
-        key={action.label}
-        variant={index === 0 ? "default" : "outline"}
-        className="min-w-0 flex-1 rounded-2xl"
-        disabled={action.disabled}
-        title={action.title}
-        onClick={action.onClick}
-      >
-        {action.label}
-      </Button>
-    )
+  const title = details.label || item.title
+  const meta = [details.note, item.meta].filter(Boolean).join(" · ")
 
   return (
     <Card
       data-component={item.key}
       data-group={item.group}
-      draggable={rearranging || byHandle}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = "move"
-        e.dataTransfer.setData("text/plain", item.key)
-        onDragStart()
-      }}
-      onDragEnter={onDragEnter}
-      onDragOver={(e) => (rearranging || byHandle) && e.preventDefault()}
-      onDrop={(e) => e.preventDefault()}
-      onDragEnd={() => {
-        setByHandle(false)
-        onDragEnd()
-      }}
+      {...dragProps}
+      {...holdProps}
       onClick={onCardClick}
       style={
         paint
@@ -658,17 +721,20 @@ function GridCard({
         COLS[size.cols],
         ROWS[size.rows],
         openable && "cursor-pointer",
-        rearranging && "cursor-grab select-none active:cursor-grabbing",
+        (rearranging || byHandle) && "cursor-grab select-none active:cursor-grabbing",
+        byHandle && "border-foreground/50 ring-2 ring-foreground/20",
         dragging && "opacity-40",
         resizing && "ring-2 ring-ring/40"
       )}
     >
       <CardHeader className="items-center">
-        {/* The badge sits in line with the ⋮, at the left. */}
-        <div className="flex h-7 items-center text-muted-foreground">
-          {item.badge}
+        {/* The + sits in line with the ⋮, at the left, where the badge used to. */}
+        <div className="-ml-1.5 flex h-7 items-center">
+          {item.workspace && (
+            <WorkspaceButton inWorkspace={inWorkspace} onClick={onWorkspace} />
+          )}
         </div>
-        <CardTitle className="sr-only">{item.title}</CardTitle>
+        <CardTitle className="sr-only">{title}</CardTitle>
         <CardAction className="flex items-center gap-1 self-center">
           <span
             {...handleProps}
@@ -687,10 +753,15 @@ function GridCard({
             color={color}
             columns={columns}
             rearranging={rearranging}
+            pinned={pinned}
+            inWorkspace={inWorkspace}
             onSize={onSize}
             onColor={onColor}
             onColumns={onColumns}
             onRearranging={onRearranging}
+            onPin={onPin}
+            onEdit={onEdit}
+            onWorkspace={onWorkspace}
             onResetLayout={onResetLayout}
             onDelete={onDelete}
           />
@@ -725,22 +796,23 @@ function GridCard({
               compact ? "text-sm" : "text-lg"
             )}
           >
-            {item.title}
+            {title}
           </div>
           {!compact && item.description && (
             <CardDescription className="text-pretty">
               {item.description}
             </CardDescription>
           )}
-          {!compact && item.meta && (
-            <p className="text-xs text-muted-foreground">{item.meta}</p>
+          {!compact && meta && (
+            <p className="text-xs text-muted-foreground">{meta}</p>
           )}
         </div>
       </CardContent>
-      {item.actions && (
-        <CardFooter className="flex items-center gap-2">
-          {item.actions.map(button)}
-        </CardFooter>
+      {/* The badge: bottom left, opposite the corner (Brendan, 2026-09-13). */}
+      {item.badge && (
+        <div className="absolute bottom-2.5 left-4 z-10 flex h-7 items-center text-muted-foreground">
+          {item.badge}
+        </div>
       )}
       {/* The corner: drag it right to widen the card, down to make it taller, back to shrink it. */}
       <button
@@ -768,6 +840,7 @@ export function WorkspaceGrid({
   items,
   loading,
   keepOrder,
+  slots,
   children,
   className,
 }: {
@@ -775,6 +848,7 @@ export function WorkspaceGrid({
   items: GridItem[]
   /** A trailing row of skeletons while more arrive. */ loading?: boolean
   /** The items' own order stands (the footer's Filter chip is sorting them); the reader's saved order waits. */ keepOrder?: boolean
+  /** Cells of the grid's own after the cards: /workspace's empty slots (Brendan, 2026-09-13). */ slots?: React.ReactNode
   children?: React.ReactNode
   className?: string
 }) {
@@ -783,6 +857,8 @@ export function WorkspaceGrid({
   const grid = React.useRef<HTMLDivElement>(null)
   const [rearranging, setRearranging] = React.useState(false)
   const [dragging, setDragging] = React.useState<string | null>(null)
+  const [editing, setEditing] = React.useState<string | null>(null)
+  const workspace = useWorkspacePins()
 
   const cards = React.useMemo(
     () =>
@@ -820,27 +896,49 @@ export function WorkspaceGrid({
       else delete colors[key]
       return { colors }
     })
+  const togglePin = (key: string) =>
+    patch((c) => ({
+      pinned: c.pinned.includes(key)
+        ? c.pinned.filter((k) => k !== key)
+        : [key, ...c.pinned],
+    }))
+  const setDetails = (key: string, details: CardDetails) =>
+    patch((c) => {
+      const next = { ...c.details }
+      if (details.label || details.note) next[key] = details
+      else delete next[key]
+      return { details: next }
+    })
   const remove = (key: string) =>
     patch((c) => ({ hidden: [...c.hidden.filter((k) => k !== key), key] }))
   const resetLayout = () => {
-    patch(() => ({ order: [], sizes: {}, hidden: [], colors: {}, columns: 4 }))
+    patch(() => ({
+      order: [],
+      sizes: {},
+      hidden: [],
+      pinned: [],
+      colors: {},
+      columns: 4,
+    }))
     setRearranging(false)
   }
   const moveBefore = (key: string, before: string) =>
     patch((c) => ({ order: reorder(arrange(c, items), key, before) }))
+  const toggleWorkspace = (pin: WorkspacePin) =>
+    workspace.has(pin) ? workspace.remove(pinKey(pin)) : workspace.add(pin)
+
+  const editingItem = editing ? items.find((i) => i.key === editing) : undefined
 
   return (
-    // The home well's field under every grid (Brendan, 2026-09-09): the cards
-    // are white on white without it in light mode, and the ring alone is too
-    // faint to draw a card. Dark mode never needed it — card and panel differ.
+    // One white field under every grid (Brendan, 2026-09-13): the cards draw
+    // their own edge — a shadow, a ring, a border on hover.
     <div
-      className={cn("min-h-full bg-muted p-6 dark:bg-background", className)}
+      className={cn("min-h-full bg-background p-6", className)}
     >
       {rearranging && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-dashed px-4 py-2 text-sm text-muted-foreground">
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-dashed border-foreground/30 px-4 py-2 text-sm text-muted-foreground">
           Drag a card onto another to move it there.
           <Button
-            variant="outline"
             size="sm"
             className="ml-auto"
             onClick={() => setRearranging(false)}
@@ -868,6 +966,9 @@ export function WorkspaceGrid({
             size={sizeFor(item, columns, layout.sizes[item.key])}
             color={layout.colors[item.key]}
             columns={columns}
+            details={layout.details[item.key] ?? {}}
+            pinned={layout.pinned.includes(item.key)}
+            inWorkspace={!!item.workspace && workspace.has(item.workspace)}
             onColumns={setColumns}
             rearranging={rearranging}
             dragging={dragging === item.key}
@@ -875,6 +976,9 @@ export function WorkspaceGrid({
             onSize={(size) => setSize(item.key, size)}
             onColor={(color) => setColor(item.key, color)}
             onRearranging={setRearranging}
+            onPin={() => togglePin(item.key)}
+            onEdit={() => setEditing(item.key)}
+            onWorkspace={() => item.workspace && toggleWorkspace(item.workspace)}
             onResetLayout={resetLayout}
             onDelete={() => remove(item.key)}
             onDragStart={() => setDragging(item.key)}
@@ -886,6 +990,7 @@ export function WorkspaceGrid({
             onDragEnd={() => setDragging(null)}
           />
         ))}
+        {slots}
         {loading &&
           Array.from({ length: 4 }, (_, i) => (
             <div
@@ -894,11 +999,19 @@ export function WorkspaceGrid({
             />
           ))}
       </div>
-      {!cards.length && !loading && (
+      {!cards.length && !loading && !slots && (
         <p className="py-12 text-center text-sm text-muted-foreground">
           Nothing here.
         </p>
       )}
+      <EditDetailsDialog
+        open={editing !== null}
+        onOpenChange={(open) => !open && setEditing(null)}
+        id={editing}
+        fallbackLabel={editingItem?.title ?? editing ?? ""}
+        value={(editing ? layout.details[editing] : undefined) ?? {}}
+        onSave={(next) => editing && setDetails(editing, next)}
+      />
     </div>
   )
 }

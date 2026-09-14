@@ -17,6 +17,7 @@ import {
   getCommitteeReports,
   getCosponsors,
   getSessionsWithTitles,
+  latestSession,
   getLaws,
   getPolicyAreas,
   getRelatedBills,
@@ -30,6 +31,7 @@ import { getBillLobbying } from "@/lib/policy/lobbying-queries"
 import { getBillRollCalls } from "@/lib/policy/roll-call-queries"
 import { isJurisdiction, stateName } from "@/lib/filters"
 import { BackToTop } from "@/components/back-to-top"
+import { ScopeMark } from "@/components/scope-mark"
 import { BillsJurisdictionPage, jurisdictionTitle } from "@/components/bills-jurisdiction-page"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
@@ -178,6 +180,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   if (code) return <BillsJurisdictionPage state={code} />
   const bill = await getBill(Number(id))
   if (!bill) notFound()
+  // The bill names its own scope for the layout's gate (2026-09-13).
+  const current = await latestSession(bill.state).catch(() => null)
   const federal = bill.state === "US"
   // The LDA is a federal statute, so lobbying is asked for only under Congress,
   // and on congress.gov's own key rather than the mirror's id — see
@@ -230,6 +234,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
 
   return (
     <BillCongressProvider billId={bill.bill_id} billNumber={bill.bill_number} state={bill.state} initial={congress}>
+      <ScopeMark state={bill.state} session={bill.session_id} current={current} entity="bills" />
       <BillDepthProvider billId={bill.bill_id} state={bill.state} initial={depth}>
         <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
           <div className="flex min-w-0 flex-1 flex-col">
@@ -246,7 +251,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                       url={`https://gov.nysgpt.com/bills/${bill.bill_id}`}
                       typeset={typesetHref(bill.bill_id)}
                       // Only when there are printings to compare — sponsor memos are not printings.
-                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill.bill_id, "comp") : undefined}
+                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill.bill_id, "redline") : undefined}
                       git={typesetHref(bill.bill_id, "git")}
                     />
                     {/* The neighbouring bills in the session, as shadcn's docs

@@ -17,7 +17,7 @@
 // interrupted run is restarted with the same command and picks up where it
 // stopped.
 import { archive, archiveDone } from "./lib/archive.mjs"
-import { begin, commit, one, q, rollback, writeRows } from "./lib/db.mjs"
+import { begin, commit, exec, one, q, rollback, writeRows } from "./lib/db.mjs"
 import { ADAPTERS, adapterFor } from "./adapters/index.mjs"
 
 const argv = process.argv.slice(2)
@@ -116,6 +116,11 @@ for (const state of states) {
 
     const tx = await begin()
     try {
+      // A reload replaces the law rather than writing over it. Without this a
+      // location the adapter no longer produces — a duplicate that has been
+      // collapsed, a number that has been corrected — would stay behind
+      // forever, because the write is an upsert keyed on the location.
+      if (FORCE) await exec(`delete from "Laws" where state = $1 and law_id = $2`, [state, law.law_id], tx)
       await writeRows(nodes, tx)
       await commit(tx)
     } catch (error) {

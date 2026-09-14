@@ -11,7 +11,9 @@ import { useEffect, useState } from "react"
 //
 // Signed out is the first paint, deliberately: it is the common case and the
 // truth until proven otherwise. The tab's cache paints a signed-in reader
-// without a flash; the server's answer always wins.
+// without a flash; the server's answer always wins. `ready` says the answer
+// is in — from the cache, or from the server — so a gate can wait for it
+// rather than greet a signed-in reader as a stranger (2026-09-13).
 
 export type Account = { name?: string | null; email?: string | null; image?: string | null; /** The home state from the reader's profile (onboarding, 2026-09-11); null until they have one. */ home?: string | null } | null
 
@@ -35,11 +37,26 @@ function cached(): Account {
   }
 }
 
-export function useAccount(): { account: Account; signedIn: boolean } {
+/** Writes the tab's cache, for the moment a page learns something the server will only confirm on the next read. */
+export function cacheAccount(patch: Partial<NonNullable<Account>>) {
+  try {
+    const current = cached()
+    if (!current) return
+    sessionStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify({ ...current, ...patch }))
+  } catch {
+    // Storage refused; the next read asks the server.
+  }
+}
+
+export function useAccount(enabled = true): { account: Account; signedIn: boolean; ready: boolean } {
   const [account, setAccount] = useState<Account>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setAccount(cached())
+    if (!enabled) return
+    const known = cached()
+    setAccount(known)
+    if (known) setReady(true)
     let live = true
     fetch("/api/auth/session", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
@@ -57,10 +74,13 @@ export function useAccount(): { account: Account; signedIn: boolean } {
       .catch(() => {
         // No session endpoint — sign-in is not configured on this deployment.
       })
+      .finally(() => {
+        if (live) setReady(true)
+      })
     return () => {
       live = false
     }
-  }, [])
+  }, [enabled])
 
-  return { account, signedIn: !!account }
+  return { account, signedIn: !!account, ready }
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { History } from "lucide-react"
 
-import { memberHref, stateName } from "@/lib/filters"
+import { flagUrl, memberHref, STATE_CODES, stateName } from "@/lib/filters"
 import { portraitFor } from "@/lib/imagery"
 import { shortDistrict } from "@/lib/format"
 import { FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
@@ -140,6 +140,21 @@ export function useSiteSearch({ active, term, lead }: { active: boolean; term: s
 }
 
 /** The result groups, inside a CommandList: records first, then pages, then the way to every result. */
+/** Every jurisdiction's flag, fetched once per session the moment the search takes focus (Brendan, 2026-09-13): 53 files, 224 KB, so result rows draw with their flags already cached. */
+let flagsWarmed = false
+export function warmFlags() {
+  if (flagsWarmed || typeof window === "undefined") return
+  flagsWarmed = true
+  for (const code of [...STATE_CODES, "US", "DC"]) {
+    const img = new Image()
+    img.decoding = "async"
+    img.src = flagUrl(code)
+  }
+}
+
+/** The label column every row shares (Brendan, 2026-09-13): one width, so the descriptions line up across recents, bills, members, committees and pages. */
+const LABEL = "w-48 shrink-0 truncate font-medium"
+
 export function SearchResults({ search, state, go }: { search: SiteSearch; state: string; go: (href: string) => void }) {
   const { query, bills, members, committees, pages, hasRecords } = search
   return (
@@ -157,7 +172,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               onSelect={() => go(`/bills/${bill.bill_id}?state=${bill.state ?? state}`)}
             >
               <FlagChip state={bill.state ?? state} width={20} />
-              <span className="w-28 shrink-0 truncate font-medium">{fmtBill(bill.bill_number, bill.state ?? state)}</span>
+              <span className={LABEL}>{fmtBill(bill.bill_number, bill.state ?? state)}</span>
               <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{bill.title}</span>
             </CommandItem>
           ))}
@@ -186,13 +201,11 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
                 />
                 <PartyDot party={member.party} serving={member.active} className="absolute -right-0.5 -bottom-0.5 ring-2 ring-popover" />
               </span>
-              <span className="w-44 shrink-0 truncate font-medium">
+              <span className={LABEL}>
                 {member.name}
                 {member.active ? "" : " (Ret.)"}
               </span>
-              {/* Right-aligned so the members section ends on the same edge
-                  the bills section does, instead of trailing off mid-row. */}
-              <span className="min-w-0 flex-1 truncate pl-2 text-right text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
                 {[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]
                   .filter(Boolean)
                   .join(" · ")}
@@ -213,7 +226,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               }
             >
               <FlagChip state={committee.state ?? state} width={20} />
-              <span className="w-52 shrink-0 truncate font-medium">{committee.committee}</span>
+              <span className={LABEL}>{committee.committee}</span>
               <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
                 {[committee.chamber, `${committee.bills} bills`].filter(Boolean).join(" · ")}
               </span>
@@ -228,7 +241,7 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               {/* The same icon and sentence the nav panel gives this page, so
                   a row found by search reads like the row found by menu. */}
               <PageIcon name={page.icon} />
-              <span className="w-28 shrink-0 truncate font-medium">{page.name}</span>
+              <span className={LABEL}>{page.name}</span>
               <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{page.description ?? page.group}</span>
             </CommandItem>
           ))}
@@ -311,6 +324,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
         <DialogContent className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 sm:max-w-[62rem]" showCloseButton={false}>
           <Command shouldFilter={false} value={search.selected} onValueChange={search.setSelected}>
             <CommandInput
+              onFocus={warmFlags}
               placeholder="Search"
               value={term}
               onValueChange={setTerm}
@@ -321,8 +335,8 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
                   {recents.map((recent) => (
                     <CommandItem key={recent.href} value={`recent-${recent.href}`} onSelect={() => go(recent.href)}>
                       <History className="text-muted-foreground" />
-                      <span className="shrink-0 font-medium">{recent.title}</span>
-                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{recent.group}</span>
+                      <span className={LABEL}>{recent.title}</span>
+                      <span className="min-w-0 flex-1 truncate pl-2 text-muted-foreground">{recent.group}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

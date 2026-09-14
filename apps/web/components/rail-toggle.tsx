@@ -21,21 +21,23 @@ type Side = "left" | "right"
 const attr = (side: Side) => `data-rail-${side}`
 const key = (side: Side) => `rail:${side}`
 
-function readClosed(side: Side) {
+/** What this browser remembers for a rail: closed, open, or nothing yet. */
+function remembered(side: Side): "closed" | "open" | null {
   try {
-    return localStorage.getItem(key(side)) === "closed"
+    const v = localStorage.getItem(key(side))
+    return v === "closed" || v === "open" ? v : null
   } catch {
-    return false
+    return null
   }
 }
+
 
 function apply(side: Side, closed: boolean) {
   const root = document.documentElement
   if (closed) root.setAttribute(attr(side), "closed")
   else root.removeAttribute(attr(side))
   try {
-    if (closed) localStorage.setItem(key(side), "closed")
-    else localStorage.removeItem(key(side))
+    localStorage.setItem(key(side), closed ? "closed" : "open")
   } catch {}
 }
 
@@ -61,7 +63,7 @@ export function toggleRail(side: Side) {
 export function useRailClosed(side: Side) {
   const closed = React.useSyncExternalStore(subscribe, () => isClosed(side), () => false)
   React.useEffect(() => {
-    if (readClosed(side) && !isClosed(side)) setRail(side, true)
+    if (remembered(side) === "closed" && !isClosed(side)) setRail(side, true)
   }, [side])
   return closed
 }
@@ -82,7 +84,10 @@ export function RailToggle({ side, className }: { side: Side; className?: string
       aria-label={closed ? `Open the ${side} rail` : `Close the ${side} rail`}
       aria-expanded={!closed}
       className={cn(
-        "absolute top-[calc(200px-var(--header-height)-0.6rem)] z-40 flex h-8 w-4 items-center justify-center bg-[#18181b] text-zinc-500 shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-colors select-none hover:text-zinc-50",
+        // Hover (Brendan, 2026-09-13): the tab grows about a tenth away from the line, the way the rail will.
+        "absolute top-[calc(200px-var(--header-height)-0.6rem)] z-40 flex h-8 w-4 items-center justify-center bg-[#18181b] text-zinc-500 shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-[width,color] duration-200 ease-out select-none hover:w-[17.5px] hover:text-zinc-50",
+        // A hovered strip (RailStrip, an earlier sibling of the rail) lights the tab the same way.
+        "[[data-rail-strip]:hover~*_&]:w-[17.5px] [[data-rail-strip]:hover~*_&]:text-zinc-50",
         // On the far side of the hairline (right-2 / left-2 is the line): flat where it meets the line, round on the side facing the page.
         side === "left" ? "right-2 translate-x-full rounded-r-[10px]" : "left-2 -translate-x-full rounded-l-[10px]",
         className
@@ -90,5 +95,29 @@ export function RailToggle({ side, className }: { side: Side; className?: string
     >
       <Icon className="size-4" aria-hidden />
     </button>
+  )
+}
+
+/**
+ * The strip between a closed rail's hairline and the edge of the viewport,
+ * made clickable (Brendan, 2026-09-13): the whole height opens the rail, and
+ * hovering it lights the tab. Only there while the rail is closed, and only
+ * in the sheet frame, where it is placed just before the rail so the tab can
+ * see it hovered. 24px wide: the hairline sits 24px in from the viewport's
+ * edge (the frame's 8px gutter plus the 16px of strip), and the tab starts
+ * at the hairline.
+ */
+export function RailStrip({ side }: { side: Side }) {
+  return (
+    <button
+      type="button"
+      data-rail-strip=""
+      aria-label={`Open the ${side} rail`}
+      onClick={() => setRail(side, false)}
+      className={cn(
+        "absolute inset-y-0 z-40 hidden w-6 cursor-pointer",
+        side === "left" ? "right-2 [[data-rail-left=closed]_&]:block" : "left-2 [[data-rail-right=closed]_&]:block"
+      )}
+    />
   )
 }

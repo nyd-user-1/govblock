@@ -2,7 +2,11 @@
 // adapter; a state with a source of its own gets a file of its own. What every
 // adapter has in common is the shape it yields, which is the "Laws" table —
 // the runner owns the ordering, the tree and the write.
+import ar from "./ar.mjs"
 import ak from "./ak.mjs"
+import ga from "./ga.mjs"
+import ms from "./ms.mjs"
+import tn from "./tn.mjs"
 import al from "./al.mjs"
 import az from "./az.mjs"
 import ca from "./ca.mjs"
@@ -51,7 +55,7 @@ import wa from "./wa.mjs"
 import wv from "./wv.mjs"
 import wy from "./wy.mjs"
 
-export const ADAPTERS = [us, ak, al, az, ca, co, ct, dc, de, fl, hi, ia, id, il, ind, ks, ky, la, ma, md, me, mi, mn, mo, mt, nc, nd, ne, nh, nj, nm, nv, ny, oh, ok, or, pa, ri, sc, sd, tx, ut, va, vt, wa, wi, wv, wy]
+export const ADAPTERS = [us, ak, ar, al, az, ca, co, ct, dc, de, fl, ga, hi, ia, id, il, ind, ks, ky, la, ma, md, me, mi, mn, mo, ms, mt, nc, nd, ne, nh, nj, nm, nv, ny, oh, ok, or, pa, ri, sc, sd, tn, tx, ut, va, vt, wa, wi, wv, wy]
 
 export function adapterFor(state) {
   return ADAPTERS.find((a) => a.states.includes(state.toUpperCase())) ?? null

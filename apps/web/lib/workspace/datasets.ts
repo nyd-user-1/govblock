@@ -1,3 +1,4 @@
+import { entitled, type Reader, type Verdict } from "@/lib/entitlements"
 import { STATE_CODES, STATE_NAMES, lowerChamber } from "@/lib/filters"
 
 // /workspace/data (Brendan, 2026-09-07): every dataset the site can hand a
@@ -10,7 +11,8 @@ import { STATE_CODES, STATE_NAMES, lowerChamber } from "@/lib/filters"
 // whether the reader is signed in, and which jurisdiction is theirs (the
 // header's flag). Congress is open to everyone; a signed-in reader's home
 // state is theirs as well; every other state and every department waits on a
-// paid plan, which does not exist yet.
+// paid plan, which does not exist yet (Brendan, 2026-09-13: the departments
+// too — a signed-in reader has Congress and their home state, nothing else).
 
 export type Dataset = {
   key: string
@@ -22,7 +24,7 @@ export type Dataset = {
   seal: { kind: "chamber"; state: string; chamber: string } | { kind: "image"; src: string }
   /** Where the card belongs: the two houses of Congress, a state's chambers, or a federal department. */
   group: "congress" | "state" | "department"
-  /** A department whose forms or filings are on file is open to everyone (Brendan, 2026-09-07); Explore goes here. */
+  /** Where Explore goes for a department: its forms, or the FEC's filings. */
   href?: string
 }
 
@@ -101,19 +103,17 @@ export function findDataset(jurisdiction: string, chamber: string): Dataset | un
   return DATASETS.find((d) => d.state && d.chamber && jurisdictionSlug(d.state) === jurisdiction.toLowerCase() && d.chamber.toLowerCase() === chamber.toLowerCase())
 }
 
-export type Access = "open" | "locked"
+export type Access = Verdict
 
-/** Whether this reader may open the dataset. */
-export function accessTo(dataset: Dataset, reader: { signedIn: boolean; home: string }): Access {
-  if (dataset.group === "congress") return "open"
-  if (dataset.group === "department" && dataset.href) return "open"
-  if (dataset.group === "state" && reader.signedIn && dataset.state === reader.home) return "open"
-  return "locked"
+/** Whether this reader may open the dataset — the shared rule (lib/entitlements.ts): Congress, a signed-in reader's home state; a department is on the plan. */
+export function accessTo(dataset: Dataset, reader: Reader): Access {
+  return entitled(reader, { state: dataset.state ?? "US", entity: dataset.group === "department" ? "departments" : "bills" })
 }
 
 // ---------------------------------------------------------------------------
 // The layout: the order of the cards, each one's size on the four-column grid,
-// the ones the reader deleted, and the session each card is set to. Lives in
+// the ones the reader deleted, the ones pinned to the top, the reader's own
+// label and note on a card, and the session each card is set to. Lives in
 // the browser, as the home page's tiles do.
 
 export type Size = { cols: 1 | 2 | 3 | 4 | 6 | 8; rows: 1 | 2 | 3 | 4 }
@@ -149,31 +149,37 @@ export const COLORS: { value: Color; label: string; primary: string; foreground:
 /** The grid's columns (Brendan, 2026-09-07): four, the default, or eight, where a card is half the size. */
 export type Columns = 4 | 8
 
+/** The reader's own label and note on a card (Brendan, 2026-09-13: Edit details on every card). */
+export type CardDetails = { label?: string; note?: string }
+
 export type Layout = {
   order: string[]
   sizes: Record<string, Size>
   hidden: string[]
+  /** Pinned to the top (Brendan, 2026-09-13), first pinned first. */
+  pinned: string[]
+  details: Record<string, CardDetails>
   sessions: Record<string, number>
   colors: Record<string, Color>
   columns?: Columns
 }
 
-export const EMPTY_LAYOUT: Layout = { order: [], sizes: {}, hidden: [], sessions: {}, colors: {} }
+export const EMPTY_LAYOUT: Layout = { order: [], sizes: {}, hidden: [], pinned: [], details: {}, sessions: {}, colors: {} }
 
-/** A layout saved before `colors` existed still reads. */
+/** A layout saved before `colors`, `pinned` or `details` existed still reads. */
 export function readLayout(raw: Partial<Layout> | null | undefined): Layout {
-  return { ...EMPTY_LAYOUT, ...(raw ?? {}), colors: raw?.colors ?? {}, sessions: raw?.sessions ?? {} }
+  return { ...EMPTY_LAYOUT, ...(raw ?? {}), colors: raw?.colors ?? {}, sessions: raw?.sessions ?? {}, pinned: raw?.pinned ?? [], details: raw?.details ?? {} }
 }
 
 export const LAYOUT_KEY = "govblock:workspace:data"
 
-/** The cards in the order the reader left them, the catalogue's newcomers after, the deleted ones out. */
+/** The pinned cards first, then the rest in the order the reader left them, the catalogue's newcomers after, the deleted ones out. */
 export function arrange<T extends { key: string }>(layout: Layout, catalogue: T[]): T[] {
   const byKey = new Map(catalogue.map((d) => [d.key, d]))
   const hidden = new Set(layout.hidden)
   const seen = new Set<string>()
   const out: T[] = []
-  for (const key of layout.order) {
+  for (const key of [...layout.pinned, ...layout.order]) {
     const d = byKey.get(key)
     if (d && !seen.has(key) && !hidden.has(key)) out.push(d)
     seen.add(key)

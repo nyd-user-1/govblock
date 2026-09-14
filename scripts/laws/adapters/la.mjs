@@ -61,16 +61,21 @@ export default {
       if (!html) return
       const section = read(html)
       if (!section) return
-      if (!found.has(section.law_id)) found.set(section.law_id, [])
-      found.get(section.law_id).push(section)
-      kept += 1
+      if (!found.has(section.law_id)) found.set(section.law_id, new Map())
+      // Every section is served at two document ids, and the two copies differ
+      // only in whether the Legislature's own note sits above the law. One
+      // citation is one section, so the fuller copy is the one kept.
+      const by = found.get(section.law_id)
+      const previous = by.get(section.number)
+      if (!previous) kept += 1
+      if (!previous || (section.text?.length ?? 0) > (previous.text?.length ?? 0)) by.set(section.number, section)
     })
     log(`${found.size} laws · ${kept.toLocaleString("en-US")} sections`)
 
-    for (const [law_id, sections] of [...found.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
+    for (const [law_id, by] of [...found.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
       if (only && law_id !== only.toUpperCase()) continue
       if (have?.has(law_id)) continue
-      sections.sort((a, b) => byNumber(a.number, b.number))
+      const sections = [...by.values()].sort((a, b) => byNumber(a.number, b.number))
 
       const code = sections[0].code
       const title = sections[0].title
