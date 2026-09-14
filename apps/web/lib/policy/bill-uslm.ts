@@ -328,8 +328,8 @@ export function plainTextHtml(text: string): string {
 
 const XML_URL = /\.xml($|\?)/i
 
-/** GovInfo's copy of a document, when the record points at one. */
-export async function fetchUslm(url: string | null | undefined) {
+/** GovInfo's XML for a document, as published, when the record points at one. The XML reader parses this itself. */
+export async function fetchUslmXml(url: string | null | undefined): Promise<string | null> {
   if (!url || !XML_URL.test(url)) return null
   try {
     const response = await fetch(url, {
@@ -339,9 +339,15 @@ export async function fetchUslm(url: string | null | undefined) {
       next: { revalidate: 86_400 },
     })
     if (!response.ok) return null
-    return uslmToHtml(await response.text())
+    return await response.text()
   } catch (error) {
     console.error("uslm: could not read", url, error)
     return null
   }
+}
+
+/** GovInfo's copy of a document, when the record points at one. */
+export async function fetchUslm(url: string | null | undefined) {
+  const xml = await fetchUslmXml(url)
+  return xml ? uslmToHtml(xml) : null
 }

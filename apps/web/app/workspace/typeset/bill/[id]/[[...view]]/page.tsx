@@ -7,10 +7,11 @@ import { TypesetSkeleton } from "@/app/(typeset)/components/typeset-skeleton"
 import { ScopeMark } from "@/components/scope-mark"
 import { TypesetHistoryProvider } from "@/app/(typeset)/hooks/use-history"
 import { LocksProvider } from "@/app/(typeset)/hooks/use-locks"
-import { TypesetWorkspacePage } from "@/components/workspace/typeset-workspace-2"
+import { TypesetWorkspacePage, type XmlFirstPaint } from "@/components/workspace/typeset-workspace-2"
 import { entitled } from "@/lib/entitlements"
 import { readerOf } from "@/lib/entitlements-server"
 import { getTypesetDocument } from "@/lib/typeset/document"
+import { getXmlDocument } from "@/lib/typeset/xml-document"
 import { fmtBill } from "@/lib/format"
 import { latestSession } from "@/lib/policy/db-queries"
 import { getBill } from "@/lib/policy/queries"
@@ -66,12 +67,26 @@ export default async function TypesetBillPage({ params, searchParams }: { params
       }
     }
   }
+  // The XML view paints the printing as the reader's schema draws it (window 1,
+  // 2026-09-14), built from its USLM and kept like the snapshot above.
+  let xml: XmlFirstPaint | undefined
+  if (key === "xml") {
+    const reader = await readerOf()
+    if (entitled(reader, { state: bill.state, session: bill.session_id, current, entity: "bills" }) === "open") {
+      const { version } = await searchParams
+      const doc = await getXmlDocument(bill.bill_id, Number(version) || undefined, bill).catch((error) => {
+        console.error("xml view: could not build", bill.bill_id, error)
+        return null
+      })
+      if (doc) xml = { snapshot: doc.html, meta: { documentId: doc.documentId, version: doc.version, date: doc.date, work: doc.work, expression: doc.expression, fidelity: doc.fidelity, dialect: doc.dialect, sourceUrl: doc.sourceUrl } }
+    }
+  }
   return (
     <LocksProvider>
       <ScopeMark state={bill.state} session={bill.session_id ? Number(bill.session_id) : null} current={current} entity="bills" />
       <Suspense fallback={<TypesetSkeleton />}>
         <TypesetHistoryProvider>
-          <TypesetWorkspacePage route={{ billId: bill.bill_id, state: bill.state, session: bill.session_id ? Number(bill.session_id) : null, view: key }} snapshot={snapshot} />
+          <TypesetWorkspacePage route={{ billId: bill.bill_id, state: bill.state, session: bill.session_id ? Number(bill.session_id) : null, view: key }} snapshot={snapshot} xml={xml} />
         </TypesetHistoryProvider>
       </Suspense>
     </LocksProvider>

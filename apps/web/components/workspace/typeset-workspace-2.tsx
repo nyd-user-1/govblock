@@ -24,6 +24,7 @@ import { FileActions, type BillView } from "@/components/create/file-actions"
 import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { TypesetEditor } from "@/components/workspace/typeset-editor"
 import { TypesetGitPane, type GitView } from "@/components/workspace/typeset-git-pane"
+import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { BillCompare, type CompareWidth } from "@/components/bill-compare"
 import type { BillComparison } from "@/lib/policy/bill-compare"
@@ -316,7 +317,10 @@ function WithToolbar({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function TypesetWorkspace({ route, snapshot }: { route?: TypesetRoute; snapshot?: React.ReactNode }) {
+/** The XML view's first paint, drawn on the server (lib/typeset/xml-document.ts). */
+export type XmlFirstPaint = { snapshot: string | null; meta: XmlMeta | null }
+
+export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint }) {
   const router = useRouter()
   // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
   const [panelOpen, setPanelOpen] = React.useState(false)
@@ -385,6 +389,8 @@ export function TypesetWorkspace({ route, snapshot }: { route?: TypesetRoute; sn
     const editor = EDITOR_OF[view]
     if (editor) {
       content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
+    } else if (view === "xml") {
+      content = <TypesetXmlReader billId={route.billId} version={params.version ? String(params.version) : undefined} snapshot={xml?.snapshot} meta={xml?.meta} />
     } else if (view === "redline") {
       content = (
         <WithToolbar>
@@ -468,10 +474,10 @@ export function TypesetWorkspace({ route, snapshot }: { route?: TypesetRoute; sn
 }
 
 /** The providers the preview and customizer share, once, around the page. */
-export function TypesetWorkspacePage({ route, snapshot }: { route?: TypesetRoute; snapshot?: React.ReactNode } = {}) {
+export function TypesetWorkspacePage({ route, snapshot, xml }: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint } = {}) {
   return (
     <TypesetPreviewOverrideProvider>
-      <TypesetWorkspace route={route} snapshot={snapshot} />
+      <TypesetWorkspace route={route} snapshot={snapshot} xml={xml} />
     </TypesetPreviewOverrideProvider>
   )
 }

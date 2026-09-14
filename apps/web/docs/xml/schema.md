@@ -6,10 +6,10 @@ the `@` resolver parse it, and the reader's ProseMirror schema is the node list
 below. Window 1 owns this file; a change to the address after the pipeline has
 stored rows is a migration, so ask in a report first.
 
-Status: the address is frozen as of 2026-09-14 05:00 EDT. The node list is v0,
-taken from `uslm-2.0.17.xsd` (the schema GovInfo's own bills declare) and
-checked against H.R. 6644; it is refined below as the reader is measured
-against more of the corpus.
+Status: the address is frozen as of 2026-09-14 05:00 EDT. The schema is v1
+(06:30 EDT), taken from `uslm-2.0.17.xsd` (the schema GovInfo's own bills
+declare) and measured against H.R. 6644; it is refined as the reader meets more
+of the corpus.
 
 ## 1. The address
 
@@ -208,6 +208,11 @@ parser (`lib/xml/address.ts`) and is window 4's.
 
 ## 2. The schema
 
+Built in `apps/web/lib/xml/schema.ts`; the browser's Tiptap extensions are
+generated from the same tables (`components/workspace/typeset-xml-extensions.ts`).
+v1, 2026-09-14 06:30 EDT: measured against H.R. 6644's House amendment (Bill
+DTD) and enrolled bill (USLM 2), zero rank violations on either.
+
 ### Rules
 
 - Node and mark names are USLM's element names, exactly. `doc` and `text` are
@@ -215,11 +220,12 @@ parser (`lib/xml/address.ts`) and is window 4's.
 - A member of a USLM substitution group that shares its head's type is one
   node with an `element` attribute naming the member: `note` covers
   `sourceCredit`, `statutoryNote`, `editorialNote`, `footnote` and the rest of
-  `NoteType`; the generic `level` covers any level element used where its rank
-  is not allowed. The XML converter writes the member's own element back.
-- Every block node carries `id`, `identifier`, `class`, `role`, `status` when
-  the source has them, and `xml`: the attributes the node does not model, kept
-  so XML out is lossless.
+  `NoteType`; `referenceItem` covers `tocItem`, `headingItem`, `groupItem`;
+  the generic `level` covers any level element used where its rank is not
+  allowed. The member's own name is kept, so XML out writes it back.
+- Every block node carries `id`, `identifier`, `class`, `role`, `status`,
+  `element` when the source has them, and `xml`: the attributes the node does
+  not model. GPO's `style` locator codes are left behind.
 - Content expressions reject illegal nesting, and the schema never repairs.
   When the source nests a level where its rank is not allowed (a `clause`
   directly inside a `clause`), `uslmToDoc` emits USLM's own generic `level`
@@ -228,86 +234,128 @@ parser (`lib/xml/address.ts`) and is window 4's.
 - `uslmToDoc` records every element it does not know, with a count and the
   first path it was seen at. Its children are still read and its text is kept.
   Nothing is dropped silently.
+- In a ProseMirror content expression a node name beats a group name, so the
+  group of every level is `anyLevel`; `level` in an expression is the generic
+  node alone.
+
+### A state's own units: the USLM element by rank, the state's word in `role`
+
+Ruled with the lead, 2026-09-14. A front end names each unit by the USLM
+element at its rank and keeps the jurisdiction's own word in `role`. New
+York's subdivision is `<subsection role="subdivision">`, because it sits where
+USLM's subsection sits; USLM's own `subdivision` is the big level under a
+division, and admitting it under a section would break the rank rule and make
+`/us-ny/code/agm/s3/1` a different element from `/us/usc/t10/s130i/a` in the
+same position. A unit USLM has no element for at its rank is a generic
+`<level role="…">`.
+
+Below the section, rank is strict: `subsection` > `paragraph` >
+`subparagraph` > `clause` > `subclause` > `item` > `subitem` > `subsubitem`.
+Above it, USLM does not order its big levels (the US Code runs title >
+chapter > subchapter > part; California's codes division > part > chapter >
+article), so a front end uses USLM's element with the same word wherever
+there is one, and no big level holds its own element.
+
+New York, as of the lead's `frontends/ny.ts`, corrected here:
+
+| Senate API unit | Element |
+|---|---|
+| a Law (AGM, EDN) | `title role="law"` |
+| ARTICLE | `article` (not `chapter role="article"`: USLM has `article`) |
+| TITLE under an article | `title` |
+| SUBTITLE | `subtitle` (not `part role="subtitle"`, which would put a part inside a part) |
+| PART | `part` |
+| SUBPART | `subpart` |
+| SECTION | `section` |
+| subdivision, paragraph, subparagraph, clause, subclause, item | `subsection role="subdivision"`, `paragraph`, `subparagraph`, `clause`, `subclause`, `item` |
+| an article's or title's list of sections | `toc` of `tocItem role="section"` |
 
 ### Levels
 
-USLM's `LevelType`, in rank order. The XSD allows any level inside any level;
-the reader's schema enforces rank, measured against the corpus.
-
 | Group | Nodes | Allowed level children |
 |---|---|---|
-| big | `preliminary`, `title`, `subtitle`, `division`, `subdivision`, `chapter`, `subchapter`, `part`, `subpart`, `article`, `subarticle`, `compiledAct`, `courtRules`, `courtRule`, `reorganizationPlans`, `reorganizationPlan` | any big level but its own element, `section`, `level`, `appropriations` |
-| primary | `section` | any small level, `level`, `appropriations` |
-| small | `subsection` > `paragraph` > `subparagraph` > `clause` > `subclause` > `item` > `subitem` > `subsubitem` | any small level of lower rank (skipping is allowed: a section holds paragraphs with no subsection), `level` |
+| big | `preliminary`, `title`, `subtitle`, `division`, `subdivision`, `chapter`, `subchapter`, `part`, `subpart`, `article`, `subarticle`, `compiledAct`, `courtRules`, `courtRule`, `reorganizationPlans`, `reorganizationPlan` | any big level but its own element, `section`, `level` |
+| primary | `section` | any small level, `level` |
+| small | `subsection` … `subsubitem` | any small level of lower rank (skipping is allowed: a section holds paragraphs with no subsection), `level` |
 | generic | `level` | any level |
 
-Every level's content follows the XSD's `LevelType`:
+A level's content:
 
 ```
-num? heading? subheading* toc* statement?
-( content+ note*
-| ( chapeau | continuation | proviso | crossHeading | note | <allowed levels> )+ )
+num? heading? subheading* ( content | chapeau | continuation | proviso | crossHeading | note | toc | <allowed levels> )*
 ```
+
+USLM's XSD makes `content+` and the chapeau-and-levels sequence a choice.
+GovInfo's Bill DTD printings mix them (a level's text, then a quoted block,
+then its child levels), so the reader's schema does not; the generic `level`
+takes its parts in any order, for a source that puts a heading after its text.
 
 ### Level parts
 
-| Node | USLM element | Content | Attributes |
+| Node | USLM element | Content | Drawn as |
 |---|---|---|---|
-| `num` | `num` | inline text | `value` (the bare number, "a", "101") |
-| `heading` | `heading` | inline text | |
-| `subheading` | `subheading` | inline text | |
-| `chapeau` | `chapeau` (Akoma Ntoso `intro`) | inline text | |
-| `continuation` | `continuation` (Akoma Ntoso `wrapUp`) | inline text | |
-| `proviso` | `proviso` | inline text | |
-| `crossHeading` | `crossHeading` | inline text | |
-| `content` | `content` | `(p \| quotedContent \| table \| layout \| note)+` | |
-| `p` | `p` | inline text | `implicit`: text that sat loose in a `content`, written back without `<p>` |
+| `num` | `num` | inline | `span`; `value` attribute, the bare number ("a", "101") |
+| `heading` | `heading` | inline | `span` |
+| `subheading` | `subheading` | inline | `span` |
+| `chapeau` | `chapeau` (Akoma Ntoso `intro`) | inline | `p` |
+| `continuation` | `continuation` (Akoma Ntoso `wrapUp`) | inline | `p` |
+| `proviso` | `proviso` | inline | `p` |
+| `crossHeading` | `crossHeading` | inline | `p` |
+| `content` | `content` | `(p \| quotedContent \| toc \| table \| note)+` | `div` |
+| `p` | `p` | inline | `p`; `implicit` when the text sat loose in its parent |
 
 ### Quoted amendments
 
-| Node | USLM element | Content | Attributes |
-|---|---|---|---|
-| `quotedContent` | `quotedContent` | `(any level \| p \| content \| toc \| table \| note)+` | `origin` (the address quoted from, when known) |
+| Node | USLM element | Content |
+|---|---|---|
+| `quotedContent` | `quotedContent` | `(anyLevel \| content \| chapeau \| continuation \| toc \| table \| note \| p)+`; `origin` |
 
-`quotedText` is a mark (below). A `quotedContent` may hold a whole section
-inside a clause; it is the one place a higher rank sits inside a lower one,
-because it is quoted, not nested.
+A quotation holds whatever the law it quotes holds, so any level sits at its
+top, and rank applies again from there down. A Bill DTD `quoted-block` hung
+straight off a level is placed in a `content`, as USLM 2 places it. The DTD's
+`after-quoted-block` (the `”; and` that closes the quotation) arrives as the
+quotation's last `continuation`.
 
 ### Document
 
 | Node | USLM element | Content |
 |---|---|---|
-| `doc` | the root: `bill`, `resolution`, `amendment`, `uscDoc`, `pLaw`, `statute` (`element` attribute) | `preface? (longTitle \| enactingFormula \| resolvingClause \| preamble)* toc? (any level \| content \| p \| quotedContent \| note)* (attestation \| signatures \| endorsement \| appendix)*` |
-| `preface` | `preface` | `p+` |
+| `doc` | the root (`element`: `bill`, `resolution`, `amendment`, `uscDoc`, `pLaw`) | `preface? (longTitle \| enactingFormula \| resolvingClause \| preamble)* (anyLevel \| content \| quotedContent \| toc \| note \| p \| signatures \| appendix)*` |
+| `preface` | `preface`; the DTD's `form` and `engrossed-amendment-form` | `p+`, one line per element |
 | `longTitle` | `longTitle` | `(docTitle \| officialTitle)+` |
-| `docTitle`, `officialTitle`, `enactingFormula`, `resolvingClause` | same | inline text |
+| `docTitle`, `officialTitle`, `enactingFormula`, `resolvingClause`, `recital` | same | inline |
 | `preamble` | `preamble` | `(recital \| p)+` |
-| `recital` | `recital` | inline text |
-| `attestation` | `attestation` | `(p \| signatures)+` |
-| `signatures` | `signatures` | `signature+` |
-| `signature` | `signature` | `(name \| role \| affiliation \| signatureDate \| notation)+`, each inline text |
-| `appendix` | `appendix`, `schedule` | as `doc`'s body |
+| `signatures` | `signatures` | `(signature \| p)+` |
+| `signature` | `signature` (its `name`, `role`, `signatureDate` read as one line) | inline |
+| `appendix` | `appendix`, `schedule` | as the document's body |
+
+The back matter interleaves with the body because an engrossed amendment
+prints its endorsement after its signatures. Front matter found after the body
+has begun is read as paragraphs where it stands, and reported.
 
 `doc` attributes: `element`, `identifier` (the Work), `expression`,
-`dialect` (`uslm`, `bill-dtd`, `plain-text`), `title`, and `fidelity`
+`dialect` (`uslm`, `bill-dtd`, `text`), `title`, and `fidelity`
 (`native-xml`, `structured-html`, `plain-text`, `pdf`).
+
+Read through, counted in `unwrapped`: `main`, `amendment` (the DTD's
+amendment blocks), `amendmentInstruction`, `notes`. Known and not drawn,
+counted in `skipped`: `meta` and its properties, `dc:*`, `page` and the running
+heads, `colspec`.
 
 ### Tables of contents, notes, tables
 
 | Node | USLM element | Content |
 |---|---|---|
-| `toc` | `toc` and its substitution group (`index`, …) | `(referenceItem \| layout)+` |
-| `referenceItem` | `referenceItem`, `headingItem`, `groupItem` | `(designator \| label \| target)+`, each inline text |
+| `toc` | `toc` and its substitution group | `referenceItem+` |
+| `referenceItem` | `referenceItem`, `tocItem`, `headingItem`, `groupItem` | inline; `designator` and `label` are marks |
 | `note` | `note` and `NoteType`'s substitution group | `(heading \| p \| content)+` |
-| `layout` | `layout` | `(header \| row)+` |
-| `header`, `row` | same | `column+` |
-| `column` | `column` | inline text |
-| `table` | `xhtml:table` (USLM's table module) | `caption? tr+` |
-| `tr`, `th`, `td` | `xhtml:tr`, `th`, `td` | `(th \| td)+`; cells hold `p+`; `colspan`, `rowspan` |
+| `table` | `xhtml:table`, the DTD's CALS table, and USLM's `layout` (`element="layout"`) | `tr+` |
+| `tr` | `tr`, `row`, `header` | `(th \| td)+` |
+| `th`, `td` | `th`, `td`, `entry`, `column` | inline; `colspan`, `rowspan` |
 
 ### Inline
 
-Marks, stacking freely (`excludes: ""` where one element nests in itself):
+Marks, stacking freely (`excludes: ""`, so an `inline` sits inside an `inline`):
 
 | Mark | USLM element | Attributes |
 |---|---|---|
@@ -316,25 +364,26 @@ Marks, stacking freely (`excludes: ""` where one element nests in itself):
 | `inline`, `span` | same | `class` (`smallCaps`, …) |
 | `term` | `term` | |
 | `shortTitle` | `shortTitle` | `role` |
-| `headingText` | `headingText` | |
+| `headingText` | `headingText`, and a `heading` set inside running text | |
 | `quotedText` | `quotedText` | `origin` |
-| `ref` | `ref` | `href` (an address from section 1), `idref`, `portion`, `class` |
+| `ref` | `ref` | `href` (an address from section 1), `idref`, `portion` |
 | `date` | `date` | `date` |
-| `amendingAction` | `amendingAction` | `type` (`amend`, `insert`, `delete`, `redesignate`, …) |
+| `amendingAction` | `amendingAction` | `type` |
+| `designator`, `label` | same, inside a `referenceItem` | |
 
-Inline nodes: `br` (a line break), `img` (`src`, `alt`), `footnoteRef`
-(`idref`).
+Inline nodes: `br`, `img` (`src`, `alt`).
 
-Not rendered, recorded as known: `meta` and its properties (read into `doc`'s
-attributes), `page` and the running heads (print furniture), processing
-instructions.
+A Bill DTD `<quote>` has no quotation marks in its text; USLM 2 prints them as
+text outside `<quotedText>`. `uslmToDoc` writes them outside the mark for a DTD
+source, so both dialects carry the same characters.
 
 ### The two federal dialects
 
 GovInfo publishes enrolled bills and public laws as USLM 2 and every other
 printing in the older Bill DTD (`enum`, `header`, `text`, `quoted-block`,
-`external-xref`). The lead's front end `lib/xml/frontends/us.ts` normalizes the
-DTD to USLM 2 names before `uslmToDoc` sees it, so both dialects render
-through one path; `doc.dialect` records which one the source was. An
-`external-xref` with `parsable-cite="usc/42/1437f"` becomes
-`<ref href="/us/usc/t42/s1437f">`.
+`external-xref`). `lib/xml/frontends/us.ts` renames the DTD to USLM 2 names
+before `uslmToDoc` sees it, so both render through one path; `doc.dialect`
+records which the source was. An `external-xref` with
+`parsable-cite="usc/42/1437f"` becomes `<ref href="/us/usc/t42/s1437f">`.
+Where a DTD level has no `identifier`, `uslmToDoc` derives one from the Work
+and the nums, by section 1's rules: `/us/bill/119/hr/6644/s1/a`.

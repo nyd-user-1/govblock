@@ -1,5 +1,7 @@
 import { Schema, type DOMOutputSpec, type Mark, type MarkSpec, type Node as PmNode, type NodeSpec } from "@tiptap/pm/model"
 
+import { officialUrl } from "./address"
+
 // The reader's ProseMirror schema: USLM's element set as node and mark types,
 // named as USLM names them (docs/xml/schema.md, section 2). One table drives
 // both the schema the server and scripts build here and the Tiptap extensions
@@ -150,7 +152,10 @@ function markSpec(name: string, tag: string, attrs: string[] = []): MarkSpec {
       const out: Record<string, string> = { "data-uslm": name, class: cls(`uslm-${name}`, mark.attrs.class as string | null) }
       for (const a of attrs) if (mark.attrs[a] != null) out[`data-${a.toLowerCase()}`] = String(mark.attrs[a])
       if (mark.attrs.xml) out["data-xml"] = JSON.stringify(mark.attrs.xml)
-      if (name === "ref" && typeof mark.attrs.href === "string" && mark.attrs.href.startsWith("/")) out.href = `/workspace/typeset/address${mark.attrs.href}`
+      if (name === "ref" && typeof mark.attrs.href === "string") {
+        const url = officialUrl(mark.attrs.href)
+        if (url) out.href = url
+      }
       return [tag, out, 0]
     },
     parseDOM: [
@@ -183,7 +188,7 @@ export const MARKS: Record<string, MarkSpec> = {
   term: markSpec("term", "dfn"),
   shortTitle: markSpec("shortTitle", "span", ["role"]),
   headingText: markSpec("headingText", "span"),
-  quotedText: markSpec("quotedText", "q", ["origin"]),
+  quotedText: markSpec("quotedText", "span", ["origin"]),
   ref: markSpec("ref", "a", ["href", "idref", "portion"]),
   date: markSpec("date", "time", ["date"]),
   amendingAction: markSpec("amendingAction", "span", ["type"]),
