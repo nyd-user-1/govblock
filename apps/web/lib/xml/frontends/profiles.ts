@@ -120,9 +120,17 @@ PROFILES.IN = {
 }
 
 // Massachusetts: a petition and docket furniture precede the bill; "SECTION 1."
+// Window 8, from fifty printings of every session: the captures before 2013
+// hold the body alone, tab-indented, often one unnumbered section ("Chapter
+// 127 … is hereby amended by inserting … the following section:" and then
+// "197A." alone on its line); from 2017 the printed bill, its lines numbered
+// straight through into the thousands, pages marked "7 of 92".
 PROFILES.MA = {
   ...common("MA"),
   enacting: /Be it enacted by the Senate and House of Representatives in General Court assembled/i,
   section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
-  quotedSection: /^Section\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
+  quotedSection: /^(?:Section\s+|(?=\d{1,3}[A-Z]{0,2}\.$))(\d{1,3}[A-Za-z]{0,2})\.\s*(.*)$/s,
+  marginNumbers: true,
+  furniture: /^\s*\d{1,3} of \d{1,3}\s*$/,
+  bodyOnly: true,
 }

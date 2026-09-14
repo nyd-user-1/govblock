@@ -33,6 +33,8 @@ export type StateProfile = {
   marginNumbers?: boolean
   /** Page furniture, whole lines dropped before blocks are read: a running footer, a drafting code. */
   furniture?: RegExp
+  /** The capture may hold the body alone, no title and no formula; an act with no section opener is one unnumbered section. */
+  bodyOnly?: boolean
   /** Statutes: the citation before a section's number ("IC 6-3.6-7-9"), removed before the number is read. */
   statuteCite?: RegExp
   /** Statutes: the first block is the number and the whole heading, however long, verbs and all. */
@@ -126,8 +128,8 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     current = []
   }
   let lines = unwrapInlineLineNumbers(clean(text))
-  // Older captures space the margin number's digits apart ("1 0", "2 4").
-  if (p.marginNumbers) lines = lines.split("\n").map((l) => l.replace(/^\s{0,3}\d(?: ?\d)?(?=\s|$)/, "")).join("\n")
+  // Oklahoma's older captures space the margin number's digits apart ("1 0", "2 4"); Massachusetts numbers a bill's lines straight through, into the thousands.
+  if (p.marginNumbers) lines = lines.split("\n").map((l) => l.replace(/^\s{0,3}(?:\d \d|\d{1,4})(?=\s|$)/, "")).join("\n")
   if (p.furniture) lines = lines.split("\n").filter((l) => !p.furniture!.test(l)).join("\n")
   for (const raw of dropBlankPerLine(p.marginNumbers ? lines : stripLineNumbers(lines)).split("\n")) {
     const stripped = raw.trim()
@@ -315,7 +317,8 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
 // ------------------------------------------------------------------ bills ---
 
 // Oklahoma's: the legislature site's navigation ("Home / Legislature Home / Senate Home …") in place of the bill.
-const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home)/i
+// Massachusetts's: "To view the text of House, No. 4215, please copy and paste the following URL …".
+const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home|To view the text of (?:House|Senate),? No\.)/i
 
 export function parseStateBill(source: Source, p: StateProfile): FrontEndResult {
   const problems: string[] = []
@@ -364,7 +367,7 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       count(doc)
       return { doc, report: { dialect: `${p.jurisdiction.toLowerCase()}-resolution`, elements, known: elements, unknown: {}, renamed: {}, coverage: 1, notes: [] } }
     }
-    problems.push("no enacting formula")
+    if (!p.bodyOnly) problems.push("no enacting formula")
     start = 0
   } else if (start < 0) {
     start = 0
@@ -467,6 +470,11 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
     main.children.push(section)
     section = null
     pending = []
+  }
+  // An act of one section prints no "SECTION 1.": its first block is the section's instruction.
+  if (p.bodyOnly && start < blocks.length && !blocks.slice(start).some((b) => p.section.test(b))) {
+    section = node("section", {}, [node("content", {}, inline(blocks[start]))])
+    start++
   }
   for (let i = start; i < blocks.length; i++) {
     const b = blocks[i]

@@ -153,23 +153,27 @@
     "jurisdiction": "MA",
     "name": "Massachusetts",
     "source": "texts",
-    "sampled": 100,
-    "clean": 54,
-    "coverage": 0.7138,
+    "sampled": 99,
+    "clean": 90,
+    "coverage": 0.9846,
     "dialects": {
-      "ma-bill": 99,
-      "ma-resolution": 1
+      "ma-bill": 97,
+      "ma-resolution": 2
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 41,
-      "no enacting formula": 30,
-      "subsection opens at b": 1,
-      "unmatched enumerator": 1,
-      "subsection i after N": 1,
-      "paragraph opens at b": 1
+      "unmatched enumerator": 6,
+      "subsection opens at b": 5,
+      "subsection B after N": 3,
+      "subsection a after N": 2,
+      "paragraph N after N": 1,
+      "subsection f after N": 1,
+      "paragraph opens at N": 1,
+      "subsection b after N": 1,
+      "subsection opens at S": 1,
+      "subsection A after N": 1
     },
-    "measuredAt": "2026-09-14T13:35:22.772Z"
+    "measuredAt": "2026-09-14T13:49:50.386Z"
   },
   "CA/texts": {
     "jurisdiction": "CA",

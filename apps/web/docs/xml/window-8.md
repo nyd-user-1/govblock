@@ -6,7 +6,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 |---|---|---|---|---|
 | Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** |
 | Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** |
-| Massachusetts bills | 69,255 | 72.9 | 71.4 | 71.4 |
+| Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** |
 | Oregon statutes | 60,136 | 77.9 | 76.7 | 76.7 |
 | Colorado bills | 57,350 | 73.0 | 71.0 | 71.0 |
 | Washington statutes | 51,380 | 78.7 | 79.8 | 79.8 |
@@ -21,6 +21,11 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 4 — Massachusetts bills, 71.4% to 98.5% (2026-09-14)
+
+- Two surfaces. Captures before 2013 hold the body alone, and an act of one section prints no "SECTION 1.", so a third of the sample read "no enacting formula" and "no sections". From 2017 the printed bill numbers its lines straight through, past the two digits the share-based stripper takes. The profile sets `marginNumbers` (now to four digits), `furniture` for "7 of 92", and a new optional `bodyOnly`: with no section opener anywhere, the first block is the one section's instruction. Quoted sections open "Section 51L." or a bare "197A." alone on its line. Oklahoma re-checked on both samples after the four-digit change: unchanged.
+- The 2011 placeholder "To view the text of House, No. 4215, please copy and paste the following URL" reports as `error-page`. A held-back fifty: 46 of 49 clean at 99.6%. Grammar: `grammars/ma.md`.
 
 ## Milestone 3 — Indiana statutes, 69.8% to 99.6% (2026-09-14)
 
