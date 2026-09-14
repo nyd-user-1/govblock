@@ -4,7 +4,9 @@ import * as React from "react"
 import Link from "next/link"
 import { CirclePlusIcon, CreditCardIcon, LogOutIcon, SettingsIcon, SquarePenIcon, UserIcon, UsersIcon } from "lucide-react"
 
+import { signOutToLanding } from "@/app/actions/sign-out"
 import { DEFAULT_AVATAR, type Account } from "@/lib/auth/use-account"
+import { forgetAccount } from "@/components/sign-out-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import {
   DropdownMenu,
@@ -89,10 +91,15 @@ export function AccountMenu({ account }: { account: NonNullable<Account> }) {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem variant="destructive" render={<Link href="/auth?signout=1" />} className="gap-2.5 px-3 py-2 whitespace-nowrap">
-          <LogOutIcon className="size-4" />
-          <span>Logout</span>
-        </DropdownMenuItem>
+        {/* Logout is the sign-out itself (Brendan, 2026-09-14): the form posts
+            the server action and lands on /signed-out, with the browser's
+            memory of the account cleared on the way. No stop at /auth. */}
+        <form action={signOutToLanding}>
+          <DropdownMenuItem variant="destructive" render={<button type="submit" />} onClick={forgetAccount} className="w-full gap-2.5 px-3 py-2 whitespace-nowrap">
+            <LogOutIcon className="size-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   )

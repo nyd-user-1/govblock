@@ -192,7 +192,7 @@ export function askOfPath(pathname: string): PathAsk {
   const seg = p.split("/").filter(Boolean)
   const head = seg[0] ?? ""
   // Pages about the site, and the doors themselves.
-  if (["auth", "welcome", "plan", "pricing", "docs", "routes", "changelog", "tags", "unite", "unite-2", "preview", "create", "diff", "typeset", "consensus"].includes(head)) return { entity: "meta", exempt: true }
+  if (["auth", "signed-out", "welcome", "plan", "pricing", "docs", "routes", "changelog", "tags", "unite", "unite-2", "preview", "create", "diff", "typeset", "consensus"].includes(head)) return { entity: "meta", exempt: true }
   switch (head) {
     case "amendments":
       return { entity: "amendments" }

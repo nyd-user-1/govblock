@@ -38,7 +38,7 @@ async function signInWithGoogle() {
 
 async function signOutEverywhere() {
   "use server"
-  await signOut({ redirectTo: "/" })
+  await signOut({ redirectTo: "/signed-out" })
 }
 
 // Auth.js sends its failures back here because `pages.error` points at this

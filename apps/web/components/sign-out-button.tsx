@@ -14,18 +14,20 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 const HOME_STATE_KEY = "govblock:home-state"
 
-export function SignOutButton() {
-  const forget = () => {
-    try {
-      window.localStorage.removeItem(JURISDICTION_KEY)
-      window.localStorage.removeItem(HOME_STATE_KEY)
-      window.sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
-    } catch {
-      // Storage refused; the session still ends.
-    }
+/** What the browser forgets at sign-out. The account menu's Logout runs it too (2026-09-14). */
+export function forgetAccount() {
+  try {
+    window.localStorage.removeItem(JURISDICTION_KEY)
+    window.localStorage.removeItem(HOME_STATE_KEY)
+    window.sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
+  } catch {
+    // Storage refused; the session still ends.
   }
+}
+
+export function SignOutButton() {
   return (
-    <Button type="submit" variant="outline" size="sm" onClick={forget}>
+    <Button type="submit" variant="outline" size="sm" onClick={forgetAccount}>
       Sign out
     </Button>
   )
