@@ -61,6 +61,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+// A read-only panel of label/value rows (Brendan, 2026-09-14): the shape the
+// profile's Personal information, Organization and Team cards share.
+function InfoCard({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardAnchor>{title}</CardAnchor>
+        <CardAction>
+          <CardTools />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-3 border-b py-2.5 last:border-b-0">
+            <span className="text-muted-foreground">{k}</span>
+            <span className="font-medium">{v}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 /** The reader's profile, live (2026-09-11): what onboarding captured, editable here. */
 type ProfileRow = { name: string | null; email: string | null; phone: string | null; bio: string | null; home_state: string | null; zip: string | null; role: string | null; organization: string | null; created_at: string | null }
 
@@ -114,7 +137,7 @@ function Profile() {
   const signedOut = profile === null && form?.email === ""
   const joined = form?.created_at ? new Date(form.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—"
   return (
-    <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
       <Card>
         <CardHeader>
           <CardAnchor>My profile</CardAnchor>
@@ -136,6 +159,7 @@ function Profile() {
             </div>
           </div>
           {signedOut && <p className="text-sm text-muted-foreground">Sign in to edit your profile.</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name">
             <Input value={form?.name ?? ""} onChange={(e) => set("name", e.target.value)} />
           </Field>
@@ -154,6 +178,7 @@ function Profile() {
           <Field label="Organization">
             <Input value={form?.organization ?? ""} onChange={(e) => set("organization", e.target.value)} />
           </Field>
+          </div>
           <Field label="Bio">
             <Textarea value={form?.bio ?? ""} onChange={(e) => set("bio", e.target.value)} rows={3} />
           </Field>
@@ -169,28 +194,31 @@ function Profile() {
         </CardFooter>
       </Card>
       <div className="flex flex-col gap-4 sm:gap-5">
-        <Card>
-          <CardHeader>
-            <CardAnchor>Personal information</CardAnchor>
-            <CardAction>
-              <CardTools />
-            </CardAction>
-          </CardHeader>
-          <CardContent className="text-sm">
-            {[
-              ["Role", form?.role || "—"],
-              ["Organization", form?.organization || "—"],
-              ["Home state", form?.home_state || "—"],
-              ["ZIP", form?.zip || "—"],
-              ["Joined", joined],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-3 border-b py-2.5 last:border-b-0">
-                <span className="text-muted-foreground">{k}</span>
-                <span className="font-medium">{v}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <InfoCard
+          title="Personal information"
+          rows={[
+            ["Role", form?.role || "—"],
+            ["Home state", form?.home_state || "—"],
+            ["ZIP", form?.zip || "—"],
+            ["Joined", joined],
+          ]}
+        />
+        <InfoCard
+          title="Organization"
+          rows={[
+            ["Organization", form?.organization || "—"],
+            ["Role", form?.role || "—"],
+            ["Website", "—"],
+          ]}
+        />
+        <InfoCard
+          title="Team"
+          rows={[
+            ["Members", "—"],
+            ["Seats", "—"],
+            ["Your role", form?.role || "—"],
+          ]}
+        />
       </div>
     </div>
   )

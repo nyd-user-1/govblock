@@ -7,7 +7,6 @@ import { BookOpen, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search
 import { useAccount } from "@/lib/auth/use-account"
 import { AGENT_PAGES, hasItems, siteConfig, withScope } from "@/lib/config"
 import { useHomeState } from "@/lib/policy/home-state"
-import { REGISTRY_ITEMS } from "@/lib/workspace/registry-items"
 import { DEFAULT_STATE, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { RailGroup, useRecordGroups, type RailItem } from "@/components/directory-rail"
@@ -88,17 +87,7 @@ export function SiteRail() {
   // The sections are the header's menus, in the header's order and with the
   // header's items (Brendan, 2026-09-12: "apply it to this section of the
   // left sidebar"). Docs holds what used to sit under Workspace as Build on it.
-  // Components folds open to every registry item, as Consensus does to its pages.
-  const docs: RailItem[] = pages("Docs")
-    .sort(byLabel)
-    .map((p) =>
-      p.href === "/docs/components"
-        ? item("components", "/docs/components", "Components", undefined, [
-            { key: "/docs/components", href: "/docs/components", label: "Index", active: pathname === "/docs/components" },
-            ...[...REGISTRY_ITEMS].sort((a, b) => a.title.localeCompare(b.title)).map((r) => ({ key: r.name, href: `/docs/components/${r.name}`, label: r.title, active: pathname === `/docs/components/${r.name}` })),
-          ])
-        : page(p)
-    )
+  const docs: RailItem[] = pages("Docs").sort(byLabel).map(page)
   // Agents is a Workspace item in the header, so here it is a Workspace node
   // with the seven agent pages beneath it, not a section of its own.
   const agentsNode = item("agents", "/agents", "Agents", undefined, agents)

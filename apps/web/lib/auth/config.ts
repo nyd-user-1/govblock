@@ -146,14 +146,18 @@ const nextAuth = NextAuth({
       // The home state rides the token (Brendan, 2026-09-11): read from the
       // profile at sign-in and whenever the app updates the session after
       // onboarding — once, not on every request. A token from before today
-      // has no `home` at all and reads it the first time it is seen.
+      // has no `home` at all and reads it the first time it is seen. The
+      // admin flag rides with it (2026-09-14), read the same way.
       const updated = trigger === "update" && session && typeof (session as { home?: unknown }).home !== "undefined"
       if (updated) token.home = (session as { home?: string | null }).home ?? null
-      else if (account || typeof token.home === "undefined") {
+      else if (account || typeof token.home === "undefined" || typeof token.admin === "undefined") {
         token.home = null
+        token.admin = false
         if (typeof token.uid === "string") {
           try {
-            token.home = (await getProfile(token.uid))?.home_state ?? null
+            const profile = await getProfile(token.uid)
+            token.home = profile?.home_state ?? null
+            token.admin = profile?.admin === true
           } catch {
             token.home = null
           }
@@ -165,6 +169,7 @@ const nextAuth = NextAuth({
       if (typeof token.uid === "string" && USER_ID_PATTERN.test(token.uid))
         session.user.id = token.uid
       ;(session.user as { home?: string | null }).home = typeof token.home === "string" ? token.home : null
+      ;(session.user as { admin?: boolean }).admin = token.admin === true
       return session
     },
   },

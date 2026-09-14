@@ -20,7 +20,9 @@ import { Button } from "@govblock/ui/components/nova/button"
 // may not open. The scope is the path's when the path names one (a state's
 // bills, a session under a dataset), the record's when the page marks it (a
 // bill by id), and the header's otherwise. No dialog: a dialog closes on a
-// click past it, and this must not ("that's not a very good gate").
+// click past it, and this must not ("that's not a very good gate"). And no
+// close cross (Brendan, 2026-09-14: "a gate that doesn't gate"), except for
+// an admin, who sees the card everyone else meets and may put it aside.
 
 /** The nearest Congress: the same kind of page, for the jurisdiction everyone may open. */
 function congressHref(pathname: string): string {
@@ -42,7 +44,7 @@ function congressHref(pathname: string): string {
   }
 }
 
-export function ScopeOverlay({ reason, state, verdict, onDecline, onClose, children }: { reason: Reason; state: string; verdict: Verdict; /** No thanks / Back: the page before this one (Brendan, 2026-09-13), and the browser forgets the state. */ onDecline: () => void; /** The x: the card goes, the page stays. */ onClose: () => void; children: React.ReactNode }) {
+export function ScopeOverlay({ reason, state, verdict, onDecline, onClose, children }: { reason: Reason; state: string; verdict: Verdict; /** No thanks / Back: the page before this one (Brendan, 2026-09-13), and the browser forgets the state. */ onDecline: () => void; /** The x, for an admin only (2026-09-14): the card goes, the page stays. Absent, there is no x. */ onClose?: () => void; children: React.ReactNode }) {
   // A state's card (Brendan, 2026-09-13): the state's flag before the title
   // wherever a state is named, signed out or in. Signed out it is an
   // invitation, with No thanks / Sign Up for the two ways on.
@@ -55,9 +57,11 @@ export function ScopeOverlay({ reason, state, verdict, onDecline, onClose, child
       </div>
       <div role="dialog" aria-modal="true" aria-labelledby="scope-gate-title" data-not-typeset="true" className="absolute inset-x-0 top-0 z-20 flex justify-center px-4 pt-16">
         <div className="relative flex w-full max-w-lg flex-col gap-4 rounded-xl border bg-popover p-6 text-popover-foreground shadow-lg">
-          <Button variant="ghost" size="icon" aria-label="Close" onClick={onClose} className="absolute top-3 right-3 size-7 text-muted-foreground">
-            <XIcon />
-          </Button>
+          {onClose && (
+            <Button variant="ghost" size="icon" aria-label="Close" onClick={onClose} className="absolute top-3 right-3 size-7 text-muted-foreground">
+              <XIcon />
+            </Button>
+          )}
           <h2 id="scope-gate-title" className="mt-0 flex items-center gap-3 pr-8 text-xl font-semibold">
             {named && <FlagChip state={state} width={28} className="shrink-0" />}
             <span>{reason.title}</span>
@@ -105,15 +109,18 @@ export function ScopeGuard({ children }: { children: React.ReactNode }) {
 
   const exempt = fromPath.exempt && !mark
   const ask = React.useMemo<Ask>(() => ({ state, session, current, entity }), [state, session, current, entity])
-  const verdict: Verdict = exempt ? "open" : entitled(j.reader, ask)
-  // The x (Brendan, 2026-09-13): the card closes for this page and this
-  // scope, and comes back on the next one.
+  // The card is judged as everyone else would be judged: an admin meets the
+  // same card (2026-09-14), with the rule itself already open for them.
+  const admin = j.reader.admin === true
+  const verdict: Verdict = exempt ? "open" : entitled({ ...j.reader, admin: false }, ask)
+  // The x, the admin's alone: the card closes for this page and this scope,
+  // and comes back on the next one.
   const [closed, setClosed] = React.useState<string | null>(null)
   const key = `${pathname}|${state}|${session ?? ""}|${entity}`
   // Nothing until the account is known: a flash of the gate at a signed-in
   // New Yorker is worse than a moment without it. And nothing until the
   // session in question can be compared with the current one.
-  const show = verdict !== "open" && j.readerReady && (session == null || current != null) && closed !== key
+  const show = verdict !== "open" && j.readerReady && (session == null || current != null) && !(admin && closed === key)
   if (!show) return <>{children}</>
   const reason = reasonFor(j.reader, ask)
   // No thanks, Back: the page the reader came from, with Congress remembered;
@@ -124,7 +131,7 @@ export function ScopeGuard({ children }: { children: React.ReactNode }) {
     else router.push(congressHref(pathname))
   }
   return (
-    <ScopeOverlay reason={reason} state={state} verdict={verdict} onDecline={decline} onClose={() => setClosed(key)}>
+    <ScopeOverlay reason={reason} state={state} verdict={verdict} onDecline={decline} onClose={admin ? () => setClosed(key) : undefined}>
       {children}
     </ScopeOverlay>
   )

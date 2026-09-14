@@ -33,8 +33,8 @@ export async function readerOf(request?: Request): Promise<Reader> {
   if (apiKey) return readerForKey(apiKey)
   try {
     const session = await auth()
-    const user = session?.user as { id?: string; home?: string | null } | undefined
-    if (user?.id) return { signedIn: true, home: user.home ?? null, license: "none" }
+    const user = session?.user as { id?: string; home?: string | null; admin?: boolean } | undefined
+    if (user?.id) return { signedIn: true, home: user.home ?? null, license: "none", admin: user.admin === true }
   } catch {
     // No session endpoint configured: everyone is a stranger.
   }

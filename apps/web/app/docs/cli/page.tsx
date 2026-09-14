@@ -25,7 +25,7 @@ const toc = [
 
 export default function CliPage() {
   return (
-    <DocsPage title={title} description={description} slug="/docs/cli" previous={{ name: "Installation", url: "/docs/installation" }} next={{ name: "Components", url: "/docs/components" }} rail={<DocsTableOfContents toc={toc} />}>
+    <DocsPage title={title} description={description} slug="/docs/cli" previous={{ name: "Installation", url: "/docs/installation" }} next={{ name: "API", url: "/docs/api" }} rail={<DocsTableOfContents toc={toc} />}>
       <p>
         Everything below is shadcn&rsquo;s CLI. The only thing that is ours is the namespace. Name it once (<Link href="/docs/installation#registry">Installation</Link>) and every command works.
       </p>

@@ -314,10 +314,10 @@ export const siteConfig = {
       },
       groups: [
         { label: "Start", items: ["/docs/installation", "/docs/cli"] },
-        { label: "Install", items: ["/docs/components", "/docs/blocks", "/workspace/blocks"] },
+        { label: "Install", items: ["/workspace/blocks"] },
         { label: "Read", items: ["/docs/api", "/docs/datasets", "/changelog"] },
       ],
-      // Eight entries, alphabetical, two across (Brendan, 2026-09-12: API,
+      // Six entries, alphabetical, two across (Brendan, 2026-09-12: API,
       // Blocks, Block docs, Changelog and Datasets out of Workspace and into
       // Docs, with Components beside them).
       columns: 2,
@@ -327,13 +327,6 @@ export const siteConfig = {
           label: "API",
           description: "Build on the same numbers the pages are drawn from.",
           icon: "Braces",
-        },
-        {
-          href: "/docs/blocks",
-          label: "Block docs",
-          description:
-            "Take a block into your own app, props and source with it.",
-          icon: "BookMarked",
         },
         {
           href: "/workspace/blocks",
@@ -353,12 +346,6 @@ export const siteConfig = {
           label: "CLI",
           description: "add, view, search and build, as they work with @44gov.",
           icon: "Terminal",
-        },
-        {
-          href: "/docs/components",
-          label: "Components",
-          description: "The @44gov registry: what installs into your own app, and the command that does it.",
-          icon: "Component",
         },
         {
           href: "/docs/datasets",

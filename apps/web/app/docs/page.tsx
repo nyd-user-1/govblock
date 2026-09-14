@@ -31,16 +31,6 @@ const SECTIONS = [
     body: "Every resource the site reads, on the same public routes the pages use.",
   },
   {
-    href: "/docs/blocks",
-    title: "Blocks",
-    body: "The registry, and the blocks the site is built from with their props and their source.",
-  },
-  {
-    href: "/docs/components",
-    title: "Components",
-    body: "The parts the site is built from, installable into your own app with one command.",
-  },
-  {
     href: "/docs/datasets",
     title: "Bulk Datasets",
     body: "The whole record as files, per jurisdiction, for work too big for the API.",

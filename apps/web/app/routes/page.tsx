@@ -3,7 +3,6 @@ import Link from "next/link"
 
 import { STATE_NAMES } from "@/lib/filters"
 import { ROUTES } from "@/lib/routes.generated"
-import { BLOCK_DOCS } from "@/lib/workspace/block-docs"
 import { SURFACES } from "@/lib/workspace/path"
 
 // /routes (Brendan, 2026-09-11): every URL the app serves, so the ones nobody
@@ -47,7 +46,6 @@ const REGISTRY = ["directory-search", "district-join", "map-basemap", "map-bound
 
 /** The values a dynamic segment takes, where they are finite and known. */
 function expand(route: string): { hrefs: string[]; more?: string } | null {
-  if (route === "/docs/blocks/[slug]") return { hrefs: BLOCK_DOCS.map((d) => `/docs/blocks/${d.slug}`) }
   if (route === "/workspace/[surface]") return { hrefs: SURFACES.map((s) => `/workspace/${s}`) }
   const jurisdiction = /^\/(desk|laws|news|state|state\/\[state\]\/charts|docs\/api|docs\/datasets)\/\[state\]$/.exec(route)
   if (jurisdiction) return { hrefs: JURISDICTIONS.map((c) => route.replace("[state]", c)) }

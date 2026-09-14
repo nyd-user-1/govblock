@@ -52,7 +52,6 @@ import { cn } from "@govblock/ui/lib/utils"
 const AdminStage = dynamic(() => import("@/components/admin/admin-stage").then((m) => m.AdminStage), { ssr: false })
 const FecExplorer = dynamic(() => import("@/components/policy/fec-explorer").then((m) => m.FecExplorer), { ssr: false })
 const FormsList = dynamic(() => import("@/components/policy/forms-list").then((m) => m.FormsList), { ssr: false })
-const Inbox = dynamic(() => import("@/registry/blocks/sidebar-09/page"), { ssr: false })
 const FileView = dynamic(() => import("@/components/create/file-view").then((m) => m.FileView), { ssr: false })
 
 const URL_KEYS = [...SCOPE_KEYS, ...DESIGN_KEYS, "at", "rollcall", "tab", "doc", "look", "preset", "mode", "fork", "all"] as const
@@ -365,7 +364,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
     </BlockShell>
   ) : isSpecial(node) ? (
     node.kind === "inbox" ? (
-      <Inbox />
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">Agent Inbox</div>
     ) : node.kind === "finance" ? (
       <FecExplorer />
     ) : node.kind === "admin" ? (

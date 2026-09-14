@@ -86,7 +86,7 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
     recent: [],
   })
   const { account, signedIn, ready } = useAccount(active)
-  const reader = React.useMemo<Reader>(() => ({ signedIn, home: account?.home ?? null, license: "none" }), [signedIn, account?.home])
+  const reader = React.useMemo<Reader>(() => ({ signedIn, home: account?.home ?? null, license: "none", admin: account?.admin === true }), [signedIn, account?.home, account?.admin])
 
   // localStorage can only be read after mount, so a visitor with no `?state`
   // is genuinely unknown until then. A visitor who *does* carry `?state=TX`

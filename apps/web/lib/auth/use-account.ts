@@ -15,7 +15,7 @@ import { useEffect, useState } from "react"
 // is in — from the cache, or from the server — so a gate can wait for it
 // rather than greet a signed-in reader as a stranger (2026-09-13).
 
-export type Account = { name?: string | null; email?: string | null; image?: string | null; /** The home state from the reader's profile (onboarding, 2026-09-11); null until they have one. */ home?: string | null } | null
+export type Account = { name?: string | null; email?: string | null; image?: string | null; /** The home state from the reader's profile (onboarding, 2026-09-11); null until they have one. */ home?: string | null; /** Set by hand on the profile row (2026-09-14): the gates open, and the cards keep a close cross. */ admin?: boolean } | null
 
 export const ACCOUNT_CACHE_KEY = "govblock:account"
 

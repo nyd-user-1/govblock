@@ -14,6 +14,11 @@ import { DEFAULT_STATE, stateName } from "@/lib/filters"
 // the free scope; a reader who is signed in is sent to the plan. The
 // account's own tools — watches, the inbox, documents — want a sign-in and
 // nothing more.
+//
+// The gate has no way past it but Back and the door (Brendan, 2026-09-14:
+// "a gate that doesn't gate"). An admin — a flag set by hand on the profile
+// row — is the one exception: the rule opens everything for them, and the
+// card still draws, with a close cross, so the gating can be checked by eye.
 
 export type Reader = {
   signedIn: boolean
@@ -21,6 +26,8 @@ export type Reader = {
   home: string | null
   /** none: the free scope. team (2026-09-13): every entity and session, but only Congress and the home state. paid: everything. */
   license: "none" | "team" | "paid"
+  /** `reader_profiles.admin`, set by hand (2026-09-14). Opens everything. */
+  admin?: boolean
 }
 
 export const ANONYMOUS: Reader = { signedIn: false, home: null, license: "none" }
@@ -91,7 +98,7 @@ export type Ask = {
 
 /** Whether this reader may open what was asked, and if not, which door comes first. */
 export function entitled(reader: Reader, ask: Ask): Verdict {
-  if (reader.license === "paid") return "open"
+  if (reader.admin || reader.license === "paid") return "open"
   const door: Verdict = reader.signedIn ? "plan" : "sign-in"
   const entity = ask.entity ?? "bills"
   if (entity === "account") return reader.signedIn ? "open" : "sign-in"

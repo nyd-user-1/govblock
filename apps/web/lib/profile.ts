@@ -29,6 +29,8 @@ export type Profile = {
   home_changes: number
   /** The plan the reader is on (2026-09-13): free until Stripe exists, set by hand meanwhile. */
   plan: string
+  /** Set by hand, never by the API (Brendan, 2026-09-14): opens everything, and keeps the gate card in view with a close cross. */
+  admin: boolean
   completed_at: string | null
   created_at: string | null
 }
@@ -37,7 +39,7 @@ export const ROLES = ["Resident", "Legislative staff", "Elected official", "Advo
 
 export const INTERESTS = ["Housing", "Health", "Education", "Labor", "Environment", "Taxes and budget", "Public safety", "Elections", "Transportation", "Technology", "Agriculture", "Veterans"] as const
 
-const COLUMNS = "user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, home_changes, plan, completed_at::text as completed_at, created_at::text as created_at"
+const COLUMNS = "user_id, email, name, image, home_state, zip, address, lng, lat, role, organization, phone, interests, brief_opt_in, bio, home_changes, plan, admin, completed_at::text as completed_at, created_at::text as created_at"
 
 const parse = (row: Record<string, unknown>): Profile => ({
   ...(row as Profile),
@@ -45,6 +47,7 @@ const parse = (row: Record<string, unknown>): Profile => ({
   brief_opt_in: !!row.brief_opt_in,
   home_changes: Number(row.home_changes ?? 0) || 0,
   plan: typeof row.plan === "string" && row.plan ? row.plan : "free",
+  admin: row.admin === true,
 })
 
 export async function getProfile(userId: string): Promise<Profile | null> {
@@ -57,7 +60,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   }
 }
 
-export type ProfilePatch = Partial<Omit<Profile, "user_id" | "completed_at" | "created_at">> & { complete?: boolean }
+export type ProfilePatch = Partial<Omit<Profile, "user_id" | "admin" | "completed_at" | "created_at">> & { complete?: boolean }
 
 const text = (v: unknown, max = 200) => {
   const s = typeof v === "string" ? v.trim().slice(0, max) : ""

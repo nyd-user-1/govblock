@@ -47,10 +47,6 @@ export default function InstallationPage() {
       <H2 id="add">Add a component</H2>
       <p>Anything an item depends on arrives with it: other @44gov items, shadcn primitives, npm packages.</p>
       <CommandBlock tabs={[{ value: "pnpm", label: "pnpm", lines: ["pnpm dlx shadcn@latest add @44gov/seals"] }, { value: "npm", label: "npm", lines: ["npx shadcn@latest add @44gov/seals"] }, { value: "yarn", label: "yarn", lines: ["yarn dlx shadcn@latest add @44gov/seals"] }, { value: "bun", label: "bun", lines: ["bunx --bun shadcn@latest add @44gov/seals"] }]} />
-      <p>
-        Every item&rsquo;s page under <Link href="/docs/components">Components</Link> carries its own command, what it exports, and where it lands in your tree.
-      </p>
-
       <H2 id="data">Add its data</H2>
       <p>
         A component that shows the record can arrive with rows already in it. Each such item names a second item, <code>&lt;name&gt;-data</code>, that lands a JSON file under <code>lib/44gov/data/</code> read from the same record the site reads. Add both in one command, or switch on <em>Add the data set</em> on the item&rsquo;s page and copy the command it writes.
