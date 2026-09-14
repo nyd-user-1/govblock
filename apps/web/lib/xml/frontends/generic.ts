@@ -41,6 +41,10 @@ export type StateProfile = {
   statuteCite?: RegExp
   /** Statutes: the first block is the number and the whole heading, however long, verbs and all. */
   headingBlock?: boolean
+  /** Statutes, with headingBlock: the number stands alone ("21-5604.") and the heading is the next block. */
+  headingNext?: boolean
+  /** Statutes: the heading of the history after the law ("History:"); the blocks after it are the source credit. */
+  creditStart?: RegExp
   /** Statutes: the number said again where the body opens ("Sec. 9. (a) …"), removed once. */
   restated?: RegExp
   /** Statutes: the heading of the editor's notes after the law ("Notes:"); every block after it is a note. */
@@ -583,12 +587,15 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   if (at > 0) body = blocks.slice(at)
   if (p.statuteCite) first = first.replace(p.statuteCite, "")
   const head = p.headingBlock
-    ? /^([0-9][\w.:-]*[\w)]|[0-9])\.?(?:\s+(.*))?$/s.exec(first)
+    ? /^([0-9][\w.:,-]*[\w)]|[0-9])\.?(?:\s+(.*))?$/s.exec(first)
     : /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
   if (head && /\d/.test(head[1]) && p.headingBlock) {
     level.children.push(node("num", {}, [head[1]]))
-    if (tidy(head[2] ?? "")) level.children.push(node("heading", {}, [tidy(head[2])]))
     body = blocks.slice(at + 1)
+    // Kansas: "21-5604." alone, then "Incest; aggravated incest." as the next block.
+    // A repealed section has no catchline: its next block is already "History:".
+    const heading = tidy(head[2] ?? "") || (p.headingNext && body.length > 1 && !p.creditStart?.test(body[0]) ? body.shift()! : "")
+    if (heading) level.children.push(node("heading", {}, [heading]))
   } else if (head && /\d/.test(head[1])) {
     level.children.push(node("num", {}, [head[1]]))
     const split = /^(.*?\.)\s+(?=[A-Z(\d§])(.*)$/s.exec(head[2])
@@ -617,6 +624,10 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   const notesAt = p.notesStart ? body.findIndex((b, k) => k > 0 && p.notesStart!.test(b)) : -1
   const notes = notesAt > 0 ? body.slice(notesAt + 1) : []
   if (notesAt > 0) body = body.slice(0, notesAt)
+  // "History:" and the session laws after it (Kansas): the source credit.
+  const historyAt = p.creditStart ? body.findIndex((b) => p.creditStart!.test(b)) : -1
+  const history = historyAt >= 0 ? body.slice(historyAt + 1) : []
+  if (historyAt >= 0) body = body.slice(0, historyAt)
   // A section printed twice (Oregon): as it stands, a note, then the text operative on a later
   // date, opening on the section's own number; the second is a `level` of its own.
   const twice = p.versionOpens ? body.findIndex((b, k) => k > 0 && p.versionOpens!.test(b)) : -1
@@ -641,6 +652,7 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     const laterCredits = creditsOf(later)
     level.children.push(node("level", { role: "later version" }, [...nest(later, problems, inline, false), ...laterCredits.map(credit)]))
   }
+  if (history.length) level.children.push(node("sourceCredit", {}, [tidy(history.join(" "))]))
   if (notes.length) level.children.push(node("notes", {}, notes.map((n) => node("note", {}, [n]))))
   let elements = 0
   const count = (n: IrNode) => {

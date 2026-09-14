@@ -139,6 +139,18 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Kansas statutes (window 8, from fifty sections of the K.S.A.): the Revisor's
+// section file as text, "21-5604." alone, the catchline as the next block
+// ("Same; meetings; quorum." carries the article's subject forward), the law,
+// then "History:" and the session laws ("L. 2010, ch. 136, § 81; July 1.").
+// Numbers carry a comma where the article runs past 99 ("68-5,101.").
+PROFILES.KS = {
+  ...common("KS"),
+  headingBlock: true,
+  headingNext: true,
+  creditStart: /^History:$/,
+}
+
 // Washington statutes (window 8, from fifty sections of the RCW): the loader
 // writes "RCW 11.68.110 Catchline." as the first block, then the law, then the
 // session laws in brackets ("[ 2021 c 140 s 4014; 2016 c 202 s 8. Prior: …]"),

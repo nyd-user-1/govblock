@@ -607,28 +607,27 @@
     "name": "South Carolina",
     "source": "texts",
     "sampled": 100,
-    "clean": 55,
-    "coverage": 0.7596,
+    "clean": 74,
+    "coverage": 0.9695,
     "dialects": {
-      "sc-resolution": 11,
-      "sc-bill": 89
+      "sc-resolution": 25,
+      "sc-bill": 75
     },
     "unknown": {},
     "fallouts": {
-      "no enacting formula": 27,
-      "no sections": 23,
-      "paragraph opens at B": 13,
-      "subsection N after N": 13,
-      "subsection opens at B": 8,
-      "paragraph B after N": 6,
-      "paragraph opens at C": 3,
-      "paragraph opens at E": 2,
-      "paragraph N after N": 2,
-      "subsection B after N": 2,
-      "paragraph opens at F": 1,
-      "paragraph a after N": 1
+      "subsection N after N": 24,
+      "paragraph opens at B": 23,
+      "paragraph opens at C": 11,
+      "subsection opens at B": 9,
+      "no enacting formula": 3,
+      "subparagraph a after N": 2,
+      "subsection opens at N": 2,
+      "paragraph opens at f": 2,
+      "no sections": 1,
+      "paragraph opens at D": 1,
+      "paragraph B after N": 1
     },
-    "measuredAt": "2026-09-14T13:35:54.584Z"
+    "measuredAt": "2026-09-14T14:02:42.791Z"
   },
   "AL/texts": {
     "jurisdiction": "AL",
@@ -968,18 +967,20 @@
     "name": "Kansas",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.5557,
+    "clean": 92,
+    "coverage": 0.9883,
     "dialects": {
       "ks-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 97,
-      "unmatched enumerator": 93,
-      "subsection j after N": 1
+      "unmatched enumerator": 6,
+      "paragraph opens at l": 2,
+      "subsection m after N": 2,
+      "subsection opens at b": 1,
+      "no number at the start": 1
     },
-    "measuredAt": "2026-09-14T13:36:01.958Z"
+    "measuredAt": "2026-09-14T14:05:50.137Z"
   },
   "NV/laws": {
     "jurisdiction": "NV",

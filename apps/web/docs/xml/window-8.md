@@ -10,8 +10,8 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** |
 | Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (real printings; 35% are archive banners) |
 | Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** |
-| South Carolina bills | 49,119 | 74.5 | 76.0 | 76.0 |
-| Kansas statutes | 46,930 | 56.4 | 55.6 | 55.6 |
+| South Carolina bills | 49,119 | 74.5 | 76.0 | **97.0** (no profile; lifted at 18c0ca1) |
+| Kansas statutes | 46,930 | 56.4 | 55.6 | **98.8** |
 | Nevada statutes | 43,461 | 74.6 | 73.4 | 73.4 |
 | Maryland statutes | 40,053 | 78.5 | 78.6 | 78.6 |
 | Utah bills | 36,096 | 66.3 | 64.7 | 64.7 |
@@ -21,6 +21,13 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 8 — Kansas statutes, 55.6% to 98.8%; South Carolina bills at 97.0% without a profile; the first rebuild batch (2026-09-14)
+
+- **Kansas.** A section is "21-5604." alone, the catchline as the next block, the law, then "History:" and the session laws. Kansas sets `headingBlock` and two new optional fields: `headingNext` (the heading is the next block, unless that block is already "History:", as in a repealed section) and `creditStart` (the blocks after "History:" are the `sourceCredit`). Section numbers may carry a comma ("68-5,101."). Indiana, Oregon, Washington, Florida and Alabama re-checked against HEAD: unchanged. Held-back Kansas fifty: 99.7%. Grammar: `grammars/ks.md`.
+- **South Carolina bills** measure 97.0% on a hundred with no profile of their own. The same fifty printings run through each window-8 commit's front end moved only at 18c0ca1, 73.4% to 93.6%: a quarter of South Carolina's printings are resolutions opening "Whereas," and closing "Be it resolved", which Colorado's commit made a resolving clause. Left above the bar; a profile of its own can wait for the long tail.
+- **Rebuilds.** The pipeline box (govblock-xml, 100.54.86.169, window 4's Virginia re-fetch running on it) was pulled fast-forward to 3962289, which carries every front end through Washington, and a controller started there at 14:04 UTC: `nohup node --max-old-space-size=8192 scripts/xml/run.mjs --watch --slots 3 --workers 4 > logs/watch-window8.log`. Queued under run `rebuild-w8-3962289` with `scripts/xml/enqueue.mjs` (the same rows the Ingestion page's "Again, if built" writes; the page was not driven from this session): Oklahoma, Massachusetts, Colorado and South Carolina bills, Indiana, Oregon and Washington statutes, 185 jobs. Indiana was building first, 10,846 rebuilt and none fallen out at the last look. The controller stays up for the later batches.
+- **Open on the rebuild:** a rebuild prunes index rows only when a job has no fall-outs, so the Colorado archive banners and the Oklahoma and Massachusetts captured pages will fall out without their old rows being removed from `expressions`. Those rows need the removal window 2 gave Virginia's error pages; not done from here.
 
 ## Milestone 7 — Washington statutes, 79.8% to 98.8% (2026-09-14)
 
