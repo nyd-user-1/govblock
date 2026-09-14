@@ -20,7 +20,7 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // all the way across until its hairline sits on the left rail's, wherever
 // that is — 1rem in when the left rail is closed, 17.5rem when it is open —
 // and it lies over the page like the left one does.
-const SHEET = "absolute inset-y-0 z-40 bg-background transition-[transform,width] duration-300 ease-out [&_[data-slot=sidebar-content]]:flex!"
+const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&_[data-slot=sidebar-content]]:flex!"
 
 export function RailsFrame({ children }: { children: React.ReactNode }) {
   return (
