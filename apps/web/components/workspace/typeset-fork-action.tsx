@@ -29,9 +29,16 @@ export function ForkAction({ expression, billId, children }: { expression: strin
     const level = (e.target as HTMLElement).closest<HTMLElement>(".uslm-level[id]")
     if (!level || !wrap.current?.contains(level)) return setTarget(null)
     if (target?.id === level.id) return
-    const num = level.querySelector<HTMLElement>(':scope > [data-uslm="num"]')?.textContent?.trim() ?? ""
+    // The unit's designation with its section's, "§ 102(b)(3)", not the bare "(b)" the unit carries itself (Brendan, 2026-09-14): each level up to the section contributes its number.
+    const nums: string[] = []
+    for (let el: HTMLElement | null = level; el && wrap.current.contains(el); el = el.parentElement?.closest<HTMLElement>(".uslm-level[id]") ?? null) {
+      const num = el.querySelector<HTMLElement>(':scope > [data-uslm="num"]')?.textContent?.trim() ?? ""
+      if (num) nums.unshift(num.replace(/\.$/, ""))
+      if (el.classList.contains("uslm-section") || /^(SEC(TION)?\.?|§)\s/i.test(num)) break
+    }
+    const label = nums.map((n) => n.replace(/^(SEC(TION)?\.?|§)\s*/i, "")).join("").replace(/^(\d)/, "§ $1")
     setFailed(false)
-    setTarget({ id: level.id, label: num, top: level.getBoundingClientRect().top - wrap.current.getBoundingClientRect().top })
+    setTarget({ id: level.id, label, top: level.getBoundingClientRect().top - wrap.current.getBoundingClientRect().top })
   }
 
   const fork = async () => {
