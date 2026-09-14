@@ -178,7 +178,7 @@ type Problem = string
  * enumerator ("1. (a) The …") is split, so the inner unit is its own level.
  * Out of sequence is recorded and the block still lands.
  */
-function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrChild[]): IrNode[] {
+function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrChild[], quoted = false): IrNode[] {
   const out: IrNode[] = []
   type Open = { kind: Kind; rank: number; node: IrNode; last: number }
   const stack: Open[] = []
@@ -222,10 +222,13 @@ function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrCh
     while (stack.length && stack[stack.length - 1].rank > rank) stack.pop()
     const same = stack.length && stack[stack.length - 1].rank === rank ? stack.pop()! : null
     const role = RANK_ROLE[rank]
+    // Inside quoted law a bill shows only the units it amends, so gaps and
+    // late starts are not faults there; a sibling written in another style
+    // ("B." after "2.") starts a new sequence rather than breaking one.
     if (same) {
-      const ok = n === same.last + 1 || (hasSuffix(e.label) && n === same.last)
-      if (!ok) problems.push(`${role} ${e.label} after ${same.last}`)
-    } else if (n !== 1 && !hasSuffix(e.label)) problems.push(`${role} opens at ${e.label}`)
+      const ok = same.kind !== kind || n === same.last + 1 || (hasSuffix(e.label) && n === same.last)
+      if (!ok && !quoted) problems.push(`${role} ${e.label} after ${same.last}`)
+    } else if (n !== 1 && !hasSuffix(e.label) && !quoted) problems.push(`${role} opens at ${e.label}`)
     const level = node(RANK_TAG[rank], { role }, [node("num", {}, [e.label])])
     // "1. (a) The …": the content belongs to the inner unit, which is next in the queue.
     const inner = enumeratorOf(e.rest)
@@ -322,7 +325,21 @@ export function parseNyBill(source: Source): FrontEndResult {
     else if (/^S T A T E/.test(b) || /^I N\s+(SENATE|ASSEMBLY)/.test(b) || /^\d{4}-\d{4}/.test(b) || /^_+$/.test(b)) preface.children.push(node("p", {}, [b]))
     else preface.children.push(node("p", {}, [b]))
   }
-  if (!preface.children.some((c) => typeof c !== "string" && c.tag === "enactingFormula")) {
+  const enacted = preface.children.some((c) => typeof c !== "string" && c.tag === "enactingFormula")
+  // A resolution has no enacting formula: its body is recitals ("WHEREAS,
+  // …") and a resolving clause, and it is read as such, not as sections.
+  if (!enacted) {
+    const isResolution = blocks.some((b) => /^WHEREAS/i.test(b) || /RESOLVED,? (?:That|by)/i.test(b))
+    if (isResolution) {
+      doc.tag = "resolution"
+      for (const b of blocks) {
+        if (/^WHEREAS/i.test(b)) main.children.push(node("recital", {}, marks(b)))
+        else if (/RESOLVED/i.test(b)) main.children.push(node("resolvingClause", {}, marks(b)))
+        else main.children.push(node("p", {}, marks(b)))
+      }
+      preface.children.length = 0
+      return finish(doc, "ny-resolution", blocks.length, problems)
+    }
     problems.push("no enacting formula")
     i = 0
   }
@@ -336,7 +353,7 @@ export function parseNyBill(source: Source): FrontEndResult {
     if (!section) return
     if (pending.length) {
       const quoted = section.children.some((c) => typeof c !== "string" && c.tag === "content" && /as follows:?$/i.test(tidy(c.children.map((x) => (typeof x === "string" ? x : "")).join(""))))
-      const nested = nest(pending, problems, marks)
+      const nested = nest(pending, problems, marks, quoted)
       if (quoted) section.children.push(node("quotedContent", {}, nested))
       else section.children.push(...nested.map((n) => (n.tag === "p" ? node("continuation", {}, n.children) : n)))
     }
@@ -347,11 +364,11 @@ export function parseNyBill(source: Source): FrontEndResult {
   for (; i < blocks.length; i++) {
     const b = blocks[i]
     const m = SECTION_OPEN.exec(b)
-    if (m) {
+    // A bill's sections run 1, 2, 3 (a "2-a" may be slipped in); a "§ 5."
+    // out of that order is quoted law, not the bill's own section.
+    if (m && (Number(m[1].replace(/-.*$/, "")) === expected || (hasSuffix(m[1]) && Number(m[1].replace(/-.*$/, "")) === expected - 1))) {
       closeSection()
-      const n = Number(m[1].replace(/-.*$/, ""))
-      if (n !== expected) problems.push(`section ${m[1]} after ${expected - 1}`)
-      expected = n + 1
+      if (!hasSuffix(m[1])) expected += 1
       section = node("section", {}, [node("num", {}, [`§ ${m[1]}`]), node("content", {}, marks(m[2]))])
       continue
     }
@@ -389,7 +406,7 @@ export const ny: FrontEnd = {
   profile: {
     jurisdiction: "NY",
     name: "New York",
-    dialects: ["ny-statute", "ny-bill"],
+    dialects: ["ny-statute", "ny-bill", "ny-resolution"],
     units: [
       { name: "article, title, part", uslm: "chapter, subchapter, part (role carries the New York word)", signal: "the Senate API's tree: doc_type and depth on the Laws row" },
       { name: "section", uslm: "section", signal: "\"§ 1262-u. Heading. Body\" in a statute; \"Section 1.\" then \"§ 2.\" in a bill" },

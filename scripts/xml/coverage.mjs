@@ -49,8 +49,14 @@ async function sources() {
     const rows = await q(`select location_id as id, law_id, law_name, doc_type, depth, text from "Laws" where state = $1 and text is not null and length(text) > 200 order by random() limit $2`, [state, sample])
     return rows.map((r) => ({ kind: "text", body: r.text, url: `laws:${r.law_id}/${r.id}`, meta: { kind: "law", doc_type: r.doc_type, depth: r.depth, location_id: r.id, law_id: r.law_id, law_name: r.law_name } }))
   }
-  const rows = await q(`select t.document_id as id, t.text from "BillTexts" t join "Bills" b on b.bill_id = t.bill_id where b.state = $1 and t.text is not null and length(t.text) > 200 order by random() limit $2`, [state, sample])
-  return rows.map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}`, meta: { kind: "bill" } }))
+  // Bills first, then their texts: a random order over the texts table with
+  // its join is minutes over the Data API; over Bills it is a second.
+  const bills = await q(`select bill_id from "Bills" where state = $1 and session_id >= $2 order by random() limit $3`, [state, new Date().getFullYear() - 3, sample])
+  if (!bills.length) return []
+  const ids = bills.map((b) => Number(b.bill_id))
+  const rows = await q(`select t.document_id as id, t.text from "BillTexts" t where t.bill_id = any($1::bigint[]) and t.text is not null and length(t.text) > 200 and coalesce(t.version, '') not ilike '%memo%' order by t.bill_id, t.document_id desc`, [`{${ids.join(",")}}`])
+  const seen = new Set()
+  return rows.filter((r) => !seen.has(r.id) && seen.add(r.id)).slice(0, sample).map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}`, meta: { kind: "bill" } }))
 }
 const show = Number(arg("show", 0))
 

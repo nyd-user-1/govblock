@@ -19,29 +19,49 @@
     },
     "measuredAt": "2026-09-14T08:41:43.426Z"
   },
-  "NY": {
+  "NY/texts": {
     "jurisdiction": "NY",
     "name": "New York",
-    "source": "laws",
-    "sampled": 80,
-    "clean": 74,
-    "coverage": 0.9755,
+    "source": "texts",
+    "sampled": 60,
+    "clean": 56,
+    "coverage": 0.9941,
     "dialects": {
-      "ny-statute": 80
+      "ny-bill": 48,
+      "ny-resolution": 12
     },
     "unknown": {},
     "fallouts": {
-      "subdivision N after N": 5,
-      "paragraph opens at b": 3,
-      "no § at the start": 2,
-      "subdivision opens at N": 2,
-      "paragraph e after N": 1,
-      "subparagraph iii after N": 1,
+      "subdivision opens at N": 4,
+      "subdivision N after N": 3,
+      "clause opens at B": 2,
+      "clause opens at G": 1,
+      "paragraph f after N": 1,
       "subparagraph ix after N": 1,
-      "subparagraph opens at ii": 1,
-      "subparagraph i after N": 1,
-      "paragraph opens at d": 1
+      "paragraph b after N": 1
     },
-    "measuredAt": "2026-09-14T08:55:47.955Z"
+    "measuredAt": "2026-09-14T08:58:21.150Z"
+  },
+  "NY/laws": {
+    "jurisdiction": "NY",
+    "name": "New York",
+    "source": "laws",
+    "sampled": 60,
+    "clean": 53,
+    "coverage": 0.971,
+    "dialects": {
+      "ny-statute": 60
+    },
+    "unknown": {},
+    "fallouts": {
+      "subdivision opens at N": 3,
+      "subparagraph opens at ii": 3,
+      "paragraph opens at b": 2,
+      "no § at the start": 2,
+      "paragraph opens at e": 1,
+      "subdivision N after N": 1,
+      "subparagraph ii after N": 1
+    },
+    "measuredAt": "2026-09-14T08:58:37.695Z"
   }
 }

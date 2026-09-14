@@ -79,18 +79,19 @@ function levelSpec(name: string): NodeSpec {
   const allowed = allowedLevels(name).join(" | ")
   const small = (SMALL_LEVELS as readonly string[]).includes(name)
   return block(name, "section", {
-    group: "level",
+    group: "anyLevel",
     content: name === "level" ? `(num | heading | subheading | ${LEVEL_PARTS} | ${allowed})*` : `num? heading? subheading* (${LEVEL_PARTS} | ${allowed})*`,
     defining: true,
     className: (attrs) => cls("uslm-level", small ? "uslm-small" : name === "section" ? "uslm-primary" : name === "level" ? "uslm-generic" : "uslm-big", name === "level" && attrs.element ? `uslm-${attrs.element}` : null),
   })
 }
 
-const BODY = `(level | content | quotedContent | toc | note | p)*`
+const BODY = `(anyLevel | content | quotedContent | toc | note | p)*`
 
 export const NODES: Record<string, NodeSpec> = {
   doc: {
-    content: `preface? (longTitle | enactingFormula | resolvingClause | preamble)* ${BODY} (signatures | appendix)*`,
+    // An engrossed amendment prints its endorsement after the signatures, so the body and the back matter interleave.
+    content: `preface? (longTitle | enactingFormula | resolvingClause | preamble)* (anyLevel | content | quotedContent | toc | note | p | signatures | appendix)*`,
     attrs: { element: { default: "bill" }, identifier: { default: null }, expression: { default: null }, dialect: { default: null }, title: { default: null }, fidelity: { default: null } },
   },
   text: { group: "inline" },
@@ -107,7 +108,7 @@ export const NODES: Record<string, NodeSpec> = {
   content: block("content", "div", { content: "(p | quotedContent | toc | table | note)+" }),
   p: textblock("p", "p", { attrs: { ...BLOCK_ATTRS, implicit: { default: false } } }),
 
-  quotedContent: block("quotedContent", "blockquote", { content: "(level | content | chapeau | continuation | toc | table | note | p)+", attrs: { ...BLOCK_ATTRS, origin: { default: null } } }),
+  quotedContent: block("quotedContent", "blockquote", { content: "(anyLevel | content | chapeau | continuation | toc | table | note | p)+", attrs: { ...BLOCK_ATTRS, origin: { default: null } } }),
 
   preface: block("preface", "header", { content: "p+" }),
   longTitle: block("longTitle", "div", { content: "(docTitle | officialTitle)+" }),
