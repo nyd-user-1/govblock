@@ -28,6 +28,9 @@ export type Reactions = {
   following?: Set<string>
   /** Removes a clip of the reader's own; absent for published clips. */
   onDelete?: (clip: Clip) => void
+  onReport?: (clip: Clip) => void
+  /** An admin's, for a clip in Aurora. */
+  onTakeDown?: (clip: Clip) => void
 }
 
 export function Feed({
@@ -179,7 +182,13 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
       <RailButton active={saved} label="">
         <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={() => reactions.onSave(clip)} />
       </RailButton>
-      <ClipMenu clip={clip} onGoToPost={() => reactions.onGoToPost(clip)} onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}>
+      <ClipMenu
+        clip={clip}
+        onGoToPost={() => reactions.onGoToPost(clip)}
+        onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}
+        onReport={!clip.mine && reactions.onReport ? () => reactions.onReport!(clip) : undefined}
+        onTakeDown={clip.origin && reactions.onTakeDown ? () => reactions.onTakeDown!(clip) : undefined}
+      >
         <button type="button" className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/15 lg:hover:bg-accent" aria-label="More">
           <MoreHorizontalIcon className="size-6" />
         </button>

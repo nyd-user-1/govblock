@@ -16,7 +16,9 @@ import { Creators, type CreatorRow } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
-import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData } from "./store"
+import { ReportDialog } from "./report"
+import { Upload } from "./upload"
+import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, takeDown, loadFollows, loadLikes, loadMyComments, loadSaves, saveClip, storeFollows, storeLikes, storeMyComments, storeSaves, updateClip, type Clip, type Comment, type Feed as FeedData, type Upload as UploadRow } from "./store"
 
 // Clips: short vertical video, recorded on a phone or a laptop, kept private
 // until its owner says otherwise. A mock of the whole experience (Brendan,
@@ -30,7 +32,7 @@ import { CREATORS, PUBLISHED, SEED_COMMENTS, deleteClip, loadFeed, loadFollows, 
 // creators become a select in the toolbar and the comments a sheet that
 // rises from the foot.
 
-type Account = { name?: string | null; email?: string | null; image?: string | null } | null
+type Account = { name?: string | null; email?: string | null; image?: string | null; admin?: boolean } | null
 
 function useAccount(): { account: Account; ready: boolean } {
   const [account, setAccount] = React.useState<Account>(null)
@@ -85,6 +87,8 @@ export function ClipsApp() {
   const [mine, setMine] = React.useState<Clip[]>([])
   /** Published clips from Aurora, every origin, other than the reader's own. */
   const [live, setLive] = React.useState<Clip[]>([])
+  const [uploads, setUploads] = React.useState<UploadRow[]>([])
+  const [reporting, setReporting] = React.useState<Clip | null>(null)
   const [creator, setCreator] = React.useState("all")
   const [view, setView] = React.useState<"feed" | "grid">("feed")
   const [activeId, setActiveId] = React.useState<string | null>(null)
@@ -94,7 +98,7 @@ export function ClipsApp() {
   const [following, setFollowing] = React.useState<Set<string>>(new Set())
   const [likedComments, setLikedComments] = React.useState<Set<string>>(new Set())
   const [myComments, setMyComments] = React.useState<Comment[]>([])
-  const [mode, setMode] = React.useState<"capture" | "generate" | "gate" | null>(null)
+  const [mode, setMode] = React.useState<"capture" | "upload" | "generate" | "gate" | null>(null)
   const [sheet, setSheet] = React.useState(false)
   const [focusKey, setFocusKey] = React.useState(0)
   const pendingId = React.useRef<string | null>(null)
@@ -102,6 +106,7 @@ export function ClipsApp() {
   // A take just sent keeps playing from the browser's copy until Stream's MP4 is ready.
   const applyFeed = React.useCallback((feed: FeedData) => {
     setLive(feed.published)
+    setUploads(feed.uploads)
     setMine((prev) =>
       feed.mine.map((c) => {
         const local = prev.find((p) => p.id === c.id)
@@ -166,6 +171,15 @@ export function ClipsApp() {
     return next
   }
   const record = () => setMode(signedIn ? "capture" : "gate")
+  const upload = () => setMode(signedIn ? "upload" : "gate")
+  const admin = account?.admin === true
+  // An admin's takedown hides the clip everywhere at once; the row and the video stay for the record.
+  const takeDownClip = async (clip: Clip) => {
+    if (!window.confirm(`Take down “${clip.title}”? It leaves the feed for everyone.`)) return
+    await takeDown(clip.id)
+    setLive((l) => l.filter((c) => c.id !== clip.id))
+    setMine((m) => m.filter((c) => c.id !== clip.id))
+  }
   const goToPost = (clip: Clip) => {
     window.history.replaceState(null, "", `/clips?c=${encodeURIComponent(clip.id)}`)
     setView("feed")
@@ -179,6 +193,8 @@ export function ClipsApp() {
     following,
     commentCount: (id) => commentsFor(id).length,
     onDelete: (clip) => void remove(clip),
+    onReport: (clip) => setReporting(clip),
+    onTakeDown: admin ? (clip) => void takeDownClip(clip) : undefined,
     onLike: (clip) => {
       if (!signedIn) return setMode("gate")
       setLiked((s) => {
@@ -254,6 +270,8 @@ export function ClipsApp() {
         onLike={() => reactions.onLike(active)}
         onSave={() => reactions.onSave(active)}
         onDelete={active.mine ? () => void remove(active) : undefined}
+        onReport={!active.mine ? () => setReporting(active) : undefined}
+        onTakeDown={admin && active.origin ? () => void takeDownClip(active) : undefined}
         onFollow={() => reactions.onFollow?.(active.creatorId)}
         onGoToPost={() => goToPost(active)}
         onPost={post}
@@ -272,7 +290,7 @@ export function ClipsApp() {
       <div className="px-2 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:gap-6 lg:px-4">
         <aside className="hidden lg:block">
           <div className={cn("sticky top-(--header-height) overflow-y-auto py-4", "h-[calc(100svh-var(--header-height))]")}>
-            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onGenerate={() => setMode("generate")} />
+            <Creators rows={rows} selected={creator} onSelect={setCreator} you={youRow} onRecord={record} onUpload={upload} onGenerate={() => setMode("generate")} />
           </div>
         </aside>
 
@@ -313,6 +331,16 @@ export function ClipsApp() {
             <span className="ml-auto hidden text-sm font-medium lg:inline">{creatorLabel}</span>
           </div>
 
+          {creator === "you" && signedIn && uploads.length > 0 && (
+            <ul className="flex flex-col gap-1 pb-3 text-sm">
+              {uploads.map((u) => (
+                <li key={u.id} className="flex items-center gap-2">
+                  <span className="truncate font-medium">{u.title}</span>
+                  <span className="shrink-0 text-muted-foreground">{u.status === "queued" ? "waiting to be cut" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {creator === "you" && ready && !signedIn ? (
             <Empty icon={<LockIcon className="size-6" />} text="Your library is yours. Sign in to see it.">
               <Button render={<Link href="/auth" />} size="sm">
@@ -364,9 +392,16 @@ export function ClipsApp() {
         </DrawerContent>
       </Drawer>
 
+      {reporting && <ReportDialog clip={reporting} open={!!reporting} onOpenChange={(o) => !o && setReporting(null)} defaultContact={account?.email ?? ""} />}
+
       {mode === "capture" && (
         <Frame onClose={() => setMode(null)}>
-          <Capture author={you} onSaved={saveRecording} onClose={() => setMode(null)} />
+          <Capture author={you} onSaved={saveRecording} onClose={() => setMode(null)} onUpload={() => setMode("upload")} />
+        </Frame>
+      )}
+      {mode === "upload" && (
+        <Frame onClose={() => setMode(null)}>
+          <Upload onClose={() => setMode(null)} onUploaded={(u) => setUploads((list) => [u, ...list])} />
         </Frame>
       )}
       {mode === "generate" && (
@@ -379,7 +414,7 @@ export function ClipsApp() {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-8 text-center">
             <CameraIcon className="size-8 text-muted-foreground" />
             <p className="text-base font-medium">Sign in to take part</p>
-            <p className="text-sm text-muted-foreground">Recording, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
+            <p className="text-sm text-muted-foreground">Recording, uploading, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
             <Button render={<Link href="/auth" />}>Sign in</Button>
             <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
               Not now

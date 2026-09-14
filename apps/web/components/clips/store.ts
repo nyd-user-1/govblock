@@ -389,7 +389,10 @@ export async function tusUpload(url: string, blob: Blob, onProgress?: (fraction:
   }
 }
 
-export type Feed = { published: Clip[]; mine: Clip[] }
+/** A reader's long video, in Stream and in the queue to be cut. */
+export type Upload = { id: string; title: string; status: "queued" | "running" | "review" | "done" | "failed"; clips: number | null; createdAt: string }
+
+export type Feed = { published: Clip[]; mine: Clip[]; uploads: Upload[] }
 
 // A reader without a picture wears the site's default (Brendan, 2026-09-11: "george... the standard for any user who has not added a picture").
 const withAvatar = (c: Clip): Clip => ({ ...c, author: { ...c.author, image: c.author.image || DEFAULT_AVATAR } })
@@ -397,9 +400,9 @@ const withAvatar = (c: Clip): Clip => ({ ...c, author: { ...c.author, image: c.a
 /** Every published clip in Aurora, whatever its origin, and the reader's own. */
 export async function loadFeed(): Promise<Feed> {
   const res = await fetch("/api/clips", { credentials: "same-origin", cache: "no-store" }).catch(() => null)
-  if (!res?.ok) return { published: [], mine: [] }
+  if (!res?.ok) return { published: [], mine: [], uploads: [] }
   const body = (await res.json()) as Feed
-  return { published: body.published.map(withAvatar), mine: body.mine.map(withAvatar) }
+  return { published: body.published.map(withAvatar), mine: body.mine.map(withAvatar), uploads: body.uploads ?? [] }
 }
 
 export const loadMine = async () => (await loadFeed()).mine
@@ -435,6 +438,32 @@ export async function updateClip(id: string, patch: { visibility?: Visibility; t
 
 export async function deleteClip(id: string) {
   await send("/api/clips/" + encodeURIComponent(id), "DELETE")
+}
+
+/** A reader's own video, to Stream and into the queue to be cut. `rights` is the ticked box; the server refuses without it. */
+export async function uploadVideo(file: File, title: string, rights: boolean, onProgress?: (fraction: number) => void): Promise<Upload> {
+  const made = await send<{ upload: Upload; uploadUrl: string }>("/api/clips/uploads", "POST", { title, bytes: file.size, rights })
+  try {
+    await tusUpload(made.uploadUrl, file, onProgress)
+  } catch (error) {
+    await send("/api/clips/uploads/" + encodeURIComponent(made.upload.id), "DELETE").catch(() => {})
+    throw error
+  }
+  return made.upload
+}
+
+export async function withdrawUpload(id: string) {
+  await send("/api/clips/uploads/" + encodeURIComponent(id), "DELETE")
+}
+
+export type ReportReason = "copyright" | "privacy" | "harmful" | "other"
+
+export async function reportClip(report: { clipId: string; reason: ReportReason; details: string; contact: string }) {
+  await send("/api/clips/reports", "POST", report)
+}
+
+export async function takeDown(id: string) {
+  await send("/api/clips/" + encodeURIComponent(id) + "/takedown", "POST")
 }
 
 function readJson<T>(key: string, fallback: T): T {

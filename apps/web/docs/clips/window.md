@@ -6,6 +6,85 @@ milestone first.
 
 ---
 
+## 4 · Upload behind the rights box, and Report and Take down on every clip — 2026-09-14
+
+Built ahead of milestone 3, which waits on the hearing, the worker box and
+Stream minutes. Brief's rule: no upload before both the rights box and the
+takedown path exist. Both ship in this commit.
+
+> **Key takeaways**
+>
+> - Upload cannot be sent until "I have the right to post this video." is
+>   ticked. The server refuses it without the box (400), and so does the
+>   table: a `clip_cuts` row with an upload and no attestation fails its
+>   check constraint. Verified all three ways.
+> - Report is on every clip that is not the reader's own, signed in or
+>   out. A copyright report needs an email address and details. Take down
+>   is an admin's alone (403 for anyone else). It removes the clip from
+>   the feed, locks its video behind a token, and closes the clip's open
+>   reports as `removed`.
+> - An upload goes to Stream private and into `clip_cuts` as `queued`, to
+>   be cut the way a hearing is. Until Stream has minutes it gets the same
+>   503 as Record.
+
+### 1. What was built
+
+- **`components/clips/upload.tsx`** (the phone frame, like Record): choose a
+  video, preview it, title it, tick the box ("Own work, the owner's
+  permission, or the public domain. A clip that breaks this comes down on
+  report."), send with a percentage. Opened from Upload in the rail,
+  between Record and Generate, and from the camera's upload button, which
+  is back and now goes here.
+- **`/api/clips/uploads`** POST: signed in, `rights: true`, up to four
+  hours and 30 GB; tus upload to Stream, `requireSignedURLs`; a
+  `clip_cuts` row with `rights_attested_at`. **`/api/clips/uploads/[id]`**
+  DELETE: the reader's own, before it is cut. A failed send withdraws its
+  row.
+- **`components/clips/report.tsx`** and **`/api/clips/reports`**: reason
+  (Copyright, Privacy, Harmful or misleading, Something else), details, an
+  email address (the reader's own filled in when signed in) into
+  `clip_reports`. No foreign key, so a stock clip can be reported too.
+- **`/api/clips/[id]/takedown`** POST, admin only (`reader_profiles.admin`
+  through the session): `status = 'removed'`, `removed_at`, Stream
+  `requireSignedURLs`, reports resolved. Nothing is deleted. In the menu it
+  shows only to an admin and only on a clip that lives in Aurora.
+- The library ("Your library") lists the reader's uploads above its clips:
+  waiting to be cut, being cut, could not be cut, or how many clips came of
+  it.
+
+### 2. How it was verified
+
+Bounded typecheck of the thirteen files, brackets included: 0 diagnostics.
+`/clips` 200. Driven on 3003 with a minted reader session and a minted
+admin session, against a test clip filed under GovBlock:
+
+| Step | Result |
+|---|---|
+| report with no reason | 400 "Pick a reason." |
+| copyright report with no address | 400 |
+| report signed out, "other" | 201 |
+| copyright report signed in, with address | 201; two open reports |
+| take down signed out / as a reader | 403 / 403 |
+| take down as admin | 200; clip `removed`; both reports `removed`; gone from the anonymous feed |
+| upload signed out | 401 |
+| upload without the box | 400 "Confirm the right to post this video first." |
+| upload with the box | 503 (Stream quota) |
+| withdraw an upload that is not there | 404 |
+| insert an upload with no attestation, by hand | refused by `clip_cuts_check1` |
+| feed | carries `uploads` |
+
+Test rows deleted afterwards.
+
+### 3. Open
+
+- Nobody is told of a new report yet. It waits in `clip_reports` (the index
+  `clip_reports_open` lists them) until an admin looks. Mail to Brendan on
+  a copyright report is the natural next step.
+- An upload of a short clip is still queued for the cut rather than posted
+  as it is; the brief sends every upload through the cut.
+
+---
+
 ## 2 · A roll call as a tally, previewed in the browser — 2026-09-14
 
 > **Key takeaways**

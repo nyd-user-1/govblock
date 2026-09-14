@@ -3,7 +3,7 @@ import "server-only"
 import { randomBytes } from "node:crypto"
 
 import { CREATORS } from "@/components/clips/desks"
-import type { Clip } from "@/components/clips/store"
+import type { Clip, Upload } from "@/components/clips/store"
 import { auth } from "@/lib/auth/config"
 import { enableDownload, getVideo, playbackToken, playbackUrls } from "@/lib/policy/cloudflare-stream"
 import { one, q } from "@/lib/policy/db"
@@ -126,17 +126,22 @@ async function settle(r: Row): Promise<Row> {
   return { ...r, status: "published", duration: video.duration ?? r.duration }
 }
 
-/** The feed: every published public clip, and the viewer's own whatever their state. */
-export async function listClips(viewer: string | null): Promise<{ published: Clip[]; mine: Clip[] }> {
-  const rows = await q<Row>(
-    `${SELECT}
-      where (c.status = 'published' and c.visibility = 'public') or (c.owner_id = $1 and c.status <> 'removed')
-      order by c.created_at desc limit 300`,
-    [viewer ?? ""]
-  )
+/** The feed: every published public clip, the viewer's own whatever their state, and the viewer's uploads waiting to be cut. */
+export async function listClips(viewer: string | null): Promise<{ published: Clip[]; mine: Clip[]; uploads: Upload[] }> {
+  const [rows, uploads] = await Promise.all([
+    q<Row>(
+      `${SELECT}
+        where (c.status = 'published' and c.visibility = 'public') or (c.owner_id = $1 and c.status <> 'removed')
+        order by c.created_at desc limit 300`,
+      [viewer ?? ""]
+    ),
+    viewer
+      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 and source_stream_uid is not null order by created_at desc limit 50`, [viewer])
+      : Promise.resolve([] as Upload[]),
+  ])
   const settled = await Promise.all(rows.map((r) => (viewer && r.owner_id === viewer ? settle(r) : r)))
   const clips = await Promise.all(settled.map((r) => toClip(r, viewer)))
-  return { published: clips.filter((c) => c.status === "published" && c.visibility === "public" && !c.mine), mine: clips.filter((c) => c.mine) }
+  return { published: clips.filter((c) => c.status === "published" && c.visibility === "public" && !c.mine), mine: clips.filter((c) => c.mine), uploads }
 }
 
 export async function getClipRow(id: string) {
