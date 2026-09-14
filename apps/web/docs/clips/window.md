@@ -155,6 +155,9 @@ Test rows deleted afterwards.
   a copyright report is the natural next step.
 - An upload of a short clip is still queued for the cut rather than posted
   as it is; the brief sends every upload through the cut.
+- The report route has no rate limit, signed out included. A flood of
+  reports would fill the table, not take anything down: only an admin
+  takes a clip down.
 
 ---
 
