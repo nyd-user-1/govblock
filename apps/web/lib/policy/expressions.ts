@@ -81,8 +81,8 @@ export async function readUslm(row: Pick<ExpressionRow, "s3_key">): Promise<stri
 
 // ------------------------------------------------------------- dashboard ---
 
-export type StoreLine = { jurisdiction: string; kind: string; expressions: number; works: number; sessions: number; gz_bytes: number; coverage: number | null; native: number; last_built: string | null }
-export type SessionLine = { jurisdiction: string; session: string; expressions: number; works: number; coverage: number | null }
+export type StoreLine = { jurisdiction: string; kind: string; expressions: number; units: number; gz_bytes: number; coverage: number | null; native: number; last_built: string | null }
+export type SessionLine = { jurisdiction: string; session: string; expressions: number; coverage: number | null }
 export type JobLine = {
   id: number
   jurisdiction: string
@@ -110,7 +110,7 @@ export type FalloutLine = { jurisdiction: string; stage: string; reason: string;
 export type RateLine = { minutes: number; built: number }
 
 export type PipelineStatus = {
-  totals: { expressions: number; works: number; gz_bytes: number; jurisdictions: number }
+  totals: { expressions: number; gz_bytes: number; jurisdictions: number }
   store: StoreLine[]
   sessions: SessionLine[]
   queue: QueueLine[]
@@ -129,14 +129,18 @@ const JOB_COLUMNS = `id, jurisdiction, kind, unit, status, priority, reason, tot
 /** Everything the Ingestion page draws, in one round of reads. */
 export async function pipelineStatus(): Promise<PipelineStatus> {
   const [store, sessions, queue, running, recent, attention, fallouts, rates, runs] = await Promise.all([
+    // No count(distinct) over the index: at two million rows it took 40 s on the cluster. A Work count
+    // waits for a summary table; the units a jurisdiction has finished come from the queue instead.
     q<StoreLine>(
-      `select jurisdiction, kind, count(*)::int as expressions, count(distinct work)::int as works, count(distinct session)::int as sessions,
-              sum(gz_bytes)::bigint as gz_bytes, avg(coverage)::real as coverage, count(*) filter (where fidelity = 'native-xml')::int as native,
-              max(built_at)::text as last_built
-         from expressions group by 1, 2 order by 1, 2`
+      `select e.jurisdiction, e.kind, count(*)::int as expressions, sum(e.gz_bytes)::bigint as gz_bytes, avg(e.coverage)::real as coverage,
+              count(*) filter (where e.fidelity = 'native-xml')::int as native, max(e.built_at)::text as last_built,
+              coalesce(max(j.units), 0)::int as units
+         from expressions e
+         left join (select jurisdiction, kind, count(distinct unit) as units from xml_jobs where status = 'done' group by 1, 2) j using (jurisdiction, kind)
+        group by 1, 2 order by 1, 2`
     ),
     q<SessionLine>(
-      `select jurisdiction, session, count(*)::int as expressions, count(distinct work)::int as works, avg(coverage)::real as coverage
+      `select jurisdiction, session, count(*)::int as expressions, avg(coverage)::real as coverage
          from expressions where kind = 'bill' group by 1, 2 order by 1, 2 desc`
     ),
     q<QueueLine>(`select jurisdiction, kind, status, count(*)::int as jobs, sum(built)::int as built, sum(fell_out)::int as fell_out from xml_jobs group by 1, 2, 3 order by 1, 2, 3`),
@@ -148,8 +152,9 @@ export async function pipelineStatus(): Promise<PipelineStatus> {
          from xml_fallouts group by 1, 2, 3 order by samples desc limit 60`
     ),
     q<RateLine>(
-      `select m as minutes, (select count(*)::int from expressions where built_at > now() - make_interval(mins => m)) as built
-         from unnest(array[5, 15, 60]) as m`
+      `select unnest(array[5, 15, 60]) as minutes,
+              unnest(array[count(*) filter (where built_at > now() - interval '5 minutes'), count(*) filter (where built_at > now() - interval '15 minutes'), count(*)])::int as built
+         from expressions where built_at > now() - interval '60 minutes'`
     ),
     q<PipelineStatus["runs"][number]>(
       `select run, count(*)::int as jobs, count(*) filter (where status = 'done')::int as done, count(*) filter (where status = 'failed')::int as failed,
@@ -157,14 +162,16 @@ export async function pipelineStatus(): Promise<PipelineStatus> {
          from xml_jobs where run is not null group by run order by min(created_at) desc limit 10`
     ),
   ])
-  const totals = await one<{ expressions: number; works: number; gz_bytes: number; jurisdictions: number }>(
-    `select count(*)::int as expressions, count(distinct work)::int as works, coalesce(sum(gz_bytes), 0)::bigint as gz_bytes, count(distinct jurisdiction)::int as jurisdictions from expressions`
-  )
+  const totals = {
+    expressions: store.reduce((sum, l) => sum + n(l.expressions), 0),
+    gz_bytes: store.reduce((sum, l) => sum + n(l.gz_bytes), 0),
+    jurisdictions: new Set(store.map((l) => l.jurisdiction)).size,
+  }
   const num = <T extends Record<string, unknown>>(rows: T[], keys: (keyof T)[]) => rows.map((r) => ({ ...r, ...Object.fromEntries(keys.map((k) => [k, r[k] === null ? null : n(r[k])])) }))
   return {
-    totals: { expressions: n(totals?.expressions), works: n(totals?.works), gz_bytes: n(totals?.gz_bytes), jurisdictions: n(totals?.jurisdictions) },
-    store: num(store, ["expressions", "works", "sessions", "gz_bytes", "native"]),
-    sessions: num(sessions, ["expressions", "works"]),
+    totals,
+    store: num(store, ["expressions", "units", "gz_bytes", "native"]),
+    sessions: num(sessions, ["expressions"]),
     queue: num(queue, ["jobs", "built", "fell_out"]),
     running,
     recent,

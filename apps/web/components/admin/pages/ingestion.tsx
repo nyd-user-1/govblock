@@ -26,7 +26,7 @@ import type { JobLine, PipelineStatus } from "@/lib/policy/expressions"
 // control surface for the nightly run after. The store in S3 and its index,
 // the queue the controller on the pipeline box reads, the run controls that
 // write to it, the measured rate and the finish it implies, coverage per
-// front end, what fell out, and each window's report. Reads every fifteen
+// front end, what fell out, and each window's report. Reads every thirty
 // seconds while open.
 
 type Coverage = Record<string, { jurisdiction: string; name: string; source: string; sampled: number; clean: number; coverage: number; unknown: Record<string, number>; measuredAt: string }>
@@ -74,7 +74,7 @@ function useStatus(tick: number) {
       }
     }
     void read()
-    const id = setInterval(read, 15_000)
+    const id = setInterval(read, 30_000)
     return () => {
       cancelled = true
       clearInterval(id)
@@ -102,7 +102,7 @@ export function IngestionPage() {
 
   const tiles: DbStat[] = [
     { title: "Expressions", value: s ? fmtCompact(s.totals.expressions, false) : <Skeleton className="h-7 w-16" /> },
-    { title: "Works", value: s ? fmtCompact(s.totals.works, false) : <Skeleton className="h-7 w-16" /> },
+    { title: "Stored", value: s ? `${(s.totals.gz_bytes / 1e9).toFixed(1)} GB` : <Skeleton className="h-7 w-16" /> },
     { title: "Jurisdictions", value: s ? s.totals.jurisdictions : <Skeleton className="h-7 w-12" /> },
     { title: "Per Second", value: s ? rate.toFixed(0) : <Skeleton className="h-7 w-12" /> },
     { title: "Jobs Open", value: s ? queued.toLocaleString() : <Skeleton className="h-7 w-12" /> },
@@ -178,8 +178,7 @@ export function IngestionPage() {
                   <TableHead>Jurisdiction</TableHead>
                   <TableHead>Kind</TableHead>
                   <TableHead className="text-right">Expressions</TableHead>
-                  <TableHead className="text-right">Works</TableHead>
-                  <TableHead className="text-right">Sessions</TableHead>
+                  <TableHead className="text-right">Sessions or Laws Done</TableHead>
                   <TableHead className="text-right">Native XML</TableHead>
                   <TableHead className="text-right">Coverage</TableHead>
                   <TableHead className="text-right">Stored</TableHead>
@@ -190,7 +189,7 @@ export function IngestionPage() {
                 {!s
                   ? Array.from({ length: 4 }, (_, i) => (
                       <TableRow key={i}>
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={8}>
                           <Skeleton className="h-5 w-full" />
                         </TableCell>
                       </TableRow>
@@ -205,8 +204,7 @@ export function IngestionPage() {
                         </TableCell>
                         <TableCell className="capitalize">{line.kind === "bill" ? "bills" : "statutes"}</TableCell>
                         <TableCell className="text-right tabular-nums">{line.expressions.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums">{line.works.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums">{line.kind === "bill" ? line.sessions : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{line.units.toLocaleString()}</TableCell>
                         <TableCell className="text-right tabular-nums">{pct(line.native / Math.max(1, line.expressions))}</TableCell>
                         <TableCell className="text-right tabular-nums">{pct(line.coverage)}</TableCell>
                         <TableCell className="text-right tabular-nums whitespace-nowrap">{`${(line.gz_bytes / 1e9).toFixed(2)} GB`}</TableCell>
