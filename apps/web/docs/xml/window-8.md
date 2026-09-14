@@ -1,0 +1,42 @@
+# Window 8: grammars, round two — report
+
+Report to the lead. Newest milestone first.
+
+## Milestone 1 — claimed, fall-outs for the states, the sample made to match the store (2026-09-14)
+
+- Claimed in `todo.ts` (14ce102).
+- **State fall-outs into `xml_fallouts`** (8fa8f39). The worker folds each `report.notes` entry to its pattern, the way `coverage.mjs` folds them ("subsection N after N"), and the controller adds a job's twenty most frequent patterns as stage `coverage`, each with its document count and the first Work that raised it. Takes effect on the next job the pipeline box runs; nothing rebuilt for it.
+- **`scripts/xml/coverage.mjs` samples what the pipeline compiles.** Two faults made the sampled number disagree with the stored one:
+  - statutes were sampled at `length(text) > 200`, which drops the history-note stubs ("401.834 [1989 c.1063 §6; renumbered 403.335 in 2009]"): 43% of Oregon's sections, 38% of Kansas's, 17% of Indiana's. Oregon sampled 97.9% against 77.9% stored.
+  - bills were read with their texts in one statement, which passed the Data API's megabyte for Oklahoma, Colorado, Utah and New Mexico, and only from the last three sessions.
+  Now every leaf section with text, every printing (the pipeline's `NOT_A_PRINTING` filter) of every session (`--since <year>` narrows it), each text read on its own in 200,000-character slices. Sampled at 100, the numbers land within two points of window 2's stored ones.
+
+| Line | Documents stored | Start, stored (window 2) | Start, sampled (100) | Current |
+|---|---|---|---|---|
+| Oklahoma bills | 146,968 | 79.2 | 74.2 | 74.2 |
+| Indiana statutes | 80,485 | 72.2 | 69.8 | 69.8 |
+| Massachusetts bills | 69,255 | 72.9 | 71.4 | 71.4 |
+| Oregon statutes | 60,136 | 77.9 | 76.7 | 76.7 |
+| Colorado bills | 57,350 | 73.0 | 71.0 | 71.0 |
+| Washington statutes | 51,380 | 78.7 | 79.8 | 79.8 |
+| South Carolina bills | 49,119 | 74.5 | 76.0 | 76.0 |
+| Kansas statutes | 46,930 | 56.4 | 55.6 | 55.6 |
+| Nevada statutes | 43,461 | 74.6 | 73.4 | 73.4 |
+| Maryland statutes | 40,053 | 78.5 | 78.6 | 78.6 |
+| Utah bills | 36,096 | 66.3 | 64.7 | 64.7 |
+| Louisiana statutes | 33,706 | 71.7 | 70.8 | 70.8 |
+| South Carolina statutes | 30,973 | 75.4 | 72.7 | 72.7 |
+| Kentucky bills | 28,715 | 77.4 | 76.0 | 76.0 |
+| New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
+| New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
+| Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+Next: Oklahoma bills, then down the table.
+
+## Files touched
+
+`apps/web/lib/xml/todo.ts`, `scripts/xml/worker.mjs`, `scripts/xml/run.mjs`, `scripts/xml/coverage.mjs`, `apps/web/lib/xml/coverage.generated.json`, `apps/web/docs/xml/window-8.md`
+
+## For Brendan
+
+- Nothing yet.

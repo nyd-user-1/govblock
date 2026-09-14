@@ -13,6 +13,7 @@ import { join } from "node:path"
 
 import { q } from "../laws/lib/db.mjs"
 import { load, WEB } from "./bundle.mjs"
+import { NOT_A_PRINTING } from "./sources/printings.mjs"
 
 const [jurisdiction = "US", ...rest] = process.argv.slice(2)
 const arg = (name, fallback) => {
@@ -45,18 +46,38 @@ async function sources() {
     }
     return out
   }
+  // The population the pipeline compiles, so the sampled number and the stored one agree: every
+  // leaf section with text (Oregon's and Kansas's history-note stubs are a third of their codes),
+  // every printing of every session. Rows come without their text and each text is read on its
+  // own, in slices, so a long document never passes the Data API's megabyte.
+  const sliced = async (sql, params, chars) => {
+    const parts = []
+    for (let from = 1; from <= Number(chars); from += 200_000) parts.push((await q(sql, [...params, from]))[0]?.part ?? "")
+    return parts.join("")
+  }
   if (source === "laws") {
-    const rows = await q(`select location_id as id, law_id, law_name, doc_type, depth, text from "Laws" where state = $1 and text is not null and length(text) > 200 order by random() limit $2`, [state, sample])
-    return rows.map((r) => ({ kind: "text", body: r.text, url: `laws:${r.law_id}/${r.id}`, meta: { kind: "law", doc_type: r.doc_type, depth: r.depth, location_id: r.id, law_id: r.law_id, law_name: r.law_name } }))
+    const rows = await q(`select location_id as id, law_id, law_name, doc_type, depth, length(text) as chars from "Laws" where state = $1 and doc_type in ('SECTION', 'RULE', 'JOINT_RULE', 'PREAMBLE') and text is not null order by random() limit $2`, [state, sample])
+    const out = []
+    for (const r of rows) {
+      const body = await sliced(`select substring(text from $4::int for 200000) as part from "Laws" where state = $1 and law_id = $2 and location_id = $3`, [state, r.law_id, r.id], r.chars)
+      out.push({ kind: "text", body, url: `laws:${r.law_id}/${r.id}`, meta: { kind: "law", doc_type: r.doc_type, depth: r.depth, location_id: r.id, law_id: r.law_id, law_name: r.law_name } })
+    }
+    return out
   }
   // Bills first, then their texts: a random order over the texts table with
   // its join is minutes over the Data API; over Bills it is a second.
-  const bills = await q(`select bill_id from "Bills" where state = $1 and session_id >= $2 order by random() limit $3`, [state, new Date().getFullYear() - 3, sample])
+  // --since <year> keeps to recent sessions; the pipeline's number is every session's.
+  const bills = await q(`select bill_id from "Bills" where state = $1 and session_id >= $2 order by random() limit $3`, [state, Number(arg("since", 0)), sample])
   if (!bills.length) return []
   const ids = bills.map((b) => Number(b.bill_id))
-  const rows = await q(`select t.document_id as id, t.text from "BillTexts" t where t.bill_id = any($1::bigint[]) and t.text is not null and length(t.text) > 200 and coalesce(t.version, '') not ilike '%memo%' order by t.bill_id, t.document_id desc`, [`{${ids.join(",")}}`])
-  const seen = new Set()
-  return rows.filter((r) => !seen.has(r.id) && seen.add(r.id)).slice(0, sample).map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}`, meta: { kind: "bill" } }))
+  const docs = await q(`select t.document_id as id, t.version, length(t.text) as chars from "BillTexts" t where t.bill_id = any($1::bigint[]) and t.text is not null`, [`{${ids.join(",")}}`])
+  const printings = docs.filter((d) => !NOT_A_PRINTING.test(String(d.version ?? ""))).sort(() => Math.random() - 0.5).slice(0, sample)
+  const out = []
+  for (const d of printings) {
+    const body = await sliced(`select substring(text from $2::int for 200000) as part from "BillTexts" where document_id = $1`, [d.id], d.chars)
+    out.push({ kind: "text", body, url: `texts:${d.id}`, meta: { kind: "bill" } })
+  }
+  return out
 }
 const show = Number(arg("show", 0))
 const heads = Number(arg("heads", 0))
