@@ -46,23 +46,22 @@
     "jurisdiction": "NY",
     "name": "New York",
     "source": "laws",
-    "sampled": 60,
-    "clean": 53,
-    "coverage": 0.971,
+    "sampled": 50,
+    "clean": 42,
+    "coverage": 0.9781,
     "dialects": {
-      "ny-statute": 60
+      "ny-statute": 50
     },
     "unknown": {},
     "fallouts": {
-      "subdivision opens at N": 3,
-      "subparagraph opens at ii": 3,
-      "paragraph opens at b": 2,
-      "no § at the start": 2,
-      "paragraph opens at e": 1,
+      "paragraph opens at b": 3,
+      "clause opens at N": 3,
+      "subdivision opens at N": 2,
+      "subparagraph i after N": 2,
       "subdivision N after N": 1,
-      "subparagraph ii after N": 1
+      "paragraph g after N": 1
     },
-    "measuredAt": "2026-09-14T08:58:37.695Z"
+    "measuredAt": "2026-09-14T09:29:51.387Z"
   },
   "TX/texts": {
     "jurisdiction": "TX",

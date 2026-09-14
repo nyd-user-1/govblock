@@ -263,19 +263,30 @@ export function parseNyStatute(source: Source): FrontEndResult {
   const [levelTag, role] = DOC_TYPE_LEVEL[docType] ?? ["level", docType.toLowerCase()]
   const level = node(levelTag, { role, ...(meta.location_id ? { identifier: String(meta.location_id) } : {}), ...(marked ? { note: "*" } : {}) })
   let body = blocks
-  const first = blocks[0] ?? ""
-  const head = /^§\s*([\w.-]+)\.\s*(.*)$/s.exec(first)
+  let first = blocks[0] ?? ""
+  // The Constitution's first section in an article carries the article's
+  // own heading before it and opens "Section 1." rather than "§ 1."; the
+  // article heading is the ARTICLE row's, so it is set aside here.
+  const lead = /^(ARTICLE\s+[IVXLC\d]+[^§]*?)\s+(?=(?:§|Section)\s*[\w.-]+\.)/s.exec(first)
+  if (lead) first = first.slice(lead[0].length)
+  const head = /^(?:§|Section)\s*([\w.-]+)\.\s*(.*)$/s.exec(first)
   if (head) {
     level.children.push(node("num", {}, [`§ ${head[1]}`]))
     // The heading runs to the first full stop that a capital, a digit, a
-    // parenthesis or a section sign follows.
+    // parenthesis or a section sign follows, and is a heading only when it
+    // reads as one: short, and not a sentence with a verb in it. The
+    // Constitution's sections have no heading; their body starts at once.
     const split = /^(.*?\.)\s+(?=[A-Z(\d§])(.*)$/s.exec(head[2])
-    if (split) {
+    const candidate = split ? split[1] : head[2]
+    const isHeading = candidate.length <= 120 && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(candidate)
+    if (isHeading && split) {
       level.children.push(node("heading", {}, [split[1]]))
       body = [split[2], ...blocks.slice(1)]
-    } else {
+    } else if (isHeading) {
       level.children.push(node("heading", {}, [head[2]]))
       body = blocks.slice(1)
+    } else {
+      body = [head[2], ...blocks.slice(1)]
     }
   } else if (levelTag !== "section") {
     // An article's or a title's text is its table of contents: the heading,
