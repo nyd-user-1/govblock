@@ -34,7 +34,7 @@ export const TODO: TodoItem[] = [
     id: "ca-captures",
     title: "California: count and re-fetch the printings stored as leginfo web pages",
     status: "claimed",
-    claimedBy: "window-5",
+    claimedBy: "window-4",
     prompt: `${PROGRAM}, then apps/web/docs/prompts/2026-09-14-acquisition.md whole; this item is its part 3, California. Plan, then build. For a share of California printings the stored text is leginfo.legislature.ca.gov's page, navigation and script, not the bill. Count them with the test the pipeline already uses for a body that is mostly script (scripts/xml/worker.mjs), re-fetch them from the clean feed the pipeline now ranks first, write them through the existing loaders' shape into "BillTexts", then queue California's bills from /workspace/dashboard/ingestion with "Again, if built" on the pipeline box, and stop the box after. Until the re-fetch lands, the reader's plain-text fallback says when a stored text is a captured web page rather than rendering it (components/workspace/typeset-xml-reader.tsx; one line, third person). ${RULES} Report to apps/web/docs/xml/window-7.md at every milestone.`,
   },
   {
