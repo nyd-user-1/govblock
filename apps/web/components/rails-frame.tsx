@@ -1,5 +1,6 @@
 import { ClipsApp } from "@/components/clips/clips-app"
 import { DocsSidebar } from "@/components/docs-sidebar"
+import { MapWorkspace } from "@/components/map/map-workspace"
 import { RailStrip, RailToggle } from "@/components/rail-toggle"
 import { railScript } from "@/lib/rail-script"
 import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
@@ -23,9 +24,9 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // page /clips draws, in the space the sheet gives it. Inside it, a third
 // sheet (Brendan, 2026-09-14, later): a rail within the rail, the same
 // strip, line and tab at the second screen's right edge, opening across the
-// second screen until its line sits on the second screen's. Its tab rides
-// 3rem lower than the outer tab so the two never cover each other when both
-// sheets are closed at the same edge.
+// second screen until its line sits on the second screen's, its tab where
+// the outer tab sits. Closed, it paints nothing but its line and tab, so no
+// sheet edge shows beside the line (Brendan, 2026-09-14). On it: the Map.
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&_[data-slot=sidebar-content]]:flex!"
 const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
 
@@ -59,11 +60,13 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
               <ClipsApp />
             </SidebarContent>
             {/* The rail within the rail: the whole second screen's width, so its line lands on the second screen's when open. */}
-            <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
+            <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-2=closed]_&]:bg-transparent`}>
               <RailStrip side="right-2" />
               <div className={LINE} />
-              <RailToggle side="right-2" className="top-[calc(200px-var(--header-height)+2.4rem)]" />
-              <div className="ml-8 flex h-full flex-1 flex-col overflow-y-auto py-1 pr-2.5" />
+              <RailToggle side="right-2" />
+              <div className="ml-8 flex h-full min-h-0 flex-1 flex-col overflow-hidden py-1 pr-2.5 [[data-rail-right-2=closed]_&]:invisible">
+                <MapWorkspace />
+              </div>
             </div>
           </Sidebar>
         </div>
