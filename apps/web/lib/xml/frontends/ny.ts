@@ -269,7 +269,9 @@ export function parseNyStatute(source: Source): FrontEndResult {
   // article heading is the ARTICLE row's, so it is set aside here.
   const lead = /^(ARTICLE\s+[IVXLC\d]+[^§]*?)\s+(?=(?:§|Section)\s*[\w.-]+\.)/s.exec(first)
   if (lead) first = first.slice(lead[0].length)
-  const head = /^(?:§|Section)\s*([\w.-]+)\.\s*(.*)$/s.exec(first)
+  // The number runs to the first space: "§ 20.05 Criminal liability …" has no
+  // full stop after a dotted number, and "§ 1262-u. Allocation …" has one.
+  const head = /^(?:§|Section)\s*(\S+?)\.?\s+(.*)$/s.exec(first)
   if (head) {
     level.children.push(node("num", {}, [`§ ${head[1]}`]))
     // The heading runs to the first full stop that a capital, a digit, a

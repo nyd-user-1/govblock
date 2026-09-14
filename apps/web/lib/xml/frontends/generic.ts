@@ -35,7 +35,10 @@ const RANK_TAG = ["subsection", "paragraph", "subparagraph", "clause", "subclaus
 
 // ---------------------------------------------------------------- blocks ---
 
-const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:\.\d+)?\s*\)|[0-9]{1,3}(?:\.\d+)?\.|[A-Za-z]\.)\s+/
+// "(2-a)" and "(b-1)" are insertions between numbered units; they open a block too.
+const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\)|[0-9]{1,3}(?:[.-][0-9A-Za-z]{1,2})?\.|[A-Za-z]\.)\s+/
+/** The enacting formula alone, when it shares a block with the title before it or the first section after it. */
+const ENACTING_SENTENCE = /(be it (?:further )?enacted|(?:hereby )?enacts? as follows|do enact as follows|enacted by the)[^:.]*[:.]?/i
 const isOpener = (line: string, p: StateProfile) => p.section.test(line) || (p.quotedSection?.test(line) ?? false) || ENUM_OPEN.test(line) || /^\*\s*\*\s*\*/.test(line)
 
 /** Line numbers down the left margin, as Pennsylvania prints them: stripped when most lines carry one. */
@@ -51,6 +54,36 @@ function stripLineNumbers(text: string): string {
 }
 
 const clean = (text: string) => text.replace(/�| /g, " ").replace(/\r/g, "")
+
+/**
+ * Oklahoma and Kentucky reach us with their line numbers as loose tokens in
+ * running text ("… 2 Be it enacted … 3 Section 1. KRS …"): the newlines were
+ * lost in the capture. When thirty or more small numbers appear in ascending
+ * runs (restarting at 1 on each page), they are line numbers and are dropped,
+ * and a block boundary is put back before each section or enumerator that
+ * follows a sentence end.
+ */
+function unwrapInlineLineNumbers(text: string): string {
+  if (text.split("\n").length > 40) return text
+  const re = /(^|\s)(\d{1,2})(?=\s)/g
+  const found: number[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text))) found.push(Number(m[2]))
+  if (found.length < 30) return text
+  let runs = 0
+  for (let i = 1; i < found.length; i++) if (found[i] === found[i - 1] + 1 || found[i] === 1) runs++
+  if (runs < found.length * 0.8) return text
+  let expected = 1
+  const stripped = text.replace(/(^|\s)(\d{1,2})(?=\s)/g, (all, lead: string, num: string) => {
+    const n = Number(num)
+    if (n === expected || (n === 1 && expected > 3)) {
+      expected = n + 1
+      return lead
+    }
+    return all
+  })
+  return stripped.replace(/([.;:])\s+(?=(?:SECTION|Section|SEC\.|Sec\.)\s+\d|\(?[0-9A-Za-z]{1,4}[.)]\s+[A-Z(])/g, "$1\n\n   ")
+}
 
 /**
  * Texas and a few others print a blank line after every line, so a blank
@@ -79,7 +112,7 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     if (t) out.push(t)
     current = ""
   }
-  for (const raw of dropBlankPerLine(stripLineNumbers(clean(text))).split("\n")) {
+  for (const raw of dropBlankPerLine(stripLineNumbers(unwrapInlineLineNumbers(clean(text)))).split("\n")) {
     const stripped = raw.trim()
     if (!stripped) {
       close()
@@ -146,7 +179,7 @@ function marksFor(p: StateProfile) {
 // ------------------------------------------------------------ enumerators ---
 
 type Style = "1." | "(1)" | "(a)" | "a." | "(i)" | "(A)" | "A." | "(I)" | "(a.1)"
-type Enumerator = { style: Style; label: string; ordinal: number; rest: string }
+type Enumerator = { style: Style; label: string; ordinal: number; rest: string; inserted: boolean }
 
 const romanToInt = (s: string) => {
   const v: Record<string, number> = { i: 1, v: 5, x: 10, l: 50, c: 100 }
@@ -165,27 +198,39 @@ const alphaToInt = (s: string) => {
   return n
 }
 
+/** A label with a hyphenated suffix ("2-a", "b-1") is a unit inserted after the one it names. */
+const split = (label: string) => {
+  const m = /^([0-9A-Za-z]+)(?:-([0-9A-Za-z]{1,2}))?$/.exec(label)
+  return { base: m?.[1] ?? label, inserted: !!m?.[2] }
+}
+
 function enumerator(block: string, expectRoman: boolean): Enumerator | null {
-  let m = /^(\d{1,3})\.\s+(.*)$/s.exec(block)
-  if (m) return { style: "1.", label: m[1], ordinal: Number(m[1]), rest: m[2] }
-  m = /^\((\d{1,3})\)\s+(.*)$/s.exec(block)
-  if (m) return { style: "(1)", label: m[1], ordinal: Number(m[1]), rest: m[2] }
+  let m = /^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
+  if (m) return { style: "1.", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
+  m = /^\((\d{1,3}(?:-[a-z]{1,2})?)\)\s+(.*)$/s.exec(block)
+  if (m) return { style: "(1)", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   m = /^\(([a-z])\.(\d{1,2})\)\s+(.*)$/s.exec(block)
-  if (m) return { style: "(a.1)", label: `${m[1]}.${m[2]}`, ordinal: alphaToInt(m[1]) * 100 + Number(m[2]), rest: m[3] }
-  m = /^\(([a-z]{1,2})\)\s+(.*)$/s.exec(block)
+  if (m) return { style: "(a.1)", label: `${m[1]}.${m[2]}`, ordinal: alphaToInt(m[1]) * 100 + Number(m[2]), rest: m[3], inserted: false }
+  m = /^\(([a-z]{1,4}(?:-\d{1,2})?)\)\s+(.*)$/s.exec(block)
   if (m) {
-    const roman = /^[ivxl]+$/.test(m[1]) && (expectRoman || !/^[a-h]$/.test(m[1]))
-    return roman ? { style: "(i)", label: m[1], ordinal: romanToInt(m[1]), rest: m[2] } : { style: "(a)", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2] }
+    const { base, inserted } = split(m[1])
+    if (base.length <= 2 || /^[ivxl]+$/.test(base)) {
+      const roman = /^[ivxl]+$/.test(base) && (expectRoman || !/^[a-h]$/.test(base))
+      return roman ? { style: "(i)", label: m[1], ordinal: romanToInt(base), rest: m[2], inserted } : { style: "(a)", label: m[1], ordinal: alphaToInt(base), rest: m[2], inserted }
+    }
   }
-  m = /^\(([A-Z]{1,2})\)\s+(.*)$/s.exec(block)
+  m = /^\(([A-Z]{1,4}(?:-\d{1,2})?)\)\s+(.*)$/s.exec(block)
   if (m) {
-    const roman = /^[IVXL]+$/.test(m[1]) && (expectRoman || !/^[A-H]$/.test(m[1]))
-    return roman ? { style: "(I)", label: m[1], ordinal: romanToInt(m[1]), rest: m[2] } : { style: "(A)", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2] }
+    const { base, inserted } = split(m[1])
+    if (base.length <= 2 || /^[IVXL]+$/.test(base)) {
+      const roman = /^[IVXL]+$/.test(base) && (expectRoman || !/^[A-H]$/.test(base))
+      return roman ? { style: "(I)", label: m[1], ordinal: romanToInt(base), rest: m[2], inserted } : { style: "(A)", label: m[1], ordinal: alphaToInt(base), rest: m[2], inserted }
+    }
   }
   m = /^([a-z])\.\s+(?=\S)(.*)$/s.exec(block)
-  if (m) return { style: "a.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2] }
+  if (m) return { style: "a.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
   m = /^([A-Z])\.\s+(?=[A-Z(])(.*)$/s.exec(block)
-  if (m) return { style: "A.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2] }
+  if (m) return { style: "A.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
   return null
 }
 
@@ -223,11 +268,11 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
       rank = open.rank
       while (stack.length && stack[stack.length - 1].rank > rank) stack.pop()
       const same = stack.pop()!
-      const ok = e.ordinal === same.last + 1
+      const ok = e.ordinal === same.last + 1 || (e.inserted && e.ordinal === same.last)
       if (!ok && !quoted) problems.push(`${RANK_TAG[rank]} ${e.label} after ${same.last}`)
     } else {
       rank = Math.min(top ? top.rank + 1 : 0, RANK_TAG.length - 1)
-      if (e.ordinal !== 1 && !quoted && e.style !== "(a.1)") problems.push(`${RANK_TAG[rank]} opens at ${e.label}`)
+      if (e.ordinal !== 1 && !quoted && !e.inserted && e.style !== "(a.1)") problems.push(`${RANK_TAG[rank]} opens at ${e.label}`)
     }
     const level = node(RANK_TAG[rank], {}, [node("num", {}, [e.label])])
     const inner = enumerator(e.rest, false)
@@ -241,8 +286,15 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
 
 // ------------------------------------------------------------------ bills ---
 
+const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied)/i
+
 export function parseStateBill(source: Source, p: StateProfile): FrontEndResult {
   const problems: string[] = []
+  // A capture that is the legislature site's error page, not a bill (Virginia
+  // has these): nothing to parse, and the report says so for a re-fetch.
+  if (ERROR_PAGE.test(source.body)) {
+    return { doc: node("bill", {}, [node("main")]), report: { dialect: "error-page", elements: 2, known: 2, unknown: {}, renamed: {}, coverage: 0, notes: ["error page captured instead of the bill; re-fetch"] } }
+  }
   const inline = marksFor(p)
   const blocks = stateBlocks(source.body, p)
   const doc = node("bill")
@@ -279,8 +331,16 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       else if (/^(Introduced|Sponsored|By:|PRESENTED BY)/i.test(b)) preface.children.push(node("sponsor", {}, [b]))
       else preface.children.push(node("p", {}, [b]))
     }
-    preface.children.push(node("enactingFormula", {}, [blocks[start]]))
+    // The formula shares its block with the title before it (California's
+    // digest runs straight into it) or the first section after it; each
+    // part goes where it belongs.
+    const block = blocks[start]
+    const at = ENACTING_SENTENCE.exec(block)
+    if (at && at.index > 0) preface.children.push(node("p", {}, [block.slice(0, at.index).trim()]))
+    preface.children.push(node("enactingFormula", {}, [at ? at[0].trim() : block]))
+    const after = at ? block.slice(at.index + at[0].length).trim() : ""
     start += 1
+    if (after) blocks.splice(start, 0, after)
   }
   let expected = 1
   let section: IrNode | null = null

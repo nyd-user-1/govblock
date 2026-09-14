@@ -39,6 +39,7 @@ PROFILES.TX = {
   enacting: /BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF TEXAS/i,
   section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
   quotedSection: /^Sec\.\s*([\d][\w.-]*)\.\s*(.*)$/s,
+  del: /\[([^\]]+)\]/,
 }
 
 // New Jersey: the bill's sections are bare digits, "1.", strictly in
