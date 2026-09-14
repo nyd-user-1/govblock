@@ -9,6 +9,7 @@ import type { ExpressionLine } from "@/lib/typeset/expression-document"
 import { LIBRARY_ROOT, libraryHref, workHref } from "@/lib/xml/library"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
+import { ForkAction } from "@/components/workspace/typeset-fork-action"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
@@ -93,7 +94,10 @@ export function TypesetWork(props: TypesetWorkProps) {
       }
     >
       {jsonUrl ? (
-        <TypesetXmlReader jsonUrl={jsonUrl} snapshot={snapshot} meta={meta} portion={portion} />
+        // Fork the unit under the pointer from this Expression (window 5).
+        <ForkAction expression={props.expression}>
+          <TypesetXmlReader jsonUrl={jsonUrl} snapshot={snapshot} meta={meta} portion={portion} />
+        </ForkAction>
       ) : (
         <p className="p-8 text-sm text-muted-foreground">{door === "sign-in" ? "Sign in to read this." : "Reading this takes a plan that covers its jurisdiction."}</p>
       )}
