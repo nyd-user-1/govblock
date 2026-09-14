@@ -9,7 +9,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** |
 | Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** |
 | Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (real printings; 35% are archive banners) |
-| Washington statutes | 51,380 | 78.7 | 79.8 | 79.8 |
+| Washington statutes | 51,380 | 78.7 | 79.8 | **98.8** |
 | South Carolina bills | 49,119 | 74.5 | 76.0 | 76.0 |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | 55.6 |
 | Nevada statutes | 43,461 | 74.6 | 73.4 | 73.4 |
@@ -21,6 +21,10 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 7 — Washington statutes, 79.8% to 98.8% (2026-09-14)
+
+- Every section opens "RCW 11.68.110 Catchline." and the "RCW" defeated the number test, as "IC" did for Indiana. Washington sets `statuteCite`, `headingBlock`, `credit` for the bracketed session laws, and a new optional `notesStart`: the blocks after "Notes:" become `notes` of `note`. The bracket rule narrowed with it: a bracketed history is a `sourceCredit` and only a recodification citation is a `note` (Indiana re-checked, unchanged). Against HEAD, the ten lines of the regression set unchanged. Held-back Washington fifty: 99.4%. Grammar: `grammars/wa.md`.
 
 ## Milestone 6 — Colorado bills, 71.0% to 98.9% (2026-09-14)
 

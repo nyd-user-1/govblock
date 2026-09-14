@@ -943,27 +943,25 @@
     "name": "Washington",
     "source": "laws",
     "sampled": 100,
-    "clean": 0,
-    "coverage": 0.7981,
+    "clean": 91,
+    "coverage": 0.9878,
     "dialects": {
       "wa-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 100,
-      "subsection N after N": 5,
-      "paragraph opens at b": 4,
-      "paragraph b after N": 2,
-      "subsection ii after N": 1,
+      "subsection N after N": 9,
+      "paragraph opens at b": 5,
+      "paragraph b after N": 3,
+      "subparagraph opens at N": 2,
+      "subparagraph opens at l": 1,
+      "paragraph m after N": 1,
+      "clause J after N": 1,
+      "subsection opens at b": 1,
       "paragraph opens at N": 1,
-      "subparagraph b after N": 1,
-      "paragraph N after N": 1,
-      "paragraph iii after N": 1,
-      "paragraph v after N": 1,
-      "clause opens at b": 1,
-      "subsection opens at b": 1
+      "subsection a after N": 1
     },
-    "measuredAt": "2026-09-14T13:35:46.015Z"
+    "measuredAt": "2026-09-14T14:00:59.635Z"
   },
   "KS/laws": {
     "jurisdiction": "KS",

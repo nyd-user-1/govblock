@@ -139,6 +139,20 @@ PROFILES.CO = {
   furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
 }
 
+// Washington statutes (window 8, from fifty sections of the RCW): the loader
+// writes "RCW 11.68.110 Catchline." as the first block, then the law, then the
+// session laws in brackets ("[ 2021 c 140 s 4014; 2016 c 202 s 8. Prior: …]"),
+// then "Notes:" and the Code Reviser's notes, one to a block. Subsections
+// (1), paragraphs (a), subparagraphs (i), units of several ranks opening on
+// one line, "(a)(i)".
+PROFILES.WA = {
+  ...common("WA"),
+  statuteCite: /^RCW\s+/,
+  headingBlock: true,
+  credit: /^\[\s*\d{4}\b[\s\S]*\]\s*$/,
+  notesStart: /^Notes:$/,
+}
+
 // Oregon statutes (window 8, from fifty sections of the ORS): the loader
 // writes "701.625 Catchline" as the first block, or the number alone for a
 // section repealed or renumbered, whose bracketed history is then its only

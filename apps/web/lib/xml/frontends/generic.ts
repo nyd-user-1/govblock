@@ -43,6 +43,8 @@ export type StateProfile = {
   headingBlock?: boolean
   /** Statutes: the number said again where the body opens ("Sec. 9. (a) …"), removed once. */
   restated?: RegExp
+  /** Statutes: the heading of the editor's notes after the law ("Notes:"); every block after it is a note. */
+  notesStart?: RegExp
   /** Statutes: a section printed a second time as it will read on a later date, opening on its own number ("109.206. (1) …"). */
   versionOpens?: RegExp
   /** Statutes: the history credit closing a section ("As added by P.L.2-2006, SEC.163."), kept as sourceCredit. */
@@ -611,6 +613,10 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
       body.splice(i, 1, ...(rest ? [rest] : []))
     }
   }
+  // The Code Reviser's notes after the history (Washington): each block a note.
+  const notesAt = p.notesStart ? body.findIndex((b, k) => k > 0 && p.notesStart!.test(b)) : -1
+  const notes = notesAt > 0 ? body.slice(notesAt + 1) : []
+  if (notesAt > 0) body = body.slice(0, notesAt)
   // A section printed twice (Oregon): as it stands, a note, then the text operative on a later
   // date, opening on the section's own number; the second is a `level` of its own.
   const twice = p.versionOpens ? body.findIndex((b, k) => k > 0 && p.versionOpens!.test(b)) : -1
@@ -621,8 +627,8 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     if (p.credit) while (part.length && p.credit.test(part[part.length - 1])) out.unshift(part.pop()!)
     return out
   }
-  // A recodification citation in brackets or an editor's "Note:" is a note; the history of enactment is the source credit.
-  const credit = (c: string) => node(/^(?:\[|Note:)/.test(c) ? "note" : "sourceCredit", {}, [c])
+  // A recodification citation or an editor's "Note:" is a note; the history of enactment, bracketed or not, is the source credit.
+  const credit = (c: string) => node(/^(?:\[[^\]]*Recodification Citation|Note:)/.test(c) ? "note" : "sourceCredit", {}, [c])
   const credits = creditsOf(body)
   const nested = nest(body, problems, inline, false)
   if (nested.length && nested[0].tag === "p" && tag === "section") {
@@ -635,6 +641,7 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
     const laterCredits = creditsOf(later)
     level.children.push(node("level", { role: "later version" }, [...nest(later, problems, inline, false), ...laterCredits.map(credit)]))
   }
+  if (notes.length) level.children.push(node("notes", {}, notes.map((n) => node("note", {}, [n]))))
   let elements = 0
   const count = (n: IrNode) => {
     elements++
