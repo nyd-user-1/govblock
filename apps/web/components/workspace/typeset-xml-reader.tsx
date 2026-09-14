@@ -151,7 +151,7 @@ export function TypesetXmlReader({
           </div>
         )}
         {!meta?.captured && !showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
-        {!meta?.captured && !showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Reading the printing…"}</p>}
+        {!meta?.captured && !showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Loading…"}</p>}
         <div className={cn("uslm-doc", (!showEditor || meta?.captured) && "hidden")} data-dialect={dialect}>
           <EditorContent editor={editor} />
         </div>
