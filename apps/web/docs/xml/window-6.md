@@ -3,6 +3,95 @@
 Report to the lead. Newest milestone first. Run by window 5's session after
 its brief was accepted (`lib/xml/todo.ts`, claimed by window-5).
 
+## Milestone 2 — resolved against the corpus, decorated, and `@` (2026-09-14)
+
+### Built
+
+- **Resolution**, `lib/typeset/resolve.ts` and `POST /api/typeset/cite`.
+  - For each cited Work it returns the Expression in force on the citing
+    document's date and the latest one. It reads the `expressions` index
+    only, never S3, and keeps each answer per citing Expression for an hour.
+  - Two advisories: "Not in the corpus yet", and "Changed since", when the
+    Work has a text later than the one in force on the citing date.
+  - A Work whose every stored text is later than the citation is not
+    flagged. That is how the US Code is held (one release point a section),
+    and the date shown says which text opens.
+- **Decorations**, `components/workspace/typeset-cite-layer.ts` with
+  `typeset-cite.css`. Citations are laid over the document and never written
+  into it:
+  - a found citation is dotted-underlined and opens its Work in Typeset at
+    the citing date
+  - a missing one is faintly underlined
+  - an advisory is tinted amber, its text in the title
+  - the layer runs once when the document mounts, and again a second after
+    an edit pauses. Resolutions already known stay in the browser.
+  - The XML reader takes an optional `cite` context: its jurisdiction, Work
+    and date. `typeset-xml-reader.tsx` gained that one prop, and the bill's
+    XML view and window 4's Work page pass it. The Fork view's editor carries
+    the same layer; there a modifier-click opens a citation, because a plain
+    click places the cursor.
+- **`@`**, `GET /api/typeset/at`:
+  - citations typed the way law is written ("10 usc 130i", "section 16 of
+    the agriculture and markets law", an address), each Work once
+  - members from `"People"` (trigram index on name), the reader's state
+    first
+  - committees from `"Committees"`
+  - In ⌘K, `@` replaces the "arrive with the library" stub
+    (`slash-library.tsx`, `command-menu.tsx`).
+  - In the Fork view (`typeset-at-palette.tsx`), typing "@" or the toolbar's
+    @ opens the palette at the cursor. It lists the document's own defined
+    terms too. The chosen words replace the "@", a citation or an entity
+    carrying a `ref` to its address or page.
+
+### Verified, on the branch server (clone at 7ee0f17)
+
+- 24 of 24 tests; bounded type check over every touched file, 0 diagnostics.
+- `/api/typeset/cite` for H.R. 6644 as enrolled:
+  - found: 42 U.S.C. 5301 (release point 2026-09-09) and 12 U.S.C. 1701x
+  - not in the corpus: Public Law 114-113 (no public laws are loaded)
+- For N.Y. § 16: `agm/s303`, `agm/s303-A`, `agm/s303-B` and `abc/s76-A`
+  (2024-08-30) found.
+- `@10 usc 130i` returns the section as of 2026-04-17, once; `@Schumer`
+  returns the senator.
+- `/workspace/typeset/bill/2058568/xml`, `/workspace/typeset/work/us/usc/t10/s130i`
+  and `/workspace/typeset/fork/168` answer 200.
+- Fixed on the way:
+  - **Lettered sections.** New York's stored addresses keep the Senate's
+    upper-case letter, and `s76-a` found nothing; New York section letters
+    are now upper-cased.
+  - **Noisy advisory.** "Nothing stored from before" flagged nearly every
+    federal citation; it is gone.
+  - **Duplicates.** `@` listed a federal citation twice.
+
+### Next: milestone 3, the in-context view
+
+A mode of the Fork view:
+- **Left:** the document, with an `@` marker on each amendment instruction.
+- **Right:** a tab per affected statute, rendered from its dated
+  Expression, with the redline in place.
+- **Where the redline comes from:**
+  - A fork of a statute takes it from the engine: the base section with the
+    fork's changes laid over.
+  - A bill's own instructions (H.R. 6644 § 101: "Section 106 of the Housing
+    and Urban Development Act of 1968 (12 U.S.C. 1701x) is amended— (1) in
+    subsection (a)(4)(C), by striking … and inserting …; (2) in subsection
+    (e), by adding at the end the following: …") are carried out on the
+    cited section first. The target comes from the chapeau's citation; the
+    forms read are the ones the engine writes (strike and insert, "and all
+    that follows through", insert after, add at the end, strike a unit, read
+    as follows). A form not yet read says so in its tab.
+- Not yet looked at in a browser: the decorations, both palettes.
+
+### Files
+
+`apps/web/lib/typeset/resolve.ts`, `apps/web/lib/typeset/cite.ts`,
+`apps/web/app/api/typeset/cite/route.ts`, `apps/web/app/api/typeset/at/route.ts`,
+`apps/web/components/workspace/typeset-cite-layer.ts`, `typeset-cite.css`,
+`typeset-at-palette.tsx`, `typeset-xml-reader.tsx` (the `cite` prop),
+`typeset-workspace-2.tsx`, `typeset-work.tsx`, `typeset-fork.tsx`,
+`apps/web/components/slash-library.tsx`, `apps/web/components/command-menu.tsx`,
+`scripts/typeset/cite.test.mjs`, `apps/web/docs/xml/window-6.md`.
+
 ## Milestone 1 — citations found and addressed, tested (2026-09-14)
 
 ### Built
