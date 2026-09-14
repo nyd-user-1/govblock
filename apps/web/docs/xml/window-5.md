@@ -2,6 +2,132 @@
 
 Report to the lead. Newest milestone first.
 
+## Milestone 2 — the Fork view, forks by address, commits that hold documents (2026-09-14)
+
+### Built
+
+- **Forks of published units.** `POST /api/policy/forks` with an `address`
+  (a section, a subsection, a printing, optionally `@expression`) resolves it
+  through window 4's `findExpression`. It writes a `"Forks"` row keyed by the
+  address, with `base_work` and `base_expression` for the dated base, the
+  address's `kind`, and a label ("Agriculture & Markets § 16(1)", "10 U.S.C.
+  130i(b)(1)", "H.R. 6644 § 102"). One fork per reader per address per base;
+  asking again returns it. Duplicate to edit rows are untouched, and the
+  by-bill listing returns only those.
+- **Commits hold documents.** `POST /api/policy/commits` takes `doc`, the
+  editor's ProseMirror JSON. The server checks it against the schema, stores
+  it gzipped in `doc_gz` (in 600 KB slices, through
+  `lib/typeset/fork-store.ts`), and writes its plain text into `text` so the
+  existing readers keep working. `GET ?id=` returns a commit with its
+  document. The bill-wide commits list (`?bill=`, "what everyone proposed")
+  is gone, and so is `useBillCommits`, which nothing called.
+- **`GET /api/typeset/fork?id=`**: the base (the portion alone when the fork
+  is of a subsection), the latest committed document, the commits, and the
+  citation (`kind` from the address, a state code's name from `"Laws"`).
+  It is gated as the base is.
+- **The Fork view**, `components/workspace/typeset-fork.tsx`, at
+  `/workspace/typeset/fork/<id>` in window 4's `TypesetFrame` (My Files and
+  the base in the rail), and on a bill's own `fork` route
+  (`/workspace/typeset/bill/<id>/fork` forks the printing and opens it):
+  - the Tiptap editor on the USLM schema, editable, with undo history
+  - **`typeset-xml-toolbar.tsx`**, the Plate toolbar's Tiptap sibling in the
+    same frame: Undo and Redo; add a unit after the one at the cursor
+    (numbered next: "(3)" → "(4)", "2-a" → "2-b"), add a unit under it, remove
+    it. No formatting buttons: formatting is not an amendment.
+  - **Edit | Redline**: Redline is a read-only editor on the dated base with
+    `marked()`'s specs as ProseMirror decorations (strikes inline and on
+    whole units, insertions as widgets). Nothing is written into either
+    document.
+  - the amendment beside the editor, rewritten 250 ms after each change, in
+    the jurisdiction's convention (New York's new matter underlined, omitted
+    matter bracketed), with a copy button
+  - Commit… (GitHub's dialog), enabled once the fork differs from its last
+    commit
+- **The fork action** (`typeset-fork-action.tsx`) wraps the reader on the
+  bill XML view and on window 4's Work page: "Fork § 16" / "Fork (2)" over
+  whichever unit the pointer rests on, forked from the Expression on screen.
+  `typeset-work.tsx` is window 4's file, taken over for that one wrap on the
+  lead's word (1b63027).
+- **The official record shows no forks.** `bill-changes.tsx` draws the
+  printings only: the proposed sections, their nesting, the "N proposed"
+  count and "Hide proposed versions" are removed.
+- **My Files rows** for forks of published units carry `Row.href` and open
+  the Fork view from the folder's table, its cards and the tree
+  (`use-folder.ts`, `folder-view.tsx`, `tree.tsx`).
+
+### Verified, on the branch server (3002, clone at aae3fa8)
+
+- Bounded type check over every touched file: 0 diagnostics.
+- `/workspace/typeset/fork/168`, `/workspace/typeset/bill/2058568/fork`,
+  `/workspace/typeset/bill/2058568/xml` and
+  `/workspace/typeset/work/us/bill/119/hr/6644` all answer 200; no errors
+  from them in the dev log.
+- End to end on H.R. 6644 § 102 as enrolled
+  (`/us/bill/119/hr/6644/tI/s102@2026-06-25_enr`), through the routes:
+  - the fork was made, and the view's payload held the base as § 102 alone
+  - the engine on that payload wrote "In section 102(a), strike “18” and
+    insert “12”."
+  - the commit stored 10,642 bytes of document; the payload read again had
+    it as head, identical to what was committed, with the same amendment
+  - `GET ?id=` returned the text and the document intact
+  - a stranger's commit was refused with 403, and a document the schema
+    refuses with 400
+- New York § 16(1) and 10 U.S.C. 130i(b)(1) forks were made (rows 166, 167).
+  Their payloads answer 403 to an anonymous request: laws are gated to a
+  signed-in reader (and New York to a New York home state). Their
+  instructions are the engine tests of milestone 1.
+- Fixed on the way: `substring(bytea, bigint, bigint)` does not exist
+  (offsets now cast to `int`); `expressions.kind` is `statute`, so the
+  citation now takes its kind from the address.
+
+### Done, against the brief
+
+1. The fork action from the XML reader: done, on both reader pages.
+2. The editor on the same schema, with the toolbar's Tiptap sibling: done.
+3. `lib/typeset/amend.ts` with tests on H.R. 6644 and a New York section:
+   done (milestone 1).
+4. The Fork view on the engine: done.
+5. The proposed-versions rendering removed: done.
+- Forks widened to a Work address by migration (`sql/011`, run); commits
+  store structured Expressions: done.
+
+### Open
+
+- **Conflicts have no screen yet.** `conflicts()` refuses and says why; the
+  view shows nothing until a second fork of the same base is compared.
+- **Page-and-line instructions** wait for page and line markers in the
+  reader's document.
+- The Redline's inserted whole units are drawn from the fork's own markup;
+  a long inserted title will be tall.
+- Test rows under a throwaway claim: forks 166–168, commits 133–134. They are
+  harmless; delete them when convenient.
+
+### For Brendan
+
+- In a browser signed in with New York as home state:
+  1. Open `http://localhost:3002/workspace/typeset/work/us-ny/code/agm/s16`.
+  2. Rest the pointer on subdivision 1 and press Fork 1.
+  3. Change a phrase. The amendment beside the editor should read "Section 1.
+     Subdivision 1 of section 16 of the agriculture and markets law is
+     amended to read as follows:" with the change marked; Redline shows it
+     over the base.
+  4. Commit, and find it in My Files.
+- The same on `http://localhost:3002/workspace/typeset/bill/2058568/xml` for
+  the federal form.
+
+### Files
+
+`apps/web/app/api/policy/forks/route.ts`, `apps/web/app/api/policy/commits/route.ts`,
+`apps/web/app/api/typeset/fork/route.ts`, `apps/web/lib/typeset/fork-store.ts`,
+`apps/web/lib/policy/forks.ts`, `apps/web/lib/policy/use-folder.ts`,
+`apps/web/components/workspace/typeset-fork.tsx`, `typeset-fork.css`,
+`typeset-fork-action.tsx`, `typeset-xml-toolbar.tsx`,
+`apps/web/app/workspace/typeset/fork/[id]/page.tsx`,
+`apps/web/components/workspace/typeset-workspace-2.tsx`,
+`apps/web/components/workspace/typeset-work.tsx` (one wrap),
+`apps/web/components/create/bill-changes.tsx`, `folder-view.tsx`, `tree.tsx`,
+`apps/web/docs/xml/window-5.md`.
+
 ## Milestone 1 — the engine, tested on published law (2026-09-14)
 
 ### Built
