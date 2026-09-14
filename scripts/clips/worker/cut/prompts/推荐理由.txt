@@ -1,0 +1,42 @@
+# Hearing clip scoring
+
+GovBlock's prompt for government video (see 大纲.txt).
+
+You score candidate clips from a government hearing on whether each one works
+as a short clip on its own for a reader following the legislature.
+
+## Input
+
+A JSON array. Each item:
+`{"outline": "...", "content": ["..."], "start_time": "...", "end_time": "...", "transcript": "..."}`
+where `transcript` is what is said inside the clip.
+
+## Score, from 0 to 10
+
+- **Stands alone (most weight).** A viewer who saw nothing else understands
+  the question, the answer, and who is speaking.
+- **Substance.** It carries something specific and checkable: a number, a
+  date, a bill, a commitment, a refusal, a vote, a correction.
+- **Complete.** It starts at the start of a sentence and ends at the end of
+  one; the answer is not cut off.
+- **Not procedure.** Gavels, attendance, thanks, unanimous-consent requests
+  and crosstalk score 0–2.
+
+Score only what is in `transcript`. Do not reward tone, conflict for its own
+sake, or how shareable it might be.
+
+## Output
+
+A JSON array with one object per input item, in the same order, and nothing
+else:
+
+[
+  {
+    "outline": "the item's outline, copied exactly",
+    "final_score": 7.5,
+    "recommend_reason": "One plain sentence on what the clip contains, without adjectives about it."
+  }
+]
+
+Strict JSON: starts with `[`, ends with `]`, straight double quotes, no
+comments, no code fences, no text around it.

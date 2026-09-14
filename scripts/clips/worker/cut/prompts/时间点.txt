@@ -1,0 +1,41 @@
+# Hearing timeline
+
+GovBlock's prompt for government video (see 大纲.txt).
+
+You place each exchange from an outline on the transcript's own timestamps.
+
+## Input
+
+A JSON object:
+- `outline`: an array of exchanges, each `{"title": "...", "subtopics": ["..."]}`.
+- `srt_text`: the transcript for this part of the hearing, as SRT cues
+  (`index\nstart --> end\ntext\n\n`).
+
+## Task
+
+For every exchange in `outline`, find where it begins and ends in `srt_text`.
+
+- Start on the cue where the exchange's first sentence begins: the question,
+  or the first words of the point. Not mid-sentence.
+- End on the cue where its last sentence ends: the answer's conclusion, or
+  the result of the vote. Not mid-sentence.
+- Copy `start_time` from the first cue's start and `end_time` from the last
+  cue's end, exactly as written in the SRT. Never compute a time.
+- Exchanges must not overlap. Drop an exchange that cannot be found.
+
+## Output
+
+A JSON array and nothing else. For each exchange, rename `title` to
+`outline` and `subtopics` to `content`, and add the two times:
+
+[
+  {
+    "outline": "Short plain label of the exchange",
+    "content": ["what is asked or argued", "what is answered"],
+    "start_time": "00:41:07,120",
+    "end_time": "00:42:03,480"
+  }
+]
+
+Strict JSON: starts with `[`, ends with `]`, straight double quotes, quotes
+inside strings escaped, no comments, no code fences, no text around it.

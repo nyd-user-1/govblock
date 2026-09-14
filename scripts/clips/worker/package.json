@@ -1,0 +1,15 @@
+{
+  "name": "govblock-clips-worker",
+  "private": true,
+  "type": "module",
+  "description": "The clips worker box: renders a /clips template, cuts a hearing with autoclip, and files the results under a desk. Outside the pnpm workspace on purpose: the renderer, its Chrome and the cut stay off the web app.",
+  "dependencies": {
+    "@aws-sdk/client-rds-data": "3.1123.0",
+    "@remotion/bundler": "4.0.524",
+    "@remotion/google-fonts": "4.0.524",
+    "@remotion/renderer": "4.0.524",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.524"
+  }
+}

@@ -6,6 +6,79 @@ milestone first.
 
 ---
 
+## 3, prepared · The cut and the render, written and not yet run — 2026-09-14
+
+> **Key takeaways**
+>
+> - The worker box's kit is in `scripts/clips/worker/`: setup, the render,
+>   the cut, the Bedrock shim, and GovBlock's prompts and patch for
+>   autoclip. **None of it has run**, and nothing has been launched: the
+>   box, the hearing and the licence are the lead's to settle, and Stream
+>   has no minutes.
+> - Reading autoclip's pipeline turned up two faults in its `speech`
+>   category, the one that fits hearings: the outline prompt asks for JSON,
+>   but the parser reads only `1. **Title**` / `- point` lines; and the
+>   scoring prompt returns an object with no `final_score` where the
+>   aligner expects a list, so every clip would fall back to a score of
+>   0.5. Its default prompts do not have either fault. GovBlock's prompts
+>   are written to the parsers.
+> - For a video over thirty minutes autoclip makes two- to six-minute
+>   clips with a ninety-second floor. A one-file patch
+>   (`cut/patch_autoclip.py`) makes them 35 to 75 seconds, cut at 90, when
+>   `GOVBLOCK_SHORTS` is set. It was run against autoclip's `quality.py` at
+>   the pinned commit: a two-hour video profiles to 25/35–75/90 seconds,
+>   and with the variable unset nothing changes.
+
+### 1. What is there
+
+- **`setup.sh`**: Amazon Linux 2023 x86_64. FFmpeg static, Node 22,
+  Python 3.11, autoclip pinned at aaf863b with the patch and the prompts,
+  a venv with faster-whisper and boto3, Chrome's libraries for the render,
+  `npm install` of the worker package.
+- **`cut/bedrock_shim.py`**: OpenAI-compatible chat completions on
+  127.0.0.1:8765 answered by Bedrock Converse under the instance role.
+  autoclip never holds a key.
+- **`cut/transcribe.py`**: faster-whisper `medium.en`, int8 on CPU, to
+  SRT. autoclip gets `--srt`, so its own Whisper (default `base`) is never
+  installed.
+- **`cut/prompts/`**: the five prompts, in English, keeping autoclip's file
+  names and input and output shapes. Exchanges that stand alone, scored on
+  standing alone, substance, completeness, not procedure; nothing rewards
+  tone or shareability.
+- **`cut.mjs`** (`run-cut.sh` wraps it in nohup and stops the box after):
+  a meeting's video by yt-dlp, or a reader's upload from Stream; the SRT;
+  autoclip `run --category speech --no-db --json` through the shim; the
+  top twelve by score, in time order; each clip's **title a sentence
+  copied from its own transcript** (the model picks, the script keeps it
+  only if found word for word, else the first full sentence); caption the
+  meeting's title, committee and date and the time into the hearing;
+  FFmpeg to 1080×1920 with the frame over a blurred copy of itself and the
+  captions burned in; Stream; a `clips` row with `origin = 'cut'`,
+  `hearing_key`, `cut_id`, `source_start`, `source_end`, in `review` for a
+  desk (published only after the report shows them) or private in the
+  reader's library for an upload. `clips.json` in the work folder lists
+  them for the report.
+- **`render.mjs`**: bundles `src/` with the template files copied in from
+  `apps/web`, renders `roll-call-tally` to H.264 with Geist, and with
+  `--desk` uploads it and files a `generated` row keyed to the roll call
+  and the bill. Title and caption are the vote's and the bill's words.
+
+autoclip's own 9:16 export is not used: its Shorts preset crops a 16:9
+hearing to the middle third and stops at sixty seconds, and its title card
+is the model's words.
+
+### 2. Verified
+
+`node --check` on the three scripts, `bash -n` on setup, `py_compile` on
+the Python, and the patch run twice (patched, then "already patched") and
+exercised as above. Nothing else.
+
+### 3. Waiting on
+
+The hearing, `govblock-clips-worker`, the Remotion licence, Stream minutes.
+
+---
+
 ## 4 · Upload behind the rights box, and Report and Take down on every clip — 2026-09-14
 
 Built ahead of milestone 3, which waits on the hearing, the worker box and
