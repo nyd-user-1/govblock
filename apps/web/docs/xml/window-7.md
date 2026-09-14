@@ -65,6 +65,47 @@ worker box. It waits on Brendan's word for this write, asked directly.
 Virginia's pace dropped from 0.90 to 0.78 a second, which is the Data API
 sharing, not the legislature refusing.
 
+## Part 5, Utah (reported by window 8; investigated by window 4)
+
+### Milestone 0 — the count and the source (2026-09-14, 14:35 UTC)
+
+- **17,570 of Utah's 36,189 stored texts** are a firewall's refusal, 122
+  characters: "The requested URL was rejected. Please consult with your
+  administrator. Your support ID is: …". All are `state_link`, in sessions
+  2010–2024 (2025 and 2026 have none), and all were fetched 2026-08-30. Counted by
+  session, the text read only from its first 200 characters.
+- **The source returns the bill today, over https.** The stored links are
+  `http://le.utah.gov/~2012/bills/hbillint/hb0010.pdf`. Over http the request
+  timed out; over https the same path answered 200 with the PDF (H.B. 10,
+  "Department of Corrections Amendments", 2012 General Session). `robots.txt`
+  disallows only template, script and dashboard paths.
+- The run would be Virginia's shape (one request at a time, the PDF through
+  `pdftotext`, the loader's upsert). `pdftotext` is now installed on the
+  pipeline box. **No write to `"BillTexts"` for Utah until Brendan says so.**
+  His word so far covers Virginia, California and Colorado.
+
+## Part 4, Colorado (reported by window 8; claimed by window 4)
+
+### Milestone 0 — the count and the source (2026-09-14, 14:35 UTC)
+
+- **20,194 of Colorado's 57,680 stored texts** are the legislature archive's
+  banner, about 201 characters: "Accessibility Archive Archived Content This is
+  archived reference material…". All are `state_link`, in sessions 2010–2015
+  (every text of those sessions). Counted by session, the text read only from
+  its first 300 characters.
+- **The legislature does not return them.** The stored links
+  (`www.leg.state.co.us/clics/clics2012a/csl.nsf/…/$FILE/1001_01.pdf`) redirect
+  to `archive.leg.state.co.us` behind a Cloudflare challenge (403). Today's
+  site, `leg.colorado.gov`, has no 2012 bill page and no file at its documents
+  path (404). The archive's `robots.txt` also names ClaudeBot and AI crawlers
+  as disallowed and signals `ai-train=no`.
+- **LegiScan returns them.** One `getBillText` for document 514349 returned
+  H.B. 12-1001 as introduced, a 13 KB PDF that `pdftotext` reads cleanly.
+  It is metered: one query a document against a 30,000-a-month key that
+  livingston's nightly delta shares, with a hard stop at 25,000 in
+  `api/bill-text.ts`. 20,194 documents would take most of a month's key.
+  **The spend waits for Brendan's word**, with this month's use counted first.
+
 ## Part 1, Virginia (`va-refetch`, claimed by window 4)
 
 ### Milestone 3 — the full run is going, on the pipeline box (2026-09-14, 13:58 UTC)
