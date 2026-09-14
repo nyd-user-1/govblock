@@ -28,7 +28,7 @@ import { FontKit } from '@/components/plate/editor/plugins/font-kit';
 import { LineHeightKit } from '@/components/plate/editor/plugins/line-height-kit';
 import { LinkKit } from '@/components/plate/editor/plugins/link-kit';
 import { ListKit } from '@/components/plate/editor/plugins/list-kit';
-import { MarkdownKit } from '@/components/plate/editor/plugins/markdown-kit';
+import { MarkdownKitClient } from '@/components/plate/editor/plugins/markdown-kit.client';
 import { MathKit } from '@/components/plate/editor/plugins/math-kit';
 import { MediaKit } from '@/components/plate/editor/plugins/media-kit';
 import { MentionKit } from '@/components/plate/editor/plugins/mention-kit';
@@ -82,7 +82,7 @@ export const EditorKit = [
 
   // Parsers
   ...DocxKit,
-  ...MarkdownKit,
+  ...MarkdownKitClient,
 
   // UI
   ...BlockPlaceholderKit,

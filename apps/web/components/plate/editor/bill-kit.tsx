@@ -16,7 +16,7 @@ import { FontKit } from '@/components/plate/editor/plugins/font-kit';
 import { LineHeightKit } from '@/components/plate/editor/plugins/line-height-kit';
 import { LinkKit } from '@/components/plate/editor/plugins/link-kit';
 import { ListKit } from '@/components/plate/editor/plugins/list-kit';
-import { MarkdownKit } from '@/components/plate/editor/plugins/markdown-kit';
+import { MarkdownKitClient } from '@/components/plate/editor/plugins/markdown-kit.client';
 import { SuggestionKit } from '@/components/plate/editor/plugins/suggestion-kit';
 import { TableKit } from '@/components/plate/editor/plugins/table-kit';
 
@@ -61,7 +61,7 @@ export const BillKit = [
 
   // Parsers
   ...DocxKit,
-  ...MarkdownKit,
+  ...MarkdownKitClient,
 
   // UI
   ...FloatingToolbarKit,
