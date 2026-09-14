@@ -27,7 +27,8 @@ export function ForkAction({ expression, billId, children }: { expression: strin
   const onMove = (e: React.MouseEvent) => {
     if (busy || button.current?.contains(e.target as Node)) return
     const level = (e.target as HTMLElement).closest<HTMLElement>(".uslm-level[id]")
-    if (!level || !wrap.current?.contains(level)) return setTarget(null)
+    // Off every unit (the margin, the gap on the way to the button): the last unit stays the target, so the button can be reached (Brendan, 2026-09-14). Leaving the reader clears it.
+    if (!level || !wrap.current?.contains(level)) return
     if (target?.id === level.id) return
     // The unit's designation with its section's, "§ 102(b)(3)", not the bare "(b)" the unit carries itself (Brendan, 2026-09-14): each level up to the section contributes its number.
     const nums: string[] = []
