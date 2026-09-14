@@ -23,8 +23,8 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 // steps wait: the form, then the people who sit for the address, then the
 // interests, the desk, the alerts, and the close.
 //
-// One hero, four pages (Brendan, 2026-09-14): the root wears all three
-// buttons and sends Sign-Up and Sign-In to their own pages; /sign-up wears
+// One hero, four pages (Brendan, 2026-09-14): the root wears no buttons
+// (the flag and the motto under the particle scroller); /sign-up wears
 // Sign-Up alone and holds the whole onboarding; /sign-in wears Sign-In alone
 // and its form, and a signed-in reader is sent to /home; /auth keeps the
 // three and its scroll. The form's cross-link on /sign-in or /sign-up goes
@@ -62,7 +62,8 @@ export function SignStage({
     window.history.replaceState(null, "", `#${next}`)
     scrollTo(section)
   }
-  const shows = (button: Mode | "explore") => stage === "root" || stage === "auth" || button === stage
+  // No buttons on the root (Brendan, 2026-09-14): the flag and the motto alone, dissolving into the scroller's sand; the header's Sign In is the way in.
+  const shows = (button: Mode | "explore") => stage === "auth" || button === stage
 
   // The order of arrival (Brendan, 2026-09-13): the state flags cycle while the
   // field loads; the flag comes first, once its particles are on screen and the
