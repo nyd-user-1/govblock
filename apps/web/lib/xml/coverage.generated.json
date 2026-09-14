@@ -916,27 +916,27 @@
     "name": "Oregon",
     "source": "laws",
     "sampled": 100,
-    "clean": 46,
-    "coverage": 0.7672,
+    "clean": 95,
+    "coverage": 0.9876,
     "dialects": {
       "or-statute": 100
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 44,
-      "paragraph opens at N": 5,
-      "subsection a after N": 5,
-      "subparagraph opens at N": 4,
-      "subsection b after N": 2,
-      "subsection opens at b": 1,
-      "paragraph J after N": 1,
+      "subparagraph opens at N": 3,
+      "paragraph opens at b": 2,
+      "subsection A after N": 2,
+      "paragraph opens at N": 2,
+      "subparagraph opens at B": 1,
+      "paragraph i after N": 1,
+      "subsection b after N": 1,
       "subsection opens at N": 1,
-      "subparagraph A after N": 1,
-      "paragraph opens at b": 1,
-      "paragraph j after N": 1,
-      "subsection N after N": 1
+      "subparagraph opens at b": 1,
+      "subparagraph b after N": 1,
+      "paragraph B after N": 1,
+      "clause opens at h": 1
     },
-    "measuredAt": "2026-09-14T13:35:30.829Z"
+    "measuredAt": "2026-09-14T13:54:08.326Z"
   },
   "WA/laws": {
     "jurisdiction": "WA",

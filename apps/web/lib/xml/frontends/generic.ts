@@ -41,6 +41,8 @@ export type StateProfile = {
   headingBlock?: boolean
   /** Statutes: the number said again where the body opens ("Sec. 9. (a) …"), removed once. */
   restated?: RegExp
+  /** Statutes: a section printed a second time as it will read on a later date, opening on its own number ("109.206. (1) …"). */
+  versionOpens?: RegExp
   /** Statutes: the history credit closing a section ("As added by P.L.2-2006, SEC.163."), kept as sourceCredit. */
   credit?: RegExp
 }
@@ -227,8 +229,11 @@ const split = (label: string) => {
   return { base: m?.[1] ?? label, inserted: !!m?.[2] }
 }
 
-function enumerator(block: string, expectRoman: boolean): Enumerator | null {
-  let m = /^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
+function enumerator(block: string, expectRoman: boolean, letter = false): Enumerator | null {
+  // "(1)(a) Notwithstanding …", "(3)(a)(A) At the election …": units of three ranks opening on
+  // one line with no space between them (Oregon, Washington); the first is read and the rest carried.
+  block = block.replace(/^(\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\))(?=\([0-9A-Za-z])/, "$1 ")
+  let m =/^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
   if (m) return { style: "1.", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   block = block.replace(/^\(\s+([0-9A-Za-z.-]{1,6})\s+\)/, "($1)")
   m = /^\((\d{1,3}(?:-[a-z]{1,2})?)\)\s+(.*)$/s.exec(block)
@@ -239,7 +244,7 @@ function enumerator(block: string, expectRoman: boolean): Enumerator | null {
   if (m) {
     const { base, inserted } = split(m[1])
     if (base.length <= 2 || /^[ivxl]+$/.test(base)) {
-      const roman = /^[ivxl]+$/.test(base) && (expectRoman || !/^[a-h]$/.test(base))
+      const roman = !letter && /^[ivxl]+$/.test(base) && (expectRoman || !/^[a-h]$/.test(base))
       return roman ? { style: "(i)", label: m[1], ordinal: romanToInt(base), rest: m[2], inserted } : { style: "(a)", label: m[1], ordinal: alphaToInt(base), rest: m[2], inserted }
     }
   }
@@ -285,7 +290,22 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
     }
     const top = stack[stack.length - 1]
     const expectRoman = !!top && (top.style === "(a)" || top.style === "(A)") && top.last !== 8
-    const e = enumerator(block, expectRoman)
+    // "(i)", "(v)" or "(x)" right after "(h)", "(u)" or "(w)" of a lettered rank that is still open
+    // under a deeper one: the next letter when the next lettered block is its successor ("(j)"),
+    // a numeral when it is "(ii)".
+    let letter = false
+    const amb = /^\(\s*([ivx])\s*\)\s/.exec(block)
+    const letters = amb ? stack.find((s) => s.style === "(a)") : undefined
+    if (amb && letters && alphaToInt(amb[1]) === letters.last + 1) {
+      const successor = String.fromCharCode(amb[1].charCodeAt(0) + 1)
+      for (let k = i; k < Math.min(blocks.length, i + 60); k++) {
+        const next = /^\(\s*([a-z]{1,4})\s*\)\s/.exec(blocks[k])
+        if (!next) continue
+        if (next[1] === successor) letter = true
+        if (next[1] === successor || /^[ivx]+$/.test(next[1])) break
+      }
+    }
+    const e = enumerator(block, expectRoman, letter)
     if (!e) {
       if (ENUM_OPEN.test(block)) problems.push(`unmatched enumerator: ${block.slice(0, 40)}`)
       if (top) top.node.children.push(node("continuation", {}, inline(block)))
@@ -571,16 +591,30 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
       body.splice(i, 1, ...(rest ? [rest] : []))
     }
   }
-  const credits: string[] = []
-  if (p.credit) while (body.length && p.credit.test(body[body.length - 1])) credits.unshift(body.pop()!)
+  // A section printed twice (Oregon): as it stands, a note, then the text operative on a later
+  // date, opening on the section's own number; the second is a `level` of its own.
+  const twice = p.versionOpens ? body.findIndex((b, k) => k > 0 && p.versionOpens!.test(b)) : -1
+  const later = twice > 0 ? [body[twice].replace(p.versionOpens!, "").trim(), ...body.slice(twice + 1)].filter(Boolean) : []
+  if (twice > 0) body = body.slice(0, twice)
+  const creditsOf = (part: string[]) => {
+    const out: string[] = []
+    if (p.credit) while (part.length && p.credit.test(part[part.length - 1])) out.unshift(part.pop()!)
+    return out
+  }
+  // A recodification citation in brackets or an editor's "Note:" is a note; the history of enactment is the source credit.
+  const credit = (c: string) => node(/^(?:\[|Note:)/.test(c) ? "note" : "sourceCredit", {}, [c])
+  const credits = creditsOf(body)
   const nested = nest(body, problems, inline, false)
   if (nested.length && nested[0].tag === "p" && tag === "section") {
     level.children.push(node("content", {}, nested[0].children))
     nested.shift()
   }
   level.children.push(...nested)
-  // A recodification citation in brackets is a note; the history of enactment is the source credit.
-  for (const c of credits) level.children.push(node(/^\[/.test(c) ? "note" : "sourceCredit", {}, [c]))
+  level.children.push(...credits.map(credit))
+  if (later.length) {
+    const laterCredits = creditsOf(later)
+    level.children.push(node("level", { role: "later version" }, [...nest(later, problems, inline, false), ...laterCredits.map(credit)]))
+  }
   let elements = 0
   const count = (n: IrNode) => {
     elements++

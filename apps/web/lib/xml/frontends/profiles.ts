@@ -119,6 +119,19 @@ PROFILES.IN = {
   credit: /^(?:As added by|As amended by|Amended by|Repealed by|Formerly:|\[(?:Pre-|\d{4} )[\w\s-]*Recodification Citation)/,
 }
 
+// Oregon statutes (window 8, from fifty sections of the ORS): the loader
+// writes "701.625 Catchline" as the first block, or the number alone for a
+// section repealed or renumbered, whose bracketed history is then its only
+// text; units of several ranks open on one line, "(3)(a)(A)"; the Legislative
+// Counsel's "Note: 536.605 was enacted into law … but was not added to …"
+// closes a section left outside the series.
+PROFILES.OR = {
+  ...common("OR"),
+  headingBlock: true,
+  credit: /^Note:\s/,
+  versionOpens: /^\d{1,3}[A-Za-z]?\.\d{1,4}[A-Za-z]?\.\s+/,
+}
+
 // Massachusetts: a petition and docket furniture precede the bill; "SECTION 1."
 // Window 8, from fifty printings of every session: the captures before 2013
 // hold the body alone, tab-indented, often one unnumbered section ("Chapter

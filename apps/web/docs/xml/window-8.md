@@ -7,7 +7,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Oklahoma bills | 146,968 | 79.2 | 74.2 | **100.0** |
 | Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** |
 | Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** |
-| Oregon statutes | 60,136 | 77.9 | 76.7 | 76.7 |
+| Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** |
 | Colorado bills | 57,350 | 73.0 | 71.0 | 71.0 |
 | Washington statutes | 51,380 | 78.7 | 79.8 | 79.8 |
 | South Carolina bills | 49,119 | 74.5 | 76.0 | 76.0 |
@@ -21,6 +21,11 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 5 — Oregon statutes, 76.7% to 98.8% (2026-09-14)
+
+- 43% of Oregon's sections are a repealed or renumbered number and its bracketed history, and the number test needed text after the number: every stub read "no number at the start" on a block of two. Oregon sets `headingBlock`, `credit` for the Legislative Counsel's closing "Note:", and a new optional `versionOpens`: a section printed again as it will read on a later date ("109.206. (1) …" after the note) becomes a `level role="later version"`, which the schema allows in a section.
+- Two parser fixes Oregon exposed, shared: units of several ranks opening on one line with no space ("(3)(a)(A)") are read at each rank; "(i)", "(v)" or "(x)" straight after "(h)", "(u)" or "(w)" of an open lettered rank is the next letter when the next lettered block is its successor, a numeral when it is "(ii)". Checked against HEAD: Florida statutes 95.4% to 98.2% on forty; Texas, California, Arizona, Alabama, and the Oklahoma, Massachusetts and Indiana held-back samples unchanged. Held-back Oregon fifty: 97.3%. Grammar: `grammars/or.md`.
 
 ## Milestone 4 — Massachusetts bills, 71.4% to 98.5% (2026-09-14)
 
