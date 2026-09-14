@@ -132,3 +132,8 @@ create index if not exists xml_fallouts_juris_stage on xml_fallouts (jurisdictio
 alter table expressions add column if not exists expression text not null;
 alter table expressions add column if not exists date_basis text;
 create unique index if not exists expressions_address on expressions (work, expression);
+
+-- What a job already holds is read by jurisdiction and kind in id order
+-- (scripts/xml/lib/store.mjs holdings): a LIKE on `work` cannot use the
+-- address index under the cluster's collation.
+create index if not exists expressions_juris_kind_id on expressions (jurisdiction, kind, id);

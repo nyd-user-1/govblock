@@ -19,18 +19,25 @@ const { toXml } = await import(pathToFileURL(workerData.ir).href)
 const s3 = new S3Client({ region: "us-east-1", maxAttempts: 8 })
 const DRY = !!workerData.dry
 
+/** "2019-00-12" is in GPO's own metadata; a date only counts if the calendar has it. */
+function real(iso) {
+  if (!iso) return null
+  const [y, m, d] = iso.split("-").map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return y >= 1789 && y <= 2100 && t.getUTCMonth() === m - 1 && t.getUTCDate() === d ? iso : null
+}
+
 /** A printing's own date, where the document states one: Dublin Core first, then a dated action. */
 function dateIn(doc) {
   const dc = first(doc, "dc:date")
-  const iso = dc && /\d{4}-\d{2}-\d{2}/.exec(textOf(dc))
-  if (iso) return iso[0]
+  const iso = real(dc && /\d{4}-\d{2}-\d{2}/.exec(textOf(dc))?.[0])
+  if (iso) return iso
   const created = first(doc, "dcterms:created")
-  const iso2 = created && /\d{4}-\d{2}-\d{2}/.exec(textOf(created))
-  if (iso2) return iso2[0]
-  const dated = first(doc, "date")
-  const attr = dated?.attrs?.date
-  if (attr && /^\d{8}$/.test(attr)) return `${attr.slice(0, 4)}-${attr.slice(4, 6)}-${attr.slice(6, 8)}`
-  if (attr && /^\d{4}-\d{2}-\d{2}/.test(attr)) return attr.slice(0, 10)
+  const iso2 = real(created && /\d{4}-\d{2}-\d{2}/.exec(textOf(created))?.[0])
+  if (iso2) return iso2
+  const attr = first(doc, "date")?.attrs?.date
+  if (attr && /^\d{8}$/.test(attr)) return real(`${attr.slice(0, 4)}-${attr.slice(4, 6)}-${attr.slice(6, 8)}`)
+  if (attr && /^\d{4}-\d{2}-\d{2}/.test(attr)) return real(attr.slice(0, 10))
   return null
 }
 
@@ -58,9 +65,9 @@ async function handle(task) {
       const mods = await fetch(info.modsUrl, { headers: { "user-agent": "govblock-xml/1.0 (+https://gov.nysgpt.com; brendan@nysgpt.com)" }, signal: AbortSignal.timeout(30_000) })
         .then((r) => (r.ok ? r.text() : ""))
         .catch(() => "")
-      const issued = /<dateIssued[^>]*>(\d{4}-\d{2}-\d{2})/.exec(mods)
+      const issued = real(/<dateIssued[^>]*>(\d{4}-\d{2}-\d{2})/.exec(mods)?.[1])
       if (issued) {
-        date = issued[1]
+        date = issued
         dateBasis = "printed"
       }
     }

@@ -49,6 +49,8 @@ const REBUILD = flag("rebuild")
 
 const stamp = () => new Date().toISOString().replace("T", " ").slice(0, 19)
 const log = (m) => console.log(`${stamp()} ${m}`)
+// One failed write is a fall-out or a failed job, never the whole night's run.
+process.on("unhandledRejection", (error) => log(`unhandled: ${error?.stack ?? error}`))
 
 // ------------------------------------------------------------------- pool ---
 
@@ -119,10 +121,17 @@ async function runJob(job) {
   }
   jlog(`start (${source.name})`)
 
-  const index = indexWriter()
   const fallouts = falloutLog(job)
-  const held = DRY ? new Map() : await holdings(source.prefix(job))
-  if (held.size) jlog(`${held.size.toLocaleString()} works already indexed under ${source.prefix(job)}`)
+  const index = indexWriter({
+    onBad: (row, error) => {
+      counts.built--
+      counts.fellOut++
+      fallouts.add({ work: row.work, sourceRef: row.source_ref, stage: "index", reason: String(error?.name ?? "index write refused"), detail: String(error?.message ?? error).slice(0, 300) })
+    },
+  })
+  const prefixes = source.prefixes(job)
+  const held = DRY ? new Map() : await holdings({ jurisdiction: job.jurisdiction, kind: job.kind, prefixes })
+  if (held.size) jlog(`${held.size.toLocaleString()} works already indexed under ${prefixes.join(", ")}`)
   const seen = []
   const inflight = new Set()
   let lastBeat = Date.now()
@@ -183,7 +192,7 @@ async function runJob(job) {
         if (!DRY)
           await index.add({
             work: item.work, expression: r.expression, expression_date: r.date, date_basis: r.dateBasis, kind: item.info.kind,
-            jurisdiction: source.jurisdiction(job), session: item.session ?? null, unit: item.unit ?? "", label: item.label ?? null,
+            jurisdiction: job.jurisdiction, session: item.session ?? null, unit: item.unit ?? "", label: item.label ?? null,
             fidelity: item.info.fidelity, coverage: Number(r.coverage.toFixed(4)), dialect: r.dialect, front_end: r.frontEnd, builder: BUILDER,
             source_url: item.sourceUrl ?? null, source_ref: item.sourceRef ?? null, s3_key: r.key, source_hash: sourceHash,
             content_hash: r.contentHash, bytes: r.bytes, gz_bytes: r.gzBytes, job_id: job.id,

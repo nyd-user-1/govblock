@@ -46,15 +46,31 @@ const UPSERT = `insert into expressions (${COLUMNS.join(", ")}) values (${VALUES
     ${COLUMNS.filter((c) => c !== "work" && c !== "expression").map((c) => `${c} = excluded.${c}`).join(", ")},
     built_at = now(), seen_at = now()`
 
-/** Index rows, buffered and flushed a thousand at a time. `flush()` before a job is marked done. */
-export function indexWriter({ size = 1000 } = {}) {
+/**
+ * Index rows, buffered and flushed a thousand at a time. `flush()` before a
+ * job is marked done. A batch the database refuses is written row by row, so
+ * one bad row costs itself (`onBad`) and not the other 999.
+ */
+export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
   let rows = []
   let chain = Promise.resolve()
   let written = 0
-  const flushNow = (batch) =>
-    send(new BatchExecuteStatementCommand({ ...base, sql: UPSERT, parameterSets: batch.map((r) => COLUMNS.map((c) => ({ name: c, value: field(r[c]) }))) })).then(() => {
+  const params = (r) => COLUMNS.map((c) => ({ name: c, value: field(r[c]) }))
+  const flushNow = async (batch) => {
+    try {
+      await send(new BatchExecuteStatementCommand({ ...base, sql: UPSERT, parameterSets: batch.map(params) }))
       written += batch.length
-    })
+    } catch (error) {
+      for (const r of batch) {
+        try {
+          await send(new BatchExecuteStatementCommand({ ...base, sql: UPSERT, parameterSets: [params(r)] }))
+          written++
+        } catch (e) {
+          onBad(r, e)
+        }
+      }
+    }
+  }
   return {
     add(row) {
       rows.push(row)
@@ -94,15 +110,19 @@ export async function touch(works) {
  * date, source_hash, builder, front_end }], newest first. Paged by id so no
  * response nears the Data API's megabyte.
  */
-export async function holdings(prefix) {
+export async function holdings({ jurisdiction, kind, prefixes }) {
   const out = new Map()
+  const within = (work) => prefixes.some((p) => work.startsWith(p))
   let after = 0
   for (;;) {
+    // By jurisdiction and kind on (jurisdiction, kind, id); the prefix is checked here, since a
+    // LIKE on `work` cannot use the address index under the cluster's collation.
     const rows = await q(
-      `select id, work, expression, unit, expression_date::text as date, source_hash, builder, front_end from expressions where work like $1 and id > $2 order by id limit 5000`,
-      [`${prefix.replace(/[%_]/g, "\\$&")}%`, after]
+      `select id, work, expression, unit, expression_date::text as date, source_hash, builder, front_end from expressions where jurisdiction = $1 and kind = $2 and id > $3 order by jurisdiction, kind, id limit 5000`,
+      [jurisdiction, kind, after]
     )
     for (const r of rows) {
+      if (!within(r.work)) continue
       const list = out.get(r.work) ?? []
       list.push(r)
       out.set(r.work, list)
@@ -159,6 +179,8 @@ export async function finish(job, counts, status = "done", error = null) {
 
 /** A job, queued unless one is already open for the same unit. */
 export async function enqueue({ jurisdiction, kind, unit, priority = 100, status = "queued", reason = null, run = null, requestedBy = null }) {
+  // A blocked unit stays one row: the open-job index does not cover 'blocked'.
+  if (status === "blocked" && (await one(`select id from xml_jobs where jurisdiction = $1 and kind = $2 and unit = $3 and status = 'blocked'`, [jurisdiction, kind, String(unit)]))) return null
   return one(
     `insert into xml_jobs (jurisdiction, kind, unit, priority, status, reason, run, requested_by) values ($1, $2, $3, $4, $5, $6, $7, $8)
      on conflict (jurisdiction, kind, unit) where status in ('queued', 'waiting', 'running') do nothing returning id`,

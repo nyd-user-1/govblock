@@ -11,6 +11,7 @@ export const DCTERMS_NS = "http://purl.org/dc/terms/"
 const el = (tag, attrs = {}, children = []) => ({ tag, attrs, children })
 const kids = (n) => n.children.filter((c) => typeof c !== "string")
 const ROOTS = new Set(["bill", "resolution", "amendment", "lawDoc", "uscDoc", "pLaw", "statutesAtLarge"])
+const LEVELS = new Set(["section", "article", "chapter", "part", "title", "rule", "level", "subsection", "paragraph"])
 
 /** The first element named `tag` anywhere under `n`. */
 export function first(n, tag) {
@@ -37,10 +38,12 @@ export const textOf = (n) => (typeof n === "string" ? n : n.children.map(textOf)
 export function wrap(doc, info, toXml) {
   let top = doc.tag === "#root" ? kids(doc)[0] ?? el("main") : doc
   if (!ROOTS.has(top.tag)) {
+    // A front end that returns the section itself: it is the Work.
+    if (LEVELS.has(top.tag)) top.attrs = { ...top.attrs, identifier: info.work }
     const body = top.tag === "main" ? top : el("main", {}, [top])
-    // A statute section read as text carries its number and heading from the
-    // loader's own columns, so the section element is the Work itself.
-    if (info.section) {
+    // A statute section read as plain text carries its number and heading
+    // from the loader's own columns, so the section element is the Work.
+    if (info.section && !LEVELS.has(top.tag)) {
       const section = el("section", { identifier: info.work }, [
         ...(info.section.num ? [el("num", {}, [info.section.num])] : []),
         ...(info.section.heading ? [el("heading", {}, [info.section.heading])] : []),
