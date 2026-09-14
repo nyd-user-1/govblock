@@ -3,6 +3,7 @@
 // prosemirror-model builds the documents and diffs them.
 export * from "../../apps/web/lib/typeset/amend"
 export * from "../../apps/web/lib/typeset/cite"
+export * from "../../apps/web/lib/typeset/instruct"
 export { parseXml } from "../../apps/web/lib/xml/ir"
 export { uslmToDoc } from "../../apps/web/lib/xml/uslm-to-doc"
 export { xmlSchema } from "../../apps/web/lib/xml/schema"

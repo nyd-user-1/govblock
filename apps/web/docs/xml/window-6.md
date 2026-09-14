@@ -1,7 +1,153 @@
 # Window 6: citations and context — report
 
 Report to the lead. Newest milestone first. Run by window 5's session after
-its brief was accepted (`lib/xml/todo.ts`, claimed by window-5).
+its brief was accepted (`lib/xml/todo.ts`, claimed by window-5). Milestone 3
+goes to a fresh window, `window-6b`, on the lead's word at 60% context; its
+brief is the next section.
+
+## Milestone 3 brief: the in-context view (for window 6b)
+
+Read `apps/web/docs/prompts/2026-09-14-legislative-xml-program.md` and
+`2026-09-14-citations-and-context.md` whole, then this report and
+`window-5.md`. Plan, then build. Commit to `feature/legislative-xml` by path
+(never `git add -A`, never `--autostash`, never `main`), pull `--rebase` only
+with your own paths committed. Report here at every milestone. Ask Brendan
+before any production-database action beyond additive DDL under `sql/`.
+
+### What it is
+
+A third mode of the Fork view (`components/workspace/typeset-fork.tsx`):
+Edit | Redline | **In context**.
+
+- **Left:** the fork's document with an `@` marker (a decoration, class
+  `at-marker` in `typeset-cite.css`) on each amendment instruction.
+  - A fork of a **bill**: the markers sit on the bill's own instructions,
+    `instructionsOf(doc, ctx)`, which gives each instruction's positions.
+  - A fork of a **statute**: the markers sit on the units the fork changed
+    (`diffDocs(base, fork)`; each changed node carries `forkPos`), each
+    marker holding the engine's instruction for that unit.
+- **Right:** a tab per affected Work, named by its label ("12 U.S.C.
+  1701x"). Each is drawn from its dated Expression with the redline in place.
+  Clicking a marker opens its tab and scrolls to the unit.
+- **The redline per tab:**
+  - A bill: load the cited Work as of the bill's date, carry out that
+    Work's instructions (`carryOut`), diff the statute against the result
+    (`diffDocs`), turn it into specs (`marked`), and lay those over a
+    read-only editor as the Redline mode already does. Under the text, list
+    each instruction's outcome in plain words: applied, already made, not
+    found, refused, not yet read.
+  - A statute fork: one tab, the whole base section. Graft the fork's
+    document in place of the portion it copies (find the node by the fork's
+    `work` identifier), then diff and mark the same way.
+
+### What exists, with signatures
+
+| File | What to use |
+|---|---|
+| `lib/typeset/instruct.ts` (pure, 4 tests) | `instructionsOf(doc, ctx: CiteContext): BillInstruction[]` (`from`, `to`, `text`, `work`, `cite`, `portion: string[]`, `part`, `action`); `carryOut(statute, instructions): { doc, outcomes: Outcome[] }` (`status`: `applied` \| `already-made` \| `not-found` \| `refused` \| `unread` \| `other-work`, `detail`); `parseAction`, `parseInstruction` |
+| `lib/typeset/amend.ts` (18 tests) | `diffDocs(base, fork): DiffNode`, `marked(diff): MarkedSpec[]`, `instructions(diff, cite): Amendment`, `linesOf`, `conventionFor`, `textOf`, `numOf`, `elementOf` |
+| `lib/typeset/cite.ts` (6 tests) | `citationsOf(doc, ctx): Cite[]`, `worksOf(cites)`, `addressOfHref(href)`, `recognize(text, ctx)` |
+| `components/workspace/typeset-fork.tsx` | `TypesetForkView({ forkId })`; inside it `decorate(doc, specs)`, the `Redline` extension and `redlineKey` (export them for the tabs); the payload from `GET /api/typeset/fork?id=` is `{ fork, base: { address, date, label, fidelity, coverage, json }, head, commits, cite }` |
+| `components/workspace/typeset-cite-layer.ts` | `CiteDecorations.configure({ onOpen })`, `useCitations(editor, { jurisdiction, work, at, citing })` |
+| `components/workspace/typeset-xml-reader.tsx` | `TypesetXmlReader({ billId?, version?, snapshot?, meta?, jsonUrl?, portion?, cite? })` |
+| The Work load (window 4) | `GET /api/typeset/work?address=<work>&at=YYYY-MM-DD` returns the Expression's reader JSON (`json`, `meta`, `history`), gated as its record is; `/workspace/typeset/work/<address>` is its page; `workHref(address, at)` in `lib/xml/library.ts` |
+| Resolution | `POST /api/typeset/cite { works, at, citing }` → per Work: `found`, `expression`, `date`, `latest`, `label`, `advisories` |
+
+### What the corpus allows, measured
+
+The store holds **one Expression of each US Code section**, the OLRC release
+point, and for H.R. 6644 that is later than the bill. So 12 U.S.C. 1701x
+(dated 2026-07-23) already carries § 101's amendments. Carried out on it, all
+five instructions come back `already-made`, and the diff is empty. The tab
+must say so plainly ("The stored text, dated 2026-07-23, already carries
+these amendments") rather than draw an empty redline. The test "carried out
+on the text before it" shows the redline when a pre-enactment text exists; no
+such Expression is in the store today. New York sections are dated by
+`"Laws".active_date` and often predate a bill.
+
+### Verify
+
+1. Tests: `node --test scripts/typeset/instruct.test.mjs scripts/typeset/cite.test.mjs scripts/typeset/amend.test.mjs`.
+   Then a bounded type check on touched files (`ts.createProgram` over those
+   files only, under a 2 GB cap). The hook blocks whole-project checks.
+2. On the box: `git push govblock-dev:govblock-xml HEAD:feature/legislative-xml`,
+   then the 3002 server through the tunnel.
+3. Make a fork of H.R. 6644 § 101 (bills of the current Congress are open
+   without sign-in):
+   `POST /api/policy/forks {"address": "/us/bill/119/hr/6644/tI/s101@2026-06-25_enr", "claim": "<a uuid>"}`.
+4. Open `/workspace/typeset/fork/<id>` and check In context: one tab for
+   12 U.S.C. 1701x with five outcomes.
+5. US Code and New York tabs need a signed-in reader (laws answer 403
+   anonymously), so their look is Brendan's, in his browser.
+
+### Out of scope
+
+Instructions whose struck words span two text blocks; page-and-line
+instructions; carrying out a state bill's instructions beyond what
+`instructionsOf` reads today (New York's "is amended to read as follows:"
+with quoted matter is untested); texts older than the store holds; a screen
+for `conflicts()`; public proposals; removing Plate.
+
+## Milestone 3, part 1 — the instruction reader (2026-09-14)
+
+### Built
+
+`apps/web/lib/typeset/instruct.ts`, pure:
+
+- **`instructionsOf(doc, context)`** finds each block that says a law "is
+  amended".
+  - It names the Work by the block's last citation: the Code parenthetical
+    in "Section 106 of the Housing and Urban Development Act of 1968 (12
+    U.S.C. 1701x)".
+  - It reads the instruction from the rest of the block or, where the block
+    ends in a dash, from each level under it. Nested lists ("in subsection
+    (i)—") narrow the portion.
+  - The quoted law after "the following:" is carried as each instruction's
+    matter.
+- **`parseAction(words, matter)`** reads:
+  - by striking “…” [and all that follows through “…”] [and inserting “…”]
+  - by inserting “…” after or before “…”
+  - by adding at the end the following
+  - by inserting after or before a unit the following
+  - by striking a unit, or by striking it and inserting the following
+  - by redesignating
+  - to read as follows
+
+  Anything else is kept `unread` with its words.
+- **`carryOut(statute, instructions)`** carries them out in order on the
+  statute. Units are found by identifier, and words tolerate spacing,
+  quotation-mark and dash differences. Each instruction reports whether it
+  applied, was already made (the inserted words or unit already stand), was
+  not found, or was refused by the schema.
+
+### Verified
+
+**28 of 28 tests** across the three files. The four new tests:
+
+- the forms, from the words
+- H.R. 6644 § 101's five instructions to 12 U.S.C. 1701x:
+  - (a)(4)(C) strike and insert, with "and all that follows through"
+  - (e) add at the end, paragraph (6)
+  - (i) redesignate
+  - (i) insert after paragraph (2)
+  - add subsection (j) at the end
+- carried out on the stored 1701x, which already carries them: all five are
+  already made, and the document is unchanged
+- carried out on the text before it, with the struck words put back: applied,
+  and the engine strikes "adequate …" and inserts "…geographically diverse…"
+
+The third test caught a real error on the way: a redesignation whose new
+number already stands renumbered the unit the bill had inserted. It is now
+already made. Bounded type check: 0 diagnostics.
+
+### Files
+
+`apps/web/lib/typeset/instruct.ts`, `scripts/typeset/instruct.test.mjs`,
+`scripts/typeset/amend-entry.ts`,
+`scripts/typeset/fixtures/us-bill-119-hr-6644-tI-s101@2026-06-25_enr.json`,
+`scripts/typeset/fixtures/us-usc-t12-s1701x@2026-07-23.xml`,
+`apps/web/lib/xml/todo.ts` (window-6 claimed by window-6b),
+`apps/web/docs/xml/window-6.md`.
 
 ## Milestone 2 — resolved against the corpus, decorated, and `@` (2026-09-14)
 
@@ -63,24 +209,10 @@ its brief was accepted (`lib/xml/todo.ts`, claimed by window-5).
     federal citation; it is gone.
   - **Duplicates.** `@` listed a federal citation twice.
 
-### Next: milestone 3, the in-context view
+### Next
 
-A mode of the Fork view:
-- **Left:** the document, with an `@` marker on each amendment instruction.
-- **Right:** a tab per affected statute, rendered from its dated
-  Expression, with the redline in place.
-- **Where the redline comes from:**
-  - A fork of a statute takes it from the engine: the base section with the
-    fork's changes laid over.
-  - A bill's own instructions (H.R. 6644 § 101: "Section 106 of the Housing
-    and Urban Development Act of 1968 (12 U.S.C. 1701x) is amended— (1) in
-    subsection (a)(4)(C), by striking … and inserting …; (2) in subsection
-    (e), by adding at the end the following: …") are carried out on the
-    cited section first. The target comes from the chapeau's citation; the
-    forms read are the ones the engine writes (strike and insert, "and all
-    that follows through", insert after, add at the end, strike a unit, read
-    as follows). A form not yet read says so in its tab.
-- Not yet looked at in a browser: the decorations, both palettes.
+Milestone 3, the in-context view: see "Milestone 3 brief" at the top. Not
+yet looked at in a browser: the decorations and both palettes.
 
 ### Files
 
