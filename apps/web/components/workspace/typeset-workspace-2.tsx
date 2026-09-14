@@ -394,7 +394,9 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
     if (editor) {
       content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
     } else if (view === "xml") {
+      // The rich-text toolbar on the XML view too (Brendan, 2026-09-14): the file row above it is the next step, once it is lifted out of the text pane.
       content = (
+        <WithToolbar>
         <ForkAction expression={xml?.meta?.expression ?? null} billId={route.billId}>
           <TypesetXmlReader
             billId={route.billId}
@@ -404,12 +406,17 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
             cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
           />
         </ForkAction>
+        </WithToolbar>
       )
     } else if (view === "fork") {
       // The reader's fork of the printing on the USLM schema (window 5, 2026-09-14): its own toolbar, amendment and redline.
       content = <TypesetBillFork bill={bill} />
     } else if (view === "library") {
-      content = <TypesetLibraryPane />
+      content = (
+        <WithToolbar>
+          <TypesetLibraryPane />
+        </WithToolbar>
+      )
     } else if (view === "redline") {
       content = (
         <WithToolbar>
