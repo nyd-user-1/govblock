@@ -170,7 +170,11 @@ async function targets() {
     for (;;) {
       const rows = await q(
         `select t.document_id, t.bill_id, t.session_id, d.document_desc, d.state_link
-           from "BillTexts" t join "Documents" d on d.document_id = t.document_id
+           from "BillTexts" t
+           -- "Documents".document_id is not unique: 86655 is a Maryland veto letter, Virginia's HB1535 as introduced
+           -- and HB2125's amendments. The text's own bill picks its link; the trial's first 300 wrote 8 rows from a
+           -- sibling's link before this join named the bill (2026-09-14).
+           join "Documents" d on d.document_id = t.document_id and d.bill_id = t.bill_id and d.state_link ilike '%lis.virginia.gov%'
           where t.state = 'VA' and t.session_id = $1 and t.chars = 323 and t.document_id > $2
           order by t.document_id limit 3000`,
         [session, after]
@@ -181,9 +185,10 @@ async function targets() {
     }
     log(`session ${session}: ${out.length.toLocaleString()} so far`)
   }
-  out.sort((a, b) => a[0] - b[0])
-  writeFileSync(TARGETS, JSON.stringify(out))
-  log(`${out.length.toLocaleString()} targets written to ${TARGETS} in ${((Date.now() - t) / 1000).toFixed(1)} s`)
+  // "Documents" repeats a document_id (LegiScan's rows for one text under more than one link); a document is fetched once.
+  const unique = [...new Map(out.map((row) => [row[0], row])).values()].sort((a, b) => a[0] - b[0])
+  writeFileSync(TARGETS, JSON.stringify(unique))
+  log(`${unique.length.toLocaleString()} targets (${(out.length - unique.length).toLocaleString()} repeated document rows dropped) written to ${TARGETS} in ${((Date.now() - t) / 1000).toFixed(1)} s`)
 }
 
 // ---------------------------------------------------------------- ranking ---
@@ -293,10 +298,22 @@ async function writeBatch(rows) {
 
 async function run() {
   if (!existsSync(TARGETS)) throw new Error(`no ${TARGETS}; run --targets first`)
-  const all = JSON.parse(readFileSync(TARGETS, "utf8"))
+  const all = [...new Map(JSON.parse(readFileSync(TARGETS, "utf8")).map((row) => [row[0], row])).values()].sort((a, b) => a[0] - b[0])
   const limit = Number(val("--limit", "0")) || Infinity
   let todo
-  if (has("--retry-refused")) {
+  if (val("--only")) {
+    // Named documents, fetched again whatever the cursor says: corrections.
+    // Read from the database joined on the text's own bill, not from the targets: a row written wrongly is no longer a capture.
+    const only = val("--only").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0)
+    const rows = await q(
+      `select t.document_id, t.bill_id, t.session_id, d.document_desc, d.state_link
+         from "BillTexts" t join "Documents" d on d.document_id = t.document_id and d.bill_id = t.bill_id and d.state_link ilike '%lis.virginia.gov%'
+        where t.state = 'VA' and t.document_id = any($1::bigint[]) order by t.document_id`,
+      [`{${only.join(",")}}`]
+    )
+    todo = rows.map((r) => [Number(r.document_id), Number(r.bill_id), Number(r.session_id), r.document_desc, r.state_link])
+    log(`${only.length} named documents, ${todo.length} with their own Virginia link: ${todo.map((t) => t[4].replace(/^.*\?/, "")).join(", ")}`)
+  } else if (has("--retry-refused")) {
     const refused = new Set(
       existsSync(FAILURES)
         ? readFileSync(FAILURES, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((f) => f.verdict === "error-page" || f.status === 429 || f.status === 503).map((f) => f.document_id)
@@ -329,7 +346,7 @@ async function run() {
     batch = []
     bytes = 0
     lastFlush = Date.now()
-    if (settled !== null && !has("--retry-refused")) writeFileSync(CURSOR, String(settled))
+    if (settled !== null && !has("--retry-refused") && !val("--only")) writeFileSync(CURSOR, String(settled))
   }
 
   for (const [document_id, bill_id, session_id, version, link] of todo) {

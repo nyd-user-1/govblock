@@ -5,6 +5,41 @@ that claims its item in `apps/web/lib/xml/todo.ts`, under its own heading.
 
 ## Part 1, Virginia (`va-refetch`, claimed by window 4)
 
+### Milestone 2 — the trial, a wrong join caught and corrected (2026-09-14, 13:50 UTC)
+
+**The trial (300 documents from the Mac, 750 ms pause) found a bug in the
+target list before the full run.** `"Documents".document_id` is not unique:
+document 86655 is a Maryland veto letter, Virginia's HB1535 as introduced and
+Virginia's HB2125 amendments, three rows. The first target query joined on
+`document_id` alone, so it listed 124,967 links for 97,015 documents, and the
+dedupe kept an arbitrary one.
+
+What that cost, counted from the trial's log and the rows:
+
+- **About 170 requests went to other legislatures' hosts** (Maryland 84,
+  Louisiana 15, Utah 13, Arizona 11, Wyoming 10, Indiana 8, Kansas 7,
+  Mississippi 7, and a few each elsewhere), one at a time with the pause. None
+  of those pages has legacy LIS's bill division, so none was stored; each is
+  named in `logs/va-refetch/failures-trial-bad-join.jsonl`.
+- **100 rows were written. 92 held the right bill** (the number printed in the
+  text equals the row's bill). **8 held a sibling Virginia document's
+  amendment page** (HB1535's row held HB2125's committee amendments, and so
+  on).
+- **Corrected at 13:50 UTC**: the 8 re-fetched from their own links
+  (`--only`, 8 bills, 137,040 characters), upserted over the wrong text. A
+  recheck of all 100 rows: 0 whose printed number differs from their bill.
+  Their `"Bills"` stamps take the longest text, so the right bill's length
+  stands.
+
+**Fixed.** Targets join `"Documents"` on the document and the text's own
+bill, with a legacy LIS link: **97,015 targets, 0 links off legacy LIS, 0
+repeats**, sessions 2010–2024. (97,115 texts are 323 characters; the other
+100 have no Virginia link under their own bill.) The trial's cursor was
+discarded with its target list; the full run starts from the first document,
+and the 92 good rows cost a request and no write.
+
+**The pipeline box was started at 13:50 UTC** for the full run.
+
 ### Milestone 1 — what the 323-character texts are, and the source (2026-09-14, 13:35 UTC)
 
 **The captures.** Every one of them is the same 323 characters: legacy LIS's
