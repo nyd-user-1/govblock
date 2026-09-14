@@ -25,6 +25,7 @@ import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { TypesetEditor } from "@/components/workspace/typeset-editor"
 import { TypesetGitPane, type GitView } from "@/components/workspace/typeset-git-pane"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
+import { TypesetLibraryPane } from "@/components/workspace/typeset-library"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { BillCompare, type CompareWidth } from "@/components/bill-compare"
 import type { BillComparison } from "@/lib/policy/bill-compare"
@@ -391,6 +392,8 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
       content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
     } else if (view === "xml") {
       content = <TypesetXmlReader billId={route.billId} version={params.version ? String(params.version) : undefined} snapshot={xml?.snapshot} meta={xml?.meta} />
+    } else if (view === "library") {
+      content = <TypesetLibraryPane />
     } else if (view === "redline") {
       content = (
         <WithToolbar>

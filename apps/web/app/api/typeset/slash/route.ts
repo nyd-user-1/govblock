@@ -2,25 +2,39 @@ import { NextResponse } from "next/server"
 
 import { fmtBill } from "@/lib/format"
 import { q } from "@/lib/policy/db"
+import { findExpression } from "@/lib/typeset/expression-document"
 import { typesetHref } from "@/lib/typeset/views"
-import { billWork, parseAddress, resolveSlash, type SlashTarget } from "@/lib/xml/address"
+import { billWork, formatAddress, parseAddress, resolveSlash, type SlashTarget } from "@/lib/xml/address"
+import { familyBySlug } from "@/lib/xml/families"
+import { JURISDICTION_NAMES, jurisdictionName, jurisdictionSlug, libraryHref, workHref } from "@/lib/xml/library"
+import { codeName, familyCodes, jurisdictionFamily, loadCatalogue, type CatalogueRow } from "@/lib/xml/library-data"
 
-// The `/` command, stubbed (window 1, 2026-09-14): what a `/` query names in
-// the corpus's address (docs/xml/schema.md), and the Works under it. A
-// session and a bill number resolve here; a state's code lists its laws; a
-// named library by family of law is window 4's and comes back as itself.
+// The `/` command (window 1's stub, 2026-09-14; the libraries, window 4): what
+// a `/` query names in the corpus's address (docs/xml/schema.md), where it
+// lives (`href`, the library or the Work that Enter opens), and what sits
+// under it.
 //
-//   GET /api/typeset/slash?q=/119   /6644   /hr6644   /new-york-code   /us/bill/119/hr/6644
+//   /119                         the 119th Congress's bills; its library
+//   /6644, /hr6644               bills by number
+//   /new-york-code, /us/usc      a code's titles, each a library
+//   /new-york-constitution       the constitution's library
+//   /agricultural-law            a family of law
+//   /arkansas-agricultural-law   that family in one state
+//   /new-york                    a jurisdiction's library
+//   /agriculture                 codes whose names say so
+//   /us/usc/t10/s130i            the Work in the XML view
 
 export const dynamic = "force-dynamic"
 
 export type SlashItem = { label: string; description: string; address: string | null; href: string | null; state: string | null }
-export type SlashResponse = { target: SlashTarget | null; label: string; items: SlashItem[] }
+export type SlashResponse = { target: SlashTarget | null; label: string; href: string | null; items: SlashItem[] }
 
 type BillRow = { bill_id: number; bill_number: string; state: string; session_id: number; session_title: string | null; title: string | null }
 
 const LIMIT = 20
 const FEDERAL_LEGISCAN: Record<string, string> = { hr: "HB", s: "SB", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR", hres: "HR", sres: "SR" }
+const stateOf = (jurisdiction: string) => (jurisdiction === "us" ? "US" : jurisdiction.slice(3).toUpperCase())
+const natural = (s: string) => s.replace(/\d+/g, (d) => d.padStart(12, "0"))
 
 const billItem = (b: BillRow): SlashItem => ({
   label: fmtBill(b.bill_number, b.state),
@@ -28,6 +42,14 @@ const billItem = (b: BillRow): SlashItem => ({
   address: billWork(b),
   href: typesetHref(b.bill_id, "xml"),
   state: b.state,
+})
+
+const rowItem = (r: CatalogueRow): SlashItem => ({
+  label: codeName(r),
+  description: `${jurisdictionName(r.jurisdiction)} · ${r.works.toLocaleString("en-US")} Works`,
+  address: r.prefix,
+  href: libraryHref(r.prefix),
+  state: stateOf(r.jurisdiction),
 })
 
 async function bills(where: string, params: unknown[]): Promise<SlashItem[]> {
@@ -38,45 +60,86 @@ async function bills(where: string, params: unknown[]): Promise<SlashItem[]> {
   return rows.map(billItem)
 }
 
+/** A slug that is not an address: a family, a family in a jurisdiction, a jurisdiction, or words in a code's name. */
+async function library(slug: string): Promise<{ label: string; href: string | null; items: SlashItem[] }> {
+  const rows = await loadCatalogue()
+  const family = familyBySlug(slug)
+  const scoped = family ? { family, jurisdiction: null as string | null } : jurisdictionFamily(slug)
+  if (scoped) {
+    const codes = familyCodes(rows, scoped.family, scoped.jurisdiction).sort((a, b) => b.works - a.works)
+    const label = scoped.jurisdiction ? `${jurisdictionName(scoped.jurisdiction)} ${scoped.family.name}` : scoped.family.name
+    return { label, href: libraryHref(slug), items: codes.slice(0, 40).map(rowItem) }
+  }
+  const place = Object.keys(JURISDICTION_NAMES).find((j) => jurisdictionSlug(j) === slug)
+  if (place) return { label: jurisdictionName(place), href: libraryHref(place), items: rows.filter((r) => r.jurisdiction === place && r.kind !== "bill").sort((a, b) => b.works - a.works).slice(0, 40).map(rowItem) }
+  const words = slug.split("-").filter((w) => w.length > 1)
+  const hits = words.length
+    ? rows.filter((r) => r.kind !== "bill" && words.every((w) => `${codeName(r)} ${jurisdictionName(r.jurisdiction)}`.toLowerCase().includes(w))).sort((a, b) => b.works - a.works)
+    : []
+  return { label: `Codes named “${words.join(" ")}”`, href: null, items: hits.slice(0, 40).map(rowItem) }
+}
+
 export async function GET(request: Request) {
   const input = new URL(request.url).searchParams.get("q") ?? ""
   const target = resolveSlash(input)
-  if (!target) return NextResponse.json({ target: null, label: "", items: [] } satisfies SlashResponse)
+  const reply = (label: string, href: string | null, items: SlashItem[]) => NextResponse.json({ target, label, href, items } satisfies SlashResponse)
+  if (!target) return reply("", null, [])
   try {
     if (target.kind === "number") {
       const pattern = `^${target.type ? (FEDERAL_LEGISCAN[target.type] ?? target.type.toUpperCase()) : "[A-Z]+"}\\s*0*${target.number}$`
-      return NextResponse.json({ target, label: target.type ? target.label : `Bills numbered ${target.number}`, items: await bills(`bill_number ~* $1`, [pattern]) } satisfies SlashResponse)
+      return reply(target.type ? target.label : `Bills numbered ${target.number}`, null, await bills(`bill_number ~* $1`, [pattern]))
     }
-    if (target.kind === "prefix" || target.kind === "address") {
-      const address = target.kind === "address" ? target.address : parseAddress(target.prefix)
-      if (!address) return NextResponse.json({ target, label: target.kind === "prefix" ? target.label : "", items: [] } satisfies SlashResponse)
-      const state = address.jurisdiction === "us" ? "US" : address.jurisdiction.slice(3).toUpperCase()
-      const [session, type, number] = address.work.split("/")
-      if (address.kind === "bill") {
-        const year = state === "US" && session ? 1789 + (Number(session) - 1) * 2 : Number(String(session ?? "").replace(/s.*$/, ""))
-        const label = target.kind === "prefix" ? target.label : address.workAddress
-        if (!session) return NextResponse.json({ target, label, items: await bills(`state = $1`, [state]) } satisfies SlashResponse)
-        if (type && number) {
-          const legiscan = state === "US" ? (FEDERAL_LEGISCAN[type] ?? type.toUpperCase()) : type.toUpperCase()
-          return NextResponse.json({ target, label, items: await bills(`state = $1 and session_id = $2 and bill_number ~* $3`, [state, year, `^${legiscan}\\s*0*${number}$`]) } satisfies SlashResponse)
+    if (target.kind === "library") {
+      const found = await library(target.slug)
+      return reply(found.label, found.href, found.items)
+    }
+
+    const address = target.kind === "address" ? target.address : parseAddress(target.prefix)
+    if (!address) return reply(target.kind === "prefix" ? target.label : "", null, [])
+    const jurisdiction = address.jurisdiction
+    const state = stateOf(jurisdiction)
+    const label = target.kind === "prefix" ? target.label : address.workAddress
+    const segments = address.work.split("/").filter(Boolean)
+
+    if (address.kind === "bill") {
+      const [session, type, number] = segments
+      if (!session) {
+        const sessions = (await loadCatalogue()).filter((r) => r.jurisdiction === jurisdiction && r.kind === "bill").sort((a, b) => natural(b.unit).localeCompare(natural(a.unit)))
+        return reply(`${jurisdictionName(jurisdiction)} sessions`, libraryHref(`${jurisdiction}/bill`), sessions.slice(0, 40).map(rowItem))
+      }
+      const year = state === "US" ? 1789 + (Number(session) - 1) * 2 : Number(session.replace(/s.*$/, ""))
+      if (type && number) {
+        const legiscan = state === "US" ? (FEDERAL_LEGISCAN[type] ?? type.toUpperCase()) : type.toUpperCase()
+        const items = await bills(`state = $1 and session_id = $2 and bill_number ~* $3`, [state, year, `^${legiscan}\\s*0*${number}$`])
+        return reply(label, workHref(formatAddress(address.workAddress, address.expression)), items)
+      }
+      return reply(`${label}: most recent action first`, libraryHref(`${jurisdiction}/bill/${session}`), await bills(`state = $1 and session_id = $2`, [state, year]))
+    }
+
+    if (address.kind === "code" || address.kind === "usc" || address.kind === "const") {
+      const rows = await loadCatalogue()
+      if (!segments.length) {
+        if (address.kind === "const") {
+          const row = rows.find((r) => r.prefix === `/${jurisdiction}/const`)
+          return reply(`${jurisdictionName(jurisdiction)} Constitution`, row ? libraryHref(row.prefix) : null, row ? [rowItem(row)] : [])
         }
-        return NextResponse.json({ target, label: `${label}: most recent action first`, items: await bills(`state = $1 and session_id = $2`, [state, year]) } satisfies SlashResponse)
+        const codes = rows.filter((r) => r.jurisdiction === jurisdiction && r.kind === address.kind).sort((a, b) => natural(a.unit).localeCompare(natural(b.unit)))
+        return reply(label, libraryHref(`${jurisdiction}/${address.kind}`), codes.slice(0, 100).map(rowItem))
       }
-      if (address.kind === "code" || address.kind === "usc" || address.kind === "const") {
-        const laws = await q<{ law_id: string; law_name: string | null; law_type: string | null }>(
-          `select law_id, max(law_name) as law_name, max(law_type) as law_type from "Laws" where state = $1 and depth = 0 group by law_id order by law_id limit 200`,
-          [state]
-        )
-        const prefix = `/${address.jurisdiction}/${address.kind}`
-        const items = laws
-          .filter((l) => (address.kind === "const" ? /constitution/i.test(l.law_name ?? "") : !/constitution/i.test(l.law_name ?? "")))
-          .map((l): SlashItem => ({ label: l.law_name ?? l.law_id, description: l.law_id, address: `${prefix}/${state === "US" ? l.law_id.replace(/^USC0*/i, "t").toLowerCase() : l.law_id.toLowerCase()}`, href: `/laws?state=${state}&law=${encodeURIComponent(l.law_id)}`, state }))
-        return NextResponse.json({ target, label: target.kind === "prefix" ? target.label : address.workAddress, items: items.slice(0, LIMIT * 5) } satisfies SlashResponse)
+      if (segments.length === 1 && address.kind !== "const") {
+        const row = rows.find((r) => r.prefix === address.workAddress)
+        if (row) return reply(codeName(row), libraryHref(row.prefix), [rowItem(row)])
       }
-      return NextResponse.json({ target, label: address.workAddress, items: [] } satisfies SlashResponse)
+      const typed = formatAddress(address.workAddress, address.expression)
+      const found = await findExpression(typed)
+      if (found) {
+        const item: SlashItem = { label: found.row.label ?? found.row.work, description: `${jurisdictionName(jurisdiction)} · as of ${found.row.expression_date}`, address: typed, href: workHref(typed), state }
+        return reply(item.label, item.href, [item])
+      }
+      return reply(label, null, [])
     }
-    return NextResponse.json({ target, label: target.label, items: [] } satisfies SlashResponse)
+    return reply(address.workAddress, null, [])
   } catch (error) {
-    return NextResponse.json({ target, label: "", items: [], error: String((error as Error)?.message ?? error).slice(0, 200) }, { status: 500 })
+    return NextResponse.json({ target, label: "", href: null, items: [], error: String((error as Error)?.message ?? error).slice(0, 200) }, { status: 500 })
   }
 }

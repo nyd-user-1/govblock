@@ -285,7 +285,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
   const [slashSelected, setSlashSelected] = React.useState("")
   React.useEffect(() => {
     const first = slash.result?.items[0]
-    setSlashSelected(first ? `slash-${first.href ?? first.address}` : "")
+    setSlashSelected(slash.result?.href ? `slash-open-${slash.result.href}` : first ? `slash-${first.href ?? first.address}` : "")
   }, [slash.result])
   const showRecents = !slash.mode && search.query.length < 2 && recents.length > 0
 
@@ -294,6 +294,15 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean } = {}) {
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
         setOpen((previous) => !previous)
+      }
+      // The `/` door in Typeset (window 4): "/" outside the editor's own text opens the menu on the corpus. The Library has a box of its own.
+      const target = event.target as HTMLElement | null
+      const typing = !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+      const path = window.location.pathname
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !typing && path.startsWith("/workspace/typeset/") && !path.startsWith("/workspace/typeset/library") && !path.endsWith("/library")) {
+        event.preventDefault()
+        setTerm("/")
+        setOpen(true)
       }
     }
     document.addEventListener("keydown", down)

@@ -2,6 +2,134 @@
 
 Report to the lead. Newest milestone first.
 
+## Milestone 3 — the Library, families of law, the `/` command (2026-09-14)
+
+### Built
+
+- **The Library** at `/workspace/typeset/library`, and view 07 "Library" in
+  Typeset's switcher on every bill (`/workspace/typeset/bill/<id>/library`).
+  Libraries at the top level: 26 families of law and 52 jurisdictions. Inside
+  one:
+
+  | Path | What it lists |
+  |---|---|
+  | `agricultural-law` | the family's codes in every jurisdiction (364), with a jurisdiction menu; Sections and Bills of Congress beside |
+  | `arkansas-agricultural-law` | the family in one state, its sections first |
+  | `us-ny` | a jurisdiction: its constitution, codes, sessions and the families it has |
+  | `us-ny/code/agm`, `us/usc/t10` | a code's sections |
+  | `us-ny/const` | a constitution's sections |
+  | `us-ny/bill/2025`, `us/bill/119` | a session's bills, with titles from `"Bills"` |
+
+  Every list filters (a bill number filters by address, words search bill
+  titles), sorts by address (natural: § 2 before § 10), newest or lowest
+  coverage, and pages a hundred at a time. Coverage under 80% is marked.
+  Every Work opens in the XML view at `/workspace/typeset/work/<address>`.
+  Filters, views and sorts live in the URL, so a library is a link.
+  `lib/xml/library-data.ts` resolves a path; `/api/typeset/library` serves
+  the same listing as JSON for "More" and for the view inside a bill.
+- **Families of law**, `lib/xml/families.ts`: 26 families as data, each a
+  rule over code names, the US Code titles it takes, Congress's policy areas
+  (which bring federal bills in) and codes named by hand. A code may sit in
+  several. Agricultural Law holds 364 codes in 44 jurisdictions, 43,808
+  sections.
+- **The catalogue**, `xml_library` (sql/012, run): 26,082 rows, one per state
+  code (25,134), US Code title (53), constitution (13) and bill session (882),
+  filled by `scripts/xml/library.mjs` in 86 s. Kept in memory for an hour.
+- **The `/` command** resolves through the address and the libraries, and
+  every answer carries where Enter goes (`href`):
+
+  | Typed | Enter opens | Listed |
+  |---|---|---|
+  | `/agricultural-law` | the family | its 40 largest codes |
+  | `/arkansas-agricultural-law` | the family in Arkansas | Title 2, Agriculture |
+  | `/new-york` | New York's library | its codes |
+  | `/new-york-code`, `/us/usc` | the codes | each code |
+  | `/119` | the 119th Congress's library | its bills, most recent action first |
+  | `/us/usc/t10/s130i` | the Work in the XML view | the Work |
+  | `/agriculture` | | codes whose names say so |
+  | `/6644`, `/hr6644` | | bills by number (as before) |
+
+  In ⌘K the library or Work is the first row. On the Library page the filter
+  box is the door: type `/`, or press `/` anywhere on the page. On a bill's
+  other Typeset views, `/` outside the editor's text opens ⌘K on `/`.
+
+### Verified, on the box (3002)
+
+Bounded type check over the 22 touched files and every importer of
+`lib/typeset/views.ts`: 0 diagnostics.
+
+| Request | Status | Time |
+|---|---|---|
+| `/workspace/typeset/library` | 200 | 10.6 s first (compile and catalogue), then cached |
+| `/workspace/typeset/library/agricultural-law` | 200 | 5.0 s page; 3.1 s JSON |
+| `…?path=agricultural-law&j=us-ca&show=sections&sort=newest` | 200 | 0.09 s, 100 of 9,661 |
+| `…?path=arkansas-agricultural-law` | 200 | 0.11 s, 100 of 691 |
+| `…?path=us-ny` (page) | 200 | 0.8 s |
+| `…?path=us-ca/code/fac` | 200 | 0.25 s; coverage sort 0.9 s; page two 3.4 s |
+| `…?path=us-ny/bill/2025` | 200 | 0.6 s, with titles; page two newest 0.25 s |
+| `…?path=us/bill/119&q=housing` | 200 | 0.5 s, 100 bills by title |
+| `…?path=us-ny/const` | 200 | 0.57 s, 202 sections |
+| `…?path=agricultural-law&show=bills` | 200 | 0.67 s, 753 federal bills by policy area |
+| `/workspace/typeset/library/new-york-code`, `/119` | 307 | to `us-ny/code`, `us/bill/119` |
+| `/api/typeset/slash` on the eight queries above | 200 | 66–366 ms |
+| `/workspace/typeset/bill/2058568/library` | 200 | 28.8 s first compile |
+
+Found and fixed on the way:
+
+- A family's sections across every jurisdiction in one statement took 46 s
+  and was throttled once the cluster was busy. A family with no jurisdiction
+  opens on its codes (from the catalogue). Its sections list per code, merged,
+  up to 120 codes; past that, a jurisdiction at a time, and the page says so.
+- A session's titles through a regular expression over the session's bills
+  took 14.5 s; exact bill numbers with their zero-padded forms take 0.6 s.
+
+### Done, against the brief
+
+- Families as data: `lib/xml/families.ts`.
+- The Library view (`library`, "Library") and page, browsing a family, a
+  session and a state's code, filtering, sorting, loading a Work into the XML
+  view: above.
+- The `/` command in ⌘K, on the Library page, and on Typeset's bill views,
+  resolving to a library or a Work: above. Window 1's stub message ("not built
+  yet") is gone.
+- My Files: the name and route settled in milestone 1; window 5 is making the
+  rename.
+
+### Open
+
+- **Not looked at in a browser.** The Library page, the Work page, the `/` key
+  on Typeset's views and ⌘K's first row compile and answer on 3002; the look
+  is Brendan's.
+- **Families are a first pass.** Iowa's codes are named "Chapter 1",
+  "Chapter 154A", so no rule reaches them; `codes` in `families.ts` names them
+  by hand. Rhode Island's and Illinois's libraries are chapters and acts, not
+  titles. State bills join no family: `"Subjects"` is empty for New York 2025,
+  so only federal bills come in, by policy area.
+- **The catalogue is refreshed by hand.** `scripts/xml/library.mjs` belongs at
+  the end of `scripts/xml/nightly.mjs`, which is window 2's file.
+- **Titles miss where numbers do not pad plainly** (D.C.'s `B26-0123`), and a
+  special session's titles can be taken from the regular session's bill of the
+  same number.
+- **The box clone holds this window's files uncommitted** (rsynced to compile).
+  Before the clone pulls, they come out: `git -C ~/govblock-xml status` lists
+  them.
+
+### For Brendan
+
+- `http://localhost:3002/workspace/typeset/library`,
+  `…/library/agricultural-law`, `…/library/us-ny/code/agm`,
+  `…/library/us/bill/119`, and a Work:
+  `http://localhost:3002/workspace/typeset/work/us/usc/t10/s130i/a/1`
+  (sections need a signed-in reader). Press `/` on the Library page.
+
+### Files touched
+
+- `apps/web/lib/xml/library-data.ts`, `apps/web/lib/xml/families.ts` (wired)
+- `apps/web/app/api/typeset/library/route.ts`, `apps/web/app/workspace/typeset/library/[[...path]]/page.tsx`
+- `apps/web/components/workspace/typeset-library.tsx`, `typeset-workspace-2.tsx` (the view), `apps/web/lib/typeset/views.ts`
+- `apps/web/app/api/typeset/slash/route.ts`, `apps/web/components/slash-library.tsx`, `apps/web/components/command-menu.tsx`
+- `apps/web/docs/xml/window-4.md`
+
 ## Milestone 2 — a Work loads in the XML view by its address (2026-09-14)
 
 ### Built

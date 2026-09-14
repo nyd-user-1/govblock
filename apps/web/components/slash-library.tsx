@@ -53,10 +53,17 @@ export function SlashResults({ mode, result, pending, term, go }: { mode: Corpus
   if (mode === "at") return <CommandEmpty>Citations by @ arrive with the library.</CommandEmpty>
   if (term.length < 2) return <CommandEmpty>/119, /6644, /hr6644, /new-york-code, or an address like /us/bill/119/hr/6644</CommandEmpty>
   if (!result) return <CommandEmpty>{pending ? "Reading the corpus…" : "Nothing at that address."}</CommandEmpty>
-  if (result.target?.kind === "library") return <CommandEmpty>{`The ${result.target.label} library is not built yet.`}</CommandEmpty>
-  if (!result.items.length) return <CommandEmpty>{pending ? "Reading the corpus…" : `Nothing under ${result.label || term}.`}</CommandEmpty>
+  if (!result.items.length && !result.href) return <CommandEmpty>{pending ? "Reading the corpus…" : `Nothing under ${result.label || term}.`}</CommandEmpty>
   return (
     <CommandGroup heading={result.label}>
+      {/* Where the query lives (window 4): the library, or the Work in the XML view. Enter opens it. */}
+      {result.href && (
+        <CommandItem className="group/row" value={`slash-open-${result.href}`} onSelect={() => go(result.href!)}>
+          <LibraryIcon className="text-muted-foreground" />
+          <span className={LABEL}>{result.label}</span>
+          <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{result.href}</span>
+        </CommandItem>
+      )}
       {result.items.map((item: SlashItem) => (
         <CommandItem key={`${item.address}-${item.href}`} className="group/row" value={`slash-${item.href ?? item.address}`} onSelect={() => item.href && go(item.href)}>
           {item.state ? <FlagChip state={item.state} width={20} /> : <LibraryIcon className="text-muted-foreground" />}

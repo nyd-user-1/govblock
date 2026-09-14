@@ -1,4 +1,4 @@
-import { FileCodeIcon, FileDiffIcon, FileTextIcon, GitBranchIcon, GitCompareArrowsIcon, GitForkIcon, ListTreeIcon, type LucideIcon } from "lucide-react"
+import { FileCodeIcon, FileDiffIcon, FileTextIcon, GitBranchIcon, GitCompareArrowsIcon, GitForkIcon, LibraryIcon, ListTreeIcon, type LucideIcon } from "lucide-react"
 
 // Typeset's views of one bill (Brendan, 2026-09-12): one route per view under
 // /workspace/typeset/bill/{id}, and the numbered switcher in the footer walks
@@ -15,7 +15,7 @@ import { FileCodeIcon, FileDiffIcon, FileTextIcon, GitBranchIcon, GitCompareArro
 // open the right thing (LEGACY_SLUGS). The old query form (?bill=…&item=…)
 // redirects here; see app/workspace/typeset.
 
-export type TypesetView = "typeset" | "outline" | "redline" | "git" | "diff" | "xml" | "fork"
+export type TypesetView = "typeset" | "outline" | "redline" | "git" | "diff" | "xml" | "library" | "fork"
 
 /** The bill /workspace/typeset opens when none is named: H.R. 6644, the 21st
  *  Century ROAD to Housing Act (Brendan, 2026-09-13). */
@@ -31,6 +31,8 @@ export const TYPESET_VIEWS: readonly ViewSpec[] = [
   { key: "git", slug: "git", label: "Git", icon: GitBranchIcon },
   { key: "diff", slug: "diff", label: "Diff", icon: FileDiffIcon },
   { key: "xml", slug: "xml", label: "XML", icon: FileCodeIcon },
+  // The Library (window 4, 2026-09-14): the corpus by family, jurisdiction, code and session; a Work opens in the XML view. Also at /workspace/typeset/library with no bill open.
+  { key: "library", slug: "library", label: "Library", icon: LibraryIcon },
 ]
 
 /** Git's own views, unnumbered. */
