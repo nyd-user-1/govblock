@@ -50,6 +50,9 @@ async function handle(task) {
     const fe = frontEndFor(task.frontEnd)
     const { doc, report } = fe.parse(task.source)
     if (report.dialect === "unknown") return { seq: task.seq, ok: false, stage, reason: "unrecognised document", detail: report.notes.join("; ").slice(0, 300) }
+    // A captured error page is not an Expression of the bill: stored, it would draw an empty
+    // bill where the reader should fall back to the plain text. It falls out, asking for a re-fetch.
+    if (report.dialect === "error-page") return { seq: task.seq, ok: false, stage: "source", reason: "error page captured instead of the bill; re-fetch", detail: `${info.work} ${report.notes.join("; ")}`.slice(0, 300) }
 
     let date = info.date
     let dateBasis = info.dateBasis
