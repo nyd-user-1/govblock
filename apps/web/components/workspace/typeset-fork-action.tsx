@@ -34,7 +34,7 @@ export function ForkAction({ expression, billId, children }: { expression: strin
     for (let el: HTMLElement | null = level; el && wrap.current.contains(el); el = el.parentElement?.closest<HTMLElement>(".uslm-level[id]") ?? null) {
       const num = el.querySelector<HTMLElement>(':scope > [data-uslm="num"]')?.textContent?.trim() ?? ""
       if (num) nums.unshift(num.replace(/\.$/, ""))
-      if (el.classList.contains("uslm-section") || /^(SEC(TION)?\.?|§)\s/i.test(num)) break
+      if (el.classList.contains("uslm-primary") || /^(SEC(TION)?\.?|§)\s/i.test(num)) break
     }
     const label = nums.map((n) => n.replace(/^(SEC(TION)?\.?|§)\s*/i, "")).join("").replace(/^(\d)/, "§ $1")
     setFailed(false)
