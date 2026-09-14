@@ -16,7 +16,8 @@ import { cn } from "@govblock/ui/lib/utils"
 // context has to reach the three layouts that mount the left rail. Remembered
 // per browser.
 
-type Side = "left" | "right"
+// "right-2" (Brendan, 2026-09-14) is the sheet inside the right rail's sheet: a second overlay, with its own strip, tab and memory.
+type Side = "left" | "right" | "right-2"
 
 const attr = (side: Side) => `data-rail-${side}`
 const key = (side: Side) => `rail:${side}`
@@ -117,7 +118,7 @@ export function RailStrip({ side }: { side: Side }) {
       onClick={() => setRail(side, false)}
       className={cn(
         "absolute inset-y-0 z-40 hidden w-6 cursor-pointer",
-        side === "left" ? "right-2 [[data-rail-left=closed]_&]:block" : "left-2 [[data-rail-right=closed]_&]:block"
+        side === "left" ? "right-2 [[data-rail-left=closed]_&]:block" : side === "right" ? "left-2 [[data-rail-right=closed]_&]:block" : "left-2 [[data-rail-right-2=closed]_&]:block"
       )}
     />
   )

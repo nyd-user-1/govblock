@@ -20,8 +20,14 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // all the way across until its hairline sits on the left rail's, wherever
 // that is — 1rem in when the left rail is closed, 17.5rem when it is open —
 // and it lies over the page like the left one does. On it: Clips, the same
-// page /clips draws, in the space the sheet gives it.
+// page /clips draws, in the space the sheet gives it. Inside it, a third
+// sheet (Brendan, 2026-09-14, later): a rail within the rail, the same
+// strip, line and tab at the second screen's right edge, opening across the
+// second screen until its line sits on the second screen's. Its tab rides
+// 3rem lower than the outer tab so the two never cover each other when both
+// sheets are closed at the same edge.
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&_[data-slot=sidebar-content]]:flex!"
+const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
 
 export function RailsFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -46,12 +52,19 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
             collapsible="none"
             className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-10rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
           >
-            <div className="absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex" />
+            <div className={LINE} />
             <RailToggle side="right" />
             {/* Past the tab's 16px and a little air; the page scrolls inside the sheet. */}
             <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
               <ClipsApp />
             </SidebarContent>
+            {/* The rail within the rail: the whole second screen's width, so its line lands on the second screen's when open. */}
+            <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
+              <RailStrip side="right-2" />
+              <div className={LINE} />
+              <RailToggle side="right-2" className="top-[calc(200px-var(--header-height)+2.4rem)]" />
+              <div className="ml-8 flex h-full flex-1 flex-col overflow-y-auto py-1 pr-2.5" />
+            </div>
           </Sidebar>
         </div>
       </SidebarProvider>
