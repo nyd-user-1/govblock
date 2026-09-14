@@ -33,6 +33,8 @@ export type StateProfile = {
   marginNumbers?: boolean
   /** Page furniture, whole lines dropped before blocks are read: a running footer, a drafting code. */
   furniture?: RegExp
+  /** Every unit opens its own line: an enumerator at a line's head opens a block whatever the line before ended with. */
+  openersAtLineHead?: boolean
   /** The capture may hold the body alone, no title and no formula; an act with no section opener is one unnumbered section. */
   bodyOnly?: boolean
   /** Statutes: the citation before a section's number ("IC 6-3.6-7-9"), removed before the number is read. */
@@ -55,6 +57,8 @@ const RANK_TAG = ["subsection", "paragraph", "subparagraph", "clause", "subclaus
 const ENUM_OPEN = /^(?:\(\s*[0-9A-Za-z]{1,4}(?:[.-][0-9A-Za-z]{1,2})?\s*\)|[0-9]{1,3}(?:[.-][0-9A-Za-z]{1,2})?\.|[A-Za-z]\.|(?:SUBCHAPTER|CHAPTER|ARTICLE|SUBTITLE|TITLE|PART|SUBPART|DIVISION)\s+[\w.-]+)\s+/
 /** The enacting formula alone, when it shares a block with the title before it or the first section after it. */
 const ENACTING_SENTENCE = /(be it (?:further )?enacted|(?:hereby )?enacts? as follows|do enact as follows|enacted by the)[^:.]*[:.]?/i
+/** Units named in an instruction, not units opening: "(3)(a) as follows:", "(1.1) (e) introductory portion, (1.2) (a) …". */
+const REFERENCE = /^(?:\(\s*[0-9A-Za-z.]{1,6}\s*\)\s*)+(?:as follows|introductory portion|and\b|or\b|to read|of this|,|;)/i
 const isOpener = (line: string, p: StateProfile) => p.section.test(line) || (p.quotedSection?.test(line) ?? false) || ENUM_OPEN.test(line) || /^\*\s*\*\s*\*/.test(line)
 
 /** Line numbers down the left margin, as Pennsylvania prints them: stripped when most lines carry one. */
@@ -148,7 +152,11 @@ export function stateBlocks(text: string, p: StateProfile): string[] {
     // Under margin numbers every line is indented alike; a lettered or numbered item ("a.", "12.")
     // at a line's head is an item there, since running prose does not wrap onto one.
     const dotItem = !!p.marginNumbers && /^(?:[a-z]|\d{1,3})\.\s+\S/.test(stripped)
-    if (isOpener(stripped, p) && (prevEnded || indent >= 3 || dotItem)) close()
+    // Where every unit opens its own line (Colorado), an opener at a line's head opens a block
+    // unless it reads as the tail of an instruction's list ("(1.5) (b), and (1.7) as follows:").
+    const reference = !!p.openersAtLineHead && REFERENCE.test(stripped)
+    const lineHead = !!p.openersAtLineHead && !reference
+    if (isOpener(stripped, p) && !reference && (prevEnded || indent >= 3 || dotItem || lineHead)) close()
     const last = current.length - 1
     if (last >= 0 && current[last].endsWith("-") && /^[a-z]/.test(stripped)) current[last] = current[last].slice(0, -1) + stripped
     else current.push(stripped)
@@ -223,9 +231,9 @@ const alphaToInt = (s: string) => {
   return n
 }
 
-/** A label with a hyphenated suffix ("2-a", "b-1") is a unit inserted after the one it names. */
+/** A label with a hyphenated or decimal suffix ("2-a", "b-1", "1.5") is a unit inserted after the one it names. */
 const split = (label: string) => {
-  const m = /^([0-9A-Za-z]+)(?:-([0-9A-Za-z]{1,2}))?$/.exec(label)
+  const m = /^([0-9A-Za-z]+)(?:[-.]([0-9A-Za-z]{1,2}))?$/.exec(label)
   return { base: m?.[1] ?? label, inserted: !!m?.[2] }
 }
 
@@ -236,7 +244,8 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
   let m =/^(\d{1,3}(?:-[a-z]{1,2})?)\.\s+(.*)$/s.exec(block)
   if (m) return { style: "1.", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   block = block.replace(/^\(\s+([0-9A-Za-z.-]{1,6})\s+\)/, "($1)")
-  m = /^\((\d{1,3}(?:-[a-z]{1,2})?)\)\s+(.*)$/s.exec(block)
+  // "(1.5)" is Colorado's unit inserted between (1) and (2), as "(2-a)" is New York's.
+  m = /^\((\d{1,3}(?:-[a-z]{1,2}|\.\d{1,2})?)\)\s+(.*)$/s.exec(block)
   if (m) return { style: "(1)", label: m[1], ordinal: Number(split(m[1]).base), rest: m[2], inserted: split(m[1]).inserted }
   m = /^\(([a-z])\.(\d{1,2})\)\s+(.*)$/s.exec(block)
   if (m) return { style: "(a.1)", label: `${m[1]}.${m[2]}`, ordinal: alphaToInt(m[1]) * 100 + Number(m[2]), rest: m[3], inserted: false }
@@ -248,7 +257,7 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
       return roman ? { style: "(i)", label: m[1], ordinal: romanToInt(base), rest: m[2], inserted } : { style: "(a)", label: m[1], ordinal: alphaToInt(base), rest: m[2], inserted }
     }
   }
-  m = /^\(([A-Z]{1,4}(?:-\d{1,2})?)\)\s+(.*)$/s.exec(block)
+  m = /^\(([A-Z]{1,4}(?:[-.]\d{1,2})?)\)\s+(.*)$/s.exec(block)
   if (m) {
     const { base, inserted } = split(m[1])
     if (base.length <= 2 || /^[IVXL]+$/.test(base)) {
@@ -259,7 +268,7 @@ function enumerator(block: string, expectRoman: boolean, letter = false): Enumer
   m = /^([a-z])\.\s+(?=\S)(.*)$/s.exec(block)
   if (m) return { style: "a.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
   // "B. 1. Notwithstanding …": a subsection whose first paragraph opens on its line (Oklahoma, Arizona).
-  m = /^([A-Z])\.\s+(?=[A-Z(]|\d{1,3}\.\s)(.*)$/s.exec(block)
+  m = /^([A-Z])\.\s+(?=[A-Z(“"]|\d{1,3}\.\s)(.*)$/s.exec(block)
   if (m) return { style: "A.", label: m[1], ordinal: alphaToInt(m[1]), rest: m[2], inserted: false }
   return null
 }
@@ -338,7 +347,8 @@ function nest(blocks: string[], problems: string[], inline: (t: string) => IrChi
 
 // Oklahoma's: the legislature site's navigation ("Home / Legislature Home / Senate Home …") in place of the bill.
 // Massachusetts's: "To view the text of House, No. 4215, please copy and paste the following URL …".
-const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home|To view the text of (?:House|Senate),? No\.)/i
+// Colorado's: the archive site's banner, "Accessibility Archive / Archived Content / This is archived reference material."
+const ERROR_PAGE = /^\s*(Sorry, your query could not be completed|Service Unavailable|404 Not Found|Access Denied|Home\s+Legislature Home\s+Senate Home|To view the text of (?:House|Senate),? No\.|Accessibility Archive\s+Archived Content)/i
 
 export function parseStateBill(source: Source, p: StateProfile): FrontEndResult {
   const problems: string[] = []
@@ -372,11 +382,13 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   const opensWithSection = blocks.length > 0 && p.section.test(blocks[0])
   if (start < 0 && !opensWithSection) {
     // A resolution: recitals and a resolving clause, no enacting formula.
-    if (blocks.some((b) => /^WHEREAS\b/i.test(b)) || blocks.some((b) => /\bRESOLVED\b/.test(b))) {
+    // "Be It Resolved by the Senate …" (Colorado) as well as "RESOLVED, That …".
+    const resolving = (b: string) => /\bRESOLVED\b/.test(b) || /\bbe it resolved\b/i.test(b)
+    if (blocks.some((b) => /^WHEREAS\b/i.test(b)) || blocks.some(resolving)) {
       doc.tag = "resolution"
       for (const b of blocks) {
         if (/^WHEREAS\b/i.test(b)) main.children.push(node("recital", {}, inline(b)))
-        else if (/\bRESOLVED\b/.test(b)) main.children.push(node("resolvingClause", {}, inline(b)))
+        else if (resolving(b)) main.children.push(node("resolvingClause", {}, inline(b)))
         else main.children.push(node("p", {}, inline(b)))
       }
       let elements = 0
@@ -463,6 +475,14 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
           // subsection, which is not a catchline and goes to the hierarchy.
           if (enumerator(rest, false)) {
             groups.push({ section: sec, blocks: [rest] })
+            continue
+          }
+          // A catchline of any length, verbless, running straight into the first subsection:
+          // "General assembly review of regulatory agencies … - repeal. (17) (a) The following …" (Colorado).
+          const intoLevel = /^(.{1,300}?\.)\s+(\(\s*[0-9A-Za-z]{1,4}\s*\)\s.*)$/s.exec(rest)
+          if (intoLevel && !/\b(shall|may|must|is|are|was|were|has|have|be)\b/.test(intoLevel[1])) {
+            sec.children.push(node("heading", {}, inline(intoLevel[1])))
+            groups.push({ section: sec, blocks: [intoLevel[2]] })
             continue
           }
           const stop = /^(.{1,80}?\.)\s+(.*)$/s.exec(rest)

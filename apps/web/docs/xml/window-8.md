@@ -8,7 +8,7 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | Indiana statutes | 80,485 | 72.2 | 69.8 | **99.6** |
 | Massachusetts bills | 69,255 | 72.9 | 71.4 | **98.5** |
 | Oregon statutes | 60,136 | 77.9 | 76.7 | **98.8** |
-| Colorado bills | 57,350 | 73.0 | 71.0 | 71.0 |
+| Colorado bills | 57,350 | 73.0 | 71.0 | **98.9** (real printings; 35% are archive banners) |
 | Washington statutes | 51,380 | 78.7 | 79.8 | 79.8 |
 | South Carolina bills | 49,119 | 74.5 | 76.0 | 76.0 |
 | Kansas statutes | 46,930 | 56.4 | 55.6 | 55.6 |
@@ -21,6 +21,12 @@ Report to the lead. The table is kept current; milestones below it, newest first
 | New Hampshire bills | 27,612 | 73.5 | 77.1 | 77.1 |
 | New Mexico bills | 24,254 | 64.8 | 65.3 | 65.3 |
 | Vermont bills | 13,036 | 74.9 | 81.1 | 81.1 |
+
+## Milestone 6 — Colorado bills, 71.0% to 98.9% (2026-09-14)
+
+- **Acquisition, for window 7:** 20,194 of Colorado's 57,350 stored printings are the archive site's 201-character banner ("Accessibility Archive / Archived Content …"), not bills. They report as `error-page` now, so a rebuild turns them into fall-outs asking for a re-fetch and takes them out of the store, as window 2 did for Virginia's error pages.
+- The real printings are the General Assembly's PDF as text. The profile sets `marginNumbers`, `furniture` (page numbers, the reading stamps down the right edge, the amendment legend), `capsAreNew`, and a new optional `openersAtLineHead`: an enumerator at a line's head opens a block unless it reads as an instruction's list ("(1.5) (b), and (1.7) as follows:"). Quoted C.R.S. sections open "25-4-902." with a catchline of any length running into "(1)".
+- Shared fixes Colorado exposed: inserted units with a decimal ("(1.5)", "(II.5)"); "A. \"TERM\" MEANS"; a quoted catchline running straight into its first subsection; "Be It Resolved" as a resolving clause. Against HEAD: California bills 99.8% to 100.0%, Arizona 99.1% to 99.4%; Texas, Florida, Alabama and the Oklahoma, Massachusetts, Indiana and Oregon held-back samples unchanged. Held-back Colorado: 99.8% on 18 real printings. Grammar: `grammars/co.md`.
 
 ## Milestone 5 — Oregon statutes, 76.7% to 98.8% (2026-09-14)
 

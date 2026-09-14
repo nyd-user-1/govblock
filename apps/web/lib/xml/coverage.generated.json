@@ -1138,28 +1138,29 @@
     "jurisdiction": "CO",
     "name": "Colorado",
     "source": "texts",
-    "sampled": 100,
-    "clean": 20,
-    "coverage": 0.7097,
+    "sampled": 70,
+    "clean": 46,
+    "coverage": 0.9886,
     "dialects": {
-      "co-bill": 100
+      "co-bill": 67,
+      "co-resolution": 3
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 49,
-      "no enacting formula": 45,
-      "unmatched enumerator": 34,
-      "paragraph opens at b": 14,
-      "subsection opens at N": 13,
-      "subsection N after N": 11,
-      "subsection I after N": 8,
-      "paragraph opens at c": 6,
-      "paragraph opens at d": 5,
-      "paragraph opens at N": 4,
-      "subparagraph opens at N": 3,
-      "subsection opens at b": 3
+      "subsection opens at N": 14,
+      "unmatched enumerator": 7,
+      "paragraph opens at N": 5,
+      "paragraph opens at b": 4,
+      "paragraph opens at d": 3,
+      "paragraph d after N": 3,
+      "subparagraph opens at II": 3,
+      "subsection a after N": 3,
+      "subsection I after N": 2,
+      "subsection opens at B": 1,
+      "paragraph opens at h": 1,
+      "paragraph f after N": 1
     },
-    "measuredAt": "2026-09-14T13:35:38.579Z"
+    "measuredAt": "2026-09-14T13:58:23.610Z"
   },
   "UT/texts": {
     "jurisdiction": "UT",

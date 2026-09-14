@@ -119,6 +119,26 @@ PROFILES.IN = {
   credit: /^(?:As added by|As amended by|Amended by|Repealed by|Formerly:|\[(?:Pre-|\d{4} )[\w\s-]*Recodification Citation)/,
 }
 
+// Colorado bills (window 8, from fifty printings of every session): a third
+// of the stored printings are the archive site's banner and report as error
+// pages. The rest are the General Assembly's printed bill: margin numbers,
+// the title's lines numbered from 101, a page number "-3- HB19-1312", the
+// reading stamps down the right edge ("2nd Reading Unamended", "April 22,
+// 2019", "SENATE") and the amendment legend ("Shading denotes HOUSE
+// amendment. …"). "SECTION 1. In Colorado Revised Statutes, 25-4-902, amend
+// (1); and add (6) as follows:" then "25-4-902. Catchline. (1) …". New matter
+// in CAPITALS; struck matter is dashes the capture does not keep.
+PROFILES.CO = {
+  ...common("CO"),
+  enacting: /Be it enacted by the General Assembly of the State of Colorado/i,
+  section: /^SECTION\s+(\d{1,3})\.\s*(.*)$/s,
+  quotedSection: /^(\d{1,2}(?:\.\d)?-\d{1,3}(?:\.\d{1,2})?-\d{1,4}(?:\.\d{1,2})?)\.\s+(.*)$/s,
+  capsAreNew: true,
+  marginNumbers: true,
+  openersAtLineHead: true,
+  furniture: /^(?:\s{40,}\S.{0,40}|\s*-\d{1,3}-\s+\S{1,12}|\s*(?:Shading denotes|Capital letters or bold|Dashes through the words) .*)\s*$/,
+}
+
 // Oregon statutes (window 8, from fifty sections of the ORS): the loader
 // writes "701.625 Catchline" as the first block, or the number alone for a
 // section repealed or renumbered, whose bracketed history is then its only
