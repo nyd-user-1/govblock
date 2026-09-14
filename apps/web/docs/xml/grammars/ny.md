@@ -10,9 +10,9 @@ The federal standard is imposed by rank (schema.md, the role convention): the US
 
 | New York | USLM | Signalled by |
 |---|---|---|
-| Law | `title` | the `Laws` row's `law_id` (AGM, PEN, TAX …) |
-| Article | `chapter role="article"` | `doc_type` ARTICLE; its text is the list of sections, read as a `toc` |
-| Title (under an article) | `subchapter role="title"` | `doc_type` TITLE |
+| Law | `title role="law"` | the `Laws` row's `law_id` (AGM, PEN, TAX …) |
+| Article | `article` | `doc_type` ARTICLE; its text is the list of sections, read as a `toc` |
+| Title (under an article) | `title` | `doc_type` TITLE |
 | Part | `part role="part"` | `doc_type` PART |
 | Section | `section` | "§ 1262-u." opening the text; a leading `*` is a note marker, kept as `note="*"` |
 | heading | `heading` | the sentence after the number, to the first full stop followed by a capital, a digit, a parenthesis or a section sign |

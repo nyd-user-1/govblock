@@ -59,6 +59,8 @@ async function sources() {
   return rows.filter((r) => !seen.has(r.id) && seen.add(r.id)).slice(0, sample).map((r) => ({ kind: "text", body: r.text, url: `texts:${r.id}`, meta: { kind: "bill" } }))
 }
 const show = Number(arg("show", 0))
+const heads = Number(arg("heads", 0))
+let shownHeads = 0
 
 const docs = await sources()
 const dialects = {}
@@ -86,6 +88,10 @@ for (const s of docs) {
   if (report.coverage === 1 && report.dialect !== "unknown") clean++
   for (const [k, v] of Object.entries(report.unknown)) unknown[k] = (unknown[k] ?? 0) + v
   for (const n of report.notes) fallouts[pattern(n)] = (fallouts[pattern(n)] ?? 0) + 1
+  if (report.notes.length && shownHeads < heads) {
+    shownHeads++
+    console.log(`--- ${s.url} ${JSON.stringify(report.notes.slice(0, 2))}\n    ${s.body.slice(0, 260).replace(/\s+/g, " ")}`)
+  }
 }
 const topFallouts = Object.fromEntries(Object.entries(fallouts).sort((a, b) => b[1] - a[1]).slice(0, 12))
 const top = Object.fromEntries(Object.entries(unknown).sort((a, b) => b[1] - a[1]).slice(0, 15))

@@ -242,12 +242,13 @@ function nest(blocks: string[], problems: Problem[], inline: (t: string) => IrCh
 
 // --------------------------------------------------------------- statutes ---
 
-// Above the section, the Senate API's doc_type, by USLM rank with New
-// York's word in `role`: a New York Law is the title, its Article a chapter,
-// a Title under an Article a subchapter, a Part a part.
+// Above the section, the Senate API's doc_type, as schema.md §2 v1 settles
+// it (Window 1, 2026-09-14): USLM has article, title, subtitle, part and
+// subpart as levels, so each keeps its own name; a New York Law is the
+// title with role "law".
 const DOC_TYPE_LEVEL: Record<string, [tag: string, role: string]> = {
-  ARTICLE: ["chapter", "article"], SUBARTICLE: ["subchapter", "subarticle"], TITLE: ["subchapter", "title"], SUBTITLE: ["part", "subtitle"],
-  PART: ["part", "part"], SUBPART: ["subpart", "subpart"], CHAPTER: ["chapter", "chapter"], SECTION: ["section", "section"], RULE: ["section", "rule"],
+  ARTICLE: ["article", "article"], SUBARTICLE: ["subarticle", "subarticle"], TITLE: ["title", "title"], SUBTITLE: ["subtitle", "subtitle"],
+  PART: ["part", "part"], SUBPART: ["subpart", "subpart"], CHAPTER: ["chapter", "chapter"], SECTION: ["section", "section"], RULE: ["section", "rule"], LAW: ["title", "law"],
 }
 
 /** A Laws row: "§ 1262-u. Heading. Body" with the row's own level above it. */
@@ -408,7 +409,7 @@ export const ny: FrontEnd = {
     name: "New York",
     dialects: ["ny-statute", "ny-bill", "ny-resolution"],
     units: [
-      { name: "article, title, part", uslm: "chapter, subchapter, part (role carries the New York word)", signal: "the Senate API's tree: doc_type and depth on the Laws row" },
+      { name: "law, article, title, part", uslm: "title role=law, article, title, subtitle, part, subpart", signal: "the Senate API's tree: doc_type and depth on the Laws row" },
       { name: "section", uslm: "section", signal: "\"§ 1262-u. Heading. Body\" in a statute; \"Section 1.\" then \"§ 2.\" in a bill" },
       { name: "subdivision", uslm: "subsection role=subdivision", signal: "\"1.\", \"A.\" or \"(1)\" opening an indented block; the USLM element is by rank, the state's word in role" },
       { name: "paragraph", uslm: "paragraph", signal: "\"(a)\"" },

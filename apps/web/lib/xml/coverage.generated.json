@@ -63,5 +63,130 @@
       "subparagraph ii after N": 1
     },
     "measuredAt": "2026-09-14T08:58:37.695Z"
+  },
+  "TX/texts": {
+    "jurisdiction": "TX",
+    "name": "Texas",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 21,
+    "coverage": 0.9688,
+    "dialects": {
+      "tx-bill": 14,
+      "tx-resolution": 10
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection N after N": 9,
+      "paragraph opens at b": 3
+    },
+    "measuredAt": "2026-09-14T09:20:34.851Z"
+  },
+  "NJ/texts": {
+    "jurisdiction": "NJ",
+    "name": "New Jersey",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 11,
+    "coverage": 0.9678,
+    "dialects": {
+      "nj-bill": 23,
+      "nj-resolution": 1
+    },
+    "unknown": {},
+    "fallouts": {
+      "paragraph opens at N": 9,
+      "paragraph opens at b": 6,
+      "subsection opens at f": 4,
+      "subsection opens at b": 3,
+      "subsection l after N": 3,
+      "subsection N after N": 2,
+      "paragraph opens at c": 1,
+      "unmatched enumerator": 1,
+      "subparagraph opens at c": 1,
+      "paragraph N after N": 1,
+      "subsection a after N": 1
+    },
+    "measuredAt": "2026-09-14T09:20:36.860Z"
+  },
+  "IL/texts": {
+    "jurisdiction": "IL",
+    "name": "Illinois",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 4,
+    "coverage": 0.5356,
+    "dialects": {
+      "il-bill": 22,
+      "il-resolution": 2
+    },
+    "unknown": {},
+    "fallouts": {
+      "no sections": 14,
+      "unmatched enumerator": 5,
+      "paragraph N after N": 5,
+      "paragraph opens at N": 3,
+      "subsection N after N": 3,
+      "subsection j after N": 2,
+      "subsection e after N": 1,
+      "subsection iv after N": 1,
+      "subsection ix after N": 1,
+      "subsection a after N": 1,
+      "subparagraph opens at D": 1,
+      "subparagraph A after N": 1
+    },
+    "measuredAt": "2026-09-14T09:20:36.126Z"
+  },
+  "PA/texts": {
+    "jurisdiction": "PA",
+    "name": "Pennsylvania",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 12,
+    "coverage": 0.9403,
+    "dialects": {
+      "pa-bill": 21,
+      "pa-resolution": 3
+    },
+    "unknown": {},
+    "fallouts": {
+      "paragraph N after N": 7,
+      "subsection N after N": 6,
+      "unmatched enumerator": 5,
+      "subsection opens at b": 4,
+      "subsection opens at N": 3,
+      "paragraph opens at N": 3,
+      "subparagraph opens at b": 2,
+      "paragraph opens at b": 2,
+      "subsection opens at d": 1,
+      "paragraph opens at c": 1,
+      "paragraph opens at e": 1,
+      "subparagraph opens at B": 1
+    },
+    "measuredAt": "2026-09-14T09:20:37.459Z"
+  },
+  "MA/texts": {
+    "jurisdiction": "MA",
+    "name": "Massachusetts",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 1,
+    "coverage": 0.5733,
+    "dialects": {
+      "ma-bill": 24
+    },
+    "unknown": {},
+    "fallouts": {
+      "no enacting formula": 15,
+      "no sections": 12,
+      "subsection opens at b": 2,
+      "unmatched enumerator": 2,
+      "subsection opens at N": 1,
+      "subsection opens at v": 1,
+      "paragraph opens at b": 1,
+      "subparagraph iv after N": 1,
+      "subparagraph opens at iv": 1
+    },
+    "measuredAt": "2026-09-14T09:20:38.099Z"
   }
 }

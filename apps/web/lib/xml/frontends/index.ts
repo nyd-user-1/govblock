@@ -1,6 +1,8 @@
 import type { FrontEnd } from "../ir"
 import { textFrontEnd } from "./text"
+import { stateFrontEnd } from "./generic"
 import { ny } from "./ny"
+import { PROFILES } from "./profiles"
 import { us } from "./us"
 
 // One front end per jurisdiction, by the two-letter code the corpus uses.
@@ -9,6 +11,7 @@ import { us } from "./us"
 // map and lib/xml/coverage.generated.json.
 
 export const FRONT_ENDS: Readonly<Record<string, FrontEnd>> = {
+  ...Object.fromEntries(Object.entries(PROFILES).map(([k, p]) => [k, stateFrontEnd(p)])),
   US: us,
   NY: ny,
 }
