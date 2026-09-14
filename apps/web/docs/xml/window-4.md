@@ -70,16 +70,22 @@ Bounded type check over the touched files: 0 diagnostics.
 Fixed on the way: the frame's customizer needs `TypesetHistoryProvider`; the
 page wraps it as the bill page does.
 
-### Next, and the one piece of DDL
+### Next, and the DDL, announced before it runs
 
-- **`sql/011_library.sql`, additive, to run next:** one index,
-  `expressions (jurisdiction, kind, split_part(work, '/', 4), work)`, built
-  `concurrently`. Listing one code's sections (California's Food and
-  Agricultural Code) read all 161,426 California sections without it, 5.7 s.
-  No other change to the cluster.
-- `scripts/xml/library.mjs` writes `lib/xml/library.generated.json`: every
-  jurisdiction's codes (named from `"Laws"`) and bill sessions, with Works,
-  Expressions and coverage. The Library's top level and the `/` command read it.
+- **`sql/012_library.sql`, additive, to run next** (numbered 012 because
+  window 5 holds 011):
+  - a new table, `xml_library`: one row per library that is a prefix of
+    addresses (a state's code, a US Code title, a constitution, a session of
+    bills), with its name, Works, Expressions, coverage and dates;
+  - one index, `expressions (jurisdiction, kind, split_part(work, '/', 4), work)`,
+    built `concurrently`. Listing one code's sections (California's Food and
+    Agricultural Code) read all 161,426 California sections without it, 5.7 s.
+
+  No other change to the cluster; nothing the site reads is touched.
+- `scripts/xml/library.mjs` fills `xml_library`, a jurisdiction per
+  transaction. A first run written to a JSON file came to 3.5 MB (52
+  jurisdictions, 25,000 codes, 154 s); bundled into the app's server routes
+  that risks Amplify's 220 MB output cap, so the catalogue lives in the table.
 - `lib/xml/families.ts`: 26 families of law as data (law-name rules, US Code
   titles, Congress's policy areas, hand-named codes).
 - Then the Library view and page, and the `/` command.
