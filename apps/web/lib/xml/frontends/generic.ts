@@ -41,9 +41,13 @@ const isOpener = (line: string, p: StateProfile) => p.section.test(line) || (p.q
 /** Line numbers down the left margin, as Pennsylvania prints them: stripped when most lines carry one. */
 function stripLineNumbers(text: string): string {
   const lines = text.split("\n")
-  const numbered = lines.filter((l) => /^\s{0,3}\d{1,2}\s{2,}\S/.test(l)).length
+  // Pennsylvania: two or more spaces after the number; Illinois: one. A
+  // number followed by a full stop or a parenthesis is an enumerator, not a
+  // line number, and stays.
+  const LINE_NUMBER = /^\s{0,3}\d{1,2}\s+(?![\d.)])\S/
+  const numbered = lines.filter((l) => LINE_NUMBER.test(l)).length
   if (numbered < lines.length * 0.3) return text
-  return lines.map((l) => l.replace(/^\s{0,3}\d{1,2}\s{2,}/, "   ")).join("\n")
+  return lines.map((l) => (LINE_NUMBER.test(l) ? l.replace(/^\s{0,3}\d{1,2}\s+/, "   ") : l)).join("\n")
 }
 
 const clean = (text: string) => text.replace(/�| /g, " ").replace(/\r/g, "")
@@ -246,7 +250,9 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
   const main = node("main")
   doc.children.push(preface, main)
   let start = blocks.findIndex((b, i) => i < blocks.length * 0.7 && p.enacting.test(b))
-  if (start < 0) {
+  // Massachusetts prints no enacting formula: the bill opens at "SECTION 1."
+  const opensWithSection = blocks.length > 0 && p.section.test(blocks[0])
+  if (start < 0 && !opensWithSection) {
     // A resolution: recitals and a resolving clause, no enacting formula.
     if (blocks.some((b) => /^WHEREAS\b/i.test(b)) || blocks.some((b) => /\bRESOLVED\b/.test(b))) {
       doc.tag = "resolution"
@@ -264,6 +270,8 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       return { doc, report: { dialect: `${p.jurisdiction.toLowerCase()}-resolution`, elements, known: elements, unknown: {}, renamed: {}, coverage: 1, notes: [] } }
     }
     problems.push("no enacting formula")
+    start = 0
+  } else if (start < 0) {
     start = 0
   } else {
     for (const b of blocks.slice(0, start)) {

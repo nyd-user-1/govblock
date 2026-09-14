@@ -114,28 +114,27 @@
     "name": "Illinois",
     "source": "texts",
     "sampled": 24,
-    "clean": 4,
-    "coverage": 0.5356,
+    "clean": 12,
+    "coverage": 0.7027,
     "dialects": {
-      "il-bill": 22,
-      "il-resolution": 2
+      "il-bill": 23,
+      "il-resolution": 1
     },
     "unknown": {},
     "fallouts": {
-      "no sections": 14,
-      "unmatched enumerator": 5,
-      "paragraph N after N": 5,
-      "paragraph opens at N": 3,
-      "subsection N after N": 3,
+      "no sections": 8,
+      "subsection N after N": 4,
+      "subsection a after N": 4,
+      "unmatched enumerator": 3,
+      "paragraph opens at ii": 2,
       "subsection j after N": 2,
-      "subsection e after N": 1,
-      "subsection iv after N": 1,
-      "subsection ix after N": 1,
-      "subsection a after N": 1,
-      "subparagraph opens at D": 1,
-      "subparagraph A after N": 1
+      "subparagraph J after N": 1,
+      "clause opens at L": 1,
+      "subparagraph M after N": 1,
+      "paragraph iv after N": 1,
+      "paragraph opens at l": 1
     },
-    "measuredAt": "2026-09-14T09:20:36.126Z"
+    "measuredAt": "2026-09-14T09:21:46.915Z"
   },
   "PA/texts": {
     "jurisdiction": "PA",
@@ -170,23 +169,50 @@
     "name": "Massachusetts",
     "source": "texts",
     "sampled": 24,
-    "clean": 1,
-    "coverage": 0.5733,
+    "clean": 4,
+    "coverage": 0.7372,
     "dialects": {
       "ma-bill": 24
     },
     "unknown": {},
     "fallouts": {
-      "no enacting formula": 15,
-      "no sections": 12,
-      "subsection opens at b": 2,
-      "unmatched enumerator": 2,
-      "subsection opens at N": 1,
-      "subsection opens at v": 1,
+      "no sections": 14,
+      "no enacting formula": 6,
+      "subsection opens at b": 4,
+      "unmatched enumerator": 3,
+      "subsection b after N": 2,
+      "paragraph iv after N": 1,
       "paragraph opens at b": 1,
-      "subparagraph iv after N": 1,
-      "subparagraph opens at iv": 1
+      "paragraph j after N": 1,
+      "subparagraph opens at l": 1,
+      "subsection e after N": 1
     },
-    "measuredAt": "2026-09-14T09:20:38.099Z"
+    "measuredAt": "2026-09-14T09:21:47.490Z"
+  },
+  "CA/texts": {
+    "jurisdiction": "CA",
+    "name": "California",
+    "source": "texts",
+    "sampled": 24,
+    "clean": 20,
+    "coverage": 0.992,
+    "dialects": {
+      "ca-bill": 24
+    },
+    "unknown": {},
+    "fallouts": {
+      "subsection j after N": 5,
+      "subsection a after N": 2,
+      "subparagraph J after N": 1,
+      "clause opens at L": 1,
+      "subparagraph M after N": 1,
+      "unmatched enumerator": 1,
+      "clause iv after N": 1,
+      "paragraph opens at l": 1,
+      "subsection m after N": 1,
+      "subparagraph opens at l": 1,
+      "paragraph N after N": 1
+    },
+    "measuredAt": "2026-09-14T09:21:46.189Z"
   }
 }

@@ -15,9 +15,9 @@ const common = (jurisdiction: string): StateProfile => ({
   jurisdiction,
   name: STATES[jurisdiction] ?? jurisdiction,
   enacting: /\b(be it (further )?enacted|(hereby )?enacts? as follows|do enact as follows|ordained|enacted by the)\b/i,
-  section: /^(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)\.?\s+(.*)$/s,
+  section: /^(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)\.?\s*(.*)$/s,
   strict: false,
-  quotesAfter: /(as follows|to read|read as follows|amended by adding|inserting)[:.]?$/i,
+  quotesAfter: /(as follows|to read|read as follows|amended by adding|inserting|the following(?: \w+){0,3}|thereof)[:.]?-?$/i,
 })
 
 export const PROFILES: Record<string, StateProfile> = Object.fromEntries(Object.keys(STATES).map((k) => [k, common(k)]))
@@ -28,7 +28,7 @@ export const PROFILES: Record<string, StateProfile> = Object.fromEntries(Object.
 PROFILES.IL = {
   ...common("IL"),
   enacting: /Be it enacted by the People of the State of Illinois/i,
-  section: /^Section\s+(\d{1,3}[A-Za-z]?)\.\s+(.*)$/s,
+  section: /^Section\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
   quotedSection: /^Sec\.\s*([\d][\w.-]*)\.\s*(.*)$/s,
 }
 
@@ -37,7 +37,7 @@ PROFILES.IL = {
 PROFILES.TX = {
   ...common("TX"),
   enacting: /BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF TEXAS/i,
-  section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s+(.*)$/s,
+  section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
   quotedSection: /^Sec\.\s*([\d][\w.-]*)\.\s*(.*)$/s,
 }
 
@@ -46,7 +46,7 @@ PROFILES.TX = {
 PROFILES.NJ = {
   ...common("NJ"),
   enacting: /Be It Enacted by the Senate and General Assembly of the State of New Jersey/i,
-  section: /^(\d{1,3})\.\s+(.*)$/s,
+  section: /^(\d{1,3})\.\s*(.*)$/s,
   strict: true,
   del: /\[([^\]]+)\]/,
 }
@@ -56,7 +56,7 @@ PROFILES.NJ = {
 PROFILES.CA = {
   ...common("CA"),
   enacting: /The people of the State of California do enact as follows/i,
-  section: /^(?:SECTION|SEC\.)\s*(\d{1,3})\.\s+(.*)$/s,
+  section: /^(?:SECTION|SEC\.)\s*(\d{1,3})\.\s*(.*)$/s,
   quotedSection: /^(\d{1,5}(?:\.\d+)*[a-z]?)\.\s+(?=[A-Z(“"])(.*)$/s,
 }
 
@@ -66,7 +66,7 @@ PROFILES.CA = {
 PROFILES.PA = {
   ...common("PA"),
   enacting: /hereby enacts as follows/i,
-  section: /^Section\s+(\d{1,3}(?:\.\d+)?)\.\s+(.*)$/s,
+  section: /^Section\s+(\d{1,3}(?:\.\d+)?)\.\s*(.*)$/s,
   quotedSection: /^§\s*([\w.-]+)\.\s*(.*)$/s,
   del: /\[([^\]]+)\]/,
 }
@@ -75,6 +75,6 @@ PROFILES.PA = {
 PROFILES.MA = {
   ...common("MA"),
   enacting: /Be it enacted by the Senate and House of Representatives in General Court assembled/i,
-  section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s+(.*)$/s,
-  quotedSection: /^Section\s+(\d{1,3}[A-Za-z]?)\.\s+(.*)$/s,
+  section: /^SECTION\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
+  quotedSection: /^Section\s+(\d{1,3}[A-Za-z]?)\.\s*(.*)$/s,
 }
