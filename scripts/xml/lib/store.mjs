@@ -107,9 +107,17 @@ export function indexWriter({ size = 1000, onBad = () => {} } = {}) {
 
 /** Seen again, unchanged: `seen_at` only. */
 export async function touch(works) {
-  for (let i = 0; i < works.length; i += 1000) {
-    const batch = works.slice(i, i + 1000)
-    await send(new BatchExecuteStatementCommand({ ...base, sql: `update expressions set seen_at = now() where work = :w and expression = :e`, parameterSets: batch.map(([w, e]) => [{ name: "w", value: field(w) }, { name: "e", value: field(e) }]) }))
+  // Two thousand addresses a statement, as two arrays: a thousand single-row
+  // updates took a Congress's 21,640 unchanged printings over two minutes.
+  const SEP = String.fromCharCode(31)
+  for (let i = 0; i < works.length; i += 2000) {
+    const batch = works.slice(i, i + 2000)
+    await exec(
+      `update expressions e set seen_at = now()
+         from unnest(string_to_array($1, chr(31)), string_to_array($2, chr(31))) as t(work, expression)
+        where e.work = t.work and e.expression = t.expression`,
+      [batch.map(([w]) => w).join(SEP), batch.map(([, e]) => e).join(SEP)]
+    )
   }
 }
 
