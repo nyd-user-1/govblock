@@ -769,16 +769,15 @@
     "source": "laws",
     "sampled": 12,
     "clean": 0,
-    "coverage": 0.8176,
+    "coverage": 0.819,
     "dialects": {
       "il-statute": 12
     },
     "unknown": {},
     "fallouts": {
-      "no number at the start": 12,
-      "subsection j after N": 1
+      "no number at the start": 12
     },
-    "measuredAt": "2026-09-14T09:40:32.178Z"
+    "measuredAt": "2026-09-14T09:44:11.035Z"
   },
   "PA/laws": {
     "jurisdiction": "PA",

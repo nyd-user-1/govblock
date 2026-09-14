@@ -482,7 +482,17 @@ export function parseStateStatute(source: Source, p: StateProfile): FrontEndResu
   const level = node(tag, { ...(tag === "level" ? { role: docType.toLowerCase() } : {}), ...(meta.location_id ? { identifier: String(meta.location_id) } : {}) })
   const blocks = stateBlocks(source.body.replace(/^\s*\*\s*/, ""), p)
   let body = blocks
-  const first = blocks[0] ?? ""
+  let first = blocks[0] ?? ""
+  // Illinois opens a section with its citation, "(505 ILCS 145/50) (from Ch.
+  // 122, par. 19a-4) Sec. 50. …": the citations are kept as an attribute and
+  // the number is read after them.
+  const cites: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = /^\(([^)]{3,60})\)\s+/.exec(first))) {
+    cites.push(m[1])
+    first = first.slice(m[0].length)
+  }
+  if (cites.length) level.attrs.cite = cites.join("; ")
   const head = /^(?:§+\s*|Section\s+|Sec\.\s*)?([0-9][\w.:-]*[\w)]|[0-9])\.?\s+(.*)$/s.exec(first)
   if (head && /\d/.test(head[1])) {
     level.children.push(node("num", {}, [head[1]]))
