@@ -13,6 +13,7 @@
 //   node scripts/xml/run.mjs --workers 7          compiler threads (default: cores - 1)
 //   node scripts/xml/run.mjs --job 12 --dry       one job, nothing written
 //   node scripts/xml/run.mjs --rebuild            rebuild held Expressions in place (a front end improved)
+//   (or queue the jobs under a run named rebuild-…: enqueue.mjs --juris us-ny --kind statute --run rebuild-ny-789f535)
 //
 // Long runs go under nohup with a log in ~/govblock-xml/logs/ (program brief).
 import { createHash } from "node:crypto"
@@ -124,6 +125,8 @@ async function runJob(job) {
   }
   jlog(`start (${source.name})`)
 
+  // A job queued under a "rebuild-" run rebuilds what it holds, whichever controller takes it.
+  const rebuild = REBUILD || String(job.run ?? "").startsWith("rebuild-")
   const fallouts = falloutLog(job)
   const index = indexWriter({
     onBad: (row, error) => {
@@ -164,7 +167,7 @@ async function runJob(job) {
 
       const sourceHash = createHash("sha256").update(item.source.body).digest("hex")
       const prior = held.get(item.work)?.find((p) => p.unit === (item.unit ?? ""))
-      if (!REBUILD && prior && prior.source_hash === sourceHash && Number(prior.builder) === BUILDER && prior.front_end === frontEndName(item.frontEnd)) {
+      if (!rebuild && prior && prior.source_hash === sourceHash && Number(prior.builder) === BUILDER && prior.front_end === frontEndName(item.frontEnd)) {
         counts.unchanged++
         seen.push([item.work, prior.expression])
         continue
