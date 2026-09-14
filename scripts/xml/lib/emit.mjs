@@ -54,12 +54,17 @@ export function wrap(doc, info, toXml) {
     top = el(info.root ?? "lawDoc", {}, [body])
   }
 
+  // The source's own namespace stays (the OLRC still writes USLM 1.0's), and
+  // any prefix the source used is declared, or the document is not
+  // namespace-well-formed.
+  const own = Object.fromEntries(Object.entries(top.attrs).filter(([k]) => k !== "identifier"))
   top.attrs = {
-    xmlns: USLM_NS,
-    "xmlns:dc": DC_NS,
-    "xmlns:dcterms": DCTERMS_NS,
-    "xml:lang": "en",
-    ...Object.fromEntries(Object.entries(top.attrs).filter(([k]) => !k.startsWith("xmlns") && k !== "identifier")),
+    xmlns: own.xmlns ?? USLM_NS,
+    "xmlns:dc": own["xmlns:dc"] ?? DC_NS,
+    "xmlns:dcterms": own["xmlns:dcterms"] ?? DCTERMS_NS,
+    ...(Object.keys(own).some((k) => k.startsWith("xsi:")) && !own["xmlns:xsi"] ? { "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance" } : {}),
+    "xml:lang": own["xml:lang"] ?? "en",
+    ...own,
     identifier: info.work,
   }
 

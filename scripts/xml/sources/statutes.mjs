@@ -75,7 +75,7 @@ export async function* statutes({ jurisdiction, unit, log }) {
     const path = (r) => {
       const out = []
       for (let p = byId.get(r.parent_location_id); p; p = byId.get(p.parent_location_id)) out.unshift(p.title ? `${p.doc_level_id ?? ""} ${p.title}`.trim() : String(p.doc_level_id ?? ""))
-      return [lawName, ...out.filter(Boolean)].join(" › ")
+      return [lawName, ...out].filter((s, i, all) => s && s !== all[i - 1]).join(" › ")
     }
 
     for (const r of leaves) {
@@ -95,7 +95,7 @@ export async function* statutes({ jurisdiction, unit, log }) {
         work,
         unit: "",
         session: null,
-        label: `${lawName} § ${num}`,
+        label: container ? `${lawName}, ${container.slice(1)} § ${num}` : `${lawName} § ${num}`,
         sourceUrl: null,
         sourceRef: `Laws:${state}/${lawId}/${r.location_id}`,
         frontEnd: state,
