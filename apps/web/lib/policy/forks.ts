@@ -11,7 +11,23 @@ import { claimCheck } from "@/lib/agents/claim-check"
 // signed-in user or, signed out, to the browser's claim check — the same
 // identity the connectors already use.
 
-export type Fork = { id: number; owner: string; state: string; session_id: number | null; bill_id: number; bill_number: string | null; title: string | null; created_at: string; commits: number }
+export type Fork = {
+  id: number
+  owner: string
+  state: string
+  session_id: number | null
+  bill_id: number | null
+  bill_number: string | null
+  title: string | null
+  created_at: string
+  commits: number
+  /** A fork of a published unit (window 5): the address it copies, and the dated base it was read from. Null for Duplicate to edit. */
+  work: string | null
+  base_work: string | null
+  base_expression: string | null
+  kind: string | null
+  label: string | null
+}
 
 export type Commit = { id: number; fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text: string; author: string; created_at: string; /** The fork's owner, when the commit came from the bill-wide list. */ owner?: string }
 
@@ -63,12 +79,6 @@ export function useFork(forkId: number | null) {
   return { fork: data.forks[0] ?? null, loading }
 }
 
-/** Every fork's commits on a bill. Forks are public; the bill's own timeline stopped showing them on 2026-09-11 (the official versions stand alone), but the API still answers. */
-export function useBillCommits(billId: number | null) {
-  const { data, loading } = useJson(billId ? `/api/policy/commits?bill=${billId}` : null, NO_COMMITS)
-  return { commits: data.commits, loading }
-}
-
 export function useForkCommits(forkId: number | null) {
   const { data, loading } = useJson(forkId ? `/api/policy/commits?fork=${forkId}` : null, NO_COMMITS)
   return { commits: data.commits, loading }
@@ -82,7 +92,17 @@ export async function createFork(input: { state: string; session_id: number | nu
   return fork
 }
 
-export async function createCommit(input: { fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text: string }): Promise<Commit | null> {
+/** Fork a published unit into My Files by its address: a section, a subsection, a printing. The reader's existing fork of it from the same base comes back instead of a second. */
+export async function forkAddress(address: string, extra: { bill_id?: number | null; title?: string | null } = {}): Promise<Fork | null> {
+  const r = await fetch("/api/policy/forks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ address, ...extra, claim: claimCheck() }) })
+  if (!r.ok) return null
+  const { fork } = (await r.json()) as { fork: Fork | null }
+  changed()
+  return fork
+}
+
+/** A commit holds text (Duplicate to edit) or a document of the USLM schema (a fork of a published unit). */
+export async function createCommit(input: { fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text?: string; doc?: unknown }): Promise<Commit | null> {
   const r = await fetch("/api/policy/commits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...input, claim: claimCheck() }) })
   if (!r.ok) return null
   const { commit } = (await r.json()) as { commit: Commit | null }

@@ -25,6 +25,8 @@ import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { TypesetEditor } from "@/components/workspace/typeset-editor"
 import { TypesetGitPane, type GitView } from "@/components/workspace/typeset-git-pane"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
+import { ForkAction } from "@/components/workspace/typeset-fork-action"
+import { TypesetBillFork } from "@/components/workspace/typeset-fork"
 import { TypesetLibraryPane } from "@/components/workspace/typeset-library"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { BillCompare, type CompareWidth } from "@/components/bill-compare"
@@ -391,7 +393,14 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
     if (editor) {
       content = <TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />
     } else if (view === "xml") {
-      content = <TypesetXmlReader billId={route.billId} version={params.version ? String(params.version) : undefined} snapshot={xml?.snapshot} meta={xml?.meta} />
+      content = (
+        <ForkAction expression={xml?.meta?.expression ?? null} billId={route.billId}>
+          <TypesetXmlReader billId={route.billId} version={params.version ? String(params.version) : undefined} snapshot={xml?.snapshot} meta={xml?.meta} />
+        </ForkAction>
+      )
+    } else if (view === "fork") {
+      // The reader's fork of the printing on the USLM schema (window 5, 2026-09-14): its own toolbar, amendment and redline.
+      content = <TypesetBillFork bill={bill} />
     } else if (view === "library") {
       content = <TypesetLibraryPane />
     } else if (view === "redline") {
