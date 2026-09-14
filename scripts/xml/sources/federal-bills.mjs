@@ -104,7 +104,7 @@ export async function* federalBills({ unit, log }) {
           sourceRef: billId && slot >= 0 ? `BillTexts:${-(billId * 100 + slot + 1)}` : `govinfo:${pkg}`,
           frontEnd: "US",
           source: { kind: "xml", body: f.body, url: `${url}#${f.name}` },
-          info: { kind: "bill", root: "bill", stage, number: `${LABEL[t.toLowerCase()] ?? t.toUpperCase()} ${Number(n)}`, publisher: "United States Government Publishing Office", fidelity: "native-xml", preferDocDate: true, docDateBasis: "printed" },
+          info: { kind: "bill", root: "bill", stage, number: `${LABEL[t.toLowerCase()] ?? t.toUpperCase()} ${Number(n)}`, publisher: "United States Government Publishing Office", fidelity: "native-xml", preferDocDate: true, docDateBasis: "printed", modsUrl: `https://www.govinfo.gov/metadata/pkg/${pkg}/mods.xml` },
         }
       }
     }

@@ -50,7 +50,20 @@ async function handle(task) {
         dateBasis = info.docDateBasis ?? "printed"
       }
     }
-    if (!date) return { seq: task.seq, ok: false, stage, reason: "no date", detail: info.source ?? null }
+    // A printing that states no date of its own (a star print, a calendar
+    // placement) takes the date GPO issued its package, from the package's MODS.
+    if (!date && info.modsUrl) {
+      stage = "date"
+      const mods = await fetch(info.modsUrl, { headers: { "user-agent": "govblock-xml/1.0 (+https://gov.nysgpt.com; brendan@nysgpt.com)" }, signal: AbortSignal.timeout(30_000) })
+        .then((r) => (r.ok ? r.text() : ""))
+        .catch(() => "")
+      const issued = /<dateIssued[^>]*>(\d{4}-\d{2}-\d{2})/.exec(mods)
+      if (issued) {
+        date = issued[1]
+        dateBasis = "printed"
+      }
+    }
+    if (!date) return { seq: task.seq, ok: false, stage, reason: "no date", detail: info.modsUrl ?? info.source ?? null }
     const expression = info.expression ?? expressionOf(date, info.stage)
 
     stage = "emit"
