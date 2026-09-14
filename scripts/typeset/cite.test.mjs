@@ -68,7 +68,8 @@ test("New York § 16: spelled-out sections of this chapter and of other laws", (
   const cites = E.citationsOf(nyBase, { jurisdiction: "us-ny", work: "/us-ny/code/agm/s16" })
   for (const c of cites) assert.equal(nyBase.textBetween(c.from, c.to, "", "￼"), c.text)
   const works = E.worksOf(cites)
-  for (const w of ["/us-ny/code/agm/s303", "/us-ny/code/agm/s303-a", "/us-ny/code/agm/s303-b", "/us-ny/code/env/s33-0101", "/us-ny/code/abc/s76-a"]) assert.ok(works.includes(w), `${w} not in ${works.join(", ")}`)
+  // Lettered sections as the store addresses them: the Senate prints the letter upper-case (/us-ny/code/abc/s76-A is stored).
+  for (const w of ["/us-ny/code/agm/s303", "/us-ny/code/agm/s303-A", "/us-ny/code/agm/s303-B", "/us-ny/code/env/s33-0101", "/us-ny/code/abc/s76-A"]) assert.ok(works.includes(w), `${w} not in ${works.join(", ")}`)
   const listed = cites.filter((c) => c.work?.startsWith("/us-ny/code/agm/s303"))
   assert.deepEqual(listed.map((c) => c.text), ["three hundred three", "three hundred three-a", "three hundred three-b"])
 })

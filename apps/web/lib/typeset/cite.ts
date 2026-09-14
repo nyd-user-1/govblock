@@ -141,6 +141,9 @@ function federal(text: string): Found[] {
   return out
 }
 
+/** A New York section as the store addresses it: the letter keeps the case the Senate prints ("76-A"), so a spelled "seventy-six-a" is 76-A. */
+const nySection = (number: string | null) => (number ? number.replace(/-([a-z])$/, (_, letter: string) => `-${letter.toUpperCase()}`) : null)
+
 /** The code a New York law's name is, from the context's names and the engine's table. */
 function nyCode(name: string, ctx: CiteContext): string | null {
   const n = name.toLowerCase().replace(/\s+/g, " ").trim()
@@ -158,14 +161,14 @@ function newYork(text: string, ctx: CiteContext): Found[] {
     const numbers = [...list.matchAll(NUM_IN_LIST)]
     // One section with its subdivision is one citation over the whole phrase; a list is a citation per number.
     if (numbers.length === 1 || subdivision || smallWord) {
-      const section = wordsToNumber(numbers[0][0])
+      const section = nySection(wordsToNumber(numbers[0][0]))
       const work = code && section ? `/us-ny/code/${code}/s${section}` : null
       const below = [subdivision ? wordsToNumber(subdivision) : null, smallValue ?? null].filter(Boolean).map((p) => `/${p}`).join("")
       out.push({ from: m.index!, to: m.index! + whole.length, text: whole, kind: "code", work, address: work ? `${work}${below}` : null })
       continue
     }
     for (const n of numbers) {
-      const section = wordsToNumber(n[0])
+      const section = nySection(wordsToNumber(n[0]))
       const work = code && section ? `/us-ny/code/${code}/s${section}` : null
       const from = listAt + n.index!
       out.push({ from, to: from + n[0].length, text: n[0], kind: "code", work, address: work })

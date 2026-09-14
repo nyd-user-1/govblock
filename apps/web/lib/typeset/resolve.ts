@@ -8,7 +8,7 @@ import { q } from "@/lib/policy/db"
 // the `expressions` index only (sql/005), never from S3, and kept per citing
 // Expression, so a document's citations are resolved once, not per keystroke.
 
-export type Advisory = { kind: "not-in-corpus" | "changed-since" | "later-than-citation"; text: string }
+export type Advisory = { kind: "not-in-corpus" | "changed-since"; text: string }
 
 export type Resolution = {
   work: string
@@ -68,7 +68,8 @@ export async function resolveWorks(works: string[], at: string | null, citing?: 
       advisories.push({ kind: "not-in-corpus", text: "Not in the corpus yet." })
       value = { work, found: false, expression: null, date: null, latest: null, label: null, advisories }
     } else if (!f) {
-      advisories.push({ kind: "later-than-citation", text: `Nothing stored from before ${date}; the earliest text is dated ${s.first}.` })
+      // Every stored text is later than the citing date. That is how the US Code is held (one release point a
+      // section), so it is not flagged; the date the reader sees says which text opens.
       value = { work, found: true, expression: s.first_expression, date: s.first, latest: s.latest, label: s.label, advisories }
     } else {
       if (s.latest > f.date) advisories.push({ kind: "changed-since", text: `Changed since: the text in force on ${date} is dated ${f.date}; the latest is dated ${s.latest}.` })

@@ -42,8 +42,10 @@ async function citations(text: string, jurisdiction: string): Promise<AtItem[]> 
     return [{ kind: "citation", label: found.row.label ?? found.row.work, detail: `as of ${found.row.expression_date}`, href: workHref(text), insert: { text: found.row.label ?? text, href: text }, state: null }]
   }
   const words = normalise(text)
-  const found = [...recognize(words, { jurisdiction }), ...(jurisdiction === "us-ny" ? [] : recognize(words, { jurisdiction: "us-ny" }))]
-  const cites = found.filter((c) => c.work)
+  // The citing jurisdiction's reading, then New York's own forms from anywhere; each Work once.
+  const found = [...recognize(words, { jurisdiction }), ...(jurisdiction === "us-ny" ? [] : recognize(words, { jurisdiction: "us-ny" }).filter((c) => c.kind === "code"))]
+  const seen = new Set<string>()
+  const cites = found.filter((c) => c.work && !seen.has(c.address ?? c.work) && seen.add(c.address ?? c.work))
   if (!cites.length) return []
   const resolved = await resolveWorks(worksOf(cites.map((c) => ({ ...c, via: "text" as const }))), null)
   return cites.map((c) => {
