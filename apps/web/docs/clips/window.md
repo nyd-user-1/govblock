@@ -21,26 +21,29 @@ new column `clip_cuts.video_id`. Nothing else changes. It ran.
   becomes a private clip in the reader's library that plays in YouTube's
   player from its start to its end. One step a request, under Amplify's 30 s.
   Ten links a reader a day; an admin has no cap. Tested on a 139-minute House
-  Energy and Commerce hearing: five clips in 8.2 s.
-- **Captions**: Supadata when `SUPADATA_API_KEY` is set; otherwise straight
-  from YouTube, which refuses AWS addresses. A refused link waits in the
-  queue for the worker box and says so. Links other than YouTube wait there
-  too.
-- **/clips/transcript**: paste a link. Every 30 s of the transcript opens on
-  its time, and a time plays the video from there. Find, Copy text, Copy
-  with times, Get clips. No download.
+  Energy and Commerce hearing: five clips in 8.2 s (its captions read from
+  the Mac, which YouTube does not refuse).
+- **Captions**: straight from YouTube, no paid service (Brendan, 2026-09-14).
+  YouTube refuses AWS addresses, so the deployed site cuts only videos whose
+  transcript is already kept. A refused link waits in the queue for the
+  worker box and says so. Links other than YouTube wait there too.
+- **/clips/transcript**: paste a link, press Get transcript. Every 30 s of
+  the transcript opens on its time, and a time plays the video from there.
+  Find, Copy text, Copy with times, Get clips. A transcript that cannot be
+  read says it is not available. No download.
 - **Dashboard › Clips** (`/workspace/dashboard/clips`): six tiles, clips a
-  day by origin, the queue with a Run button for a waiting YouTube link, the
-  caption reader in use, the worker box, and open reports. Admins only.
+  day by origin, the queue with a Run button for a waiting YouTube link,
+  transcripts kept, the worker box, and open reports. Admins only.
+- **Nothing reads the database on page load** (Brendan, 2026-09-14). Studio's
+  gallery plays on a snapshot of its seven links kept in the code
+  (`components/clips/studio/gallery-data.json`, read on 2026-09-14), not a
+  cached server render, so opening Studio reads nothing. Saved templates
+  load when the Template menu opens; a shared template when its button is
+  pressed; a transcript when Get transcript is pressed.
 - **Worker box**: `govblock-xml` (c7g.4xlarge, arm64, stopped) over the dev
   box. It already runs the pipeline's heavy jobs, has the cores for FFmpeg
   and a caption model, and costs nothing while stopped. The dev box is the
   server Brendan works on and stops itself when idle.
-
-### 3. Needs Brendan
-
-- A Supadata key (free tier, 100 videos a month) in Amplify's environment,
-  or the deployed site can read no new transcripts.
 
 ---
 

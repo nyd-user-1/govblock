@@ -50,7 +50,7 @@ export function Upload({ onClose, onUploaded, onCut }: { onClose: () => void; on
       return setStage("waiting")
     }
     setStage("transcript")
-    // Each call does one step; a slow caption job asks to be called again.
+    // Each call does one step: the captions, then the moments.
     for (let i = 0; i < 12; i++) {
       try {
         const { upload: next, step } = await cutLink(upload.id)
@@ -68,7 +68,7 @@ export function Upload({ onClose, onUploaded, onCut }: { onClose: () => void; on
           setMessage(next.error ?? "The link waits for the worker box.")
           return setStage("waiting")
         }
-        setStage(step === "pending" ? "transcript" : "moments")
+        if (step === "transcript") setStage("moments")
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "The video could not be cut.")
         return setStage("failed")

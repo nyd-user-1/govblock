@@ -3,21 +3,20 @@ import "server-only"
 import { one, q } from "@/lib/policy/db"
 
 // A YouTube video's captions (2026-09-14), read once and kept in
-// clip_transcripts (sql/024). YouTube answers a server on AWS with "sign in to
-// confirm you're not a bot", so the site reads captions through Supadata when
-// SUPADATA_API_KEY is set, and straight from YouTube's own player API
-// otherwise, which works from a residential or office address and not from
-// Amplify. A video neither can read waits in the queue for the worker box.
+// clip_transcripts (sql/024), straight from YouTube's own player API. YouTube
+// answers a server on AWS with "sign in to confirm you're not a bot", so from
+// Amplify a new video's captions are usually refused; what is already kept
+// still reads, and a refused link waits in the queue for the worker box. No
+// paid caption service (Brendan, 2026-09-14).
 
 export type Segment = { start: number; end: number; text: string }
-export type Transcript = { videoId: string; source: "supadata" | "youtube" | "worker"; language: string | null; title: string | null; channel: string | null; duration: number; segments: Segment[] }
+export type Transcript = { videoId: string; source: "youtube" | "worker"; language: string | null; title: string | null; channel: string | null; duration: number; segments: Segment[] }
 
-/** Why a transcript could not be read: the video has none, the reader is walled off, or a slow job is still running. */
+/** Why a transcript could not be read: the video has none, or YouTube refused the server. */
 export class TranscriptError extends Error {
   constructor(
     message: string,
-    public kind: "none" | "blocked" | "pending" | "failed",
-    public jobId?: string
+    public kind: "none" | "blocked"
   ) {
     super(message)
   }
@@ -60,38 +59,6 @@ async function oembed(videoId: string) {
   return { title: body.title ?? null, channel: body.author_name ?? null }
 }
 
-type Chunk = { text: string; offset: number; duration: number; lang?: string }
-
-async function supadata(videoId: string, key: string, jobId?: string): Promise<Omit<Transcript, "title" | "channel">> {
-  const headers = { "x-api-key": key }
-  const base = "https://api.supadata.ai/v1/transcript"
-  const read = (body: { content?: Chunk[] | string; lang?: string }) => {
-    const chunks = Array.isArray(body.content) ? body.content : []
-    const segments = chunks.map((c) => ({ start: c.offset / 1000, end: (c.offset + c.duration) / 1000, text: decode(c.text) })).filter((s) => s.text)
-    if (!segments.length) throw new TranscriptError("This video has no captions.", "none")
-    return { videoId, source: "supadata" as const, language: body.lang ?? null, duration: segments[segments.length - 1].end, segments }
-  }
-  // A long video comes back as a job; it is polled for up to twenty seconds, then handed back to be asked again.
-  let job = jobId
-  if (!job) {
-    const res = await fetch(`${base}?mode=native&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`, { headers, signal: AbortSignal.timeout(20000) })
-    const body = (await res.json().catch(() => ({}))) as { content?: Chunk[]; lang?: string; jobId?: string; error?: string; message?: string }
-    if (res.status === 404 || body.error === "not-found" || body.error === "transcript-unavailable") throw new TranscriptError("This video has no captions.", "none")
-    if (!res.ok && res.status !== 202) throw new TranscriptError(body.message ?? `Supadata answered ${res.status}.`, "failed")
-    if (!body.jobId) return read(body)
-    job = body.jobId
-  }
-  const until = Date.now() + 20000
-  while (Date.now() < until) {
-    const res = await fetch(`${base}/${job}`, { headers, signal: AbortSignal.timeout(8000) })
-    const body = (await res.json().catch(() => ({}))) as { status?: string; content?: Chunk[]; lang?: string; error?: { message?: string } | string }
-    if (body.status === "completed") return read(body)
-    if (body.status === "failed") throw new TranscriptError(typeof body.error === "string" ? body.error : (body.error?.message ?? "Supadata could not read this video."), "none")
-    await new Promise((r) => setTimeout(r, 2500))
-  }
-  throw new TranscriptError("Still reading the captions.", "pending", job)
-}
-
 /** YouTube's own player API as the Android app calls it, then the caption track's XML. */
 async function direct(videoId: string): Promise<Omit<Transcript, "title" | "channel">> {
   const res = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
@@ -132,18 +99,14 @@ export async function storedTranscript(videoId: string): Promise<Transcript | nu
   return row ? { videoId: row.video_id, source: row.source, language: row.language, title: row.title, channel: row.channel, duration: Number(row.duration ?? 0), segments: JSON.parse(row.segments) as Segment[] } : null
 }
 
-/** The kept transcript, or a fresh read of it, kept. `jobId` resumes a Supadata job still running. */
-export async function readTranscript(videoId: string, jobId?: string): Promise<Transcript> {
+/** The kept transcript, or a fresh read of it, kept. */
+export async function readTranscript(videoId: string): Promise<Transcript> {
   const kept = await storedTranscript(videoId)
   if (kept) return kept
-  const key = process.env.SUPADATA_API_KEY
-  let body: Omit<Transcript, "title" | "channel">
-  if (key) body = await supadata(videoId, key, jobId)
-  else
-    body = await direct(videoId).catch((error: unknown) => {
-      if (error instanceof TranscriptError) throw error
-      throw new TranscriptError("YouTube would not send the captions to the server.", "blocked")
-    })
+  const body = await direct(videoId).catch((error: unknown) => {
+    if (error instanceof TranscriptError) throw error
+    throw new TranscriptError("YouTube would not send the captions to the server.", "blocked")
+  })
   const meta = await oembed(videoId)
   const transcript: Transcript = { ...body, ...meta }
   await q(

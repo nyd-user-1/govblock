@@ -15,6 +15,8 @@ import { cutLink, submitLink } from "./store"
 // captions as paragraphs of about thirty seconds, each opening on its time; a
 // time plays the video from there. Find narrows to the lines that say it.
 // Copy takes the text; Get clips cuts the video into the reader's library.
+// Nothing is read until Get transcript is pressed; a ?v= link only fills the
+// box (Brendan, 2026-09-14: no database read on page load).
 
 const clock = (s: number) => {
   const h = Math.floor(s / 3600)
@@ -54,20 +56,15 @@ export function TranscriptPage() {
     setLoading(true)
     setError(null)
     try {
-      for (let i = 0; i < 6; i++) {
-        const res = await fetch(`/api/clips/transcript?url=${encodeURIComponent(text.trim())}`)
-        const body = (await res.json().catch(() => ({}))) as { transcript?: Transcript; error?: string; pending?: boolean }
-        if (res.status === 202 && body.pending) continue
-        if (!res.ok || !body.transcript) throw new Error(body.error ?? "That link did not load.")
-        setTranscript(body.transcript)
-        setAt(null)
-        setCut(null)
-        const url = new URL(window.location.href)
-        url.searchParams.set("v", body.transcript.videoId)
-        window.history.replaceState(null, "", url)
-        return
-      }
-      throw new Error("Still reading the captions; try again in a minute.")
+      const res = await fetch(`/api/clips/transcript?url=${encodeURIComponent(text.trim())}`)
+      const body = (await res.json().catch(() => ({}))) as { transcript?: Transcript; error?: string }
+      if (!res.ok || !body.transcript) throw new Error(body.error ?? "The transcript for this video is not available.")
+      setTranscript(body.transcript)
+      setAt(null)
+      setCut(null)
+      const url = new URL(window.location.href)
+      url.searchParams.set("v", body.transcript.videoId)
+      window.history.replaceState(null, "", url)
     } catch (e) {
       setError(e instanceof Error ? e.message : "That link did not load.")
     } finally {
@@ -77,11 +74,8 @@ export function TranscriptPage() {
 
   React.useEffect(() => {
     const v = new URLSearchParams(window.location.search).get("v")
-    if (v) {
-      setLink(`https://www.youtube.com/watch?v=${v}`)
-      void load(v)
-    }
-  }, [load])
+    if (v) setLink(`https://www.youtube.com/watch?v=${v}`)
+  }, [])
 
   const paras = React.useMemo(() => (transcript ? paragraphs(transcript) : []), [transcript])
   const needle = find.trim().toLowerCase()
@@ -143,7 +137,7 @@ export function TranscriptPage() {
           </Button>
         </form>
       </div>
-      {error && <p className="pb-3 text-sm text-destructive">{error}</p>}
+      {error && <p className="pb-3 text-sm text-muted-foreground">{error}</p>}
 
       {transcript ? (
         <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">

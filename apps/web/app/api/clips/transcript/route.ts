@@ -21,8 +21,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ transcript: await readTranscript(videoId) })
   } catch (error) {
     if (error instanceof TranscriptError) {
-      if (error.kind === "pending") return NextResponse.json({ error: "Still reading the captions; ask again in a moment.", pending: true }, { status: 202 })
-      return NextResponse.json({ error: error.message }, { status: error.kind === "none" ? 404 : 503 })
+      // Said plainly: from the site's servers YouTube usually refuses a new video's captions.
+      return NextResponse.json({ error: error.kind === "none" ? "This video has no captions, so there is no transcript." : "The transcript for this video is not available." }, { status: error.kind === "none" ? 404 : 503 })
     }
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 502 })
   }

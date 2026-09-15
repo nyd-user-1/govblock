@@ -464,7 +464,7 @@ export async function submitLink(url: string): Promise<Upload> {
 }
 
 /** One step of cutting a pasted YouTube link: the captions, then the moments. Called again until the answer is done, failed, or waiting on the worker box. */
-export async function cutLink(id: string): Promise<{ upload: Pick<Upload, "id" | "status" | "clips" | "error">; step: "pending" | "transcript" | "moments" | null }> {
+export async function cutLink(id: string): Promise<{ upload: Pick<Upload, "id" | "status" | "clips" | "error">; step: "transcript" | "moments" | null }> {
   return send("/api/clips/uploads/" + encodeURIComponent(id) + "/cut", "POST")
 }
 

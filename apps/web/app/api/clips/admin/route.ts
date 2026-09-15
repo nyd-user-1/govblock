@@ -5,8 +5,7 @@ import { one, q } from "@/lib/policy/db"
 
 // The Clips dashboard's figures (2026-09-14), for an admin: what is on the
 // feed and how it got there, the queue of pasted links and where each stands,
-// the transcripts kept, the reports open, and which caption reader the site
-// is using.
+// the transcripts kept, and the reports open.
 
 export const dynamic = "force-dynamic"
 
@@ -55,14 +54,14 @@ export async function GET() {
            from clip_reports x left join clips c on c.id = x.clip_id
           where x.resolved_at is null order by x.created_at desc limit 20`
       ),
-      one<{ count: number; supadata: number; youtube: number; worker: number; hours: number }>(
-        `select count(*)::int count, count(*) filter (where source = 'supadata')::int supadata, count(*) filter (where source = 'youtube')::int youtube,
+      one<{ count: number; youtube: number; worker: number; hours: number }>(
+        `select count(*)::int count, count(*) filter (where source = 'youtube')::int youtube,
                 count(*) filter (where source = 'worker')::int worker, coalesce(round((sum(duration) / 3600.0)::numeric, 1), 0)::float hours
            from clip_transcripts`
       ),
     ])
     return NextResponse.json(
-      { totals, days, queue, reports, transcripts, captions: process.env.SUPADATA_API_KEY ? "supadata" : "youtube" },
+      { totals, days, queue, reports, transcripts },
       { headers: { "cache-control": "private, no-store" } }
     )
   } catch (error) {
