@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless"
 import { RDSDataClient, ExecuteStatementCommand, type Field } from "@aws-sdk/client-rds-data"
+import { unstable_cache } from "next/cache"
 
 // The policy database, read only.
 //
@@ -73,28 +74,76 @@ function decode(field: Field, typeName: string | undefined): unknown {
   return value
 }
 
+// The read cache (2026-09-15). The data changes when a loader runs, not when a
+// page is opened, so a read of the public tables is answered from Next's data
+// cache and the cluster hears each statement once per day at most, or once per
+// hour when the statement asks the clock. The nightly loads and the Database
+// dashboard clear a table's tag (`table:bills`) or everything (`policy`)
+// through POST /api/revalidate, so readers see the freshest load, never a
+// stale one. What is never cached: a write, a statement over a personal or
+// volatile table (a reader's watches, forks, clips, the job queue, the Typeset
+// document store, sign-in), a catalog read, and any statement carrying the
+// comment /* fresh */. Before this, a week of the cluster sat at its 8 ACU
+// ceiling around the clock, mostly crawlers re-rendering the same pages.
+const DAY = 86_400
+const HOUR = 3_600
+const VOLATILE = /^(clip|typeset_documents|xml_jobs|xml_fallouts|watch|reader_|forks|commits|users|accounts|sessions|verification|agent|mail_|inbox|chat_|comment|pg_|information_schema)/i
+
+/** The tables a statement reads, for its cache tags. */
+export function tablesOf(text: string): string[] {
+  const out = new Set<string>()
+  for (const m of text.matchAll(/\b(?:from|join)\s+"?([A-Za-z_][A-Za-z0-9_]*)"?/g)) out.add(m[1])
+  return [...out]
+}
+
+export function cachePlan(text: string): { tags: string[]; revalidate: number } | null {
+  if (/\/\*\s*fresh\s*\*\//.test(text)) return null
+  const head = text.trimStart().slice(0, 6).toLowerCase()
+  if (!head.startsWith("select") && !head.startsWith("with")) return null
+  if (/\b(insert|update|delete|truncate|refresh|create|alter|drop|lock|nextval|set_config|for\s+update)\b/i.test(text)) return null
+  const tables = tablesOf(text)
+  if (tables.length === 0 || tables.some((t) => VOLATILE.test(t))) return null
+  const clock = /\b(now\(\)|current_date|current_timestamp|localtimestamp|clock_timestamp)\b/i.test(text)
+  return { tags: ["policy", ...tables.map((t) => `table:${t.toLowerCase()}`)], revalidate: clock ? HOUR : DAY }
+}
+
+async function cached<T>(text: string, params: unknown[], run: () => Promise<T>): Promise<T> {
+  const plan = cachePlan(text)
+  if (!plan) return run()
+  try {
+    return await unstable_cache(run, ["policy-read", text, JSON.stringify(params)], plan)()
+  } catch (error) {
+    // Outside a request (a script importing this module) there is no cache to
+    // hold the answer; the statement simply runs.
+    if (/incrementalCache/i.test(String((error as Error)?.message))) return run()
+    throw error
+  }
+}
+
 function dataApiTag(client: RDSDataClient): SqlTag {
   return async (strings, ...values) => {
     const parameters = values.map((value, i) => parameter(`p${i}`, value))
     const statement = strings.reduce((acc, part, i) => acc + part + (i < values.length ? `:p${i}` : ""), "")
-    const response = await client.send(
-      new ExecuteStatementCommand({
-        resourceArn,
-        secretArn,
-        database,
-        sql: statement,
-        parameters,
-        includeResultMetadata: true,
+    return cached(statement, values, async () => {
+      const response = await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          sql: statement,
+          parameters,
+          includeResultMetadata: true,
+        })
+      )
+      const columns = response.columnMetadata ?? []
+      return (response.records ?? []).map((record) => {
+        const row: Record<string, unknown> = {}
+        record.forEach((field, i) => {
+          const column = columns[i]
+          row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+        })
+        return row
       })
-    )
-    const columns = response.columnMetadata ?? []
-    return (response.records ?? []).map((record) => {
-      const row: Record<string, unknown> = {}
-      record.forEach((field, i) => {
-        const column = columns[i]
-        row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
-      })
-      return row
     })
   }
 }
@@ -181,42 +230,44 @@ const client = resourceArn && secretArn && !url ? new RDSDataClient({ region: pr
 export async function q<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T[]> {
   if (url) {
     const neonClient = neon(url) as unknown as { query: (t: string, p: unknown[]) => Promise<unknown> }
-    return (await neonClient.query(text, params)) as T[]
+    return cached(text, params, async () => (await neonClient.query(text, params)) as T[])
   }
   if (!client) throw new Error("no policy database configured")
 
   const statement = toNamedParameters(text)
-  const command = new ExecuteStatementCommand({
-    resourceArn,
-    secretArn,
-    database,
-    sql: statement.text,
-    parameters: params.map((value, i) => parameter(`p${i}`, value)),
-    includeResultMetadata: true,
-  })
-  // Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers
-  // the first statements with DatabaseResumingException while it wakes
-  // (~20 s). Wait it out rather than 503 the first visitor (2026-09-04).
-  let response
-  for (let attempt = 0; ; attempt++) {
-    try {
-      response = await client.send(command)
-      break
-    } catch (error) {
-      const name = (error as { name?: string })?.name ?? ""
-      const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
-      if (!resuming || attempt >= 12) throw error
-      await new Promise((r) => setTimeout(r, 2500))
-    }
-  }
-  const columns = response.columnMetadata ?? []
-  return (response.records ?? []).map((record) => {
-    const row: Record<string, unknown> = {}
-    record.forEach((field, i) => {
-      const column = columns[i]
-      row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+  return cached(text, params, async () => {
+    const command = new ExecuteStatementCommand({
+      resourceArn,
+      secretArn,
+      database,
+      sql: statement.text,
+      parameters: params.map((value, i) => parameter(`p${i}`, value)),
+      includeResultMetadata: true,
     })
-    return row as T
+    // Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers
+    // the first statements with DatabaseResumingException while it wakes
+    // (~20 s). Wait it out rather than 503 the first visitor (2026-09-04).
+    let response
+    for (let attempt = 0; ; attempt++) {
+      try {
+        response = await client.send(command)
+        break
+      } catch (error) {
+        const name = (error as { name?: string })?.name ?? ""
+        const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
+        if (!resuming || attempt >= 12) throw error
+        await new Promise((r) => setTimeout(r, 2500))
+      }
+    }
+    const columns = response.columnMetadata ?? []
+    return (response.records ?? []).map((record) => {
+      const row: Record<string, unknown> = {}
+      record.forEach((field, i) => {
+        const column = columns[i]
+        row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
+      })
+      return row as T
+    })
   })
 }
 

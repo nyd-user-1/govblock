@@ -197,7 +197,7 @@ export async function getLobbyingOverview(limit = 25) {
       `select count(*)::int filings,
               count(distinct registrant_name)::int registrants,
               count(distinct client_name)::int clients,
-              (select count(distinct upper(l))::int from "LobbyingActivities", unnest(lobbyists) l where l <> '') lobbyists,
+              (select count(distinct lobbyist)::int from lobbyist_filings) lobbyists,
               (select count(distinct congress_key)::int from "LobbyingBills") bills,
               sum(income)::float income,
               min(filing_year)::int first_year, max(filing_year)::int last_year
@@ -220,10 +220,10 @@ export async function getLobbyingOverview(limit = 25) {
       [limit]
     ),
     q<LobbyingPerson>(
-      `select upper(l) lobbyist, count(distinct a.filing_uuid)::int filings,
+      `select lf.lobbyist, count(*)::int filings,
               count(distinct f.registrant_name)::int firms, count(distinct f.client_name)::int clients
-         from "LobbyingActivities" a join "LobbyingFilings" f using (filing_uuid), unnest(a.lobbyists) l
-        where l <> '' group by 1 order by 2 desc, 1 limit $1`,
+         from lobbyist_filings lf join "LobbyingFilings" f using (filing_uuid)
+        group by 1 order by 2 desc, 1 limit $1`,
       [limit]
     ),
     q<LobbyingSector>(
@@ -295,27 +295,25 @@ export async function getLobbyingClients(limit = 50, offset = 0, term = "") {
 }
 
 /**
- * The lobbyists board. Slower than the other two by the shape of the data —
- * the names are an array on each activity, so every page unnests 677,465 rows —
- * but measured at under four seconds, which the route can carry.
+ * The lobbyists board, from the precomputed lobbyist → filings map (sql/025);
+ * it used to unnest 677,465 activity rows a page.
  */
 export async function getLobbyingLobbyists(limit = 50, offset = 0, term = "") {
   const t = String(term ?? "").trim()
   const like = `%${t}%`
   const [rows, count] = await Promise.all([
     q<LobbyingPerson & { top_firm: string | null }>(
-      `select upper(l) lobbyist, count(distinct a.filing_uuid)::int filings,
+      `select lf.lobbyist, count(*)::int filings,
               count(distinct f.registrant_name)::int firms, count(distinct f.client_name)::int clients,
               (array_agg(f.registrant_name order by f.income desc nulls last))[1] top_firm
-         from "LobbyingActivities" a join "LobbyingFilings" f using (filing_uuid), unnest(a.lobbyists) l
-        where l <> '' ${t ? "and l ilike $3" : ""}
+         from lobbyist_filings lf join "LobbyingFilings" f using (filing_uuid)
+        ${t ? "where lf.lobbyist ilike $3" : ""}
         group by 1 order by 2 desc, 1 limit $1 offset $2`,
       t ? [limit, offset, like] : [limit, offset]
     ),
     one<{ total: number }>(
-      `select count(*)::int total from (
-         select distinct upper(l) from "LobbyingActivities", unnest(lobbyists) l
-          where l <> '' ${t ? "and l ilike $1" : ""}) named`,
+      `select count(distinct lobbyist)::int total from lobbyist_filings
+        ${t ? "where lobbyist ilike $1" : ""}`,
       t ? [like] : []
     ),
   ])
@@ -340,8 +338,8 @@ export async function searchLobbying(term: string, limit = 15) {
       [like, limit]
     ),
     q<{ name: string; filings: number; detail: string | null }>(
-      `select upper(l) name, count(distinct filing_uuid)::int filings, null::text detail
-         from "LobbyingActivities", unnest(lobbyists) l where l ilike $1 group by 1 order by 2 desc limit $2`,
+      `select lobbyist name, count(*)::int filings, null::text detail
+         from lobbyist_filings where lobbyist ilike $1 group by 1 order by 2 desc limit $2`,
       [like, limit]
     ),
   ])
@@ -380,7 +378,8 @@ export type LobbyingEntity = {
 function filingsOfEntity(kind: EntityKind): string {
   if (kind === "firm") return `select filing_uuid from "LobbyingFilings" where upper(registrant_name) = upper($1)`
   if (kind === "client") return `select filing_uuid from "LobbyingFilings" where upper(client_name) = upper($1)`
-  return `select distinct filing_uuid from "LobbyingActivities" where exists (select 1 from unnest(lobbyists) l where upper(l) = upper($1))`
+  // lobbyist_filings (sql/025) is the precomputed map; the unnest it replaces took ten seconds a section.
+  return `select filing_uuid from lobbyist_filings where lobbyist = upper($1)`
 }
 
 /**

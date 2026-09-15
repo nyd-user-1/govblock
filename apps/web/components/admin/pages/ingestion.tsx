@@ -74,7 +74,15 @@ function useStatus(tick: number) {
       }
     }
     void read()
-    const id = setInterval(read, 30_000)
+    // Polls only while the queue is moving (Brendan, 2026-09-15: nothing reads
+    // the database on a timer). An idle queue is read once, then on Refresh.
+    const id = setInterval(() => {
+      setState((s) => {
+        const open = s.data?.queue.some((q) => q.status === "queued" || q.status === "running") || (s.data?.running.length ?? 0) > 0
+        if (open) void read()
+        return s
+      })
+    }, 30_000)
     return () => {
       cancelled = true
       clearInterval(id)

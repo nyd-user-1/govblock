@@ -65,7 +65,6 @@ export type Folder = {
 }
 
 const PAGE = 50
-const REFRESH_MS = 60_000
 const NONE: Row[] = []
 const noop = () => {}
 
@@ -124,22 +123,8 @@ function usePagedBills(resource: string, filters: Filters | null, extra: Record<
     })
   }, [key, state.key, state.loading, state.done, state.rows.length, fetchPage])
 
-  React.useEffect(() => {
-    if (!key) return
-    const tick = () => {
-      if (document.visibilityState !== "visible") return
-      void fetchPage(key, 0).then((answer) => {
-        if (!answer) return
-        setState((s) => {
-          if (s.key !== key) return s
-          const seen = new Set(answer.rows.map((r) => r.bill_id))
-          return { ...s, rows: [...answer.rows, ...s.rows.filter((r) => !seen.has(r.bill_id))], total: answer.total }
-        })
-      })
-    }
-    const timer = window.setInterval(tick, REFRESH_MS)
-    return () => window.clearInterval(timer)
-  }, [key, fetchPage])
+  // No refresh on a timer (Brendan, 2026-09-15): a folder is read when it is
+  // opened, when its key changes, and when the reader acts; never every minute.
 
   const stale = !!key && state.key !== key
   return { rows: stale ? [] : state.rows, total: stale ? null : state.total, loading: stale || state.loading, done: !stale && state.done, more }

@@ -165,6 +165,25 @@ export function DatabasePage() {
     </Button>
   )
 
+  // The site's read cache (lib/policy/db.ts) answers the public pages until a
+  // load clears it. This clears everything by hand, for a load that did not.
+  const [clearing, setClearing] = React.useState<"idle" | "busy" | "done" | "failed">("idle")
+  const clearCache = async () => {
+    setClearing("busy")
+    try {
+      const r = await fetch("/api/revalidate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ all: true }) })
+      setClearing(r.ok ? "done" : "failed")
+    } catch {
+      setClearing("failed")
+    }
+    setTimeout(() => setClearing("idle"), 2500)
+  }
+  const clearCacheButton = (
+    <Button variant="outline" size="sm" className="gap-1" onClick={clearCache} disabled={clearing === "busy"}>
+      {clearing === "done" ? "Cleared" : clearing === "failed" ? "Not cleared" : clearing === "busy" ? "Clearing…" : "Clear site cache"}
+    </Button>
+  )
+
   return (
     <div>
       <div className="mt-4 sm:mt-5">
@@ -233,7 +252,10 @@ export function DatabasePage() {
           <CardHeader className="max-md:px-4">
             <CardAnchor>Feeds</CardAnchor>
             <CardAction>
-              <CardTools>{refreshButton}</CardTools>
+              <CardTools>
+                {clearCacheButton}
+                {refreshButton}
+              </CardTools>
             </CardAction>
           </CardHeader>
           <CardContent className="max-md:px-4">

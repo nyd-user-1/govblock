@@ -16,6 +16,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { one, q } from "../laws/lib/db.mjs"
+import { clearReadCache } from "../laws/lib/revalidate.mjs"
 import { jurisdictionOf } from "./lib/address.mjs"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -57,7 +58,9 @@ if (argv.includes("--queue-only")) process.exit(0)
 
 // Drain the night's own jobs; the controller exits when none is left.
 const child = spawn(process.execPath, ["--max-old-space-size=8192", join(HERE, "run.mjs"), "--slots", "2", "--run", "nightly-"], { stdio: "inherit" })
-child.on("exit", (code) => {
+child.on("exit", async (code) => {
   log(`${RUN} finished in ${((Date.now() - started.getTime()) / 60000).toFixed(1)} min, controller exit ${code}`)
+  // The site's read cache holds yesterday's answers until told otherwise.
+  log(await clearReadCache(["expressions", "xml_library", "Bills", "BillTexts", "Laws"]))
   process.exit(code ?? 1)
 })
