@@ -32,7 +32,10 @@ with every question; nothing goes to Brendan's terminal.
 ## Window `typeset-editor`
 
 Report to `apps/web/docs/typeset/window-editor.md`, newest milestone first.
-Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
+Approved 2026-09-15 02:30 EDT: items 1, 2, 3 and 4, in that order; the flip at
+the end of 3 lands only after the lead's Q/A. The floating "Fork § 1" chip on
+the readers is gone (the lead removed it; Brendan found it annoying): editing
+begins on the first keystroke, and the pencil in the file row forks on purpose.
 
 1. **Editing on the XML view itself** (road-test item 6, the payoff Brendan
    named). Today the XML view is read-only and editing exists only after a
@@ -55,11 +58,33 @@ Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
    fetches the JSON only when editing begins (item 1's first keystroke).
    Measure before and after on H.R. 6644 with `data-mount-ms` and put both
    numbers in the report.
-3. **The flip.** The bare route `/workspace/typeset/bill/{id}` renders the
-   XML reader; Plate moves to the slug `plate` and keeps working; nothing else
-   in `views.ts` changes. **Held (Brendan, 2026-09-15 01:40 EDT):** do not
-   prepare or land it; he road-tests items 1 and 2 on 3001 first and says
-   when.
+3. **Typeset's URLs, then the flip** (Brendan, 2026-09-15 02:30 EDT). One
+   walk for every kind: jurisdiction, kind, path, then the view.
+
+   ```
+   /workspace/typeset/us/bill/119/hr/6644            the bill, default view
+   /workspace/typeset/us/bill/119/hr/6644/xml        its XML view; /git, /redline, /outline, /diff, /library the same way
+   /workspace/typeset/us/bill/119/hr/6644@2026-06-25_enr/xml   a specific printing, the way a git ref rides in a URL
+   /workspace/typeset/us/usc/t7/s1                   7 U.S.C. § 1
+   /workspace/typeset/us/pl/119/21                   a public law
+   /workspace/typeset/us/ny/bill/2025/s/1234/git     a New York bill
+   /workspace/typeset/us/ny/code/agm/s16             Agriculture and Markets § 16
+   /workspace/typeset/us/ny/const/art1/s1            the constitution
+   ```
+
+   The LegiScan id (`/bill/2058568`) leaves every Typeset URL: Brendan does
+   not want a vendor's serial number in the address. The store keeps `us-ny`
+   (Akoma Ntoso's convention, ISO 3166-2); the URL reads `us/ny`, mapped in
+   one helper both ways (`lib/xml/library.ts` has `statuteHref` and
+   `statuteAddress` to build on; the `/statute/` route and the `/work/` door
+   the lead added on 2026-09-15 fold into this scheme and go away). The seven
+   view routes, the fork page's links, the Library, the `/` command and the
+   citations all build the new form; every old `/bill/<id>/<view>` and
+   `/work/…` URL redirects, because the rest of the site links to them.
+   `?at=YYYY-MM-DD` still means the version in force on a date. Then, as
+   your last act after the lead's Q/A: the bare address renders the XML
+   reader and Plate moves to the slug `plate`, kept working; nothing else in
+   `views.ts` changes.
 4. **The block view** (item 7). Brendan asks where it went. Find whether it
    dropped out of `views.ts` on 2026-09-12 or 2026-09-13 (777d8bd "one editor
    for every view" and the wip commit before it are where to look) and, if
@@ -69,7 +94,7 @@ Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
 ## Window `typeset-search`
 
 Report to `apps/web/docs/typeset/window-search.md`, newest milestone first.
-Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
+Approved 2026-09-15 02:30 EDT: items 1, 2, 3 and 4, in that order.
 
 1. **Search** (item 3). Two faults. First: ⌘K for "6644" returns H.Res. 1299,
    whose title mentions the number, and not H.R. 6644. A bill number typed
@@ -92,17 +117,38 @@ Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
    survives a re-render. Comments are a reader's own rows: the table goes on
    `VOLATILE` in `lib/policy/db.ts`, and nothing reads it without the view
    open. Verify by writing a comment, reloading, and reading it back.
-3. **Keys on the read-only readers** (item 4). **Held (Brendan, 2026-09-15
-   01:40 EDT):** not yet; he road-tests it again first and says when. For the
-   record: `@`, `/` and ⌘J did nothing on
-   the Work page (`/workspace/typeset/work/us/usc/t7/s1`). They exist in ⌘K
-   and in the Fork editor (window 6, `typeset-inline-menu.tsx`). Wire `@`
-   (citations and references), `/` (the library) and ⌘J (jump to a section)
-   on the Work page and the XML view, the same way, without the editor.
+3. **⌘J and Ask AI, Plate's way** (Brendan, 2026-09-15 02:30 EDT). Two
+   things Plate had that the new editor must have before Plate goes. ⌘J
+   opened Plate's AI menu at the cursor: a box that says "Ask AI anything…"
+   with a list under it (Comment, Continue writing, Add a summary, Explain).
+   The selection toolbar's first button, Ask AI, opened the same box for the
+   selected text with its own list (Improve writing, Comment, Emojify, Make
+   longer, Make shorter, Fix spelling & grammar, Simplify language). Build
+   both on the Tiptap reader and the Fork editor, in the same shape and place,
+   with the list rewritten for the law: on a unit, Explain this section,
+   Summarize, Say it plainly, Comment, Continue drafting; on a selection,
+   Improve the wording, Make shorter, Make longer, Fix spelling and grammar,
+   Comment. Every action calls the site's own chat route through Bedrock,
+   only on the reader's press, never on load, and the answer streams into
+   the box. `@` and `/` on the read-only readers stay held: Brendan
+   road-tests them himself first.
 4. **A section sidebar for the Library** (item 5), like the Git view's
    outline. `typeset-file-chrome.tsx` already reads a page's USLM sections for
    its Outline; the Library page and the Work page get a sidebar built on the
    same reading.
+
+## What the lead is building beside you (2026-09-15, from 02:30 EDT)
+
+Stay out of these files unless your item needs them, and pull before you
+touch them: `components/policy/file-row.tsx` (a File menu at the front of
+the toolbar holding the seven views, in place of the footer's 01–07; the
+History button becoming a Versions ▾ History switcher; the search dropdown
+over the toolbar), `components/policy/versions-aside.tsx` and the bill chrome
+in `typeset-file-chrome.tsx` (one shape for every Versions row: the stage as
+a chip, the name, the date, the address as a copy chip), `typeset-frame.tsx`
+and `typeset-footer-parts.tsx` (the numbers leave the footer; a second
+combobox beside the workspace switcher opens a left panel to find bills by
+member or committee and the reader's own drafts).
 
 ## The rules, both windows
 
