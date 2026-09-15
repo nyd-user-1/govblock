@@ -73,6 +73,18 @@ at 8653018; Amplify job 279 builds it.
   Ask AI in Plate's shape through a tool-less Drafter, each press a call,
   answers streaming; the Library's section sidebar and the Work page's rail.
 
+## Production (06:05 EDT)
+
+`main` is at 16dcc6f, Amplify job 281, and every Typeset page answers on
+policy.nysgpt.com. Two builds before it (279, 280) served the pages as
+"Internal Server Error": Turbopack had left `@aws-sdk/client-s3` external
+under a hashed name (two copies resolve in the workspace since Remotion
+arrived) and Amplify's node_modules never carried the alias, so every route
+reading the XML store failed at load. `next.config.ts` now bundles that
+client; `/api/typeset/health?read=1` loads the reader's modules one at a time
+and names the one that fails, on the box and on the site. The anonymous
+`/api/xml/uslm/…` 403 is the app's own door, not the firewall.
+
 ## For Brendan in the morning
 
 - Road-test 3001, in the browser, which no window did: type on the bare
