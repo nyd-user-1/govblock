@@ -9,7 +9,7 @@ import { RecordAvatar } from "@/components/policy/record-item"
 // /sources (Brendan, 2026-09-15): every source as a gallery, one card each,
 // in place of the source line at the foot of every record page.
 
-export const metadata: Metadata = { title: "Sources", description: "Every record on GovBlock, traced to where it comes from." }
+export const metadata: Metadata = { title: "Sources" }
 
 const host = (url: string) => new URL(url).host.replace(/^www\./, "")
 
@@ -71,10 +71,7 @@ export default function SourcesPage() {
   return (
     <div className="container-wrapper">
       <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-10 md:px-6 md:py-14">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">Sources</h1>
-          <p className="max-w-2xl text-muted-foreground">Every record on GovBlock, traced to where it comes from.</p>
-        </header>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">Sources</h1>
         <Gallery title="Congress" sources={FEDERAL} />
         <Gallery title="State legislatures" sources={STATES} />
         <Gallery title="State law" sources={LAW_PUBLISHERS} />
