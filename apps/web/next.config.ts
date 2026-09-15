@@ -12,7 +12,11 @@ import type { NextConfig } from "next"
 const ROOMY = process.env.GOVBLOCK_DEV_BOX === "1"
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@govblock/ui"],
+  // @aws-sdk/client-s3 is bundled, not left external (2026-09-15): two copies
+  // resolve in the workspace (Remotion carries its own), so Turbopack named the
+  // external with a hash the deployment's node_modules never carried, and every
+  // route that reads the XML store answered "Internal Server Error" on Amplify.
+  transpilePackages: ["@govblock/ui", "@aws-sdk/client-s3"],
   // The block docs page reads each block's source at build time, and the
   // tracer, unable to scope that read, carried the whole project into the
   // compute bundle on every deploy (Next's own warning; Amplify's 220 MB cap,
