@@ -6,7 +6,8 @@
 // own `git log` on main instead and writes lib/changelog/entries.json, so the
 // page is about this repository and needs no network at build time.
 //
-//   node scripts/changelog/build.mjs
+//   node scripts/changelog/build.mjs            main's history
+//   node scripts/changelog/build.mjs <branch>   a branch about to become main's
 import { execFileSync } from "node:child_process"
 import { writeFileSync } from "node:fs"
 
@@ -14,7 +15,7 @@ import { writeFileSync } from "node:fs"
 const SEP = "|@|"
 const log = execFileSync(
   "git",
-  ["log", "--no-merges", `--pretty=format:%H${SEP}%cI${SEP}%s`, "main"],
+  ["log", "--no-merges", `--pretty=format:%H${SEP}%cI${SEP}%s`, process.argv[2] || "main"],
   { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }
 )
 
