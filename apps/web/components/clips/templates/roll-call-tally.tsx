@@ -1,6 +1,9 @@
 import * as React from "react"
 import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion"
 
+import { GovBlockMark } from "../studio/mark"
+import type { Paint } from "../studio/palette"
+
 // A roll call as a tally: the first generated clip (brief 2026-09-14). Every
 // word on it is the vote row's own — the chamber, the roll number, the date,
 // the bill, the question, the counts, the result — and nothing is written
@@ -9,7 +12,7 @@ import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoCon
 // result lands last.
 //
 // Self-contained on purpose: React and Remotion only, inline styles, no app
-// imports. The same file is previewed by <Player> in /clips and bundled by
+// imports beyond its studio neighbours. The same file is previewed by <Player> in /clips and bundled by
 // scripts/clips/render on the worker box, where neither Tailwind nor the
 // app's path aliases exist.
 
@@ -26,21 +29,33 @@ export type RollCallTallyProps = {
   counts: { yea: number; nay: number; present: number; notVoting: number }
   parties: { party: string; yea: number; nay: number; present: number; notVoting: number }[]
   fontFamily?: string
+  /** Studio's colours, faces and corners; absent, the template's own dark look. */
+  paint?: Paint
 }
 
 export const ROLL_CALL_TALLY = { id: "roll-call-tally", fps: 30, durationInFrames: 450, width: 1080, height: 1920 } as const
 
-const INK = "#fafafa"
-const PAPER = "#0b0b0c"
-const COLORS = { yea: "#22c55e", nay: "#ef4444", present: "#f59e0b", notVoting: "#3f3f46" } as const
+const OWN = { ink: "#fafafa", paper: "#0b0b0c", yea: "#22c55e", nay: "#ef4444" }
 const LABELS = { yea: "Yea", nay: "Nay", present: "Present", notVoting: "Not voting" } as const
 const KINDS = ["yea", "nay", "present", "notVoting"] as const
 
 const PARTY_NAMES: Record<string, string> = { R: "Republicans", D: "Democrats", I: "Independents", ID: "Independents" }
 
+/** Whether a hex colour is dark, for the mark's tint. */
+export const isDark = (hex: string) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return true
+  const n = parseInt(m[1], 16)
+  return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 < 140
+}
+
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : "")
 
-export function RollCallTally({ chamber, roll, date, citation, billTitle, question, result, counts, parties, fontFamily }: RollCallTallyProps) {
+export function RollCallTally({ chamber, roll, date, citation, billTitle, question, result, counts, parties, fontFamily, paint }: RollCallTallyProps) {
+  const INK = paint?.ink ?? OWN.ink
+  const PAPER = paint?.background ?? OWN.paper
+  const COLORS = { yea: paint?.yes ?? OWN.yea, nay: paint?.no ?? OWN.nay, present: "#f59e0b", notVoting: "#3f3f46" }
+  const dark = !paint || isDark(PAPER)
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const total = counts.yea + counts.nay + counts.present + counts.notVoting
@@ -68,7 +83,7 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
   const passed = result ? /pass|agree|confirm|adopt/i.test(result) : null
 
   return (
-    <AbsoluteFill style={{ background: PAPER, color: INK, fontFamily: fontFamily ?? "var(--font-sans), Geist, system-ui, sans-serif", padding: 80 }}>
+    <AbsoluteFill style={{ background: PAPER, color: INK, fontFamily: fontFamily ?? paint?.font ?? "var(--font-sans), Geist, system-ui, sans-serif", padding: 80 }}>
       <div style={{ opacity: fade(0), transform: `translateY(${rise(0)}px)` }}>
         <div style={{ fontSize: 32, letterSpacing: 3, textTransform: "uppercase", opacity: 0.6 }}>
           {chamberName} roll call {roll}
@@ -80,7 +95,7 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
         )}
       </div>
       {question && (
-        <div style={{ opacity: fade(20), transform: `translateY(${rise(20)}px)`, marginTop: 36, alignSelf: "flex-start", fontSize: 38, padding: "12px 26px", borderRadius: 999, border: "2px solid rgba(250,250,250,0.35)" }}>
+        <div style={{ opacity: fade(20), transform: `translateY(${rise(20)}px)`, marginTop: 36, alignSelf: "flex-start", fontSize: 38, padding: "12px 26px", borderRadius: 999, border: `2px solid ${INK}59` }}>
           {question}
         </div>
       )}
@@ -97,8 +112,8 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
                 top: Math.floor(i / columns) * cell,
                 width: seat,
                 height: seat,
-                borderRadius: chamber === "senate" ? seat / 2 : 6,
-                background: on ? COLORS[kind] : "rgba(250,250,250,0.08)",
+                borderRadius: chamber === "senate" ? seat / 2 : (paint?.radius ?? 6),
+                background: on ? COLORS[kind] : `${INK}14`,
               }}
             />
           )
@@ -117,7 +132,7 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
                 borderRadius: 24,
                 border: `10px solid ${passed === false ? COLORS.nay : passed ? COLORS.yea : INK}`,
                 color: passed === false ? COLORS.nay : passed ? COLORS.yea : INK,
-                background: "rgba(11,11,12,0.88)",
+                background: `${PAPER}e0`,
               }}
             >
               {result}
@@ -129,7 +144,7 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
       <div style={{ display: "flex", gap: 40, marginTop: 44 }}>
         {KINDS.filter((k) => counts[k] > 0 || k === "yea" || k === "nay").map((k) => (
           <div key={k} style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: k === "yea" || k === "nay" ? 112 : 64, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1, color: k === "notVoting" ? "rgba(250,250,250,0.6)" : COLORS[k] }}>{shown[k]}</span>
+            <span style={{ fontSize: k === "yea" || k === "nay" ? 112 : 64, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1, color: k === "notVoting" ? `${INK}99` : COLORS[k] }}>{shown[k]}</span>
             <span style={{ fontSize: 30, opacity: 0.7, marginTop: 8 }}>{LABELS[k]}</span>
           </div>
         ))}
@@ -147,9 +162,8 @@ export function RollCallTally({ chamber, roll, date, citation, billTitle, questi
         ))}
       </div>
 
-      <div style={{ position: "absolute", left: 80, right: 80, bottom: 64, display: "flex", justifyContent: "space-between", fontSize: 28, opacity: 0.55 }}>
-        <span>Source: {chamber === "senate" ? "senate.gov" : "clerk.house.gov via congress.gov"}</span>
-        <span style={{ fontWeight: 700, letterSpacing: 1 }}>GovBlock</span>
+      <div style={{ position: "absolute", right: 80, bottom: 64 }}>
+        <GovBlockMark size={64} dark={dark} />
       </div>
     </AbsoluteFill>
   )

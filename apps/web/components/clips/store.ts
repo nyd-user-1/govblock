@@ -32,6 +32,9 @@ export type Clip = {
   src: string
   /** A YouTube video id: the clip plays in YouTube's own player and `src` is empty. */
   youtube?: string
+  /** Where a cut of a YouTube video starts and ends, in seconds. */
+  youtubeStart?: number
+  youtubeEnd?: number
   blob?: Blob
   /** A frame of the recording as a JPEG data URL, drawn when it was saved, so a tile has something to show before the video decodes. */
   poster?: string
@@ -398,7 +401,7 @@ function dataUrlBlob(dataUrl: string) {
 }
 
 /** A link a reader pasted, in the queue to be cut. */
-export type Upload = { id: string; title: string; status: "queued" | "running" | "review" | "done" | "failed"; clips: number | null; createdAt: string }
+export type Upload = { id: string; title: string; status: "queued" | "running" | "review" | "done" | "failed"; clips: number | null; createdAt: string; error?: string | null; videoId?: string | null }
 
 export type Feed = { published: Clip[]; mine: Clip[]; uploads: Upload[] }
 
@@ -458,6 +461,11 @@ export async function deleteClip(id: string) {
 /** A link to a long video, queued to be cut into clips. */
 export async function submitLink(url: string): Promise<Upload> {
   return (await send<{ upload: Upload }>("/api/clips/uploads", "POST", { url })).upload
+}
+
+/** One step of cutting a pasted YouTube link: the captions, then the moments. Called again until the answer is done, failed, or waiting on the worker box. */
+export async function cutLink(id: string): Promise<{ upload: Pick<Upload, "id" | "status" | "clips" | "error">; step: "pending" | "transcript" | "moments" | null }> {
+  return send("/api/clips/uploads/" + encodeURIComponent(id) + "/cut", "POST")
 }
 
 export async function withdrawUpload(id: string) {

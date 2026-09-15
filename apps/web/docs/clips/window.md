@@ -6,6 +6,76 @@ milestone first.
 
 ---
 
+## 8 · Pasted links cut into clips, a transcript page, a clips dashboard — 2026-09-14 night
+
+### 1. Table change, announced before it runs
+
+`sql/024_clip_transcripts.sql`, additive: a new table `clip_transcripts`
+(a YouTube video's captions, keyed by the video, read once and kept) and a
+new column `clip_cuts.video_id`. Nothing else changes. It ran.
+
+### 2. Built
+
+- **A pasted YouTube link becomes clips, with no box**: the captions are read
+  and kept, Claude Haiku on the site's Bedrock picks 3–6 moments, and each
+  becomes a private clip in the reader's library that plays in YouTube's
+  player from its start to its end. One step a request, under Amplify's 30 s.
+  Ten links a reader a day; an admin has no cap. Tested on a 139-minute House
+  Energy and Commerce hearing: five clips in 8.2 s.
+- **Captions**: Supadata when `SUPADATA_API_KEY` is set; otherwise straight
+  from YouTube, which refuses AWS addresses. A refused link waits in the
+  queue for the worker box and says so. Links other than YouTube wait there
+  too.
+- **/clips/transcript**: paste a link. Every 30 s of the transcript opens on
+  its time, and a time plays the video from there. Find, Copy text, Copy
+  with times, Get clips. No download.
+- **Dashboard › Clips** (`/workspace/dashboard/clips`): six tiles, clips a
+  day by origin, the queue with a Run button for a waiting YouTube link, the
+  caption reader in use, the worker box, and open reports. Admins only.
+- **Worker box**: `govblock-xml` (c7g.4xlarge, arm64, stopped) over the dev
+  box. It already runs the pipeline's heavy jobs, has the cores for FFmpeg
+  and a caption model, and costs nothing while stopped. The dev box is the
+  server Brendan works on and stops itself when idle.
+
+### 3. Needs Brendan
+
+- A Supadata key (free tier, 100 videos a month) in Amplify's environment,
+  or the deployed site can read no new transcripts.
+
+---
+
+## 7 · Studio as the customizer, a gallery of eight, the GovBlock mark — 2026-09-14 night
+
+Brendan: open Studio on a 2 × 4 gallery of prepared templates; drop the
+source line and the GovBlock wordmark for the animated mark; the create
+customizer's colours and card, with Save, Post and New where preset, Open
+Preset and Shuffle were and Get Code giving the embed, share and collaborate
+links; no download anywhere.
+
+### 1. Built
+
+- **Gallery**: roll call tally, bill history, member scorecard, committee at a
+  glance, party unity, chamber by the numbers, bill cosponsors, state session.
+  Each tile shows a frame of the template on a real link and plays on hover.
+- **The card**: Template, Link, Shape, Mode, Base Color, Theme, Chart Color,
+  Heading, Font, Motion, Pace, Radius. Lists are the customizer's own
+  (`lib/create/preset.ts`), faces are the site's. Hovering a colour, a face or
+  a motion previews it in the player. Keys: S save, N gallery, R shuffle the
+  look, D light or dark. The icon library row was left out.
+- **Links Studio reads**: a roll call, a session's roll calls
+  (`house-119-2`), a bill, a member, a committee, a party (`/party/r-house`),
+  a state.
+- **Get Code**: share link and `<iframe>` embed once posted
+  (`/clips/embed/[id]`, public published clips only); collaborate link once
+  saved (`/clips/studio?template=…&link=…`; opening it and saving makes the
+  opener's own copy).
+- **The mark**: the roll call tally and bill history lose "Source: …" and
+  "GovBlock"; the animated mark sits bottom right on every scene and fills
+  the end card.
+- **Templates saved before tonight** used the first spec and no longer open.
+
+---
+
 ## 6 · Clip by link, a bill's history, and generated clips saved without a render — 2026-09-14 evening
 
 Brendan: no file uploads and no rights box, paste a link only; a bill link in

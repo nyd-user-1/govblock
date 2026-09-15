@@ -52,13 +52,12 @@ export async function POST(request: Request) {
       const spec = parseSpec(b.spec)
       if (!spec) return NextResponse.json({ error: "That template could not be read." }, { status: 400 })
       const found = await studioData(String(b.link ?? ""))
-      if (!found) return NextResponse.json({ error: "Paste a bill's link or a roll call's link." }, { status: 404 })
-      const f = found.data.fields
+      if (!found) return NextResponse.json({ error: "Paste a link to a bill, a roll call, a member, a committee, a party, a session's roll calls, or a state." }, { status: 404 })
       const size = SIZES[spec.aspect]
       await q(
         `insert into clips (id, origin, status, visibility, owner_id, title, caption, duration, width, height, jurisdiction, bill_key, roll_call_chamber, roll_call_key, template, composition, published_at)
          values ($1, 'generated', 'published', 'public', $2, $3, $4, $5, $6, $7, 'us', $8, $9, $10, 'studio', $11::jsonb, now())`,
-        [id, viewer.id, `${f.citation ?? spec.name}${f.title ? `: ${f.title}` : ""}`.slice(0, 150), spec.name, durationInFrames(spec) / spec.fps, size.width, size.height, found.keys.bill_key, found.keys.roll_call_chamber ?? null, found.keys.roll_call_key ?? null, JSON.stringify({ template: "studio", props: { spec, data: found.data } })]
+        [id, viewer.id, `${found.data.label}${found.data.fields.title ? `: ${found.data.fields.title}` : ""}`.slice(0, 150), spec.name, durationInFrames(spec) / spec.fps, size.width, size.height, found.keys.bill_key, found.keys.roll_call_chamber ?? null, found.keys.roll_call_key ?? null, JSON.stringify({ template: "studio", props: { spec, data: found.data } })]
       )
     } else {
       return NextResponse.json({ error: "Nothing to post." }, { status: 400 })

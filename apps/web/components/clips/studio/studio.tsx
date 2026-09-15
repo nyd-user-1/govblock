@@ -2,12 +2,17 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Player } from "@remotion/player"
-import { ArrowDownIcon, ArrowLeftIcon, ArrowUpIcon, CheckIcon, CopyIcon, LinkIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { Player, Thumbnail } from "@remotion/player"
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, LayoutGridIcon, MenuIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 
 import { useAccount } from "@/lib/auth/use-account"
+import { Picker, PickerContent, PickerGroup, PickerItem, PickerLabel, PickerRadioGroup, PickerRadioItem, PickerSeparator, PickerShortcut, PickerTrigger } from "@/components/create/picker"
+import { useIsMobile } from "@govblock/ui/hooks/use-mobile"
 import { Button } from "@govblock/ui/components/nova/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@govblock/ui/components/nova/dialog"
+import { FieldGroup, FieldSeparator } from "@govblock/ui/components/nova/field"
 import { Input } from "@govblock/ui/components/nova/input"
 import { Label } from "@govblock/ui/components/nova/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@govblock/ui/components/nova/select"
@@ -16,29 +21,647 @@ import { cn } from "@govblock/ui/lib/utils"
 
 import { clipUrl } from "../menu"
 import { postGenerated, type Clip } from "../store"
-import { durationInFrames, newScene, resolveLink, SCENE_LABELS, SIZES, starterSpec, type Aspect, type Scene, type SceneKind, type StudioData, type StudioSpec, type Theme, type Transition } from "./spec"
+import { GALLERY, type Prepared } from "./gallery"
+import { BASES, CHARTS, DEFAULT_LOOK, FACES, MOTIONS, PACES, RADII, THEMES, type Look } from "./palette"
+import { durationInFrames, FIXED_SECONDS, newScene, resolveLink, SCENE_LABELS, sceneFrames, SIZES, type Aspect, type Scene, type SceneKind, type StudioData, type StudioSpec, type Transition } from "./spec"
 import { StudioVideo } from "./studio-video"
 
-// Studio (Brendan, 2026-09-14): build a video template from scenes and knobs,
-// feed it a bill or a roll call by its link, watch it play, save it, post it.
-// Left, the controls: the link and the fields it gives, the format and theme,
-// the scenes in order, and the selected scene's settings. Right, the preview.
+// Studio (Brendan, 2026-09-14): the create customizer, turned to video. The
+// dark card is the look — the template, the link that feeds it, the shape,
+// light or dark, base colour, theme, chart colour, faces, motion, pace and
+// corners — with Save, Post and New where preset, Open Preset and Shuffle
+// were, and Get Code giving the share link, the embed and the link to open
+// the template in Studio. The stage opens on the gallery; a template opens
+// into its preview, its scenes along the foot and the chosen scene's knobs.
 
 type Saved = { id: string; name: string; updatedAt: string; spec: StudioSpec }
+type Option = { value: string; label: string; swatch?: React.ReactNode }
 
+const VideoComponent = StudioVideo as unknown as React.ComponentType<Record<string, unknown>>
 const KINDS = Object.keys(SCENE_LABELS) as SceneKind[]
-const TRANSITIONS: Transition[] = ["fade", "slide", "zoom", "none"]
-const ASPECTS: Aspect[] = ["9:16", "1:1", "16:9"]
+const uid = () => Math.random().toString(36).slice(2, 10)
+const withIds = (spec: StudioSpec): StudioSpec => ({ ...spec, scenes: spec.scenes.map((s) => ({ ...s, id: uid() })) })
+const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]
 
-function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+// The customizer's own swatches for base colours (components/create/fields.tsx).
+const BASE_SWATCH: Record<string, string> = { neutral: "bg-neutral-500", zinc: "bg-zinc-500", stone: "bg-stone-500", mauve: "bg-purple-300", olive: "bg-lime-700", mist: "bg-sky-300", taupe: "bg-stone-400" }
+const Dot = ({ className, color }: { className?: string; color?: string }) => <span className={cn("inline-block size-3.5 shrink-0 rounded-full", className)} style={color ? { background: color } : undefined} />
+const Pair = ({ yes, no }: { yes: string; no: string }) => <span className="inline-block size-3.5 shrink-0 rounded-full" style={{ background: `linear-gradient(90deg, ${yes} 50%, ${no} 50%)` }} />
+const Aa = ({ face }: { face?: string }) => (
+  <span className="text-xs font-medium text-foreground" style={face ? { fontFamily: FACES[face]?.css } : undefined}>
+    Aa
+  </span>
+)
+
+const ASPECTS: Option[] = [
+  { value: "9:16", label: "Vertical · 9:16" },
+  { value: "1:1", label: "Square · 1:1" },
+  { value: "16:9", label: "Wide · 16:9" },
+]
+const MODES: Option[] = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
+]
+const TRANSITIONS: { value: Transition; label: string }[] = [
+  { value: "look", label: "The look's motion" },
+  { value: "fade", label: "Fade" },
+  { value: "slide", label: "Slide up" },
+  { value: "zoom", label: "Zoom" },
+  { value: "none", label: "Cut" },
+]
+
+/** One row of the card: the customizer's trigger, label over value, a glyph at the right; hovering an item previews it. */
+function Row({ label, value, display, options, onChange, trailing, onPreview, isMobile, anchorRef }: { label: string; value: string; display?: string; options: Option[]; onChange: (value: string) => void; trailing?: React.ReactNode; onPreview?: (value: string | null) => void; isMobile: boolean; anchorRef: React.RefObject<HTMLDivElement | null> }) {
+  const current = options.find((o) => o.value === value)
   return (
-    <section className="flex flex-col gap-3 border-b px-4 py-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-xs font-medium text-muted-foreground">{title}</h2>
-        {action && <div className="ml-auto">{action}</div>}
+    <div className="group/picker relative">
+      <Picker onOpenChange={(open) => !open && onPreview?.(null)}>
+        <PickerTrigger className="w-full">
+          <div className={cn("flex min-w-0 flex-1 flex-col justify-start text-left", trailing && "pr-8")}>
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="truncate text-sm font-medium text-foreground">{display ?? current?.label ?? value}</div>
+          </div>
+          {trailing && <span className="pointer-events-none absolute top-1/2 right-4 flex size-4 -translate-y-1/2 items-center justify-center text-muted-foreground select-none md:right-2.5">{trailing}</span>}
+        </PickerTrigger>
+        <PickerContent anchor={isMobile ? anchorRef : undefined} side={isMobile ? "top" : "right"} align={isMobile ? "center" : "start"} onMouseLeave={() => onPreview?.(null)}>
+          <PickerRadioGroup value={value} onValueChange={(next) => onChange(String(next))} onItemPreview={onPreview && !isMobile ? (next) => onPreview(next) : undefined}>
+            <PickerGroup>
+              <PickerLabel>{label}</PickerLabel>
+              {options.map((o) => (
+                <PickerRadioItem key={o.value} value={o.value} closeOnClick>
+                  {o.swatch}
+                  <span className="truncate">{o.label}</span>
+                </PickerRadioItem>
+              ))}
+            </PickerGroup>
+          </PickerRadioGroup>
+        </PickerContent>
+      </Picker>
+    </div>
+  )
+}
+
+/** The link row: the same box as a picker, typed into. */
+function LinkRow({ value, onChange, onSubmit, loading, error }: { value: string; onChange: (v: string) => void; onSubmit: () => void; loading: boolean; error: string | null }) {
+  return (
+    <form
+      className={cn("relative w-36 shrink-0 rounded-xl p-3 ring-1 ring-foreground/10 focus-within:ring-foreground/50 md:w-full md:rounded-lg md:px-2.5 md:py-2", error && "ring-destructive/60")}
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit()
+      }}
+    >
+      <label className="flex min-w-0 flex-col">
+        <span className="text-xs text-muted-foreground">{loading ? "Loading…" : error ? error : "Link"}</span>
+        <input value={value} onChange={(e) => onChange(e.target.value)} onBlur={onSubmit} placeholder="Paste a GovBlock link" className="min-w-0 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground" aria-label="Link" spellCheck={false} />
+      </label>
+    </form>
+  )
+}
+
+export function Studio() {
+  const { signedIn } = useAccount()
+  const isMobile = useIsMobile() ?? false
+  const anchorRef = React.useRef<HTMLDivElement>(null)
+  const [view, setView] = React.useState<"gallery" | "edit">("gallery")
+  const [spec, setSpec] = React.useState<StudioSpec>(() => withIds(GALLERY[0].spec))
+  const [link, setLink] = React.useState(GALLERY[0].link)
+  const [data, setData] = React.useState<StudioData | null>(null)
+  const [cache, setCache] = React.useState<Record<string, StudioData | null>>({})
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [selected, setSelected] = React.useState<number | null>(null)
+  const [preview, setPreview] = React.useState<Partial<Look> | null>(null)
+  const [saved, setSaved] = React.useState<Saved[]>([])
+  const [savedId, setSavedId] = React.useState<string | null>(null)
+  const [posted, setPosted] = React.useState<Clip | null>(null)
+  const [status, setStatus] = React.useState<string | null>(null)
+  const [dialog, setDialog] = React.useState<null | "save" | "code">(null)
+  const [name, setName] = React.useState("")
+  const [copied, setCopied] = React.useState<string | null>(null)
+  const loaded = React.useRef(link)
+
+  const fetchData = React.useCallback(async (text: string) => {
+    const res = await fetch(`/api/clips/studio/data?link=${encodeURIComponent(text)}`)
+    const body = (await res.json().catch(() => ({}))) as { data?: StudioData; error?: string }
+    if (!res.ok || !body.data) throw new Error(body.error ?? "That link did not load.")
+    return body.data
+  }, [])
+
+  const load = React.useCallback(
+    async (text: string) => {
+      const t = text.trim()
+      if (!t) return
+      if (!resolveLink(t)) return setError("Not a link Studio reads")
+      loaded.current = t
+      if (cache[t]) {
+        setData(cache[t])
+        setError(null)
+        return
+      }
+      setLoading(true)
+      setError(null)
+      try {
+        const next = await fetchData(t)
+        setCache((c) => ({ ...c, [t]: next, [next.link]: next }))
+        if (loaded.current === t) {
+          setData(next)
+          setLink(next.link)
+          loaded.current = next.link
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "That link did not load.")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [cache, fetchData]
+  )
+
+  // The gallery's links, read once, so each tile plays on its own data.
+  React.useEffect(() => {
+    const links = [...new Set(GALLERY.map((t) => t.link))]
+    for (const l of links) {
+      void fetchData(l)
+        .then((d) => setCache((c) => ({ ...c, [l]: d })))
+        .catch(() => setCache((c) => ({ ...c, [l]: null })))
+    }
+  }, [fetchData])
+
+  const loadSaved = React.useCallback(async () => {
+    const res = await fetch("/api/clips/studio/templates", { cache: "no-store" }).catch(() => null)
+    if (res?.ok) setSaved(((await res.json()) as { templates: Saved[] }).templates)
+  }, [])
+  React.useEffect(() => {
+    if (signedIn) void loadSaved()
+  }, [signedIn, loadSaved])
+
+  // A collaborate link: /clips/studio?template=tpl_…&link=…
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get("template")
+    const shared = params.get("link")
+    if (!id) return
+    void fetch(`/api/clips/studio/templates?id=${encodeURIComponent(id)}`)
+      .then((r) => (r.ok ? (r.json() as Promise<{ template?: Saved }>) : null))
+      .then((body) => {
+        if (!body?.template) return
+        setSpec(withIds(body.template.spec))
+        setView("edit")
+        if (shared) {
+          setLink(shared)
+          void fetchData(shared).then(setData).catch(() => setError("That link did not load."))
+        }
+      })
+  }, [fetchData])
+
+  const change = (next: StudioSpec) => {
+    setSpec(next)
+    setPosted(null)
+  }
+  const setLook = (patch: Partial<Look>) => change({ ...spec, look: { ...spec.look, ...patch } })
+  const scene = selected === null ? null : (spec.scenes[selected] ?? null)
+  const setScene = (patch: Partial<Scene>) => change({ ...spec, scenes: spec.scenes.map((s, i) => (i === selected ? ({ ...s, ...patch } as Scene) : s)) })
+
+  const open = (t: Prepared | Saved, withLink?: string) => {
+    setSpec(withIds(t.spec))
+    setSavedId("link" in t ? null : t.id)
+    setPosted(null)
+    setSelected(null)
+    setView("edit")
+    const l = withLink ?? ("link" in t ? t.link : link)
+    setLink(l)
+    if (cache[l]) {
+      setData(cache[l])
+      loaded.current = l
+      setError(null)
+    } else void load(l)
+  }
+
+  const shuffle = React.useCallback(() => {
+    setSpec((s) => ({
+      ...s,
+      look: {
+        ...s.look,
+        mode: pick(["dark", "light"] as const),
+        base: pick(Object.keys(BASES)),
+        theme: pick(Object.keys(THEMES)),
+        chart: pick(Object.keys(CHARTS)),
+        heading: pick(Object.keys(FACES)),
+        font: pick(Object.keys(FACES).filter((f) => !f.endsWith("mono"))),
+        radius: pick(Object.keys(RADII)),
+        motion: pick(Object.keys(MOTIONS)),
+      },
+    }))
+    setPosted(null)
+  }, [])
+
+  const startNew = React.useCallback(() => {
+    setView("gallery")
+    setSavedId(null)
+    setPosted(null)
+    setSelected(null)
+  }, [])
+
+  const save = async () => {
+    setStatus("Saving…")
+    const res = await fetch("/api/clips/studio/templates", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: savedId, spec: { ...spec, name: name.trim() || spec.name } }) })
+    const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string }
+    if (!res.ok || !body.id) return setStatus(body.error ?? "The template was not saved.")
+    setSavedId(body.id)
+    setSpec((s) => ({ ...s, name: name.trim() || s.name }))
+    setStatus(null)
+    setDialog(null)
+    void loadSaved()
+  }
+
+  const post = async () => {
+    if (!data) return setStatus("Paste a link first.")
+    setStatus("Posting…")
+    try {
+      setPosted(await postGenerated({ template: "studio", link: data.link, spec }))
+      setStatus(null)
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "The clip was not posted.")
+    }
+  }
+
+  const copy = (key: string, text: string) => {
+    void navigator.clipboard?.writeText(text)
+    setCopied(key)
+    window.setTimeout(() => setCopied(null), 1500)
+  }
+
+  // The customizer's keys: S saves, N starts anew, R shuffles the look, D flips it light or dark.
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target
+      if ((target instanceof HTMLElement && target.isContentEditable) || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return
+      const key = e.key.toLowerCase()
+      if (key === "s" && signedIn) {
+        e.preventDefault()
+        setName(spec.name)
+        setDialog("save")
+      } else if (key === "n") {
+        e.preventDefault()
+        startNew()
+      } else if (key === "r") {
+        e.preventDefault()
+        shuffle()
+      } else if (key === "d") {
+        e.preventDefault()
+        setSpec((s) => ({ ...s, look: { ...s.look, mode: s.look.mode === "light" ? "dark" : "light" } }))
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [signedIn, spec.name, startNew, shuffle])
+
+  const shown = preview ? { ...spec, look: { ...spec.look, ...preview } } : spec
+  const size = SIZES[spec.aspect]
+  const frames = durationInFrames(spec)
+  const origin = typeof window === "undefined" ? "" : window.location.origin
+  const shareUrl = posted ? clipUrl(posted) : null
+  const embedWidth = spec.aspect === "16:9" ? 640 : 360
+  const embed = posted ? `<iframe src="${origin}/clips/embed/${posted.id}" width="${embedWidth}" height="${Math.round((embedWidth * size.height) / size.width)}" style="border:0" allow="autoplay; fullscreen" allowfullscreen></iframe>` : null
+  const collaborate = savedId ? `${origin}/clips/studio?template=${savedId}&link=${encodeURIComponent(data?.link ?? link)}` : null
+  const lookRow = (key: keyof Look) => (value: string | null) => setPreview(value === null ? null : { [key]: value })
+
+  const fields = { isMobile, anchorRef }
+
+  return (
+    <div data-slot="designer" className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden section-soft [--customizer-width:--spacing(56)] [--gap:--spacing(4)] md:[--gap:--spacing(6)]">
+      <div className="flex min-h-0 flex-1 flex-col gap-(--gap) p-(--gap) pt-[calc(var(--gap)*0.25)] md:flex-row">
+        <Card ref={anchorRef} className="dark isolate z-10 max-h-full min-h-0 w-full shrink-0 self-start rounded-2xl bg-card/90 backdrop-blur-xl md:w-(--customizer-width)" size="sm">
+          <CardHeader className="hidden items-center justify-between gap-2 border-b md:flex">
+            <Picker>
+              <PickerTrigger className="flex items-center justify-between gap-2 rounded-lg px-1.75 ring-1 ring-foreground/10 focus-visible:ring-1">
+                <span className="font-medium">Studio</span>
+                <MenuIcon className="size-5" />
+              </PickerTrigger>
+              <PickerContent side="right" align="start" alignOffset={-8}>
+                <PickerGroup>
+                  <PickerItem onClick={startNew}>
+                    <LayoutGridIcon className="size-4 text-muted-foreground" /> Gallery <PickerShortcut>N</PickerShortcut>
+                  </PickerItem>
+                  <PickerItem render={<Link href="/clips" />}>
+                    <ArrowLeftIcon className="size-4 text-muted-foreground" /> Clips
+                  </PickerItem>
+                </PickerGroup>
+                <PickerSeparator />
+                <PickerGroup>
+                  <PickerItem disabled={!signedIn} onClick={() => (setName(spec.name), setDialog("save"))}>
+                    Save... <PickerShortcut>S</PickerShortcut>
+                  </PickerItem>
+                  <PickerItem onClick={shuffle}>
+                    Shuffle the look <PickerShortcut>R</PickerShortcut>
+                  </PickerItem>
+                  <PickerItem onClick={() => setLook({ mode: spec.look.mode === "light" ? "dark" : "light" })}>
+                    Light/Dark <PickerShortcut>D</PickerShortcut>
+                  </PickerItem>
+                  <PickerItem onClick={() => setLook({ ...DEFAULT_LOOK })}>Reset the look</PickerItem>
+                </PickerGroup>
+              </PickerContent>
+            </Picker>
+          </CardHeader>
+          <CardContent className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden max-md:px-0 md:overflow-y-auto">
+            <FieldGroup className="flex-row gap-2.5 py-px **:data-[slot=field-separator]:-mx-4 **:data-[slot=field-separator]:w-auto max-md:px-3 md:flex-col md:gap-3.25">
+              <div className="group/picker relative">
+                <Picker>
+                  <PickerTrigger className="w-full">
+                    <div className="flex min-w-0 flex-1 flex-col justify-start pr-8 text-left">
+                      <div className="text-xs text-muted-foreground">Template</div>
+                      <div className="truncate text-sm font-medium text-foreground">{view === "gallery" ? "Gallery" : spec.name}</div>
+                    </div>
+                    <span className="pointer-events-none absolute top-1/2 right-4 flex size-4 -translate-y-1/2 items-center justify-center text-foreground select-none md:right-2.5">
+                      <LayoutGridIcon className="size-4" />
+                    </span>
+                  </PickerTrigger>
+                  <PickerContent anchor={isMobile ? anchorRef : undefined} side={isMobile ? "top" : "right"} align={isMobile ? "center" : "start"}>
+                    <PickerGroup>
+                      <PickerLabel>Gallery</PickerLabel>
+                      {GALLERY.map((t) => (
+                        <PickerItem key={t.id} onClick={() => open(t)}>
+                          {t.name}
+                        </PickerItem>
+                      ))}
+                    </PickerGroup>
+                    {saved.length > 0 && (
+                      <>
+                        <PickerSeparator />
+                        <PickerGroup>
+                          <PickerLabel>Yours</PickerLabel>
+                          {saved.map((t) => (
+                            <PickerItem key={t.id} onClick={() => open(t)}>
+                              <span className="truncate">{t.name}</span>
+                              {savedId === t.id && <CheckIcon className="ml-auto size-4" />}
+                            </PickerItem>
+                          ))}
+                        </PickerGroup>
+                      </>
+                    )}
+                  </PickerContent>
+                </Picker>
+              </div>
+              <LinkRow value={link} onChange={setLink} onSubmit={() => link.trim() !== loaded.current && void load(link)} loading={loading} error={error} />
+              <FieldSeparator className="hidden md:block" />
+              <Row {...fields} label="Shape" value={spec.aspect} options={ASPECTS} onChange={(aspect) => change({ ...spec, aspect: aspect as Aspect })} trailing={<span className={cn("inline-block rounded-[3px] border-2 border-current text-foreground", spec.aspect === "9:16" ? "h-4 w-2.5" : spec.aspect === "1:1" ? "size-3.5" : "h-2.5 w-4")} />} />
+              <Row {...fields} label="Mode" value={spec.look.mode} options={MODES} onChange={(mode) => setLook({ mode: mode as Look["mode"] })} onPreview={lookRow("mode")} trailing={<Dot color={spec.look.mode === "light" ? "#fafafa" : "#0a0a0a"} className="ring-1 ring-foreground/30" />} />
+              <FieldSeparator className="hidden md:block" />
+              <Row {...fields} label="Base Color" value={spec.look.base} options={Object.entries(BASES).map(([value, b]) => ({ value, label: b.label, swatch: <Dot className={BASE_SWATCH[value]} /> }))} onChange={(base) => setLook({ base })} onPreview={lookRow("base")} trailing={<Dot className={BASE_SWATCH[spec.look.base]} />} />
+              <Row {...fields} label="Theme" value={spec.look.theme} options={Object.entries(THEMES).map(([value, t]) => ({ value, label: t.label, swatch: <Dot color={t.light} /> }))} onChange={(theme) => setLook({ theme })} onPreview={lookRow("theme")} trailing={<Dot color={THEMES[spec.look.theme]?.light} />} />
+              <Row {...fields} label="Chart Color" value={spec.look.chart} options={Object.entries(CHARTS).map(([value, c]) => ({ value, label: c.label, swatch: <Pair yes={c.yes} no={c.no} /> }))} onChange={(chart) => setLook({ chart })} onPreview={lookRow("chart")} trailing={<Pair yes={CHARTS[spec.look.chart]?.yes ?? "#22c55e"} no={CHARTS[spec.look.chart]?.no ?? "#ef4444"} />} />
+              <FieldSeparator className="hidden md:block" />
+              <Row {...fields} label="Heading" value={spec.look.heading} options={Object.entries(FACES).map(([value, f]) => ({ value, label: f.label, swatch: <Aa face={value} /> }))} onChange={(heading) => setLook({ heading })} onPreview={lookRow("heading")} trailing={<Aa face={spec.look.heading} />} />
+              <Row {...fields} label="Font" value={spec.look.font} options={Object.entries(FACES).map(([value, f]) => ({ value, label: f.label, swatch: <Aa face={value} /> }))} onChange={(font) => setLook({ font })} onPreview={lookRow("font")} trailing={<Aa face={spec.look.font} />} />
+              <FieldSeparator className="hidden md:block" />
+              <Row {...fields} label="Motion" value={spec.look.motion} options={Object.entries(MOTIONS).map(([value, label]) => ({ value, label }))} onChange={(motion) => setLook({ motion })} onPreview={lookRow("motion")} />
+              <Row {...fields} label="Pace" value={spec.look.pace} options={Object.entries(PACES).map(([value, p]) => ({ value, label: p.label }))} onChange={(pace) => setLook({ pace })} />
+              <Row {...fields} label="Radius" value={spec.look.radius} options={Object.entries(RADII).map(([value, r]) => ({ value, label: r.label }))} onChange={(radius) => setLook({ radius })} onPreview={lookRow("radius")} trailing={<span className="inline-block size-3 rounded-tr-lg border-t-2 border-r-2 border-current text-foreground" />} />
+              <div aria-hidden className="w-0.5 shrink-0 md:hidden" />
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="flex min-w-0 gap-2 md:flex-col md:rounded-b-none md:**:[button,a]:w-full">
+            {signedIn ? (
+              <Button variant="outline" className="min-w-0 flex-1 md:flex-none" onClick={() => (setName(spec.name), setDialog("save"))}>
+                {savedId ? <CheckIcon /> : null}
+                {savedId ? "Saved" : "Save"}
+              </Button>
+            ) : (
+              <Button variant="outline" className="min-w-0 flex-1 md:flex-none" render={<Link href="/auth" />} nativeButton={false}>
+                Sign in to save
+              </Button>
+            )}
+            <Button variant="outline" className="min-w-0 flex-1 md:flex-none" disabled={!signedIn || !data || view === "gallery"} onClick={() => (posted ? setDialog("code") : void post())}>
+              {posted ? "Posted" : status === "Posting…" ? "Posting…" : "Post"}
+            </Button>
+            <Button variant="outline" className="min-w-0 flex-1 md:flex-none" onClick={startNew}>
+              New
+            </Button>
+          </CardFooter>
+          <CardFooter className="-mt-3 hidden min-w-0 gap-2 md:flex md:flex-col md:**:[button,a]:w-full">
+            {status && status !== "Posting…" && <p className="text-center text-xs text-muted-foreground">{status}</p>}
+            <Button onClick={() => setDialog("code")} disabled={view === "gallery"}>
+              Get Code
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
+          <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
+          <div className="relative z-0 flex min-h-0 flex-1 flex-col">
+            {view === "gallery" ? (
+              <div className="grid min-h-0 flex-1 grid-cols-2 gap-4 overflow-y-auto p-4 md:grid-cols-4 md:grid-rows-2 md:p-6">
+                {GALLERY.map((t) => (
+                  <GalleryTile key={t.id} template={t} data={cache[t.link]} onOpen={() => open(t)} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                  <div className="relative min-h-0 flex-1">
+                    <div className="absolute inset-4 md:inset-6">
+                      <Player key={spec.aspect} component={VideoComponent} inputProps={{ spec: shown, data }} durationInFrames={frames} fps={spec.fps} compositionWidth={size.width} compositionHeight={size.height} style={{ width: "100%", height: "100%" }} controls loop autoPlay clickToPlay />
+                    </div>
+                  </div>
+                  {shareUrl && (
+                    <div className="flex justify-center pb-2">
+                      <Button variant="ghost" size="sm" onClick={() => copy("share", shareUrl)}>
+                        {copied === "share" ? <CheckIcon /> : <CopyIcon />} {copied === "share" ? "Link copied" : "Posted · copy the link"}
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 overflow-x-auto border-t bg-background/60 px-4 py-3">
+                    {spec.scenes.map((s, i) => (
+                      <button key={s.id} type="button" onClick={() => setSelected(selected === i ? null : i)} className={cn("flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ring-1 ring-foreground/10 hover:bg-muted", selected === i && "bg-muted ring-foreground/40")}>
+                        <span className="text-xs text-muted-foreground tabular-nums">{i + 1}</span>
+                        <span className="whitespace-nowrap">{SCENE_LABELS[s.kind]}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{(sceneFrames(s, spec) / spec.fps).toFixed(1)}s</span>
+                      </button>
+                    ))}
+                    <Picker>
+                      <PickerTrigger className="flex w-auto shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm md:w-auto md:px-2.5 md:py-1.5">
+                        <PlusIcon className="size-4" /> Scene
+                      </PickerTrigger>
+                      <PickerContent side="top" align="start" className="w-max min-w-44 md:w-max">
+                        {KINDS.map((k) => (
+                          <PickerItem
+                            key={k}
+                            className="whitespace-nowrap"
+                            onClick={() => {
+                              change({ ...spec, scenes: [...spec.scenes, newScene(k)] })
+                              setSelected(spec.scenes.length)
+                            }}
+                          >
+                            {SCENE_LABELS[k]}
+                          </PickerItem>
+                        ))}
+                      </PickerContent>
+                    </Picker>
+                    <span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground tabular-nums">{(frames / spec.fps).toFixed(1)}s</span>
+                  </div>
+                </div>
+                {scene && selected !== null && (
+                  <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l bg-background/80">
+                    <div className="flex items-center gap-1 border-b px-4 py-2.5">
+                      <span className="flex-1 text-sm font-medium">
+                        {selected + 1}. {SCENE_LABELS[scene.kind]}
+                      </span>
+                      <Button variant="ghost" size="icon-xs" aria-label="Move earlier" disabled={selected === 0} onClick={() => move(selected, selected - 1)}>
+                        <ArrowLeftIcon />
+                      </Button>
+                      <Button variant="ghost" size="icon-xs" aria-label="Move later" disabled={selected === spec.scenes.length - 1} onClick={() => move(selected, selected + 1)}>
+                        <ArrowRightIcon />
+                      </Button>
+                      <Button variant="ghost" size="icon-xs" aria-label="Duplicate" onClick={() => (change({ ...spec, scenes: [...spec.scenes.slice(0, selected + 1), { ...scene, id: uid() }, ...spec.scenes.slice(selected + 1)] }), setSelected(selected + 1))}>
+                        <CopyIcon />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Delete"
+                        onClick={() => {
+                          change({ ...spec, scenes: spec.scenes.filter((_, j) => j !== selected) })
+                          setSelected(null)
+                        }}
+                      >
+                        <Trash2Icon />
+                      </Button>
+                      <Button variant="ghost" size="icon-xs" aria-label="Close" onClick={() => setSelected(null)}>
+                        <XIcon />
+                      </Button>
+                    </div>
+                    <div className="flex flex-col gap-4 p-4">
+                      {!FIXED_SECONDS[scene.kind] && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label={`Length · ${scene.seconds}s`}>
+                            <input type="range" min={1} max={20} step={0.5} value={scene.seconds} onChange={(e) => setScene({ seconds: Number(e.target.value) })} className="h-8 accent-primary" />
+                          </Field>
+                          <Field label="Enters by">
+                            <Choose label="Enters by" value={scene.transition} options={TRANSITIONS} onChange={(transition) => setScene({ transition: transition as Transition })} />
+                          </Field>
+                        </div>
+                      )}
+                      <SceneKnobs scene={scene} onChange={setScene} />
+                      {data && Object.keys(data.fields).length > 0 && (
+                        <div className="flex flex-col gap-2 border-t pt-4">
+                          <span className="text-xs text-muted-foreground">{data.label}</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(data.fields).map(([k, v]) => (
+                              <button key={k} type="button" title={v} onClick={() => copy(k, `{${k}}`)} className="flex max-w-full items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] hover:bg-accent">
+                                {copied === k && <CheckIcon className="size-3" />}
+                                {`{${k}}`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </aside>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      {children}
-    </section>
+
+      <Dialog open={dialog === "save"} onOpenChange={(next) => !next && setDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save</DialogTitle>
+            <DialogDescription>Kept with your account, to feed any link later.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void save()
+            }}
+          >
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="A name for it" autoFocus />
+            {status && <p className="text-xs text-muted-foreground">{status}</p>}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialog(null)}>
+                Cancel
+              </Button>
+              <Button type="submit">{savedId ? "Update" : "Save"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialog === "code"} onOpenChange={(next) => !next && setDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Get Code</DialogTitle>
+            <DialogDescription>Share the clip, put it on a page, or hand the template to someone to work on.</DialogDescription>
+          </DialogHeader>
+          <CodeBlock label="Share link" value={shareUrl} copied={copied === "c-share"} onCopy={(v) => copy("c-share", v)} empty={<EmptyAction text="Post the clip to get its link." action={signedIn && data ? "Post" : null} onAction={() => void post()} />} />
+          <CodeBlock label="Embed" value={embed} copied={copied === "c-embed"} onCopy={(v) => copy("c-embed", v)} empty={<EmptyAction text="Post the clip to embed it." action={null} />} />
+          <CodeBlock label="Collaborate" value={collaborate} copied={copied === "c-collab"} onCopy={(v) => copy("c-collab", v)} empty={<EmptyAction text="Save the template to get a link that opens it in Studio." action={signedIn ? "Save" : null} onAction={() => (setName(spec.name), setDialog("save"))} />} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+
+  function move(from: number, to: number) {
+    if (to < 0 || to >= spec.scenes.length) return
+    const scenes = [...spec.scenes]
+    const [one] = scenes.splice(from, 1)
+    scenes.splice(to, 0, one)
+    change({ ...spec, scenes })
+    setSelected(to)
+  }
+}
+
+function CodeBlock({ label, value, copied, onCopy, empty }: { label: string; value: string | null; copied: boolean; onCopy: (value: string) => void; empty: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {value ? (
+        <div className="relative rounded-lg bg-muted p-3 pr-12 font-mono text-xs break-all">
+          {value}
+          <Button variant="ghost" size="icon-sm" className="absolute top-1.5 right-1.5" aria-label={`Copy the ${label.toLowerCase()}`} onClick={() => onCopy(value)}>
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </Button>
+        </div>
+      ) : (
+        empty
+      )}
+    </div>
+  )
+}
+
+function EmptyAction({ text, action, onAction }: { text: string; action: string | null; onAction?: () => void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+      <span className="flex-1">{text}</span>
+      {action && (
+        <Button size="sm" variant="outline" onClick={onAction}>
+          {action}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/** A gallery tile: a still of the template on its own link, playing while the pointer is over it. */
+function GalleryTile({ template, data, onOpen }: { template: Prepared; data: StudioData | null | undefined; onOpen: () => void }) {
+  const [hover, setHover] = React.useState(false)
+  const spec = template.spec
+  const size = SIZES[spec.aspect]
+  const frames = durationInFrames(spec)
+  const first = spec.scenes[0]
+  const still = first && FIXED_SECONDS[first.kind] ? (first.kind === "roll-call-tally" ? 360 : 560) : Math.min(frames - 1, (first ? sceneFrames(first, spec) : 0) + 45)
+  const common = { component: VideoComponent, inputProps: { spec, data: data ?? null }, durationInFrames: frames, fps: spec.fps, compositionWidth: size.width, compositionHeight: size.height, style: { width: "100%", height: "100%" } }
+  return (
+    <button type="button" onClick={onOpen} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)} className="group flex min-h-72 flex-col gap-2 rounded-xl p-2 text-left hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg">
+        {data === undefined ? <div className="absolute inset-0 animate-pulse rounded-lg bg-foreground/5" /> : hover ? <Player {...common} autoPlay loop /> : <Thumbnail {...common} frameToDisplay={still} />}
+      </div>
+      <span className="truncate px-1 text-sm font-medium">{template.name}</span>
+    </button>
   )
 }
 
@@ -51,331 +674,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function Pick<T extends string>({ value, options, onChange, label, names }: { value: T; options: readonly T[]; onChange: (v: T) => void; label: string; names?: Partial<Record<T, string>> }) {
+function Choose({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
   return (
-    <Select value={value} onValueChange={(v) => v && onChange(v as T)}>
+    <Select value={value} onValueChange={(v) => v && onChange(String(v))}>
       <SelectTrigger size="sm" className="h-8 w-full" aria-label={label}>
-        <SelectValue>{() => names?.[value] ?? value}</SelectValue>
+        <SelectValue>{() => options.find((o) => o.value === value)?.label ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent className="w-max min-w-44">
         {options.map((o) => (
-          <SelectItem key={o} value={o} className="whitespace-nowrap">
-            {names?.[o] ?? o}
+          <SelectItem key={o.value} value={o.value} className="whitespace-nowrap">
+            {o.label}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
-  )
-}
-
-function Color({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <label className="flex items-center gap-2 text-xs">
-      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="size-7 cursor-pointer rounded border bg-transparent p-0.5" aria-label={label} />
-      <span className="text-muted-foreground">{label}</span>
-    </label>
-  )
-}
-
-export function Studio() {
-  const { signedIn } = useAccount()
-  const [spec, setSpec] = React.useState<StudioSpec>(() => starterSpec("roll-call"))
-  const [selected, setSelected] = React.useState(0)
-  const [link, setLink] = React.useState("house-119-2/295")
-  const [data, setData] = React.useState<StudioData | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [saved, setSaved] = React.useState<Saved[]>([])
-  const [savedId, setSavedId] = React.useState<string | null>(null)
-  const [status, setStatus] = React.useState<string | null>(null)
-  const [posted, setPosted] = React.useState<Clip | null>(null)
-  const [copied, setCopied] = React.useState<string | null>(null)
-
-  const load = React.useCallback(async (text: string) => {
-    if (!resolveLink(text)) return setError("Paste a bill's link or a roll call's link.")
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/clips/studio/data?link=${encodeURIComponent(text)}`)
-      const body = (await res.json()) as { data?: StudioData; error?: string }
-      if (!res.ok || !body.data) throw new Error(body.error ?? "That link did not load.")
-      setData(body.data)
-      setLink(body.data.link)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "That link did not load.")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const loadSaved = React.useCallback(async () => {
-    const res = await fetch("/api/clips/studio/templates", { cache: "no-store" }).catch(() => null)
-    if (res?.ok) setSaved(((await res.json()) as { templates: Saved[] }).templates)
-  }, [])
-
-  React.useEffect(() => {
-    void load("house-119-2/295")
-  }, [load])
-  React.useEffect(() => {
-    if (signedIn) void loadSaved()
-  }, [signedIn, loadSaved])
-
-  const set = (patch: Partial<StudioSpec>) => {
-    setSpec((s) => ({ ...s, ...patch }))
-    setPosted(null)
-  }
-  const setTheme = (patch: Partial<Theme>) => set({ theme: { ...spec.theme, ...patch } })
-  const scene = spec.scenes[selected] ?? null
-  const setScene = (patch: Partial<Scene>) => set({ scenes: spec.scenes.map((s, i) => (i === selected ? ({ ...s, ...patch } as Scene) : s)) })
-  const move = (from: number, to: number) => {
-    if (to < 0 || to >= spec.scenes.length) return
-    const scenes = [...spec.scenes]
-    const [one] = scenes.splice(from, 1)
-    scenes.splice(to, 0, one)
-    set({ scenes })
-    setSelected(to)
-  }
-
-  const save = async () => {
-    setStatus("Saving…")
-    const res = await fetch("/api/clips/studio/templates", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: savedId, spec }) })
-    const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string }
-    if (!res.ok || !body.id) return setStatus(body.error ?? "The template was not saved.")
-    setSavedId(body.id)
-    setStatus("Saved")
-    void loadSaved()
-    window.setTimeout(() => setStatus(null), 1500)
-  }
-
-  const post = async () => {
-    if (!data) return
-    setStatus("Posting…")
-    try {
-      const clip = await postGenerated({ template: "studio", link: data.link, spec })
-      setPosted(clip)
-      setStatus(null)
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : "The clip was not posted.")
-    }
-  }
-
-  const copy = (text: string) => {
-    void navigator.clipboard?.writeText(text)
-    setCopied(text)
-    window.setTimeout(() => setCopied(null), 1200)
-  }
-
-  const size = SIZES[spec.aspect]
-  const frames = durationInFrames(spec)
-
-  return (
-    <div className="container-wrapper flex min-h-0 flex-1 flex-col px-2 lg:px-4">
-      <div className="flex h-14 items-center gap-2">
-        <Button variant="ghost" size="sm" render={<Link href="/clips" />} nativeButton={false}>
-          <ArrowLeftIcon /> Clips
-        </Button>
-        <Input value={spec.name} onChange={(e) => set({ name: e.target.value })} className="h-8 w-56" aria-label="Template name" />
-        {saved.length > 0 && (
-          <Select
-            value={savedId ?? ""}
-            onValueChange={(v) => {
-              const t = saved.find((s) => s.id === v)
-              if (!t) return
-              setSpec(t.spec)
-              setSavedId(t.id)
-              setSelected(0)
-            }}
-          >
-            <SelectTrigger size="sm" className="h-8 w-max min-w-44" aria-label="Saved templates">
-              <SelectValue>{() => saved.find((s) => s.id === savedId)?.name ?? "Your templates"}</SelectValue>
-            </SelectTrigger>
-            <SelectContent className="w-max min-w-44">
-              {saved.map((s) => (
-                <SelectItem key={s.id} value={s.id} className="whitespace-nowrap">
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setSpec(starterSpec(data?.kind ?? "roll-call"))
-            setSavedId(null)
-            setSelected(0)
-          }}
-        >
-          New
-        </Button>
-        <span className="ml-auto text-xs text-muted-foreground">{status}</span>
-        {signedIn ? (
-          <>
-            <Button variant="outline" size="sm" onClick={() => void save()}>
-              Save
-            </Button>
-            <Button size="sm" disabled={!data || !!posted} onClick={() => void post()}>
-              {posted ? "Posted" : "Post"}
-            </Button>
-          </>
-        ) : (
-          <Button size="sm" render={<Link href="/auth" />} nativeButton={false}>
-            Sign in to save
-          </Button>
-        )}
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 pb-4 lg:grid-cols-[26rem_minmax(0,1fr)]">
-        <aside className="min-h-0 overflow-y-auto rounded-xl border bg-card lg:h-[calc(100svh-var(--header-height)-5rem)]">
-          <Section title="Data">
-            <form
-              className="flex h-9 items-center gap-2 rounded-full border bg-background pr-1 pl-3"
-              onSubmit={(e) => {
-                e.preventDefault()
-                void load(link)
-              }}
-            >
-              <LinkIcon className="size-4 shrink-0 text-muted-foreground" />
-              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste a bill or roll call link" className="min-w-0 flex-1 bg-transparent font-mono text-xs outline-none" aria-label="Link" />
-              <Button type="submit" size="sm" className="h-7 rounded-full" disabled={loading}>
-                {loading ? "Loading…" : "Load"}
-              </Button>
-            </form>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-            {data && (
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(data.fields).map(([k, v]) => (
-                  <button key={k} type="button" title={v} onClick={() => copy(`{${k}}`)} className="flex max-w-full items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] hover:bg-accent">
-                    {copied === `{${k}}` ? <CheckIcon className="size-3" /> : null}
-                    {`{${k}}`}
-                  </button>
-                ))}
-                {data.lists.milestones && <span className="rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">milestones · {data.lists.milestones.length}</span>}
-                {data.lists.parties && <span className="rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground">parties · {data.lists.parties.length}</span>}
-              </div>
-            )}
-          </Section>
-
-          <Section title="Format and theme">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Shape">
-                <Pick label="Shape" value={spec.aspect} options={ASPECTS} onChange={(aspect) => set({ aspect })} />
-              </Field>
-              <Field label="Font">
-                <Pick label="Font" value={spec.theme.font} options={["sans", "serif", "mono"] as const} onChange={(font) => setTheme({ font })} names={{ sans: "Sans", serif: "Serif", mono: "Mono" }} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <Color label="Background" value={spec.theme.background} onChange={(background) => setTheme({ background })} />
-              <Color label="Text" value={spec.theme.ink} onChange={(ink) => setTheme({ ink })} />
-              <Color label="Accent" value={spec.theme.accent} onChange={(accent) => setTheme({ accent })} />
-              <Color label="Yes" value={spec.theme.yes} onChange={(yes) => setTheme({ yes })} />
-              <Color label="No" value={spec.theme.no} onChange={(no) => setTheme({ no })} />
-            </div>
-          </Section>
-
-          <Section
-            title={`Scenes · ${(frames / spec.fps).toFixed(1)} s`}
-            action={
-              <Select value="" onValueChange={(v) => v && (set({ scenes: [...spec.scenes, newScene(v as SceneKind)] }), setSelected(spec.scenes.length))}>
-                <SelectTrigger size="sm" className="h-7 w-max gap-1" aria-label="Add a scene">
-                  <SelectValue>
-                    {() => (
-                      <>
-                        <PlusIcon className="size-3.5" /> Add
-                      </>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="w-max min-w-44" align="end">
-                  {KINDS.map((k) => (
-                    <SelectItem key={k} value={k} className="whitespace-nowrap">
-                      {SCENE_LABELS[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            }
-          >
-            <ol className="flex flex-col gap-1">
-              {spec.scenes.map((s, i) => (
-                <li key={s.id}>
-                  <div role="button" tabIndex={0} onClick={() => setSelected(i)} onKeyDown={(e) => e.key === "Enter" && setSelected(i)} className={cn("group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent", i === selected && "bg-accent")}>
-                    <span className="w-4 text-xs text-muted-foreground tabular-nums">{i + 1}</span>
-                    <span className="flex-1 truncate">{SCENE_LABELS[s.kind]}</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">{s.seconds}s</span>
-                    <span className="flex opacity-0 group-hover:opacity-100">
-                      <Button variant="ghost" size="icon-xs" aria-label="Move up" onClick={(e) => (e.stopPropagation(), move(i, i - 1))}>
-                        <ArrowUpIcon />
-                      </Button>
-                      <Button variant="ghost" size="icon-xs" aria-label="Move down" onClick={(e) => (e.stopPropagation(), move(i, i + 1))}>
-                        <ArrowDownIcon />
-                      </Button>
-                      <Button variant="ghost" size="icon-xs" aria-label="Duplicate" onClick={(e) => (e.stopPropagation(), set({ scenes: [...spec.scenes.slice(0, i + 1), { ...s, id: Math.random().toString(36).slice(2, 10) }, ...spec.scenes.slice(i + 1)] }))}>
-                        <CopyIcon />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label="Delete"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          set({ scenes: spec.scenes.filter((_, j) => j !== i) })
-                          setSelected((sel) => Math.max(0, Math.min(sel, spec.scenes.length - 2)))
-                        }}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Section>
-
-          {scene && (
-            <Section title={`${selected + 1}. ${SCENE_LABELS[scene.kind]}`}>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={`Length · ${scene.seconds}s`}>
-                  <input type="range" min={1} max={20} step={0.5} value={scene.seconds} onChange={(e) => setScene({ seconds: Number(e.target.value) })} className="h-8 accent-primary" />
-                </Field>
-                <Field label="Enters by">
-                  <Pick label="Transition" value={scene.transition} options={TRANSITIONS} onChange={(transition) => setScene({ transition })} names={{ fade: "Fade", slide: "Slide up", zoom: "Zoom", none: "Cut" }} />
-                </Field>
-              </div>
-              <SceneKnobs scene={scene} onChange={setScene} />
-              <p className="text-[11px] text-muted-foreground">Words can hold the fields above, like {"{citation}"}; click a field to copy it.</p>
-            </Section>
-          )}
-        </aside>
-
-        <main className="flex min-h-[70svh] flex-col items-center justify-center gap-3 rounded-xl border bg-muted/30 p-4 lg:h-[calc(100svh-var(--header-height)-5rem)]">
-          <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-            <div className="overflow-hidden rounded-lg shadow-lg" style={{ aspectRatio: `${size.width} / ${size.height}`, height: size.height >= size.width ? "100%" : undefined, width: size.width > size.height ? "100%" : undefined, maxHeight: "100%", maxWidth: "100%" }}>
-              <Player
-                key={`${spec.aspect}:${frames}`}
-                component={StudioVideo as unknown as React.ComponentType<Record<string, unknown>>}
-                inputProps={{ spec, data }}
-                durationInFrames={frames}
-                fps={spec.fps}
-                compositionWidth={size.width}
-                compositionHeight={size.height}
-                style={{ width: "100%", height: "100%" }}
-                controls
-                loop
-                autoPlay
-              />
-            </div>
-          </div>
-          {posted && (
-            <Button variant="ghost" size="sm" onClick={() => copy(clipUrl(posted))}>
-              {copied === clipUrl(posted) ? <CheckIcon /> : <LinkIcon />} {copied === clipUrl(posted) ? "Link copied" : "Posted · copy the link"}
-            </Button>
-          )}
-        </main>
-      </div>
-    </div>
   )
 }
 
@@ -391,7 +703,15 @@ function SceneKnobs({ scene, onChange }: { scene: Scene; onChange: (patch: Parti
   )
   const align = (value: "left" | "center") => (
     <Field label="Align">
-      <Pick label="Align" value={value} options={["left", "center"] as const} onChange={(v) => onChange({ align: v } as Partial<Scene>)} names={{ left: "Left", center: "Center" }} />
+      <Choose
+        label="Align"
+        value={value}
+        options={[
+          { value: "left", label: "Left" },
+          { value: "center", label: "Center" },
+        ]}
+        onChange={(v) => onChange({ align: v } as Partial<Scene>)}
+      />
     </Field>
   )
   switch (scene.kind) {
@@ -404,14 +724,43 @@ function SceneKnobs({ scene, onChange }: { scene: Scene; onChange: (patch: Parti
           {align(scene.align)}
         </div>
       )
+    case "portrait":
+      return (
+        <div className="flex flex-col gap-3">
+          {text("Image", "image")}
+          {text("Name", "name")}
+          {text("Detail", "detail")}
+        </div>
+      )
     case "number":
       return (
         <div className="flex flex-col gap-3">
           {text("Number", "value")}
           {text("Label", "label")}
           <Field label="Color">
-            <Pick label="Color" value={scene.color as "yes" | "no" | "accent" | "ink"} options={["yes", "no", "accent", "ink"] as const} onChange={(color) => onChange({ color } as Partial<Scene>)} names={{ yes: "Yes color", no: "No color", accent: "Accent", ink: "Text" }} />
+            <Choose
+              label="Color"
+              value={scene.color}
+              options={[
+                { value: "yes", label: "Chart, first" },
+                { value: "no", label: "Chart, second" },
+                { value: "accent", label: "Theme" },
+                { value: "ink", label: "Text" },
+              ]}
+              onChange={(color) => onChange({ color } as Partial<Scene>)}
+            />
           </Field>
+        </div>
+      )
+    case "stats":
+      return (
+        <div className="flex flex-col gap-3">
+          {scene.items.map((item, i) => (
+            <div key={i} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-2">
+              <Input value={item.value} onChange={(e) => onChange({ items: scene.items.map((it, j) => (j === i ? { ...it, value: e.target.value } : it)) } as Partial<Scene>)} className="h-8 font-mono text-xs" aria-label={`Number ${i + 1}`} />
+              <Input value={item.label} onChange={(e) => onChange({ items: scene.items.map((it, j) => (j === i ? { ...it, label: e.target.value } : it)) } as Partial<Scene>)} className="h-8 text-xs" aria-label={`Label ${i + 1}`} />
+            </div>
+          ))}
         </div>
       )
     case "tally":
@@ -431,11 +780,11 @@ function SceneKnobs({ scene, onChange }: { scene: Scene; onChange: (patch: Parti
     case "timeline":
       return (
         <div className="flex flex-col gap-3">
-          <Field label={`Milestones shown · ${scene.max}`}>
+          <Field label={`Items shown · ${scene.max}`}>
             <input type="range" min={1} max={12} value={scene.max} onChange={(e) => onChange({ max: Number(e.target.value) } as Partial<Scene>)} className="h-8 accent-primary" />
           </Field>
           <Label className="flex items-center gap-2 text-xs font-normal">
-            <Checkbox checked={scene.dates} onCheckedChange={(v) => onChange({ dates: v === true } as Partial<Scene>)} /> Dates and chambers
+            <Checkbox checked={scene.dates} onCheckedChange={(v) => onChange({ dates: v === true } as Partial<Scene>)} /> Dates
           </Label>
         </div>
       )
@@ -452,11 +801,9 @@ function SceneKnobs({ scene, onChange }: { scene: Scene; onChange: (patch: Parti
         </div>
       )
     case "end":
-      return (
-        <div className="flex flex-col gap-3">
-          {text("Brand", "brand")}
-          {text("Source line", "source")}
-        </div>
-      )
+      return <div className="flex flex-col gap-3">{text("Tagline", "tagline")}</div>
+    case "roll-call-tally":
+    case "bill-history":
+      return null
   }
 }
