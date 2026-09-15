@@ -5,6 +5,8 @@ import { Player, Thumbnail, type PlayerRef } from "@remotion/player"
 
 import { BILL_HISTORY, BillHistory } from "./templates/bill-history"
 import { ROLL_CALL_TALLY, RollCallTally } from "./templates/roll-call-tally"
+import { durationInFrames, SIZES, type StudioSpec } from "./studio/spec"
+import { StudioVideo } from "./studio/studio-video"
 
 // A generated clip plays as what it is: a template and its data, drawn live
 // by Remotion in the viewer's browser (Brendan, 2026-09-14: saving and sharing
@@ -20,10 +22,21 @@ export const TEMPLATES: Record<string, { component: AnyComponent; spec: { fps: n
   [BILL_HISTORY.id]: { component: BillHistory as unknown as AnyComponent, spec: BILL_HISTORY, still: 840 },
 }
 
+/** A composition's component and its size and length: fixed for a built-in template, read from the spec for a Studio one. */
+function resolved(composition: Composition) {
+  if (composition.template === "studio") {
+    const spec = (composition.props as { spec?: StudioSpec }).spec
+    if (!spec || !SIZES[spec.aspect]) return null
+    const frames = durationInFrames(spec)
+    return { component: StudioVideo as unknown as AnyComponent, spec: { fps: spec.fps, durationInFrames: frames, ...SIZES[spec.aspect] }, still: Math.min(frames - 1, Math.round(frames * 0.4)) }
+  }
+  return TEMPLATES[composition.template] ?? null
+}
+
 /** The clip in the feed: plays while active, loops, and pauses on a click. */
 export function CompositionPlayer({ composition, active, onPaused }: { composition: Composition; active: boolean; onPaused: (paused: boolean) => void }) {
   const ref = React.useRef<PlayerRef>(null)
-  const t = TEMPLATES[composition.template]
+  const t = resolved(composition)
   React.useEffect(() => {
     const p = ref.current
     if (!p) return
@@ -58,7 +71,7 @@ export function CompositionPlayer({ composition, active, onPaused }: { compositi
 
 /** The grid's tile: one frame of the clip, where its result stands. */
 export function CompositionThumb({ composition }: { composition: Composition }) {
-  const t = TEMPLATES[composition.template]
+  const t = resolved(composition)
   if (!t) return null
   return <Thumbnail component={t.component} inputProps={composition.props} frameToDisplay={t.still} durationInFrames={t.spec.durationInFrames} fps={t.spec.fps} compositionWidth={t.spec.width} compositionHeight={t.spec.height} style={{ width: "100%", height: "100%" }} />
 }

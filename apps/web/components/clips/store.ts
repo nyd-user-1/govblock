@@ -443,7 +443,7 @@ export async function saveClip(clip: Clip, onProgress?: (fraction: number) => vo
 }
 
 /** What Generate previewed, posted to the feed as its template and data. */
-export async function postGenerated(post: { template: string; address: Record<string, unknown> }): Promise<Clip> {
+export async function postGenerated(post: { template: string } & Record<string, unknown>): Promise<Clip> {
   return (await send<{ clip: Clip }>("/api/clips/generated", "POST", post)).clip
 }
 

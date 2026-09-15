@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 
 import { getClip, newId, viewerOf } from "@/lib/clips/server"
+import { durationInFrames, parseSpec, SIZES } from "@/components/clips/studio/spec"
+import { studioData } from "@/lib/clips/studio-data"
 import { billHistoryProps, rollCallTallyProps } from "@/lib/clips/templates"
 import { q } from "@/lib/policy/db"
 
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic"
 type Body =
   | { template: "roll-call-tally"; address: { chamber: "house" | "senate"; congress: number; session: number; roll: number } }
   | { template: "bill-history"; address: { billId: number } }
+  | { template: "studio"; link: string; spec: unknown }
 
 export async function POST(request: Request) {
   const viewer = await viewerOf()
@@ -42,6 +45,20 @@ export async function POST(request: Request) {
         `insert into clips (id, origin, status, visibility, owner_id, title, caption, duration, width, height, jurisdiction, bill_key, template, composition, published_at)
          values ($1, 'generated', 'published', 'public', $2, $3, $4, 30, 1080, 1920, 'us', $5, 'bill-history', $6::jsonb, now())`,
         [id, viewer.id, `${p.citation}: ${p.title}`.slice(0, 150), last ? `${last.action} (${last.date})` : "", found.keys.bill_key, JSON.stringify({ template: "bill-history", props: p })]
+      )
+    } else if (body.template === "studio") {
+      // A template built in Studio: the reader's own scenes, fed the site's data for the link.
+      const b = body as Extract<Body, { template: "studio" }>
+      const spec = parseSpec(b.spec)
+      if (!spec) return NextResponse.json({ error: "That template could not be read." }, { status: 400 })
+      const found = await studioData(String(b.link ?? ""))
+      if (!found) return NextResponse.json({ error: "Paste a bill's link or a roll call's link." }, { status: 404 })
+      const f = found.data.fields
+      const size = SIZES[spec.aspect]
+      await q(
+        `insert into clips (id, origin, status, visibility, owner_id, title, caption, duration, width, height, jurisdiction, bill_key, roll_call_chamber, roll_call_key, template, composition, published_at)
+         values ($1, 'generated', 'published', 'public', $2, $3, $4, $5, $6, $7, 'us', $8, $9, $10, 'studio', $11::jsonb, now())`,
+        [id, viewer.id, `${f.citation ?? spec.name}${f.title ? `: ${f.title}` : ""}`.slice(0, 150), spec.name, durationInFrames(spec) / spec.fps, size.width, size.height, found.keys.bill_key, found.keys.roll_call_chamber ?? null, found.keys.roll_call_key ?? null, JSON.stringify({ template: "studio", props: { spec, data: found.data } })]
       )
     } else {
       return NextResponse.json({ error: "Nothing to post." }, { status: 400 })

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Player } from "@remotion/player"
 import { CheckIcon, LinkIcon, XIcon } from "lucide-react"
 
@@ -123,7 +124,10 @@ export function Generate({ onClose, onPosted, signedIn }: { onClose: () => void;
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon-sm" className="ml-auto rounded-full bg-black/40 text-white hover:bg-black/60 hover:text-white" aria-label="Close" onClick={onClose}>
+        <Link href="/clips/studio" className="ml-auto rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white no-underline hover:bg-white/20">
+          Build your own
+        </Link>
+        <Button variant="ghost" size="icon-sm" className="rounded-full bg-black/40 text-white hover:bg-black/60 hover:text-white" aria-label="Close" onClick={onClose}>
           <XIcon />
         </Button>
       </div>
