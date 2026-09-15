@@ -11,6 +11,7 @@ import { CiteDecorations, useCitations } from "@/components/workspace/typeset-ci
 import { TypesetForkView, type Carry } from "@/components/workspace/typeset-fork"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { XmlCommentMarks, XmlComments } from "@/components/workspace/typeset-xml-comments"
+import { BlockDrop, BlockHandle } from "@/components/workspace/typeset-block-handle"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
 import { XmlMarkKeys } from "@/components/workspace/typeset-xml-toolbar"
 import type { CiteContext } from "@/lib/typeset/cite"
@@ -179,6 +180,7 @@ export function TypesetXmlReader({
     if (edit)
       out.push(
         XmlMarkKeys,
+        BlockDrop,
         EditGate.configure({
           allow: (tr) => {
             const { edit: e, signedIn, readerReady: ready } = live.current
@@ -360,6 +362,8 @@ export function TypesetXmlReader({
         <div className={cn("uslm-doc", (!showEditor || meta?.captured) && "hidden")} data-dialect={dialect}>
           <EditorContent editor={editor} />
         </div>
+        {/* The block view (2026-09-15): Plate's gutter handle and unit menu, on the editable view. */}
+        {showEditor && edit && phase !== "editing" && <BlockHandle editor={editor} container={scroller} />}
         {showEditor && phase === "reading" && <XmlComments editor={editor} container={scroller} document={meta?.work && meta.expression ? `${meta.work}@${meta.expression}` : null} billId={billId ?? null} />}
       </div>
     </div>

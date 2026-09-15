@@ -22,6 +22,7 @@ import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { ForkRedline, forkMarked, forkRedlineKey, type ForkSpec } from "@/components/workspace/typeset-redline"
 import { InlineMenu, InlineMenuPopup, type Trigger } from "@/components/workspace/typeset-inline-menu"
 import { AiLayer } from "@/components/workspace/typeset-ai-menu"
+import { BlockDrop, BlockHandle } from "@/components/workspace/typeset-block-handle"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { XmlMarkKeys } from "@/components/workspace/typeset-xml-toolbar"
 import { TypesetForkChrome } from "@/components/workspace/typeset-file-chrome"
@@ -202,6 +203,7 @@ export function TypesetForkView({ forkId, carry, onCarried, active = true }: { f
         InlineMenu.configure({ onChange: setTrigger, onKey: (k) => menuKeys.current?.(k) ?? false }),
         ContextMarkers.configure({ onOpen: (m) => setFocus({ work: m.work, unit: m.unit, n: Date.now() }) }),
         XmlMarkKeys,
+        BlockDrop,
       ],
       editable: true, immediatelyRender: false, content: start?.json ?? null, enableInputRules: false, enablePasteRules: false },
     [data?.fork.id, data?.head?.id, start]
@@ -362,6 +364,7 @@ export function TypesetForkView({ forkId, carry, onCarried, active = true }: { f
             <EditorContent editor={editor} />
           </div>
           {data && <AiLayer editor={editor} container={scroller} state={data.fork.state} />}
+          {data && <BlockHandle editor={editor} container={scroller} />}
         </div>
         {panel === "context" && data && <TypesetContextPane editor={editor} forkWork={data.fork.work ?? data.cite.work} base={data.base} cite={data.cite} focus={focus} onFocus={setFocus} onClose={() => setPanel(null)} />}
         {panel === "amendment" && (
