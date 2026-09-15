@@ -76,7 +76,9 @@ function lines(node: PmNode, indent: string, out: string[], quoted = "", marked 
     const pad = indentOf(node)
     const rawNum = node.firstChild?.type.name === "num" ? node.firstChild.textContent.trim() : ""
     // A small level's bare letter or number prints the way the page prints it, in parentheses.
-    const num = pad && /^[A-Za-z0-9]{1,4}$/.test(rawNum) ? `(${rawNum})` : rawNum
+    // A top-level section's bare number prints with its word ("Sec. 1."), so it never reads as a stray digit (2026-09-15).
+    const bareSection = !pad && name === "section" && /^\d[\d.-]*[A-Za-z]?$/.test(rawNum)
+    const num = pad && /^[A-Za-z0-9]{1,4}$/.test(rawNum) ? `(${rawNum})` : bareSection ? `Sec. ${rawNum}.` : rawNum
     let lead = num
     let start = rawNum ? 1 : 0
     const heading = node.maybeChild(start)

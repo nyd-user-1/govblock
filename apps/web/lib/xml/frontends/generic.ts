@@ -446,7 +446,12 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
     // The formula's sentence begins after the last full stop before the
     // match, so "The people of the State of California do enact as follows:"
     // stays whole.
-    const from = at ? Math.max(0, block.lastIndexOf(". ", at.index) + 2, block.lastIndexOf(": ", at.index) + 2) : 0
+    // lastIndexOf answers -1 when there is no full stop, and -1 + 2 cut the formula's first letter off ("B" / "e it enacted"); only a stop that exists moves the start (2026-09-15).
+    const stop = (mark: string) => {
+      const i = block.lastIndexOf(mark, at ? at.index : 0)
+      return i < 0 ? 0 : i + mark.length
+    }
+    const from = at ? Math.max(0, stop(". "), stop(": ")) : 0
     if (at && from > 0) preface.children.push(node("p", {}, [block.slice(0, from).trim()]))
     preface.children.push(node("enactingFormula", {}, [at ? block.slice(from, at.index + at[0].length).trim() : block]))
     const after = at ? block.slice(at.index + at[0].length).trim() : ""
@@ -473,7 +478,8 @@ export function parseStateBill(source: Source, p: StateProfile): FrontEndResult 
       // "… amended by adding Subchapter G to read as follows: SUBCHAPTER G …"
       // splits after "as follows:", the strongest introducer, not the first.
       const intro =
-        /(read as follows|as follows|to read)[:.]?-?(\s+)(?=\S)/i.exec(instruction) ??
+        // "to read" is not an introducer when "as follows" comes next: the leftmost match cut "… to read" from "as follows:" (2026-09-15).
+        /(read as follows|as follows|to read(?!\s+as follows))[:.]?-?(\s+)(?=\S)/i.exec(instruction) ??
         /(the following(?: \w+){0,3}|thereof)[:.]?-?(\s+)(?=\S)/i.exec(instruction) ??
         /(amended by adding|inserting)[:.]?-?(\s+)(?=\S)/i.exec(instruction)
       if (intro && contentNode && intro.index + intro[0].length < instruction.length) {

@@ -15,7 +15,8 @@ const common = (jurisdiction: string): StateProfile => ({
   jurisdiction,
   name: STATES[jurisdiction] ?? jurisdiction,
   enacting: /\b(be it (further )?enacted|(hereby )?enacts? as follows|do enact as follows|ordained|enacted by the|enacts?:)/i,
-  section: /^(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)\.?\s*(.*)$/s,
+  // The number is whole: "Sec. 3901.388." is a code section quoted in the bill, not section 390 of it (2026-09-15).
+  section: /^(?:SECTION|Section|SEC\.|Sec\.)\s*(\d{1,3}[A-Za-z]?)(?![\d.]*\d)\.?\s*(.*)$/s,
   strict: false,
   quotesAfter: /(as follows|to read|read as follows|amended by adding|inserting|the following(?: \w+){0,3}|thereof)[:.]?-?$/i,
 })
@@ -70,6 +71,16 @@ PROFILES.PA = {
   section: /^Section\s+(\d{1,3}(?:\.\d+)?)\.\s*(.*)$/s,
   quotedSection: /^§\s*([\w.-]+)\.\s*(.*)$/s,
   del: /\[([^\]]+)\]/,
+}
+
+// Ohio: "SECTION 1." for the bill, "Sec. 3901.388." for the Revised Code
+// section it amends or enacts (2026-09-15; the common form read the quoted
+// section as bill section 390).
+PROFILES.OH = {
+  ...common("OH"),
+  enacting: /Be it enacted by the General Assembly of the State of Ohio/i,
+  section: /^SECTION\s+(\d{1,3})\.\s*(.*)$/s,
+  quotedSection: /^Sec\.\s*(\d[\w.-]*)\.\s*(.*)$/s,
 }
 
 // Michigan: "the people of the state of michigan enact:" in lower case, then

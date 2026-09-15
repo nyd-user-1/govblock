@@ -23,7 +23,7 @@ const textOf = unstable_cache(
     const { doc } = uslmToDoc(parseXml(xml), { dialect: row.dialect ?? "uslm", identifier: row.work, expression: row.expression, fidelity: row.fidelity as Fidelity, title: row.label })
     return docToText(doc, { marked: true }).replace(/\n{3,}/g, "\n\n")
   },
-  ["printed-text-v2"],
+  ["printed-text-v3"],
   { revalidate: false, tags: ["printed-text"] }
 )
 
