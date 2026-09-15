@@ -1,13 +1,15 @@
 import type { Metadata } from "next"
 import { ExternalLinkIcon } from "lucide-react"
 
-import { FEDERAL, LAW_PUBLISHERS, SERVICES, STATES, type Source } from "@/lib/sources"
+import { FEDERAL, FEDERAL_AGENCIES, LAW_PUBLISHERS, MAPS, MODEL_LEGISLATION, MONEY, NEW_YORK_AGENCIES, NEWS, SERVICES, STATES, type Source } from "@/lib/sources"
+import { FormSeal } from "@/components/policy/forms-seal"
 import { ChamberSeal, FlagChip } from "@/components/policy/imagery"
+import { RecordAvatar } from "@/components/policy/record-item"
 
 // /sources (Brendan, 2026-09-15): every source as a gallery, one card each,
 // in place of the source line at the foot of every record page.
 
-export const metadata: Metadata = { title: "Sources", description: "Every record on GovBlock, traced to the office that publishes it." }
+export const metadata: Metadata = { title: "Sources", description: "Every record on GovBlock, traced to where it comes from." }
 
 const host = (url: string) => new URL(url).host.replace(/^www\./, "")
 
@@ -20,7 +22,13 @@ function SourceCard({ source }: { source: Source }) {
       className="group flex flex-col gap-3 rounded-2xl border bg-card p-4 no-underline transition-colors hover:border-foreground/20 hover:bg-muted/40"
     >
       <div className="flex items-center justify-between">
-        {source.chamber ? (
+        {source.form ? (
+          <FormSeal gov={source.form.gov} agency={source.form.agency} size={36} />
+        ) : source.image?.startsWith("/seals/") ? (
+          <RecordAvatar src={source.image} alt={source.name} size={36} />
+        ) : source.image ? (
+          <img src={source.image} alt="" className="size-9 rounded-md object-contain" />
+        ) : source.chamber ? (
           <ChamberSeal state={source.state ?? "US"} chamber={source.chamber} size={36} />
         ) : source.state ? (
           <FlagChip state={source.state} width={40} className="rounded-sm" />
@@ -65,12 +73,18 @@ export default function SourcesPage() {
       <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-10 md:px-6 md:py-14">
         <header className="flex flex-col gap-2">
           <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">Sources</h1>
-          <p className="max-w-2xl text-muted-foreground">Every record on GovBlock, traced to the office that publishes it.</p>
+          <p className="max-w-2xl text-muted-foreground">Every record on GovBlock, traced to where it comes from.</p>
         </header>
         <Gallery title="Congress" sources={FEDERAL} />
         <Gallery title="State legislatures" sources={STATES} />
         <Gallery title="State law" sources={LAW_PUBLISHERS} />
-        <Gallery title="Services" sources={SERVICES} />
+        <Gallery title="Money and lobbying" sources={MONEY} />
+        <Gallery title="Federal agencies" sources={FEDERAL_AGENCIES} />
+        <Gallery title="New York agencies" sources={NEW_YORK_AGENCIES} />
+        <Gallery title="Model legislation" sources={MODEL_LEGISLATION} />
+        <Gallery title="News" sources={NEWS} />
+        <Gallery title="Maps" sources={MAPS} />
+        <Gallery title="APIs and services" sources={SERVICES} />
       </div>
     </div>
   )
