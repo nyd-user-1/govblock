@@ -1,88 +1,78 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
-import { CodeIcon, FileTextIcon } from "lucide-react"
 
-import { fmtNumber } from "@/lib/format"
-import { versionId } from "@/lib/policy/forks"
+import { printingExpression, versionCodeOfName, versionName } from "@/lib/typeset/versions"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
-import { Button } from "@govblock/ui/components/nova/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
+import { VersionCode } from "@/components/workspace/version-code"
+import { Chip } from "@/components/chip"
 import { cn } from "@govblock/ui/lib/utils"
 
-// The bill's versions as a sidebar (Brendan, 2026-09-13): the History tab's
-// commit list relegated to the aside the Git view opens for its outline, in
-// the changelog pattern the actions aside wears. One entry per version,
-// newest first — the dot on the line, the day as the title over a hairline —
-// and under it the printing's name, its size and its id, with the two things
-// a reader does with a version: browse its text, or open what it changed.
+// A bill's versions, the same shape on every reader (Brendan, 2026-09-15):
+// one row per printing, newest first, its stage as a chip that explains
+// itself, its name, the date at the right, and under it the printing's
+// address in the store as a copy chip. A row opens that printing.
 
-function dayOf(v: TextVersion) {
+const dayOf = (v: TextVersion) => {
   const raw = v.date ?? v.fetched_at
-  if (!raw) return null
-  const d = new Date(String(raw).length === 10 ? `${raw}T00:00:00` : raw)
-  return Number.isNaN(d.getTime()) ? null : d
+  return raw ? String(raw).slice(0, 10) : null
 }
 
-export function VersionsList({ versions, current, onChoose, onOpenChanges }: { versions: TextVersion[]; current: number | null; onChoose: (documentId: number) => void; onOpenChanges?: (documentId: number) => void }) {
+export function VersionsList({ versions, current, onChoose, work }: { versions: TextVersion[]; current: number | null; onChoose: (documentId: number) => void; onOpenChanges?: (documentId: number) => void; work?: string | null }) {
   if (!versions.length) return <p className="px-3 py-4 text-xs text-muted-foreground">No text on file for this bill yet.</p>
   return (
-    <div className="relative px-3 py-4">
-      <div aria-hidden className="absolute inset-y-0 start-[19.5px] w-px bg-border" />
-      <div className="flex flex-col gap-y-6">
-        {versions.map((v, index) => {
-          const day = dayOf(v)
-          const nth = String(versions.length - index).padStart(2, "0")
-          const active = current === v.document_id
-          return (
-            <article key={v.document_id} className="relative flex items-start gap-3">
-              <div className={cn("my-1 flex size-4 shrink-0 items-center justify-center rounded-full bg-background ring ring-border", active && "ring-primary")}>
-                <div className="size-2 rounded-full bg-primary" />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="border-b border-border pb-2">
-                  <h2 className="relative text-sm font-semibold text-pretty text-foreground">
-                    {day ? <time dateTime={day.toISOString().slice(0, 10)}>{format(day, "MMMM d, yyyy")}</time> : "Date of record unknown"}
-                  </h2>
-                </div>
-                <div className="flex flex-col gap-1 py-2 text-xs">
-                  <button type="button" onClick={() => onChoose(v.document_id)} className={cn("text-left hover:underline", active && "font-medium text-foreground")}>
-                    <span className="mr-2 font-mono text-muted-foreground">{nth}</span>
-                    {v.commit ? v.commit.message : v.version ?? "Original"}
-                  </button>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <span>{fmtNumber(v.chars)} characters</span>
-                    <span className="ml-auto font-mono tabular-nums">{versionId(v)}</span>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button variant="ghost" size="icon-sm" aria-label="Browse the text at this version" onClick={() => onChoose(v.document_id)}>
-                            <FileTextIcon />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent side="bottom">Browse the text at this version</TooltipContent>
-                    </Tooltip>
-                    {onOpenChanges && (
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button variant="ghost" size="icon-sm" aria-label="What this version changed" onClick={() => onOpenChanges(v.document_id)}>
-                              <CodeIcon />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent side="bottom">What this version changed</TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </article>
-          )
-        })}
-      </div>
+    <div className="py-1">
+      {versions.map((v) => {
+        const name = v.commit ? v.commit.message : (v.version ?? "Original")
+        const code = v.commit ? null : versionCodeOfName(v.version)
+        const day = dayOf(v)
+        const expression = v.commit ? null : printingExpression(work ?? null, day, v.version)
+        const address = work && expression ? `${work}@${expression}` : null
+        const active = current === v.document_id
+        return (
+          <div
+            key={v.document_id}
+            role="button"
+            tabIndex={0}
+            data-active={active}
+            onClick={() => onChoose(v.document_id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onChoose(v.document_id)
+            }}
+            className={cn("flex w-full cursor-pointer flex-col gap-1 px-3 py-1.5 text-left text-xs hover:bg-muted", active && "bg-muted/60")}
+          >
+            <span className="flex items-center gap-2">
+              {code && <VersionCode code={code} />}
+              <span className={cn("truncate", active && "font-medium text-foreground")}>{code ? versionName(code) : name}</span>
+              {day && <span className="ml-auto shrink-0 font-mono text-muted-foreground tabular-nums">{day}</span>}
+            </span>
+            {address && (
+              <Chip copy={address} className="w-fit max-w-full truncate text-[11px]">
+                {address}
+              </Chip>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The bill's history: what each chamber did and when, newest first. */
+export function BillHistoryList({ history }: { history: { date: string; chamber: string; action: string; sequence: number }[] }) {
+  if (!history.length) return <p className="px-3 py-4 text-xs text-muted-foreground">No actions on file for this bill yet.</p>
+  const rows = [...history].sort((a, b) => b.sequence - a.sequence)
+  return (
+    <div className="py-1">
+      {rows.map((h) => (
+        <div key={`${h.sequence}-${h.date}`} className="flex flex-col gap-0.5 px-3 py-1.5 text-xs">
+          <span className="flex items-center gap-2">
+            <span className="rounded border border-border bg-muted/40 px-1.5 py-px font-mono text-[11px] leading-4">{h.chamber}</span>
+            <span className="ml-auto shrink-0 font-mono text-muted-foreground tabular-nums">{String(h.date).slice(0, 10)}</span>
+          </span>
+          <span className="text-pretty">{h.action}</span>
+        </div>
+      ))}
     </div>
   )
 }

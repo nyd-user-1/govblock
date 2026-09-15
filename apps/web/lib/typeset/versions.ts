@@ -67,3 +67,24 @@ export const VERSION_BY_CODE = new Map(VERSION_CODES.map((v) => [v.code, v]))
 export const versionName = (code: string | null | undefined) => (code ? (VERSION_BY_CODE.get(code.toLowerCase())?.name ?? code) : "")
 
 export const GLOSSARY_VERSIONS = "/glossary#bill-text-versions"
+
+const normal = (s: string) => s.toLowerCase().replace(/[()]/g, "").replace(/\bin\b/g, "").replace(/\s+/g, " ").trim()
+const BY_NAME = new Map(VERSION_CODES.map((v) => [normal(v.name), v.code]))
+
+/** GovInfo's code for a printing named the way GovInfo names it ("Engrossed Amendment House" → eah); null when the name is not one of theirs. */
+export const versionCodeOfName = (name: string | null | undefined) => (name ? (BY_NAME.get(normal(name)) ?? null) : null)
+
+/** The pipeline's stage slug for a state printing's name ("Comm Sub" → comm-sub), the twin of scripts/xml/lib/address.mjs. */
+export const stageSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "text"
+
+/** A printing's expression id in the store, `date_stage`, from its date and name; federal printings carry GovInfo's code. */
+export function printingExpression(work: string | null, date: string | null | undefined, name: string | null | undefined): string | null {
+  if (!work || !date) return null
+  const federal = work.startsWith("/us/")
+  const stage = federal ? versionCodeOfName(name) : name ? stageSlug(name) : null
+  return stage ? `${date.slice(0, 10)}_${stage}` : date.slice(0, 10)
+}

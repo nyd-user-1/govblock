@@ -165,6 +165,9 @@ export function FileRow({
   onOutline,
   historyOpen,
   onHistory,
+  panelChoice = "versions",
+  onPanelChoice,
+  hasHistory = false,
   slashFocuses = true,
 }: {
   /** The qualifier chip for each scope: bill:H.R.6644, session:US/119, all:govblock. */
@@ -197,6 +200,10 @@ export function FileRow({
   onOutline: () => void
   historyOpen: boolean
   onHistory: () => void
+  /** Which of the two the open panel is, and whether a History exists for this file. */
+  panelChoice?: "versions" | "history"
+  onPanelChoice?: (choice: "versions" | "history") => void
+  hasHistory?: boolean
   /** `/` focuses the box, as on GitHub. */
   slashFocuses?: boolean
 }) {
@@ -386,9 +393,22 @@ export function FileRow({
         <Button variant="outline" size="icon-sm" aria-label={`Outline${outlineCount ? ` · ${outlineCount}` : ""}`} title={`Outline${outlineCount ? ` · ${outlineCount}` : ""}`} onClick={onOutline} data-active={outlineOpen} className="data-[active=true]:bg-muted">
           <SquareCodeIcon />
         </Button>
-        <Button variant="ghost" size="sm" data-active={historyOpen} className="font-semibold data-[active=true]:bg-muted" onClick={onHistory}>
-          <HistoryIcon className="size-4" /> History
-        </Button>
+        {/* Versions and History are two things (Brendan, 2026-09-15): the printings, and what the chambers did. One button, a menu between them. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" data-active={historyOpen} className="font-semibold data-[active=true]:bg-muted">
+              <HistoryIcon className="size-4" /> {historyOpen && panelChoice === "history" ? "History" : "Versions"} <ChevronDownIcon className="size-3.5 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={6} className="w-max min-w-44 rounded-lg">
+            <DropdownMenuItem className="whitespace-nowrap" onClick={() => (onPanelChoice ? onPanelChoice("versions") : onHistory())}>
+              Versions
+            </DropdownMenuItem>
+            <DropdownMenuItem className="whitespace-nowrap" disabled={!hasHistory} onClick={() => onPanelChoice?.("history")}>
+              History
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

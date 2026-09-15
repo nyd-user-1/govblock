@@ -15,7 +15,8 @@ import { workHref } from "@/lib/xml/library"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { FileRow, ResultsList, resultsTitle, sizeOf, useScopedSearch, type Related, type SearchScope } from "@/components/policy/file-row"
 import { PaneAside } from "@/components/policy/pane-aside"
-import { VersionsList } from "@/components/policy/versions-aside"
+import { BillHistoryList, VersionsList } from "@/components/policy/versions-aside"
+import { billWork } from "@/lib/xml/address"
 import { VersionCode, VERSIONS_EVENT } from "@/components/workspace/version-code"
 import { Chip } from "@/components/chip"
 import { SizeNote } from "@/components/policy/file-row"
@@ -32,7 +33,7 @@ import { cn } from "@govblock/ui/lib/utils"
 // History lists the printings; the size line goes to the footer, as Git's
 // does.
 
-type Panel = "outline" | "references" | "results" | "versions" | "related" | null
+type Panel = "outline" | "references" | "results" | "versions" | "history" | "related" | null
 
 type Match = { range: Range; line: string }
 
@@ -183,8 +184,10 @@ export type ChromeFile = {
   onEdit?: () => void
   pageHref?: string
   pageLabel?: string
-  /** What History lists. */
+  /** What Versions lists: the printings. */
   versions: { title: string; body: React.ReactNode } | null
+  /** What History lists: the chambers' actions; absent on a statute. */
+  historyPanel?: { title: string; body: React.ReactNode } | null
   onOpenResult: (billId: number, documentId?: number) => void
 }
 
@@ -258,8 +261,11 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
         outlineCount={headings.length}
         outlineOpen={panel === "outline"}
         onOutline={() => setPanel((p) => (p === "outline" ? null : "outline"))}
-        historyOpen={panel === "versions"}
+        historyOpen={panel === "versions" || panel === "history"}
         onHistory={() => setPanel((p) => (p === "versions" ? null : "versions"))}
+        panelChoice={panel === "history" ? "history" : "versions"}
+        onPanelChoice={(choice) => setPanel((p) => (p === choice ? null : choice))}
+        hasHistory={!!file.historyPanel}
         slashFocuses={slashFocuses}
       />
       {toolbar}
@@ -271,7 +277,9 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
           <PaneAside
             title={
               panel === "versions"
-                ? (file.versions?.title ?? "History")
+                ? (file.versions?.title ?? "Versions")
+                : panel === "history"
+                  ? (file.historyPanel?.title ?? "History")
                 : panel === "related"
                   ? `Related · ${file.related?.length ?? 0}`
                   : panel === "outline"
@@ -283,6 +291,7 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
             onClose={() => setPanel(null)}
           >
             {panel === "versions" && (file.versions?.body ?? <p className="px-3 py-4 text-xs text-muted-foreground">No other printings.</p>)}
+            {panel === "history" && file.historyPanel?.body}
             {panel === "related" &&
               (file.related?.length ? (
                 file.related.map((r, i) => (
@@ -356,7 +365,8 @@ export function TypesetBillChrome({ billId, state, session, view, toolbar, child
     // The fork is the XML copy (window 5); on the Fork view the pencil has nowhere further to go.
     onEdit: view === "fork" ? undefined : () => router.push(typesetHref(billId, "fork")),
     pageHref: `/bills/${billId}?state=${state}`,
-    versions: { title: `Versions · ${versions.length}`, body: <VersionsList versions={versions} current={shown?.document_id ?? null} onChoose={openGit} onOpenChanges={openChanges} /> },
+    versions: { title: `Versions · ${versions.length}`, body: <VersionsList versions={versions} current={shown?.document_id ?? null} onChoose={openGit} onOpenChanges={openChanges} work={bill ? billWork(bill) : null} /> },
+    historyPanel: bill?.history?.length ? { title: `History · ${bill.history.length}`, body: <BillHistoryList history={bill.history} /> } : null,
     onOpenResult: (id, documentId) => (id === billId && documentId ? openGit(documentId) : router.push(typesetHref(id, view))),
   }
   return (
