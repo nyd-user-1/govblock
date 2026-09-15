@@ -41,8 +41,11 @@ export function CodeLines({ code, highlighted, numbers = true }: { code: string;
     <pre data-language="txt" className="min-w-0 overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-6 outline-none">
       <code {...(numbers ? { "data-line-numbers": "" } : {})}>
         {code.split("\n").map((line, index) => (
-          <span key={index} data-line="" {...(highlighted?.has(index + 1) ? { "data-highlighted-line": "" } : {})}>
-            {line || " "}
+          <span key={index} data-line="" className="flex" {...(highlighted?.has(index + 1) ? { "data-highlighted-line": "" } : {})}>
+            {/* A long line wraps under its own start, not under the line number (2026-09-15). */}
+            <span className="min-w-0 flex-1 whitespace-pre-wrap" style={{ paddingLeft: `${line.length - line.trimStart().length}ch` }}>
+              {line.trimStart() || " "}
+            </span>
           </span>
         ))}
       </code>

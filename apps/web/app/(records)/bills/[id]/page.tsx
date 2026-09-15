@@ -5,6 +5,7 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { BILLS } from "@/lib/data"
 import { getBill, getBillText } from "@/lib/policy/queries"
+import { printedTexts } from "@/lib/typeset/printed-text"
 import {
   getAmendments,
   getBillActions,
@@ -188,8 +189,9 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
   // and on congress.gov's own key rather than the mirror's id — see
   // docs/federal-sources.md and sql/002_lobbying_congress_key.sql.
   const congressKey = federal ? billCongressKey(bill.bill_number, bill.session_id) : null
-  const [held, { congress, depth }, neighbours, committeeCounts, sessions, lobbying, federalVotes] = await Promise.all([
+  const [held, printedMap, { congress, depth }, neighbours, committeeCounts, sessions, lobbying, federalVotes] = await Promise.all([
     getBillText(Number(id)),
+    printedTexts([Number(id)]).catch(() => new Map<number, string>()),
     federal ? loadCongress(bill.bill_id) : Promise.resolve<{ congress: CongressInitial; depth: DepthInitial }>({ congress: {}, depth: {} }),
     getBillNeighbours(bill.bill_id).catch(() => ({ previous: null, next: null })),
     getCommittees({ state: bill.state, session: bill.session_id }).catch(() => []),
@@ -201,6 +203,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
     federal ? getBillRollCalls(bill.bill_id, congressKey).catch(() => []) : Promise.resolve([]),
   ])
   const text = held?.text ?? null
+  // The newest printing from its stored XML where it reads cleanly (2026-09-15); BillText prints the stored text the same way otherwise.
+  const printed = printedMap.get(Number(id)) ?? null
   // Congress is cited the way congress.gov writes it: getBill carries the
   // citation off congress_bills, and the mirror's prefix is only the fallback.
   const number = bill.citation ?? fmtBill(bill.bill_number, bill.state)
@@ -302,7 +306,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                   state={bill.state}
                   chamber={chamber}
                   held={held?.document_id ?? null}
-                  text={text}
+                  text={printed ?? text}
+                  printed={!!printed}
                   texts={bill.texts}
                   source={sources[0] ?? null}
                 />

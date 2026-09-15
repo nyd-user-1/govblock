@@ -54,13 +54,31 @@ const RANK = new Map<string, number>((SMALL_LEVELS as readonly string[]).map((na
 /** How far a level's lines are indented when written as text: sections and above at the margin, each small level two spaces deeper. */
 const indentOf = (node: PmNode) => "  ".repeat(RANK.get(node.type.name === "level" ? String(node.attrs.element ?? "") : node.type.name) ?? 0)
 
-function lines(node: PmNode, indent: string, out: string[], quoted = "") {
+/** A text block's words, with inserted and struck words in the changelog's markers when asked. */
+function blockText(node: PmNode, marked: boolean): string {
+  if (!marked) return node.textContent
+  let s = ""
+  node.forEach((child) => {
+    if (!child.isText) {
+      s += child.textContent
+      return
+    }
+    const t = child.text ?? ""
+    const has = (n: string) => child.marks.some((m: Mark) => m.type.name === n)
+    s += has("ins") ? `{+${t}+}` : has("del") ? `[-${t}-]` : t
+  })
+  return s
+}
+
+function lines(node: PmNode, indent: string, out: string[], quoted = "", marked = false) {
   const name = node.type.name
   if (isLevel(name)) {
     const pad = indentOf(node)
-    const num = node.firstChild?.type.name === "num" ? node.firstChild.textContent : ""
+    const rawNum = node.firstChild?.type.name === "num" ? node.firstChild.textContent.trim() : ""
+    // A small level's bare letter or number prints the way the page prints it, in parentheses.
+    const num = pad && /^[A-Za-z0-9]{1,4}$/.test(rawNum) ? `(${rawNum})` : rawNum
     let lead = num
-    let start = num ? 1 : 0
+    let start = rawNum ? 1 : 0
     const heading = node.maybeChild(start)
     if (heading?.type.name === "heading") {
       lead = `${lead} ${heading.textContent}`.trim()
@@ -70,21 +88,30 @@ function lines(node: PmNode, indent: string, out: string[], quoted = "") {
     node.forEach((child, _, i) => {
       if (i < start) return
       if (first && lead && child.isTextblock) {
-        out.push(`${quoted}${pad}${lead} ${child.textContent}`)
+        out.push(`${quoted}${pad}${lead} ${blockText(child, marked)}`)
         first = false
         return
       }
       if (first && lead) {
-        out.push(`${quoted}${pad}${lead}`)
+        // The number goes on the first line its words print on, not a line of its own.
+        const inner: string[] = []
+        lines(child, pad, inner, quoted, marked)
         first = false
+        if (inner.length && !isLevel(child.type.name)) {
+          const head = inner[0].slice(quoted.length).trimStart()
+          out.push(`${quoted}${pad}${lead} ${head}`, ...inner.slice(1))
+          return
+        }
+        out.push(`${quoted}${pad}${lead}`, ...inner)
+        return
       }
-      lines(child, pad, out, quoted)
+      lines(child, pad, out, quoted, marked)
     })
     if (first && lead) out.push(`${quoted}${pad}${lead}`)
     return
   }
   if (name === "quotedContent") {
-    node.forEach((child) => lines(child, indent, out, `${quoted}    `))
+    node.forEach((child) => lines(child, indent, out, `${quoted}    `, marked))
     return
   }
   if (name === "table") {
@@ -92,17 +119,21 @@ function lines(node: PmNode, indent: string, out: string[], quoted = "") {
     return
   }
   if (node.isTextblock) {
-    const t = node.textContent
+    const t = blockText(node, marked)
     if (t) out.push(`${quoted}${indent}${t}`)
     return
   }
-  node.forEach((child) => lines(child, indent, out, quoted))
+  node.forEach((child) => lines(child, indent, out, quoted, marked))
 }
 
 /** The document as plain text, one block a line, small levels indented by rank. */
-export function docToText(doc: PmNode): string {
+export function docToText(doc: PmNode, { marked = false }: { marked?: boolean } = {}): string {
   const out: string[] = []
-  doc.forEach((child) => lines(child, "", out))
+  doc.forEach((child) => lines(child, "", out, "", marked))
+  // A drop cap the source set apart ("B" then "e it enacted") rejoins its word.
+  for (let i = out.length - 2; i >= 0; i--) {
+    if (/^\s*[A-Z]$/.test(out[i]) && /^\s*[a-z]/.test(out[i + 1])) out.splice(i, 2, out[i].trimEnd() + out[i + 1].trimStart())
+  }
   return out.join("\n") + "\n"
 }
 

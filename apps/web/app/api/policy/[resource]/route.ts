@@ -15,6 +15,7 @@ import {
   getLobbyingLobbyists,
 } from "@/lib/policy/lobbying-queries"
 import { getBillTexts } from "@/lib/policy/texts"
+import { codeBlockTexts } from "@/lib/typeset/printed-text"
 import {
   findCongressCommittee,
   getCommitteeBillsByStatus,
@@ -585,7 +586,9 @@ async function dispatch(resource: string, sp: URLSearchParams) {
         .filter((value) => Number.isInteger(value) && value > 0)
         .slice(0, 40)
       if (!ids.length) return {}
-      const texts = await getBillTexts(ids)
+      // From the stored XML where a printing has it (Brendan, 2026-09-15), so the
+      // code block reads like the Typeset reader; the plain text otherwise.
+      const texts = await codeBlockTexts(ids)
       return Object.fromEntries(
         [...texts].map(([id, text]) => [id, text.slice(0, 20_000)])
       )

@@ -879,6 +879,7 @@ export function BillTextBlock({
   chamber,
   held,
   text,
+  printed = false,
   texts,
   source,
 }: {
@@ -889,6 +890,8 @@ export function BillTextBlock({
   /** The document the page arrived holding. */
   held: number | null
   text: string | null
+  /** `text` is the newest printing already printed from its XML. */
+  printed?: boolean
   /** LegiScan's versions, for a state bill. */
   texts: HeldText[]
   /** Where to read it when we hold nothing. */
@@ -948,7 +951,7 @@ export function BillTextBlock({
 
   return (
     <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={fileName(billNumber, state, shown?.version)} menu={menu || undefined} text={() => body ?? ""} collapsed="data-[state=closed]:max-h-96">
-      {body ? <BillText text={body} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground"><LoadingFlag /></p>}
+      {body ? <BillText text={body} printed={!chosen && printed} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground"><LoadingFlag /></p>}
     </FileBlock>
   )
 }

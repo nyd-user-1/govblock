@@ -1,4 +1,5 @@
-import { layoutBillText, printChangeMarks } from "@/lib/policy/bill-text-layout"
+import { printChangeMarks } from "@/lib/policy/bill-text-layout"
+import { printBillText } from "@/lib/policy/printed-bill-text"
 import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's text, the standard way, wherever bill text appears: the bill page,
@@ -29,8 +30,11 @@ export function BillText({
   date,
   className,
   highlight = null,
+  printed = false,
 }: {
   text: string
+  /** The text is already printed from the stored XML, one unit a line, indented by rank; else the stored text is printed the same way first. */
+  printed?: boolean
   /** "Introduced in House" — drawn above the text, as congress.gov does. */
   version?: string | null
   /** The document's own date, not the night we fetched it. */
@@ -40,10 +44,11 @@ export function BillText({
   highlight?: number | null
 }) {
   const shown = [version, stamp(date)].filter(Boolean).join(" ")
-  const layout = layoutBillText(printChangeMarks(text))
+  // One way to print a bill (Brendan, 2026-09-15): the words without the paper's layout, each unit on its own line, long lines wrapping under their own start.
+  const lines = printChangeMarks(printed ? text : printBillText(text)).split("\n")
   return (
     <div className={cn("flex w-full justify-center", className)}>
-      <div className="w-fit max-w-full">
+      <div className="w-full max-w-4xl">
         {shown && (
           // congress.gov's two bold lines above the text. They are the page's
           // own type, not the document's, which is why they are not in the pre.
@@ -52,17 +57,20 @@ export function BillText({
             <div>{shown}</div>
           </div>
         )}
-        <pre data-slot="bill-text" className="m-0 max-w-full overflow-x-auto p-0 font-mono text-[13px] leading-[1.35] whitespace-pre text-foreground">
-          {layout.lines.map((line, index) => (
-            <div key={index} data-kind={line.kind} data-target={highlight === index || undefined} className="flex data-[kind=furniture]:opacity-40 data-[kind=heading]:font-semibold data-[target]:bg-yellow-300/50">
-              {layout.gutter && (
-                <span aria-hidden className="shrink-0 pr-4 text-right text-muted-foreground select-none" style={{ width: `${layout.gutterWidth + 4}ch` }}>
-                  {line.n ?? ""}
+        <pre data-slot="bill-text" className="m-0 max-w-full p-0 font-mono text-[13px] leading-[1.35] text-foreground">
+          {lines.map((line, index) => {
+            const indent = line.length - line.trimStart().length
+            return (
+              <div key={index} data-target={highlight === index || undefined} className="flex gap-4 data-[target=true]:bg-muted">
+                <span aria-hidden className="w-10 shrink-0 text-right text-muted-foreground select-none">
+                  {index + 1}
                 </span>
-              )}
-              <span className="min-h-[1.35em]">{line.text}</span>
-            </div>
-          ))}
+                <span className="min-h-[1.35em] min-w-0 flex-1 whitespace-pre-wrap" style={{ paddingLeft: `${indent}ch` }}>
+                  {line.trimStart()}
+                </span>
+              </div>
+            )
+          })}
         </pre>
       </div>
     </div>
