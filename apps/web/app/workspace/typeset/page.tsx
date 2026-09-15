@@ -1,7 +1,7 @@
 import { type Metadata } from "next"
 import { redirect } from "next/navigation"
 
-import { DEFAULT_BILL, LEGACY_ITEM_VIEW, typesetHref } from "@/lib/typeset/views"
+import { DEFAULT_BILL, LEGACY_ITEM_VIEW, typesetHref, viewFromSlug } from "@/lib/typeset/views"
 
 // /workspace/typeset — the Typeset editor (Brendan, 2026-09-07; 2026-09-11:
 // the editor that grew up at /workspace/typeset-2 is the one, and lives
@@ -17,5 +17,5 @@ export default async function WorkspaceTypesetPage({ searchParams }: { searchPar
   const bill = typeof sp.bill === "string" && /^\d+$/.test(sp.bill) ? sp.bill : DEFAULT_BILL
   const item = typeof sp.item === "string" ? sp.item : ""
   const keep: Record<string, string | undefined> = { version: typeof sp.version === "string" ? sp.version : undefined }
-  redirect(typesetHref(bill, LEGACY_ITEM_VIEW[item] ?? "typeset", keep))
+  redirect(typesetHref(bill, LEGACY_ITEM_VIEW[item] ?? viewFromSlug(undefined) ?? "xml", keep))
 }

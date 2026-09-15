@@ -26,16 +26,16 @@ export const DEFAULT_BILL = 2058568
 
 export type ViewSpec = { key: TypesetView; slug: string; label: string; icon: LucideIcon }
 
-/** The numbered views, 01–06. XML (window 1, 2026-09-14) is the bill drawn from its USLM in the Tiptap reader, beside Typeset until it reaches parity. */
+/** The numbered views. The flip (Brendan, 2026-09-15): the bill's bare address is the Tiptap reader drawn from its USLM (window 1's XML view), called Typeset; Plate stays at `plate`, last, until Brendan retires it. */
 export const TYPESET_VIEWS: readonly ViewSpec[] = [
-  { key: "typeset", slug: "", label: "Typeset", icon: FileTextIcon },
+  { key: "xml", slug: "", label: "Typeset", icon: FileCodeIcon },
   { key: "outline", slug: "outline", label: "Outline", icon: ListTreeIcon },
   { key: "redline", slug: "redline", label: "Redline", icon: GitCompareArrowsIcon },
   { key: "git", slug: "git", label: "Git", icon: GitBranchIcon },
   { key: "diff", slug: "diff", label: "Diff", icon: FileDiffIcon },
-  { key: "xml", slug: "xml", label: "XML", icon: FileCodeIcon },
   // The Library (window 4, 2026-09-14): the corpus by family, jurisdiction, code and session; a Work opens in the XML view. Also at /workspace/typeset/library with no bill open.
   { key: "library", slug: "library", label: "Library", icon: LibraryIcon },
+  { key: "typeset", slug: "plate", label: "Plate (legacy)", icon: FileTextIcon },
 ]
 
 /** Git's own views, unnumbered. */
@@ -44,16 +44,15 @@ export const GIT_VIEWS: readonly ViewSpec[] = [{ key: "fork", slug: "fork", labe
 export const ALL_VIEWS: readonly ViewSpec[] = [...TYPESET_VIEWS, ...GIT_VIEWS]
 
 /** Slugs the routes used to have, and the view each opens now. */
-export const LEGACY_SLUGS: Record<string, TypesetView> = { comp: "redline", versions: "diff", actions: "typeset" }
+export const LEGACY_SLUGS: Record<string, TypesetView> = { comp: "redline", versions: "diff", actions: "typeset", xml: "xml" }
 
 export function viewSpec(view: TypesetView): ViewSpec {
   return ALL_VIEWS.find((v) => v.key === view) ?? TYPESET_VIEWS[0]
 }
 
-/** The view a path segment names; the bare bill route is Typeset; an old slug is its view; anything else is nothing. */
+/** The view a path segment names; the bare bill route is the view whose slug is empty; an old slug is its view; anything else is nothing. */
 export function viewFromSlug(slug: string | undefined): TypesetView | null {
-  if (!slug) return "typeset"
-  return ALL_VIEWS.find((v) => v.slug === slug)?.key ?? LEGACY_SLUGS[slug] ?? null
+  return ALL_VIEWS.find((v) => v.slug === (slug ?? ""))?.key ?? LEGACY_SLUGS[slug ?? ""] ?? null
 }
 
 /** Every path segment that names a view, the old ones included: what an address's path may end in. */
@@ -62,7 +61,7 @@ export const VIEW_SLUGS: ReadonlySet<string> = new Set([...ALL_VIEWS.map((v) => 
 /** A bill as Typeset can link to it: the bill (its address is worked out), its address (`/us/bill/119/hr/6644`), or only its id, which the old route sends on to the address. */
 export type BillRef = number | string | Parameters<typeof billWork>[0] & { bill_id: number }
 
-export function typesetHref(bill: BillRef, view: TypesetView = "typeset", query?: URLSearchParams | Record<string, string | null | undefined>): string {
+export function typesetHref(bill: BillRef, view: TypesetView = "xml", query?: URLSearchParams | Record<string, string | null | undefined>): string {
   const spec = viewSpec(view)
   const params = query instanceof URLSearchParams ? query : new URLSearchParams()
   if (query && !(query instanceof URLSearchParams)) for (const [k, v] of Object.entries(query)) if (v) params.set(k, v)
