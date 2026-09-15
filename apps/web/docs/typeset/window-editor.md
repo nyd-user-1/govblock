@@ -11,7 +11,60 @@ Report to the lead (govblock-93). Newest milestone first. Brief:
 | 2. Mount from the server's HTML | built, ee72f68; measured |
 | 3. Typeset's URLs, then the flip | URLs built, ec209e7; the flip waits for the lead's word |
 | 4. The block view | built, a445006; the look is Brendan's |
-| Next | the Library's own paths to `us/ny` once typeset-search is clear; the first paint sent once; then the flip, on the lead's word |
+| Library paths | built, cbce0d1 |
+| Next | the flip, on the lead's word; the first paint sent once is not recommended (milestone 5) |
+
+## Milestone 5 — the Library's paths read us/ny; the first paint, measured (2026-09-15 05:35 EDT, cbce0d1)
+
+### Built
+
+- `libraryHref` writes a state's prefix as `us/ny`
+  (`/workspace/typeset/library/us/ny/code/agm`), so every link the Library
+  and its rail build takes the new form. `librarySegments` reads the URL's
+  form back to the store's, in `resolveLibrary` and `libraryTitle`, so the page
+  and `/api/typeset/library?path=` take either.
+- A page link still saying `us-ny` gets a 307 to `us/ny`, with its query.
+
+### Verified, on 3001
+
+| URL | Answer |
+|---|---|
+| `/workspace/typeset/library/us/ny/code/agm` | 200 |
+| `/workspace/typeset/library/us-ny/code/agm?sort=newest` | 307 → `…/library/us/ny/code/agm?sort=newest` |
+| `…/library/us/ny`, `…/library/us/ny/bill/2025` | 200, 200 |
+| `…/library/us/usc/t10`, `…/library/agricultural-law` | 200, 200 |
+| `/api/typeset/library?path=us/ny/code/agm` and `?path=us-ny/code/agm` | 200, 200 |
+
+New York's Library page carries 288 links in the `us/ny` form and none in
+the old one. Bounded type check over the four files: 0 diagnostics.
+
+### The first paint sent once: measured, and not recommended
+
+H.R. 6644's XML view is 2.67 MB of HTML and **276 KB on the wire**, gzipped.
+The React payload inside it is 1.45 MB of that, 127 KB gzipped, and the
+reader's copy of the first paint is most of it: about 110 KB gzipped, 40% of
+what crosses the wire.
+
+Removing it is not the small change milestone 3 guessed. Anything a server
+component draws is serialized into the React payload so the browser can
+hydrate it, including markup set as inner HTML, so passing the markup
+differently does not help. The only way to send it once is to hand the HTML
+from the server render to the server-side render of the client component
+outside React, through a process-wide store keyed per request, and hydrate
+an empty element over it. That works in one Node process, but it is fragile
+where the two renders do not share one (Amplify's compute), and it leaves the
+views reached by client navigation without a first paint. They would fetch
+the JSON instead.
+
+Recommendation: leave it. The 5.4 s from request to mount was measured on the
+dev server, whose scripts are unminified; the production build is where that
+number means something.
+
+### Files
+
+`apps/web/lib/xml/library.ts`, `apps/web/lib/xml/library-data.ts`,
+`apps/web/app/workspace/typeset/library/[[...path]]/page.tsx`,
+`apps/web/app/api/typeset/library/route.ts`.
 
 ## Milestone 4 — the block view (2026-09-15 05:10 EDT, a445006)
 
