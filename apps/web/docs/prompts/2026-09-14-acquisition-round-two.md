@@ -154,6 +154,13 @@ compile.
 
 ## Part 6. The compile, and the store's numbers
 
+First, a serializer fault found 2026-09-15 by typeset-editor: the stored
+H.R. 6644 (`/us/bill/119/hr/6644@2026-05-20_eah`) carries ten stray spaces
+before punctuation (`” ;` where GovInfo's XML has `”;`), and the XML view now
+draws the stored Expression, so readers see them. Find where the compile
+inserts the space (the text run serializer in the pipeline's USLM writer),
+fix it, and rebuild the federal printings; then the rest of Part 6.
+
 After each state's texts land: queue rebuild jobs with
 `scripts/xml/enqueue.mjs` on the pipeline box, run the controller as
 `window-8.md`'s restart line says, prune the old index rows (a job with
