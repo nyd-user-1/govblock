@@ -1,3 +1,61 @@
+# Lead handoff, 2026-09-15 (the night of the 14th)
+
+For Brendan in the morning, and for any lead that takes over from govblock-93.
+The section from the afternoon of the 14th follows, unchanged, below.
+
+## What landed overnight (all on origin)
+
+- **main is the fresh baseline**, pushed at e43e6a4 with 175 commits: the XML
+  program, clips, Sunday's hero and rails, the read cache, the lobbyist view.
+  Amplify built it (job 278, 188 MB of the 220 MB cap) and serves it. Nothing
+  else was pushed to main; the night's work is on `feature/typeset-flip`.
+- **One box, one server.** The dev box's single clone is on
+  `feature/typeset-flip`, serving localhost:3001. The 3002 and 3003 servers,
+  tunnels and clones are gone. The box shuts itself down after 20 idle
+  minutes and at 5 AM; `~/bin/govblock-dev-up` brings it back. Its old
+  working copy is kept on the box's local branch `box/stale-2026-09-14`.
+- **Costs.** The cluster paused at zero for the first time in a week. The
+  bill-page crawler from Meta's ranges is blocked at Amplify's firewall (Bot
+  Control is an AWS charge, about $10 a month); Leuk on Vercel has the same
+  wall. The lobbyist scan is a 4 ms index lookup. The read cache answers
+  public pages (`apps/web/docs/read-cache.md`). livingston's two disks are
+  snapshots now; its worker and the pipeline box are stopped; the FEC bulk
+  and bill PDF buckets are moving to Glacier Instant Retrieval. Expected
+  steady day: $5 to $8. The snapshot archive tier and a smaller dev box are
+  the two cuts left, both Brendan's call.
+- **Typeset, by the lead:** a statute's own URL (`/workspace/typeset/statute/us-ny/agm/s16`)
+  and a bill address that redirects to the bill's XML view; the footer's
+  version chip spelled out ("Enrolled · 2026-06-25") and opening the panel;
+  Versions ▾ History as one switcher, two panels; every Versions row the
+  same shape (stage chip that explains itself, name, date, the address as a
+  copy chip); the glossary's Bill text versions table; lines, loc and size
+  named on hover; Open in Typeset gone; the floating Fork chip gone; the
+  search dropdown over the toolbar; a File menu at the front of every
+  toolbar holding the seven views, the numbers gone from the footer; the
+  finder beside the workspace switcher (a bill opens, a member or committee
+  opens the left rail with their bills, My Files opens the drafts).
+- **Two windows on the branch**, briefed by
+  `apps/web/docs/prompts/2026-09-15-typeset-windows.md`, reporting to
+  `apps/web/docs/typeset/window-editor.md` and `window-search.md`:
+  typeset-editor (editing in place with autosave, mount from HTML, the address
+  URLs with the vendor id gone, the block view, then the flip after the lead's
+  Q/A) and typeset-search (search, comments that save, ⌘J and Ask AI as Plate
+  had them, the Library sidebar). `@` and `/` on the read-only readers are
+  held for Brendan's own road test.
+- **Acquisition** waits for a window: `2026-09-14-acquisition-round-two.md`
+  (Virginia's leftovers deleted, Colorado 2010–2015 found or explained, a
+  Virginia re-fetch under an hour, California finished, Utah's refused pages
+  replaced). The Colorado LegiScan-key question is answered: no key spend.
+
+## For Brendan in the morning
+
+- Road-test 3001: the File menu, the finder, Versions ▾ History, the
+  statute URL, the glossary's new table.
+- Decide `@` and `/` on the readers (Plate's `@` was people; window 6 made
+  it citations).
+- Fire the acquisition window when the day's cost picture is clear.
+- Say yes or no to the snapshot archive tier and the smaller dev box.
+
 # Lead handoff, 2026-09-14 (afternoon)
 
 For the session that takes over as lead when govblock-27 reaches its
