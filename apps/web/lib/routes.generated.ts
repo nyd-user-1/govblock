@@ -258,7 +258,15 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "api"
   },
   {
+    "path": "/api/typeset/health",
+    "kind": "api"
+  },
+  {
     "path": "/api/typeset/library",
+    "kind": "api"
+  },
+  {
+    "path": "/api/typeset/outline",
     "kind": "api"
   },
   {
@@ -651,6 +659,10 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/signed-out",
+    "kind": "page"
+  },
+  {
+    "path": "/sources",
     "kind": "page"
   },
   {
