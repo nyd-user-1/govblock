@@ -1,6 +1,10 @@
 import * as React from "react"
 import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion"
 
+import { GovBlockMark } from "../studio/mark"
+import type { Paint } from "../studio/palette"
+import { isDark } from "./roll-call-tally"
+
 // A bill's history as a twenty-second timeline: the second generated clip.
 // Every word is the record's — the citation, the title, the sponsor, each
 // milestone's date, chamber and action as the clerk wrote it, and the law's
@@ -21,14 +25,12 @@ export type BillHistoryProps = {
   law: string | null
   source: string
   fontFamily?: string
+  /** Studio's colours, faces and corners; absent, the template's own dark look. */
+  paint?: Paint
 }
 
 export const BILL_HISTORY = { id: "bill-history", fps: 30, durationInFrames: 600, width: 1080, height: 1920 } as const
 
-const INK = "#fafafa"
-const PAPER = "#0b0b0c"
-const LAW = "#22c55e"
-const LINE = "rgba(250,250,250,0.18)"
 const CHAMBER: Record<string, string> = { house: "#60a5fa", assembly: "#60a5fa", senate: "#f472b6" }
 
 const fmtDate = (iso: string) => {
@@ -36,7 +38,12 @@ const fmtDate = (iso: string) => {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
 }
 
-export function BillHistory({ citation, title, sponsor, milestones, law, source, fontFamily }: BillHistoryProps) {
+export function BillHistory({ citation, title, sponsor, milestones, law, fontFamily, paint }: BillHistoryProps) {
+  const INK = paint?.ink ?? "#fafafa"
+  const PAPER = paint?.background ?? "#0b0b0c"
+  const LAW = paint?.yes ?? "#22c55e"
+  const LINE = `${INK}2e`
+  const dark = !paint || isDark(PAPER)
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const count = Math.max(1, milestones.length)
@@ -55,7 +62,7 @@ export function BillHistory({ citation, title, sponsor, milestones, law, source,
   const stamp = spring({ frame: frame - lawAt, fps, config: { damping: 12, stiffness: 140 } })
 
   return (
-    <AbsoluteFill style={{ background: PAPER, color: INK, fontFamily: fontFamily ?? "var(--font-sans), Geist, system-ui, sans-serif", padding: 80 }}>
+    <AbsoluteFill style={{ background: PAPER, color: INK, fontFamily: fontFamily ?? paint?.font ?? "var(--font-sans), Geist, system-ui, sans-serif", padding: 80 }}>
       <div style={{ opacity: fade(0), transform: `translateY(${rise(0)}px)` }}>
         <div style={{ fontSize: 132, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2 }}>{citation}</div>
         <div style={{ fontSize: 44, lineHeight: 1.25, marginTop: 20, opacity: 0.85, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{title}</div>
@@ -109,7 +116,7 @@ export function BillHistory({ citation, title, sponsor, milestones, law, source,
               borderRadius: 24,
               border: `10px solid ${LAW}`,
               color: LAW,
-              background: "rgba(11,11,12,0.92)",
+              background: `${PAPER}eb`,
               whiteSpace: "nowrap",
             }}
           >
@@ -118,9 +125,8 @@ export function BillHistory({ citation, title, sponsor, milestones, law, source,
         </div>
       )}
 
-      <div style={{ position: "absolute", left: 80, right: 80, bottom: 64, display: "flex", justifyContent: "space-between", fontSize: 28, opacity: 0.55 }}>
-        <span>Source: {source}</span>
-        <span style={{ fontWeight: 700, letterSpacing: 1 }}>GovBlock</span>
+      <div style={{ position: "absolute", right: 80, bottom: 64 }}>
+        <GovBlockMark size={64} dark={dark} />
       </div>
     </AbsoluteFill>
   )

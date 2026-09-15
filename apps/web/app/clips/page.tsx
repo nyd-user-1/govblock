@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { previewFontVariables } from "@/app/preview/fonts"
 import { ClipsApp } from "@/components/clips/clips-app"
 
 // Short vertical video, recorded in the browser and kept in it: the mock of
@@ -8,5 +9,10 @@ import { ClipsApp } from "@/components/clips/clips-app"
 export const metadata: Metadata = { title: "Clips", description: "Short video from the record, and your own." }
 
 export default function ClipsPage() {
-  return <ClipsApp />
+  // Studio clips set their own faces.
+  return (
+    <div className={`${previewFontVariables} contents`}>
+      <ClipsApp />
+    </div>
+  )
 }

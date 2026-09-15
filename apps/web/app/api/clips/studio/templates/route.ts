@@ -5,18 +5,31 @@ import { newId, viewerOf } from "@/lib/clips/server"
 import { one, q } from "@/lib/policy/db"
 
 // A reader's own Studio templates (sql/023_clip_templates.sql). GET lists
-// them, POST saves one (a new one, or an existing one of the reader's by id),
-// DELETE removes one.
+// them, or with ?id= reads any one (the collaborate link opens it in anyone's
+// Studio, where saving makes their own copy); POST saves one (a new one, or an
+// existing one of the reader's by id), DELETE removes one.
 
 export const dynamic = "force-dynamic"
 
 type Row = { id: string; name: string; spec: string; updated_at: string }
 
-export async function GET() {
+const shape = (r: Row) => {
+  const spec = parseSpec(JSON.parse(r.spec))
+  return spec ? { id: r.id, name: r.name, updatedAt: r.updated_at, spec } : null
+}
+
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get("id")
+  if (id) {
+    const row = await one<Row>(`select id, name, spec::text spec, to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') updated_at from clip_templates where id = $1`, [id])
+    const template = row ? shape(row) : null
+    if (!template) return NextResponse.json({ error: "No such template." }, { status: 404 })
+    return NextResponse.json({ template })
+  }
   const viewer = await viewerOf()
   if (!viewer) return NextResponse.json({ templates: [] })
   const rows = await q<Row>(`select id, name, spec::text spec, to_char(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') updated_at from clip_templates where owner_id = $1 order by updated_at desc limit 100`, [viewer.id])
-  return NextResponse.json({ templates: rows.map((r) => ({ id: r.id, name: r.name, updatedAt: r.updated_at, spec: JSON.parse(r.spec) })) }, { headers: { "cache-control": "private, no-store" } })
+  return NextResponse.json({ templates: rows.map(shape).filter(Boolean) }, { headers: { "cache-control": "private, no-store" } })
 }
 
 export async function POST(request: Request) {

@@ -6,6 +6,43 @@ milestone first.
 
 ---
 
+## 7 · Studio as the customizer, a gallery of eight, the GovBlock mark — 2026-09-14 night
+
+Brendan: open Studio on a 2 × 4 gallery of prepared templates; drop the
+source line and the GovBlock wordmark for the animated mark; the create
+customizer's colours and card, with Save, Post and New where preset, Open
+Preset and Shuffle were and Get Code giving the embed, share and collaborate
+links; no download anywhere.
+
+### 1. Built
+
+- **Gallery**: roll call tally, bill history, member scorecard, committee at a
+  glance, party unity, chamber by the numbers, bill cosponsors, state session.
+  Each tile shows a frame of the template on a real link and plays on hover.
+- **The card**: Template, Link, Shape, Mode, Base Color, Theme, Chart Color,
+  Heading, Font, Motion, Pace, Radius. Lists are the customizer's own
+  (`lib/create/preset.ts`), faces are the site's. Hovering a colour, a face or
+  a motion previews it in the player. Keys: S save, N gallery, R shuffle the
+  look, D light or dark. The icon library row was left out.
+- **Links Studio reads**: a roll call, a session's roll calls
+  (`house-119-2`), a bill, a member, a committee, a party (`/party/r-house`),
+  a state.
+- **Get Code**: share link and `<iframe>` embed once posted
+  (`/clips/embed/[id]`, public published clips only); collaborate link once
+  saved (`/clips/studio?template=…&link=…`; opening it and saving makes the
+  opener's own copy).
+- **The mark**: the roll call tally and bill history lose "Source: …" and
+  "GovBlock"; the animated mark sits bottom right on every scene and fills
+  the end card.
+- **Templates saved before tonight** used the first spec and no longer open.
+
+### 2. Not built yet
+
+- Pasted YouTube links still produce no clips; the transcript page and the
+  clips dashboard are next.
+
+---
+
 ## 6 · Clip by link, a bill's history, and generated clips saved without a render — 2026-09-14 evening
 
 Brendan: no file uploads and no rights box, paste a link only; a bill link in
