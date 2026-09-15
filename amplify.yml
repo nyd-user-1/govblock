@@ -61,15 +61,6 @@ applications:
               else
                 echo "youtube key: absent"
               fi
-            # Clips' transcript reader (clips-2, 2026-09-14): YouTube refuses
-            # AWS addresses, so new transcripts come through Supadata. Same rule.
-            - |
-              if [ -n "${SUPADATA_API_KEY:-}" ]; then
-                printf 'SUPADATA_API_KEY=%s\n' "$SUPADATA_API_KEY" >> .env.production
-                echo "supadata key: present"
-              else
-                echo "supadata key: absent"
-              fi
             # Cloudflare, for the Admin experience's Traffic and Stream pages
             # (2026-09-06): the zone analytics token and zone id, the account
             # id, the Stream token and the player subdomain. Same rule: written
