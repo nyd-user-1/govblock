@@ -7,7 +7,7 @@ import { TypesetPreviewOverrideProvider } from "@/app/(typeset)/components/previ
 import { previewFontVariables } from "@/app/preview/fonts"
 import { APP_CRUMB, PathBar, type Crumb } from "@/components/create/path-bar"
 import { BlockShell } from "@/components/policy/block-shell"
-import { GettingStarted, PaneNoteSlot, ViewPills } from "@/components/workspace/typeset-footer-parts"
+import { GettingStarted, PaneNoteSlot } from "@/components/workspace/typeset-footer-parts"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { PaneNoteProvider } from "@/lib/typeset/pane-note"
 import { cn } from "@govblock/ui/lib/utils"
@@ -60,12 +60,6 @@ export function TypesetFrame({
                 actions={actions}
                 footer={
                   <WorkspaceFooter mode="typeset" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)}>
-                    {billId ? (
-                      <>
-                        <ViewPills billId={billId} view={null} />
-                        <div className="mx-0.5 h-4 w-px bg-border" />
-                      </>
-                    ) : null}
                     <GettingStarted />
                     <PaneNoteSlot />
                     {footer}

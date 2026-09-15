@@ -12,6 +12,7 @@ import { BillKit, billValue } from "@/components/plate/editor/bill-kit"
 import { Editor, EditorContainer, renderProgressiveChunk } from "@/components/plate/ui/editor"
 import { FixedToolbar } from "@/components/plate/ui/fixed-toolbar"
 import { FixedToolbarButtons } from "@/components/plate/ui/fixed-toolbar-buttons"
+import { FileMenu } from "@/components/workspace/typeset-file-menu"
 import { TypesetActionsAside } from "@/components/workspace/typeset-actions-aside"
 import { BillSkeleton } from "@/components/workspace/bill-skeleton"
 import { PotionOutline } from "@/components/workspace/potion-outline"
@@ -154,6 +155,10 @@ function Document({ html, value, contentKey, outline }: { html: string; value?: 
       <Plate editor={editor}>
         <div className="flex h-full min-h-0 flex-col">
           <FixedToolbar>
+            <div className="flex shrink-0 items-center">
+              <FileMenu />
+              <div className="mx-1.5 h-4 w-px bg-border" />
+            </div>
             <FixedToolbarButtons />
           </FixedToolbar>
           <div className="flex min-h-0 flex-1">

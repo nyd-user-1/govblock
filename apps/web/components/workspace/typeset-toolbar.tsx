@@ -8,6 +8,7 @@ import { BillKit } from "@/components/plate/editor/bill-kit"
 import { FixedToolbar } from "@/components/plate/ui/fixed-toolbar"
 import { FixedToolbarButtons } from "@/components/plate/ui/fixed-toolbar-buttons"
 import { XmlToolbarGroups } from "@/components/workspace/typeset-xml-toolbar"
+import { FileMenu } from "@/components/workspace/typeset-file-menu"
 
 // The rich-text toolbar, on the views that have no rich-text editor under it
 // (Brendan, 2026-09-12: "the rich text tool bar should never leave and it's in
@@ -28,20 +29,18 @@ export function StaticToolbar({ xml, end }: { /** The XML views (Brendan, 2026-0
       <FixedToolbarButtons history={!xml} />
     </div>
   )
-  if (!xml && !end)
-    return (
-      <div aria-disabled="true" className="pointer-events-none shrink-0 opacity-50 select-none" title="Formatting applies in Typeset">
-        <Plate editor={editor}>
-          <FixedToolbar>
-            <FixedToolbarButtons />
-          </FixedToolbar>
-        </Plate>
-      </div>
-    )
+  // File leads every toolbar (Brendan, 2026-09-15), live even where the formatting is not.
+  const fileMenu = (
+    <div className="flex shrink-0 items-center">
+      <FileMenu />
+      <div className="mx-1.5 h-4 w-px bg-border" />
+    </div>
+  )
   return (
     <div className="shrink-0">
       <Plate editor={editor}>
         <FixedToolbar className="rounded-none">
+          {fileMenu}
           {xml && (
             <div className="flex shrink-0 items-center">
               <XmlToolbarGroups editor={xml.editor} />

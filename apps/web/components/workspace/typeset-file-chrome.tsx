@@ -17,6 +17,7 @@ import { FileRow, ResultsList, resultsTitle, sizeOf, useScopedSearch, type Relat
 import { PaneAside } from "@/components/policy/pane-aside"
 import { BillHistoryList, VersionsList } from "@/components/policy/versions-aside"
 import { billWork } from "@/lib/xml/address"
+import { TypesetFileProvider } from "@/components/workspace/typeset-file-menu"
 import { VersionCode, VERSIONS_EVENT } from "@/components/workspace/version-code"
 import { Chip } from "@/components/chip"
 import { SizeNote } from "@/components/policy/file-row"
@@ -370,9 +371,11 @@ export function TypesetBillChrome({ billId, state, session, view, toolbar, child
     onOpenResult: (id, documentId) => (id === billId && documentId ? openGit(documentId) : router.push(typesetHref(id, view))),
   }
   return (
-    <FileChrome file={file} toolbar={toolbar} slashFocuses={view !== "xml" && view !== "fork"}>
-      {children}
-    </FileChrome>
+    <TypesetFileProvider billId={billId} view={view}>
+      <FileChrome file={file} toolbar={toolbar} slashFocuses={view !== "xml" && view !== "fork"}>
+        {children}
+      </FileChrome>
+    </TypesetFileProvider>
   )
 }
 
