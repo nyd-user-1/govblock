@@ -1,9 +1,12 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, HistoryIcon, PencilIcon, SearchIcon, SquareCodeIcon, XIcon } from "lucide-react"
 
 import { fmtBill, fmtNumber, truncate } from "@/lib/format"
+import type { FindResponse } from "@/lib/typeset/find"
+import { jurisdictionOf } from "@/lib/xml/address"
 import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -21,11 +24,13 @@ import { cn } from "@govblock/ui/lib/utils"
 /** A row in the search panel's Related group: a companion bill, an amendment. */
 export type Related = { label: string; action: string; onClick: () => void }
 
-export type SearchScope = "bill" | "session" | "all"
+export type SearchScope = "bill" | "session" | "all" | "law"
 
 export type SearchAnswer = {
   bills: { bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action_date: string | null; state: string }[]
   texts: { bill_id: number; document_id: number; state: string; bill_number: string; title: string; snippet: string }[]
+  /** The law scope's sections, by citation or heading (/api/typeset/find). */
+  laws?: FindResponse["items"]
 }
 
 export type SearchResults = { q: string; scope: SearchScope; answer: SearchAnswer | null; loading: boolean }
@@ -34,7 +39,11 @@ export const SEARCH_SCOPES: { value: SearchScope; label: string }[] = [
   { value: "bill", label: "Search in this bill" },
   { value: "session", label: "Search in this session" },
   { value: "all", label: "Search all of govblock" },
+  { value: "law", label: "Search the law" },
 ]
+
+/** The law scope's chip, the same on every view. */
+export const LAW_QUALIFIER = "law:all"
 
 // ts_headline marks matches with <b>; nothing else from the database is markup.
 const safeSnippet = (html: string) => html.replace(/<(?!\/?b>)/g, "&lt;")
@@ -86,7 +95,7 @@ export function sizeOf(text: string | null) {
   return `${fmtNumber(lines.length)} lines (${fmtNumber(loc)} loc) · ${kb >= 100 ? Math.round(kb) : kb.toFixed(1)} KB`
 }
 
-/** The session and all-of-govblock scopes, run 400 ms after typing stops; `onRun` is told when a search starts. */
+/** The session, all-of-govblock and law scopes, run 400 ms after typing stops; `onRun` is told when a search starts. */
 export function useScopedSearch({ query, scope, state, session, onRun }: { query: string; scope: SearchScope; state: string; session: number | null; onRun?: () => void }) {
   const [results, setResults] = React.useState<SearchResults | null>(null)
   const run = React.useRef(onRun)
@@ -97,11 +106,14 @@ export function useScopedSearch({ query, scope, state, session, onRun }: { query
     const params = new URLSearchParams({ q, state, limit: "20", text: "1" })
     if (session) params.set("session", String(session))
     if (scope === "all") params.set("all", "1")
+    // The law scope reads the XML store: citations and section headings, the reader's jurisdiction first.
+    const url = scope === "law" ? `/api/typeset/find?${new URLSearchParams({ q, jurisdiction: jurisdictionOf(state) })}` : `/api/policy/search?${params}`
     const timer = window.setTimeout(() => {
       setResults({ q, scope, answer: null, loading: true })
       run.current?.()
-      void fetch(`/api/policy/search?${params}`)
-        .then((r) => (r.ok ? (r.json() as Promise<SearchAnswer>) : null))
+      void fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body: SearchAnswer | FindResponse | null) => (scope === "law" ? { bills: [], texts: [], laws: (body as FindResponse | null)?.items ?? [] } : (body as SearchAnswer | null)))
         .then((answer) => setResults((r) => (r && r.q === q && r.scope === scope ? { ...r, answer, loading: false } : r)))
         .catch(() => setResults((r) => (r && r.q === q ? { ...r, answer: null, loading: false } : r)))
     }, 400)
@@ -112,10 +124,19 @@ export function useScopedSearch({ query, scope, state, session, onRun }: { query
 
 export const resultsTitle = (results: SearchResults | null) => (results ? (results.loading ? "Searching…" : `Results · ${SEARCH_SCOPES.find((s) => s.value === results.scope)?.label}`) : "Results")
 
-/** The session and all-of-govblock answers, in the pane's aside. */
+/** The session, all-of-govblock and law answers, in the pane's aside. */
 export function ResultsList({ results, state, onOpen }: { results: SearchResults; state: string; onOpen: (billId: number, documentId?: number) => void }) {
   return (
     <>
+      {results.answer?.laws?.map((l) => (
+        <Link key={l.address} href={l.href} className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs hover:bg-muted">
+          <span className="flex items-center gap-2">
+            <span className="truncate font-medium">{l.label}</span>
+            <span className="ml-auto shrink-0 text-muted-foreground">{l.jurisdiction === "us" ? "US" : l.jurisdiction.slice(3).toUpperCase()}</span>
+          </span>
+          {l.heading && <span className="truncate text-muted-foreground">{l.heading}</span>}
+        </Link>
+      ))}
       {results.answer?.texts.map((t) => (
         <button key={`t-${t.document_id}`} type="button" onClick={() => onOpen(t.bill_id, t.document_id)} className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs hover:bg-muted">
           <span className="flex items-center gap-2">
@@ -135,7 +156,7 @@ export function ResultsList({ results, state, onOpen }: { results: SearchResults
             {results.scope === "all" && <span className="ml-auto shrink-0 text-muted-foreground">{b.state}</span>}
           </button>
         ))}
-      {!results.loading && !results.answer?.texts.length && !results.answer?.bills.length && <p className="px-3 py-4 text-xs text-muted-foreground">Nothing matches “{results.q}”.</p>}
+      {!results.loading && !results.answer?.texts.length && !results.answer?.bills.length && !results.answer?.laws?.length && <p className="px-3 py-4 text-xs text-muted-foreground">Nothing matches “{results.q}”.</p>}
     </>
   )
 }
@@ -170,8 +191,8 @@ export function FileRow({
   hasHistory = false,
   slashFocuses = true,
 }: {
-  /** The qualifier chip for each scope: bill:H.R.6644, session:US/119, all:govblock. */
-  qualifiers: Record<SearchScope, string>
+  /** The qualifier chip for each scope: bill:H.R.6644, session:US/119, all:govblock; law: is LAW_QUALIFIER unless given. */
+  qualifiers: Record<Exclude<SearchScope, "law">, string> & { law?: string }
   sessionTitle: string
   query: string
   onQuery: (query: string) => void
@@ -230,7 +251,7 @@ export function FileRow({
       <div className="relative min-w-64 flex-1">
         <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background pr-8 pl-2.5 text-sm focus-within:ring-1 focus-within:ring-ring">
           <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="shrink-0 rounded bg-primary/10 px-1 font-mono text-xs text-primary">{qualifiers[scope]}</span>
+          <span className="shrink-0 rounded bg-primary/10 px-1 font-mono text-xs text-primary">{qualifiers[scope] ?? LAW_QUALIFIER}</span>
           <input
             ref={input}
             value={query}
@@ -251,7 +272,7 @@ export function FileRow({
               }
               if (e.key === "Backspace" && !query && scope !== "bill") onScope("bill")
             }}
-            placeholder={scope === "bill" ? "Find in this file…" : scope === "session" ? `Search ${sessionTitle || "this session"}…` : "Search every jurisdiction…"}
+            placeholder={scope === "bill" ? "Find in this file…" : scope === "session" ? `Search ${sessionTitle || "this session"}…` : scope === "law" ? "A citation, or words in a section's heading…" : "Search every jurisdiction…"}
             className="min-w-0 flex-1 bg-transparent outline-none"
             aria-label="Search"
           />
@@ -281,7 +302,7 @@ export function FileRow({
                 >
                   <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate">
-                    <span className="font-mono text-primary">{qualifiers[s.value]}</span>
+                    <span className="font-mono text-primary">{qualifiers[s.value] ?? LAW_QUALIFIER}</span>
                     {query.trim() && <span className="ml-1.5">{query.trim()}</span>}
                   </span>
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">{s.label}</span>
@@ -323,7 +344,7 @@ export function FileRow({
             {tips && (
               <div className="border-t px-3 py-2 text-xs text-muted-foreground">
                 <p>
-                  <span className="font-mono text-primary">bill:</span> finds in this file. <span className="font-mono text-primary">session:</span> searches every bill of the session, text included. <span className="font-mono text-primary">all:</span> searches every jurisdiction. Backspace on an empty box narrows back to the file; Escape clears it.
+                  <span className="font-mono text-primary">bill:</span> finds in this file. <span className="font-mono text-primary">session:</span> searches every bill of the session, text included. <span className="font-mono text-primary">all:</span> searches every jurisdiction. <span className="font-mono text-primary">law:</span> finds a section by its citation (7 USC 1, Agriculture and Markets 16) or the words of its heading. Backspace on an empty box narrows back to the file; Escape clears it.
                 </p>
               </div>
             )}
