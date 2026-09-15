@@ -2,12 +2,68 @@
 
 Report to the lead (govblock-93). Newest milestone first.
 
-## State of the items
+## State of the items, at the window's close (2026-09-15)
 
-1. Search: done, a7f1e22 and fe0043e.
-2. Comments that save: done, fdd11ff, 65cf6ce, bd29e0d; not yet tried in a browser.
-3. ⌘J and Ask AI: done, d5754d8, 73f860f, 420b978; not yet tried in a browser.
-4. A section sidebar for the Library: in progress.
+All four built, pushed to `feature/typeset-flip` and on 3001. None has been
+looked at in a browser; each milestone's Open lists what to try.
+
+| Item | State | Commits | What is left |
+|---|---|---|---|
+| 1. Search | done | fe0043e, a7f1e22 | the `law:` scope and the Library's list, seen in a browser |
+| 2. Comments that save | done; `sql/026` ran | fdd11ff, 65cf6ce, bd29e0d | write, reload and read back while signed in (Brendan's morning list); comments on the Fork view |
+| 3. ⌘J and Ask AI | done | d5754d8, 73f860f, 420b978 | the box's placement, ⌘J's unit and streaming, Replace and Insert below in the Fork editor, in a browser |
+| 4. A section sidebar | done | 6210333, a2ddda8 | the rail's look and a long code's tree, in a browser |
+
+## Milestone 4 — a section sidebar for the Library (2026-09-15)
+
+### Built
+
+- **The code's outline** (`lib/xml/code-outline.ts`, `GET
+  /api/typeset/outline?prefix=`): a code, a US Code title or a constitution
+  as its articles, chapters and parts, and under each its sections with their
+  headings. Read from `"Laws"` without the text, through the cached executor.
+  Each section is addressed where the pipeline stored it (a number that
+  restarts goes under its container, as `statutes.mjs` does), and keeps its
+  link only where `expressions` holds the Work, so the sidebar never links to
+  nothing. The addressing is `lib/xml/law-address.ts`, now shared with the
+  law search.
+- **The sidebar** (`components/workspace/typeset-code-outline.tsx`), in the
+  Git outline's rows: containers fold, sections link to their Work.
+  - **The Library**: a library that is one code, title or constitution
+    (`/workspace/typeset/library/us-ny/code/agm`) opens with its outline in
+    the rail, above the families.
+  - **The Work page**: the rail opens on arrival; a statute's shows its code
+    with the open section marked and its article opened; a bill's shows the
+    levels the reader draws, read as the file row's Outline reads them. Four
+    lines in `typeset-work.tsx`, with typeset-editor's word.
+
+### Verified
+
+| Outline | Items | Sections linked | Time (cold) | Size |
+|---|---|---|---|---|
+| `/us-ny/code/agm` | 794 | 725 of 725 | 0.6 s | 56 KB |
+| `/us-ny/const` | 222 | 202 of 202 | 0.35 s | 21 KB |
+| `/us/usc/t7` | 3,292 | 2,651 of 2,926 | 0.8 s | 244 KB |
+| `/us-ca/code/fac` | 11,268 | 9,661 of 9,661 | 2.0 s | 491 KB |
+
+The 275 Title 7 sections without a link are in `"Laws"` and not in the XML
+store. On 3001: the outline route, `/workspace/typeset/library/us-ny/code/agm`,
+`/workspace/typeset/library/us/usc/t7`, `/workspace/typeset/us/ny/code/agm/s16`
+and `/workspace/typeset/us/usc/t7/s1` answer 200. Bounded type check: 0.
+
+### Open
+
+- Not seen in a browser.
+- California's code arrives as 491 KB; the rail draws only the open articles,
+  but the list is read whole.
+- Libraries of families and sessions have no outline; a family spans codes and
+  a session is bills.
+
+### Files
+
+- `apps/web/lib/xml/code-outline.ts`, `apps/web/lib/xml/law-address.ts`, `apps/web/app/api/typeset/outline/route.ts`
+- `apps/web/components/workspace/typeset-code-outline.tsx`, `typeset-library.tsx` (the rail), `typeset-work.tsx` (four lines)
+- `apps/web/lib/typeset/find.ts` (addressing moved to the shared file)
 
 ## Milestone 3 — ⌘J and Ask AI, Plate's way (2026-09-15)
 
