@@ -7,12 +7,14 @@ import type { Node as PmNode } from "@tiptap/pm/model"
 import { Plugin, PluginKey } from "@tiptap/pm/state"
 import { Decoration, DecorationSet } from "@tiptap/pm/view"
 import { differenceInDays, differenceInHours, differenceInMinutes, format } from "date-fns"
-import { ArrowUpIcon, CheckIcon, MessageSquareTextIcon, PencilIcon, TrashIcon, XIcon } from "lucide-react"
+import { ArrowUpIcon, CheckIcon, MessageSquareTextIcon, PencilIcon, TrashIcon, WandSparklesIcon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/plate/ui/avatar"
 import { Button } from "@/components/plate/ui/button"
+import { useAiMenu } from "@/components/workspace/typeset-ai-menu"
 import { SelectionToolbar, useSelectionAt, type SelectionAt } from "@/components/workspace/typeset-selection-toolbar"
+import { unitAt } from "@/components/workspace/typeset-units"
 import { DEFAULT_AVATAR, useAccount } from "@/lib/auth/use-account"
 import { addComment, deleteComment, deleteThread, editComment, loadComments, resolveThread, SignInRequired, type SavedComment } from "@/lib/typeset/comments"
 import { cn } from "@govblock/ui/lib/utils"
@@ -25,7 +27,8 @@ import "./typeset-xml-comments.css"
 // A thread is anchored to the USLM unit's identifier and the words quoted in
 // it, never to a position, so it finds its place again when the document is
 // drawn afresh. The highlights are decorations laid over the document; nothing
-// is written into it.
+// is written into it. The same layer carries Ask AI and ⌘J
+// (typeset-ai-menu.tsx), whose Comment answer can be kept as a thread here.
 
 type Thread = { id: string; block: string; quote: string; resolved: boolean; comments: SavedComment[] }
 
@@ -39,16 +42,6 @@ function threadsOf(rows: SavedComment[]): Thread[] {
     threads.set(r.threadId, thread)
   }
   return [...threads.values()]
-}
-
-/** The innermost unit with an identifier around a position: the thread's anchor. */
-function unitAt(doc: PmNode, pos: number): { identifier: string; node: PmNode; start: number } | null {
-  const $pos = doc.resolve(Math.min(pos, doc.content.size))
-  for (let depth = $pos.depth; depth > 0; depth--) {
-    const node = $pos.node(depth)
-    if (node.attrs.identifier) return { identifier: String(node.attrs.identifier), node, start: $pos.start(depth) }
-  }
-  return doc.attrs.identifier ? { identifier: String(doc.attrs.identifier), node: doc, start: 0 } : null
 }
 
 /** A unit's text as textBetween reads it (a space between blocks), with the document position of every character. */
@@ -274,6 +267,24 @@ export function XmlComments({ editor, container, document, billId, toolbar }: { 
   const [selection, setSelection] = useSelectionAt(editor, container)
   const [draft, setDraft] = React.useState<(SelectionAt & { block: string }) | null>(null)
   const [open, setOpen] = React.useState<{ id: string; top: number; left: number } | null>(null)
+  const state = document ? (document.split("/")[1] === "us" ? "US" : document.split("/")[1]?.slice(3).toUpperCase()) : null
+  const ai = useAiMenu({
+    editor,
+    container,
+    state,
+    onComment:
+      me && document
+        ? async ({ quote, identifier, text }) => {
+            const threadId = newThreadId()
+            try {
+              const { comment } = await addComment({ threadId, document, billId: billId ?? null, block: identifier ?? "", quote: quote.slice(0, 2000), body: text })
+              setThreads((all) => [...all, { id: threadId, block: identifier ?? "", quote: comment.quote ?? quote, resolved: false, comments: [comment] }])
+            } catch (error) {
+              toast.error(error instanceof SignInRequired ? error.message : "The comment could not be saved.")
+            }
+          }
+        : undefined,
+  })
 
   // The threads, read once the reader and the document are both known.
   React.useEffect(() => {
@@ -316,7 +327,7 @@ export function XmlComments({ editor, container, document, billId, toolbar }: { 
   const start = () => {
     if (!editor || !selection) return
     const unit = unitAt(editor.state.doc, selection.from)
-    setDraft({ ...selection, block: unit?.identifier ?? "" })
+    setDraft({ ...selection, block: unit.identifier ?? "" })
     setSelection(null)
   }
 
@@ -324,15 +335,28 @@ export function XmlComments({ editor, container, document, billId, toolbar }: { 
 
   return (
     <>
-      {selection && !draft && (
+      {selection && !draft && !ai.isOpen && (
         <SelectionToolbar at={selection}>
           {toolbar?.(selection)}
+          <Button
+            variant="ghost"
+            className="h-7 gap-1.5 px-2 text-sm"
+            onClick={() => {
+              ai.open(selection)
+              setSelection(null)
+            }}
+          >
+            <WandSparklesIcon className="size-4" />
+            Ask AI
+          </Button>
           <Button variant="ghost" className="h-7 gap-1.5 px-2 text-sm" onClick={start}>
             <MessageSquareTextIcon className="size-4" />
             Comment
           </Button>
         </SelectionToolbar>
       )}
+
+      {ai.menu}
 
       {draft && (
         <Card top={draft.bottom} left={draft.left} onClose={() => setDraft(null)}>
