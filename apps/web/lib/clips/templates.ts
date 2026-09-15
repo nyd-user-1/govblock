@@ -1,12 +1,16 @@
 import "server-only"
 
+import type { BillHistoryProps } from "@/components/clips/templates/bill-history"
 import type { RollCallTallyProps } from "@/components/clips/templates/roll-call-tally"
+import { fmtBill } from "@/lib/format"
 import { one } from "@/lib/policy/db"
+import { getBill } from "@/lib/policy/db-queries"
 import { getRollCallSessions, getRollCalls, getRollCallVote, type Chamber } from "@/lib/policy/roll-call-queries"
 
 // What a template is fed, read from the record by an id, the way a block is.
 // The roll call tally takes a chamber, a congress, a session and a roll
-// number; with none, the newest House roll call.
+// number; with none, the newest House roll call. The bill history takes a
+// bill's id, as its page's address carries it.
 
 const YEA = new Set(["Yea", "Aye", "Yes", "Guilty"])
 const NAY = new Set(["Nay", "No", "Not Guilty"])
@@ -63,4 +67,58 @@ export async function rollCallTallyProps(a: RollCallAddress) {
       .sort((x, y) => y.yea + y.nay + y.present + y.notVoting - (x.yea + x.nay + x.present + x.notVoting)),
   }
   return { props, keys: { roll_call_chamber: a.chamber, roll_call_key: key?.key ?? null, bill_key: bill?.key ?? null } }
+}
+
+// ------------------------------------------------------------ bill history ---
+
+/** The kinds of action a bill's history is told by, in the clerk's words across legislatures. Amendment traffic is left out. */
+const MILESTONES: { kind: string; test: RegExp }[] = [
+  { kind: "introduced", test: /^(introduced|prefiled|pre-filed|read first time|first reading)/i },
+  { kind: "referred", test: /^referred to/i },
+  { kind: "reported", test: /\breported\b|do pass|favorabl/i },
+  { kind: "passed", test: /\b(passed|adopted)\b|agreed to by the yeas and nays|on passage .*agreed|third reading.*(passed|adopted)/i },
+  { kind: "resolving", test: /^resolving differences|concurr(ed|ence) in|agreed to (the )?(senate|house|assembly) amendment/i },
+  { kind: "presented", test: /presented to (the )?(president|governor)|delivered to governor|sent to governor/i },
+  { kind: "signed", test: /signed by (the )?(president|governor)|approved by (the )?governor/i },
+  { kind: "vetoed", test: /\bvetoed\b/i },
+  { kind: "law", test: /became (public|private) law|chaptered|chapter \d+|enacted/i },
+]
+
+const AMENDMENT = /^(s|h)\.?\s?amdt|^amendment\b|\bamendment (sa|ha) \d/i
+
+/** An action as the clerk wrote it, without its Congressional Record references and roll numbers in parentheses. */
+const actionText = (action: string) => {
+  const trimmed = action.replace(/\s*\((consideration: |text: )?CR [^)]*\)/g, "").replace(/\s*\(Roll no\.? ?\d+\)/gi, "").replace(/\s+/g, " ").trim()
+  return trimmed.length > 220 ? `${trimmed.slice(0, 220).replace(/\s+\S*$/, "")}…` : trimmed
+}
+
+export async function billHistoryProps(billId: number) {
+  const bill = await getBill(billId)
+  if (!bill) return null
+  const picked: { date: string; chamber: string | null; action: string }[] = []
+  const seen = new Set<string>()
+  for (const h of bill.history) {
+    if (AMENDMENT.test(h.action)) continue
+    const kind = MILESTONES.find((m) => m.test.test(h.action))?.kind
+    if (!kind) continue
+    // One of each kind in each chamber, except the resolving back-and-forth, which is told once.
+    const once = kind === "resolving" ? kind : `${kind}:${h.chamber}`
+    if (seen.has(once)) continue
+    seen.add(once)
+    picked.push({ date: String(h.date).slice(0, 10), chamber: h.chamber || null, action: actionText(h.action) })
+  }
+  const milestones = picked.length > 9 ? [...picked.slice(0, 8), picked[picked.length - 1]] : picked
+  const lawLine = [...bill.history].reverse().find((h) => /became (public|private) law|chaptered|chapter \d+/i.test(h.action))?.action ?? null
+  const law = lawLine ? (/((public|private) law no:? [\d-]+)/i.exec(lawLine)?.[1] ?? /(chapter \d+)/i.exec(lawLine)?.[1] ?? null) : null
+  const lead = bill.sponsors[0]
+  const props: BillHistoryProps = {
+    citation: (bill as { citation?: string | null }).citation ?? fmtBill(bill.bill_number, bill.state),
+    title: bill.title,
+    sponsor: lead ? `${lead.name}${lead.party ? ` (${lead.party})` : ""}` : null,
+    milestones,
+    law,
+    source: bill.state === "US" ? "congress.gov" : `${bill.state} legislature`,
+  }
+  const key = bill.state === "US" ? await one<{ key: string }>(`select key from congress_bills where bill_id = $1`, [billId]) : null
+  return { props, keys: { bill_key: key?.key ?? null } }
 }

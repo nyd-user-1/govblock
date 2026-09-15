@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CameraIcon, FilmIcon, LayoutGridIcon, UploadIcon } from "lucide-react"
+import { CameraIcon, FilmIcon, LayoutGridIcon, ScissorsIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -51,7 +51,7 @@ export function Creators({ rows, selected, onSelect, you, onRecord, onUpload, on
         <div className="grid grid-cols-2 gap-2">
           {onUpload && (
             <Button variant="outline" className="gap-1.5" onClick={onUpload}>
-              <UploadIcon className="size-4" /> Upload
+              <ScissorsIcon className="size-4" /> Clip
             </Button>
           )}
           {onGenerate && (

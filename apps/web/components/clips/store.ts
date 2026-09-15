@@ -395,7 +395,7 @@ function dataUrlBlob(dataUrl: string) {
   return new Blob([out], { type: /data:([^;]+)/.exec(head)?.[1] ?? "image/jpeg" })
 }
 
-/** A reader's long video, in the clips bucket and in the queue to be cut. */
+/** A link a reader pasted, in the queue to be cut. */
 export type Upload = { id: string; title: string; status: "queued" | "running" | "review" | "done" | "failed"; clips: number | null; createdAt: string }
 
 export type Feed = { published: Clip[]; mine: Clip[]; uploads: Upload[] }
@@ -448,17 +448,9 @@ export async function deleteClip(id: string) {
   await send("/api/clips/" + encodeURIComponent(id), "DELETE")
 }
 
-/** A reader's own video, to the clips bucket and into the queue to be cut. `rights` is the ticked box; the server refuses without it. */
-export async function uploadVideo(file: File, title: string, rights: boolean, onProgress?: (fraction: number) => void): Promise<Upload> {
-  const contentType = bareType(file.type, "video/mp4")
-  const made = await send<{ upload: Upload; uploadUrl: string }>("/api/clips/uploads", "POST", { title, bytes: file.size, rights, contentType })
-  try {
-    await putSigned(made.uploadUrl, file, contentType, onProgress)
-  } catch (error) {
-    await send("/api/clips/uploads/" + encodeURIComponent(made.upload.id), "DELETE").catch(() => {})
-    throw error
-  }
-  return made.upload
+/** A link to a long video, queued to be cut into clips. */
+export async function submitLink(url: string): Promise<Upload> {
+  return (await send<{ upload: Upload }>("/api/clips/uploads", "POST", { url })).upload
 }
 
 export async function withdrawUpload(id: string) {

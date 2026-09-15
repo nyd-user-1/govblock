@@ -414,7 +414,7 @@ export function ClipsApp() {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background p-8 text-center">
             <CameraIcon className="size-8 text-muted-foreground" />
             <p className="text-base font-medium">Sign in to take part</p>
-            <p className="text-sm text-muted-foreground">Recording, uploading, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
+            <p className="text-sm text-muted-foreground">Recording, clipping, liking and commenting are yours once you're signed in. What you record is private until you publish it.</p>
             <Button render={<Link href="/auth" />}>Sign in</Button>
             <Button variant="ghost" size="sm" onClick={() => setMode(null)}>
               Not now

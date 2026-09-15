@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, GlobeIcon, LockIcon, SwitchCameraIcon, UploadIcon, XIcon } from "lucide-react"
+import { ChevronLeftIcon, GlobeIcon, LockIcon, ScissorsIcon, SwitchCameraIcon, XIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/nova/input"
@@ -15,9 +15,8 @@ import { type Clip, type Visibility } from "./store"
 // a title and a visibility. Private is the default; public is a choice.
 //
 // The recording is MediaRecorder on the device camera; saving it sends it to
-// the private clips bucket on S3 (store.ts). A file from the device is not taken here: an
-// upload goes through Upload, which asks the reader to confirm the right to
-// post it first.
+// the private clips bucket on S3 (store.ts). A video from elsewhere comes in
+// through Clip, as a link.
 
 const MAX_SECONDS = 60
 
@@ -223,7 +222,7 @@ export function Capture({ author, onSaved, onClose, onUpload }: { author: Clip["
             <p className="text-sm text-white/80">{cameraError}</p>
             {onUpload && (
               <Button variant="secondary" size="sm" onClick={onUpload}>
-                <UploadIcon className="size-4" /> Upload a video
+                <ScissorsIcon className="size-4" /> Clip a video
               </Button>
             )}
           </div>
@@ -239,8 +238,8 @@ export function Capture({ author, onSaved, onClose, onUpload }: { author: Clip["
         </div>
         <div className="relative mt-auto flex items-end justify-between p-5 pb-7">
           {onUpload ? (
-            <button type="button" className="flex size-11 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-40" aria-label="Upload a video" onClick={onUpload} disabled={recording}>
-              <UploadIcon className="size-5" />
+            <button type="button" className="flex size-11 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-40" aria-label="Clip a video" onClick={onUpload} disabled={recording}>
+              <ScissorsIcon className="size-5" />
             </button>
           ) : (
             <span className="size-11" />

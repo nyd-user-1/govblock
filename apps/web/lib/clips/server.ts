@@ -125,7 +125,7 @@ export async function listClips(viewer: string | null): Promise<{ published: Cli
       [viewer ?? ""]
     ),
     viewer
-      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 and source_url like 's3://%' order by created_at desc limit 50`, [viewer])
+      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 order by created_at desc limit 50`, [viewer])
       : Promise.resolve([] as Upload[]),
   ])
   const clips = await Promise.all(rows.map((r) => toClip(r, viewer)))
