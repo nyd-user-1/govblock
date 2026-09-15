@@ -372,6 +372,10 @@
     > h3 {
       @apply !mt-8;
     }
+    /* The changelog's entries, twice apart, so each reads as its own (Brendan, 2026-09-15). */
+    &.steps-roomy > h3 {
+      @apply !mt-16;
+    }
     > h3 + p {
       @apply !mt-2;
     }

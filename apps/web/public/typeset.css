@@ -115,7 +115,9 @@
       text-decoration-line: underline;
       text-decoration-color: color-mix(in oklab, currentColor 30%, transparent);
     }
+    /* Blue on hover (Brendan, 2026-09-15), the primary the breadcrumbs use. */
     &:where(a:hover) {
+      color: var(--color-primary, #2563eb);
       text-decoration-color: currentColor;
     }
     &:where(a:focus-visible) {
