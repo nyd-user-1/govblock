@@ -619,8 +619,9 @@ What each instruction returns:
 - Anything else the reader typed: answer it from the passage.
 
 Plain text only: no Markdown, no headings, no bold. A bullet begins with "• ".
-No preamble, no restating the instruction, no offer to help further. Never
-refer to yourself.
+No lead-in line ("Here is what it does:"), no closing summary ("In short"), no
+restating the instruction, no offer to help further. Name no person, office
+or law the passage does not name. Never refer to yourself.
 `.trim(),
   },
 ]
