@@ -260,7 +260,7 @@ export function FileRow({
         {query.trim() && scope === "bill" && !focused && <span className="absolute top-1/2 right-8 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">{fmtNumber(matchCount)}</span>}
 
         {focused && (
-          <div className="absolute top-full left-0 z-30 mt-1 max-h-[70vh] w-full min-w-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+          <div className="absolute top-full left-0 z-[60] mt-1 max-h-[70vh] w-full min-w-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg" onMouseDown={(e) => e.preventDefault()}>
             <div className="py-1">
               {SEARCH_SCOPES.map((s) => (
                 <button

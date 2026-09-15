@@ -9,7 +9,6 @@ import { LIBRARY_ROOT, libraryHref, workHref } from "@/lib/xml/library"
 import { versionName } from "@/lib/typeset/versions"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
-import { ForkAction } from "@/components/workspace/typeset-fork-action"
 import { TypesetWorkChrome } from "@/components/workspace/typeset-file-chrome"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
@@ -92,7 +91,6 @@ export function TypesetWork(props: TypesetWorkProps) {
       {jsonUrl ? (
         // The Git view's file row and the toolbar over the reader (2026-09-14); fork the unit under the pointer from this Expression (window 5).
         <TypesetWorkChrome work={props.work} expression={props.expression} label={label} history={props.history} toolbar={<StaticToolbar xml={{ editor: null }} />}>
-        <ForkAction expression={props.expression}>
           <TypesetXmlReader
             jsonUrl={jsonUrl}
             snapshot={snapshot}
@@ -100,7 +98,6 @@ export function TypesetWork(props: TypesetWorkProps) {
             portion={portion}
             cite={{ jurisdiction: props.work.split("/")[1] ?? "us", work: props.work, at: meta?.date?.slice(0, 10) ?? null, citing: `${props.work}@${props.expression}` }}
           />
-        </ForkAction>
         </TypesetWorkChrome>
       ) : (
         <p className="p-8 text-sm text-muted-foreground">{door === "sign-in" ? "Sign in to read this." : "Reading this takes a plan that covers its jurisdiction."}</p>
