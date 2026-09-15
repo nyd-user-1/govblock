@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { RailsFrame } from "@/components/rails-frame"
+
 import { getStateIndex } from "@/lib/policy/state-index"
 import { FlagChip } from "@/components/policy/imagery"
 import { cn } from "@govblock/ui/lib/utils"
@@ -16,7 +18,9 @@ export default async function StateIndexPage() {
   const totalBills = rows.reduce((t, r) => t + r.bills, 0)
   const totalSessions = rows.reduce((t, r) => t + r.sessions, 0)
   return (
-    <div className="container-wrapper flex flex-1 flex-col gap-8 px-6 py-12">
+    // Both site rails (Brendan, 2026-09-14).
+    <RailsFrame>
+    <div className="flex flex-1 flex-col gap-8 py-12">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Jurisdictions</h1>
         <p className="text-muted-foreground">
@@ -63,6 +67,10 @@ export default async function StateIndexPage() {
                   <Link href={`/state/${r.state.toLowerCase()}/charts`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
                     Charts
                   </Link>
+                  {/* The map, flown to the state (Brendan, 2026-09-14). */}
+                  <Link href={r.state === "US" ? "/map" : `/map?state=${r.state.toLowerCase()}`} className="ml-4 text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                    Map
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -70,5 +78,6 @@ export default async function StateIndexPage() {
         </table>
       </div>
     </div>
+    </RailsFrame>
   )
 }

@@ -265,6 +265,19 @@ export function MapWorkspace() {
     setFocusState(fips)
     setFlyTo([...geo.states[fips]] as Bounds)
   }
+  // A link can name a state (/map?state=ny, from /state; Brendan, 2026-09-14): the map opens flown to it once the states' outlines are read.
+  const askedState = React.useRef<string | null | undefined>(undefined)
+  const flyRef = React.useRef(flyToState)
+  flyRef.current = flyToState
+  React.useEffect(() => {
+    if (askedState.current === undefined) askedState.current = new URLSearchParams(window.location.search).get("state")?.toUpperCase() ?? null
+    const code = askedState.current
+    if (!code) return
+    const fips = Object.keys(FIPS_TO_STATE).find((f) => FIPS_TO_STATE[f] === code)
+    if (!fips || !geo.states[fips]) return
+    askedState.current = null
+    flyRef.current(fips)
+  }, [geo])
   /** Where a district is: the congressional file, or the chamber's own. */
   const boxOf = (d: DistrictProps) =>
     d.chamber
