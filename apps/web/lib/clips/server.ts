@@ -35,6 +35,7 @@ type Row = {
   id: string
   video_key: string | null
   poster_key: string | null
+  composition: string | Record<string, unknown> | null
   origin: "recorded" | "cut" | "generated"
   status: "processing" | "review" | "published" | "removed"
   visibility: "private" | "public"
@@ -60,7 +61,7 @@ type Row = {
 // Every link a clip carries is read from the record's own tables by the ids
 // on the row, so a clip can only point at something the site has.
 const SELECT = `
-  select c.id, c.video_key, c.poster_key, c.origin, c.status, c.visibility, c.desk, c.owner_id, c.title, c.caption, c.duration,
+  select c.id, c.video_key, c.poster_key, c.composition::text composition, c.origin, c.status, c.visibility, c.desk, c.owner_id, c.title, c.caption, c.duration,
          to_char(c.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') created_at,
          p.name owner_name, r.email owner_email, p.image owner_image,
          c.hearing_key, m.title hearing_title,
@@ -112,6 +113,7 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
     origin: r.origin,
     status: r.status,
     links: linksOf(r),
+    composition: r.composition ? ((typeof r.composition === "string" ? JSON.parse(r.composition) : r.composition) as Clip["composition"]) : undefined,
   }
 }
 

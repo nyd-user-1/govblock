@@ -406,7 +406,14 @@ export function ClipsApp() {
       )}
       {mode === "generate" && (
         <Frame onClose={() => setMode(null)}>
-          <Generate onClose={() => setMode(null)} />
+          <Generate
+            signedIn={signedIn}
+            onClose={() => setMode(null)}
+            onPosted={(clip) => {
+              setMine((m) => [clip, ...m.filter((c) => c.id !== clip.id)])
+              pendingId.current = clip.id
+            }}
+          />
         </Frame>
       )}
       {mode === "gate" && (

@@ -47,6 +47,8 @@ export type Clip = {
   status?: "processing" | "review" | "published" | "removed"
   /** The record's own pages the clip is keyed to: the hearing, the bill, the roll call. */
   links?: { label: string; href: string }[]
+  /** A generated clip: the template and the data it plays from, live in the browser. */
+  composition?: { template: string; props: Record<string, unknown> }
 }
 
 export type Comment = { id: string; clipId: string; author: { name: string; handle: string; image?: string | null }; text: string; at: string; likes: number; mine?: boolean }
@@ -438,6 +440,11 @@ export async function saveClip(clip: Clip, onProgress?: (fraction: number) => vo
     await send("/api/clips/" + encodeURIComponent(made.clip.id), "DELETE").catch(() => {})
     throw error
   }
+}
+
+/** What Generate previewed, posted to the feed as its template and data. */
+export async function postGenerated(post: { template: string; address: Record<string, unknown> }): Promise<Clip> {
+  return (await send<{ clip: Clip }>("/api/clips/generated", "POST", post)).clip
 }
 
 export async function updateClip(id: string, patch: { visibility?: Visibility; title?: string; caption?: string }) {

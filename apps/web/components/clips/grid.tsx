@@ -1,12 +1,16 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { LockIcon, PlayIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
 
+
 import { fmtCount, type Clip } from "./store"
+
+const CompositionThumb = dynamic(() => import("./composition-player").then((m) => m.CompositionThumb), { ssr: false })
 
 // Instagram's grid: the poster fills the tile, the author's avatar and handle
 // sit top left, the play count and the caption sit at the foot. Three across
@@ -17,7 +21,11 @@ export function Grid({ clips, onOpen, className }: { clips: Clip[]; onOpen: (cli
     <div className={cn("grid grid-cols-3 gap-0.5 lg:grid-cols-4", className)}>
       {clips.map((clip) => (
         <button key={clip.id} type="button" onClick={() => onOpen(clip)} className="group relative aspect-[9/16] overflow-hidden bg-black text-left text-white" aria-label={clip.title}>
-          {clip.poster ? (
+          {clip.composition ? (
+            <div className="size-full transition-transform duration-300 group-hover:scale-[1.03]">
+              <CompositionThumb composition={clip.composition} />
+            </div>
+          ) : clip.poster ? (
             <img src={clip.poster} alt="" className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
           ) : (
             // A recording has no cues to seek by, so it loads whole rather than sitting black on metadata alone.

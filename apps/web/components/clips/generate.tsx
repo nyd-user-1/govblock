@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Player } from "@remotion/player"
-import { XIcon } from "lucide-react"
+import { CheckIcon, LinkIcon, XIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/nova/input"
@@ -10,11 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { BILL_HISTORY, BillHistory, type BillHistoryProps } from "./templates/bill-history"
 import { ROLL_CALL_TALLY, RollCallTally, type RollCallTallyProps } from "./templates/roll-call-tally"
+import { clipUrl } from "./menu"
+import { postGenerated, type Clip } from "./store"
 
 // Generate: a video made from data the site already has. Paste a link — a
 // roll call's page or a bill's page — and the template that fits it is
 // chosen and previewed in Remotion's <Player> as it will render. The select
-// picks a template by hand and opens it on an example.
+// picks a template by hand and opens it on an example. Post keeps it in the
+// feed as its template and data, with a link to share; nothing is rendered.
 
 type Address = { template: "roll-call-tally"; chamber: "house" | "senate"; congress: number; session: number; roll: number } | { template: "bill-history"; billId: number }
 
@@ -35,18 +38,22 @@ function resolve(text: string): Address | null {
 
 const spell = (a: Address) => (a.template === "roll-call-tally" ? `${a.chamber}-${a.congress}-${a.session}/${a.roll}` : `/bills/${a.billId}`)
 
-type Loaded = ({ template: "roll-call-tally"; props: RollCallTallyProps } | { template: "bill-history"; props: BillHistoryProps }) & { n: number }
+type Loaded = ({ template: "roll-call-tally"; props: RollCallTallyProps } | { template: "bill-history"; props: BillHistoryProps }) & { n: number; address: Record<string, unknown> }
 
-export function Generate({ onClose }: { onClose: () => void }) {
+export function Generate({ onClose, onPosted, signedIn }: { onClose: () => void; onPosted: (clip: Clip) => void; signedIn: boolean }) {
   const [text, setText] = React.useState("")
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
   const [template, setTemplate] = React.useState<string>(ROLL_CALL_TALLY.id)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
+  const [posting, setPosting] = React.useState(false)
+  const [posted, setPosted] = React.useState<Clip | null>(null)
+  const [copied, setCopied] = React.useState(false)
 
   const load = React.useCallback(async (a: Address | null, fallback: "roll-call-tally" | "bill-history" = "roll-call-tally") => {
     setLoading(true)
     setError(null)
+    setPosted(null)
     const kind = a?.template ?? fallback
     setTemplate(kind)
     const url =
@@ -58,11 +65,11 @@ export function Generate({ onClose }: { onClose: () => void }) {
       const body = (await res.json()) as { address?: Record<string, unknown>; props?: unknown; error?: string }
       if (!res.ok || !body.props || !body.address) throw new Error(body.error ?? "That link did not load.")
       if (kind === "bill-history") {
-        setLoaded({ template: kind, props: body.props as BillHistoryProps, n: Date.now() })
+        setLoaded({ template: kind, props: body.props as BillHistoryProps, n: Date.now(), address: body.address })
         setText(spell({ template: kind, billId: Number(body.address.billId) }))
       } else {
         const r = body.address as { chamber: "house" | "senate"; congress: number; session: number; roll: number }
-        setLoaded({ template: kind, props: body.props as RollCallTallyProps, n: Date.now() })
+        setLoaded({ template: kind, props: body.props as RollCallTallyProps, n: Date.now(), address: body.address })
         setText(spell({ template: kind, ...r }))
       }
     } catch (e) {
@@ -81,6 +88,21 @@ export function Generate({ onClose }: { onClose: () => void }) {
     const a = resolve(text)
     if (!a) return setError("Paste a roll call's link or a bill's link.")
     void load(a)
+  }
+
+  const post = async () => {
+    if (!loaded || posting) return
+    setPosting(true)
+    setError(null)
+    try {
+      const clip = await postGenerated({ template: loaded.template, address: loaded.address })
+      setPosted(clip)
+      onPosted(clip)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The clip was not posted.")
+    } finally {
+      setPosting(false)
+    }
   }
 
   const spec = loaded?.template === "bill-history" ? BILL_HISTORY : ROLL_CALL_TALLY
@@ -132,7 +154,27 @@ export function Generate({ onClose }: { onClose: () => void }) {
           <Button type="submit" variant="outline" disabled={loading}>
             {loading ? "Loading…" : "Preview"}
           </Button>
+          {signedIn && (
+            <Button type="button" disabled={!loaded || loading || posting || !!posted} onClick={() => void post()}>
+              {posted ? "Posted" : posting ? "Posting…" : "Post"}
+            </Button>
+          )}
         </div>
+        {posted && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="self-start"
+            onClick={() => {
+              void navigator.clipboard?.writeText(clipUrl(posted))
+              setCopied(true)
+              window.setTimeout(() => setCopied(false), 1500)
+            }}
+          >
+            {copied ? <CheckIcon /> : <LinkIcon />} {copied ? "Link copied" : "Copy the link"}
+          </Button>
+        )}
         {error && loaded && <p className="text-sm text-destructive">{error}</p>}
       </form>
     </div>
