@@ -111,7 +111,10 @@ export function entitled(reader: Reader, ask: Ask): Verdict {
   if (state !== DEFAULT_STATE && !(reader.signedIn && state === reader.home)) return door
   // A Team plan (2026-09-13): the whole record, every session, for Congress and the home state.
   if (reader.license === "team") return "open"
-  if (ask.session != null && ask.current != null && Number(ask.session) !== Number(ask.current)) return door
+  // Only a session before the latest on file is "earlier" (Brendan, 2026-09-15): the
+  // 119th Congress is 2025 and 2026, and a New York session is two years too, so a
+  // year past the latest session id is the same session, not a paid one.
+  if (ask.session != null && ask.current != null && Number(ask.session) < Number(ask.current)) return door
   if (!FREE.has(entity)) return door
   return "open"
 }
