@@ -3,11 +3,11 @@
 import * as React from "react"
 import type { Editor } from "@tiptap/react"
 import { Command as CommandPrimitive } from "cmdk"
-import { Album, BadgeHelp, Check, ClipboardCopyIcon, CornerUpLeft, FeatherIcon, ListEnd, ListMinus, ListPlus, Loader2Icon, MessageSquareTextIcon, PauseIcon, PenLine, Wand, X } from "lucide-react"
+import { Album, BadgeHelp, Check, ClipboardCopyIcon, CornerUpLeft, FeatherIcon, ListEnd, ListMinus, ListPlus, Loader2Icon, MessageSquareTextIcon, PauseIcon, PenLine, Wand, WandSparklesIcon, X } from "lucide-react"
 
 import { Button } from "@/components/plate/ui/button"
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/plate/ui/command"
-import type { SelectionAt } from "@/components/workspace/typeset-selection-toolbar"
+import { SelectionToolbar, useSelectionAt, type SelectionAt } from "@/components/workspace/typeset-selection-toolbar"
 import { unitAt, unitLabel } from "@/components/workspace/typeset-units"
 import { runAgent } from "@/lib/agents/run-client"
 import { cn } from "@govblock/ui/lib/utils"
@@ -229,6 +229,32 @@ export function useAiMenu({ editor, container, state, onComment }: { editor: Edi
   ) : null
 
   return { open, close, menu, isOpen: Boolean(box) }
+}
+
+/** Ask AI and ⌘J alone, for an editor that keeps no comments: the Fork editor. */
+export function AiLayer({ editor, container, state }: { editor: Editor | null; container: React.RefObject<HTMLElement | null>; state?: string | null }) {
+  const [selection, setSelection] = useSelectionAt(editor, container)
+  const ai = useAiMenu({ editor, container, state })
+  return (
+    <>
+      {selection && !ai.isOpen && (
+        <SelectionToolbar at={selection}>
+          <Button
+            variant="ghost"
+            className="h-7 gap-1.5 px-2 text-sm"
+            onClick={() => {
+              ai.open(selection)
+              setSelection(null)
+            }}
+          >
+            <WandSparklesIcon className="size-4" />
+            Ask AI
+          </Button>
+        </SelectionToolbar>
+      )}
+      {ai.menu}
+    </>
+  )
 }
 
 function AiBox({
