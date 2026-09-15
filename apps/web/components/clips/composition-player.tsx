@@ -19,7 +19,7 @@ type AnyComponent = React.ComponentType<Record<string, unknown>>
 
 export const TEMPLATES: Record<string, { component: AnyComponent; spec: { fps: number; durationInFrames: number; width: number; height: number }; still: number }> = {
   [ROLL_CALL_TALLY.id]: { component: RollCallTally as unknown as AnyComponent, spec: ROLL_CALL_TALLY, still: 360 },
-  [BILL_HISTORY.id]: { component: BillHistory as unknown as AnyComponent, spec: BILL_HISTORY, still: 840 },
+  [BILL_HISTORY.id]: { component: BillHistory as unknown as AnyComponent, spec: BILL_HISTORY, still: 560 },
 }
 
 /** A composition's component and its size and length: fixed for a built-in template, read from the spec for a Studio one. */

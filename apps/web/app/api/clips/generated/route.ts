@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       const last = p.milestones[p.milestones.length - 1]
       await q(
         `insert into clips (id, origin, status, visibility, owner_id, title, caption, duration, width, height, jurisdiction, bill_key, template, composition, published_at)
-         values ($1, 'generated', 'published', 'public', $2, $3, $4, 30, 1080, 1920, 'us', $5, 'bill-history', $6::jsonb, now())`,
+         values ($1, 'generated', 'published', 'public', $2, $3, $4, 20, 1080, 1920, 'us', $5, 'bill-history', $6::jsonb, now())`,
         [id, viewer.id, `${p.citation}: ${p.title}`.slice(0, 150), last ? `${last.action} (${last.date})` : "", found.keys.bill_key, JSON.stringify({ template: "bill-history", props: p })]
       )
     } else if (body.template === "studio") {

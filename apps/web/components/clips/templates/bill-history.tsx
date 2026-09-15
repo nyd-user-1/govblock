@@ -1,7 +1,7 @@
 import * as React from "react"
 import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion"
 
-// A bill's history as a thirty-second timeline: the second generated clip.
+// A bill's history as a twenty-second timeline: the second generated clip.
 // Every word is the record's — the citation, the title, the sponsor, each
 // milestone's date, chamber and action as the clerk wrote it, and the law's
 // number when it became one. The milestones arrive one after another down a
@@ -23,7 +23,7 @@ export type BillHistoryProps = {
   fontFamily?: string
 }
 
-export const BILL_HISTORY = { id: "bill-history", fps: 30, durationInFrames: 900, width: 1080, height: 1920 } as const
+export const BILL_HISTORY = { id: "bill-history", fps: 30, durationInFrames: 600, width: 1080, height: 1920 } as const
 
 const INK = "#fafafa"
 const PAPER = "#0b0b0c"
@@ -40,9 +40,9 @@ export function BillHistory({ citation, title, sponsor, milestones, law, source,
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const count = Math.max(1, milestones.length)
-  // 1.5 s for the heading, the milestones across the next 22 s, the law at 25 s.
-  const first = 45
-  const step = Math.min(90, Math.floor(660 / count))
+  // A second for the heading, then a milestone about every 1.8 s (Brendan, 2026-09-14: "moves too slow"), the law half a second after the last.
+  const first = 30
+  const step = Math.min(55, Math.floor(420 / count))
   const shown = milestones.filter((_, i) => frame >= first + i * step).length
   const fade = (from: number, length = 15) => interpolate(frame, [from, from + length], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
   const rise = (from: number) => interpolate(frame, [from, from + 20], [28, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) })
@@ -51,7 +51,7 @@ export function BillHistory({ citation, title, sponsor, milestones, law, source,
   const ROW = 230
   // interpolate needs two points or more; a bill of one or two milestones never rises.
   const lift = count > 4 ? interpolate(frame, milestones.map((_, i) => first + i * step), milestones.map((_, i) => Math.max(0, i - 3) * ROW), { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) }) : 0
-  const lawAt = first + count * step + 30
+  const lawAt = first + count * step + 15
   const stamp = spring({ frame: frame - lawAt, fps, config: { damping: 12, stiffness: 140 } })
 
   return (
