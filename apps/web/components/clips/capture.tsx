@@ -15,7 +15,7 @@ import { type Clip, type Visibility } from "./store"
 // a title and a visibility. Private is the default; public is a choice.
 //
 // The recording is MediaRecorder on the device camera; saving it sends it to
-// Cloudflare Stream (store.ts). A file from the device is not taken here: an
+// the private clips bucket on S3 (store.ts). A file from the device is not taken here: an
 // upload goes through Upload, which asks the reader to confirm the right to
 // post it first.
 

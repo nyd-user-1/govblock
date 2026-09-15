@@ -1,15 +1,30 @@
 import { NextResponse } from "next/server"
 
+import { auth } from "@/lib/auth/config"
 import { copyFromUrl, createLiveInput, deleteLiveInput, deleteVideo, getStream } from "@/lib/policy/cloudflare-stream"
 
 // Cloudflare Stream for the Admin experience's Stream page. GET is the
 // library, the live inputs and whether the token can reach Stream. POST
 // takes an action: copy (import from a URL), live (a new live input),
-// delete-video, delete-live. The token never leaves the server.
+// delete-video, delete-live. The token never leaves the server, and the route
+// answers an admin alone (reader_profiles.admin, 2026-09-14): it lists every
+// live input's stream key and deletes videos.
 
 export const dynamic = "force-dynamic"
 
+async function isAdmin() {
+  try {
+    const session = await auth()
+    return (session?.user as { admin?: boolean } | undefined)?.admin === true
+  } catch {
+    return false
+  }
+}
+
+const refused = () => NextResponse.json({ error: "Only an admin can use Stream." }, { status: 403 })
+
 export async function GET() {
+  if (!(await isAdmin())) return refused()
   try {
     return NextResponse.json(await getStream(), { headers: { "cache-control": "private, no-store" } })
   } catch (error) {
@@ -19,6 +34,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) return refused()
   const body = (await request.json().catch(() => ({}))) as { action?: string; url?: string; name?: string; uid?: string }
   try {
     switch (body.action) {

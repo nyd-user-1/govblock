@@ -1,13 +1,15 @@
-// What the worker box's scripts share: Aurora over the Data API, a file sent
-// to Stream by tus, and the wait for Stream to have it ready. Credentials come
+// What the worker box's scripts share: Aurora over the Data API, and files in
+// and out of the clips bucket. Credentials come
 // from the environment or from apps/web/.env.local beside the checkout; the
 // box's instance role signs the Data API calls.
 
 import { randomBytes } from "node:crypto"
-import { existsSync, openSync, readSync, closeSync, readFileSync, statSync, appendFileSync } from "node:fs"
+import { appendFileSync, createReadStream, createWriteStream, existsSync, readFileSync, statSync } from "node:fs"
+import { pipeline } from "node:stream/promises"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { ExecuteStatementCommand, RDSDataClient } from "@aws-sdk/client-rds-data"
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..")
 const ENV_FILE = join(ROOT, "apps/web/.env.local")
@@ -75,67 +77,23 @@ export async function q(sql, params = []) {
   }
 }
 
-/* ---- Stream ---- */
+/* ---- the clips bucket ---- */
 
-const API = "https://api.cloudflare.com/client/v4"
-const account = () => env("CLOUDFLARE_ACCOUNT_ID")
-const token = () => env("CLOUDFLARE_STREAM_TOKEN") || env("CLOUDFLARE_API_TOKEN")
+// Clips live in the private S3 bucket (apps/web/lib/clips/storage.ts), written
+// here under the box's instance role.
 
-async function cf(path, init = {}) {
-  const res = await fetch(`${API}/accounts/${account()}${path}`, { ...init, headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json", ...(init.headers ?? {}) } })
-  const body = await res.json()
-  if (!body.success) throw new Error(body.errors?.[0] ? `${body.errors[0].code}: ${body.errors[0].message}` : `${res.status}`)
-  return body.result
+export const CLIPS_BUCKET = env("CLIPS_BUCKET") || "govblock-clips-638175140432"
+const s3 = new S3Client({ region: env("AWS_REGION") || "us-east-1" })
+
+/** A local file into the bucket under `key`. */
+export async function putFile(file, key, contentType) {
+  await s3.send(new PutObjectCommand({ Bucket: CLIPS_BUCKET, Key: key, Body: createReadStream(file), ContentLength: statSync(file).size, ContentType: contentType }))
+  return key
 }
 
-const b64 = (s) => Buffer.from(String(s), "utf8").toString("base64")
-
-/** A local file to Stream by tus, 50 MiB a request; returns the video's uid. */
-export async function uploadFile(file, { name, creator, requireSignedURLs = false, onProgress } = {}) {
-  const size = statSync(file).size
-  const metadata = [`name ${b64(name.slice(0, 120))}`, ...(requireSignedURLs ? ["requiresignedurls"] : [])].join(",")
-  const create = await fetch(`${API}/accounts/${account()}/stream?direct_user=true`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token()}`, "Tus-Resumable": "1.0.0", "Upload-Length": String(size), "Upload-Metadata": metadata, ...(creator ? { "Upload-Creator": creator } : {}) },
-  })
-  const location = create.headers.get("location")
-  if (!create.ok || !location) {
-    const body = await create.json().catch(() => null)
-    throw new Error(body?.errors?.[0] ? `${body.errors[0].code}: ${body.errors[0].message}` : `tus create ${create.status}`)
-  }
-  const uid = create.headers.get("stream-media-id") ?? /\/([a-f0-9]{32})(?:\?|$)/.exec(location)?.[1]
-  const CHUNK = 200 * 262_144
-  const fd = openSync(file, "r")
-  try {
-    let offset = 0
-    while (offset < size) {
-      const length = Math.min(CHUNK, size - offset)
-      const buf = Buffer.alloc(length)
-      readSync(fd, buf, 0, length, offset)
-      const res = await fetch(location, { method: "PATCH", headers: { "Tus-Resumable": "1.0.0", "Upload-Offset": String(offset), "Content-Type": "application/offset+octet-stream" }, body: buf })
-      if (!res.ok) throw new Error(`tus PATCH at ${offset} answered ${res.status}`)
-      offset = Number(res.headers.get("upload-offset")) || offset + length
-      onProgress?.(offset / size)
-    }
-  } finally {
-    closeSync(fd)
-  }
-  return uid
-}
-
-/** Waits for Stream to finish the video and its MP4; returns its duration and size. */
-export async function whenReady(uid, { timeoutMs = 30 * 60_000 } = {}) {
-  const started = Date.now()
-  let downloadAsked = false
-  for (;;) {
-    const v = await cf(`/stream/${uid}`)
-    if (v.status?.state === "error") throw new Error(`Stream could not process ${uid}: ${v.status?.errorReasonText ?? "error"}`)
-    if (v.readyToStream) {
-      const d = await cf(`/stream/${uid}/downloads`, { method: downloadAsked ? "GET" : "POST" })
-      downloadAsked = true
-      if (d?.default?.status === "ready") return { duration: v.duration, width: v.input?.width ?? null, height: v.input?.height ?? null }
-    }
-    if (Date.now() - started > timeoutMs) throw new Error(`Stream did not finish ${uid} in time`)
-    await new Promise((r) => setTimeout(r, 5000))
-  }
+/** An object in the bucket, to a local file. */
+export async function getFile(key, file) {
+  const res = await s3.send(new GetObjectCommand({ Bucket: CLIPS_BUCKET, Key: key }))
+  await pipeline(res.Body, createWriteStream(file))
+  return file
 }

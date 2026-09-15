@@ -5,15 +5,18 @@ import { randomBytes } from "node:crypto"
 import { CREATORS } from "@/components/clips/desks"
 import type { Clip, Upload } from "@/components/clips/store"
 import { auth } from "@/lib/auth/config"
-import { enableDownload, getVideo, playbackToken, playbackUrls } from "@/lib/policy/cloudflare-stream"
+import { CLIPS_BUCKET, playUrl } from "@/lib/clips/storage"
 import { one, q } from "@/lib/policy/db"
 import { sessionSlug } from "@/lib/policy/roll-call-queries"
 
 // The clips Aurora holds (sql/020_clips.sql), as the feed's own Clip shape.
 // A row carries what the record knows — origin, desk, the ids it is keyed
-// to — and Stream carries the video; this file joins the two. A private
-// clip's MP4 and poster are handed out under a four-hour token, and only to
-// its owner.
+// to — and the clips bucket carries the video and its poster
+// (lib/clips/storage.ts); this file joins the two. Every address it hands
+// out is signed and lapses in an hour; the feed mints fresh ones each time it
+// is read. A private clip is only ever listed for its owner.
+
+export const S3_PREFIX = `s3://${CLIPS_BUCKET}/`
 
 export const newId = (prefix: string) => `${prefix}_${randomBytes(8).toString("hex")}`
 
@@ -30,7 +33,8 @@ export async function viewerOf() {
 
 type Row = {
   id: string
-  stream_uid: string | null
+  video_key: string | null
+  poster_key: string | null
   origin: "recorded" | "cut" | "generated"
   status: "processing" | "review" | "published" | "removed"
   visibility: "private" | "public"
@@ -56,7 +60,7 @@ type Row = {
 // Every link a clip carries is read from the record's own tables by the ids
 // on the row, so a clip can only point at something the site has.
 const SELECT = `
-  select c.id, c.stream_uid, c.origin, c.status, c.visibility, c.desk, c.owner_id, c.title, c.caption, c.duration,
+  select c.id, c.video_key, c.poster_key, c.origin, c.status, c.visibility, c.desk, c.owner_id, c.title, c.caption, c.duration,
          to_char(c.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') created_at,
          p.name owner_name, r.email owner_email, p.image owner_image,
          c.hearing_key, m.title hearing_title,
@@ -85,12 +89,12 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
   const desk = r.desk ? CREATORS.find((c) => c.id === r.desk) : undefined
   const handle = (r.owner_email ?? "reader").split("@")[0]
   const author = desk ? { name: desk.name, handle: desk.handle, image: desk.image } : { name: r.owner_name ?? handle, handle, image: r.owner_image }
-  let src = ""
-  let poster: string | undefined
-  if (r.stream_uid && r.status !== "processing") {
-    const key = r.visibility === "private" ? await playbackToken(r.stream_uid).catch(() => null) : r.stream_uid
-    if (key) ({ mp4: src, poster } = playbackUrls(key))
-  }
+  // A clip whose upload has not finished has nothing to play yet.
+  const ready = r.status !== "processing"
+  const [src, poster] = await Promise.all([
+    ready && r.video_key ? playUrl(r.video_key).catch(() => "") : "",
+    ready && r.poster_key ? playUrl(r.poster_key).catch(() => undefined) : undefined,
+  ])
   return {
     id: r.id,
     creatorId: r.desk ?? (mine ? "you" : "reader"),
@@ -111,21 +115,6 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
   }
 }
 
-/**
- * A processing clip, looked at again: once Stream has the video ready the
- * MP4 is asked for, and once the MP4 is ready the clip is published (to its
- * owner alone while it is private).
- */
-async function settle(r: Row): Promise<Row> {
-  if (r.status !== "processing" || !r.stream_uid) return r
-  const video = await getVideo(r.stream_uid).catch(() => undefined)
-  if (video === undefined || !video?.ready) return r
-  const mp4 = await enableDownload(r.stream_uid).catch(() => "inprogress")
-  if (mp4 !== "ready") return r
-  await q(`update clips set status = 'published', duration = coalesce($2, duration), width = $3, height = $4, published_at = coalesce(published_at, now()) where id = $1`, [r.id, video.duration, video.width, video.height])
-  return { ...r, status: "published", duration: video.duration ?? r.duration }
-}
-
 /** The feed: every published public clip, the viewer's own whatever their state, and the viewer's uploads waiting to be cut. */
 export async function listClips(viewer: string | null): Promise<{ published: Clip[]; mine: Clip[]; uploads: Upload[] }> {
   const [rows, uploads] = await Promise.all([
@@ -136,17 +125,16 @@ export async function listClips(viewer: string | null): Promise<{ published: Cli
       [viewer ?? ""]
     ),
     viewer
-      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 and source_stream_uid is not null order by created_at desc limit 50`, [viewer])
+      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 and source_url like 's3://%' order by created_at desc limit 50`, [viewer])
       : Promise.resolve([] as Upload[]),
   ])
-  const settled = await Promise.all(rows.map((r) => (viewer && r.owner_id === viewer ? settle(r) : r)))
-  const clips = await Promise.all(settled.map((r) => toClip(r, viewer)))
+  const clips = await Promise.all(rows.map((r) => toClip(r, viewer)))
   return { published: clips.filter((c) => c.status === "published" && c.visibility === "public" && !c.mine), mine: clips.filter((c) => c.mine), uploads }
 }
 
 export async function getClipRow(id: string) {
-  return one<{ id: string; stream_uid: string | null; owner_id: string | null; desk: string | null; visibility: string; status: string; origin: string }>(
-    `select id, stream_uid, owner_id, desk, visibility, status, origin from clips where id = $1`,
+  return one<{ id: string; video_key: string | null; poster_key: string | null; owner_id: string | null; desk: string | null; visibility: string; status: string; origin: string }>(
+    `select id, video_key, poster_key, owner_id, desk, visibility, status, origin from clips where id = $1`,
     [id]
   )
 }

@@ -36,6 +36,34 @@ altered; `stream_uid` stays, unused.
   removed; the file is `main`'s again. The worker's cut and render write the
   video and a poster frame to the bucket.
 
+### 3. Ran and verified
+
+`sql/021` ran: 3 statements. Bounded typecheck of 14 files: 0 diagnostics.
+Driven on 3003 against the real bucket, minted reader and admin sessions,
+a 1.1 MB MP4:
+
+| Step | Result |
+|---|---|
+| POST a recording | 200, `processing`, a signed PUT address |
+| CORS preflight from localhost:3003 | 200, origin allowed |
+| PUT to the address, then complete | 200; `published` |
+| the reader's feed | the clip, with a signed src; a range request on it 206 `video/mp4` |
+| anonymous feed while private / after PATCH public | absent / present |
+| DELETE | 200; the object is gone from the bucket |
+| complete with nothing uploaded | 409 |
+| upload without / with the rights box | 400 / 200; PUT 200; listed in the library |
+| withdraw the upload | 200; the object is gone |
+| `/api/stream` signed out, as a reader (GET and delete-video), as an admin | 403, 403, 403, 200 |
+
+No test rows or objects left. Not verified: a take recorded in a browser
+(WebM from Chrome) and its poster, which Brendan reviews on 3003.
+
+### 4. Open
+
+- `/api/stream` is admin-only on `feature/clips`; `main`, and so
+  production, stays open until this ships.
+- The worker box: Brendan asked why one is needed.
+
 ---
 
 ## 3, prepared · The cut and the render, written and not yet run — 2026-09-14

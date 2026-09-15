@@ -11,10 +11,11 @@ import { creatorOf } from "./desks"
 // the stock set is free Mixkit clips (no attribution required) under the
 // desks that would have shot them.
 //
-// Wired (2026-09-14): `saveClip` is a Cloudflare Stream direct creator
-// upload — /api/clips hands out a one-time tus address and writes the row in
-// Aurora, the browser sends the take straight to Stream — and `loadMine`
-// reads the reader's own rows back with Stream's state. Recorded, cut and
+// Wired (2026-09-14): `saveClip` writes the row in Aurora through /api/clips,
+// which hands back signed addresses in the private clips bucket on S3; the
+// browser sends the take and its poster there itself, and the row is
+// published once the video has arrived. `loadMine` reads the reader's own
+// rows back. Recorded, cut and
 // generated clips all come back through the same `loadFeed`. Nothing that
 // renders changes.
 
@@ -42,7 +43,7 @@ export type Clip = {
   mine?: boolean
   /** How a clip in Aurora came to be; absent on a stock clip. */
   origin?: "recorded" | "cut" | "generated"
-  /** `processing` while Stream transcodes; only a clip's owner sees it then. */
+  /** `processing` until its upload has arrived; only a clip's owner sees it then. */
   status?: "processing" | "review" | "published" | "removed"
   /** The record's own pages the clip is keyed to: the hearing, the bill, the roll call. */
   links?: { label: string; href: string }[]
@@ -367,29 +368,34 @@ export const SEED_COMMENTS: Comment[] = [
   { id: "c11", clipId: "pub-40656", author: person("Lena Fischer", "lfischer"), text: "Did the amendment get out of committee?", at: "2026-08-09T17:05:00Z", likes: 0 },
 ]
 
-/* ---- what the reader adds: Stream for the video, Aurora for the row, localStorage for the rest ---- */
+/* ---- what the reader adds: S3 for the video, Aurora for the row, localStorage for the rest ---- */
 
-// 50 MiB a request: Stream takes tus chunks of 5 to 200 MB, in multiples of
-// 256 KiB, the last one excepted. A sixty-second take is one request.
-const CHUNK = 200 * 262_144
-
-/** Sends `blob` to a one-time tus address a chunk at a time, reporting the fraction sent. */
-export async function tusUpload(url: string, blob: Blob, onProgress?: (fraction: number) => void) {
-  let offset = 0
-  while (offset < blob.size) {
-    const end = Math.min(blob.size, offset + CHUNK)
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers: { "Tus-Resumable": "1.0.0", "Upload-Offset": String(offset), "Content-Type": "application/offset+octet-stream" },
-      body: blob.slice(offset, end),
-    })
-    if (!res.ok) throw new Error(`The upload stopped at ${Math.round((offset / blob.size) * 100)}%.`)
-    offset = Number(res.headers.get("Upload-Offset")) || end
-    onProgress?.(offset / blob.size)
-  }
+/** Sends `blob` to a signed S3 address in one PUT, reporting the fraction sent. The type must be the one the address was signed for. */
+export function putSigned(url: string, blob: Blob, contentType: string, onProgress?: (fraction: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("PUT", url)
+    xhr.setRequestHeader("Content-Type", contentType)
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total)
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("The upload was refused.")))
+    xhr.onerror = () => reject(new Error("The upload stopped. Check the connection and try again."))
+    xhr.send(blob)
+  })
 }
 
-/** A reader's long video, in Stream and in the queue to be cut. */
+/** The bare type a recorder or a file names ("video/webm;codecs=vp9,opus" → "video/webm"). */
+const bareType = (type: string, fallback: string) => type.split(";")[0].trim() || fallback
+
+/** A JPEG data URL (the poster drawn from the take) as a Blob. */
+function dataUrlBlob(dataUrl: string) {
+  const [head, body] = dataUrl.split(",")
+  const bytes = atob(body)
+  const out = new Uint8Array(bytes.length)
+  for (let i = 0; i < bytes.length; i++) out[i] = bytes.charCodeAt(i)
+  return new Blob([out], { type: /data:([^;]+)/.exec(head)?.[1] ?? "image/jpeg" })
+}
+
+/** A reader's long video, in the clips bucket and in the queue to be cut. */
 export type Upload = { id: string; title: string; status: "queued" | "running" | "review" | "done" | "failed"; clips: number | null; createdAt: string }
 
 export type Feed = { published: Clip[]; mine: Clip[]; uploads: Upload[] }
@@ -415,21 +421,23 @@ async function send<T>(url: string, method: string, body?: unknown): Promise<T> 
 }
 
 /**
- * A take, to Stream. The row is written first and hands back the one-time
- * address; the bytes go from the browser to Stream directly. Until Stream has
- * transcoded it the clip plays from the browser's own copy.
+ * A take, to the clips bucket. The row is written first and hands back the
+ * signed addresses; the video and its poster go from the browser to S3
+ * directly; then the server checks the video arrived and publishes the row.
  */
 export async function saveClip(clip: Clip, onProgress?: (fraction: number) => void): Promise<Clip> {
   if (!clip.blob) throw new Error("Nothing was recorded.")
-  const made = await send<{ clip: Clip; uploadUrl: string }>("/api/clips", "POST", { title: clip.title, caption: clip.caption, visibility: clip.visibility, bytes: clip.blob.size, duration: clip.duration })
+  const contentType = bareType(clip.blob.type, "video/webm")
+  const made = await send<{ clip: Clip; uploadUrl: string; posterUrl: string | null }>("/api/clips", "POST", { title: clip.title, caption: clip.caption, visibility: clip.visibility, bytes: clip.blob.size, contentType, duration: clip.duration, poster: Boolean(clip.poster) })
   try {
-    await tusUpload(made.uploadUrl, clip.blob, onProgress)
+    await putSigned(made.uploadUrl, clip.blob, contentType, onProgress)
+    if (made.posterUrl && clip.poster) await putSigned(made.posterUrl, dataUrlBlob(clip.poster), "image/jpeg").catch(() => {})
+    const done = await send<{ clip: Clip }>("/api/clips/" + encodeURIComponent(made.clip.id) + "/complete", "POST")
+    return { ...done.clip, author: clip.author, mine: true }
   } catch (error) {
     await send("/api/clips/" + encodeURIComponent(made.clip.id), "DELETE").catch(() => {})
     throw error
   }
-  // A fresh object URL: the recorder revokes its own when it closes.
-  return { ...made.clip, author: clip.author, src: URL.createObjectURL(clip.blob), blob: clip.blob, poster: clip.poster, duration: clip.duration, mine: true }
 }
 
 export async function updateClip(id: string, patch: { visibility?: Visibility; title?: string; caption?: string }) {
@@ -440,11 +448,12 @@ export async function deleteClip(id: string) {
   await send("/api/clips/" + encodeURIComponent(id), "DELETE")
 }
 
-/** A reader's own video, to Stream and into the queue to be cut. `rights` is the ticked box; the server refuses without it. */
+/** A reader's own video, to the clips bucket and into the queue to be cut. `rights` is the ticked box; the server refuses without it. */
 export async function uploadVideo(file: File, title: string, rights: boolean, onProgress?: (fraction: number) => void): Promise<Upload> {
-  const made = await send<{ upload: Upload; uploadUrl: string }>("/api/clips/uploads", "POST", { title, bytes: file.size, rights })
+  const contentType = bareType(file.type, "video/mp4")
+  const made = await send<{ upload: Upload; uploadUrl: string }>("/api/clips/uploads", "POST", { title, bytes: file.size, rights, contentType })
   try {
-    await tusUpload(made.uploadUrl, file, onProgress)
+    await putSigned(made.uploadUrl, file, contentType, onProgress)
   } catch (error) {
     await send("/api/clips/uploads/" + encodeURIComponent(made.upload.id), "DELETE").catch(() => {})
     throw error

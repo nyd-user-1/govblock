@@ -5,11 +5,11 @@
 //   node cut.mjs --job cut_0123456789abcdef           # a reader's upload from clip_cuts
 //   options: --video file.mp4 (skip the download)  --publish (skip review)  --limit 12
 //
-// The pipe: the video (yt-dlp, or Stream for an upload) → an SRT
+// The pipe: the video (yt-dlp, or the clips bucket for an upload) → an SRT
 // (faster-whisper, transcribe.py) → autoclip, which finds, times and scores
 // the exchanges on Bedrock through bedrock_shim.py with GovBlock's prompts →
 // each chosen exchange rendered 9:16 with its captions burned in (FFmpeg) →
-// Stream → a clips row keyed to the hearing.
+// the clips bucket → a clips row keyed to the hearing.
 //
 // A clip's title is a sentence copied from the transcript inside it, checked
 // word for word; its caption is the meeting's title, committee and date. The
@@ -20,7 +20,7 @@ import { createWriteStream, existsSync, mkdirSync, readFileSync, statSync, write
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { args, env, logger, newId, q, uploadFile, whenReady } from "./lib.mjs"
+import { args, CLIPS_BUCKET, env, getFile, logger, newId, putFile, q } from "./lib.mjs"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const AUTOCLIP = env("AUTOCLIP_DIR") || join(process.env.HOME, "autoclip")
@@ -41,7 +41,7 @@ let meeting = null
 if (a.job) {
   cut = (await q(`select * from clip_cuts where id = $1`, [a.job]))[0]
   if (!cut) throw new Error(`no clip_cuts row ${a.job}`)
-  if (cut.source_stream_uid && !cut.rights_attested_at) throw new Error(`${a.job} has no rights attestation; not cutting it`)
+  if (String(cut.source_url ?? "").startsWith("s3://") && !cut.rights_attested_at) throw new Error(`${a.job} has no rights attestation; not cutting it`)
   if (cut.hearing_key) meeting = (await q(`select key, title, meeting_date, chamber, payload from congress_committee_meetings where key = $1`, [cut.hearing_key]))[0] ?? null
 } else {
   if (!a.desk) throw new Error("--desk is required with --meeting")
@@ -59,7 +59,7 @@ mkdirSync(WORK, { recursive: true })
 const LOG = join(WORK, "cut.log")
 const log = logger(LOG)
 await q(`update clip_cuts set status = 'running', started_at = coalesce(started_at, now()), log = $2 where id = $1`, [cut.id, LOG])
-log(`cut ${cut.id}: ${cut.title ?? ""} ${cut.source_url ?? cut.source_stream_uid ?? ""}`)
+log(`cut ${cut.id}: ${cut.title ?? ""} ${cut.source_url ?? ""}`)
 
 function clean(title) {
   return String(title ?? "").replace(/^"|"$/g, "").trim()
@@ -89,15 +89,10 @@ try {
   /* ---- 1. the video ---- */
   const video = a.video ?? join(WORK, "source.mp4")
   if (!existsSync(video)) {
-    if (cut.source_stream_uid) {
-      const code = env("CLOUDFLARE_STREAM_CUSTOMER_CODE")
-      const tokenRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env("CLOUDFLARE_ACCOUNT_ID")}/stream/${cut.source_stream_uid}/token`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env("CLOUDFLARE_STREAM_TOKEN")}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 6 * 3600, downloadable: true }),
-      }).then((r) => r.json())
-      await whenReady(cut.source_stream_uid, { timeoutMs: 3 * 3600_000 })
-      await run("curl", ["-sSfL", "-o", video, `https://customer-${code}.cloudflarestream.com/${tokenRes.result.token}/downloads/default.mp4`])
+    const bucket = `s3://${CLIPS_BUCKET}/`
+    if (String(cut.source_url ?? "").startsWith(bucket)) {
+      log("the upload, from the clips bucket")
+      await getFile(cut.source_url.slice(bucket.length), video)
     } else {
       await run("yt-dlp", ["-f", "bv*[height<=720]+ba/b[height<=720]/b", "--merge-output-format", "mp4", "-o", video, cut.source_url])
     }
@@ -124,7 +119,7 @@ try {
   const chosen = [...summary.clips].sort((x, y) => (y.score_100 ?? 0) - (x.score_100 ?? 0)).slice(0, limit).sort((x, y) => sec(x.start_time) - sec(y.start_time))
   log(`autoclip chose ${summary.clips.length}; keeping ${chosen.length}`)
 
-  /* ---- 4. each clip: title from its own words, 9:16 with captions, Stream, a row ---- */
+  /* ---- 4. each clip: title from its own words, 9:16 with captions, the bucket, a row ---- */
   const when = meeting?.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : ""
   const committee = meeting ? (JSON.parse(meeting.payload || "{}").committees ?? []).map((c) => c.name).filter(Boolean)[0] : null
   const filed = []
@@ -144,17 +139,19 @@ try {
       `[0:v]split[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=24[bg2];[fg]scale=1080:-2[fg2];[bg2][fg2]overlay=(W-w)/2:(H-h)/2,subtitles='${clipSrt.replace(/'/g, "\\'")}':force_style='FontName=DejaVu Sans,FontSize=13,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=1,Outline=2,Shadow=0,MarginV=70'[v]`,
       "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", file,
     ], { quiet: true })
-    const uid = await uploadFile(file, { name: title, creator: cut.owner_id ?? `desk:${cut.desk}`, requireSignedURLs: !!cut.owner_id })
-    const ready = await whenReady(uid)
     const id = newId("clp")
+    const posterFile = file.replace(/\.mp4$/, ".jpg")
+    await run("ffmpeg", ["-y", "-ss", "1", "-i", file, "-frames:v", "1", "-q:v", "3", posterFile], { quiet: true })
+    const videoKey = await putFile(file, `clips/${id}/video.mp4`, "video/mp4")
+    const posterKey = await putFile(posterFile, `clips/${id}/poster.jpg`, "image/jpeg")
     const visibility = cut.owner_id ? "private" : "public"
     const status = cut.owner_id || a.publish ? "published" : "review"
     await q(
-      `insert into clips (id, stream_uid, origin, status, visibility, desk, owner_id, title, caption, duration, width, height, jurisdiction, hearing_key, cut_id, source_start, source_end, published_at)
-       values ($1, $2, 'cut', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, case when $3 = 'published' then now() end)`,
-      [id, uid, status, visibility, cut.desk ?? null, cut.owner_id ?? null, title, caption, ready.duration, ready.width, ready.height, cut.jurisdiction ?? "us", cut.hearing_key ?? null, cut.id, start, end]
+      `insert into clips (id, video_key, poster_key, origin, status, visibility, desk, owner_id, title, caption, duration, width, height, jurisdiction, hearing_key, cut_id, source_start, source_end, published_at)
+       values ($1, $2, $3, 'cut', $4, $5, $6, $7, $8, $9, $10, 1080, 1920, $11, $12, $13, $14, $15, case when $4 = 'published' then now() end)`,
+      [id, videoKey, posterKey, status, visibility, cut.desk ?? null, cut.owner_id ?? null, title, caption, end - start, cut.jurisdiction ?? "us", cut.hearing_key ?? null, cut.id, start, end]
     )
-    filed.push({ id, uid, title, start: clock(start), end: clock(end), score: c.score_100 ?? null, label: c.title })
+    filed.push({ id, videoKey, title, start: clock(start), end: clock(end), score: c.score_100 ?? null, label: c.title })
     log(`filed ${id} ${clock(start)}–${clock(end)} score ${c.score_100 ?? "-"}: ${title}`)
   }
 

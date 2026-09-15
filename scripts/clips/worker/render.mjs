@@ -2,20 +2,21 @@
 //
 //   curl -s 'http://127.0.0.1:3003/api/clips/templates/roll-call?chamber=house&congress=119&session=2&roll=295' > props.json
 //   node render.mjs --props props.json                    # MP4 into out/, nothing filed
-//   node render.mjs --props props.json --desk govblock     # and to Stream, a clips row in `review`
+//   node render.mjs --props props.json --desk govblock     # and to the clips bucket, a clips row in `review`
 //   node render.mjs --props props.json --desk govblock --publish
 //
 // The props file is the template route's own answer, so the render and the
 // Player preview are fed the same rows. The clip's title and caption are the
 // vote's and the bill's words, as the template's are.
 
+import { execFileSync } from "node:child_process"
 import { copyFileSync, mkdirSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { bundle } from "@remotion/bundler"
 import { renderMedia, selectComposition } from "@remotion/renderer"
 
-import { args, logger, newId, q, uploadFile, whenReady } from "./lib.mjs"
+import { args, logger, newId, putFile, q } from "./lib.mjs"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const TEMPLATES = join(HERE, "..", "..", "..", "apps/web/components/clips/templates")
@@ -59,15 +60,17 @@ const title = `${props.citation ?? `${chamber} roll call ${props.roll}`}: ${prop
 const when = props.date ? new Date(props.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : ""
 const caption = [props.billTitle, `${chamber} roll call ${props.roll}${when ? `, ${when}` : ""}.`].filter(Boolean).join(". ")
 
-log("uploading to Stream")
-const uid = await uploadFile(out, { name: title, creator: `desk:${a.desk}` })
-log(`Stream ${uid}; waiting for it and its MP4`)
-const video = await whenReady(uid)
 const id = newId("clp")
+// The poster is the frame at twelve seconds, where the result stands.
+const posterFile = out.replace(/\.mp4$/, ".jpg")
+execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-ss", "12", "-i", out, "-frames:v", "1", "-q:v", "3", posterFile])
+log("to the clips bucket")
+const videoKey = await putFile(out, `clips/${id}/video.mp4`, "video/mp4")
+const posterKey = await putFile(posterFile, `clips/${id}/poster.jpg`, "image/jpeg")
 const status = a.publish ? "published" : "review"
 await q(
-  `insert into clips (id, stream_uid, origin, status, visibility, desk, title, caption, duration, width, height, jurisdiction, bill_key, roll_call_chamber, roll_call_key, template, published_at)
-   values ($1, $2, 'generated', $3, 'public', $4, $5, $6, $7, $8, $9, 'us', $10, $11, $12, 'roll-call-tally', case when $3 = 'published' then now() end)`,
-  [id, uid, status, a.desk, title, caption, video.duration, video.width, video.height, keys.bill_key, keys.roll_call_chamber, keys.roll_call_key]
+  `insert into clips (id, video_key, poster_key, origin, status, visibility, desk, title, caption, duration, width, height, jurisdiction, bill_key, roll_call_chamber, roll_call_key, template, published_at)
+   values ($1, $2, $3, 'generated', $4, 'public', $5, $6, $7, $8, $9, $10, 'us', $11, $12, $13, 'roll-call-tally', case when $4 = 'published' then now() end)`,
+  [id, videoKey, posterKey, status, a.desk, title, caption, composition.durationInFrames / composition.fps, composition.width, composition.height, keys.bill_key, keys.roll_call_chamber, keys.roll_call_key]
 )
 log(`filed ${id} under ${a.desk}, ${status}: ${title}`)
