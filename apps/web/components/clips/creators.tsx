@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { CameraIcon, FilmIcon, LayoutGridIcon, ScissorsIcon } from "lucide-react"
+import Link from "next/link"
+import { CameraIcon, FileTextIcon, FilmIcon, LayoutGridIcon, LayoutTemplateIcon, ScissorsIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -59,6 +60,12 @@ export function Creators({ rows, selected, onSelect, you, onRecord, onUpload, on
               <FilmIcon className="size-4" /> Generate
             </Button>
           )}
+          <Button variant="outline" className="gap-1.5" render={<Link href="/clips/transcript" />} nativeButton={false}>
+            <FileTextIcon className="size-4" /> Transcript
+          </Button>
+          <Button variant="outline" className="gap-1.5" render={<Link href="/clips/studio" />} nativeButton={false}>
+            <LayoutTemplateIcon className="size-4" /> Studio
+          </Button>
         </div>
       </div>
     </div>

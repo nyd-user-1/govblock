@@ -96,6 +96,9 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
     ready && r.video_key ? playUrl(r.video_key).catch(() => "") : "",
     ready && r.poster_key ? playUrl(r.poster_key).catch(() => undefined) : undefined,
   ])
+  const composition = r.composition ? ((typeof r.composition === "string" ? JSON.parse(r.composition) : r.composition) as NonNullable<Clip["composition"]>) : undefined
+  // A cut of a YouTube video plays in YouTube's own player, from its start to its end.
+  const cut = composition?.template === "youtube" ? (composition.props as { videoId: string; start: number; end: number }) : null
   return {
     id: r.id,
     creatorId: r.desk ?? (mine ? "you" : "reader"),
@@ -103,7 +106,10 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
     title: r.title,
     caption: r.caption,
     src,
-    poster,
+    poster: cut ? `https://i.ytimg.com/vi/${cut.videoId}/hqdefault.jpg` : poster,
+    youtube: cut?.videoId,
+    youtubeStart: cut?.start,
+    youtubeEnd: cut?.end,
     duration: r.duration ?? undefined,
     createdAt: r.created_at,
     visibility: r.visibility,
@@ -113,7 +119,7 @@ async function toClip(r: Row, viewer: string | null): Promise<Clip> {
     origin: r.origin,
     status: r.status,
     links: linksOf(r),
-    composition: r.composition ? ((typeof r.composition === "string" ? JSON.parse(r.composition) : r.composition) as Clip["composition"]) : undefined,
+    composition: cut ? undefined : composition,
   }
 }
 
@@ -127,7 +133,7 @@ export async function listClips(viewer: string | null): Promise<{ published: Cli
       [viewer ?? ""]
     ),
     viewer
-      ? q<Upload>(`select id, title, status, clips, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 order by created_at desc limit 50`, [viewer])
+      ? q<Upload>(`select id, title, status, clips, error, video_id "videoId", to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') "createdAt" from clip_cuts where owner_id = $1 order by created_at desc limit 50`, [viewer])
       : Promise.resolve([] as Upload[]),
   ])
   const clips = await Promise.all(rows.map((r) => toClip(r, viewer)))

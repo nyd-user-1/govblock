@@ -12,7 +12,35 @@ milestone first.
 
 `sql/024_clip_transcripts.sql`, additive: a new table `clip_transcripts`
 (a YouTube video's captions, keyed by the video, read once and kept) and a
-new column `clip_cuts.video_id`. Nothing else changes.
+new column `clip_cuts.video_id`. Nothing else changes. It ran.
+
+### 2. Built
+
+- **A pasted YouTube link becomes clips, with no box**: the captions are read
+  and kept, Claude Haiku on the site's Bedrock picks 3–6 moments, and each
+  becomes a private clip in the reader's library that plays in YouTube's
+  player from its start to its end. One step a request, under Amplify's 30 s.
+  Ten links a reader a day; an admin has no cap. Tested on a 139-minute House
+  Energy and Commerce hearing: five clips in 8.2 s.
+- **Captions**: Supadata when `SUPADATA_API_KEY` is set; otherwise straight
+  from YouTube, which refuses AWS addresses. A refused link waits in the
+  queue for the worker box and says so. Links other than YouTube wait there
+  too.
+- **/clips/transcript**: paste a link. Every 30 s of the transcript opens on
+  its time, and a time plays the video from there. Find, Copy text, Copy
+  with times, Get clips. No download.
+- **Dashboard › Clips** (`/workspace/dashboard/clips`): six tiles, clips a
+  day by origin, the queue with a Run button for a waiting YouTube link, the
+  caption reader in use, the worker box, and open reports. Admins only.
+- **Worker box**: `govblock-xml` (c7g.4xlarge, arm64, stopped) over the dev
+  box. It already runs the pipeline's heavy jobs, has the cores for FFmpeg
+  and a caption model, and costs nothing while stopped. The dev box is the
+  server Brendan works on and stops itself when idle.
+
+### 3. Needs Brendan
+
+- A Supadata key (free tier, 100 videos a month) in Amplify's environment,
+  or the deployed site can read no new transcripts.
 
 ---
 
@@ -45,11 +73,6 @@ links; no download anywhere.
   "GovBlock"; the animated mark sits bottom right on every scene and fills
   the end card.
 - **Templates saved before tonight** used the first spec and no longer open.
-
-### 2. Not built yet
-
-- Pasted YouTube links still produce no clips; the transcript page and the
-  clips dashboard are next.
 
 ---
 

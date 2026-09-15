@@ -205,11 +205,12 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
     <div className="relative h-full max-w-full">
       <div className="relative h-full max-w-full overflow-hidden bg-black select-none lg:rounded-xl" style={{ aspectRatio: "9 / 16" }}>
         {clip.youtube ? (
-          // A YouTube Short plays in YouTube's own player, with its controls;
-          // the thumbnail stands in until the clip is the active one.
+          // A YouTube Short, or a cut of a longer video from its start to its
+          // end, plays in YouTube's own player, with its controls; the
+          // thumbnail stands in until the clip is the active one.
           active ? (
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${clip.youtube}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${clip.youtube}&playsinline=1&rel=0&modestbranding=1`}
+              src={`https://www.youtube-nocookie.com/embed/${clip.youtube}?autoplay=1&mute=${muted ? 1 : 0}${clip.youtubeStart !== undefined ? `&start=${Math.floor(clip.youtubeStart)}&end=${Math.ceil(clip.youtubeEnd ?? clip.youtubeStart + 60)}` : `&loop=1&playlist=${clip.youtube}`}&playsinline=1&rel=0&modestbranding=1`}
               title={clip.title}
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen

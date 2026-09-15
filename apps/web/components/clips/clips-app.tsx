@@ -336,7 +336,7 @@ export function ClipsApp() {
               {uploads.map((u) => (
                 <li key={u.id} className="flex items-center gap-2">
                   <span className="truncate font-medium">{u.title}</span>
-                  <span className="shrink-0 text-muted-foreground">{u.status === "queued" ? "waiting to be cut" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
+                  <span className="shrink-0 text-muted-foreground" title={u.error ?? undefined}>{u.status === "queued" ? "waiting for the worker box" : u.status === "running" ? "being cut" : u.status === "failed" ? "could not be cut" : `${u.clips ?? 0} clips`}</span>
                 </li>
               ))}
             </ul>
@@ -401,7 +401,7 @@ export function ClipsApp() {
       )}
       {mode === "upload" && (
         <Frame onClose={() => setMode(null)}>
-          <Upload onClose={() => setMode(null)} onUploaded={(u) => setUploads((list) => [u, ...list])} />
+          <Upload onClose={() => setMode(null)} onUploaded={(u) => setUploads((list) => [{ ...list.find((x) => x.id === u.id), ...u } as UploadRow, ...list.filter((x) => x.id !== u.id)])} onCut={() => void loadFeed().then(applyFeed)} />
         </Frame>
       )}
       {mode === "generate" && (

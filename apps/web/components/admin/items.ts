@@ -42,6 +42,7 @@ export const ADMIN_MENU: MenuItem[] = [
   // Two buckets by eye (Brendan, 2026-09-07): the dashboards he has reviewed
   // first, A to Z and without icons; then the ones still to review, as they
   // were. Nothing else changes until he has been through them.
+  { label: "Clips", page: "clips", tag: "new" },
   { label: "Committee", page: "committee", tag: "trend" },
   { label: "Database", page: "database", tag: "trend" },
   { label: "Finance", page: "finance", tag: "trend" },
