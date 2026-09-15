@@ -6,6 +6,16 @@ milestone first.
 
 ---
 
+## 8 · Pasted links cut into clips, a transcript page, a clips dashboard — 2026-09-14 night
+
+### 1. Table change, announced before it runs
+
+`sql/024_clip_transcripts.sql`, additive: a new table `clip_transcripts`
+(a YouTube video's captions, keyed by the video, read once and kept) and a
+new column `clip_cuts.video_id`. Nothing else changes.
+
+---
+
 ## 7 · Studio as the customizer, a gallery of eight, the GovBlock mark — 2026-09-14 night
 
 Brendan: open Studio on a 2 × 4 gallery of prepared templates; drop the
