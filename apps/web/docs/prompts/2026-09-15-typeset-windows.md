@@ -32,6 +32,7 @@ with every question; nothing goes to Brendan's terminal.
 ## Window `typeset-editor`
 
 Report to `apps/web/docs/typeset/window-editor.md`, newest milestone first.
+Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
 
 1. **Editing on the XML view itself** (road-test item 6, the payoff Brendan
    named). Today the XML view is read-only and editing exists only after a
@@ -42,8 +43,12 @@ Report to `apps/web/docs/typeset/window-editor.md`, newest milestone first.
    the fork lives in My Files (window 5's tables: `Forks`, `Commits`, sql/011).
    From that moment the view offers what the Fork view offers: the amendment
    instructions, the redline, In context. A signed-out reader who types gets
-   the sign-in door, nothing else. Verify on H.R. 6644 (bill 2058568) and a
-   New York bill.
+   the sign-in door, nothing else. Brendan's comp (2026-09-15 01:40 EDT): a
+   Word file opens editable at once; the first keystroke makes the copy, and
+   from then on it autosaves the way Google Docs does, so a closed window or a
+   crash loses nothing and an unnamed document waits in My Files for the
+   reader to come back. Verify on H.R. 6644 (bill 2058568) and a New York
+   bill, including close-the-tab-and-return.
 2. **Mount from the server's HTML when read-only** (item 8). The reader
    fetches 1.8 MB of ProseMirror JSON after first paint, which is why Git
    loads faster. Read-only, the reader mounts on the server-rendered HTML and
@@ -52,17 +57,19 @@ Report to `apps/web/docs/typeset/window-editor.md`, newest milestone first.
    numbers in the report.
 3. **The flip.** The bare route `/workspace/typeset/bill/{id}` renders the
    XML reader; Plate moves to the slug `plate` and keeps working; nothing else
-   in `views.ts` changes. Prepare it as one small commit and hold it: it lands
-   when the lead says, after Brendan has road-tested items 1 and 2 on 3001.
+   in `views.ts` changes. **Held (Brendan, 2026-09-15 01:40 EDT):** do not
+   prepare or land it; he road-tests items 1 and 2 on 3001 first and says
+   when.
 4. **The block view** (item 7). Brendan asks where it went. Find whether it
    dropped out of `views.ts` on 2026-09-12 or 2026-09-13 (777d8bd "one editor
    for every view" and the wip commit before it are where to look) and, if
-   so, restore it: on the new reader if the reader can draw it, otherwise as a
-   Plate slug until parity. Say which in the report.
+   so, restore it on the new reader. No Plate slug (Brendan, 2026-09-15 01:40
+   EDT: "take the time to do it right").
 
 ## Window `typeset-search`
 
 Report to `apps/web/docs/typeset/window-search.md`, newest milestone first.
+Approved 2026-09-15 01:40 EDT: items 1, 2 and 4, in that order; item 3 held.
 
 1. **Search** (item 3). Two faults. First: ⌘K for "6644" returns H.Res. 1299,
    whose title mentions the number, and not H.R. 6644. A bill number typed
@@ -85,7 +92,9 @@ Report to `apps/web/docs/typeset/window-search.md`, newest milestone first.
    survives a re-render. Comments are a reader's own rows: the table goes on
    `VOLATILE` in `lib/policy/db.ts`, and nothing reads it without the view
    open. Verify by writing a comment, reloading, and reading it back.
-3. **Keys on the read-only readers** (item 4). `@`, `/` and ⌘J did nothing on
+3. **Keys on the read-only readers** (item 4). **Held (Brendan, 2026-09-15
+   01:40 EDT):** not yet; he road-tests it again first and says when. For the
+   record: `@`, `/` and ⌘J did nothing on
    the Work page (`/workspace/typeset/work/us/usc/t7/s1`). They exist in ⌘K
    and in the Fork editor (window 6, `typeset-inline-menu.tsx`). Wire `@`
    (citations and references), `/` (the library) and ⌘J (jump to a section)
