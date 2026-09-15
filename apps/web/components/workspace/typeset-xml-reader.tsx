@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { CiteDecorations, useCitations } from "@/components/workspace/typeset-cite-layer"
 import { TypesetForkView, type Carry } from "@/components/workspace/typeset-fork"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
+import { XmlCommentMarks, XmlComments } from "@/components/workspace/typeset-xml-comments"
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
 import { XmlMarkKeys } from "@/components/workspace/typeset-xml-toolbar"
 import type { CiteContext } from "@/lib/typeset/cite"
@@ -173,7 +174,7 @@ export function TypesetXmlReader({
 
   // Made once with the editor: the citations layer when a citing context is given, and the gate when the view is editable.
   const extensions = React.useMemo(() => {
-    const out = [...XML_EXTENSIONS]
+    const out = [...XML_EXTENSIONS, XmlCommentMarks]
     if (cite) out.push(CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href), reading: () => phaseRef.current === "reading" }))
     if (edit)
       out.push(
@@ -359,6 +360,7 @@ export function TypesetXmlReader({
         <div className={cn("uslm-doc", (!showEditor || meta?.captured) && "hidden")} data-dialect={dialect}>
           <EditorContent editor={editor} />
         </div>
+        {showEditor && phase === "reading" && <XmlComments editor={editor} container={scroller} document={meta?.work && meta.expression ? `${meta.work}@${meta.expression}` : null} billId={billId ?? null} />}
       </div>
     </div>
   )
