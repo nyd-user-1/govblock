@@ -6,6 +6,18 @@ milestone first.
 
 ---
 
+## 6 · Clip by link, a bill's history, and generated clips saved without a render — 2026-09-14 evening
+
+Brendan: no file uploads and no rights box, paste a link only; a bill link in
+Generate; save and share a generated video without a render machine.
+
+### 1. Table change, announced before it runs
+
+`sql/022_clips_composition.sql`, additive: `clips.composition` (jsonb), the
+template id and the props a generated clip plays from. Nothing else changes.
+
+---
+
 ## 5 · Clips on S3, and the Stream route admin-only — 2026-09-14 evening
 
 Brendan's rulings on milestone 0's open list: no Stream minutes (storage
