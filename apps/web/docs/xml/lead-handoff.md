@@ -47,10 +47,39 @@ The section from the afternoon of the 14th follows, unchanged, below.
   Virginia re-fetch under an hour, California finished, Utah's refused pages
   replaced). The Colorado LegiScan-key question is answered: no key spend.
 
+## The windows' finish lines (05:20 EDT), all on main
+
+Both windows finished every item and stopped; the branch was type-checked
+whole (64 changed source files, 0 diagnostics) and fast-forwarded to `main`
+at 8653018; Amplify job 279 builds it.
+
+- **typeset-editor** (`window-editor.md`): editing in place on the reader,
+  the first keystroke making the copy and autosaving (sql/027, the draft
+  route, an IndexedDB copy against a crash, "Your copy · Open" on return);
+  the read-only reader mounted from the server's HTML (the JSON fetched only
+  when editing begins: 2.7 s sooner cold, 0.6 s warm, one bounded headless
+  read for the numbers); every Typeset URL on the address form
+  (`/workspace/typeset/us/bill/119/hr/6644/git`, `/us/ny/code/agm/s16`), the
+  vendor id gone, every old form redirecting; the block view restored on
+  the reader (one shared handle, drag through the schema, a right-click
+  menu); the Library paths reading us/ny; and the flip: the bare address is
+  the Tiptap reader, called Typeset, `/xml` redirects to it, Plate lives at
+  `/plate` as "Plate (legacy)". First-paint-sent-once was measured and
+  declined, reasons in the report.
+- **typeset-search** (`window-search.md`): a bare bill number finds the bill
+  first; "Search the law" as a fourth scope and on the Library, by citation
+  and heading, through `/api/typeset/find`; comments that save (sql/026,
+  Plate's demo users gone, anchored to the unit on the XML view); ⌘J and
+  Ask AI in Plate's shape through a tool-less Drafter, each press a call,
+  answers streaming; the Library's section sidebar and the Work page's rail.
+
 ## For Brendan in the morning
 
-- Road-test 3001: the File menu, the finder, Versions ▾ History, the
-  statute URL, the glossary's new table.
+- Road-test 3001, in the browser, which no window did: type on the bare
+  6644 page and watch the copy save, close the tab, come back, find it in
+  My Files; drag a unit by its handle; write a comment, reload, read it;
+  ⌘J on a unit and Ask AI on a selection; the File menu, the finder,
+  Versions ▾ History, the statute URL, the glossary's new table.
 - Decide `@` and `/` on the readers (Plate's `@` was people; window 6 made
   it citations).
 - Fire the acquisition window when the day's cost picture is clear.
