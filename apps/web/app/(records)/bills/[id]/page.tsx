@@ -37,6 +37,7 @@ import { ChamberSeal } from "@/components/policy/imagery"
 import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DocsCopyPage } from "@/components/docs-copy-page"
+import { BillStoryButton } from "@/components/clips/bill-story"
 import { PublicRail } from "@/components/block-card"
 import { PreviewFrame } from "@/components/preview-frame"
 import {
@@ -253,6 +254,7 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                       // Only when there are printings to compare — sponsor memos are not printings.
                       diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill, "redline") : undefined}
                       git={typesetHref(bill, "git")}
+                      extra={<BillStoryButton billId={bill.bill_id} label={number} />}
                     />
                     {/* The neighbouring bills in the session, as shadcn's docs
                         header pages to the next document. */}

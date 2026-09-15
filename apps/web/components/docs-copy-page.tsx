@@ -150,12 +150,14 @@ export function DocsCopyPage({
   typeset,
   diff,
   git,
+  extra,
 }: {
   page: string
   url: string
   /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
   /** Where its printings open compared in Typeset, when it has more than one. */ diff?: string
   /** Where it opens as a file in Git, when it is a bill. */ git?: string
+  /** Buttons after Copy, in the same group: a bill's video (2026-09-15). */ extra?: React.ReactNode
 }) {
   const { copyToClipboard, isCopied } = useCopyToClipboard()
   const links: TypesetLinks = { typeset, diff, git }
@@ -192,6 +194,7 @@ export function DocsCopyPage({
         <GroupIcon label={isCopied ? "Copied" : "Copy page as Markdown"} onClick={() => copyToClipboard(page)}>
           {isCopied ? <IconCheck /> : <IconCopy />}
         </GroupIcon>
+        {extra}
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="hidden sm:flex">
             {trigger}

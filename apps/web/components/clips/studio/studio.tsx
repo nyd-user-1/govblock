@@ -456,7 +456,7 @@ export function Studio() {
                   </Button>
                 </div>
               )}
-              <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,300px)] content-start justify-center gap-6 overflow-y-auto p-4 md:p-6">
+              <div className="grid min-h-0 flex-1 auto-rows-[533px] grid-cols-[repeat(auto-fill,300px)] content-start items-start justify-center gap-6 overflow-y-auto p-4 md:p-6">
                 {GALLERY.map((t) => (
                   <GalleryTile key={t.id} template={t} data={cache[t.link]} onOpen={() => open(t)} />
                 ))}
@@ -661,7 +661,7 @@ function GalleryTile({ template, data, onOpen }: { template: Prepared; data: Stu
   const still = first && FIXED_SECONDS[first.kind] ? (first.kind === "roll-call-tally" ? 360 : 560) : Math.min(frames - 1, (first ? sceneFrames(first, spec) : 0) + 45)
   const common = { component: VideoComponent, inputProps: { spec, data: data ?? null }, durationInFrames: frames, fps: spec.fps, compositionWidth: size.width, compositionHeight: size.height, style: { width: "100%", height: "100%" } }
   return (
-    <button type="button" onClick={onOpen} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)} aria-label={template.name} className="relative aspect-9/16 w-[300px] overflow-hidden rounded-2xl bg-black shadow-sm transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+    <button type="button" onClick={onOpen} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)} aria-label={template.name} className="relative block h-[533px] w-[300px] shrink-0 overflow-hidden rounded-2xl bg-black shadow-sm transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
       {data === undefined ? <div className="absolute inset-0 animate-pulse bg-foreground/10" /> : hover ? <Player {...common} autoPlay loop /> : <Thumbnail {...common} frameToDisplay={still} />}
     </button>
   )
