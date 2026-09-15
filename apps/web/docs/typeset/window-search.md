@@ -5,9 +5,70 @@ Report to the lead (govblock-93). Newest milestone first.
 ## State of the items
 
 1. Search: done, a7f1e22 and fe0043e.
-2. Comments that save: in progress; the table announced below.
-3. ⌘J and Ask AI: not started.
+2. Comments that save: done, fdd11ff, 65cf6ce, bd29e0d; not yet tried in a browser.
+3. ⌘J and Ask AI: in progress.
 4. A section sidebar for the Library: not started.
+
+## Milestone 2 — comments that save (2026-09-15)
+
+### Built
+
+- **The table ran**: `sql/026_comments.sql`, as announced below, on
+  2026-09-15 (421 ms, two indexes under 100 ms each).
+- **`/api/typeset/comments`** (`app/api/typeset/comments/route.ts`), with the
+  browser's calls in `lib/typeset/comments.ts`: a document's comments for the
+  signed-in reader; add, edit, delete a comment; resolve or delete a thread.
+  Signed out, reads return none and writes answer 401. Never cached.
+- **Plate's view**: the demo's Alice, Bob and Charlie are gone from
+  `discussion-kit.tsx`. `typeset-plate-comments.tsx` reads the reader's threads
+  once the editor holds the page and lays each open thread's mark again over
+  its quoted words in its block (or the nearest block holding them, twelve
+  either side), outside the undo history. `comment.tsx` writes every add,
+  reply, edit, delete and resolve through the route, and a saved comment takes
+  the id it was saved under. Signed out, the comment form is "Sign in to
+  comment." with a Sign in button. The document key is
+  `plate:<page>:<bill id>:<printing>`.
+- **The XML view**: `typeset-xml-comments.tsx`, mounted by the reader while it
+  reads (three lines in `typeset-xml-reader.tsx`, on top of typeset-editor's
+  ee72f68). Select words and the toolbar over them offers Comment
+  (`typeset-selection-toolbar.tsx`, which reads the browser's selection, so it
+  works on the read-only reader); the words stay highlighted by a decoration,
+  never written into the document; a click opens the thread in Plate's shape,
+  with replies, edit, delete and resolve. A thread's anchor is the USLM unit's
+  `identifier` and its quoted words, looked for in that unit and then the
+  whole document, so it finds its place when the reader mounts afresh from the
+  server's HTML. The document key is the Expression's address.
+
+### Verified
+
+- The route's handlers against Aurora, bundled with a stand-in signed-in
+  reader: a comment written with its rich value, a reply, the document read
+  back with both, an edit (`edited_at` set), the thread resolved (both rows),
+  a delete of one and of the thread, the document read back empty. Times
+  come back as ISO strings.
+- On 3001, signed out: `GET …?document=plate:typeset:2058568:` answers
+  `{"comments":[],"signedIn":false}`; `POST` answers 401 "Sign in to keep
+  comments."; `/workspace/typeset/bill/2058568` and `…/xml` answer 200.
+- Bounded type check over every touched file: 0 diagnostics.
+
+### Open
+
+- **Not tried in a browser.** Writing a comment, reloading and reading it back
+  needs a signed-in session; the route did it end to end against Aurora, the
+  views have not. The lead or Brendan: select words on
+  `localhost:3001/workspace/typeset/bill/2058568/xml`, Comment, reload.
+- Comments on the Fork view are a separate mount there (typeset-editor's
+  file); not built.
+- A comment on Plate's view does not appear on the XML view of the same
+  printing, or the reverse: the two anchor differently.
+
+### Files
+
+- `sql/026_comments.sql`
+- `apps/web/app/api/typeset/comments/route.ts`, `apps/web/lib/typeset/comments.ts`
+- `apps/web/components/plate/editor/plugins/discussion-kit.tsx`, `apps/web/components/plate/ui/comment.tsx`, `apps/web/components/plate/editor/use-chat.ts` (the author id may be null)
+- `apps/web/components/workspace/typeset-plate-comments.tsx`, `typeset-editor.tsx` (the hook, one prop)
+- `apps/web/components/workspace/typeset-xml-comments.tsx`, `typeset-xml-comments.css`, `typeset-selection-toolbar.tsx`, `typeset-xml-reader.tsx` (three lines)
 
 ## Milestone 2, announced — `sql/026_comments.sql`, before it runs (2026-09-15)
 
