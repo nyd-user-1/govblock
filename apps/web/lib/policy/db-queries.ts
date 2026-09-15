@@ -2528,6 +2528,9 @@ const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSe
 // New York flag on an Arizona bill. It stays off until the menu opts in.
 export type SearchOptions = { text?: boolean; all?: boolean; perState?: number }
 
+/** Congress's bill letters as typed, to the letters LegiScan stores them under. */
+const FEDERAL_LETTERS: Record<string, string> = { hr: "HB", s: "SB", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR", hres: "HR", sres: "SR" }
+
 export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
   const like = `%${term}%`
   // The number a reader types is not the number on file. "HR119" is stored bare,
@@ -2536,6 +2539,19 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   // not just the spaces. Squeezing spaces alone left "H.R. 119" searching for
   // `H.R.119%` and finding nothing (Brendan, 2026-09-08).
   const numberLike = `${term.replace(/[^\p{L}\p{N}]+/gu, "")}%`
+  // A prefix is not enough on its own (Brendan, 2026-09-15): "6644" never
+  // prefixes "HB6644", so only titles matched and ⌘K put H.Res. 1299, whose
+  // title mentions the number, where H.R. 6644 belonged. A term that reads as a
+  // bill number, bare or with its letters, matches the number exactly past
+  // the letters and the zero padding ("A06644"), and that match sorts first.
+  // Congress is stored in LegiScan's letters (H.R. is "HB", H.Res. is "HR"), so
+  // a typed federal prefix is translated for Congress's rows only.
+  const numbered = /^([a-z]{0,6})(\d+)$/i.exec(term.replace(/[^\p{L}\p{N}]+/gu, ""))
+  const exactFor = (letters: string) => `^${letters || "[A-Z]+"}0*${numbered ? numbered[2].replace(/^0+(?=\d)/, "") : ""}$`
+  const exactStates = numbered ? exactFor(numbered[1].toUpperCase()) : null
+  const exactUs = numbered ? exactFor(numbered[1] ? (FEDERAL_LETTERS[numbered[1].toLowerCase()] ?? numbered[1].toUpperCase()) : "") : null
+  const exact = (alias: string) =>
+    numbered ? `((${alias}.state = 'US' and ${alias}.bill_number ~* $8) or (${alias}.state <> 'US' and ${alias}.bill_number ~* $9))` : "false"
   // Two rows a jurisdiction: enough that a reader sees the answer is national,
   // few enough that 51 other jurisdictions cannot bury the one they are in.
   const perState = options.all ? (options.perState ?? 2) : 0
@@ -2566,12 +2582,12 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       // (Brendan, 2026-09-05: "why do these not show text?").
       `with scoped as (
          select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee, b.state,
-                0 as tier,
-                row_number() over (order by (b.bill_number ilike $3) desc,
+                0 as tier, ${exact("b")} as exact,
+                row_number() over (order by ${exact("b")} desc, (b.bill_number ilike $3) desc,
                                             b.last_action_date desc nulls last, b.bill_id desc)::int as rn
          from "Bills" b
          where b.state = $1 and b.session_id = $2
-           and (b.bill_number ilike $3 or b.title ilike $4)
+           and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
          order by rn
          limit $5
        ),
@@ -2584,14 +2600,15 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                 b.state, b.session_id
          from "Bills" b
          where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1` : "false"}
-           and (b.bill_number ilike $3 or b.title ilike $4)
+           and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
        ),
        elsewhere as (
-         select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, 1 as tier, rn
+         select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, 1 as tier, exact, rn
          from (
            select h.bill_id, h.bill_number, h.title, h.status_desc, h.last_action, h.last_action_date, h.body, h.committee, h.state,
+                  ${exact("h")} as exact,
                   row_number() over (partition by h.state
-                    order by (h.bill_number ilike $3) desc,
+                    order by ${exact("h")} desc, (h.bill_number ilike $3) desc,
                              h.last_action_date desc nulls last, h.bill_id desc)::int as rn
            from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
          ) ranked
@@ -2599,9 +2616,9 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
        )
        select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, tier
        from (select * from scoped union all select * from elsewhere) hits
-       order by tier, rn, state
+       order by tier, exact desc, rn, state
        limit $7`,
-      [f.state, f.session, numberLike, like, limit, perState, limit + elsewhereCap]
+      [f.state, f.session, numberLike, like, limit, perState, limit + elsewhereCap, ...(numbered ? [exactUs, exactStates] : [])]
     ),
     q<{
       people_id: number
