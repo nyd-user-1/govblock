@@ -16,6 +16,10 @@ Generate; save and share a generated video without a render machine.
 `sql/022_clips_composition.sql`, additive: `clips.composition` (jsonb), the
 template id and the props a generated clip plays from. Nothing else changes.
 
+`sql/023_clip_templates.sql`, additive: a new table `clip_templates` (id,
+owner, name, the template as JSON, times) for templates readers build in
+/clips/studio.
+
 ---
 
 ## 5 · Clips on S3, and the Stream route admin-only — 2026-09-14 evening
