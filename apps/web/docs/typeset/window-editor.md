@@ -10,7 +10,68 @@ Report to the lead (govblock-93). Newest milestone first. Brief:
 | 1. Editing on the XML view | built, 8c1064f and 9917996; routes verified; typing in a browser is Brendan's |
 | 2. Mount from the server's HTML | built, ee72f68; measured |
 | 3. Typeset's URLs, then the flip | URLs built, ec209e7; the flip waits for the lead's word |
-| 4. The block view | started |
+| 4. The block view | built, a445006; the look is Brendan's |
+| Next | the Library's own paths to `us/ny` once typeset-search is clear; the first paint sent once; then the flip, on the lead's word |
+
+## Milestone 4 — the block view (2026-09-15 05:10 EDT, a445006)
+
+### Where it went
+
+It was never a route: `views.ts` has had no block view in any commit
+(8f4218c, 777d8bd, 5a61345, a1ced9f). It was Plate's blocks layout inside
+the Typeset editor:
+
+- a grip in the left gutter of every block on hover ("Drag to move")
+- a click selects the block; a drag moves it, with a drop line
+- a right-click opens the block menu (Ask AI, Delete, Duplicate, Turn into,
+  Align)
+
+It left on 2026-09-13 in 777d8bd, "one editor for every view". The editor's
+kit changed from the template's `EditorKit` to `BillKit`, without `DndKit`,
+`BlockSelectionKit` or `BlockMenuKit`. The reason is in `docs/typeset-perf.md`:
+drag and drop wrapped every block in a draggable, a gutter, a handle and a
+tooltip, 30,000 DOM nodes on H.R. 6644, 2.3 s of mount and 7 ms a keystroke.
+
+### Built, on the new reader
+
+`components/workspace/typeset-block-handle.tsx`, on the XML view (while
+reading and while the copy is made) and on the Fork view. Each unit of the
+law is a block: a level, or a block at the top of the document.
+
+- **One handle, not one per block.** It follows the pointer to the unit it
+  rests on and sits in the left gutter at the unit's first line, indented with
+  it, the grip and "Drag to move" as Plate drew them. It stays on the last
+  unit while the pointer crosses the gutter, so it can be reached. It adds one
+  element to the page, however long the bill.
+- **Click** selects the unit, tinted as Plate tinted a selected block.
+- **Drag** moves the unit to wherever the schema lets it stand, with a drop
+  line (Tiptap's drop cursor). ProseMirror's own drop does the move, so the
+  schema's rank rules decide.
+- **Right-click** on a unit opens its menu: Add a unit after, Add a unit
+  under, Duplicate (a copy with no identifiers, so it reads as new law), Delete,
+  Copy address (the unit's identifier).
+- Plate's Turn into and Align have no meaning for a unit of law and are not
+  there; Ask AI is typeset-search's, in its own layer.
+- Every change goes through the editor. On the XML view the first one makes
+  the reader's copy, as a keystroke does, and signed out it meets the door.
+
+No Plate slug, per Brendan's ruling.
+
+### Verified
+
+- Bounded type check over the four files: 0 diagnostics.
+- On 3001 at a445006: `…/us/bill/119/hr/6644/xml`, `…/6644/fork`,
+  `/workspace/typeset/fork/331` and `…/us/usc/t10/s130i` answer 200. No errors
+  from them in the dev log.
+- **Not looked at:** the handle, the drag, the drop line and the menu in a
+  browser. That is Brendan's: hover a subsection on the XML view, drag it by
+  its grip, right-click a section.
+
+### Files
+
+`apps/web/components/workspace/typeset-block-handle.tsx`,
+`typeset-xml-reader.tsx` and `typeset-fork.tsx` (one mount and one extension
+each), `typeset-xml-reader.css` (the selected unit).
 
 ## Milestone 3 — Typeset's URLs are addresses (2026-09-15 04:45 EDT, ec209e7)
 
