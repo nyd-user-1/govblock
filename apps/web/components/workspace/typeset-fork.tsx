@@ -21,6 +21,7 @@ import { ContextMarkers, TypesetContextPane, type Focus } from "@/components/wor
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { ForkRedline, forkMarked, forkRedlineKey, type ForkSpec } from "@/components/workspace/typeset-redline"
 import { InlineMenu, InlineMenuPopup, type Trigger } from "@/components/workspace/typeset-inline-menu"
+import { AiLayer } from "@/components/workspace/typeset-ai-menu"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { XmlMarkKeys } from "@/components/workspace/typeset-xml-toolbar"
 import { TypesetForkChrome } from "@/components/workspace/typeset-file-chrome"
@@ -360,6 +361,7 @@ export function TypesetForkView({ forkId, carry, onCarried, active = true }: { f
           <div className={cn("uslm-doc amend-edit", redlineOn && "redline-on")}>
             <EditorContent editor={editor} />
           </div>
+          {data && <AiLayer editor={editor} container={scroller} state={data.fork.state} />}
         </div>
         {panel === "context" && data && <TypesetContextPane editor={editor} forkWork={data.fork.work ?? data.cite.work} base={data.base} cite={data.cite} focus={focus} onFocus={setFocus} onClose={() => setPanel(null)} />}
         {panel === "amendment" && (
