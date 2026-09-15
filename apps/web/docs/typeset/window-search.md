@@ -5,9 +5,32 @@ Report to the lead (govblock-93). Newest milestone first.
 ## State of the items
 
 1. Search: done, a7f1e22 and fe0043e.
-2. Comments that save: next.
+2. Comments that save: in progress; the table announced below.
 3. ⌘J and Ask AI: not started.
 4. A section sidebar for the Library: not started.
+
+## Milestone 2, announced — `sql/026_comments.sql`, before it runs (2026-09-15)
+
+Additive only: one new table, `comments`, and two indexes on it. No change to
+any table the site reads.
+
+| Column | Holds |
+|---|---|
+| `thread_id` | the thread: the first comment and its replies |
+| `reader` | who wrote it, from `identify()` (`u-…`, signed in) |
+| `bill_id` | the bill, when the document is a bill's printing |
+| `document` | Plate's view: `plate:<page>:<bill id>:<printing>`; the XML view: the Expression's address |
+| `block` | Plate's view: the top-level block's index; the XML view: the USLM unit's identifier, so a comment survives a re-render |
+| `quote` | the words the thread was opened on, which re-anchors it inside the block |
+| `body`, `rich` | the text, and Plate's rich value where there is one |
+| `resolved`, `created_at`, `edited_at` | |
+
+Indexes: `(reader, document, created_at)` for a view's comments,
+`(thread_id, created_at)` for a thread. The table name starts with `comment`,
+which `VOLATILE` in `lib/policy/db.ts` already names, so it is never cached;
+it is read only by its reader with the view open. Writing needs a signed-in
+reader; signed out, the view shows no comments and Comment opens the sign-in
+door. Run with `node scripts/xml/migrate.mjs sql/026_comments.sql`.
 
 ## Milestone 1 — search (2026-09-15)
 
