@@ -27,8 +27,11 @@ import "./typeset-xml-reader.css"
 // The XML view (window 1, 2026-09-14): a bill printing drawn from its USLM in
 // a Tiptap reader, beside the Plate editor on the same routes. The page
 // arrives with the document already drawn as HTML by the server (the same
-// markup, from the same schema tables); the reader fetches the ProseMirror
-// JSON and takes over without the page moving.
+// markup, from the same schema tables), and the reader mounts on that markup
+// (2026-09-15): the schema's parse rules read it back exactly, so a reader who
+// only reads never fetches the ProseMirror JSON. The JSON comes when editing
+// begins, with the fork (typeset-fork.tsx). Without a first paint the reader
+// fetches the JSON as before.
 //
 // A stored Expression opened by its address (window 4) hands its own
 // `jsonUrl` instead of a bill, and a `portion` to open at.
@@ -232,9 +235,10 @@ export function TypesetXmlReader({
       steps.current.length = 0
       carry.current = null
       const e = editorRef.current
-      if (e && loadedRef.current) {
+      const original = loadedRef.current?.json ?? fromHtmlRef.current
+      if (e && original) {
         phaseRef.current = "forking"
-        e.commands.setContent(loadedRef.current.json, { emitUpdate: false })
+        e.commands.setContent(original, { emitUpdate: false })
         phaseRef.current = "reading"
         steps.current.length = 0
       }
@@ -245,6 +249,10 @@ export function TypesetXmlReader({
   const [loaded, setLoaded] = React.useState<Loaded | null>(null)
   const loadedRef = React.useRef<Loaded | null>(null)
   loadedRef.current = loaded
+  // The server's first paint, mounted as it stands; a captured page is not a document.
+  const fromHtml = snapshot && !initialMeta?.captured ? snapshot : null
+  const fromHtmlRef = React.useRef(fromHtml)
+  fromHtmlRef.current = fromHtml
   const [failed, setFailed] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
   // Read in devtools on the reader's root: milliseconds from the component's first render to the JSON parsed and to the editor mounted.
@@ -258,6 +266,7 @@ export function TypesetXmlReader({
     setFailed(false)
     started.current = performance.now()
     setClock({})
+    if (fromHtml) return
     const params = new URLSearchParams({ bill: String(billId ?? "") })
     if (version) params.set("version", version)
     fetch(jsonUrl ?? `/api/typeset/xml?${params}`)
@@ -271,29 +280,29 @@ export function TypesetXmlReader({
     return () => {
       live = false
     }
-  }, [billId, version, jsonUrl])
+  }, [billId, version, jsonUrl, fromHtml])
 
   const editor = useEditor(
     {
       extensions,
       editable: Boolean(edit),
       immediatelyRender: false,
-      content: loaded?.json ?? null,
+      content: fromHtml ?? loaded?.json ?? null,
       enableInputRules: false,
       enablePasteRules: false,
       onCreate: () => {
         // The editor made before the JSON arrives is empty; the snapshot stays until the one holding the document exists.
-        if (!loaded) return
+        if (!fromHtml && !loaded) return
         setClock((c) => ({ ...c, mount: Math.round(performance.now() - started.current) }))
         setMounted(true)
       },
     },
-    [loaded]
+    [loaded, fromHtml]
   )
   editorRef.current = editor
 
   const meta = loaded ?? initialMeta ?? null
-  const showEditor = Boolean(loaded && editor && mounted)
+  const showEditor = Boolean((fromHtml || loaded) && editor && mounted)
   useCitations(showEditor ? editor : null, cite ?? null)
   const dialect = meta?.dialect ?? undefined
 
