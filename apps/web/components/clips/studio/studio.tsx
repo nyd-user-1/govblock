@@ -22,6 +22,7 @@ import { cn } from "@govblock/ui/lib/utils"
 import { clipUrl } from "../menu"
 import { postGenerated, type Clip } from "../store"
 import { GALLERY, type Prepared } from "./gallery"
+import SNAPSHOT from "./gallery-data.json"
 import { BASES, CHARTS, DEFAULT_LOOK, FACES, MOTIONS, PACES, RADII, THEMES, type Look } from "./palette"
 import { durationInFrames, FIXED_SECONDS, newScene, resolveLink, SCENE_LABELS, sceneFrames, SIZES, type Aspect, type Scene, type SceneKind, type StudioData, type StudioSpec, type Transition } from "./spec"
 import { StudioVideo } from "./studio-video"
@@ -33,6 +34,12 @@ import { StudioVideo } from "./studio-video"
 // were, and Get Code giving the share link, the embed and the link to open
 // the template in Studio. The stage opens on the gallery; a template opens
 // into its preview, its scenes along the foot and the chosen scene's knobs.
+//
+// Nothing reads the database when the page opens (Brendan, 2026-09-14): the
+// gallery plays on a snapshot of its seven links (gallery-data.json, read
+// from /api/clips/studio/data on 2026-09-14), a reader's saved templates load
+// when the Template menu opens, a shared template when its button is pressed,
+// and a new link when it is entered.
 
 type Saved = { id: string; name: string; updatedAt: string; spec: StudioSpec }
 type Option = { value: string; label: string; swatch?: React.ReactNode }
@@ -127,7 +134,8 @@ export function Studio() {
   const [spec, setSpec] = React.useState<StudioSpec>(() => withIds(GALLERY[0].spec))
   const [link, setLink] = React.useState(GALLERY[0].link)
   const [data, setData] = React.useState<StudioData | null>(null)
-  const [cache, setCache] = React.useState<Record<string, StudioData | null>>({})
+  const [cache, setCache] = React.useState<Record<string, StudioData | null>>(() => SNAPSHOT as unknown as Record<string, StudioData>)
+  const [shared, setShared] = React.useState<{ id: string; link: string | null } | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [selected, setSelected] = React.useState<number | null>(null)
@@ -178,42 +186,30 @@ export function Studio() {
     [cache, fetchData]
   )
 
-  // The gallery's links, read once, so each tile plays on its own data.
-  React.useEffect(() => {
-    const links = [...new Set(GALLERY.map((t) => t.link))]
-    for (const l of links) {
-      void fetchData(l)
-        .then((d) => setCache((c) => ({ ...c, [l]: d })))
-        .catch(() => setCache((c) => ({ ...c, [l]: null })))
-    }
-  }, [fetchData])
-
   const loadSaved = React.useCallback(async () => {
     const res = await fetch("/api/clips/studio/templates", { cache: "no-store" }).catch(() => null)
     if (res?.ok) setSaved(((await res.json()) as { templates: Saved[] }).templates)
   }, [])
-  React.useEffect(() => {
-    if (signedIn) void loadSaved()
-  }, [signedIn, loadSaved])
-
-  // A collaborate link: /clips/studio?template=tpl_…&link=…
+  // A collaborate link, /clips/studio?template=tpl_…&link=…, is noted when the page opens and read when its button is pressed.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const id = params.get("template")
-    const shared = params.get("link")
-    if (!id) return
-    void fetch(`/api/clips/studio/templates?id=${encodeURIComponent(id)}`)
-      .then((r) => (r.ok ? (r.json() as Promise<{ template?: Saved }>) : null))
-      .then((body) => {
-        if (!body?.template) return
-        setSpec(withIds(body.template.spec))
-        setView("edit")
-        if (shared) {
-          setLink(shared)
-          void fetchData(shared).then(setData).catch(() => setError("That link did not load."))
-        }
-      })
-  }, [fetchData])
+    if (id) setShared({ id, link: params.get("link") })
+  }, [])
+  const openShared = async () => {
+    if (!shared) return
+    const res = await fetch(`/api/clips/studio/templates?id=${encodeURIComponent(shared.id)}`).catch(() => null)
+    const body = res?.ok ? ((await res.json()) as { template?: Saved }) : null
+    if (!body?.template) return setStatus("That shared template is gone.")
+    setShared(null)
+    setSpec(withIds(body.template.spec))
+    setSavedId(null)
+    setView("edit")
+    if (shared.link) {
+      setLink(shared.link)
+      void load(shared.link)
+    }
+  }
 
   const change = (next: StudioSpec) => {
     setSpec(next)
@@ -368,7 +364,7 @@ export function Studio() {
           <CardContent className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-hidden max-md:px-0 md:overflow-y-auto">
             <FieldGroup className="flex-row gap-2.5 py-px **:data-[slot=field-separator]:-mx-4 **:data-[slot=field-separator]:w-auto max-md:px-3 md:flex-col md:gap-3.25">
               <div className="group/picker relative">
-                <Picker>
+                <Picker onOpenChange={(next) => next && signedIn && void loadSaved()}>
                   <PickerTrigger className="w-full">
                     <div className="flex min-w-0 flex-1 flex-col justify-start pr-8 text-left">
                       <div className="text-xs text-muted-foreground">Template</div>
@@ -452,11 +448,20 @@ export function Studio() {
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col">
             {view === "gallery" ? (
+              <>
+              {shared && (
+                <div className="flex items-center justify-center px-4 pt-4 md:px-6">
+                  <Button size="sm" onClick={() => void openShared()}>
+                    Open the shared template
+                  </Button>
+                </div>
+              )}
               <div className="grid min-h-0 flex-1 grid-cols-2 gap-4 overflow-y-auto p-4 md:grid-cols-4 md:grid-rows-2 md:p-6">
                 {GALLERY.map((t) => (
                   <GalleryTile key={t.id} template={t} data={cache[t.link]} onOpen={() => open(t)} />
                 ))}
               </div>
+              </>
             ) : (
               <div className="flex min-h-0 flex-1">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">

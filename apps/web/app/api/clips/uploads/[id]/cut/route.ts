@@ -36,16 +36,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!kept) {
     await q(`update clip_cuts set status = 'running', started_at = coalesce(started_at, now()), error = null where id = $1`, [id])
     try {
-      const job = cut.log?.startsWith("supadata:") ? cut.log.slice("supadata:".length) : undefined
-      const t = await readTranscript(cut.video_id, job)
+      const t = await readTranscript(cut.video_id)
       await q(`update clip_cuts set title = coalesce($2, title), log = null where id = $1`, [id, t.title?.slice(0, 150) ?? null])
       return answer({ ...cut, status: "running" }, "transcript")
     } catch (error) {
       if (error instanceof TranscriptError) {
-        if (error.kind === "pending") {
-          await q(`update clip_cuts set log = $2 where id = $1`, [id, `supadata:${error.jobId}`])
-          return answer({ ...cut, status: "running" }, "pending")
-        }
         if (error.kind === "blocked") {
           const message = "YouTube would not send the captions to the server; the link waits for the worker box."
           await q(`update clip_cuts set status = 'queued', error = $2 where id = $1`, [id, message])

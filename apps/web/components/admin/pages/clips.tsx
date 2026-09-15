@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CheckCircle2Icon, CircleAlertIcon, PlayIcon, RefreshCwIcon, ServerIcon } from "lucide-react"
+import { PlayIcon, RefreshCwIcon, ServerIcon } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
@@ -19,14 +19,14 @@ import { cn } from "@govblock/ui/lib/utils"
 // a dashboard for database, and pipeline, and committees"): the Data
 // Pipeline's shape turned to clips. Six tiles; clips a day by how they were
 // made; the queue of pasted links, each with where it stands and a Run for
-// one still waiting; then the caption reader, the worker box, and the reports
-// still open.
+// one still waiting; then the transcripts kept, the worker box, and the
+// reports still open.
 
 type Totals = Record<"clips" | "public" | "recorded" | "cut" | "generated" | "removed" | "week" | "links" | "queued" | "running" | "done" | "failed" | "templates", number>
 type Day = { day: string; recorded: number; cut: number; generated: number }
 type Cut = { id: string; title: string | null; source_url: string | null; video_id: string | null; status: string; clips: number | null; error: string | null; reader: string | null; created_at: string; started_at: string | null; finished_at: string | null; transcript: string | null }
 type Report = { id: string; clip_id: string; title: string | null; reason: string; details: string; created_at: string }
-type Data = { totals: Totals; days: Day[]; queue: Cut[]; reports: Report[]; transcripts: { count: number; supadata: number; youtube: number; worker: number; hours: number }; captions: "supadata" | "youtube" }
+type Data = { totals: Totals; days: Day[]; queue: Cut[]; reports: Report[]; transcripts: { count: number; youtube: number; worker: number; hours: number } }
 
 const chart = {
   recorded: { label: "Recorded", color: "var(--chart-1)" },
@@ -197,26 +197,20 @@ export function ClipsPage() {
       <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-3">
         <Card className="gap-3">
           <CardHeader>
-            <CardAnchor>Captions</CardAnchor>
+            <CardAnchor>Transcripts</CardAnchor>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
             {data ? (
               <>
-                <div className={cn("rounded-lg border p-3", data.captions === "supadata" ? "border-green-600/20 bg-green-600/5" : "border-amber-500/30 bg-amber-500/5")}>
-                  <p className={cn("flex items-center gap-1.5 text-xs font-medium", data.captions === "supadata" ? "text-green-700" : "text-amber-700")}>
-                    {data.captions === "supadata" ? <CheckCircle2Icon className="size-3.5" /> : <CircleAlertIcon className="size-3.5" />}
-                    {data.captions === "supadata" ? "Supadata" : "YouTube, direct"}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">{data.captions === "supadata" ? "Reads captions from any server." : "YouTube refuses AWS addresses; set SUPADATA_API_KEY for the deployed site."}</p>
-                </div>
-                <dl className="grid grid-cols-3 gap-2 text-center">
-                  {(["supadata", "youtube", "worker"] as const).map((k) => (
+                <dl className="grid grid-cols-2 gap-2 text-center">
+                  {(["youtube", "worker"] as const).map((k) => (
                     <div key={k} className="rounded-lg bg-muted/50 p-2">
-                      <dt className="text-xs text-muted-foreground capitalize">{k}</dt>
+                      <dt className="text-xs text-muted-foreground">{k === "youtube" ? "From YouTube" : "From the worker box"}</dt>
                       <dd className="text-lg font-semibold tabular-nums">{data.transcripts[k]}</dd>
                     </div>
                   ))}
                 </dl>
+                <p className="text-muted-foreground">YouTube refuses captions to AWS addresses, so the deployed site cuts only videos whose transcript is already kept; the rest wait for the worker box.</p>
               </>
             ) : (
               <Skeleton className="h-28 w-full" />
