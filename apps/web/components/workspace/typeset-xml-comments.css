@@ -1,0 +1,9 @@
+/* Words a comment was opened on, as Plate's comment leaf marks them (components/plate/ui/comment-node.tsx). */
+.typeset-comment {
+  cursor: pointer;
+  border-bottom: 2px solid color-mix(in oklab, var(--color-highlight, #facc15) 36%, transparent);
+  background: color-mix(in oklab, var(--color-highlight, #facc15) 13%, transparent);
+}
+.typeset-comment:hover {
+  background: color-mix(in oklab, var(--color-highlight, #facc15) 25%, transparent);
+}
