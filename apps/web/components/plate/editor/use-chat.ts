@@ -234,7 +234,7 @@ export const useChat = () => {
           createdAt: new Date(),
           discussionId,
           isEdited: false,
-          userId: editor.getOption(discussionPlugin, 'currentUserId'),
+          userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
         };
 
         // Create a new discussion
@@ -246,7 +246,7 @@ export const useChat = () => {
             .map((node: TNode) => NodeApi.string(node))
             .join('\n'),
           isResolved: false,
-          userId: editor.getOption(discussionPlugin, 'currentUserId'),
+          userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
         };
 
         // Update discussions

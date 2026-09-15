@@ -17,6 +17,7 @@ import { TypesetActionsAside } from "@/components/workspace/typeset-actions-asid
 import { BillSkeleton } from "@/components/workspace/bill-skeleton"
 import { PotionOutline } from "@/components/workspace/potion-outline"
 import { TocKit } from "@/components/plate/editor/plugins/toc-kit"
+import { usePlateComments } from "@/components/workspace/typeset-plate-comments"
 import { LazyKitsProvider, useLazyKitState, type LazyKit } from "@/lib/typeset/lazy-kits"
 
 // The template's own playground, drawn only when no bill is open; loaded then,
@@ -115,7 +116,7 @@ const BILL_CHUNK_SIZE = 20
 
 
 /** A bill's page in the same editor the template draws, so nothing but the words differ. */
-function Document({ html, value, contentKey, outline }: { html: string; value?: Value; contentKey: string; outline: boolean }) {
+function Document({ html, value, contentKey, billId, outline }: { html: string; value?: Value; contentKey: string; billId: number | null; outline: boolean }) {
   // Kits added on demand rebuild the editor from the reader's live value and
   // selection, not from the HTML again (lib/typeset/lazy-kits.tsx).
   const { plugins: extra, preload: preloadKit, enable: addKit } = useLazyKitState()
@@ -132,6 +133,8 @@ function Document({ html, value, contentKey, outline }: { html: string; value?: 
     },
     [extra]
   )
+  // The reader's comments on this page, kept (sql/026_comments.sql).
+  usePlateComments(editor, `plate:${contentKey}`, billId)
   const enable = React.useCallback(
     async (name: LazyKit) => {
       seed.current = editor.children as Value
@@ -198,7 +201,7 @@ export function TypesetEditor({
         (snapshot ?? <BillSkeleton />)
       ) : (
         <React.Fragment key={contentKey}>
-          <Document html={loaded.html} value={loaded.value} contentKey={contentKey} outline={surface === "potion"} />
+          <Document html={loaded.html} value={loaded.value} contentKey={contentKey} billId={Number(bill) || null} outline={surface === "potion"} />
         </React.Fragment>
       )}
       <Toaster />

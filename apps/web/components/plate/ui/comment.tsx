@@ -33,6 +33,8 @@ import {
   usePluginOption,
 } from 'platejs/react';
 import * as React from 'react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import { BasicMarksKit } from '@/components/plate/editor/plugins/basic-marks-kit';
 import {
   discussionPlugin,
@@ -48,8 +50,88 @@ import {
   DropdownMenuTrigger,
 } from '@/components/plate/ui/dropdown-menu';
 import { cn } from '@govblock/ui/lib/utils';
+import {
+  addComment,
+  deleteComment,
+  deleteThread,
+  editComment,
+  resolveThread,
+  SignInRequired,
+} from '@/lib/typeset/comments';
 
 import { Editor, EditorContainer } from './editor';
+
+type AnyEditor = ReturnType<typeof useEditorRef>;
+
+/** A comment's words as plain text, a line a paragraph. */
+const plainText = (value: Value) =>
+  value.map((node) => NodeApi.string(node)).join('\n');
+
+/**
+ * Keeps a change to the reader's comments (sql/026_comments.sql, 2026-09-15),
+ * when the document has somewhere to keep them; otherwise the change stays in
+ * memory, as the template had it. A signed-out reader is told to sign in.
+ */
+function persist<T>(
+  editor: AnyEditor,
+  run: (document: string) => Promise<T>
+): Promise<T | null> {
+  const document = editor.getOption(discussionPlugin, 'document');
+  if (!document) return Promise.resolve(null);
+  return run(document).catch((error: unknown) => {
+    toast.error(
+      error instanceof SignInRequired
+        ? error.message
+        : 'The comment could not be saved.'
+    );
+    return null;
+  });
+}
+
+/** Saves a new comment, then gives it the id it was saved under, which edits and deletes use. */
+function saveComment(
+  editor: AnyEditor,
+  discussion: Pick<TDiscussion, 'id' | 'block' | 'documentContent'>,
+  comment: TComment
+) {
+  void persist(editor, (document) =>
+    addComment({
+      threadId: discussion.id,
+      document,
+      billId: editor.getOption(discussionPlugin, 'billId'),
+      block: discussion.block ?? 'b0',
+      quote: discussion.documentContent ?? null,
+      body: plainText(comment.contentRich),
+      rich: comment.contentRich,
+    })
+  ).then((saved) => {
+    if (!saved?.comment) return;
+    const id = String(saved.comment.id);
+    editor.setOption(
+      discussionPlugin,
+      'discussions',
+      editor.getOption(discussionPlugin, 'discussions').map((d) =>
+        d.id !== discussion.id
+          ? d
+          : {
+              ...d,
+              comments: d.comments.map((c) =>
+                c.id === comment.id ? { ...c, id } : c
+              ),
+            }
+      )
+    );
+  });
+}
+
+/** The top-level block holding a thread's marks: "b412". */
+function blockOfThread(editor: AnyEditor, id: string): string {
+  const [entry] = editor.api.nodes({
+    at: [],
+    match: (n) => Boolean((n as Record<string, unknown>)[getCommentKey(id)]),
+  });
+  return `b${entry?.[1][0] ?? 0}`;
+}
 
 export type TComment = {
   id: string;
@@ -95,6 +177,7 @@ export function Comment(props: {
         return discussion;
       });
     editor.setOption(discussionPlugin, 'discussions', updatedDiscussions);
+    void persist(editor, () => resolveThread(id));
   };
 
   const removeDiscussion = async (id: string) => {
@@ -102,6 +185,7 @@ export function Comment(props: {
       .getOption(discussionPlugin, 'discussions')
       .filter((discussion) => discussion.id !== id);
     editor.setOption(discussionPlugin, 'discussions', updatedDiscussions);
+    void persist(editor, () => deleteThread(id));
   };
 
   const updateComment = async (input: {
@@ -130,6 +214,9 @@ export function Comment(props: {
         return discussion;
       });
     editor.setOption(discussionPlugin, 'discussions', updatedDiscussions);
+    void persist(editor, () =>
+      editComment(Number(input.id), plainText(input.contentRich), input.contentRich)
+    );
   };
 
   const { tf } = useEditorPlugin(CommentPlugin);
@@ -341,8 +428,8 @@ function CommentMoreDropdown(props: {
         };
       });
 
-    // Save back to session storage
     editor.setOption(discussionPlugin, 'discussions', updatedDiscussions);
+    void persist(editor, () => deleteComment(Number(comment.id)));
     onRemoveComment?.();
   }, [comment.discussionId, comment.id, editor, onRemoveComment]);
 
@@ -462,18 +549,20 @@ export function CommentCreateForm({
               createdAt: new Date(),
               discussionId,
               isEdited: false,
-              userId: editor.getOption(discussionPlugin, 'currentUserId'),
+              userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
             },
           ],
           createdAt: new Date(),
           isResolved: false,
-          userId: editor.getOption(discussionPlugin, 'currentUserId'),
+          userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
+          block: blockOfThread(editor, discussionId),
         };
 
         editor.setOption(discussionPlugin, 'discussions', [
           ...discussions,
           newDiscussion,
         ]);
+        saveComment(editor, newDiscussion, newDiscussion.comments[0]);
         return;
       }
 
@@ -484,7 +573,7 @@ export function CommentCreateForm({
         createdAt: new Date(),
         discussionId,
         isEdited: false,
-        userId: editor.getOption(discussionPlugin, 'currentUserId'),
+        userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
       };
 
       // Add reply to discussion comments
@@ -499,6 +588,7 @@ export function CommentCreateForm({
         .concat(updatedDiscussion);
 
       editor.setOption(discussionPlugin, 'discussions', updatedDiscussions);
+      saveComment(editor, discussion, comment);
 
       return;
     }
@@ -524,13 +614,14 @@ export function CommentCreateForm({
           createdAt: new Date(),
           discussionId: _discussionId,
           isEdited: false,
-          userId: editor.getOption(discussionPlugin, 'currentUserId'),
+          userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
         },
       ],
       createdAt: new Date(),
       documentContent,
       isResolved: false,
-      userId: editor.getOption(discussionPlugin, 'currentUserId'),
+      userId: editor.getOption(discussionPlugin, 'currentUserId') ?? '',
+      block: `b${commentsNodeEntry[0][1][0]}`,
     };
 
     editor.setOption(discussionPlugin, 'discussions', [
@@ -549,7 +640,21 @@ export function CommentCreateForm({
       );
       editor.tf.unsetNodes([getDraftCommentKey()], { at: path });
     });
+    saveComment(editor, newDiscussion, newDiscussion.comments[0]);
   }, [commentValue, commentEditor.tf, discussionId, editor, discussions]);
+
+  // Kept comments belong to a signed-in reader: signed out, the form is the way in.
+  const document = usePluginOption(discussionPlugin, 'document');
+  if (document && !userInfo) {
+    return (
+      <div className={cn('flex w-full items-center gap-2 text-sm', className)}>
+        <span className="text-muted-foreground">Sign in to comment.</span>
+        <Button asChild className="ml-auto h-7" size="sm">
+          <Link href="/sign-in">Sign in</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('flex w-full', className)}>
