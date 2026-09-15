@@ -419,11 +419,6 @@ export function BillActionsBlock({ history, rollCalls = [], bill }: { history: H
       <H3>{title}</H3>
       {rows.length ? (
         <>
-          <p>
-            <Chip>{bill}</Chip> has taken {fmtNumber(rows.length)} {rows.length === 1 ? "action" : "actions"}
-            {first ? <> since {fmtDate(first)}</> : null}
-            {latest && latest !== first ? <>, the latest on {fmtDate(latest)}</> : null}.
-          </p>
           <ActionTable rows={rows} />
         </>
       ) : (
@@ -539,16 +534,6 @@ export function BillCommitteesBlock({
   return (
     <>
       <H3>Committees</H3>
-      <p>
-        <Chip>{bill}</Chip> went before {cards.length} {cards.length === 1 ? "committee" : "committees"}:{" "}
-        {names.map((name, i) => (
-          <React.Fragment key={name}>
-            {i > 0 ? (i === names.length - 1 ? " and " : ", ") : ""}
-            <Chip>{name}</Chip>
-          </React.Fragment>
-        ))}
-        .
-      </p>
       <CardBlock
         cards={cards.map((card) => {
           const n = billsBefore(card)

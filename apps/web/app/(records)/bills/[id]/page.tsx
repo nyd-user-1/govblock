@@ -299,7 +299,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 <hr />
                 <H2>Record</H2>
                 <H3>Text</H3>
-                <BillRecordLead facts={facts} />
                 <BillTextBlock
                   bill={number}
                   billNumber={bill.bill_number}
@@ -337,22 +336,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                 <BillSubjects bill={number} chamber={chamber} state={bill.state} />
                 <BillNotes bill={number} />
 
-                {sources.length > 0 && (
-                  <>
-                    <hr />
-                    <p>
-                      Source:{" "}
-                      {sources.map((link, index) => (
-                        <span key={link.href}>
-                          {index > 0 && " · "}
-                          <a href={link.href} target="_blank" rel="noopener noreferrer">
-                            {link.label}
-                          </a>
-                        </span>
-                      ))}
-                    </p>
-                  </>
-                )}
               </div>
               {(neighbours.previous || neighbours.next) && (
                 <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">

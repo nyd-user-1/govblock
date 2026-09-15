@@ -559,31 +559,6 @@ export function BillSponsorsBlock({ sponsors, state, bill }: { sponsors: Sponsor
       <H3>Sponsors</H3>
       {rows.length ? (
         <>
-          <p>
-            {who ? (
-              <>
-                <Chip>{who}</Chip> sponsors <Chip>{bill}</Chip>
-                {co ? (
-                  <>
-                    , and {fmtNumber(co)} {co === 1 ? "member has" : "members have"} co-sponsored it
-                    {dated && original ? original === co ? <>{co === 1 ? "" : ", all of them"} from the day it was introduced</> : <>, {fmtNumber(original)} of them from the day it was introduced</> : null}
-                    {withdrawn ? (
-                      <>
-                        ; {fmtNumber(withdrawn)} {withdrawn === 1 ? "has" : "have"} since withdrawn
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  " alone"
-                )}
-                .
-              </>
-            ) : (
-              <>
-                {fmtNumber(rows.length)} {rows.length === 1 ? "member put their name" : "members put their names"} to <Chip>{bill}</Chip>.
-              </>
-            )}
-          </p>
           <PreviewFrame>
             <PagedList items={rows} pageSize={10} grid render={(row) => <MemberCard key={row.id} row={row} state={state} />} />
           </PreviewFrame>
@@ -676,16 +651,6 @@ export function BillVotesBlock({
       <H3>Votes</H3>
       {rows.length ? (
         <>
-          <p>
-            <Chip>{bill}</Chip> went to {fmtNumber(rows.length)} {rows.length === 1 ? "roll call" : "roll calls"}
-            {chambers.length === 1 ? <> in the {chambers[0]}</> : chambers.length > 1 ? <> across both chambers</> : null}
-            {rows[0] ? (
-              <>
-                , the latest on {fmtDate(rows[0].date)} at {rows[0].yea}–{rows[0].nay}
-              </>
-            ) : null}
-            .
-          </p>
           <VoteTable rows={rows} />
         </>
       ) : (

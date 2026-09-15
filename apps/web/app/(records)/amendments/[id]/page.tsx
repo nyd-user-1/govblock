@@ -181,13 +181,6 @@ export default async function AmendmentRoute({ params }: Props) {
             <AmendmentSponsors rows={sponsorRows} who={name} />
             <AmendmentActions actions={actions} who={name} />
 
-            <hr />
-            <p>
-              Source:{" "}
-              <a href={source} target="_blank" rel="noopener noreferrer">
-                congress.gov
-              </a>
-            </p>
           </div>
           {(neighbours.previous || neighbours.next) && (
             <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">

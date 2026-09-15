@@ -33,8 +33,32 @@ const GLYPHS = new RegExp("[\\uFFFD\\uE000-\\uF8FF\\u0000-\\u0008\\u000B\\u000C\
 
 const headingLike = (line: string) => line.length <= 80 && !/[a-z]/.test(line) && /[A-Z]/.test(line)
 
+/** A web page's markup captured where a printing should be (a legislature's search page, its scripts and styles): not bill text at all. */
+export function looksCaptured(text: string): boolean {
+  return /window\.(top\.)?location|document\.getElementById|display\s*:\s*none|<\/?script|function\s+\w+\s*\(\)\s*\{/i.test(String(text ?? "").slice(0, 4000))
+}
+
+/** A form's rules and leaders: a run of underscores ends a line; a dotted leader (". . . . .") is a space. */
+export function tidyRules(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const indent = line.slice(0, line.length - line.trimStart().length)
+      return line
+        .replace(/(?:\s*\.){4,}\s*/g, " ")
+        .split(/\s*_{3,}\s*/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part, i) => (i === 0 ? `${indent}${part}` : `${indent}${part}`))
+        .join("\n")
+    })
+    .filter((line) => line.trim())
+    .join("\n")
+}
+
 export function printBillText(raw: string): string {
-  const layout = layoutBillText(String(raw ?? ""))
+  if (looksCaptured(raw)) return ""
+  const layout = layoutBillText(tidyRules(String(raw ?? "")))
   const lines: string[] = []
   for (const line of layout.lines) {
     if (line.kind === "furniture" || line.kind === "blank") continue

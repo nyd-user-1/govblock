@@ -1580,6 +1580,8 @@ export async function getStream(states: string[], limit = 12) {
       const rows = await q<BillRow>(
         `select ${BILL_COLUMNS} from "Bills" b ${PRIME_SPONSOR}
          where b.state = $1 and b.session_id = $2 and coalesce(b.last_action_date, '') <> '' and b.title <> ''
+           -- An action dated after today ("Effective" in October) has not happened yet (Brendan, 2026-09-15).
+           and b.last_action_date <= to_char(current_date, 'YYYY-MM-DD')
          order by b.last_action_date desc, b.bill_id desc limit $3`,
         [state, session, limit]
       )

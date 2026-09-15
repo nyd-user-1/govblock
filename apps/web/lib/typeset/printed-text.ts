@@ -8,7 +8,7 @@ import { billWork } from "@/lib/xml/address"
 import { docToText } from "@/lib/xml/convert"
 import { parseXml } from "@/lib/xml/ir"
 import { uslmToDoc, type Fidelity } from "@/lib/xml/uslm-to-doc"
-import { printBillText, printedLooksParsed } from "@/lib/policy/printed-bill-text"
+import { looksCaptured, printBillText, printedLooksParsed, tidyRules } from "@/lib/policy/printed-bill-text"
 import { getBillTexts } from "@/lib/policy/texts"
 
 // A bill's printing as text from its stored XML (Brendan, 2026-09-15): one
@@ -21,9 +21,9 @@ const textOf = unstable_cache(
   async (address: string, row: ExpressionRow) => {
     const xml = await readUslm(row)
     const { doc } = uslmToDoc(parseXml(xml), { dialect: row.dialect ?? "uslm", identifier: row.work, expression: row.expression, fidelity: row.fidelity as Fidelity, title: row.label })
-    return docToText(doc, { marked: true }).replace(/\n{3,}/g, "\n\n")
+    return tidyRules(docToText(doc, { marked: true }))
   },
-  ["printed-text-v3"],
+  ["printed-text-v4"],
   { revalidate: false, tags: ["printed-text"] }
 )
 
@@ -44,7 +44,7 @@ export async function printedTexts(ids: number[]): Promise<Map<number, string>> 
         if (!row) return
         const text = await textOf(`${row.work}@${row.expression}`, row)
         // A state whose grammar misread this printing falls back to its words, printed the same way.
-        if (text.trim() && printedLooksParsed(text)) out.set(Number(b.bill_id), text)
+        if (text.trim() && !looksCaptured(text) && printedLooksParsed(text)) out.set(Number(b.bill_id), text)
       } catch (error) {
         console.error("printed text: kept the plain text for", b.bill_id, error)
       }
@@ -57,7 +57,11 @@ export async function printedTexts(ids: number[]): Promise<Map<number, string>> 
 export async function codeBlockTexts(ids: number[]): Promise<Map<number, string>> {
   const [printed, plain] = await Promise.all([printedTexts(ids), getBillTexts(ids)])
   const out = new Map<number, string>()
-  for (const [id, text] of plain) out.set(id, printBillText(text))
+  for (const [id, text] of plain) {
+    // A captured web page prints nothing, so its bill shows no block rather than page code.
+    const printed = printBillText(text)
+    if (printed) out.set(id, printed)
+  }
   for (const [id, text] of printed) out.set(id, text)
   return out
 }

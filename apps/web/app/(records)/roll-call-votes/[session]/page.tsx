@@ -111,20 +111,6 @@ export default async function RollCallSessionPage({ params, searchParams }: Prop
           {page < pages && <Link href={`/roll-call-votes/${slug}?page=${page + 1}`}>Older</Link>}
         </p>
       )}
-      <hr />
-      <p>
-        Source:{" "}
-        {scope.chamber === "house" ? (
-          <a href={`https://www.congress.gov/roll-call-votes`} target="_blank" rel="noopener noreferrer">
-            congress.gov
-          </a>
-        ) : (
-          <a href={`https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_${scope.congress}_${scope.session}.htm`} target="_blank" rel="noopener noreferrer">
-            senate.gov
-          </a>
-        )}
-        . <Chip>{`${chamberName(scope.chamber)} ${scope.congress}-${scope.session}`}</Chip>
-      </p>
     </DocsPage>
   )
 }

@@ -163,18 +163,6 @@ export default async function HearingRoute({ params }: Props) {
             <HearingWitnesses meeting={meeting} />
             <HearingDocuments meeting={meeting} />
 
-            {(hearing.text_url || hearing.pdf_url) && (
-              <>
-                <hr />
-                <p>
-                  Source:{" "}
-                  <a href={hearing.text_url ?? hearing.pdf_url ?? "#"} target="_blank" rel="noopener noreferrer">
-                    congress.gov
-                  </a>
-                  {hearing.loc_id ? <> · {hearing.loc_id}</> : null}
-                </p>
-              </>
-            )}
           </div>
           {(neighbours.previous || neighbours.next) && (
             <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">

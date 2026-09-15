@@ -164,24 +164,6 @@ export default async function RollCallVotePage({ params }: Props) {
         </tbody>
       </Table>
       </TableBlock>
-      <hr />
-      <p>
-        Source:{" "}
-        {scope.chamber === "house" ? (
-          <a href={`https://clerk.house.gov/Votes/${String(vote.date ?? "").slice(0, 4)}${String(vote.roll).padStart(3, "0")}`} target="_blank" rel="noopener noreferrer">
-            clerk.house.gov
-          </a>
-        ) : (
-          <a
-            href={`https://www.senate.gov/legislative/LIS/roll_call_votes/vote${vote.congress}${vote.session}/vote_${vote.congress}_${vote.session}_${String(vote.roll).padStart(5, "0")}.htm`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            senate.gov
-          </a>
-        )}
-        .
-      </p>
     </DocsPage>
   )
 }
