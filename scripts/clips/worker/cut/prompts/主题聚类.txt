@@ -1,0 +1,23 @@
+# Hearing clip grouping
+
+GovBlock's prompt for government video (see 大纲.txt). GovBlock does not use
+autoclip's collections; this only keeps the step from running on the
+Chinese prompt.
+
+Group the clips below by the subject they are about (a bill, a program, a
+witness's agency). A clip belongs to at most one group; leave out any clip
+that fits none.
+
+## Output
+
+A JSON array and nothing else:
+
+[
+  {
+    "collection_title": "Plain name of the subject",
+    "collection_summary": "One plain sentence naming what the clips cover.",
+    "clip_ids": ["1", "3"]
+  }
+]
+
+Strict JSON, straight double quotes, no code fences, no text around it.

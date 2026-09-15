@@ -1,0 +1,4 @@
+node_modules/
+out/
+# Copied in from apps/web/components/clips/templates by render.mjs before each bundle.
+src/templates/

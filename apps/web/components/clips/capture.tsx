@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronLeftIcon, GlobeIcon, LockIcon, SwitchCameraIcon, UploadIcon, XIcon } from "lucide-react"
+import { ChevronLeftIcon, GlobeIcon, LockIcon, ScissorsIcon, SwitchCameraIcon, XIcon } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/nova/button"
 import { Input } from "@govblock/ui/components/nova/input"
@@ -14,9 +14,9 @@ import { type Clip, type Visibility } from "./store"
 // button starts and stops, a ring counts the sixty seconds, then a review, then
 // a title and a visibility. Private is the default; public is a choice.
 //
-// The recording is MediaRecorder on the device camera and never leaves the
-// browser. Where a camera is refused or absent (a desktop without one), the
-// upload button takes a file instead.
+// The recording is MediaRecorder on the device camera; saving it sends it to
+// the private clips bucket on S3 (store.ts). A video from elsewhere comes in
+// through Clip, as a link.
 
 const MAX_SECONDS = 60
 
@@ -70,7 +70,7 @@ function frameOf(src: string): Promise<string | undefined> {
   })
 }
 
-export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; onSaved: (clip: Clip) => void; onClose: () => void }) {
+export function Capture({ author, onSaved, onClose, onUpload }: { author: Clip["author"]; onSaved: (clip: Clip, onProgress: (fraction: number) => void) => Promise<void>; onClose: () => void; onUpload?: () => void }) {
   const [stage, setStage] = React.useState<Stage>("camera")
   const [facing, setFacing] = React.useState<"user" | "environment">("user")
   const [stream, setStream] = React.useState<MediaStream | null>(null)
@@ -86,11 +86,12 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
   const [caption, setCaption] = React.useState("")
   const [visibility, setVisibility] = React.useState<Visibility>("private")
   const [saving, setSaving] = React.useState(false)
+  const [sent, setSent] = React.useState(0)
+  const [saveError, setSaveError] = React.useState<string | null>(null)
   const previewRef = React.useRef<HTMLVideoElement>(null)
   const recorderRef = React.useRef<MediaRecorder | null>(null)
   const chunksRef = React.useRef<Blob[]>([])
   const startedAt = React.useRef(0)
-  const fileRef = React.useRef<HTMLInputElement>(null)
 
   // The camera, for as long as the camera stage is showing.
   React.useEffect(() => {
@@ -171,15 +172,6 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
     rec.start(250)
   }
 
-  const pickFile = (f: File | undefined) => {
-    if (!f) return
-    setHasAudio(null)
-    setBlob(f)
-    setUrl(URL.createObjectURL(f))
-    setDuration(undefined)
-    setStage("review")
-  }
-
   const retake = () => {
     setBlob(null)
     setUrl(null)
@@ -189,8 +181,10 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
   const save = async () => {
     if (!blob || !title.trim()) return
     setSaving(true)
+    setSaveError(null)
+    setSent(0)
     const poster = url ? await frameOf(url) : undefined
-    onSaved({
+    const clip: Clip = {
       id: `mine-${Date.now().toString(36)}`,
       creatorId: "you",
       author,
@@ -205,7 +199,13 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
       views: 0,
       likes: 0,
       mine: true,
-    })
+    }
+    try {
+      await onSaved(clip, setSent)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "The clip was not saved.")
+      setSaving(false)
+    }
   }
 
   const progress = Math.min(1, elapsed / MAX_SECONDS)
@@ -220,9 +220,11 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
         {cameraError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="text-sm text-white/80">{cameraError}</p>
-            <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
-              <UploadIcon className="size-4" /> Choose a video
-            </Button>
+            {onUpload && (
+              <Button variant="secondary" size="sm" onClick={onUpload}>
+                <ScissorsIcon className="size-4" /> Clip a video
+              </Button>
+            )}
           </div>
         )}
         <div className="relative flex items-center justify-between p-3">
@@ -235,9 +237,13 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
           </Button>
         </div>
         <div className="relative mt-auto flex items-end justify-between p-5 pb-7">
-          <button type="button" className="flex size-11 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-40" aria-label="Upload a video" onClick={() => fileRef.current?.click()} disabled={recording}>
-            <UploadIcon className="size-5" />
-          </button>
+          {onUpload ? (
+            <button type="button" className="flex size-11 items-center justify-center rounded-full bg-black/40 text-white disabled:opacity-40" aria-label="Clip a video" onClick={onUpload} disabled={recording}>
+              <ScissorsIcon className="size-5" />
+            </button>
+          ) : (
+            <span className="size-11" />
+          )}
           <button type="button" aria-label={recording ? "Stop recording" : "Start recording"} onClick={recording ? stop : start} disabled={!stream} className="relative flex size-22 items-center justify-center disabled:opacity-40">
             <svg viewBox="0 0 88 88" className="absolute inset-0 size-full -rotate-90">
               <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="4" />
@@ -247,7 +253,6 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
           </button>
           <span className="size-11" />
         </div>
-        <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
       </div>
     )
   }
@@ -333,8 +338,9 @@ export function Capture({ author, onSaved, onClose }: { author: Clip["author"]; 
         </div>
       </div>
       <div className="border-t p-4">
+        {saveError && <p className="pb-3 text-sm text-destructive">{saveError}</p>}
         <Button className="w-full" disabled={!title.trim() || saving} onClick={save}>
-          {saving ? "Saving…" : visibility === "public" ? "Publish" : "Save to your library"}
+          {saving ? `Sending… ${Math.round(sent * 100)}%` : visibility === "public" ? "Publish" : "Save to your library"}
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { isJurisdiction, stateName } from "@/lib/filters"
 import { getSessions } from "@/lib/policy/db-queries"
 import { chambersOf } from "@/lib/workspace/datasets"
 import { ChamberSeal, FlagChip } from "@/components/policy/imagery"
+import { RailsFrame } from "@/components/rails-frame"
 
 // /state/[state] (Brendan, 2026-09-13): the hub for one jurisdiction —
 // reserved here so every state has one address, and filled as the pieces
@@ -39,7 +40,9 @@ export default async function StatePage({ params }: { params: Promise<{ state: s
     ["Data", `/workspace/data/${lower}`],
   ]
   return (
-    <div className="container-wrapper flex flex-1 flex-col gap-10 px-6 py-12">
+    // Both site rails (Brendan, 2026-09-14).
+    <RailsFrame>
+    <div className="flex flex-1 flex-col gap-10 py-12">
       <div className="flex items-center gap-4">
         <FlagChip state={s} width={64} />
         <div className="flex flex-col gap-1">
@@ -76,5 +79,6 @@ export default async function StatePage({ params }: { params: Promise<{ state: s
         </ul>
       </div>
     </div>
+    </RailsFrame>
   )
 }

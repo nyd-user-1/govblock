@@ -1,0 +1,30 @@
+# Hearing clip labels
+
+GovBlock's prompt for government video (see 大纲.txt).
+
+These labels are for the worker's own logs. The title a reader sees on a cut
+clip is a sentence copied from the transcript, chosen afterwards by
+scripts/clips/worker/cut.mjs; nothing written here is published.
+
+## Input
+
+A JSON array of clips, each `{"id": "1", "title": "...", "content": ["..."], "recommend_reason": "..."}`.
+
+## Task
+
+For each clip, one plain label under 80 characters naming what the exchange
+is about: the subject and, if the clip has one, the bill or the witness.
+No adjectives about the clip, no questions, no exclamation marks, no claims
+about how anyone reacted.
+
+## Output
+
+One JSON object and nothing else, the clip's `id` as the key and the label as
+the value:
+
+{
+  "1": "Forest Service chief on the backlog of hazardous-fuels projects",
+  "2": "Vote on the amendment to strike section 4"
+}
+
+Strict JSON, straight double quotes, no code fences, no text around it.

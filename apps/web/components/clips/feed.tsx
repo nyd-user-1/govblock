@@ -1,11 +1,13 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { ReactionButton } from "@govblock/ui/components/animbits/reaction-button"
 import { BookmarkIcon, ChevronDownIcon, ChevronUpIcon, HeartIcon, LockIcon, MessageCircleIcon, MoreHorizontalIcon, PauseIcon, SendIcon, Volume2Icon, VolumeXIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@govblock/ui/components/nova/avatar"
 import { cn } from "@govblock/ui/lib/utils"
+
 
 import { ClipMenu } from "./menu"
 import { fmtCount, type Clip } from "./store"
@@ -15,6 +17,9 @@ import { fmtCount, type Clip } from "./store"
 // frame on a desktop, and over it on a phone, Instagram's rail: like,
 // comment, share, save, more. Under it on a phone, the author and the
 // caption; on a desktop the right rail carries those.
+
+// Remotion loads only when a generated clip is on screen.
+const CompositionPlayer = dynamic(() => import("./composition-player").then((m) => m.CompositionPlayer), { ssr: false })
 
 export type Reactions = {
   liked: Set<string>
@@ -28,6 +33,9 @@ export type Reactions = {
   following?: Set<string>
   /** Removes a clip of the reader's own; absent for published clips. */
   onDelete?: (clip: Clip) => void
+  onReport?: (clip: Clip) => void
+  /** An admin's, for a clip in Aurora. */
+  onTakeDown?: (clip: Clip) => void
 }
 
 export function Feed({
@@ -179,7 +187,13 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
       <RailButton active={saved} label="">
         <ReactionButton Icon={BookmarkIcon} size={24} isLiked={saved} colors={{ initial: "currentColor", liked: "currentColor" }} onToggle={() => reactions.onSave(clip)} />
       </RailButton>
-      <ClipMenu clip={clip} onGoToPost={() => reactions.onGoToPost(clip)} onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}>
+      <ClipMenu
+        clip={clip}
+        onGoToPost={() => reactions.onGoToPost(clip)}
+        onDelete={clip.mine && reactions.onDelete ? () => reactions.onDelete!(clip) : undefined}
+        onReport={!clip.mine && reactions.onReport ? () => reactions.onReport!(clip) : undefined}
+        onTakeDown={clip.origin && reactions.onTakeDown ? () => reactions.onTakeDown!(clip) : undefined}
+      >
         <button type="button" className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/15 lg:hover:bg-accent" aria-label="More">
           <MoreHorizontalIcon className="size-6" />
         </button>
@@ -204,6 +218,8 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
           ) : (
             <img src={clip.poster} alt="" className="absolute inset-0 size-full object-cover" />
           )
+        ) : clip.composition ? (
+          <CompositionPlayer composition={clip.composition} active={active} onPaused={setPaused} />
         ) : (
           <video
             ref={videoRef}
@@ -223,17 +239,22 @@ function FeedItem({ clip, active, muted, onMuted, reactions }: { clip: Clip; act
             <PauseIcon className="size-14 fill-white/80 text-white/80" />
           </div>
         )}
-        {clip.visibility === "private" && (
-          <span className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">
-            <LockIcon className="size-3" /> Private
-          </span>
+        {(clip.visibility === "private" || clip.status === "processing") && (
+          <div className="absolute top-3 left-3 flex gap-1.5">
+            {clip.visibility === "private" && (
+              <span className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">
+                <LockIcon className="size-3" /> Private
+              </span>
+            )}
+            {clip.status === "processing" && <span className="rounded-full bg-black/50 px-2 py-1 text-[11px] font-medium text-white">Processing</span>}
+          </div>
         )}
-        {!clip.youtube && (
+        {!clip.youtube && !clip.composition && (
           <button type="button" onClick={() => onMuted(!muted)} className="absolute right-3 bottom-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-white" aria-label={muted ? "Unmute" : "Mute"}>
             {muted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
           </button>
         )}
-        {!clip.youtube && (
+        {!clip.youtube && !clip.composition && (
           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/25">
             <div className="h-full bg-white" style={{ width: `${progress * 100}%` }} />
           </div>
