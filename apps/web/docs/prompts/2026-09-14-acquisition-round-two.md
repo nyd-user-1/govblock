@@ -34,7 +34,10 @@ Nothing goes to Brendan's terminal; his answers come through the lead.
   stopped; start it for compiles and fetches, stop it when idle; it comes
   back on a new address, so `ssh -o HostName=<ip>` or fix `~/.ssh/config`.
   Its role cannot delete from S3; deletes run from the Mac's credentials.
-  The livingston worker holds the California loader's tmux.
+  The livingston worker (`livingston-worker-2`, i-0843042df1a5fb003, ssh
+  `ubuntu@<ip>` with `~/.ssh/livingston-worker-2.pem`) is stopped since
+  2026-09-15 00:20 EDT; its California loader tmux was already gone by then.
+  Start it only if Part 4 needs it, stop it when Part 4 is done.
 - The database. `"BillTexts"` is written only through the existing loaders'
   shape (`TextBuffer` in `scripts/xml/va-refetch.mjs` shows it), never deleted
   from, never sampled with `order by random()`. One long statement at a time;
@@ -128,7 +131,9 @@ Then compile Virginia through the pipeline (Part 6).
 ## Part 4. California: finish the loader
 
 Window 4 left `ca-pubinfo` running in tmux `ca-pubinfo-2025` on the
-livingston worker, loading the 1.28 GB pubinfo dump (`scripts/laws/adapters/ca.mjs`
+livingston worker, loading the 1.28 GB pubinfo dump; by 2026-09-15 00:20 EDT
+that tmux no longer existed and the worker was stopped (see The rules), so
+first establish from `"BillTexts"` and the loader's own state what it got (`scripts/laws/adapters/ca.mjs`
 and `scripts/xml/sources/printings.mjs` show the shape). Find out whether it
 finished; finish it. Then the `ca-captures` item in `apps/web/lib/xml/todo.ts`
 (claimed by window 4; take the claim over as `window-9`): the captured
