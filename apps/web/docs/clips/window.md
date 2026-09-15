@@ -18,7 +18,43 @@ template id and the props a generated clip plays from. Nothing else changes.
 
 `sql/023_clip_templates.sql`, additive: a new table `clip_templates` (id,
 owner, name, the template as JSON, times) for templates readers build in
-/clips/studio.
+/clips/studio. Both ran.
+
+### 2. Built
+
+- **Clip** (was Upload): paste a link, Get clips; no file, no rights box.
+  The link is queued in `clip_cuts`; nothing cuts it yet.
+- **Generate** reads a pasted roll call or bill link and picks its template.
+  **Bill history** is the second template: a bill's milestones from its
+  actions (introduced, referred, reported, passed each chamber, resolving,
+  presented, signed or vetoed, law), the law's number stamped last.
+- **Post** keeps a generated clip as its template and data
+  (`clips.composition`); the feed and grid play it live with Remotion's
+  Player; its link is shareable. No render, no machine.
+- **Studio** at /clips/studio: scenes (title card, big number, tally,
+  timeline, bars, text, end card), each with its knobs and `{field}` slots;
+  shape, colors and font; a live preview; save per reader; post.
+- **/state** and **/state/[state]** wear both site rails; **Map** beside
+  Charts opens `/map?state=xx` flown to the state.
+- **/research** and its first study, **/research/party-line-votes**, counted
+  from every 119th Congress House roll call: 463 of 657 split the parties.
+
+### 3. Verified
+
+Bounded typecheck clean on every touched file. On 3003 with a minted
+session: bill and roll call links load data (8 milestones; 237 yea, 3
+parties); a template saves, renames in place, lists and deletes; a Studio
+clip, a bill history and a tally post, show in the anonymous feed with their
+data, and delete. `/state`, `/state/ny`, `/map?state=ny`, `/research`,
+`/research/party-line-votes`, `/clips/studio` answer 200. Not driven in a
+browser.
+
+### 4. Found
+
+autoclip.dev publishes no repository that could be found; its site links
+none. The closest open-source match to its features is
+github.com/artbyjazi/autoclip (MIT: paste a YouTube link or a file,
+Whisper, an LLM picks moments, speaker-tracked 9:16, burned captions).
 
 ---
 
