@@ -7,7 +7,7 @@ import { readLibraryQuery, resolveLibrary } from "@/lib/xml/library-data"
 // catalogue and the addresses are open to every reader, as search is; the
 // gate is on the Work a row opens.
 //
-//   GET /api/typeset/library?path=us-ny/code/agm&sort=address&q=&j=&show=&offset=100
+//   GET /api/typeset/library?path=us/ny/code/agm&sort=address&q=&j=&show=&offset=100  (us-ny/code/agm reads the same)
 
 export const dynamic = "force-dynamic"
 

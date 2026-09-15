@@ -5,7 +5,7 @@ import { q } from "@/lib/policy/db"
 import { sessionYear, stateOfJurisdiction } from "@/lib/typeset/expression-document"
 import { billWork, resolveSlash } from "@/lib/xml/address"
 import { FAMILIES, familyBySlug, inFamily, type Family } from "@/lib/xml/families"
-import { JURISDICTION_NAMES, jurisdictionName, jurisdictionSlug, libraryHref, prefixLabel, workHref } from "@/lib/xml/library"
+import { JURISDICTION_NAMES, jurisdictionName, jurisdictionSlug, libraryHref, librarySegments, prefixLabel, workHref } from "@/lib/xml/library"
 
 // The library's reads (window 4, 2026-09-14). The top level (families,
 // jurisdictions, a jurisdiction's codes and sessions, a family's codes) comes
@@ -467,7 +467,7 @@ function jurisdictionFamily(slug: string): { jurisdiction: string; family: Famil
 
 /** What a library path names, as a listing, a redirect to where it lives, or nothing. */
 export async function resolveLibrary(segments: string[], query: LibraryQuery): Promise<Resolved> {
-  const parts = segments.map((s) => decodeURIComponent(s)).filter(Boolean)
+  const parts = librarySegments(segments)
   const rows = await loadCatalogue()
   if (!parts.length) return { listing: rootListing(rows, query) }
   const [head, kind, unit, ...rest] = parts
@@ -508,7 +508,7 @@ export { codeName, familyCodes, jurisdictionFamily }
 
 /** The page title for a path, without reading anything. */
 export function libraryTitle(segments: string[]): string {
-  const [head, kind, unit] = segments.map((s) => decodeURIComponent(s))
+  const [head, kind, unit] = librarySegments(segments)
   if (!head) return "Library"
   const family = familyBySlug(head)
   if (family) return family.name

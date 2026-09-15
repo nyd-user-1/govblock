@@ -8,14 +8,20 @@ import { typesetHref } from "@/lib/typeset/views"
 //
 //   /workspace/typeset/library                          every library
 //   /workspace/typeset/library/agricultural-law         a family
-//   /workspace/typeset/library/us-ny/code/agm           a prefix: New York's Agriculture and Markets Law
+//   /workspace/typeset/library/us/ny/code/agm           a prefix: New York's Agriculture and Markets Law
 //   /workspace/typeset/us/ny/code/agm/s3                a Work
 //   /workspace/typeset/us/ny/code/agm/s3?at=2024-01-01  the one in force on a date
 
 export const LIBRARY_ROOT = "/workspace/typeset/library"
 
-/** A family's slug or a prefix address, under the library. */
-export const libraryHref = (slugOrPrefix?: string | null) => (slugOrPrefix ? `${LIBRARY_ROOT}/${slugOrPrefix.replace(/^\/+/, "")}` : LIBRARY_ROOT)
+/** A family's slug or a prefix address, under the library; a state's prefix reads `us/ny` in the URL, as Typeset's addresses do (2026-09-15). */
+export const libraryHref = (slugOrPrefix?: string | null) => (slugOrPrefix ? `${LIBRARY_ROOT}/${slugOrPrefix.replace(/^\/+/, "").replace(/^us-([a-z]{2})(?=\/|$)/, "us/$1")}` : LIBRARY_ROOT)
+
+/** A library path as the URL writes it, back to the store's segments: `us`, `ny`, `code` → `us-ny`, `code`. The store's own form passes through. */
+export const librarySegments = (segments: string[]) => {
+  const parts = segments.map((s) => decodeURIComponent(s)).filter(Boolean)
+  return parts[0] === "us" && parts[1] && `us-${parts[1]}` in JURISDICTION_NAMES ? [`us-${parts[1]}`, ...parts.slice(2)] : parts
+}
 
 /** A Work, one Expression of it, or a portion, opened in Typeset: a bill in its XML view, a statute in the reader. `?at=` is the text in force on a date. */
 export const workHref = (address: string, at?: string | null) =>
