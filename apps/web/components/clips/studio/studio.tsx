@@ -456,7 +456,7 @@ export function Studio() {
                   </Button>
                 </div>
               )}
-              <div className="grid min-h-0 flex-1 grid-cols-2 gap-4 overflow-y-auto p-4 md:grid-cols-4 md:grid-rows-2 md:p-6">
+              <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,300px)] content-start justify-center gap-6 overflow-y-auto p-4 md:p-6">
                 {GALLERY.map((t) => (
                   <GalleryTile key={t.id} template={t} data={cache[t.link]} onOpen={() => open(t)} />
                 ))}
@@ -651,7 +651,7 @@ function EmptyAction({ text, action, onAction }: { text: string; action: string 
   )
 }
 
-/** A gallery tile: a still of the template on its own link, playing while the pointer is over it. */
+/** A gallery card: the template on its own link in the shape of a Short (Brendan, 2026-09-14: the feed's 450 × 800 player at two thirds), a still until the pointer is over it. No label. */
 function GalleryTile({ template, data, onOpen }: { template: Prepared; data: StudioData | null | undefined; onOpen: () => void }) {
   const [hover, setHover] = React.useState(false)
   const spec = template.spec
@@ -661,11 +661,8 @@ function GalleryTile({ template, data, onOpen }: { template: Prepared; data: Stu
   const still = first && FIXED_SECONDS[first.kind] ? (first.kind === "roll-call-tally" ? 360 : 560) : Math.min(frames - 1, (first ? sceneFrames(first, spec) : 0) + 45)
   const common = { component: VideoComponent, inputProps: { spec, data: data ?? null }, durationInFrames: frames, fps: spec.fps, compositionWidth: size.width, compositionHeight: size.height, style: { width: "100%", height: "100%" } }
   return (
-    <button type="button" onClick={onOpen} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)} className="group flex min-h-72 flex-col gap-2 rounded-xl p-2 text-left hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:min-h-0">
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg">
-        {data === undefined ? <div className="absolute inset-0 animate-pulse rounded-lg bg-foreground/5" /> : hover ? <Player {...common} autoPlay loop /> : <Thumbnail {...common} frameToDisplay={still} />}
-      </div>
-      <span className="truncate px-1 text-sm font-medium">{template.name}</span>
+    <button type="button" onClick={onOpen} onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)} aria-label={template.name} className="relative aspect-9/16 w-[300px] overflow-hidden rounded-2xl bg-black shadow-sm transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+      {data === undefined ? <div className="absolute inset-0 animate-pulse bg-foreground/10" /> : hover ? <Player {...common} autoPlay loop /> : <Thumbnail {...common} frameToDisplay={still} />}
     </button>
   )
 }
