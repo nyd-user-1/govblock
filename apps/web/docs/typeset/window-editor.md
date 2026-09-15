@@ -8,9 +8,55 @@ Report to the lead (govblock-93). Newest milestone first. Brief:
 | Item | State |
 |---|---|
 | 1. Editing on the XML view | built, 8c1064f and 9917996; routes verified; typing in a browser is Brendan's |
-| 2. Mount from the server's HTML | started |
-| 3. Typeset's URLs, then the flip | not started |
+| 2. Mount from the server's HTML | built, ee72f68; measured |
+| 3. Typeset's URLs, then the flip | started; the flip held for the lead |
 | 4. The block view | not started |
+
+## Milestone 2 — the reader mounts on the server's HTML (2026-09-15 04:10 EDT, ee72f68)
+
+### Built
+
+- The read-only reader builds its editor from the first paint the server
+  already sent (`content` is the snapshot's HTML), so a reader who only reads
+  never fetches the ProseMirror JSON. The JSON arrives when editing begins, in
+  the fork's payload. A reader with no first paint fetches the JSON as before.
+- The carry from item 1 still holds. The HTML parses back to the stored
+  document position for position, so the reader's steps land on the fork's
+  base unchanged.
+
+### Measured, H.R. 6644's XML view (`/workspace/typeset/bill/2058568/xml`)
+
+The browser numbers came from one headless Chromium on the Mac against 3001,
+on the lead's word, reading only `[data-xml-reader]`'s two attributes, two
+loads each (`scratchpad/mount-ms.mjs`). No screenshots, nothing clicked.
+Milliseconds from the reader's first render:
+
+| | JSON fetched and parsed (`data-json-ms`) | Editor mounted (`data-mount-ms`) | Page request to mount |
+|---|---|---|---|
+| Before (8c1064f), first load | 2,991 | 3,813 | 7,584 |
+| Before, second load | 821 | 1,681 | 7,016 |
+| After (ee72f68), first load | not fetched | 1,108 | 6,790 |
+| After, second load | not fetched | 1,092 | 5,428 |
+
+The editor holds the document about 590 ms sooner on a warm load and 2.7 s
+sooner on a cold one, and 1.06 MB of JSON (158 KB gzipped) is no longer sent
+to a reader who only reads.
+
+Node proxy over the same document (`scratchpad/rt-check.mjs`, the schema and
+converters bundled with esbuild), five runs each:
+
+- `JSON.parse` + `nodeFromJSON`: 19–21 ms. HTML through linkedom and the
+  schema's parse rules: 381–412 ms. linkedom is far slower than a browser's
+  own parser, so this proxy says little about the browser and the table above
+  is the measure. The JSON path's real cost was the fetch.
+- Round trip, JSON → HTML → document: content size 310,786 both ways, text
+  equal, 14,644 nodes at the same positions. The only differences are 2,094
+  nodes without GPO's random `id` attribute, which the HTML leaves out on
+  purpose.
+
+### Files
+
+`apps/web/components/workspace/typeset-xml-reader.tsx`.
 
 ## Milestone 1 — editing on the XML view (2026-09-15 03:55 EDT, 8c1064f, 9917996)
 
