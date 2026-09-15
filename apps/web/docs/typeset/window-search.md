@@ -6,8 +6,66 @@ Report to the lead (govblock-93). Newest milestone first.
 
 1. Search: done, a7f1e22 and fe0043e.
 2. Comments that save: done, fdd11ff, 65cf6ce, bd29e0d; not yet tried in a browser.
-3. ⌘J and Ask AI: in progress.
-4. A section sidebar for the Library: not started.
+3. ⌘J and Ask AI: done, d5754d8, 73f860f, 420b978; not yet tried in a browser.
+4. A section sidebar for the Library: in progress.
+
+## Milestone 3 — ⌘J and Ask AI, Plate's way (2026-09-15)
+
+### Built
+
+- **The box** (`components/workspace/typeset-ai-menu.tsx`), Plate's AI menu in
+  shape: "Ask AI anything…" over a list, under the text it was asked about.
+  - **⌘J** opens it under the paragraph at the cursor (the caret a click
+    leaves, else where the pointer last pressed, else the top of the view),
+    about the unit holding it: Explain this section, Summarize, Say it
+    plainly, Comment, Continue drafting.
+  - **Ask AI**, the selection toolbar's first button, opens it under the
+    selected words: Improve the wording, Make shorter, Make longer, Fix
+    spelling and grammar, Comment.
+  - Words typed in the box and Enter ask them as a question; typed words then
+    an item add to its instruction.
+  - The answer streams into the box, with Stop (Esc). After it: Keep as a
+    comment (a Comment answer, where the view keeps comments), Replace
+    selection and Insert below (only where the text is editable), Copy, Try
+    again, Discard.
+- **The route**: every item calls `/api/agents/chat` for the **Drafter**
+  (`lib/agents/registry.ts`), a tool-less agent on Sonnet in a new
+  `DESK_AGENTS` list that `agent()` also reads, so /agents shows no new card.
+  It is sent the unit's number, heading and identifier, its text (up to
+  12,000 characters), the selected words, and the instruction. Nothing is
+  asked until an item is pressed.
+- **Where**: the XML reader, through the comments layer already mounted
+  (`typeset-xml-comments.tsx`); the Fork editor, through `AiLayer`, two lines in
+  `typeset-fork.tsx` added with typeset-editor's word. `@` and `/` on the
+  read-only readers stay held.
+
+### Verified
+
+- The Drafter on 3001 through `/api/agents/chat`, with N.Y. Agriculture and
+  Markets § 258-m: "Explain this section" answered in 5.2 s (four bullets,
+  and a note that "marketing area" and "representative period" are defined
+  elsewhere); "Make shorter" on subdivision 2 answered in 1.2 s with only the
+  replacement sentence. A first answer opened "Here is what it does:", closed
+  "In short" and named "the Commissioner of Agriculture" where the text says
+  "the commissioner"; the prompt now forbids all three, and the second answer
+  kept to it.
+- `/workspace/typeset/bill/2058568/xml` and `/workspace/typeset/fork/168`
+  answer 200 on 3001. Bounded type check over every touched file: 0.
+
+### Open
+
+- **Not tried in a browser**: the box's placement, ⌘J's unit, the streaming,
+  Replace selection and Insert below in the Fork editor.
+- Chrome binds ⌘J to Downloads; the page takes it while the reader has focus,
+  as Plate's did.
+- The Plate view keeps Plate's own AI menu, which still calls
+  `/api/ai/command`.
+
+### Files
+
+- `apps/web/components/workspace/typeset-ai-menu.tsx`, `typeset-units.ts` (the unit around a position, shared with comments)
+- `apps/web/components/workspace/typeset-xml-comments.tsx` (Ask AI in its toolbar), `typeset-fork.tsx` (two lines)
+- `apps/web/lib/agents/registry.ts` (the Drafter)
 
 ## Milestone 2 — comments that save (2026-09-15)
 
