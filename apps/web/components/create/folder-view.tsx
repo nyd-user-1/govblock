@@ -149,9 +149,9 @@ function columnsFor(node: Node, state: string, onGo: (go: Target) => void): Colu
     case "forks":
       return [
         { key: "bill", label: "Bill", className: "w-36", cell: (r) => name(r, true) },
-        { key: "title", label: "Forked from", cell: (r) => muted(r.record?.kind === "fork" ? `${stateName(r.record.fork.state)}${r.record.fork.session_id ? ` · ${r.record.fork.session_id}` : ""} — ${truncate(r.record.fork.title ?? "", 90)}` : "") },
+        { key: "title", label: "Copied from", cell: (r) => muted(r.record?.kind === "fork" && r.record.fork.work ? `${r.record.fork.base_work}@${r.record.fork.base_expression}` : r.record?.kind === "fork" ? `${stateName(r.record.fork.state)}${r.record.fork.session_id ? ` · ${r.record.fork.session_id}` : ""} — ${truncate(r.record.fork.title ?? "", 90)}` : "") },
         { key: "commits", label: "Commits", className: `w-24 ${right}`, cell: (r) => muted(fmtNumber(r.count ?? 0)) },
-        { key: "date", label: "Forked", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
+        { key: "date", label: "Created", className: `w-36 ${right}`, cell: (r) => muted(r.date ? ago(r.date) : "—") },
       ]
     case "committees":
       return [
@@ -354,8 +354,8 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                   media: row.avatar.kind === "folder" ? <FolderIcon className="size-12 text-muted-foreground" /> : <RowAvatar avatar={row.avatar} size={96} />,
                   title: row.name,
                   meta: [row.count != null ? `${fmtNumber(row.count)} items` : null, row.date ? fmtDate(row.date) : null].filter(Boolean).join(" · "),
-                  onOpen: () => onGo(row.go),
-                  menu: <DropdownMenuItem onClick={() => onGo(row.go)}>Open</DropdownMenuItem>,
+                  onOpen: () => (row.href ? router.push(row.href) : onGo(row.go)),
+                  menu: <DropdownMenuItem onClick={() => (row.href ? router.push(row.href) : onGo(row.go))}>Open</DropdownMenuItem>,
                 }
               })}
             />
@@ -383,7 +383,7 @@ export function FolderView({ node, scope, look, scopeKey, scroller, onScrolled, 
                   </TableRow>
                 )}
                 {rows.map((row) => (
-                  <TableRow key={row.key} className="group/row cursor-pointer" onClick={() => onGo(row.go)}>
+                  <TableRow key={row.key} className="group/row cursor-pointer" onClick={() => (row.href ? router.push(row.href) : onGo(row.go))}>
                     {columns.map((c, index) => (
                       <TableCell key={c.key} className={cn("max-w-0", c.className)}>
                         {index === 0 ? (

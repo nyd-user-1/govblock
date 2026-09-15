@@ -1,0 +1,15 @@
+{
+  "job": "lv-xml-nightly",
+  "repo": "govblock",
+  "cadence": "nightly",
+  "enabled": false,
+  "heap_mb": 8192,
+  "steps": [
+    "node scripts/xml/nightly.mjs"
+  ],
+  "_install": "Copy this file to livingston ops/box/jobs.d/ beside lv-text-delta.json, which is where the worker box reads its nightly manifest. It runs from a govblock checkout on feature/legislative-xml (main after the merge), with apps/web/.env.local for the cluster ARNs and an instance role that can PutObject under s3://govblock-lake-638175140432/lake/v1/xml/ and call rds-data on aurora-2525. Set enabled to true once the worker box has that checkout.",
+  "_why": "The XML Expression of every bill and statute is only as current as its last compile. The text delta and the law loaders write Aurora every night; without this step the XML store would be a snapshot of 2026-09-14 while the site's own text moved on, and the Ingestion page would have no last night to show.",
+  "_order": "Filename order puts it after lv-text-delta and lv-refresh-matviews, and after is where it belongs: it compiles what those wrote. It asks Aurora what changed since the last nightly run began (\"BillTexts\".fetched_at, \"Laws\".fetched_at), so a night it runs early or is missed costs a delay, not a hole: the next run's window starts where the last one did.",
+  "_what": "The current Congress re-read from GovInfo's bulk zips (unchanged printings are skipped by source hash, 21,640 in about 30 s); a delta job per state with printings fetched since the last run, read from \"BillTexts\" and dated by BillHistory; a statute job per law \"Laws\" rewrote. A changed source becomes a new Expression; an unchanged one costs a seen_at touch. Every job carries run = nightly-<date>, and the controller drains only those.",
+  "_cost": "A normal night is the text delta's 1,500 printings at most, a few laws, and the current Congress: minutes, a few thousand S3 PUTs (cents)."
+}

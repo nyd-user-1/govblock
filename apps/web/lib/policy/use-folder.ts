@@ -41,6 +41,8 @@ export type Row = {
   kind: "folder" | "file"
   /** What clicking writes into the URL. */
   go: Target
+  /** A page outside the data workspace that clicking opens instead: a fork of a published unit opens in Typeset. */
+  href?: string
   description?: string | null
   date?: string | null
   count?: number | null
@@ -264,7 +266,22 @@ export function useFolder(node: Node, scope: Scope): Folder {
       }
       case "forks":
         return {
-          rows: forks.map((f) => ({
+          rows: forks.map((f): Row =>
+            // A fork of a published unit: its unit's name, opening in the Fork view (window 5).
+            f.work
+              ? {
+                  key: `forks/${f.id}`,
+                  name: f.label ?? f.work,
+                  kind: "file",
+                  go: {},
+                  href: `/workspace/typeset/fork/${f.id}`,
+                  description: f.title ?? f.work,
+                  date: f.created_at,
+                  count: f.commits,
+                  avatar: { kind: "seal", state: f.state, chamber: null },
+                  record: { kind: "fork", fork: f },
+                }
+              : {
             key: `forks/${f.id}`,
             name: f.bill_number ? billCitation(f.bill_number, f.state) : `Bill ${f.bill_id}`,
             kind: "file" as const,
@@ -274,7 +291,7 @@ export function useFolder(node: Node, scope: Scope): Folder {
             count: f.commits,
             avatar: { kind: "seal" as const, state: f.state, chamber: null },
             record: { kind: "fork" as const, fork: f },
-          })),
+          }),
           total: forks.length,
           loading: forksLoading,
           done: true,

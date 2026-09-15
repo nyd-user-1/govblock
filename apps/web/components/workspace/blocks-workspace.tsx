@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { BarChart3Icon, FileTextIcon, HomeIcon, LayoutDashboardIcon, LayoutGridIcon } from "lucide-react"
 
+import { ManualFetchProvider, RefreshButton } from "@/lib/policy/manual-fetch"
 import { useScope, type ScopeKey } from "@/lib/policy/scope"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { readSort, sortRows } from "@/lib/workspace/sort"
@@ -156,8 +157,17 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
   )
 
   const crumbs = block ? [APP_CRUMB, { label: "Blocks", go: { at: "root" } }, { label: block.title }] : [APP_CRUMB, { label: "Blocks" }]
+  // The blocks read the policy API only on the footer's refresh (Brendan,
+  // 2026-09-14): a page of live blocks left open asked for nothing.
   const stage = (
-    <ShellFooterProvider footer={<WorkspaceFooter mode="blocks" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((o) => !o)} />}>
+    <ManualFetchProvider>
+    <ShellFooterProvider
+      footer={
+        <WorkspaceFooter mode="blocks" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((o) => !o)}>
+          <RefreshButton variant="ghost" />
+        </WorkspaceFooter>
+      }
+    >
       <BlockShell defaultOpen={false} rail={<BlocksRail />} title={<PathBar crumbs={crumbs} folder={!block} onGo={home} />} actions={block ? undefined : toggleFor(look, setLook)} contentClassName="overflow-y-auto bg-muted dark:bg-background">
         <DemoBillProvider>
           {block ? (
@@ -172,6 +182,7 @@ function BlocksWorkspaceInner({ slug }: { slug?: string }) {
         </DemoBillProvider>
       </BlockShell>
     </ShellFooterProvider>
+    </ManualFetchProvider>
   )
 
   return (

@@ -2,16 +2,13 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
-import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleUserRoundIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
+import { ArrowUpIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, FileTextIcon, PanelLeftIcon, SearchIcon, SettingsIcon } from "lucide-react"
 
 import { fmtDate, fmtNumber, truncate } from "@/lib/format"
 import { dateOfRecord } from "@/lib/policy/date-of-record"
 import { useDocPref } from "@/lib/policy/doc-prefs"
-import { claimCheck } from "@/lib/agents/claim-check"
-import { handleFor } from "@/lib/policy/handle"
 import { lineDiff } from "@/lib/policy/line-diff"
 import type { Bill } from "@/lib/policy/types"
-import { ago } from "@/components/create/timeline"
 import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { DiffView, type DiffComment, type LineRef } from "@/components/policy/diff-view"
 import { FlagChip } from "@/components/policy/imagery"
@@ -31,14 +28,12 @@ import { cn } from "@govblock/ui/lib/utils"
 // its right end, then every version as a collapsible section, newest
 // first, each a diff against the version before it.
 //
-// Two kinds of section. An official version wears the jurisdiction's flag.
-// A version someone proposed in a fork sits indented under the official
-// version it changes, with an avatar and the author's handle, so the
-// boundary between the record and what people made of it is always
-// visible; the gear can hide the proposed ones for a clean look at the
-// official diffs. Every text is fetched, because the bar on a closed section
-// needs the count; the counts are computed one at a time when the browser
-// is idle, and the diff inside a section is built only when it is opened.
+// The versions are the legislature's printings and nothing else, each
+// wearing the jurisdiction's flag. A reader's forks and commits never appear
+// in the official record (window 5, 2026-09-14): they live in My Files. Every
+// text is fetched, because the bar on a closed section needs the count; the
+// counts are computed one at a time when the browser is idle, and the diff
+// inside a section is built only when it is opened.
 
 type Stats = { added: number; deleted: number }
 
@@ -127,7 +122,7 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
   }, [])
   React.useEffect(() => {
     for (const v of versions) {
-      if (v.commit || asked.current.has(v.document_id)) continue
+      if (asked.current.has(v.document_id)) continue
       asked.current.add(v.document_id)
       void fetch(`/api/policy/text?state=${state}&id=${billId}&document=${v.document_id}`)
         .then((r) => (r.ok ? (r.json() as Promise<{ text?: string }>) : null))
@@ -135,7 +130,7 @@ function useTexts(state: string, billId: number, versions: TextVersion[]) {
         .catch(() => mounted.current && setTexts((t) => ({ ...t, [v.document_id]: "" })))
     }
   }, [state, billId, versions])
-  return React.useMemo<Record<number, string>>(() => ({ ...texts, ...Object.fromEntries(versions.filter((v) => v.commit).map((v) => [v.document_id, v.commit!.text])) }), [texts, versions])
+  return texts
 }
 
 /** Line counts per version, computed one at a time while the browser is idle — a million-character act diffs in the background, not on the click. */
@@ -176,83 +171,58 @@ function VersionDiff({ state, billId, documentId, before, after, split, query, c
   return <DiffView before={before} after={after} layout={split ? "split" : "unified"} query={query} anchor={`diff-${documentId}-`} comments={comments} onComment={add} onDeleteComment={remove} compact={compact} hideComments={hideComments} ignoreWhitespace={ignoreWhitespace} reflow={reflow} />
 }
 
-/** The official version a commit changes: its document parent, or the nearest official ancestor through commit parents. */
-function officialParentOf(v: TextVersion, versions: TextVersion[]): number | null {
-  let cur: TextVersion | undefined = v
-  for (let i = 0; i < 50 && cur?.commit; i++) {
-    if (cur.commit.parent_document_id) return cur.commit.parent_document_id
-    const pid: number | null | undefined = cur.commit.parent_commit_id
-    cur = pid ? versions.find((x) => x.commit?.id === pid) : undefined
-  }
-  return null
-}
-
 export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: { state: string; bill: Bill; /** Newest first. */ versions: TextVersion[]; doc: number | null; onDoc: (documentId: number) => void; onOpenText: (documentId: number) => void }) {
-  const texts = useTexts(state, bill.bill_id, versions)
+  // The official record only: a version a fork committed is never among them.
+  const official = React.useMemo(() => versions.filter((v) => !v.commit), [versions])
+  const texts = useTexts(state, bill.bill_id, official)
   const [splitPicked, setSplit] = useDocPref<boolean | null>("split", null)
   const split = splitPicked ?? false
   const [hideComments, setHideComments] = useDocPref("minimize-comments", false)
   const [ignoreWhitespace, setIgnoreWhitespace] = useDocPref("hide-whitespace", false)
   const [compact, setCompact] = useDocPref("compact", false)
-  const [hideProposed, setHideProposed] = useDocPref("hide-proposed", false)
   // On by default: a version is a fresh setting of the text, and its lines
   // break in new places. Off, the diff is line by line, as GitHub's is.
   const [reflow, setReflow] = useDocPref("reflow", true)
   const { toggleSidebar } = useSidebar()
-  const [me, setMe] = React.useState<string | null>(null)
-  React.useEffect(() => setMe(claimCheck()), [])
   const [query, setQuery] = React.useState("")
   const [copied, setCopied] = React.useState<number | null>(null)
   const scroller = React.useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = React.useState(false)
 
-  const official = React.useMemo(() => versions.filter((v) => !v.commit), [versions])
-  const proposed = React.useMemo(() => versions.filter((v) => v.commit), [versions])
-  const picked = versions.find((v) => v.document_id === doc) ?? official[0] ?? versions[0]
+  const picked = official.find((v) => v.document_id === doc) ?? official[0]
   const [openPicked, setOpen] = React.useState<Record<number, boolean>>({})
   const isOpen = (id: number) => openPicked[id] ?? id === picked?.document_id
 
-  // What each version is diffed against: an official version against the
-  // official one before it; a proposed version against its own parent.
-  const baseOf = React.useCallback(
-    (v: TextVersion): TextVersion | undefined => {
-      if (v.commit) {
-        if (v.commit.parent_commit_id) return versions.find((x) => x.commit?.id === v.commit!.parent_commit_id)
-        if (v.commit.parent_document_id) return versions.find((x) => x.document_id === v.commit!.parent_document_id)
-        return undefined
-      }
-      return official[official.findIndex((x) => x.document_id === v.document_id) + 1]
-    },
-    [versions, official]
-  )
+  // Each version is diffed against the one before it.
+  const baseOf = React.useCallback((v: TextVersion): TextVersion | undefined => official[official.findIndex((x) => x.document_id === v.document_id) + 1], [official])
 
   const pairs = React.useMemo(
     () =>
-      versions.map((v) => {
+      official.map((v) => {
         const base = baseOf(v)
         const after = texts[v.document_id] ?? null
         const before = base ? (texts[base.document_id] ?? null) : ""
         return { id: v.document_id, before, after, reflow }
       }),
-    [versions, texts, baseOf, reflow]
+    [official, texts, baseOf, reflow]
   )
   const statsOf = useIdleStats(pairs)
 
   const nth = (v: TextVersion) => String(official.length - official.findIndex((x) => x.document_id === v.document_id)).padStart(2, "0")
-  const label = (v: TextVersion) => (v.commit ? v.commit.message.toLowerCase() : `${(v.version ?? "original").toLowerCase()} ${nth(v)}`)
+  const label = (v: TextVersion) => `${(v.version ?? "original").toLowerCase()} ${nth(v)}`
 
   if (!picked) return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {fmtBill(bill.bill_number, bill.state)} yet.</p>
   const pickedStats = statsOf[picked.document_id]
-  const pickedDate = picked.commit ? null : dateOfRecord(picked, bill)
+  const pickedDate = dateOfRecord(picked, bill)
 
-  const section = (v: TextVersion, nested: boolean) => {
+  const section = (v: TextVersion) => {
     const open = isOpen(v.document_id)
     const base = baseOf(v)
     const text = texts[v.document_id]
     const before = base ? texts[base.document_id] : ""
     const s = statsOf[v.document_id]
     return (
-      <section key={v.document_id} data-open={open} className={cn("overflow-hidden rounded-lg border", nested && "ml-12")}>
+      <section key={v.document_id} data-open={open} className="overflow-hidden rounded-lg border">
         <div className="flex items-center gap-2 bg-muted/40 px-3 py-2">
           <button
             type="button"
@@ -263,7 +233,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             }}
             className="flex min-w-0 items-center gap-2 text-sm hover:underline"
           >
-            {v.commit ? <CircleUserRoundIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden /> : <FlagChip state={state} />}
+            <FlagChip state={state} />
             {open ? <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" /> : <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />}
             <span className="truncate font-mono">{label(v)}</span>
           </button>
@@ -301,17 +271,7 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             )}
           </div>
         )}
-        {!open && (
-          <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-            {v.commit ? (
-              <>
-                <span className="font-mono text-primary">{v.commit.owner ? handleFor(v.commit.owner, me) : v.commit.author}</span> · {truncate(bill.title, 80)}
-              </>
-            ) : (
-              `${bill.session_title ?? ""}${bill.session_title ? " · " : ""}${truncate(bill.title, 80)}`
-            )}
-          </div>
-        )}
+        {!open && <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">{`${bill.session_title ?? ""}${bill.session_title ? " · " : ""}${truncate(bill.title, 80)}`}</div>}
       </section>
     )
   }
@@ -323,17 +283,16 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         <div className="mb-3 rounded-lg border">
           <div className="px-4 py-3">
             <h2 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold">
-              <span className="min-w-0">{picked.commit ? picked.commit.message : `${picked.version ?? "Original"}: ${fmtBill(bill.bill_number, bill.state)} — ${bill.title}`}</span>
-              <span className="rounded bg-muted px-1.5 font-mono text-base font-medium">{picked.commit ? `commit ${picked.commit.id}` : `Version ${nth(picked)}`}</span>
+              <span className="min-w-0">{`${picked.version ?? "Original"}: ${fmtBill(bill.bill_number, bill.state)} — ${bill.title}`}</span>
+              <span className="rounded bg-muted px-1.5 font-mono text-base font-medium">{`Version ${nth(picked)}`}</span>
             </h2>
-            {picked.commit ? picked.commit.description && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{picked.commit.description}</p> : bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
+            {bill.description && bill.description !== bill.title && <p className="mt-2 max-w-3xl font-mono text-xs whitespace-pre-wrap text-muted-foreground">{bill.description}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-2 text-xs text-muted-foreground">
-            <span>{picked.commit ? `${picked.commit.owner ? handleFor(picked.commit.owner, me) : picked.commit.author} committed ${ago(picked.fetched_at)}` : fmtDate(pickedDate) || "Date of record unknown"}</span>
+            <span>{fmtDate(pickedDate) || "Date of record unknown"}</span>
             <span className="ml-auto flex items-center gap-3">
               <span className="font-medium text-foreground">
                 {official.length} version{official.length === 1 ? "" : "s"}
-                {proposed.length ? ` · ${proposed.length} proposed` : ""}
               </span>
               {pickedStats && <DiffBar {...pickedStats} />}
             </span>
@@ -373,9 +332,6 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
             <DropdownMenuCheckboxItem checked={hideComments} onCheckedChange={(v) => setHideComments(!!v)}>
               Minimize comments
             </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem checked={hideProposed} onCheckedChange={(v) => setHideProposed(!!v)}>
-              Hide proposed versions
-            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem checked={reflow} onCheckedChange={(v) => setReflow(!!v)}>
               Ignore line wrapping
@@ -393,16 +349,8 @@ export function BillChanges({ state, bill, versions, doc, onDoc, onOpenText }: {
         </Button>
       </div>
 
-      {/* One section per official version, newest first; under each, what people proposed on it. */}
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 pb-6">
-        {official.map((v) => (
-          <React.Fragment key={v.document_id}>
-            {section(v, false)}
-            {!hideProposed && proposed.filter((p) => officialParentOf(p, versions) === v.document_id).map((p) => section(p, true))}
-          </React.Fragment>
-        ))}
-        {!hideProposed && proposed.filter((p) => officialParentOf(p, versions) === null).map((p) => section(p, true))}
-      </div>
+      {/* One section per official version, newest first. */}
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 pb-6">{official.map((v) => section(v))}</div>
       <p className="sr-only">{doc ? `Showing version ${doc}` : ""}</p>
     </div>
   )

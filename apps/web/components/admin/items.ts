@@ -19,6 +19,7 @@ import {
   UserCheckIcon,
   UsersIcon,
   VideoIcon,
+  WorkflowIcon,
 } from "lucide-react"
 
 // The Admin rail, entry for entry as paceui's Ultimate Dashboard lists it
@@ -44,6 +45,7 @@ export const ADMIN_MENU: MenuItem[] = [
   // were. Nothing else changes until he has been through them.
   { label: "Committee", page: "committee", tag: "trend" },
   { label: "Database", page: "database", tag: "trend" },
+  { label: "Compiler", page: "compiler", tag: "trend" },
   { label: "Finance", page: "finance", tag: "trend" },
   { label: "Member", page: "member" },
   { label: "Roll Call", page: "roll-call" },
@@ -56,6 +58,8 @@ export const ADMIN_MENU: MenuItem[] = [
   { label: "Traffic", icon: ActivityIcon, page: "traffic", tag: "trend" },
   { label: "Education", icon: GraduationCapIcon, page: "education", tag: "trend" },
   { label: "Crypto", icon: CoinsIcon, page: "crypto", tag: "trend" },
+  // The legislative XML program's monitor and the nightly run's controls (2026-09-14), not yet reviewed.
+  { label: "Ingestion", icon: WorkflowIcon, page: "ingestion", tag: "new" },
   // Skeleton left the rail on 2026-09-07: it is the loading state between dashboards now (app/workspace/dashboard/[...page]/loading.tsx), still at admin/skeleton by address.
   { label: "Apps", isTitle: true },
   { label: "Email", icon: MailIcon, page: "apps/email", tag: "coming-soon" },

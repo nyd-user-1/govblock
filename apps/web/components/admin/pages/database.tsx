@@ -9,6 +9,8 @@ import { stateName } from "@/lib/filters"
 import { num, useProvenance, useStates, type Provenance } from "@/components/admin/data"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
+import { TodoCard } from "@/components/admin/blocks/todo-card"
+import { UslmParseCard } from "@/components/admin/blocks/uslm-parse-card"
 import { ComponentActions } from "@/components/card-frame"
 import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -170,6 +172,10 @@ export function DatabasePage() {
       </div>
 
       <div className="mt-4 sm:mt-5">
+        <TodoCard />
+      </div>
+
+      <div className="mt-4 sm:mt-5">
         <Card>
           <CardHeader>
             <CardAnchor>Volume</CardAnchor>
@@ -326,6 +332,10 @@ export function DatabasePage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-4 sm:mt-5">
+        <UslmParseCard />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">

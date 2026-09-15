@@ -8,97 +8,14 @@
 // it can only ever be a wall of preformatted lines.
 //
 // No XML dependency: USLM is well-formed, so a small recursive reader is
-// enough and it costs nothing at install time.
+// enough and it costs nothing at install time. There is one such reader,
+// lib/xml/ir.ts's (2026-09-14): it decodes entities as it parses, so text
+// here is already plain words and is only escaped on the way out.
 
 import { esc } from "@/lib/policy/bill-html"
+import { find, kids, parseXml, text as plain, type IrChild as Child, type IrNode as Node } from "@/lib/xml/ir"
 
-type Node = { tag: string; attrs: Record<string, string>; children: Child[] }
-type Child = string | Node
-
-const VOID = /\/\s*>$/
-
-/** USLM, as a tree. Comments, the prolog and the doctype are skipped. */
-export function parseXml(xml: string): Node {
-  const src = xml
-    .replace(/<\?[\s\S]*?\?>/g, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<!DOCTYPE[^>[]*(\[[\s\S]*?\])?[^>]*>/g, "")
-  const root: Node = { tag: "#root", attrs: {}, children: [] }
-  const stack: Node[] = [root]
-  let i = 0
-  while (i < src.length) {
-    const lt = src.indexOf("<", i)
-    if (lt < 0) {
-      pushText(stack[stack.length - 1], src.slice(i))
-      break
-    }
-    if (lt > i) pushText(stack[stack.length - 1], src.slice(i, lt))
-    const gt = src.indexOf(">", lt)
-    if (gt < 0) break
-    const raw = src.slice(lt, gt + 1)
-    i = gt + 1
-    if (raw.startsWith("</")) {
-      const name = raw.slice(2, -1).trim()
-      for (let d = stack.length - 1; d > 0; d--) {
-        if (stack[d].tag === name) {
-          stack.length = d
-          break
-        }
-      }
-      continue
-    }
-    const m = /^<([A-Za-z_][\w:.-]*)([\s\S]*?)\/?>$/.exec(raw)
-    if (!m) continue
-    const node: Node = { tag: m[1], attrs: attrsOf(m[2]), children: [] }
-    stack[stack.length - 1].children.push(node)
-    if (!VOID.test(raw)) stack.push(node)
-  }
-  return root
-}
-
-function pushText(parent: Node, text: string) {
-  if (text) parent.children.push(text)
-}
-
-function attrsOf(rest: string) {
-  const attrs: Record<string, string> = {}
-  const re = /([\w:.-]+)\s*=\s*"([^"]*)"/g
-  let m: RegExpExecArray | null
-  while ((m = re.exec(rest))) attrs[m[1]] = m[2]
-  return attrs
-}
-
-const ENTITIES: Record<string, string> = {
-  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
-  mdash: "—", ndash: "–", ldquo: "“", rdquo: "”",
-  lsquo: "‘", rsquo: "’", hellip: "…", sect: "§",
-}
-
-function decode(text: string) {
-  return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (all, body: string) => {
-    if (body[0] === "#")
-      return String.fromCodePoint(
-        body[1] === "x" || body[1] === "X"
-          ? parseInt(body.slice(2), 16)
-          : parseInt(body.slice(1), 10)
-      )
-    return ENTITIES[body] ?? all
-  })
-}
-
-const find = (node: Node, tag: string) =>
-  node.children.find(
-    (c): c is Node => typeof c !== "string" && c.tag === tag
-  ) ?? null
-
-const kids = (node: Node) =>
-  node.children.filter((c): c is Node => typeof c !== "string")
-
-/** Everything under a node as one run of words, tags dropped. */
-function plain(node: Child): string {
-  if (typeof node === "string") return decode(node)
-  return node.children.map(plain).join("")
-}
+export { parseXml }
 
 const tidy = (text: string) => text.replace(/\s+/g, " ").trim()
 
@@ -106,7 +23,7 @@ const tidy = (text: string) => text.replace(/\s+/g, " ").trim()
 
 /** A <text> or <header>'s own markup, as the small set of tags a reader wants. */
 function inline(node: Child): string {
-  if (typeof node === "string") return esc(decode(node))
+  if (typeof node === "string") return esc(node)
   const inner = node.children.map(inline).join("")
   switch (node.tag) {
     case "quote":
@@ -328,8 +245,8 @@ export function plainTextHtml(text: string): string {
 
 const XML_URL = /\.xml($|\?)/i
 
-/** GovInfo's copy of a document, when the record points at one. */
-export async function fetchUslm(url: string | null | undefined) {
+/** GovInfo's XML for a document, as published, when the record points at one. The XML reader parses this itself. */
+export async function fetchUslmXml(url: string | null | undefined): Promise<string | null> {
   if (!url || !XML_URL.test(url)) return null
   try {
     const response = await fetch(url, {
@@ -339,9 +256,15 @@ export async function fetchUslm(url: string | null | undefined) {
       next: { revalidate: 86_400 },
     })
     if (!response.ok) return null
-    return uslmToHtml(await response.text())
+    return await response.text()
   } catch (error) {
     console.error("uslm: could not read", url, error)
     return null
   }
+}
+
+/** GovInfo's copy of a document, when the record points at one. */
+export async function fetchUslm(url: string | null | undefined) {
+  const xml = await fetchUslmXml(url)
+  return xml ? uslmToHtml(xml) : null
 }

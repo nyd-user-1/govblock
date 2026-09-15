@@ -2,6 +2,7 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, FolderOpenIcon, SearchIcon, XIcon } from "lucide-react"
 
 import { keyOf, locate, ROOT_FOLDERS, type Location, type Node, type Target } from "@/lib/create/path"
@@ -42,11 +43,13 @@ type TreeProps = { active: string; open: (key: string) => boolean; onToggle: (ke
 function Branch({ row, depth, tree }: { row: Row; depth: number; tree: TreeProps }) {
   const isOpen = row.kind === "folder" && tree.open(row.key)
   const active = tree.active === row.key || (tree.active.startsWith("committees/*/") && row.key.replace(/^committees\/[^/]*\//, "committees/*/") === tree.active)
+  const router = useRouter()
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={active}
         onClick={() => {
+          if (row.href) return router.push(row.href)
           tree.onGo(row.go)
           if (row.kind === "folder" && !isOpen) tree.onToggle(row.key)
         }}

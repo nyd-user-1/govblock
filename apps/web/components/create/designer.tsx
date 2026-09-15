@@ -258,7 +258,7 @@ function DesignerInner({ route }: { route?: DesignerRoute }) {
         out.push({ label: "Votes" })
         break
       case "forks":
-        out.push({ label: "Your forks" })
+        out.push({ label: "My Files" })
         break
       case "votes-month":
         out.push({ label: "Votes", go: listing("votes") }, { label: monthName(node.month) })

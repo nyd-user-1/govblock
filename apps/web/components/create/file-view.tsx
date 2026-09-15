@@ -75,7 +75,7 @@ type RollCallAnswer = {
 
 type MemberRecordAnswer = { sponsored: (BillRow & { role: number })[]; counts: { sponsored: number } }
 
-export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void }) {
+export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, onGo, toolbar, bare }: { node: Extract<Node, { kind: "bill" | "member" | "rollcall" }>; scope: Scope; design: Design; tab: string; doc: string; /** The reader's fork the bill is seen through, if any. */ fork: string; onTab: (tab: string) => void; onDoc: (documentId: number | null) => void; onGo: (go: Target) => void; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode; /** Under Typeset's own file row: no History row of its own. */ bare?: boolean }) {
   const { state, session } = scope
   const sessionTitle = useSessionTitle(state, session)
   const sessionParam = scope.filters.session ? session : undefined
@@ -121,7 +121,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     )
     // Duplicate to edit (Brendan, 2026-09-11): the pencil opens the editor
     // at once, with no fork screen in the way. The copy is the reader's
-    // fork, made here in the background or reused, and it lives in Your forks.
+    // fork, made here in the background or reused, and it lives in My Files.
     const duplicateToEdit = async () => {
       if (forkId) return onGo({ bill: String(node.id), tab: "edit", doc: doc || null })
       if (!bill) return
@@ -140,7 +140,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
     ]
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        {active !== "text" && active !== "edit" && active !== "fork" && (
+        {!bare && active !== "text" && active !== "edit" && active !== "fork" && (
           // No tab pills (Brendan, 2026-09-03: "we have duplicates of it"):
           // the file's name in the path bar returns to the text, the ⋯ menu
           // opens any view, and History has its button.
@@ -174,6 +174,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
               history={forkChip}
               related={related}
               onEdit={() => void duplicateToEdit()}
+              toolbar={toolbar}
               onOpenChanges={openChanges}
             />
           ) : (

@@ -20,7 +20,7 @@
 //   at=votes/2026-05               a month: Floor · Committee
 //   at=votes/2026-05/floor         that month's floor roll calls
 //   rollcall=1707303               one roll call: the tally and every position
-//   at=forks                       the reader's forks of bills, across jurisdictions
+//   at=my-files                    My Files: the reader's copies, across jurisdictions (at=forks still opens it)
 //   bill=…&fork=12                 a bill seen through the reader's fork: its commits on top
 //   at=admin, at=admin/logs, …    the Admin experience: paceui's dashboard, a page per rail entry
 //
@@ -54,9 +54,9 @@ export type Location = { at: string; committee: string; member: string; bill: st
 // member's name), which /create's query keys ignore.
 export type Target = Partial<Record<keyof Location | "session" | "chamber" | "tab" | "doc" | "fork" | "state" | "number" | "slug", string | null>>
 
-// Your forks first (Brendan, 2026-09-11): the reader's own copies sit above the legislature's record.
+// The reader's own copies first (Brendan, 2026-09-11), above the legislature's record: My Files since 2026-09-14.
 export const ROOT_FOLDERS = [
-  { key: "forks", label: "Your forks", go: { at: "forks" } as Target },
+  { key: "forks", label: "My Files", go: { at: "my-files" } as Target },
   { key: "bills", label: "Bills", go: { at: "bills" } as Target },
   { key: "committees", label: "Committees", go: { at: "committees" } as Target },
   { key: "members", label: "Members", go: { at: "members" } as Target },
@@ -78,6 +78,7 @@ export function locate(loc: Location): Node {
   switch (head) {
     case "sessions":
       return { kind: "sessions" }
+    case "my-files":
     case "forks":
       return { kind: "forks" }
     case "bills":

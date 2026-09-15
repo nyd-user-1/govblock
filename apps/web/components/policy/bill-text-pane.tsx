@@ -3,22 +3,17 @@
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, ExternalLinkIcon, HistoryIcon, PencilIcon, SearchIcon, SquareCodeIcon, XIcon } from "lucide-react"
 
-import { fmtNumber, truncate } from "@/lib/format"
+import { fmtNumber } from "@/lib/format"
 import { type BillLayout } from "@/lib/policy/bill-text-layout"
 import { FILE_ACTION, useDocPref, type FileAction } from "@/lib/policy/doc-prefs"
 import { usePolicy } from "@/lib/policy/use-policy"
 import type { CodeViewHandle, Match } from "@/components/policy/code-view"
-import { Button as Ny4Button } from "@govblock/ui/components/ny4/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
-import { Button } from "@govblock/ui/components/nova/button"
+import { FileRow, ResultsList, downloadText, resultsTitle, sizeOf, useScopedSearch, type Related, type SearchScope } from "@/components/policy/file-row"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { PaneAside } from "@/components/policy/pane-aside"
 import { VersionsList } from "@/components/policy/versions-aside"
 import { usePaneNoteSetter } from "@/lib/typeset/pane-note"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/nova/tooltip"
-import { cn } from "@govblock/ui/lib/utils"
 
 // A bill's text as a file: the file view GitHub gives a source file, put to a
 // bill. One view for every jurisdiction — CodeMirror, line numbers, left
@@ -37,6 +32,9 @@ import { cn } from "@govblock/ui/lib/utils"
 // the more-actions menu is in the block's header and talks to this pane
 // through `doc-prefs`.
 //
+// The row itself is file-row.tsx (2026-09-14), so Typeset's other views wear
+// it too; this pane wires it to CodeMirror.
+//
 // The search box is GitHub's: `/` focuses it, and focusing it drops a panel
 // with the scopes as qualifiers — bill:, session:, all: — a Related group the
 // host fills (companion bills, amendments), and the syntax tips. Mode, wrap
@@ -52,28 +50,9 @@ export type TextVersion = { document_id: number; version: string | null; chars: 
 
 export type PaneBill = { bill_id: number; bill_number: string; title: string; status_desc?: string | null; last_action_date?: string | null; committee?: string | null }
 
-/** A row in the search panel's Related group: a companion bill, an amendment. */
-export type Related = { label: string; action: string; onClick: () => void }
+export type { Related } from "@/components/policy/file-row"
 
-type SearchAnswer = {
-  bills: { bill_id: number; bill_number: string; title: string; status_desc: string | null; last_action_date: string | null; state: string }[]
-  texts: { bill_id: number; document_id: number; state: string; bill_number: string; title: string; snippet: string }[]
-}
-
-type Scope = "bill" | "session" | "all"
 type Panel = "outline" | "references" | "results" | "versions" | "related" | null
-
-// ts_headline marks matches with <b>; nothing else from the database is markup.
-const safeSnippet = (html: string) => html.replace(/<(?!\/?b>)/g, "&lt;")
-
-function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }))
-  const a = document.createElement("a")
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 export function BillTextPane({
   state,
@@ -88,6 +67,7 @@ export function BillTextPane({
   related,
   onEdit,
   onOpenChanges,
+  toolbar,
 }: {
   state: string
   session: number | null
@@ -108,38 +88,22 @@ export function BillTextPane({
   onEdit?: () => void
   /** What a version changed, from the versions aside. */
   onOpenChanges?: (documentId: number) => void
+  /** Drawn under the file row and over the text (Brendan, 2026-09-14): Typeset's rich-text toolbar. */
+  toolbar?: React.ReactNode
 }) {
   const [wrap] = useDocPref("wrap", true)
   const [fold] = useDocPref("fold", true)
   const [center] = useDocPref("center", false)
   const [query, setQuery] = React.useState("")
-  const [scope, setScope] = React.useState<Scope>("bill")
+  const [scope, setScope] = React.useState<SearchScope>("bill")
   const [panel, setPanel] = React.useState<Panel>(null)
   const [matches, setMatches] = React.useState<Match[]>([])
   const [layout, setLayout] = React.useState<BillLayout | null>(null)
-  const [results, setResults] = React.useState<{ q: string; scope: Scope; answer: SearchAnswer | null; loading: boolean } | null>(null)
-  const [copied, setCopied] = React.useState(false)
-  const [focused, setFocused] = React.useState(false)
   // The outline's hover lights the line it points at; a click keeps it lit.
   const [target, setTarget] = React.useState<number | null>(null)
   const [hover, setHover] = React.useState<number | null>(null)
   const highlight = hover ?? target
-  const [tips, setTips] = React.useState(false)
   const code = React.useRef<CodeViewHandle>(null)
-  const input = React.useRef<HTMLInputElement>(null)
-
-  // `/` focuses the search box, as on GitHub.
-  React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return
-      const t = e.target
-      if ((t instanceof HTMLElement && t.isContentEditable) || t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return
-      e.preventDefault()
-      input.current?.focus()
-    }
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
-  }, [])
 
   const shown = versions.find((v) => v.document_id === current) ?? versions[0]
 
@@ -147,14 +111,7 @@ export function BillTextPane({
   const text = shown?.commit?.text ?? doc?.text ?? null
   const rawHref = shown && !shown.commit ? `/api/policy/text?state=${state}&id=${bill.bill_id}&document=${shown.document_id}&format=raw` : "#"
 
-  // "256 lines (236 loc) · 13.7 KB", as GitHub sizes a file.
-  const size = React.useMemo(() => {
-    if (!text) return null
-    const lines = text.split("\n")
-    const loc = lines.filter((l) => l.trim()).length
-    const kb = new Blob([text]).size / 1024
-    return `${fmtNumber(lines.length)} lines (${fmtNumber(loc)} loc) · ${kb >= 100 ? Math.round(kb) : kb.toFixed(1)} KB`
-  }, [text])
+  const size = React.useMemo(() => sizeOf(text), [text])
   // In Typeset the size line goes to the workspace footer (Brendan, 2026-09-13).
   const setNote = usePaneNoteSetter()
   React.useEffect(() => {
@@ -165,22 +122,7 @@ export function BillTextPane({
 
   const outline = layout?.headings ?? []
 
-  React.useEffect(() => {
-    if (scope === "bill" || !query.trim()) return
-    const q = query.trim()
-    const params = new URLSearchParams({ q, state, limit: "20", text: "1" })
-    if (session) params.set("session", String(session))
-    if (scope === "all") params.set("all", "1")
-    const timer = window.setTimeout(() => {
-      setResults({ q, scope, answer: null, loading: true })
-      setPanel("results")
-      void fetch(`/api/policy/search?${params}`)
-        .then((r) => (r.ok ? (r.json() as Promise<SearchAnswer>) : null))
-        .then((answer) => setResults((r) => (r && r.q === q && r.scope === scope ? { ...r, answer, loading: false } : r)))
-        .catch(() => setResults((r) => (r && r.q === q ? { ...r, answer: null, loading: false } : r)))
-    }, 400)
-    return () => window.clearTimeout(timer)
-  }, [query, scope, state, session])
+  const results = useScopedSearch({ query, scope, state, session, onRun: () => setPanel("results") })
 
   const onMatches = React.useCallback((found: Match[]) => setMatches(found), [])
   const onLayout = React.useCallback((l: BillLayout) => setLayout(l), [])
@@ -197,7 +139,7 @@ export function BillTextPane({
   React.useEffect(() => {
     const on = (e: Event) => {
       const action = (e as CustomEvent<FileAction>).detail
-      if (action === "download" && text) download(fileName, text)
+      if (action === "download" && text) downloadText(fileName, text)
       if (action === "jump") {
         const answer = window.prompt("Jump to line")
         const line = Number(answer)
@@ -214,12 +156,7 @@ export function BillTextPane({
     else window.open(`/bills/${billId}?state=${state}`, "_blank", "noopener")
   }
 
-  const scopes: { value: Scope; label: string }[] = [
-    { value: "bill", label: "Search in this bill" },
-    { value: "session", label: "Search in this session" },
-    { value: "all", label: "Search all of govblock" },
-  ]
-  const qualifier = (s: Scope) => (s === "bill" ? `bill:${fmtBill(bill.bill_number, state)}` : s === "session" ? `session:${state}/${session ?? ""}` : "all:govblock")
+  const qualifiers = { bill: `bill:${fmtBill(bill.bill_number, state)}`, session: `session:${state}/${session ?? ""}`, all: "all:govblock" }
 
   if (!shown) {
     return <p className="py-16 text-center text-sm text-muted-foreground">No text on file for {fmtBill(bill.bill_number, state)} yet.</p>
@@ -227,184 +164,39 @@ export function BillTextPane({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Row two: GitHub's file toolbar, in its order. */}
-      <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2">
-        <div className="relative min-w-64 flex-1">
-          <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background pr-8 pl-2.5 text-sm focus-within:ring-1 focus-within:ring-ring">
-            <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="shrink-0 rounded bg-primary/10 px-1 font-mono text-xs text-primary">{qualifier(scope)}</span>
-            <input
-              ref={input}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                if (scope === "bill" && e.target.value.trim()) setPanel("references")
-              }}
-              onFocus={() => setFocused(true)}
-              onBlur={() => window.setTimeout(() => setFocused(false), 150)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setQuery("")
-                  input.current?.blur()
-                }
-                // Enter runs the search and puts the panel away, as GitHub's does.
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  setFocused(false)
-                  input.current?.blur()
-                  if (query.trim()) setPanel(scope === "bill" ? "references" : "results")
-                }
-                if (e.key === "Backspace" && !query && scope !== "bill") setScope("bill")
-              }}
-              placeholder={scope === "bill" ? "Find in this file…" : scope === "session" ? `Search ${sessionTitle || "this session"}…` : "Search every jurisdiction…"}
-              className="min-w-0 flex-1 bg-transparent outline-none"
-              aria-label="Search"
-            />
-          </div>
-          <button
-            type="button"
-            aria-label="Clear the search"
-            onClick={() => {
-              setQuery("")
-              setScope("bill")
-              setPanel((p) => (p === "references" || p === "results" ? null : p))
-            }}
-            className={cn("absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground", !query && scope === "bill" && "opacity-50")}
-          >
-            <XIcon className="size-3.5" />
-          </button>
-          {query.trim() && scope === "bill" && !focused && <span className="absolute top-1/2 right-8 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">{fmtNumber(references.length)}</span>}
-
-          {focused && (
-            <div className="absolute top-full left-0 z-30 mt-1 max-h-[70vh] w-full min-w-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg" onMouseDown={(e) => e.preventDefault()}>
-              <div className="py-1">
-                {scopes.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => {
-                      setScope(s.value)
-                      if (query.trim()) setPanel(s.value === "bill" ? "references" : "results")
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
-                  >
-                    <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">
-                      <span className="font-mono text-primary">{qualifier(s.value)}</span>
-                      {query.trim() && <span className="ml-1.5">{query.trim()}</span>}
-                    </span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">{s.label}</span>
-                  </button>
-                ))}
-              </div>
-              {related && related.length > 0 && (
-                <div className="border-t py-1">
-                  <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">Related</div>
-                  {related.slice(0, 3).map((r, i) => (
-                    <button key={`${r.label}-${r.action}-${i}`} type="button" onClick={r.onClick} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted">
-                      <span className="truncate font-mono">{r.label}</span>
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">{r.action}</span>
-                    </button>
-                  ))}
-                  {related.length > 3 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPanel("related")
-                        setFocused(false)
-                        input.current?.blur()
-                      }}
-                      className="flex w-full items-center px-3 py-1.5 text-left text-xs text-primary hover:underline"
-                    >
-                      See all {related.length} related bills
-                    </button>
-                  )}
-                </div>
-              )}
-              <div className="flex items-center justify-between border-t px-3 py-2 text-xs">
-                <button type="button" className="text-primary hover:underline" onClick={() => setTips((t) => !t)}>
-                  Search syntax tips
-                </button>
-                <a href="?at=inbox" className="text-primary hover:underline">
-                  Give feedback
-                </a>
-              </div>
-              {tips && (
-                <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-                  <p>
-                    <span className="font-mono text-primary">bill:</span> finds in this file. <span className="font-mono text-primary">session:</span> searches every bill of the session, text included. <span className="font-mono text-primary">all:</span> searches every jurisdiction. Backspace on an empty box narrows back to the file; Escape clears it.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        {!setNote && size && <span className="shrink-0 font-mono text-xs text-muted-foreground">{size}</span>}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {history}
-          <div className="flex items-center overflow-hidden rounded-md border" role="group" aria-label="Raw, copy, download">
-            <Button variant="ghost" size="sm" className="rounded-none px-2.5 font-medium" nativeButton={false} render={<a href={rawHref} target="_blank" rel="noreferrer" />}>
-              Raw
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="rounded-none border-l"
-              aria-label="Copy the text"
-              disabled={!text}
-              onClick={() => {
-                if (!text) return
-                void navigator.clipboard?.writeText(text)
-                setCopied(true)
-                window.setTimeout(() => setCopied(false), 1500)
-              }}
-            >
-              {copied ? <CheckIcon /> : <CopyIcon />}
-            </Button>
-            <Button variant="ghost" size="icon-sm" className="rounded-none border-l" aria-label="Download the text" disabled={!text} onClick={() => text && download(fileName, text)}>
-              <DownloadIcon />
-            </Button>
-          </div>
-          <div className="flex items-center overflow-hidden rounded-md border" role="group" aria-label="Edit">
-            {/* Duplicate to edit (Brendan, 2026-09-11): the pencil opens the reader's own copy in the editor at once. */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button variant="ghost" size="icon-sm" className="rounded-none" aria-label="Duplicate to edit" disabled={!onEdit || !text} onClick={onEdit}>
-                    <PencilIcon />
-                  </Button>
-                }
-              />
-              <TooltipContent side="top" sideOffset={6}>
-                Duplicate to edit
-              </TooltipContent>
-            </Tooltip>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Ny4Button variant="ghost" size="icon" className="size-7 rounded-none border-l" aria-label="More edit options">
-                  <ChevronDownIcon />
-                </Ny4Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={6} className="min-w-48 rounded-lg">
-                <DropdownMenuItem disabled={!onEdit || !text} onClick={onEdit}>
-                  <PencilIcon /> Duplicate to edit
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={`/bills/${bill.bill_id}?state=${state}`} target="_blank" rel="noreferrer">
-                    <ExternalLinkIcon /> Open the bill&apos;s page
-                  </a>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <Button variant="outline" size="icon-sm" aria-label={`Outline${outline.length ? ` · ${outline.length}` : ""}`} title={`Outline${outline.length ? ` · ${outline.length}` : ""}`} onClick={() => setPanel((p) => (p === "outline" ? null : "outline"))} data-active={panel === "outline"} className="data-[active=true]:bg-muted">
-            <SquareCodeIcon />
-          </Button>
-          <Button variant="ghost" size="sm" data-active={panel === "versions"} className="font-semibold data-[active=true]:bg-muted" onClick={() => setPanel((p) => (p === "versions" ? null : "versions"))}>
-            <HistoryIcon className="size-4" /> History
-          </Button>
-        </div>
-      </div>
+      <FileRow
+        qualifiers={qualifiers}
+        sessionTitle={sessionTitle}
+        query={query}
+        onQuery={(value) => {
+          setQuery(value)
+          if (scope === "bill" && value.trim()) setPanel("references")
+        }}
+        scope={scope}
+        onScope={setScope}
+        matchCount={references.length}
+        onSubmit={(s) => setPanel(s === "bill" ? "references" : "results")}
+        onClear={() => {
+          setQuery("")
+          setScope("bill")
+          setPanel((p) => (p === "references" || p === "results" ? null : p))
+        }}
+        related={related}
+        onSeeAllRelated={() => setPanel("related")}
+        size={setNote ? null : size}
+        history={history}
+        rawHref={rawHref}
+        text={text}
+        fileName={fileName}
+        onEdit={onEdit}
+        pageHref={`/bills/${bill.bill_id}?state=${state}`}
+        outlineCount={outline.length}
+        outlineOpen={panel === "outline"}
+        onOutline={() => setPanel((p) => (p === "outline" ? null : "outline"))}
+        historyOpen={panel === "versions"}
+        onHistory={() => setPanel((p) => (p === "versions" ? null : "versions"))}
+      />
+      {toolbar}
 
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
@@ -420,7 +212,7 @@ export function BillTextPane({
         </div>
 
         {panel && (
-          <PaneAside title={panel === "versions" ? `Versions · ${versions.length}` : panel === "related" ? `Related · ${related?.length ?? 0}` : panel === "outline" ? `Outline · ${outline.length}` : panel === "references" ? `${fmtNumber(references.length)} references` : results ? (results.loading ? "Searching…" : `Results · ${scopes.find((s) => s.value === results.scope)?.label}`) : "Results"} onClose={() => setPanel(null)}>
+          <PaneAside title={panel === "versions" ? `Versions · ${versions.length}` : panel === "related" ? `Related · ${related?.length ?? 0}` : panel === "outline" ? `Outline · ${outline.length}` : panel === "references" ? `${fmtNumber(references.length)} references` : resultsTitle(results)} onClose={() => setPanel(null)}>
               {panel === "versions" && <VersionsList versions={versions} current={current ?? shown?.document_id ?? null} onChoose={onChoose} onOpenChanges={onOpenChanges} />}
               {panel === "related" &&
                 (related?.length ? (
@@ -455,30 +247,7 @@ export function BillTextPane({
                 ) : (
                   <p className="px-3 py-4 text-xs text-muted-foreground">{query.trim() ? "No matches in this file." : "Type to find in this file."}</p>
                 ))}
-              {panel === "results" && results && (
-                <>
-                  {results.answer?.texts.map((t) => (
-                    <button key={`t-${t.document_id}`} type="button" onClick={() => openResult(t.bill_id, t.document_id)} className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs hover:bg-muted">
-                      <span className="flex items-center gap-2">
-                        <span className="font-mono font-medium">{fmtBill(t.bill_number, state)}</span>
-                        <span className="truncate text-muted-foreground">{truncate(t.title, 60)}</span>
-                        {results.scope === "all" && <span className="ml-auto shrink-0 text-muted-foreground">{t.state}</span>}
-                      </span>
-                      <span className="line-clamp-2 text-muted-foreground [&_b]:font-semibold [&_b]:text-foreground" dangerouslySetInnerHTML={{ __html: safeSnippet(t.snippet) }} />
-                    </button>
-                  ))}
-                  {results.answer?.bills
-                    .filter((b) => !results.answer?.texts.some((t) => t.bill_id === b.bill_id))
-                    .map((b) => (
-                      <button key={`b-${b.bill_id}`} type="button" onClick={() => openResult(b.bill_id)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted">
-                        <span className="font-mono font-medium">{b.bill_number}</span>
-                        <span className="truncate text-muted-foreground">{truncate(b.title, 70)}</span>
-                        {results.scope === "all" && <span className="ml-auto shrink-0 text-muted-foreground">{b.state}</span>}
-                      </button>
-                    ))}
-                  {!results.loading && !results.answer?.texts.length && !results.answer?.bills.length && <p className="px-3 py-4 text-xs text-muted-foreground">Nothing matches “{results.q}”.</p>}
-                </>
-              )}
+              {panel === "results" && results && <ResultsList results={results} state={state} onOpen={openResult} />}
           </PaneAside>
         )}
       </div>

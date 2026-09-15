@@ -1,0 +1,90 @@
+/* The XML view's page (window 1, 2026-09-14): a printing set the way the
+   printed bill sets it, from the element classes lib/xml/schema.ts writes.
+   The same rules draw the server's first paint and the editor after it. */
+
+.uslm-doc {
+  max-width: 50rem;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 8rem;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--foreground);
+}
+.uslm-doc .ProseMirror { outline: none; white-space: normal; }
+.uslm-doc p { margin: 0.3em 0; }
+
+/* Front matter */
+.uslm-preface { margin-bottom: 1.5rem; text-align: center; font-size: 0.8em; color: var(--muted-foreground); }
+.uslm-preface p { margin: 0.1em 0; }
+.uslm-longTitle { margin: 1.5rem 0; text-align: center; }
+.uslm-docTitle { font-size: 1.6em; font-weight: 600; }
+.uslm-officialTitle { font-style: italic; }
+.uslm-enactingFormula, .uslm-resolvingClause { margin: 1rem 0 2rem; font-style: italic; }
+
+/* Big levels: title, subtitle, division, chapter, part … centred over what they hold */
+.uslm-big { margin: 2.75rem 0 1rem; }
+.uslm-big > .uslm-num, .uslm-big > .uslm-heading { display: block; text-align: center; }
+.uslm-big > .uslm-num { font-size: 0.8em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted-foreground); }
+.uslm-big > .uslm-heading { margin-bottom: 1rem; font-size: 1.1em; font-weight: 600; }
+
+/* Sections: the number and catchline on their own line */
+.uslm-primary { margin: 1.75rem 0 0.6rem; }
+.uslm-primary > .uslm-num, .uslm-primary > .uslm-heading { font-weight: 700; }
+.uslm-primary > .uslm-heading { margin-left: 0.35em; }
+.uslm-primary > .uslm-num + .uslm-heading + *, .uslm-primary > .uslm-num + :not(.uslm-heading) { margin-top: 0.4em; }
+
+/* Small levels: indented by rank, the number, heading and first words on one line */
+.uslm-small, .uslm-generic { margin: 0.3em 0 0.3em 1.4em; }
+.uslm-small > .uslm-num, .uslm-generic > .uslm-num { font-weight: 600; margin-right: 0.35em; }
+.uslm-small > .uslm-heading, .uslm-generic > .uslm-heading { font-style: italic; margin-right: 0.35em; }
+.uslm-small > .uslm-num + .uslm-heading + :is(.uslm-content, .uslm-chapeau),
+.uslm-small > .uslm-num + :is(.uslm-content, .uslm-chapeau),
+.uslm-generic > .uslm-num + .uslm-heading + :is(.uslm-content, .uslm-chapeau),
+.uslm-generic > .uslm-num + :is(.uslm-content, .uslm-chapeau) { display: inline; }
+.uslm-small > .uslm-num + .uslm-heading + .uslm-content > :first-child,
+.uslm-small > .uslm-num + .uslm-content > :first-child,
+.uslm-generic > .uslm-num + .uslm-heading + .uslm-content > :first-child,
+.uslm-generic > .uslm-num + .uslm-content > :first-child { display: inline; }
+
+/* The Bill DTD prints "SEC." and the heading's dash; USLM 2 carries them in the text */
+.uslm-doc[data-dialect="bill-dtd"] .uslm-primary:not(.uslm-quotedContent .uslm-primary) > .uslm-num::before { content: "Sec. "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-quotedContent .uslm-primary > .uslm-num::before { content: "§ "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-primary > .uslm-heading::after { content: "."; }
+.uslm-doc[data-dialect="bill-dtd"] :is(.uslm-small, .uslm-generic) > .uslm-heading::after { content: ".—"; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-title > .uslm-num::before { content: "Title "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-subtitle > .uslm-num::before { content: "Subtitle "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-division > .uslm-num::before { content: "Division "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-chapter > .uslm-num::before { content: "Chapter "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-part > .uslm-num::before { content: "Part "; }
+.uslm-doc[data-dialect="bill-dtd"] .uslm-subpart > .uslm-num::before { content: "Subpart "; }
+
+.uslm-chapeau, .uslm-continuation, .uslm-proviso { margin: 0.3em 0; }
+.uslm-crossHeading { margin: 1.25em 0 0.5em; text-align: center; font-variant: small-caps; }
+
+/* A quoted amendment: the law being changed, set off from the bill's own words */
+.uslm-quotedContent { margin: 0.5em 0 0.5em 0.25em; padding-left: 1em; border-left: 2px solid var(--border); }
+.uslm-quotedContent > .uslm-continuation:last-child { margin-top: 0; }
+
+/* Tables of contents */
+.uslm-toc { margin: 0.5em 0 0.75em 1.4em; font-size: 0.92em; }
+.uslm-referenceItem { margin: 0.1em 0; }
+
+.uslm-note { margin: 1em 0; font-size: 0.85em; color: var(--muted-foreground); }
+.uslm-signatures { margin-top: 2.5rem; text-align: right; font-size: 0.9em; }
+.uslm-signatures p { margin: 0.1em 0; }
+
+.uslm-table { margin: 0.75em 0; border-collapse: collapse; font-size: 0.9em; }
+.uslm-table td, .uslm-table th { padding: 0.25em 0.5em; border: 1px solid var(--border); vertical-align: top; }
+
+/* Inline */
+.uslm-ref { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 30%, transparent); text-underline-offset: 2px; }
+.uslm-ref:hover { text-decoration-color: currentColor; }
+.uslm-term { font-style: normal; }
+.uslm-inline.smallCaps, .uslm-span.smallCaps { font-variant: small-caps; }
+.uslm-shortTitle, .uslm-headingText { font-style: normal; }
+.uslm-ins { text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--color-green-600, green) 60%, transparent); }
+.uslm-del { text-decoration: line-through; }
+.uslm-designator { display: inline-block; min-width: 4.5em; }
+
+/* A "* * *" gap a state front end marks in quoted law */
+.uslm-p[data-role="ellipsis"] { text-align: center; letter-spacing: 0.5em; color: var(--muted-foreground); }
