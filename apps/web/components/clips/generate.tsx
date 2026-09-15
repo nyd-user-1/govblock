@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { Player } from "@remotion/player"
 import { CheckIcon, LinkIcon, XIcon } from "lucide-react"
@@ -148,7 +149,7 @@ export function Generate({ onClose, onPosted, signedIn }: { onClose: () => void;
             autoPlay
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-white/70">{loading ? "Loading…" : error}</div>
+          <div className="flex h-full items-center justify-center text-sm text-white/70">{loading ? <LoadingFlag /> : error}</div>
         )}
       </div>
 

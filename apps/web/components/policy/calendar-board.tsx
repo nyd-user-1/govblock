@@ -2,6 +2,7 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { useRouter } from "next/navigation"
 
 import { stateName } from "@/lib/filters"
@@ -97,7 +98,7 @@ export function CalendarBoard({ look }: { look: Look }) {
     [rows, state, router]
   )
 
-  const empty = !rows.length && <p className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading…" : `Nothing calendared for ${stateName(state)}${search ? ` matching “${search}”` : ""}.`}</p>
+  const empty = !rows.length && <p className="py-10 text-center text-sm text-muted-foreground">{isLoading ? <LoadingFlag /> : `Nothing calendared for ${stateName(state)}${search ? ` matching “${search}”` : ""}.`}</p>
 
   return (
     <div className="flex flex-col gap-4 p-4">

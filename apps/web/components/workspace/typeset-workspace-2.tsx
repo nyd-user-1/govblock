@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { useRouter } from "next/navigation"
 import { FileTextIcon, FoldHorizontalIcon, GitCompareArrowsIcon, HistoryIcon, LockIcon, LockOpenIcon, SparklesIcon, UnfoldHorizontalIcon } from "lucide-react"
 
@@ -257,7 +258,8 @@ function DiffControls({ settings }: { settings: ReturnType<typeof useDiffSetting
 /** The Diff page: the open bill's printings compared, scrolling in the pane. */
 function DiffPane({ width, locked, filters }: { width: CompareWidth; locked: boolean; filters: Filters }) {
   const { data, error } = usePolicy<BillComparison>(filters.bill ? "bill-compare" : null, filters)
-  const note = !filters.bill ? "No bill is open." : error ? "The printings could not be loaded." : !data ? "Loading…" : data.passes.length ? null : "This bill has one printing, so there is nothing to compare."
+  const note = !filters.bill ? "No bill is open." : error ? "The printings could not be loaded." : !data ? "loading" : data.passes.length ? null : "This bill has one printing, so there is nothing to compare."
+  if (note === "loading") return <p className="p-8 text-sm text-muted-foreground"><LoadingFlag /></p>
   if (note) return <p className="p-8 text-sm text-muted-foreground">{note}</p>
   return <BillCompare {...data!} width={width} locked={locked} contained />
 }

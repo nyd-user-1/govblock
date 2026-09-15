@@ -2,6 +2,7 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { ChevronDown } from "lucide-react"
 
@@ -947,7 +948,7 @@ export function BillTextBlock({
 
   return (
     <FileBlock icon={<ChamberSeal state={state} chamber={chamber} size={16} />} title={fileName(billNumber, state, shown?.version)} menu={menu || undefined} text={() => body ?? ""} collapsed="data-[state=closed]:max-h-96">
-      {body ? <BillText text={body} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground">Loading that version…</p>}
+      {body ? <BillText text={body} /> : <p className="m-0 py-6 text-center text-sm text-muted-foreground"><LoadingFlag /></p>}
     </FileBlock>
   )
 }

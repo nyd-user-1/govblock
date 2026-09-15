@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { CheckIcon, XIcon } from "lucide-react"
 
 import { fmtBill, fmtNumber } from "@/lib/format"
@@ -148,7 +149,7 @@ function Chooser({ have, onAdd }: { have: (pin: WorkspacePin) => boolean; onAdd:
               </Row>
             )
           })}
-        {kind === "session" && !sessions && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground">Loading sessions…</li>}
+        {kind === "session" && !sessions && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground"><LoadingFlag width={28} /></li>}
         {kind === "bill" &&
           (found?.bills ?? []).map((b) => {
             const pin: WorkspacePin = { kind: "bill", state: chamber.state, chamber: b.body ?? chamber.chamber, session, billId: b.bill_id, number: b.bill_number, title: b.title }
@@ -161,7 +162,7 @@ function Chooser({ have, onAdd }: { have: (pin: WorkspacePin) => boolean; onAdd:
           })}
         {kind === "bill" && term.length < 2 && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground">Type a bill number or a few words of its title.</li>}
         {kind === "bill" && term.length >= 2 && found && !found.bills.length && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground">Nothing by that name in {sessionName(sessions?.find((s) => Number(s.session_id) === Number(session)) ?? { session_id: session ?? 0, bills: 0, title: "" })}.</li>}
-        {kind === "bill" && term.length >= 2 && !found && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground">Searching…</li>}
+        {kind === "bill" && term.length >= 2 && !found && <li className="m-0 px-3 py-2.5 text-sm text-muted-foreground"><LoadingFlag width={28} /></li>}
       </ul>
     </>
   )

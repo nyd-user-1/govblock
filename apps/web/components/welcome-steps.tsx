@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 
 import Link from "next/link"
 import { CheckIcon } from "lucide-react"
@@ -272,7 +273,7 @@ export function RepresentativesPreview({ form, point, onNext }: { form: Profile;
   return (
     <div className={BLOCK}>
       <PreviewHeading title="Your representatives" line={point ? `The elected representatives for ${form.zip ?? "your address"}.` : `Add a street address or ZIP and they appear here.`} />
-      {cards.length > 0 ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{cards}</div> : point ? <p className="text-sm text-muted-foreground">Finding them…</p> : null}
+      {cards.length > 0 ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{cards}</div> : point ? <p className="text-sm text-muted-foreground"><LoadingFlag /></p> : null}
       <NextLink onClick={onNext} />
     </div>
   )
@@ -288,7 +289,7 @@ export function DeskPreview({ form, onNext }: { form: Profile; onNext: () => voi
     <div className={BLOCK}>
       <PreviewHeading title={`Activated: ${name} Desk`} line="Every bill, committee, member, vote and more." />
       <div className="flex flex-col divide-y rounded-xl border bg-card">
-        {rows.length === 0 && <p className="p-4 text-sm text-muted-foreground">Loading {name}…</p>}
+        {rows.length === 0 && <p className="p-4 text-sm text-muted-foreground"><LoadingFlag /></p>}
         {rows.map((bill) => (
           <Link key={bill.bill_id} href={`/bills/${bill.bill_id}`} className="flex flex-col gap-1 p-4 no-underline hover:bg-accent/40">
             <span className="flex items-center gap-2 text-sm">

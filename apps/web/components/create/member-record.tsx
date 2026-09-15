@@ -2,6 +2,7 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts"
 
 import { partyName, stateName } from "@/lib/filters"
@@ -160,7 +161,7 @@ export function MemberRecord({ id, scope, label }: { id: number; scope: Scope; l
                 {!rows.length && (
                   <TableRow>
                     <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                      {isLoading ? "Loading…" : "Nothing on file."}
+                      {isLoading ? <LoadingFlag /> : "Nothing on file."}
                     </TableCell>
                   </TableRow>
                 )}

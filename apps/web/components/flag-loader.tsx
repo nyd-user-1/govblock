@@ -31,11 +31,11 @@ export function FlagLoader({ width = 96, className }: { width?: number; classNam
   }, [])
   const height = Math.round((width * 2) / 3)
   return (
-    <div role="status" aria-label="Loading" className={className} style={{ width, height, position: "relative" }}>
+    <span role="status" aria-label="Loading" className={className} style={{ display: "inline-block", verticalAlign: "middle", width, height, position: "relative" }}>
       {order.map((code, n) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={code} src={flagUrl(code)} alt="" width={width} height={height} decoding="async" className="absolute inset-0 rounded-[4px] object-cover ring-1 ring-foreground/10" style={{ width, height, visibility: n === i ? "visible" : "hidden" }} />
       ))}
-    </div>
+    </span>
   )
 }

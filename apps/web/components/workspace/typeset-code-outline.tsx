@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { ChevronRightIcon } from "lucide-react"
 
@@ -96,7 +97,7 @@ export function CodeOutlineGroup({ prefix, current = null }: { prefix: string; c
       <SidebarGroupLabel>Sections</SidebarGroupLabel>
       <SidebarGroupContent>
         {!items ? (
-          <p className="px-2 py-1 text-xs text-muted-foreground">{failed ? "The outline could not be read." : "Reading…"}</p>
+          <p className="px-2 py-1 text-xs text-muted-foreground">{failed ? "The outline could not be read." : <LoadingFlag width={28} />}</p>
         ) : tree.length ? (
           tree.map((node, i) => <OutlineNode key={`${node.item[1]}-${node.item[3] ?? i}`} node={node} current={current} depth={0} />)
         ) : (

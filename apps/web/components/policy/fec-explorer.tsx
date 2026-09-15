@@ -8,6 +8,7 @@
 // lib/policy/snapshot.
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts"
 import useSWR from "@/lib/policy/swr"
 
@@ -301,7 +302,7 @@ export function FecExplorer({ embedded = false }: { embedded?: boolean }) {
       <Card>
         <CardHeader>
           <CardTitle>Candidates</CardTitle>
-          <CardDescription>{meta ? `${fmtNumber(meta.matched)} matching · page ${page + 1} of ${Math.max(pages, 1)}` : "Loading…"}</CardDescription>
+          <CardDescription>{meta ? `${fmtNumber(meta.matched)} matching · page ${page + 1} of ${Math.max(pages, 1)}` : <LoadingFlag width={28} />}</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           <Table>
@@ -391,7 +392,7 @@ export function FecExplorer({ embedded = false }: { embedded?: boolean }) {
           <CardDescription>
             {manifest
               ? `${manifest.cycles.length} cycles · ${fmtNumber(manifest.totalRows)} rows · ${(manifest.totalBytes / 1024 / 1024).toFixed(1)} MB of Parquet · ${manifest.columns.length} columns · built ${new Date(manifest.builtAt).toLocaleString()}`
-              : "Reading the manifest…"}
+              : <LoadingFlag width={28} />}
           </CardDescription>
         </CardHeader>
         <CardContent>

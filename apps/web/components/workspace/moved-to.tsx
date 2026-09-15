@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { useRouter } from "next/navigation"
 
 // A retired address, sent to its workspace path with its query intact.
@@ -9,5 +10,5 @@ export function MovedTo({ path }: { path: string }) {
   React.useEffect(() => {
     router.replace(`${path}${window.location.search}`)
   }, [router, path])
-  return <div className="flex flex-1 items-center justify-center p-12 text-sm text-muted-foreground">Moving to the workspace…</div>
+  return <div className="flex flex-1 items-center justify-center p-12 text-sm text-muted-foreground"><LoadingFlag /></div>
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { EditorContent, Extension, useEditor, type Editor, type JSONContent } from "@tiptap/react"
 import { Plugin, type Transaction } from "@tiptap/pm/state"
@@ -358,7 +359,7 @@ export function TypesetXmlReader({
           </div>
         )}
         {!meta?.captured && !showEditor && snapshot && <div className="uslm-doc" data-dialect={dialect} data-typeset-snapshot dangerouslySetInnerHTML={{ __html: snapshot }} />}
-        {!meta?.captured && !showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : "Loading…"}</p>}
+        {!meta?.captured && !showEditor && !snapshot && <p className="p-8 text-sm text-muted-foreground">{failed ? "The XML of this printing could not be read." : <LoadingFlag />}</p>}
         <div className={cn("uslm-doc", (!showEditor || meta?.captured) && "hidden")} data-dialect={dialect}>
           <EditorContent editor={editor} />
         </div>

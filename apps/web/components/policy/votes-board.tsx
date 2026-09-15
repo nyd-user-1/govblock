@@ -2,6 +2,7 @@
 
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 
 import { stateName } from "@/lib/filters"
@@ -308,7 +309,7 @@ export function VotesBoard() {
       {!rows.length && (
         <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
           {isLoading
-            ? "Loading…"
+            ? <LoadingFlag />
             : `No roll calls for ${stateName(state)}${search ? ` matching “${search}”` : ""}.`}
         </p>
       )}

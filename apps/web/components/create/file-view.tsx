@@ -3,6 +3,7 @@
 import { typesetHref } from "@/lib/typeset/views"
 import { fmtBill } from "@/lib/format"
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { ExternalLinkIcon, GitForkIcon, HistoryIcon } from "lucide-react"
 
 import type { Node, Target } from "@/lib/create/path"
@@ -282,7 +283,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
               {!votes.length && (
                 <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                    {rollcall ? "No positions recorded for this roll call." : "Loading…"}
+                    {rollcall ? "No positions recorded for this roll call." : <LoadingFlag />}
                   </TableCell>
                 </TableRow>
               )}
@@ -354,7 +355,7 @@ export function FileView({ node, scope, design, tab, doc, fork, onTab, onDoc, on
                 {!sponsored?.sponsored.length && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                      {sponsored ? "No bills sponsored this session." : "Loading…"}
+                      {sponsored ? "No bills sponsored this session." : <LoadingFlag />}
                     </TableCell>
                   </TableRow>
                 )}

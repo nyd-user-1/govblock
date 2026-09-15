@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { SearchDirectory } from "@/components/directory-search"
@@ -198,7 +199,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
           phrase from a bill&rsquo;s text. {here} sorts first; every other jurisdiction follows.
         </p>
       ) : isLoading && !data ? (
-        <p className="text-sm text-muted-foreground">Searching every jurisdiction...</p>
+        <p className="text-sm text-muted-foreground"><LoadingFlag /></p>
       ) : total === 0 && held > 0 && isFiltered(filters) ? (
         <p className="text-sm text-muted-foreground">
           The filters hide everything found for &ldquo;{debounced.trim()}&rdquo;. Clear them in the rail.

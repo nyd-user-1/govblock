@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 
 import { memberHref, partyName, stateName } from "@/lib/filters"
 import { fmtNumber, honorific } from "@/lib/format"
@@ -141,7 +142,7 @@ export function ChamberBoard() {
       {!rows.length && (
         <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
           {isLoading
-            ? "Loading…"
+            ? <LoadingFlag />
             : `No members for ${stateName(state)}${search ? ` matching “${search}”` : ""}.`}
         </p>
       )}

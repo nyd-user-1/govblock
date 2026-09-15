@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { CheckIcon, CopyIcon } from "lucide-react"
 
 import { CONGRESS, STATE_CODES, stateName } from "@/lib/filters"
@@ -94,9 +95,9 @@ export function Studio({ initialState }: { initialState: string }) {
       <section className="flex min-h-[420px] flex-col gap-4 rounded-xl border bg-card p-6">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-base font-semibold">{CHARTS.find((c) => c.id === chart)?.title}</h2>
-          <span className="text-xs text-muted-foreground">{stats ? `${stats.name} · session ${stats.session}` : loading ? "Reading the record…" : ""}</span>
+          <span className="text-xs text-muted-foreground">{stats ? `${stats.name} · session ${stats.session}` : ""}</span>
         </div>
-        {stats ? <StateChart id={chart} stats={stats} /> : <p className="text-sm text-muted-foreground">{loading ? "One moment." : "Nothing on the record for this jurisdiction."}</p>}
+        {stats ? <StateChart id={chart} stats={stats} /> : <p className="text-sm text-muted-foreground">{loading ? <LoadingFlag /> : "Nothing on the record for this jurisdiction."}</p>}
       </section>
     </div>
   )

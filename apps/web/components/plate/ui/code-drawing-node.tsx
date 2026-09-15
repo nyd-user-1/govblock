@@ -1,4 +1,5 @@
 'use client';
+import { LoadingFlag } from "@/components/loading-flag"
 
 import type {
   CodeDrawingType,
@@ -570,7 +571,7 @@ function CodeDrawingPreviewArea({
             'flex flex-1 items-center justify-center rounded-md bg-muted/30 p-4'
           }
         >
-          {loading && <div className="text-muted-foreground">Loading...</div>}
+          {loading && <div className="text-muted-foreground"><LoadingFlag /></div>}
           {!loading && image && (
             <img
               alt="Code drawing"

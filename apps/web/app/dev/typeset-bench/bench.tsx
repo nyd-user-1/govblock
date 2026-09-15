@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 
 import { Plate, usePlateEditor } from "platejs/react"
 
@@ -55,5 +56,5 @@ export function TypesetBench({ bill, ...options }: Options & { bill: string }) {
         setHtml(r.html ?? `<p>${r.error ?? "Nothing to open."}</p>`)
       })
   }, [bill])
-  return <div className="h-[calc(100dvh-4rem)] w-full">{html === null ? <p className="p-8">Loading…</p> : <TooltipProvider><Document html={html} bill={bill} {...options} /></TooltipProvider>}</div>
+  return <div className="h-[calc(100dvh-4rem)] w-full">{html === null ? <p className="p-8"><LoadingFlag /></p> : <TooltipProvider><Document html={html} bill={bill} {...options} /></TooltipProvider>}</div>
 }

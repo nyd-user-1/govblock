@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { LibraryIcon } from "lucide-react"
 
 import type { AtItem, AtResponse } from "@/app/api/typeset/at/route"
@@ -77,7 +78,7 @@ const LABEL = "w-48 shrink-0 truncate font-medium"
 export function SlashResults({ mode, result, at, pending, term, go }: { mode: CorpusMode; result: SlashResponse | null; at?: AtResponse | null; pending: boolean; term: string; go: (href: string) => void }) {
   if (mode === "at") {
     if (term.length < 3) return <CommandEmpty>@10 U.S.C. 130i, @section 16 of the agriculture and markets law, or a member or committee by name</CommandEmpty>
-    if (!at || !(at.citations.length || at.members.length || at.committees.length)) return <CommandEmpty>{pending ? "Reading the corpus…" : "Nothing by that reference."}</CommandEmpty>
+    if (!at || !(at.citations.length || at.members.length || at.committees.length)) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : "Nothing by that reference."}</CommandEmpty>
     return (
       <>
         <AtGroup heading="Citations" items={at.citations} go={go} />
@@ -87,8 +88,8 @@ export function SlashResults({ mode, result, at, pending, term, go }: { mode: Co
     )
   }
   if (term.length < 2) return <CommandEmpty>/119, /6644, /hr6644, /new-york-code, or an address like /us/bill/119/hr/6644</CommandEmpty>
-  if (!result) return <CommandEmpty>{pending ? "Reading the corpus…" : "Nothing at that address."}</CommandEmpty>
-  if (!result.items.length && !result.href) return <CommandEmpty>{pending ? "Reading the corpus…" : `Nothing under ${result.label || term}.`}</CommandEmpty>
+  if (!result) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : "Nothing at that address."}</CommandEmpty>
+  if (!result.items.length && !result.href) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : `Nothing under ${result.label || term}.`}</CommandEmpty>
   return (
     <CommandGroup heading={result.label}>
       {/* Where the query lives (window 4): the library, or the Work in the XML view. Enter opens it. */}

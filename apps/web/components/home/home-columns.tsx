@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { Bot, ChevronRight, Columns2, History, MoreHorizontal, Plus, Radar, Tag, Trash2 } from "lucide-react"
 
@@ -341,7 +342,7 @@ export function HomeColumns() {
                 </Row>
               ))
             ) : (
-              <Empty>{signedIn ? "Loading…" : "Sign in and the committees your interests point to collect here."}</Empty>
+              <Empty>{signedIn ? <LoadingFlag /> : "Sign in and the committees your interests point to collect here."}</Empty>
             )}
           </Column>
         )
@@ -360,7 +361,7 @@ export function HomeColumns() {
                 </Row>
               ))
             ) : (
-              <Empty>{signedIn ? (point ? "Finding them…" : "Add your address and the people who sit for it collect here.") : "Sign in and the people who sit for your address collect here."}</Empty>
+              <Empty>{signedIn ? (point ? <LoadingFlag /> : "Add your address and the people who sit for it collect here.") : "Sign in and the people who sit for your address collect here."}</Empty>
             )}
           </Column>
         )

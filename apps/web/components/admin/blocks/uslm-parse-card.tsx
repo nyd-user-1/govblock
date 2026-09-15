@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { ArrowUpRightIcon, PlayIcon } from "lucide-react"
 
@@ -129,7 +130,7 @@ export function UslmParseCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {!result && !error && pending && <p className="text-sm text-muted-foreground">Building the printing from its source…</p>}
+        {!result && !error && pending && <p className="text-sm text-muted-foreground"><LoadingFlag /></p>}
         {result && r && (
           <>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 
 import { useCommittees, useMembers } from "@/components/admin/data"
@@ -84,7 +85,7 @@ export function SubjectSwitcher({ kind, fallback }: { kind: SubjectKind; fallbac
         <Command loop className="rounded-lg!">
           <CommandInput placeholder={kind === "committee" ? "Search committees…" : "Search members…"} autoFocus />
           <CommandList className="max-h-80">
-            <CommandEmpty>{choices.length ? "Nothing found." : "Loading…"}</CommandEmpty>
+            <CommandEmpty>{choices.length ? "Nothing found." : <LoadingFlag width={28} />}</CommandEmpty>
             <CommandGroup>
               {choices.map((c) => (
                 <CommandItem key={c.value} value={c.value} keywords={[c.label, ...(c.keywords ?? [])]} onSelect={() => select(c.value)}>

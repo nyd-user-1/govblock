@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, FolderOpenIcon } from "lucide-react"
 
 import { stateName } from "@/lib/filters"
@@ -123,7 +124,7 @@ export function DocumentsTree() {
               })}
               {!inScope.length && (
                 <SidebarMenuItem>
-                  <span className="px-2 text-xs text-muted-foreground">{isLoading ? "Loading…" : "Nothing in scope."}</span>
+                  <span className="px-2 text-xs text-muted-foreground">{isLoading ? <LoadingFlag width={28} /> : "Nothing in scope."}</span>
                 </SidebarMenuItem>
               )}
             </SidebarMenu>
@@ -178,7 +179,7 @@ export function DocumentsTree() {
               })}
               {!folders.length && (
                 <SidebarMenuItem>
-                  <span className="px-2 text-xs text-muted-foreground">{isLoading ? "Loading…" : filter ? "Nothing matches." : `No bill text on file for ${stateName(state)} under these filters.`}</span>
+                  <span className="px-2 text-xs text-muted-foreground">{isLoading ? <LoadingFlag width={28} /> : filter ? "Nothing matches." : `No bill text on file for ${stateName(state)} under these filters.`}</span>
                 </SidebarMenuItem>
               )}
             </SidebarMenu>
@@ -226,7 +227,7 @@ export function DocumentsTree() {
           }}
         />
       ) : (
-        <p className="py-16 text-center text-sm text-muted-foreground">{isLoading ? "Loading…" : `No bill text on file for ${stateName(state)} under these filters.`}</p>
+        <p className="py-16 text-center text-sm text-muted-foreground">{isLoading ? <LoadingFlag /> : `No bill text on file for ${stateName(state)} under these filters.`}</p>
       )}
     </BlockShell>
   )

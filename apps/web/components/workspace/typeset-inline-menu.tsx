@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { Extension, type Editor } from "@tiptap/react"
 import { Plugin, PluginKey, type EditorState } from "@tiptap/pm/state"
 import type { EditorView } from "@tiptap/pm/view"
@@ -225,12 +226,12 @@ export function InlineMenuPopup({ editor, trigger, jurisdiction, state, keys }: 
         ? query.length < 2
           ? "Type a name."
           : pending
-            ? "Looking…"
+            ? <LoadingFlag width={28} />
             : "No one by that name."
         : query.length < 2
           ? "Type a command, a citation, a defined term or a committee."
           : pending
-            ? "Reading the corpus…"
+            ? <LoadingFlag width={28} />
             : "Nothing by that name."
 
   let group = ""

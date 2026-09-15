@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowUpDownIcon, CheckIcon, ChevronDownIcon, FileCodeIcon, FolderIcon, LibraryIcon } from "lucide-react"
@@ -442,6 +443,6 @@ export function TypesetLibraryPane() {
       live = false
     }
   }, [])
-  if (!listing) return <p className="p-8 text-sm text-muted-foreground">{failed ? "The library could not be read." : "Loading…"}</p>
+  if (!listing) return <p className="p-8 text-sm text-muted-foreground">{failed ? "The library could not be read." : <LoadingFlag />}</p>
   return <LibraryBody listing={listing} replace={false} />
 }

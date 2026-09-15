@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
 import { IconRss } from "@tabler/icons-react"
 
@@ -65,7 +66,7 @@ export function ChangelogBody({ initial, initialState }: { initial: Entry[]; ini
           <div className="w-full flex-1 pb-16 sm:pb-0">
             {!entries.length && (
               <p className="py-10 text-sm text-muted-foreground">
-                {scoped ? `Reading the ${stateName(state)} stream…` : "Nothing on file."}
+                {scoped ? <LoadingFlag /> : "Nothing on file."}
               </p>
             )}
             {latestPages.map((bill) => (

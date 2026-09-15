@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { LoadingFlag } from "@/components/loading-flag"
 import { ArrowUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -286,7 +287,7 @@ export function AssistChat({
                           <Prose text={turn.run.text} />
                         </div>
                       ) : busy && index === turns.length - 1 && !turn.run.steps.length ? (
-                        <span className="text-muted-foreground">Working…</span>
+                        <span className="text-muted-foreground"><LoadingFlag width={28} /></span>
                       ) : undefined
                     }
                   >
