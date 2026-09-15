@@ -8,6 +8,7 @@ import { DocsTableOfContents } from "@/components/docs-toc"
 import { H2, H3, Table } from "@/components/typeset"
 import { StatusViews } from "@/app/glossary/status-views"
 import { TableBlock } from "@/components/policy/table-block"
+import { VERSION_CODES } from "@/lib/typeset/versions"
 import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
 
 // /glossary (Brendan, 2026-09-13): the words the record uses, each defined
@@ -368,6 +369,31 @@ export default function GlossaryPage() {
                 </Fragment>
               )
             )}
+
+            <H2 id="bill-text-versions">Bill text versions</H2>
+            <p>
+              The stage a printing carries, as GovInfo names it. The code rides on a printing&apos;s address (<code>@2026-06-25_enr</code>) and on the version chip in Typeset&apos;s footer.
+            </p>
+            <Table>
+              <thead>
+                <tr>
+                  <th>code</th>
+                  <th>version</th>
+                  <th>what it is</th>
+                </tr>
+              </thead>
+              <tbody>
+                {VERSION_CODES.map((v) => (
+                  <tr key={v.code} id={`version-${v.code}`}>
+                    <td>
+                      <code>{v.code}</code>
+                    </td>
+                    <td>{v.name}</td>
+                    <td>{v.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
 
             <H2 id="stages">Stages</H2>
             <p>A jurisdiction with no dot under a stage did not record that stage in its latest session.</p>

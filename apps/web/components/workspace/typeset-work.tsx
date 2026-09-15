@@ -1,18 +1,17 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FolderIcon, LibraryIcon } from "lucide-react"
 
 import type { ExpressionLine } from "@/lib/typeset/expression-document"
 import { LIBRARY_ROOT, libraryHref, workHref } from "@/lib/xml/library"
+import { versionName } from "@/lib/typeset/versions"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
 import { ForkAction } from "@/components/workspace/typeset-fork-action"
 import { TypesetWorkChrome } from "@/components/workspace/typeset-file-chrome"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
-import { Button } from "@govblock/ui/components/ny4/button"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // A Work opened by its address in the XML view (window 4, 2026-09-14):
@@ -63,13 +62,13 @@ function WorkRail({ work, expression, kind, prefix, history }: Pick<TypesetWorkP
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel>{kind === "bill" ? "Printings" : "As it stood"}</SidebarGroupLabel>
+        <SidebarGroupLabel>Versions</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {newest.map((line) => (
               <SidebarMenuItem key={line.expression}>
                 <SidebarMenuButton isActive={line.expression === expression} onClick={() => router.push(workHref(`${work}@${line.expression}`))}>
-                  {kind === "bill" && <span className="flex-1 truncate">{line.unit}</span>}
+                  {kind === "bill" && <span className="flex-1 truncate">{versionName(line.unit)}</span>}
                   <span className={kind === "bill" ? "text-xs text-muted-foreground tabular-nums" : "flex-1 truncate tabular-nums"}>{fmtDay(line.date)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -89,13 +88,6 @@ export function TypesetWork(props: TypesetWorkProps) {
       billId={billId}
       rail={<WorkRail {...props} />}
       crumbs={[{ label: "Library", href: LIBRARY_ROOT }, { label: prefix.label, href: libraryHref(prefix.address) }, { label }]}
-      actions={
-        billHref ? (
-          <Button asChild variant="ghost" size="sm" className="h-7 rounded-lg px-2.5 text-xs">
-            <Link href={billHref}>Open in Typeset</Link>
-          </Button>
-        ) : undefined
-      }
     >
       {jsonUrl ? (
         // The Git view's file row and the toolbar over the reader (2026-09-14); fork the unit under the pointer from this Expression (window 5).

@@ -48,6 +48,35 @@ export function downloadText(name: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * The size line as three chips with a word each on hover: total lines, lines
+ * of code, file size (Brendan, 2026-09-15). Takes the string sizeLine builds.
+ */
+export function SizeNote({ size, className }: { size: string; className?: string }) {
+  const m = /^(.+?) lines \((.+?) loc\) · (.+)$/.exec(size)
+  if (!m) return <span className={cn("shrink-0 font-mono text-xs text-muted-foreground", className)}>{size}</span>
+  const parts: [string, string][] = [
+    [`${m[1]} lines`, "Total lines"],
+    [`${m[2]} loc`, "Lines of code"],
+    [m[3], "File size"],
+  ]
+  return (
+    <span className={cn("flex shrink-0 items-center gap-1 font-mono text-xs text-muted-foreground", className)}>
+      {parts.map(([text, word], i) => (
+        <React.Fragment key={word}>
+          {i > 0 && <span aria-hidden className="mx-0.5 h-3 w-px bg-border" />}
+          <Tooltip>
+            <TooltipTrigger render={<span className="cursor-default rounded px-1 hover:bg-muted hover:text-foreground" />}>{text}</TooltipTrigger>
+            <TooltipContent side="top" sideOffset={6}>
+              {word}
+            </TooltipContent>
+          </Tooltip>
+        </React.Fragment>
+      ))}
+    </span>
+  )
+}
+
 /** "256 lines (236 loc) · 13.7 KB", as GitHub sizes a file. */
 export function sizeOf(text: string | null) {
   if (!text) return null
@@ -294,7 +323,7 @@ export function FileRow({
           </div>
         )}
       </div>
-      {size && <span className="shrink-0 font-mono text-xs text-muted-foreground">{size}</span>}
+      {size && <SizeNote size={size} />}
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {history}
         <div className="flex items-center overflow-hidden rounded-md border" role="group" aria-label="Raw, copy, download">

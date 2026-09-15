@@ -16,6 +16,10 @@ import type { TextVersion } from "@/components/policy/bill-text-pane"
 import { FileRow, ResultsList, resultsTitle, sizeOf, useScopedSearch, type Related, type SearchScope } from "@/components/policy/file-row"
 import { PaneAside } from "@/components/policy/pane-aside"
 import { VersionsList } from "@/components/policy/versions-aside"
+import { VersionCode, VERSIONS_EVENT } from "@/components/workspace/version-code"
+import { Chip } from "@/components/chip"
+import { SizeNote } from "@/components/policy/file-row"
+import { versionName } from "@/lib/typeset/versions"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The Git view's file row on Typeset's other views (Brendan, 2026-09-14: "the
@@ -189,6 +193,12 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
   const [query, setQuery] = React.useState("")
   const [scope, setScope] = React.useState<SearchScope>("bill")
   const [panel, setPanel] = React.useState<Panel>(null)
+  // The footer's version chip asks for the Versions panel (Brendan, 2026-09-15).
+  React.useEffect(() => {
+    const open = () => setPanel("versions")
+    window.addEventListener(VERSIONS_EVENT, open)
+    return () => window.removeEventListener(VERSIONS_EVENT, open)
+  }, [])
   const sessionTitle = useSessionTitle(file.state, file.session)
   const { matches, goto } = useFindInView(root, scope === "bill" ? query : "")
   const headings = useOutlineInView(root, true)
@@ -202,7 +212,7 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
   const setNote = usePaneNoteSetter()
   React.useEffect(() => {
     if (!setNote) return
-    setNote(size ? <span className="font-mono text-xs text-muted-foreground">{size}</span> : null)
+    setNote(size ? <SizeNote size={size} /> : null)
     return () => setNote(null)
   }, [setNote, size])
 
@@ -382,14 +392,31 @@ export function TypesetWorkChrome({ work, expression, label, history, toolbar, c
         },
     versions: newest.length
       ? {
-          title: `As it stood · ${newest.length}`,
+          title: `Versions · ${newest.length}`,
+          // Each version: its stage as a chip that explains itself, the name, the date, and its address as a copy chip (Brendan, 2026-09-15).
           body: (
             <div className="py-1">
               {newest.map((line) => (
-                <button key={line.expression} type="button" data-active={line.expression === expression} onClick={() => router.push(workHref(`${work}@${line.expression}`))} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-muted data-[active=true]:bg-muted">
-                  {line.unit && <span className="truncate">{line.unit}</span>}
-                  <span className="ml-auto shrink-0 font-mono text-muted-foreground tabular-nums">{line.date.slice(0, 10)}</span>
-                </button>
+                <div
+                  key={line.expression}
+                  role="button"
+                  tabIndex={0}
+                  data-active={line.expression === expression}
+                  onClick={() => router.push(workHref(`${work}@${line.expression}`))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") router.push(workHref(`${work}@${line.expression}`))
+                  }}
+                  className="flex w-full cursor-pointer flex-col gap-1 px-3 py-1.5 text-left text-xs hover:bg-muted data-[active=true]:bg-muted/60"
+                >
+                  <span className="flex items-center gap-2">
+                    {line.unit && <VersionCode code={line.unit} />}
+                    {line.unit && <span className="truncate">{versionName(line.unit)}</span>}
+                    <span className="ml-auto shrink-0 font-mono text-muted-foreground tabular-nums">{line.date.slice(0, 10)}</span>
+                  </span>
+                  <Chip copy={`${work}@${line.expression}`} className="w-fit max-w-full truncate text-[11px]">
+                    {`${work}@${line.expression}`}
+                  </Chip>
+                </div>
               ))}
             </div>
           ),

@@ -9,6 +9,8 @@ import { CiteDecorations, useCitations } from "@/components/workspace/typeset-ci
 import { XML_EXTENSIONS } from "@/components/workspace/typeset-xml-extensions"
 import type { CiteContext } from "@/lib/typeset/cite"
 import { usePaneNoteSetter } from "@/lib/typeset/pane-note"
+import { versionName } from "@/lib/typeset/versions"
+import { openVersionsPanel } from "@/components/workspace/version-code"
 import { cn } from "@govblock/ui/lib/utils"
 
 import "./typeset-xml-reader.css"
@@ -41,20 +43,24 @@ type Loaded = XmlMeta & { json: JSONContent; timings?: Record<string, number>; b
 /** Which printing, and where its structure came from when that is not the printing's own XML: in the footer after the size line (Brendan, 2026-09-14), or over the document where no footer takes it. */
 export function XmlSourceLine({ meta, inline = false }: { meta: XmlMeta | null; inline?: boolean }) {
   if (!meta) return inline ? <div aria-hidden className="h-10 shrink-0 border-b border-b-border" /> : null
-  const printing = [meta.version, meta.date?.slice(0, 10)].filter(Boolean).join(" · ")
+  // The stage spelled out ("Enrolled"), and in the footer a button that opens the Versions panel (Brendan, 2026-09-15); the address lives on each version's row there.
+  const printing = [versionName(meta.version), meta.date?.slice(0, 10)].filter(Boolean).join(" · ")
   // A captured page says nothing here (Brendan, 2026-09-14): the card in the body is the whole of it.
   const note = meta.fidelity === "plain-text" && !meta.captured ? "Read from the stored plain text: this printing has no XML yet, so its levels are inferred from the numbering." : null
   const address = meta.work ? `${meta.work}${meta.expression ? `@${meta.expression}` : ""}` : null
   if (!inline)
     return (
       <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-        {printing && <span className="shrink-0 font-medium text-foreground">{printing}</span>}
+        {printing && (
+          <button type="button" onClick={openVersionsPanel} className="shrink-0 rounded-md px-1.5 py-0.5 font-medium text-foreground hover:bg-muted">
+            {printing}
+          </button>
+        )}
         {note && (
           <span title={note} className="max-w-72 truncate text-amber-700 dark:text-amber-400">
             {note}
           </span>
         )}
-        {address && <code className="max-w-96 truncate font-mono text-[11px]">{address}</code>}
       </span>
     )
   return (
