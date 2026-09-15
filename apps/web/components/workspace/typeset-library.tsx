@@ -11,6 +11,7 @@ import type { FolderItem, LibrarySort, Listing, WorkItem } from "@/lib/xml/libra
 import { FAMILIES } from "@/lib/xml/families"
 import { LIBRARY_ROOT, libraryHref } from "@/lib/xml/library"
 import { FlagChip } from "@/components/policy/imagery"
+import { CodeOutlineGroup } from "@/components/workspace/typeset-code-outline"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
@@ -378,11 +379,16 @@ export function LibraryBody({ listing, replace = true }: { listing: Listing; rep
   )
 }
 
+/** A library that is one code, US Code title or constitution: its outline goes in the rail. */
+const outlinePrefix = (path: string) => (/^us(?:-[a-z]{2})?\/(?:(?:code|usc)\/[A-Za-z0-9.-]+|const)$/.test(path) ? `/${path}` : null)
+
 function LibraryRail({ listing }: { listing: Listing }) {
   const router = useRouter()
   const family = listing.path.split("/")[0]
+  const outline = outlinePrefix(listing.path)
   return (
     <SidebarContent>
+      {outline && <CodeOutlineGroup prefix={outline} />}
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -416,7 +422,7 @@ function LibraryRail({ listing }: { listing: Listing }) {
 
 export function TypesetLibrary({ listing }: { listing: Listing }) {
   return (
-    <TypesetFrame rail={<LibraryRail listing={listing} />} crumbs={listing.crumbs}>
+    <TypesetFrame rail={<LibraryRail listing={listing} />} crumbs={listing.crumbs} railOpen={Boolean(outlinePrefix(listing.path))}>
       <LibraryBody listing={listing} />
     </TypesetFrame>
   )
