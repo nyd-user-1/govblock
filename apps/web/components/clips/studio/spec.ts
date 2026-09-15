@@ -106,7 +106,7 @@ export const fill = (text: string, data: StudioData | null) => text.replace(/\{(
 
 export const sceneFrames = (scene: Scene, spec: StudioSpec) => {
   const fixed = FIXED_SECONDS[scene.kind]
-  const factor = fixed ? 1 : (PACES[spec.look.pace] ?? PACES.default).factor
+  const factor = fixed ? 1 : (PACES[spec.look?.pace] ?? PACES.default).factor
   return Math.round(Math.max(0.5, fixed ?? scene.seconds) * factor * spec.fps)
 }
 
