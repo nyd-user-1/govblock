@@ -5,14 +5,71 @@ Report to the lead (govblock-93). Newest milestone first. Brief:
 
 ## State of the items
 
+Stopped 2026-09-15 06:00 EDT on the lead's word, every item done. Brendan's
+to look at in a browser: typing on the reader (item 1), the block handle
+(item 4).
+
 | Item | State |
 |---|---|
-| 1. Editing on the XML view | built, 8c1064f and 9917996; routes verified; typing in a browser is Brendan's |
-| 2. Mount from the server's HTML | built, ee72f68; measured |
-| 3. Typeset's URLs, then the flip | URLs built, ec209e7; the flip waits for the lead's word |
-| 4. The block view | built, a445006; the look is Brendan's |
-| Library paths | built, cbce0d1 |
-| Next | the flip, on the lead's word; the first paint sent once is not recommended (milestone 5) |
+| 1. Editing on the reader | done: 8c1064f, 9917996. Verified through the routes; not typed in a browser |
+| 2. Mount from the server's HTML | done: ee72f68. Mount 1,681 → 1,092 ms warm, 3,813 → 1,108 ms cold |
+| 3. Typeset's URLs | done: ec209e7, and the Library's paths in cbce0d1 |
+| 3. The flip | done: b3667d6 (milestone 6) |
+| 4. The block view | done: a445006. Not looked at in a browser |
+| The first paint sent once | not done, on purpose: milestone 5 says why. It is not to be retried on dev-server numbers |
+
+## Milestone 6 — the flip (2026-09-15 06:00 EDT, b3667d6)
+
+### Done, as the lead specified
+
+1. The bill's bare address draws the Tiptap reader. It is the view called
+   Typeset, 01 in the File menu.
+2. `xml` is an old slug. `/xml` answers 307 to the bare address, so the
+   reader is listed once.
+3. Plate lives at `plate`, last in the File menu as "Plate (legacy)".
+
+In `views.ts`:
+
+- the two views swapped slugs and labels, and Plate moved to the end of the list
+- `xml` joined `LEGACY_SLUGS`
+- `viewFromSlug` returns the view whose slug is empty, where it had "typeset"
+  written in
+- `typesetHref`'s default view is the reader, so a link with no view named
+  ("open in Typeset" on the bill record page, Git's file actions, My Files)
+  opens the reader, not Plate
+
+`/workspace/typeset` with no bill opens the default view the same way.
+
+### Verified, on 3001 (box at b3667d6)
+
+Bounded type check over the flip and every file that reads the views:
+0 diagnostics.
+
+The File menu's links, as `typesetHref` builds them for H.R. 6644, and what
+each draws:
+
+| # | Menu item | URL | Answer | Page title |
+|---|---|---|---|---|
+| 01 | Typeset | `/workspace/typeset/us/bill/119/hr/6644` | 200 | H.R. 6644 · Typeset |
+| 02 | Outline | `…/6644/outline` | 200 | H.R. 6644 · Outline |
+| 03 | Redline | `…/6644/redline` | 200 | H.R. 6644 · Redline |
+| 04 | Git | `…/6644/git` | 200 | H.R. 6644 · Git |
+| 05 | Diff | `…/6644/diff` | 200 | H.R. 6644 · Diff |
+| 06 | Library | `…/6644/library` | 200 | H.R. 6644 · Library |
+| 07 | Plate (legacy) | `…/6644/plate` | 200 | H.R. 6644 · Plate (legacy) |
+| | old slug | `…/6644/xml` | 307 → `…/6644` | |
+
+- The bare address draws the reader: 4,008 USLM units in its first paint,
+  no Plate paragraphs.
+- `/plate` draws Plate: 3,812 Plate paragraphs, no USLM units.
+- `/workspace/typeset/bill/2058568` and `/workspace/typeset/work/us/bill/119/hr/6644`
+  both land on the bare address; `/workspace/typeset` goes there by way of the
+  old id route.
+- No new server errors in the dev log.
+
+### Files
+
+`apps/web/lib/typeset/views.ts`, `apps/web/app/workspace/typeset/page.tsx`.
 
 ## Milestone 5 — the Library's paths read us/ny; the first paint, measured (2026-09-15 05:35 EDT, cbce0d1)
 
