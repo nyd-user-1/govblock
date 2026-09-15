@@ -6,6 +6,38 @@ milestone first.
 
 ---
 
+## 5 · Clips on S3, and the Stream route admin-only — 2026-09-14 evening
+
+Brendan's rulings on milestone 0's open list: no Stream minutes (storage
+moves to S3); the hearing is House Agriculture meeting 119395; the Remotion
+Free License applies (three people or fewer); `/api/stream` admin-only, done
+here. The worker box waits on his question of why a box is needed.
+
+### 1. Table change, announced before it runs
+
+`sql/021_clips_s3.sql`, additive: `clips.video_key` and `clips.poster_key`
+(text), and one new check on `clip_cuts`: a source held in the bucket
+(`source_url like 's3://%'`) needs `rights_attested_at`. Nothing dropped or
+altered; `stream_uid` stays, unused.
+
+### 2. Storage
+
+- Bucket `govblock-clips-638175140432`, us-east-1, all public access
+  blocked, CORS for GET, PUT and HEAD from localhost:3000–3003 and the four
+  production hosts.
+- IAM, additive: `ClipsReadWrite` (Get, Put, Delete, List on the bucket) on
+  `govblock-amplify-compute`'s `govblock-data-access`; `ClipsDelete` on
+  `govblock-dev`, which already had Get, Put and List on `govblock-*`.
+- The browser PUTs the take and its poster to signed addresses from
+  `/api/clips`; `/api/clips/[id]/complete` looks in the bucket and publishes
+  the row. Every play address is signed for an hour and minted afresh on each
+  feed read. An upload is one signed PUT, 5 GB at most.
+- The Stream code this window added to `lib/policy/cloudflare-stream.ts` is
+  removed; the file is `main`'s again. The worker's cut and render write the
+  video and a poster frame to the bucket.
+
+---
+
 ## 3, prepared · The cut and the render, written and not yet run — 2026-09-14
 
 > **Key takeaways**
