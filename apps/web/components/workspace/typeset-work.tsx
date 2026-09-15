@@ -7,6 +7,7 @@ import { FolderIcon, LibraryIcon } from "lucide-react"
 import type { ExpressionLine } from "@/lib/typeset/expression-document"
 import { LIBRARY_ROOT, libraryHref, workHref } from "@/lib/xml/library"
 import { versionName } from "@/lib/typeset/versions"
+import { CodeOutlineGroup, PageOutlineGroup } from "@/components/workspace/typeset-code-outline"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
 import { TypesetWorkChrome } from "@/components/workspace/typeset-file-chrome"
@@ -40,6 +41,8 @@ function WorkRail({ work, expression, kind, prefix, history }: Pick<TypesetWorkP
   const newest = [...history].reverse()
   return (
     <SidebarContent>
+      {/* The section sidebar (2026-09-15): a statute's code with this section marked; a bill's own levels. */}
+      {/\/(?:code|usc)\/|\/const$/.test(prefix.address) ? <CodeOutlineGroup prefix={prefix.address} current={work} /> : <PageOutlineGroup />}
       <SidebarGroup>
         <SidebarGroupLabel>Library</SidebarGroupLabel>
         <SidebarGroupContent>
@@ -83,6 +86,7 @@ export function TypesetWork(props: TypesetWorkProps) {
   const billId = billHref ? Number(/\/bill\/(\d+)/.exec(billHref)?.[1]) || null : null
   return (
     <TypesetFrame
+      railOpen
       billId={billId}
       rail={<WorkRail {...props} />}
       crumbs={[{ label: "Library", href: LIBRARY_ROOT }, { label: prefix.label, href: libraryHref(prefix.address) }, { label }]}
