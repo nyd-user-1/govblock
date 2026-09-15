@@ -4,6 +4,8 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { EditorContent, Extension, useEditor, type JSONContent } from "@tiptap/react"
 import { history, redo, undo } from "@tiptap/pm/history"
+import { Step } from "@tiptap/pm/transform"
+import { TextSelection } from "@tiptap/pm/state"
 import { keymap } from "@tiptap/pm/keymap"
 import { BookOpenIcon, CheckIcon, CopyIcon, FolderIcon, HighlighterIcon, ListOrderedIcon, ScrollTextIcon } from "lucide-react"
 
@@ -11,6 +13,7 @@ import { createCommit, forkAddress, type Fork } from "@/lib/policy/forks"
 import type { Bill } from "@/lib/policy/types"
 import { amendmentText, diffDocs, instructions, type Amendment, type Citation, type Convention, type Run } from "@/lib/typeset/amend"
 import { usePaneNoteSetter } from "@/lib/typeset/pane-note"
+import { readLocalDraft, useAutosave, type SaveStatus } from "@/lib/typeset/use-autosave"
 import { billWork } from "@/lib/xml/address"
 import { workHref } from "@/lib/xml/library"
 import { CiteDecorations, useCitations } from "@/components/workspace/typeset-cite-layer"
@@ -19,6 +22,7 @@ import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { ForkRedline, forkMarked, forkRedlineKey, type ForkSpec } from "@/components/workspace/typeset-redline"
 import { InlineMenu, InlineMenuPopup, type Trigger } from "@/components/workspace/typeset-inline-menu"
 import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
+import { XmlMarkKeys } from "@/components/workspace/typeset-xml-toolbar"
 import { TypesetForkChrome } from "@/components/workspace/typeset-file-chrome"
 import { ToolbarButton } from "@/components/plate/ui/toolbar"
 import { PaneAside } from "@/components/policy/pane-aside"
@@ -45,11 +49,18 @@ import "./typeset-fork.css"
 // amendment and the in-context view are sidebars toggled beside it; which
 // printing and as of when sit in the footer; `@` names a person and `/`
 // opens the commands and references, typed in the text.
+//
+// Editing in place (2026-09-15): the XML view becomes this view on the
+// reader's first keystroke. It opens on the fork's working document (saved as
+// the reader types, lib/typeset/use-autosave.ts), and the keystrokes typed
+// on the reader while the copy was being made are carried onto it.
 
 export type ForkPayload = {
   fork: Fork
   base: { address: string; date: string; label: string | null; fidelity: string; coverage: number | null; json: JSONContent }
   head: { id: number; json: JSONContent } | null
+  /** The working document saved since the last commit; the fork's owner only. */
+  draft: { json: JSONContent; saved_at: string; parent_commit_id: number | null } | null
   commits: { id: number; message: string; description: string; author: string; created_at: string; parent_commit_id: number | null; doc_bytes: number | null }[]
   cite: Citation
 }
@@ -62,6 +73,14 @@ const ForkHistory = Extension.create({
 })
 
 type Panel = "amendment" | "context" | null
+
+/** What the XML view hands over when editing begins: the edits made on the reader since the first keystroke, as steps over a document the size of the base, and where the reader was. */
+export type Carry = { steps: unknown[]; size: number; selection: { anchor: number; head: number } | null; scrollId: string | null; scrollOffset: number }
+
+/** Which text the fork opened on. */
+type Start = { json: JSONContent; from: "local" | "draft" | "head" | "base" }
+
+const SAVE_WORDS: Record<SaveStatus, string | null> = { idle: null, saving: "Saving…", saved: "Saved to My Files", failed: "Not saved yet, trying again" }
 
 function RunText({ run, convention }: { run: Run; convention: Convention }) {
   if (run.op === "insert") return <span className={cn(convention.newMatter === "underscored" && "underline decoration-1 underline-offset-2", convention.newMatter === "italic" && "italic")}>{run.text}</span>
@@ -110,8 +129,11 @@ function Instructions({ amendment }: { amendment: Amendment | null }) {
   )
 }
 
-export function TypesetForkView({ forkId }: { forkId: number }) {
+export function TypesetForkView({ forkId, carry, onCarried, active = true }: { forkId: number; /** The XML view's edits, read once the fork's editor holds its text. */ carry?: React.RefObject<Carry | null>; onCarried?: () => void; /** False while the XML view is still on screen over it: nothing is written to the footer. */ active?: boolean }) {
   const [data, setData] = React.useState<ForkPayload | null>(null)
+  const [start, setStart] = React.useState<Start | null>(null)
+  const [notice, setNotice] = React.useState<string | null>(null)
+  const scroller = React.useRef<HTMLDivElement>(null)
   const [failed, setFailed] = React.useState<string | null>(null)
   const [panel, setPanel] = React.useState<Panel>("amendment")
   const [redlineOn, setRedlineOn] = React.useState(true)
@@ -147,8 +169,20 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
     setFailed(null)
     return fetch(`/api/typeset/fork?id=${forkId}`)
       .then(async (r) => (r.ok ? (r.json() as Promise<ForkPayload>) : Promise.reject(new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? String(r.status)))))
-      .then((body) => {
+      .then(async (body) => {
+        // This browser's copy, when a save never reached the server since the commit it was edited from.
+        const local = await readLocalDraft(forkId)
+        const serverAt = body.draft ? Date.parse(body.draft.saved_at) : 0
+        const next: Start =
+          local && local.headId === (body.head?.id ?? null) && local.at > serverAt
+            ? { json: local.json, from: "local" }
+            : body.draft
+              ? { json: body.draft.json, from: "draft" }
+              : body.head
+                ? { json: body.head.json, from: "head" }
+                : { json: body.base.json, from: "base" }
         setData(body)
+        setStart(next)
         setMessage(`Amend ${body.fork.label ?? body.fork.work}`)
       })
       .catch((error: Error) => setFailed(error.message))
@@ -166,10 +200,48 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
         CiteDecorations.configure({ onOpen: (href) => routerRef.current.push(href) }),
         InlineMenu.configure({ onChange: setTrigger, onKey: (k) => menuKeys.current?.(k) ?? false }),
         ContextMarkers.configure({ onOpen: (m) => setFocus({ work: m.work, unit: m.unit, n: Date.now() }) }),
+        XmlMarkKeys,
       ],
-      editable: true, immediatelyRender: false, content: data ? (data.head?.json ?? data.base.json) : null, enableInputRules: false, enablePasteRules: false },
-    [data?.fork.id, data?.head?.id]
+      editable: true, immediatelyRender: false, content: start?.json ?? null, enableInputRules: false, enablePasteRules: false },
+    [data?.fork.id, data?.head?.id, start]
   )
+  const save = useAutosave(start ? editor : null, data?.fork.id ?? null, data?.head?.id ?? null, { dirtyAtStart: start?.from === "local" })
+
+  // The reader's keystrokes from the XML view, carried onto the fork once its editor holds the text (2026-09-15). The reader's document is the stored Expression the fork's base is, so the steps land where they were typed.
+  const carried = React.useRef(false)
+  React.useEffect(() => {
+    if (!carry || carried.current || !editor || editor.isDestroyed || !editor.schema || !start || !data) return
+    const handed = carry.current
+    if (!handed) return
+    carried.current = true
+    let tr = editor.state.tr
+    let whole = start.from === "base" && handed.size === editor.state.doc.content.size
+    if (whole) {
+      for (const json of handed.steps) {
+        try {
+          if (tr.maybeStep(Step.fromJSON(editor.schema, json)).failed) whole = false
+        } catch {
+          whole = false
+        }
+        if (!whole) break
+      }
+    }
+    if (!whole) {
+      tr = editor.state.tr
+      setNotice(start.from === "base" ? "The first keystrokes could not be carried onto the copy; type them again." : "This printing already had a copy in My Files; it opened with the changes saved in it.")
+    } else if (handed.selection) {
+      const clamp = (n: number) => Math.max(0, Math.min(n, tr.doc.content.size))
+      try {
+        tr.setSelection(TextSelection.create(tr.doc, clamp(handed.selection.anchor), clamp(handed.selection.head)))
+      } catch {}
+    }
+    if (tr.docChanged || tr.selectionSet) editor.view.dispatch(tr)
+    // Where the reader was reading: the same unit at the same height.
+    const el = handed.scrollId ? scroller.current?.querySelector<HTMLElement>(`[id="${CSS.escape(handed.scrollId)}"]`) : null
+    if (el && scroller.current) scroller.current.scrollTop += el.getBoundingClientRect().top - scroller.current.getBoundingClientRect().top - handed.scrollOffset
+    editor.view.focus()
+    onCarried?.()
+  }, [carry, editor, start, data, onCarried])
   // The fork's citations, found, resolved as of its base's date and decorated (window 6).
   useCitations(data ? editor : null, data ? { jurisdiction: data.cite.jurisdiction, work: data.cite.work, at: data.base.date.slice(0, 10), citing: data.base.address } : null)
 
@@ -222,7 +294,7 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
   // Which fork, as of when, and its address: in the footer after the size line (Brendan, 2026-09-14).
   const setMeta = usePaneNoteSetter("meta")
   React.useEffect(() => {
-    if (!setMeta || !data) return
+    if (!setMeta || !data || !active) return
     setMeta(
       <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
         <span className="shrink-0 font-medium text-foreground">{data.fork.label ?? data.fork.work}</span>
@@ -234,7 +306,7 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
       </span>
     )
     return () => setMeta(null)
-  }, [setMeta, data])
+  }, [setMeta, data, active])
 
   const commit = async () => {
     if (!editor || !data) return
@@ -267,6 +339,7 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
             <ToolbarButton tooltip="In context" pressed={panel === "context"} disabled={!data} onClick={() => setPanel((p) => (p === "context" ? null : "context"))}>
               <BookOpenIcon />
             </ToolbarButton>
+            {SAVE_WORDS[save.status] && <span className="px-1 text-xs whitespace-nowrap text-muted-foreground">{SAVE_WORDS[save.status]}</span>}
             <Button size="sm" disabled={!dirty || !data} className="ml-1 h-7 bg-[#1f883d] text-xs text-white hover:bg-[#1a7f37]" onClick={() => setAsking(true)}>
               Commit…
             </Button>
@@ -274,8 +347,9 @@ export function TypesetForkView({ forkId }: { forkId: number }) {
         }
       />
       {failed && <p className="shrink-0 border-b bg-destructive/5 px-4 py-2 text-xs text-destructive">{failed}</p>}
+      {notice && <p className="shrink-0 border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">{notice}</p>}
       <div className="flex min-h-0 flex-1">
-        <div className="relative min-h-0 flex-1 overflow-y-auto">
+        <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
           {!data && (
             <div className="flex flex-col gap-2 p-8">
               {Array.from({ length: 10 }).map((_, i) => (

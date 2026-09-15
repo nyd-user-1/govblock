@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { useEditorState, type Editor } from "@tiptap/react"
+import { Extension, useEditorState, type Editor } from "@tiptap/react"
 import { redo, redoDepth, undo, undoDepth } from "@tiptap/pm/history"
 import type { Node as PmNode } from "@tiptap/pm/model"
 import { TextSelection, type EditorState } from "@tiptap/pm/state"
-import { IndentIncreaseIcon, ListPlusIcon, Redo2Icon, Trash2Icon, Undo2Icon } from "lucide-react"
+import { BoldIcon, IndentIncreaseIcon, ItalicIcon, ListPlusIcon, Redo2Icon, StrikethroughIcon, Trash2Icon, UnderlineIcon, Undo2Icon } from "lucide-react"
 
 import { ToolbarButton, ToolbarGroup } from "@/components/plate/ui/toolbar"
 import { BIG_LEVELS, isLevel, SMALL_LEVELS } from "@/lib/xml/schema"
@@ -134,6 +134,50 @@ export function XmlToolbarGroups({ editor }: { editor: Editor | null }) {
           <Trash2Icon />
         </ToolbarButton>
       </ToolbarGroup>
+    </>
+  )
+}
+
+// Bold and italic on the XML views (2026-09-15): the schema's own `b` and `i`,
+// in the places Plate's buttons stand. Underline and strikethrough stay off:
+// in law they are the amendment's marks, and the redline draws them from the
+// diff, so a hand-made one would say a change was made that was not.
+
+/** ⌘B and ⌘I on the USLM editor. */
+export const XmlMarkKeys = Extension.create({
+  name: "xmlMarkKeys",
+  addKeyboardShortcuts() {
+    return {
+      "Mod-b": () => this.editor.commands.toggleMark("b"),
+      "Mod-i": () => this.editor.commands.toggleMark("i"),
+    }
+  },
+})
+
+const AMENDMENT_MARK = "The redline marks what changed"
+
+/** Drawn in place of Plate's bold, italic, underline and strikethrough; `data-live` keeps them out of the toolbar's disabled styling. */
+export function XmlMarkButtons({ editor }: { editor: Editor | null }) {
+  const status = useEditorState({
+    editor,
+    selector: ({ editor: e }) => (!e || e.isDestroyed || !e.isEditable ? { on: false, b: false, i: false } : { on: true, b: e.isActive("b"), i: e.isActive("i") }),
+  }) ?? { on: false, b: false, i: false }
+  const keep = (e: React.MouseEvent) => e.preventDefault()
+  const toggle = (mark: "b" | "i") => () => editor?.chain().focus().toggleMark(mark).run()
+  return (
+    <>
+      <ToolbarButton data-live tooltip="Bold (⌘+B)" disabled={!status.on} data-state={status.b ? "on" : "off"} className="data-[state=on]:bg-accent" onMouseDown={keep} onClick={toggle("b")}>
+        <BoldIcon />
+      </ToolbarButton>
+      <ToolbarButton data-live tooltip="Italic (⌘+I)" disabled={!status.on} data-state={status.i ? "on" : "off"} className="data-[state=on]:bg-accent" onMouseDown={keep} onClick={toggle("i")}>
+        <ItalicIcon />
+      </ToolbarButton>
+      <ToolbarButton data-live tooltip={AMENDMENT_MARK} aria-disabled className="cursor-default opacity-50 hover:bg-transparent" onMouseDown={keep}>
+        <UnderlineIcon />
+      </ToolbarButton>
+      <ToolbarButton data-live tooltip={AMENDMENT_MARK} aria-disabled className="cursor-default opacity-50 hover:bg-transparent" onMouseDown={keep}>
+        <StrikethroughIcon />
+      </ToolbarButton>
     </>
   )
 }

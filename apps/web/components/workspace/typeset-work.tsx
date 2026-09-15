@@ -10,7 +10,6 @@ import { versionName } from "@/lib/typeset/versions"
 import { TypesetFrame } from "@/components/workspace/typeset-frame"
 import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-xml-reader"
 import { TypesetWorkChrome } from "@/components/workspace/typeset-file-chrome"
-import { StaticToolbar } from "@/components/workspace/typeset-toolbar"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // A Work opened by its address in the XML view (window 4, 2026-09-14):
@@ -90,13 +89,15 @@ export function TypesetWork(props: TypesetWorkProps) {
     >
       {jsonUrl ? (
         // The Git view's file row and the toolbar over the reader (2026-09-14); fork the unit under the pointer from this Expression (window 5).
-        <TypesetWorkChrome work={props.work} expression={props.expression} label={label} history={props.history} toolbar={<StaticToolbar xml={{ editor: null }} />}>
+        <TypesetWorkChrome work={props.work} expression={props.expression} label={label} history={props.history}>
           <TypesetXmlReader
             jsonUrl={jsonUrl}
             snapshot={snapshot}
             meta={meta}
             portion={portion}
             cite={{ jurisdiction: props.work.split("/")[1] ?? "us", work: props.work, at: meta?.date?.slice(0, 10) ?? null, citing: `${props.work}@${props.expression}` }}
+            // Editable in place (2026-09-15): the first keystroke copies this Expression into My Files.
+            edit={{ address: `${props.work}@${props.expression}`, billId, title: label }}
           />
         </TypesetWorkChrome>
       ) : (

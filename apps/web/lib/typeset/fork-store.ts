@@ -58,6 +58,53 @@ export async function readCommitDoc(commitId: number): Promise<unknown | null> {
   return JSON.parse(gunzipSync(Buffer.concat(parts)).toString("utf8"))
 }
 
+// A fork's working document (2026-09-15, sql/027_fork_drafts.sql): the text
+// between commits, overwritten as the reader types, the way Google Docs saves.
+// The browser sends it gzipped; the server checks it against the schema and
+// keeps the bytes it was sent.
+
+/** Writes the draft's gzipped JSON over the fork's last one. Null when the bytes are not a document of the schema. */
+export async function writeDraft(forkId: number, gz: Buffer, parentCommitId: number | null): Promise<{ bytes: number; saved_at: string } | null> {
+  let json: string
+  try {
+    json = gunzipSync(gz).toString("utf8")
+    if (!readDocJson(JSON.parse(json))) return null
+  } catch {
+    return null
+  }
+  const bytes = Buffer.byteLength(json)
+  const row = await one<{ saved_at: string }>(
+    `insert into fork_drafts (fork_id, doc_gz, doc_bytes, doc_schema, parent_commit_id, saved_at)
+     values ($1, decode($2, 'base64'), $3, $4, $5, now())
+     on conflict (fork_id) do update set doc_gz = excluded.doc_gz, doc_bytes = excluded.doc_bytes, doc_schema = excluded.doc_schema, parent_commit_id = excluded.parent_commit_id, saved_at = excluded.saved_at
+     returning to_char(saved_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as saved_at`,
+    [forkId, firstSlice(gz), bytes, DOC_SCHEMA, parentCommitId]
+  )
+  for (let start = SLICE; start < gz.length; start += SLICE) {
+    await q(`update fork_drafts set doc_gz = doc_gz || decode($2, 'base64') where fork_id = $1`, [forkId, gz.subarray(start, start + SLICE).toString("base64")])
+  }
+  return row ? { bytes, saved_at: row.saved_at } : null
+}
+
+/** A fork's draft as JSON with when it was saved, or null when it has none or it cannot be read whole. */
+export async function readDraft(forkId: number): Promise<{ json: unknown; saved_at: string; parent_commit_id: number | null } | null> {
+  const row = await one<{ gz: number | null; saved_at: string; parent_commit_id: number | null }>(`select octet_length(doc_gz) as gz, to_char(saved_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as saved_at, parent_commit_id from fork_drafts where fork_id = $1`, [forkId])
+  const size = Number(row?.gz ?? 0)
+  if (!row || !size) return null
+  const parts: Buffer[] = []
+  for (let start = 1; start <= size; start += SLICE) {
+    const part = await one<{ part: string }>(`select encode(substring(doc_gz from $2::int for $3::int), 'base64') as part from fork_drafts where fork_id = $1`, [forkId, start, SLICE])
+    if (!part) return null
+    parts.push(Buffer.from(part.part, "base64"))
+  }
+  try {
+    return { json: JSON.parse(gunzipSync(Buffer.concat(parts)).toString("utf8")), saved_at: row.saved_at, parent_commit_id: row.parent_commit_id === null ? null : Number(row.parent_commit_id) }
+  } catch {
+    // A save cut off between its slices.
+    return null
+  }
+}
+
 /** The part of a document an address names, as a document of its own: a fork of § 16(2) is subdivision 2 alone. */
 export function portionOf(json: unknown, identifier: string): unknown | null {
   const doc = readDocJson(json)

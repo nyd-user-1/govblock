@@ -273,7 +273,7 @@ function WithToolbar({ children }: { children: React.ReactNode }) {
 }
 
 /** The XML view's first paint, drawn on the server (lib/typeset/xml-document.ts). */
-export type XmlFirstPaint = { snapshot: string | null; meta: XmlMeta | null }
+export type XmlFirstPaint = { snapshot: string | null; meta: XmlMeta | null; /** The stored Expression's JSON and address, when the printing is in the XML store; editing makes the reader's copy from it. */ jsonUrl?: string | null; address?: string | null }
 
 export function TypesetWorkspace(props: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint }) {
   return (
@@ -367,14 +367,16 @@ function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; 
       content = chrome(<TypesetEditor item={editor.item} surface={editor.surface} bill={String(route.billId)} version={params.version ? String(params.version) : undefined} snapshot={snapshot} />)
     } else if (view === "xml") {
       content = chrome(
-          <TypesetXmlReader
-            billId={route.billId}
-            version={params.version ? String(params.version) : undefined}
-            snapshot={xml?.snapshot}
-            meta={xml?.meta}
-            cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
-          />,
-        <StaticToolbar xml={{ editor: null }} />
+        // Editable in place (2026-09-15): the reader draws the toolbar and becomes the reader's fork on the first keystroke.
+        <TypesetXmlReader
+          billId={route.billId}
+          version={params.version ? String(params.version) : undefined}
+          snapshot={xml?.snapshot}
+          meta={xml?.meta}
+          jsonUrl={xml?.jsonUrl ?? undefined}
+          cite={{ jurisdiction: jurisdictionOf(route.state), work: xml?.meta?.work ?? null, at: xml?.meta?.date?.slice(0, 10) ?? null, citing: xml?.meta?.work && xml.meta.expression ? `${xml.meta.work}@${xml.meta.expression}` : null }}
+          edit={{ address: xml?.address ?? null, billId: route.billId, title: bill?.title ?? null }}
+        />
       )
     } else if (view === "fork") {
       // The reader's fork of the printing on the USLM schema (window 5, 2026-09-14): its own toolbar, amendment and redline.

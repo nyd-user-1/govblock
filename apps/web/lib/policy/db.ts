@@ -87,7 +87,7 @@ function decode(field: Field, typeName: string | undefined): unknown {
 // ceiling around the clock, mostly crawlers re-rendering the same pages.
 const DAY = 86_400
 const HOUR = 3_600
-const VOLATILE = /^(clip|typeset_documents|xml_jobs|xml_fallouts|watch|reader_|forks|commits|users|accounts|sessions|verification|agent|mail_|inbox|chat_|comment|pg_|information_schema)/i
+const VOLATILE = /^(clip|typeset_documents|xml_jobs|xml_fallouts|watch|reader_|forks|fork_|commits|users|accounts|sessions|verification|agent|mail_|inbox|chat_|comment|pg_|information_schema)/i
 
 /** The tables a statement reads, for its cache tags. */
 export function tablesOf(text: string): string[] {

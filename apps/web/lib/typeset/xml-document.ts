@@ -130,6 +130,16 @@ export async function buildXmlDocument(bill: Bill, version?: number): Promise<Xm
   }
 }
 
+/** The address a printing is stored under in the XML store, without building it: `version` is a document id. The same Work and Expression buildXmlDocument names. */
+export async function printingAddress(bill: Bill, version?: number): Promise<{ work: string; expression: string } | null> {
+  const text = await getBillText(bill.bill_id, version)
+  const work = billWork(bill)
+  const date = text?.date ?? null
+  if (!work || !date) return null
+  const stage = text?.url ? federalStage(text.url) : null
+  return { work, expression: `${date.slice(0, 10)}_${stage ?? printingStage(text?.version ?? text?.document_desc ?? "text")}` }
+}
+
 /** A printing's XML document: `version` is a document id. Null when there is no such bill. */
 export async function getXmlDocument(billId: number, version?: number, bill?: Bill): Promise<XmlDocument | null> {
   const record = bill ?? (await getBill(billId))

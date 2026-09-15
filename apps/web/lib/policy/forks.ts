@@ -101,6 +101,9 @@ export async function forkAddress(address: string, extra: { bill_id?: number | n
   return fork
 }
 
+/** Where a fork of a published unit opens on its own. */
+export const forkHref = (id: number) => `/workspace/typeset/fork/${id}`
+
 /** A commit holds text (Duplicate to edit) or a document of the USLM schema (a fork of a published unit). */
 export async function createCommit(input: { fork_id: number; parent_document_id: number | null; parent_commit_id: number | null; message: string; description: string; text?: string; doc?: unknown }): Promise<Commit | null> {
   const r = await fetch("/api/policy/commits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...input, claim: claimCheck() }) })

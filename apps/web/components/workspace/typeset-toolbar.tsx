@@ -7,7 +7,7 @@ import type { Editor } from "@tiptap/react"
 import { BillKit } from "@/components/plate/editor/bill-kit"
 import { FixedToolbar } from "@/components/plate/ui/fixed-toolbar"
 import { FixedToolbarButtons } from "@/components/plate/ui/fixed-toolbar-buttons"
-import { XmlToolbarGroups } from "@/components/workspace/typeset-xml-toolbar"
+import { XmlMarkButtons, XmlToolbarGroups } from "@/components/workspace/typeset-xml-toolbar"
 import { FileMenu } from "@/components/workspace/typeset-file-menu"
 
 // The rich-text toolbar, on the views that have no rich-text editor under it
@@ -24,9 +24,14 @@ export function StaticToolbar({ xml, end }: { /** The XML views (Brendan, 2026-0
   // for kits not in BillKit draw their stand-ins, which is all a disabled
   // toolbar needs.
   const editor = usePlateEditor({ plugins: BillKit, value: [{ type: "p", children: [{ text: "" }] }] })
-  const formatting = (
+  // On the XML views bold and italic act on the USLM editor and the rest of Plate's row stands disabled around them (2026-09-15): each item but those marked `data-live`.
+  const formatting = xml ? (
+    <div className="flex flex-1 select-none [&>div>div>div>*:not([data-live])]:pointer-events-none [&>div>div>div>*:not([data-live])]:opacity-50">
+      <FixedToolbarButtons history={false} marks={<XmlMarkButtons editor={xml.editor} />} />
+    </div>
+  ) : (
     <div aria-disabled="true" className="pointer-events-none flex flex-1 opacity-50 select-none" title="Formatting applies in Typeset">
-      <FixedToolbarButtons history={!xml} />
+      <FixedToolbarButtons />
     </div>
   )
   // File leads every toolbar (Brendan, 2026-09-15), live even where the formatting is not.

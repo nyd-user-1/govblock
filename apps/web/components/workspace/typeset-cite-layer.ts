@@ -24,9 +24,9 @@ export type CiteSpec = { from: number; to: number; href: string | null; classNam
 
 export const citeKey = new PluginKey<{ set: DecorationSet; specs: CiteSpec[] }>("citations")
 
-export const CiteDecorations = Extension.create<{ onOpen: ((href: string) => void) | null }>({
+export const CiteDecorations = Extension.create<{ onOpen: ((href: string) => void) | null; /** True while a plain click should still open: the XML view takes keystrokes but is read until the first one (2026-09-15). */ reading: (() => boolean) | null }>({
   name: "citeDecorations",
-  addOptions: () => ({ onOpen: null }),
+  addOptions: () => ({ onOpen: null, reading: null }),
   addProseMirrorPlugins() {
     const options = this.options
     return [
@@ -49,7 +49,7 @@ export const CiteDecorations = Extension.create<{ onOpen: ((href: string) => voi
               const el = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-cite]")
               const href = el?.dataset.cite
               if (!href) return false
-              if (view.editable && !(event.metaKey || event.ctrlKey || event.altKey)) return false
+              if (view.editable && !options.reading?.() && !(event.metaKey || event.ctrlKey || event.altKey)) return false
               event.preventDefault()
               if (options.onOpen) options.onOpen(href)
               else window.location.assign(href)

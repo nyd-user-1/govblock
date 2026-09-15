@@ -11,7 +11,8 @@ import { TypesetWorkspacePage, type XmlFirstPaint } from "@/components/workspace
 import { entitled } from "@/lib/entitlements"
 import { readerOf } from "@/lib/entitlements-server"
 import { getTypesetDocument } from "@/lib/typeset/document"
-import { getXmlDocument } from "@/lib/typeset/xml-document"
+import { getXmlDocument, printingAddress } from "@/lib/typeset/xml-document"
+import { findExpression, getExpressionDocument } from "@/lib/typeset/expression-document"
 import { fmtBill } from "@/lib/format"
 import { latestSession } from "@/lib/policy/db-queries"
 import { getBill } from "@/lib/policy/queries"
@@ -68,17 +69,28 @@ export default async function TypesetBillPage({ params, searchParams }: { params
     }
   }
   // The XML view paints the printing as the reader's schema draws it (window 1,
-  // 2026-09-14), built from its USLM and kept like the snapshot above.
+  // 2026-09-14), built from its USLM and kept like the snapshot above. A
+  // printing in the XML store is drawn from its stored Expression (2026-09-15):
+  // that is the document the reader's copy is made from when they type, so
+  // the two are one text. A printing not stored is built from its source and
+  // cannot be copied.
   let xml: XmlFirstPaint | undefined
   if (key === "xml") {
     const reader = await readerOf()
     if (entitled(reader, { state: bill.state, session: bill.session_id, current, entity: "bills" }) === "open") {
       const { version } = await searchParams
-      const doc = await getXmlDocument(bill.bill_id, Number(version) || undefined, bill).catch((error) => {
-        console.error("xml view: could not build", bill.bill_id, error)
-        return null
-      })
-      if (doc) xml = { snapshot: doc.html, meta: { documentId: doc.documentId, version: doc.version, date: doc.date, work: doc.work, expression: doc.expression, fidelity: doc.fidelity, dialect: doc.dialect, sourceUrl: doc.sourceUrl, captured: doc.captured } }
+      const at = await printingAddress(bill, Number(version) || undefined).catch(() => null)
+      const found = at ? await findExpression(`${at.work}@${at.expression}`).catch(() => null) : null
+      const stored = found && !found.portion ? await getExpressionDocument(found.row).catch(() => null) : null
+      if (stored) {
+        xml = { snapshot: stored.html, meta: { ...stored.meta, documentId: null }, jsonUrl: `/api/typeset/work?address=${encodeURIComponent(stored.address)}`, address: stored.address }
+      } else {
+        const doc = await getXmlDocument(bill.bill_id, Number(version) || undefined, bill).catch((error) => {
+          console.error("xml view: could not build", bill.bill_id, error)
+          return null
+        })
+        if (doc) xml = { snapshot: doc.html, meta: { documentId: doc.documentId, version: doc.version, date: doc.date, work: doc.work, expression: doc.expression, fidelity: doc.fidelity, dialect: doc.dialect, sourceUrl: doc.sourceUrl, captured: doc.captured }, jsonUrl: null, address: null }
+      }
     }
   }
   return (

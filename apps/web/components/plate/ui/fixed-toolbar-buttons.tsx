@@ -1,5 +1,7 @@
 'use client';
 
+import type * as React from 'react';
+
 import {
   ArrowUpToLineIcon,
   BaselineIcon,
@@ -52,7 +54,7 @@ const FontSizeToolbarButton = dynamic(() => import('./font-size-toolbar-button')
 const MediaToolbarMenu = dynamic(() => import('./media-toolbar-button').then((m) => m.MediaToolbarMenu), { ssr: false });
 const ToggleToolbarButton = dynamic(() => import('./toggle-toolbar-button').then((m) => m.ToggleToolbarButton), { ssr: false });
 
-export function FixedToolbarButtons({ history = true }: { /** Off where another editor's undo and redo lead the row (the XML views, 2026-09-14). */ history?: boolean } = {}) {
+export function FixedToolbarButtons({ history = true, marks }: { /** Off where another editor's undo and redo lead the row (the XML views, 2026-09-14). */ history?: boolean; /** Bold, italic, underline and strikethrough drawn by another editor in their place (the XML views, 2026-09-15). */ marks?: React.ReactNode } = {}) {
   // Every button is drawn (Brendan, 2026-09-13). One whose kit the editor was
   // built without (BillKit leaves out AI, emoji, media, toggles and font
   // sizes) loads its kit when it is used; see lazy-kit-button.tsx.
@@ -110,6 +112,8 @@ export function FixedToolbarButtons({ history = true }: { /** Off where another 
           </ToolbarGroup>
 
           <ToolbarGroup>
+            {marks ?? (
+              <>
             <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold (⌘+B)">
               <BoldIcon />
             </MarkToolbarButton>
@@ -131,6 +135,8 @@ export function FixedToolbarButtons({ history = true }: { /** Off where another 
             >
               <StrikethroughIcon />
             </MarkToolbarButton>
+              </>
+            )}
 
             <MarkToolbarButton nodeType={KEYS.code} tooltip="Code (⌘+E)">
               <Code2Icon />
