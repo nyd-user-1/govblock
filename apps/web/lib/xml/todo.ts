@@ -20,7 +20,7 @@ export type TodoItem = {
 
 const PROGRAM = "Read apps/web/docs/prompts/2026-09-14-legislative-xml-program.md whole"
 const RULES =
-  "Commit to feature/legislative-xml by path, never git add -A, never main, pull --rebase before pushing. The branch's dev server is on the box at ~/govblock-xml, port 3002, tunnelled to localhost:3002. Ask Brendan before any production-database action beyond additive DDL under sql/."
+  "Commit to feature/typeset-flip by path, never git add -A, never main, pull --rebase before pushing. The branch's dev server is on the box at ~/govblock-xml, port 3002, tunnelled to localhost:3002. Ask Brendan before any production-database action beyond additive DDL under sql/."
 
 export const TODO: TodoItem[] = [
   {
@@ -57,5 +57,21 @@ export const TODO: TodoItem[] = [
     status: "done",
     claimedBy: "window-8-grammar",
     prompt: `${PROGRAM} ("The compiler" especially), then apps/web/docs/prompts/2026-09-14-grammars-and-compiler.md, then apps/web/docs/prompts/2026-09-14-grammars-round-two.md whole, then apps/web/docs/xml/window-3.md and sources.md. Plan, then build. Coverage is the parser's score: the share of a stored document's text the state's front end placed into USLM elements, not how much law is held. First aggregate the state front ends' report.notes into xml_fallouts so the Compiler page shows why a state is low; then take the seventeen lines largest corpus first, derive each grammar from the stored corpus sampled through "Bills" or "Laws" (never "BillTexts" by random order), measure with scripts/xml/coverage.mjs before and after, one jurisdiction per commit with the numbers in the message, to 90% or a written reason. Never touch lib/xml/frontends/federal.ts or the schema. Rebuilds queue from the Ingestion page and need the pipeline box running. ${RULES} Report to apps/web/docs/xml/window-8.md at every milestone with the seventeen-line table, start and current.`,
+  },
+  {
+    id: "clips-gemini",
+    title: "Clips: cut clips and transcripts through Gemini, the way autoclip.dev does (not tonight)",
+    status: "open",
+    prompt: `How autoclip.dev does it: there's no public repo. Their FAQ says:
+- Google Gemini analyzes the video.
+- Speech-to-text gives word-level timing.
+- It all runs on their servers, taking about 5 minutes and producing roughly 9 vertical MP4s per video.
+
+Gemini's API accepts a YouTube link directly and Google fetches the video on its own side, so YouTube's block on AWS never applies. That's almost certainly the trick. Making MP4s means they also download the video, likely through paid proxies. We don't need that part, because our clips play in YouTube's own player.
+
+Our version:
+- Cost: a free Gemini API key from Google AI Studio, no card, created on the Google account you choose. Gemini reads the YouTube link and returns both the moments and a timestamped transcript. Clipping and the transcript page both work that way.
+- Catch 1: Gemini needs about a minute or two on an hour-long hearing, longer than Amplify's 30-second limit. The call would have to run as a background job while the page checks back.
+- Catch 2: on the free tier, Google may use the requests to improve its products.`,
   },
 ]
