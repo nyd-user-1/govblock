@@ -9,8 +9,125 @@ Report to the lead (govblock-93). Newest milestone first. Brief:
 |---|---|
 | 1. Editing on the XML view | built, 8c1064f and 9917996; routes verified; typing in a browser is Brendan's |
 | 2. Mount from the server's HTML | built, ee72f68; measured |
-| 3. Typeset's URLs, then the flip | started; the flip held for the lead |
-| 4. The block view | not started |
+| 3. Typeset's URLs, then the flip | URLs built, ec209e7; the flip waits for the lead's word |
+| 4. The block view | started |
+
+## Milestone 3 — Typeset's URLs are addresses (2026-09-15 04:45 EDT, ec209e7)
+
+### Built
+
+- **One route for every Work,** `app/workspace/typeset/us/[[...path]]/page.tsx`:
+  jurisdiction, kind, path, then the view. `lib/xml/address.ts` reads it both
+  ways: `typesetPathOf(address)` writes `us-ny` as `us/ny`, and
+  `addressOfTypesetPath(segments, VIEW_SLUGS)` reads the path back to the stored
+  address and the view segment.
+  - A bill's Work is session/type/number, so a fourth segment is its view.
+  - A statute's last segment is a view only when it names one; a statute has
+    the reader alone, and `/xml` on it is the same page.
+  - A portion below a bill (`…/6644/tI/s101`) opens the bill. A stored bill
+    with no row in `"Bills"` is drawn as a Work.
+  - `@expression` on a bill opens that printing in the XML view.
+  - `?at=YYYY-MM-DD` is the text in force on a date, as before.
+  - `/workspace/typeset/us` alone goes to the Library's United States.
+- **The pages.** The bill page's body is `components/workspace/typeset-bill-route.tsx`
+  and the statute page's is `typeset-statute-route.tsx`, both drawn at the
+  address. The bill is found by its Work (`billIdOfWork`, one cached read of
+  `"Bills"`), so no LegiScan id appears in a Typeset URL.
+- **What redirects** (307, keeping the query):
+  - `/workspace/typeset/bill/<id>[/<view>]` goes to the address; a bill with no
+    address is still drawn there.
+  - `/workspace/typeset/work/<address>` goes to a bill's XML view or a
+    statute's reader.
+  - `/workspace/typeset/statute/…` goes to the address.
+  - An old view slug (`comp`, `versions`, `actions`) goes to its view's.
+- **Who builds the new form:**
+  - `typesetHref` takes a bill, an address or an id. A bill or an address
+    gives the new URL; an id alone gives the old one, which redirects.
+  - `workHref` gives a bill's XML view or a statute's reader. Through it the
+    Library, the `/` command, the citations, In context and find all build the
+    new form with no change of their own.
+  - The bill views carry `route.address`: the rail, prefetch, file actions,
+    the file chrome, the File menu and the Git pane.
+  - The bill record page's Typeset links, the `/` command's bills and the
+    parse tile pass the bill.
+  - The finder's rows carry no jurisdiction, so they keep the id and redirect.
+- `lib/routes.generated.ts` regenerated.
+
+### Verified, on 3001 (box at ec209e7)
+
+- Bounded type check over the 20 touched files: 0 diagnostics.
+
+| URL | Answer |
+|---|---|
+| `/workspace/typeset/us/bill/119/hr/6644` | 200 (first compile 22.8 s) |
+| `…/us/bill/119/hr/6644/xml` | 200 |
+| `…/us/bill/119/hr/6644@2026-05-20_eah/xml` | 200 |
+| `…/us/bill/119/hr/6644/git` | 200 |
+| `…/us/bill/119/hr/6644/comp` | 307 → `…/6644/redline` |
+| `/workspace/typeset/bill/2058568` | 307 → `/workspace/typeset/us/bill/119/hr/6644` |
+| `/workspace/typeset/bill/2058568/xml?version=123` | 307 → `…/6644/xml?version=123` |
+| `/workspace/typeset/work/us/bill/119/hr/6644` | 307 → `…/6644/xml` |
+| `/workspace/typeset/work/us/usc/t10/s130i?at=2026-05-01` | 307 → `/workspace/typeset/us/usc/t10/s130i?at=2026-05-01` |
+| `/workspace/typeset/statute/us-ny/agm/s16` | 307 → `/workspace/typeset/us/ny/code/agm/s16` |
+| `…/us/usc/t7/s1`, `…/us/usc/t10/s130i/a/1` | 200, 200 |
+| `…/us/ny/code/agm/s16`, `…/us/ny/const/artI/s11` | 200, 200 |
+| `…/us/ny/bill/2025/s/7721/git` | 200 |
+| `…/us/pl/119/21` | 404: no public laws are in the store |
+| `…/us/nonsense` | 404 |
+| `/workspace/typeset/us` | 307 → `/workspace/typeset/library/us` |
+
+- H.R. 6644's XML view at its address: 0 links to `/workspace/typeset/bill/2058568`
+  in the page, and the address throughout.
+- `/api/typeset/slash`: `/hr6644` lists `/workspace/typeset/us/bill/119/hr/6644/xml`,
+  `/workspace/typeset/us/ct/bill/2025/hb/6644/xml` and
+  `/workspace/typeset/us/bill/118/hr/6644/xml`. `/us/usc/t10/s130i` lists
+  `/workspace/typeset/us/usc/t10/s130i`.
+- No server errors from these requests in the dev log.
+
+### Where a warm page's time goes (the lead's question)
+
+The server is not the long pole once warm. `GET …/6644/xml` took 925 ms
+(Next.js 445 ms, the page's own code 481 ms). What follows is the page
+itself, 2.6 MB. The 1.06 MB first paint rides in it twice: once as markup and
+once as the string prop the reader mounts from, in the React payload. Then the
+scripts load and hydrate. **Proposal, not done:** a server component draws the
+first paint and the reader parses it from the DOM it finds, so the HTML
+crosses once and the page drops to about 1.5 MB.
+
+### For the flip (held)
+
+- When the bare address becomes the XML view and Plate moves to `plate`, the
+  `xml` slug must stay as an old slug that opens the XML view (`LEGACY_SLUGS`).
+  Every link built today says `/xml`, and without it they would 404. That is
+  one line in `views.ts` beyond the two slugs.
+- `workHref` asks `typesetHref(address, "xml")`, so it follows the flip on its
+  own.
+
+### Open
+
+- **The Library's own paths still read `us-ny`**
+  (`/workspace/typeset/library/us-ny/code/agm`); only its links to Works
+  changed. Turning them to `us/ny` touches `library-data.ts`, its route and
+  `typeset-library.tsx`, where typeset-search is working now. Left for the
+  lead to decide when.
+- `@expression` on a bill's Plate, Git and Diff views is ignored; those views
+  choose a printing by document id (`?version=`, `?doc=`).
+- A fork's own URL stays `/workspace/typeset/fork/<id>`, built only by
+  `forkHref`. A fork is a reader's file, not an address in the law.
+
+### Files
+
+`apps/web/lib/xml/address.ts`, `apps/web/lib/typeset/views.ts`,
+`apps/web/lib/xml/library.ts`, `apps/web/lib/typeset/bill-href.ts`,
+`apps/web/app/workspace/typeset/us/[[...path]]/page.tsx`,
+`apps/web/app/workspace/typeset/bill/[id]/[[...view]]/page.tsx`,
+`apps/web/app/workspace/typeset/statute/[...address]/page.tsx`,
+`apps/web/app/workspace/typeset/work/[...address]/page.tsx`,
+`apps/web/components/workspace/typeset-bill-route.tsx`, `typeset-statute-route.tsx`,
+`typeset-workspace-2.tsx`, `typeset-file-chrome.tsx`, `typeset-file-menu.tsx`,
+`typeset-git-pane.tsx`, `typeset-work.tsx`,
+`apps/web/app/(records)/bills/[id]/page.tsx`, `apps/web/app/api/typeset/slash/route.ts`,
+`apps/web/app/api/typeset/uslm-parse/route.ts`, `apps/web/lib/routes.generated.ts`.
 
 ## Milestone 2 — the reader mounts on the server's HTML (2026-09-15 04:10 EDT, ee72f68)
 
