@@ -35,7 +35,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components
 import { BlockShell } from "@/components/policy/block-shell"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { TypesetBillChrome } from "@/components/workspace/typeset-file-chrome"
-import { GettingStarted, PaneNoteSlot, ViewPills } from "@/components/workspace/typeset-footer-parts"
+import { GettingStarted, PaneNoteSlot } from "@/components/workspace/typeset-footer-parts"
+import { FinderRail, FinderSwitch, TypesetFinderProvider, useFinder } from "@/components/workspace/typeset-finder"
 import {
   SidebarContent,
   SidebarGroup,
@@ -274,10 +275,24 @@ function WithToolbar({ children }: { children: React.ReactNode }) {
 /** The XML view's first paint, drawn on the server (lib/typeset/xml-document.ts). */
 export type XmlFirstPaint = { snapshot: string | null; meta: XmlMeta | null }
 
-export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint }) {
+export function TypesetWorkspace(props: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint }) {
+  return (
+    <TypesetFinderProvider>
+      <TypesetWorkspaceBody {...props} />
+    </TypesetFinderProvider>
+  )
+}
+
+function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; snapshot?: React.ReactNode; xml?: XmlFirstPaint }) {
   const router = useRouter()
   // Closed on every load; only the footer's hamburger opens it (Brendan, 2026-09-11).
   const [panelOpen, setPanelOpen] = React.useState(false)
+  // The finder's pick opens the rail with its own list (Brendan, 2026-09-15); closing the pick gives the page's rail back.
+  const { pick } = useFinder()
+  const [railOpen, setRailOpen] = React.useState(false)
+  React.useEffect(() => {
+    if (pick) setRailOpen(true)
+  }, [pick])
   const [params] = useTypesetSearchParams()
   const { state, session, isDefaultSession } = useJurisdiction()
   // A routed bill names its own jurisdiction; the query form reads the rail's.
@@ -309,7 +324,7 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
       panelOpen={panelOpen}
       onTogglePanel={() => setPanelOpen((open) => !open)}
     >
-      <div className="flex items-center gap-1">{route ? <ViewPills billId={route.billId} view={view} /> : <TypesetPages options={PAGES} />}</div>
+      <div className="flex items-center gap-1">{route ? <FinderSwitch /> : <TypesetPages options={PAGES} />}</div>
       <div className="mx-0.5 h-4 w-px bg-border" />
       <GettingStarted />
       <PaneNoteSlot />
@@ -402,7 +417,9 @@ export function TypesetWorkspace({ route, snapshot, xml }: { route?: TypesetRout
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
             <BlockShell
               defaultOpen={false}
-              rail={route ? <RouteRail route={route} /> : <TypesetRail />}
+              open={railOpen}
+              onOpenChange={setRailOpen}
+              rail={pick ? <FinderRail /> : route ? <RouteRail route={route} /> : <TypesetRail />}
               title={
                 <PathBar
                   crumbs={[APP_CRUMB, { label: "Typeset" }, { label: file }]}
