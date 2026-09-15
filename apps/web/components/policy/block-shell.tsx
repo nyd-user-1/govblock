@@ -47,6 +47,8 @@ export function BlockShell({
   contentClassName,
   separatorClassName,
   defaultOpen = true,
+  open: openProp,
+  onOpenChange,
 }: {
   /** The sidebar's contents: SidebarHeader, SidebarContent, SidebarFooter. */
   rail: React.ReactNode
@@ -70,8 +72,13 @@ export function BlockShell({
   /** The rule between the trigger and the title; the Admin experience runs it tighter. */
   separatorClassName?: string
   defaultOpen?: boolean
+  /** Held by the caller when given; the finder opens the rail this way. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = React.useState(defaultOpen)
+  const [ownOpen, setOwnOpen] = React.useState(defaultOpen)
+  const open = openProp ?? ownOpen
+  const setOpen = onOpenChange ?? setOwnOpen
   const shared = React.useContext(ShellFooterContext)
   const foot = footer ?? shared
   return (

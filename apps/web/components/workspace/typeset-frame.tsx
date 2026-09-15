@@ -8,6 +8,7 @@ import { previewFontVariables } from "@/app/preview/fonts"
 import { APP_CRUMB, PathBar, type Crumb } from "@/components/create/path-bar"
 import { BlockShell } from "@/components/policy/block-shell"
 import { GettingStarted, PaneNoteSlot } from "@/components/workspace/typeset-footer-parts"
+import { FinderRail, FinderSwitch, TypesetFinderProvider, useFinder } from "@/components/workspace/typeset-finder"
 import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { PaneNoteProvider } from "@/lib/typeset/pane-note"
 import { cn } from "@govblock/ui/lib/utils"
@@ -39,7 +40,24 @@ export function TypesetFrame({
   billId?: number | null
   children: React.ReactNode
 }) {
+  return (
+    <TypesetFinderProvider>
+      <TypesetFrameBody rail={rail} crumbs={crumbs} actions={actions} footer={footer} railOpen={railOpen} billId={billId}>
+        {children}
+      </TypesetFrameBody>
+    </TypesetFinderProvider>
+  )
+}
+
+function TypesetFrameBody({ rail, crumbs, actions, footer, railOpen = false, billId, children }: { rail: React.ReactNode; crumbs: Crumb[]; actions?: React.ReactNode; footer?: React.ReactNode; railOpen?: boolean; billId?: number | null; children: React.ReactNode }) {
   const [panelOpen, setPanelOpen] = React.useState(false)
+  // The finder's pick opens the rail with its own list (Brendan, 2026-09-15); closing the pick gives the page's rail back.
+  const { pick } = useFinder()
+  const [open, setOpen] = React.useState(railOpen)
+  React.useEffect(() => {
+    if (pick) setOpen(true)
+  }, [pick])
+  void billId
   return (
     <TypesetPreviewOverrideProvider>
       <PaneNoteProvider>
@@ -55,11 +73,15 @@ export function TypesetFrame({
             <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
               <BlockShell
                 defaultOpen={railOpen}
-                rail={rail}
+                open={open}
+                onOpenChange={setOpen}
+                rail={pick ? <FinderRail /> : rail}
                 title={<PathBar crumbs={[APP_CRUMB, TYPESET_CRUMB, ...crumbs]} folder={false} onGo={() => {}} />}
                 actions={actions}
                 footer={
                   <WorkspaceFooter mode="typeset" panelOpen={panelOpen} onTogglePanel={() => setPanelOpen((open) => !open)}>
+                    <FinderSwitch />
+                    <div className="mx-0.5 h-4 w-px bg-border" />
                     <GettingStarted />
                     <PaneNoteSlot />
                     {footer}
