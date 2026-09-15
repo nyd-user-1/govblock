@@ -230,6 +230,10 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "api"
   },
   {
+    "path": "/api/typeset/comments",
+    "kind": "api"
+  },
+  {
     "path": "/api/typeset/content",
     "kind": "api"
   },
@@ -238,7 +242,15 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "api"
   },
   {
+    "path": "/api/typeset/draft",
+    "kind": "api"
+  },
+  {
     "path": "/api/typeset/file/[...key]",
+    "kind": "api"
+  },
+  {
+    "path": "/api/typeset/find",
     "kind": "api"
   },
   {
@@ -743,6 +755,10 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/workspace/typeset/statute/[...address]",
+    "kind": "page"
+  },
+  {
+    "path": "/workspace/typeset/us/[[...path]]",
     "kind": "page"
   },
   {

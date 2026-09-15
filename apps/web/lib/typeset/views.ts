@@ -1,7 +1,10 @@
 import { FileCodeIcon, FileDiffIcon, FileTextIcon, GitBranchIcon, GitCompareArrowsIcon, GitForkIcon, LibraryIcon, ListTreeIcon, type LucideIcon } from "lucide-react"
 
+import { billWork, typesetPathOf } from "@/lib/xml/address"
+
 // Typeset's views of one bill (Brendan, 2026-09-12): one route per view under
-// /workspace/typeset/bill/{id}, and the numbered switcher in the footer walks
+// the bill's address, /workspace/typeset/us/bill/119/hr/6644/<view> since
+// 2026-09-15 (lib/xml/address.ts), and the numbered switcher in the footer walks
 // the five. Typeset is the editor; Outline is the same page with the table of
 // contents beside it; Redline is the printings as one scrolling redline, the
 // animated compare that used to live at /comp; Git is the bill as a file in a
@@ -53,12 +56,20 @@ export function viewFromSlug(slug: string | undefined): TypesetView | null {
   return ALL_VIEWS.find((v) => v.slug === slug)?.key ?? LEGACY_SLUGS[slug] ?? null
 }
 
-export function typesetHref(billId: number | string, view: TypesetView = "typeset", query?: URLSearchParams | Record<string, string | null | undefined>): string {
+/** Every path segment that names a view, the old ones included: what an address's path may end in. */
+export const VIEW_SLUGS: ReadonlySet<string> = new Set([...ALL_VIEWS.map((v) => v.slug).filter(Boolean), ...Object.keys(LEGACY_SLUGS)])
+
+/** A bill as Typeset can link to it: the bill (its address is worked out), its address (`/us/bill/119/hr/6644`), or only its id, which the old route sends on to the address. */
+export type BillRef = number | string | Parameters<typeof billWork>[0] & { bill_id: number }
+
+export function typesetHref(bill: BillRef, view: TypesetView = "typeset", query?: URLSearchParams | Record<string, string | null | undefined>): string {
   const spec = viewSpec(view)
   const params = query instanceof URLSearchParams ? query : new URLSearchParams()
   if (query && !(query instanceof URLSearchParams)) for (const [k, v] of Object.entries(query)) if (v) params.set(k, v)
   const search = params.toString()
-  return `/workspace/typeset/bill/${billId}${spec.slug ? `/${spec.slug}` : ""}${search ? `?${search}` : ""}`
+  const address = typeof bill === "object" ? billWork(bill) : typeof bill === "string" && bill.startsWith("/") ? bill : null
+  const base = address ? typesetPathOf(address) : `/workspace/typeset/bill/${typeof bill === "object" ? bill.bill_id : bill}`
+  return `${base}${spec.slug ? `/${spec.slug}` : ""}${search ? `?${search}` : ""}`
 }
 
 /** The old `item` keys, as the views they were. */

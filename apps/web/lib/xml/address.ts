@@ -51,6 +51,41 @@ export function formatAddress(workAddress: string, expression?: string | null, f
   return `${workAddress}${expression ? `@${expression}` : ""}${format ? `.${format}` : ""}`
 }
 
+// Typeset's URLs (Brendan, 2026-09-15): the address is the page's path, with
+// the jurisdiction written as a path (`us/ny`) where the store keeps Akoma
+// Ntoso's `us-ny`, then the view:
+//
+//   /workspace/typeset/us/bill/119/hr/6644                       the bill
+//   /workspace/typeset/us/bill/119/hr/6644@2026-06-25_enr/xml    a printing's XML view
+//   /workspace/typeset/us/ny/code/agm/s16                        a section
+//
+// No vendor's serial number rides in the address.
+
+export const TYPESET_ROOT = "/workspace/typeset"
+
+/** A stored address as Typeset's path: `/us-ny/code/agm/s16@2024-01-01` → `/workspace/typeset/us/ny/code/agm/s16@2024-01-01`. */
+export const typesetPathOf = (address: string) => `${TYPESET_ROOT}${address.replace(/^\/us-([a-z]{2})(?=\/)/, "/us/$1")}`
+
+/**
+ * Typeset's path back to the stored address, and the view segment after it:
+ * `["us", "ny", "bill", "2025", "s", "1234", "git"]` → `/us-ny/bill/2025/s/1234`
+ * and `git`. `slugs` are the view segments a path may end in. Null when the
+ * path is not an address.
+ */
+export function addressOfTypesetPath(segments: string[], slugs: ReadonlySet<string>): { address: Address; slug: string | null } | null {
+  const parts = segments.map((s) => decodeURIComponent(s))
+  if (parts[0] !== "us") return null
+  const state = parts[1] && /^[a-z]{2}$/.test(parts[1]) && !KINDS.has(parts[1]) ? parts[1] : null
+  const [kind, ...rest] = parts.slice(state ? 2 : 1)
+  if (!kind) return null
+  // A bill's Work is session/type/number, so a fourth segment is its view; a statute's path has no fixed depth, and only a last segment that names a view is one.
+  const slug = rest.length > (kind === "bill" ? 3 : 1) && slugs.has(rest[rest.length - 1]) ? rest.pop()! : null
+  const address = parseAddress(`/${state ? `us-${state}` : "us"}/${kind}${rest.length ? `/${rest.join("/")}` : ""}`)
+  return address ? { address, slug } : null
+}
+
+const KINDS: ReadonlySet<string> = new Set<Kind>(["bill", "usc", "code", "const", "pl", "law"])
+
 /** The S3 key an Expression's USLM is stored under (decision 10). */
 export const s3KeyOf = (workAddress: string, expression: string) => `lake/v1/xml${workAddress}/${expression}.xml`
 

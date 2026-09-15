@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 
 import { LIBRARY_ROOT } from "@/lib/xml/library"
-import { TYPESET_VIEWS, typesetHref, type TypesetView } from "@/lib/typeset/views"
+import { TYPESET_VIEWS, typesetHref, type BillRef, type TypesetView } from "@/lib/typeset/views"
 import { Button } from "@govblock/ui/components/nova/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/ny4/dropdown-menu"
 
@@ -14,10 +14,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 // the footer. The bill chrome says which bill and view the toolbar sits on;
 // on a statute or a fork there is no bill, so only the Library opens.
 
-type FileContext = { billId: number; view: TypesetView } | null
+type FileContext = { billId: BillRef; view: TypesetView } | null
 const Ctx = React.createContext<FileContext>(null)
 
-export function TypesetFileProvider({ billId, view, children }: { billId: number; view: TypesetView; children: React.ReactNode }) {
+export function TypesetFileProvider({ billId, view, children }: { /** The bill's address, or its id where it has none (2026-09-15). */ billId: BillRef; view: TypesetView; children: React.ReactNode }) {
   const value = React.useMemo(() => ({ billId, view }), [billId, view])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

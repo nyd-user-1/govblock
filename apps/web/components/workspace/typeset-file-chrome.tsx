@@ -343,15 +343,16 @@ export function FileChrome({ file, toolbar, slashFocuses = true, children }: { f
 }
 
 /** A bill's file on its Typeset views: the newest printing's plain text, its printings, its companions. */
-export function TypesetBillChrome({ billId, state, session, view, toolbar, children }: { billId: number; state: string; session: number | null; view: TypesetView; toolbar?: React.ReactNode; children: React.ReactNode }) {
+export function TypesetBillChrome({ billId, address, state, session, view, toolbar, children }: { billId: number; /** The bill's Work, which its views' URLs are built on. */ address?: string | null; state: string; session: number | null; view: TypesetView; toolbar?: React.ReactNode; children: React.ReactNode }) {
   const router = useRouter()
+  const self = address ?? billId
   const { data: bill } = usePolicy<Bill>("bill", { state }, { id: billId })
   const versions = React.useMemo<TextVersion[]>(() => [...(bill?.texts ?? [])].sort((a, b) => b.document_id - a.document_id), [bill?.texts])
   const shown = versions[0]
   const { data: doc } = usePolicy<{ text?: string }>(shown ? "text" : null, { state }, { id: billId, document: shown?.document_id })
   const label = bill ? fmtBill(bill.bill_number, bill.state) : "Bill"
-  const openGit = (documentId: number) => router.push(typesetHref(billId, "git", { doc: String(documentId) }))
-  const openChanges = (documentId: number) => router.push(typesetHref(billId, "diff", { doc: String(documentId) }))
+  const openGit = (documentId: number) => router.push(typesetHref(self, "git", { doc: String(documentId) }))
+  const openChanges = (documentId: number) => router.push(typesetHref(self, "diff", { doc: String(documentId) }))
 
   const file: ChromeFile = {
     qualifier: `bill:${label}`,
@@ -364,14 +365,14 @@ export function TypesetBillChrome({ billId, state, session, view, toolbar, child
     fileName: shown ? `${label.toLowerCase().replace(/[^a-z0-9]/g, "")}-${(shown.version ?? "original").replace(/\s+/g, "-").toLowerCase()}.txt` : "",
     related: (bill?.sameAs ?? []).map((s) => ({ label: s.sast_bill_number, action: `View ${s.sast_type?.toLowerCase().includes("same") ? "companion bill" : s.sast_type || "related bill"}`, onClick: () => router.push(typesetHref(s.sast_bill_id, view)) })),
     // The fork is the XML copy (window 5); on the Fork view the pencil has nowhere further to go.
-    onEdit: view === "fork" ? undefined : () => router.push(typesetHref(billId, "fork")),
+    onEdit: view === "fork" ? undefined : () => router.push(typesetHref(self, "fork")),
     pageHref: `/bills/${billId}?state=${state}`,
     versions: { title: `Versions · ${versions.length}`, body: <VersionsList versions={versions} current={shown?.document_id ?? null} onChoose={openGit} onOpenChanges={openChanges} work={bill ? billWork(bill) : null} /> },
     historyPanel: bill?.history?.length ? { title: `History · ${bill.history.length}`, body: <BillHistoryList history={bill.history} /> } : null,
     onOpenResult: (id, documentId) => (id === billId && documentId ? openGit(documentId) : router.push(typesetHref(id, view))),
   }
   return (
-    <TypesetFileProvider billId={billId} view={view}>
+    <TypesetFileProvider billId={self} view={view}>
       <FileChrome file={file} toolbar={toolbar} slashFocuses={view !== "xml" && view !== "fork"}>
         {children}
       </FileChrome>

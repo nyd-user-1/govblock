@@ -88,7 +88,7 @@ const contentOf = (page: Exclude<Page, "diff">) => (page === "potion" ? "article
 /** Which editor draws it. */
 const surfaceOf = (page: Exclude<Page, "diff">) => (page === "potion" ? "potion" : "plate")
 
-export type TypesetRoute = { billId: number; state: string; session: number | null; view: TypesetView }
+export type TypesetRoute = { billId: number; /** The bill's Work (`/us/bill/119/hr/6644`), which its views' URLs are built on (2026-09-15); null for a bill with no address. */ address: string | null; state: string; session: number | null; view: TypesetView }
 
 /** What a routed view opens: the editor page it is, or Git's view, or the diff. */
 const EDITOR_OF: Partial<Record<TypesetView, { item: "article" | "changelog"; surface: "plate" | "potion" }>> = {
@@ -143,7 +143,7 @@ function RouteRail({ route }: { route: TypesetRoute }) {
         <SidebarMenu>
           {views.map((option, index) => (
             <SidebarMenuItem key={option.key}>
-              <SidebarMenuButton isActive={route.view === option.key} onClick={() => router.push(typesetHref(route.billId, option.key))}>
+              <SidebarMenuButton isActive={route.view === option.key} onClick={() => router.push(typesetHref(route.address ?? route.billId, option.key))}>
                 <option.icon />
                 <span className="flex-1 truncate">{option.label}</span>
                 {numbered && <span className="text-xs text-muted-foreground tabular-nums">{String(index + 1).padStart(2, "0")}</span>}
@@ -309,11 +309,11 @@ function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; 
   const view: TypesetView | null = route?.view ?? null
   // The other views' routes, fetched while this one is read (Brendan,
   // 2026-09-13: a switch is a swap, not a wait).
-  const billId = route?.billId
+  const billRef = route?.address ?? route?.billId
   React.useEffect(() => {
-    if (!billId) return
-    for (const option of TYPESET_VIEWS) if (option.key !== view) router.prefetch(typesetHref(billId, option.key))
-  }, [billId, view, router])
+    if (!billRef) return
+    for (const option of TYPESET_VIEWS) if (option.key !== view) router.prefetch(typesetHref(billRef, option.key))
+  }, [billRef, view, router])
   // The path ends on the open file (Brendan, 2026-09-11): the bill, or the page when none is loaded.
   const file = bill ? fmtBill(bill.bill_number, bill.state) : route ? "Bill" : PAGES.find((p) => p.value === page)!.label
   const showDiffControls = view ? view === "redline" : page === "diff"
@@ -347,8 +347,8 @@ function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; 
         view={(view === "diff" ? "changes" : "text") as BillView}
         onOpen={(open) => {
           if (open === "record") return router.push(`/bills/${route.billId}`)
-          if (open === "typeset") return router.push(typesetHref(route.billId))
-          router.push(typesetHref(route.billId, open === "text" ? "git" : "diff"))
+          if (open === "typeset") return router.push(typesetHref(route.address ?? route.billId))
+          router.push(typesetHref(route.address ?? route.billId, open === "text" ? "git" : "diff"))
         }}
       />
     ) : undefined
@@ -358,7 +358,7 @@ function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; 
     // The Git view's file row over every view (Brendan, 2026-09-14), with the
     // rich-text toolbar under it wherever the view has no editor of its own.
     const chrome = (children: React.ReactNode, toolbar?: React.ReactNode) => (
-      <TypesetBillChrome billId={route.billId} state={route.state} session={route.session} view={view} toolbar={toolbar}>
+      <TypesetBillChrome billId={route.billId} address={route.address} state={route.state} session={route.session} view={view} toolbar={toolbar}>
         {children}
       </TypesetBillChrome>
     )
@@ -387,10 +387,10 @@ function TypesetWorkspaceBody({ route, snapshot, xml }: { route?: TypesetRoute; 
       content = chrome(<DiffPane width={diff.width} locked={diff.locked} filters={filters} />, <StaticToolbar />)
     } else if (view === "diff") {
       // Git's Changes, under the same row; the pane's own History row stands down.
-      content = chrome(<TypesetGitPane billId={route.billId} view={view} chromed />, <StaticToolbar />)
+      content = chrome(<TypesetGitPane billId={route.billId} address={route.address} view={view} chromed />, <StaticToolbar />)
     } else if (isGitView(view)) {
       // The file row first, the rich-text toolbar under it (Brendan, 2026-09-14): the pane draws the toolbar between its row and the text.
-      content = <TypesetGitPane billId={route.billId} view={view} toolbar={<StaticToolbar />} />
+      content = <TypesetGitPane billId={route.billId} address={route.address} view={view} toolbar={<StaticToolbar />} />
     }
   } else {
     content =

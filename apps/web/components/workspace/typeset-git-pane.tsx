@@ -32,7 +32,7 @@ const FileView = dynamic(() => import("@/components/create/file-view").then((m) 
 
 export type GitView = Extract<TypesetView, "git" | "diff" | "fork">
 
-export function TypesetGitPane({ billId, view, toolbar, chromed }: { billId: number; view: GitView; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode; /** Drawn under Typeset's file row, so the pane's own History row stands down. */ chromed?: boolean }) {
+export function TypesetGitPane({ billId, address, view, toolbar, chromed }: { billId: number; /** The bill's Work, which the view's URLs are built on (2026-09-15). */ address?: string | null; view: GitView; /** Typeset's rich-text toolbar, drawn under the file row (2026-09-14). */ toolbar?: React.ReactNode; /** Drawn under Typeset's file row, so the pane's own History row stands down. */ chromed?: boolean }) {
   const router = useRouter()
   const scope = useScope()
   const q = useUrlParams(["doc", "fork"] as const)
@@ -54,10 +54,10 @@ export function TypesetGitPane({ billId, view, toolbar, chromed }: { billId: num
       }
       // A new view opens on its own first document unless one was named.
       if (!("doc" in target) && next !== view) query.delete("doc")
-      const href = typesetHref(billId, next, query)
+      const href = typesetHref(address ?? billId, next, query)
       if (href !== `${window.location.pathname}${window.location.search}`) router.push(href)
     },
-    [billId, router, view]
+    [address, billId, router, view]
   )
 
   return (

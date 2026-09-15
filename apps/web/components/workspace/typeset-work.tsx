@@ -12,8 +12,8 @@ import { TypesetXmlReader, type XmlMeta } from "@/components/workspace/typeset-x
 import { TypesetWorkChrome } from "@/components/workspace/typeset-file-chrome"
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
-// A Work opened by its address in the XML view (window 4, 2026-09-14):
-// /workspace/typeset/work/<address>. The stored Expression, drawn by the same
+// A Work opened by its address in the XML view (window 4, 2026-09-14), at
+// /workspace/typeset/<address> since 2026-09-15 (/us/usc/t10/s130i). The stored Expression, drawn by the same
 // reader as a bill printing, with the library it sits in and the Work's
 // DocHistory in the rail. A bill's Work also opens in Typeset's own views.
 

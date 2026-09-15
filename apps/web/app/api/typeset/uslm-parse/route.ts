@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const doc = await buildXmlDocument(bill, version)
     const { json: _json, html: _html, ...rest } = doc
     return NextResponse.json(
-      { ...rest, bill: fmtBill(bill.bill_number, bill.state), state: bill.state, href: typesetHref(bill.bill_id, "xml", doc.documentId != null && version ? { version: String(doc.documentId) } : undefined) },
+      { ...rest, bill: fmtBill(bill.bill_number, bill.state), state: bill.state, href: typesetHref(bill, "xml", doc.documentId != null && version ? { version: String(doc.documentId) } : undefined) },
       { headers: { "cache-control": "private, no-store" } }
     )
   } catch (error) {

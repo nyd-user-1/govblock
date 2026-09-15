@@ -1,44 +1,25 @@
-import { STATE_NAMES } from "@/lib/xml/address"
+import { STATE_NAMES, typesetPathOf } from "@/lib/xml/address"
+import { typesetHref } from "@/lib/typeset/views"
 
 // The library's routes and names (window 4, 2026-09-14), shared by the
 // server and the browser. A library is a prefix of addresses (a session, a
 // code, a constitution) or a family of law (lib/xml/families.ts); a Work
-// opens in the XML view by its address.
+// opens in Typeset by its address (lib/xml/address.ts, 2026-09-15).
 //
 //   /workspace/typeset/library                          every library
 //   /workspace/typeset/library/agricultural-law         a family
 //   /workspace/typeset/library/us-ny/code/agm           a prefix: New York's Agriculture and Markets Law
-//   /workspace/typeset/work/us-ny/code/agm/s3           a Work in the XML view
-//   /workspace/typeset/work/us-ny/code/agm/s3?at=2024-01-01
+//   /workspace/typeset/us/ny/code/agm/s3                a Work
+//   /workspace/typeset/us/ny/code/agm/s3?at=2024-01-01  the one in force on a date
 
 export const LIBRARY_ROOT = "/workspace/typeset/library"
-export const WORK_ROOT = "/workspace/typeset/work"
-export const STATUTE_ROOT = "/workspace/typeset/statute"
-
-// Typeset's URLs (Brendan, 2026-09-15): a bill lives at /workspace/typeset/bill/<id>/<view>,
-// a statute at /workspace/typeset/statute/<jurisdiction>/<code>/<section>. The
-// address form under /work/ is only a door that redirects to one of those.
-const KINDS_KEPT = new Set(["usc", "const", "pl", "law"])
-
-/** `/us-ny/code/agm/s16@2024-01-01` → `/workspace/typeset/statute/us-ny/agm/s16@2024-01-01`; the `code` segment is implied by the route. */
-export const statuteHref = (address: string, at?: string | null) => {
-  const [, jurisdiction, kind, ...rest] = address.split("/")
-  const path = [jurisdiction, ...(kind === "code" ? [] : [kind]), ...rest].join("/")
-  return `${STATUTE_ROOT}/${path}${at ? `?at=${at}` : ""}`
-}
-
-/** The address a statute route received, back to the store's form: `code` returns unless the kind is one the route keeps. */
-export const statuteAddress = (parts: string[]) => {
-  const [jurisdiction, next, ...rest] = parts.map((p) => decodeURIComponent(p))
-  return next && KINDS_KEPT.has(next) ? `/${[jurisdiction, next, ...rest].join("/")}` : `/${[jurisdiction, "code", next, ...rest].filter(Boolean).join("/")}`
-}
 
 /** A family's slug or a prefix address, under the library. */
 export const libraryHref = (slugOrPrefix?: string | null) => (slugOrPrefix ? `${LIBRARY_ROOT}/${slugOrPrefix.replace(/^\/+/, "")}` : LIBRARY_ROOT)
 
-/** A Work, or one Expression of it, in the XML view. `@` is a legal path character, so the address is the path as written. */
+/** A Work, one Expression of it, or a portion, opened in Typeset: a bill in its XML view, a statute in the reader. `?at=` is the text in force on a date. */
 export const workHref = (address: string, at?: string | null) =>
-  address.split("/")[2] === "bill" ? `${WORK_ROOT}${address}${at ? `?at=${at}` : ""}` : statuteHref(address, at)
+  address.split("/")[2] === "bill" ? typesetHref(address, "xml", { at }) : `${typesetPathOf(address)}${at ? `?at=${at}` : ""}`
 
 const titleCase = (slug: string) => slug.split("-").map((w) => (w === "of" ? w : w[0].toUpperCase() + w.slice(1))).join(" ")
 

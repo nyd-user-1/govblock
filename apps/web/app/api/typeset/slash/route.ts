@@ -40,7 +40,7 @@ const billItem = (b: BillRow): SlashItem => ({
   label: fmtBill(b.bill_number, b.state),
   description: [b.session_title, b.title].filter(Boolean).join(" · "),
   address: billWork(b),
-  href: typesetHref(b.bill_id, "xml"),
+  href: typesetHref(b, "xml"),
   state: b.state,
 })
 

@@ -249,10 +249,10 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                     <DocsCopyPage
                       page={markdown}
                       url={`https://gov.nysgpt.com/bills/${bill.bill_id}`}
-                      typeset={typesetHref(bill.bill_id)}
+                      typeset={typesetHref(bill)}
                       // Only when there are printings to compare — sponsor memos are not printings.
-                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill.bill_id, "redline") : undefined}
-                      git={typesetHref(bill.bill_id, "git")}
+                      diff={(bill.texts ?? []).filter((t) => !/memo/i.test(t.version ?? "")).length > 1 ? typesetHref(bill, "redline") : undefined}
+                      git={typesetHref(bill, "git")}
                     />
                     {/* The neighbouring bills in the session, as shadcn's docs
                         header pages to the next document. */}
