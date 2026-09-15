@@ -11,8 +11,8 @@ import { TypesetWorkspacePage, type XmlFirstPaint } from "@/components/workspace
 import { entitled } from "@/lib/entitlements"
 import { readerOf } from "@/lib/entitlements-server"
 import { getTypesetDocument } from "@/lib/typeset/document"
-import { getXmlDocument, printingAddress } from "@/lib/typeset/xml-document"
-import { findExpression, getExpressionDocument } from "@/lib/typeset/expression-document"
+import { getXmlDocument, storedPrinting } from "@/lib/typeset/xml-document"
+import { getExpressionDocument } from "@/lib/typeset/expression-document"
 import { fmtBill } from "@/lib/format"
 import { latestSession } from "@/lib/policy/db-queries"
 import { getBill } from "@/lib/policy/queries"
@@ -79,9 +79,8 @@ export default async function TypesetBillPage({ params, searchParams }: { params
     const reader = await readerOf()
     if (entitled(reader, { state: bill.state, session: bill.session_id, current, entity: "bills" }) === "open") {
       const { version } = await searchParams
-      const at = await printingAddress(bill, Number(version) || undefined).catch(() => null)
-      const found = at ? await findExpression(`${at.work}@${at.expression}`).catch(() => null) : null
-      const stored = found && !found.portion ? await getExpressionDocument(found.row).catch(() => null) : null
+      const row = await storedPrinting(bill, Number(version) || undefined).catch(() => null)
+      const stored = row ? await getExpressionDocument(row).catch(() => null) : null
       if (stored) {
         xml = { snapshot: stored.html, meta: { ...stored.meta, documentId: null }, jsonUrl: `/api/typeset/work?address=${encodeURIComponent(stored.address)}`, address: stored.address }
       } else {

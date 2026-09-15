@@ -9,6 +9,7 @@ import type { ParseReport } from "@/lib/xml/ir"
 import { uslmToDoc, type DocReport, type Fidelity } from "@/lib/xml/uslm-to-doc"
 import { hasDatabase, one, q } from "@/lib/policy/db"
 import { fetchUslmXml } from "@/lib/policy/bill-uslm"
+import { expressionsOf, type ExpressionRow } from "@/lib/policy/expressions"
 import { getBill, getBillText } from "@/lib/policy/queries"
 import { latestDocumentId } from "@/lib/typeset/document-store"
 import type { Bill } from "@/lib/policy/types"
@@ -130,14 +131,21 @@ export async function buildXmlDocument(bill: Bill, version?: number): Promise<Xm
   }
 }
 
-/** The address a printing is stored under in the XML store, without building it: `version` is a document id. The same Work and Expression buildXmlDocument names. */
-export async function printingAddress(bill: Bill, version?: number): Promise<{ work: string; expression: string } | null> {
-  const text = await getBillText(bill.bill_id, version)
+/**
+ * The stored Expression of a printing, without building it: `version` is a
+ * document id. The Work and Expression buildXmlDocument names when the store
+ * has it; otherwise the newest stored Expression of the same stage, since a
+ * state's printings often carry no date ("Original" on New York S. 7721 is
+ * stored as 2025-05-01_original). Null when the store has neither.
+ */
+export async function storedPrinting(bill: Bill, version?: number): Promise<ExpressionRow | null> {
   const work = billWork(bill)
-  const date = text?.date ?? null
-  if (!work || !date) return null
+  if (!work) return null
+  const [text, rows] = await Promise.all([getBillText(bill.bill_id, version), expressionsOf(work)])
   const stage = text?.url ? federalStage(text.url) : null
-  return { work, expression: `${date.slice(0, 10)}_${stage ?? printingStage(text?.version ?? text?.document_desc ?? "text")}` }
+  const unit = stage ?? printingStage(text?.version ?? text?.document_desc ?? "text")
+  const date = text?.date?.slice(0, 10)
+  return rows.find((r) => date && r.expression === `${date}_${unit}`) ?? rows.filter((r) => r.expression.endsWith(`_${unit}`)).at(-1) ?? null
 }
 
 /** A printing's XML document: `version` is a document id. Null when there is no such bill. */
