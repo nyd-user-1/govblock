@@ -14,6 +14,7 @@ import { Capture } from "./capture"
 import { CommentsPanel } from "./comments"
 import { Creators, type CreatorRow } from "./creators"
 import { DEFAULT_AVATAR } from "@/lib/auth/use-account"
+import { LoadingFlag } from "@/components/loading-flag"
 import { Feed, type Reactions } from "./feed"
 import { Grid } from "./grid"
 import { ReportDialog } from "./report"
@@ -105,10 +106,14 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
   const [mode, setMode] = React.useState<"capture" | "upload" | "generate" | "gate" | null>(null)
   const [sheet, setSheet] = React.useState(false)
   const [focusKey, setFocusKey] = React.useState(0)
+  // Until the feed has been read, the gallery shows the loader rather than a
+  // sentence about having nothing (Brendan, 2026-09-15).
+  const [loaded, setLoaded] = React.useState(false)
   const pendingId = React.useRef<string | null>(null)
 
   // A take just sent keeps playing from the browser's copy until Stream's MP4 is ready.
   const applyFeed = React.useCallback((feed: FeedData) => {
+    setLoaded(true)
     setLive(feed.published)
     setUploads(feed.uploads)
     setMine((prev) =>
@@ -348,6 +353,10 @@ export function ClipsApp({ frame = "page" }: { frame?: Frame } = {}) {
                 Sign in
               </Button>
             </Empty>
+          ) : clips.length === 0 && !loaded ? (
+            <div className="flex justify-center py-16">
+              <LoadingFlag />
+            </div>
           ) : clips.length === 0 ? (
             <Empty icon={<CameraIcon className="size-6" />} text={creator === "you" ? "Nothing recorded yet." : "Nothing published yet."}>
               {creator === "you" && (

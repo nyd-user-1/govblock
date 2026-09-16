@@ -16,6 +16,7 @@ import { Prose } from "@/app/agents/transcript"
 import { StreamingResponse } from "@/components/agents/streaming-response"
 import { BriefSources } from "@/components/news/brief-sources"
 import { SearchDirectory } from "@/components/directory-search"
+import { LoadingFlag } from "@/components/loading-flag"
 import { FlagChip } from "@/components/policy/imagery"
 import { NotebookPen } from "@govblock/ui/components/animate-ui/icons/notebook-pen"
 import { AnimateIcon } from "@govblock/ui/components/animate-ui/icons/icon"
@@ -101,6 +102,8 @@ type Briefing = {
   live: Deployment | null
   deploy: (phrase?: string) => void
   note: string | null
+  /** False until the desk has been read, so the page can show the loader. */
+  loaded: boolean
 }
 
 const Context = React.createContext<Briefing | null>(null)
@@ -117,10 +120,14 @@ export function BriefingProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState<NewsBrief | null>(null)
   const [live, setLive] = React.useState<Deployment | null>(null)
   const [note, setNote] = React.useState<string | null>(null)
+  // Whether the desk has been read yet: until it has, the page shows the
+  // loader, never a sentence about what is not there (Brendan, 2026-09-15).
+  const [loaded, setLoaded] = React.useState(false)
 
   React.useEffect(() => {
     if (!resolved) return
     let alive = true
+    setLoaded(false)
     setBriefs([])
     setFiled([])
     setOpen(null)
@@ -141,6 +148,9 @@ export function BriefingProvider({ children }: { children: React.ReactNode }) {
           setOpen(briefs[0] ?? null)
       })
       .catch(() => {})
+      .finally(() => {
+        if (alive) setLoaded(true)
+      })
     return () => {
       alive = false
     }
@@ -240,6 +250,7 @@ export function BriefingProvider({ children }: { children: React.ReactNode }) {
     live,
     deploy,
     note,
+    loaded,
   }
   return <Context.Provider value={value}>{children}</Context.Provider>
 }
@@ -277,7 +288,7 @@ function Briefing({
 }
 
 export function BriefingPanel() {
-  const { state, desk, resolved, open, today, live, deploy, note, archive } =
+  const { state, desk, resolved, open, today, live, deploy, note, archive, loaded } =
     useBriefing()
   const [query, setQuery] = React.useState("")
   const term = query.trim()
@@ -331,12 +342,7 @@ export function BriefingPanel() {
 
       {note && <p className="text-sm text-muted-foreground">{note}</p>}
 
-      {!live && !open && !today && (
-        <p className="text-sm text-muted-foreground">
-          No briefing on the {desk} desk yet. Send the Reporter at the week from
-          the rail, or name a phrase above.
-        </p>
-      )}
+      {!live && !open && !today && (loaded ? <p className="text-sm text-muted-foreground">Nothing on file.</p> : <LoadingFlag />)}
 
       {open && (!live || live.phrase !== briefPhrase(open)) && (
         <>
