@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
-import { attention, comparison, framing, headlines, members, moods, outlets, phrase, programs, sentences, span, standing, syndicated, television, tone, tvSpan, world } from "@/lib/gdelt/sample"
-import { AttentionChart, CompareChart, StackedWeeks, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
+import { attention, comparison, framing, headlines, members, moodByFrame, moodByOutlet, moods, outlets, phrase, programs, scoreSpread, sentences, span, standing, syndicated, television, tone, tvSpan, world } from "@/lib/gdelt/sample"
+import { cost, files, linkedBills, money, namesInCoverage, organisations, pressure, publishingHours, quotes as fileQuotes, reporters, spread, themes as fileThemes, toneSpread } from "@/lib/gdelt/files"
+import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
 import { FlagChip } from "@/components/policy/imagery"
 
 // /gdelt (Brendan, 2026-09-15): a sample of every way GovBlock could use
@@ -107,6 +108,21 @@ export default function GdeltPage() {
   const named = members()
   const copies = syndicated()
   const shows = programs()
+  const scores = scoreSpread()
+  const byOutlet = moodByOutlet()
+  const byFrame = moodByFrame()
+  const linked = linkedBills()
+  const bylines = reporters()
+  const hours = publishingHours()
+  const names = namesInCoverage()
+  const orgs = organisations()
+  const subjects = fileThemes()
+  const said2 = fileQuotes()
+  const amounts = money()
+  const push = pressure()
+  const ripple = spread()
+  const tones = toneSpread()
+  const bill = cost()
 
   return (
     <div className="container-wrapper">
@@ -169,12 +185,33 @@ export default function GdeltPage() {
 
         <Section n={3} title="Sentiment">
           {feeling ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-3">
               <Panel className="flex flex-col gap-5">
                 <MoodBar label="Press sentences" tally={feeling.press} />
                 <MoodBar label="TV captions" tally={feeling.tv} />
                 {mood?.rows ? <ToneChart rows={mood.rows} /> : null}
                 {mood?.bins.length ? <ToneHistogram bins={mood.bins} /> : null}
+              </Panel>
+              <Panel className="flex flex-col gap-5">
+                {scores ? <ScoreChart rows={scores} /> : null}
+                {byOutlet ? (
+                  <Bars rows={byOutlet.map((o) => ({ key: o.domain, label: <span className="truncate font-mono text-xs">{o.domain}</span>, value: Math.abs(o.average), shown: o.average > 0 ? `+${o.average}` : String(o.average) }))} />
+                ) : null}
+                {byFrame ? (
+                  <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
+                    {byFrame.map((f) => (
+                      <div key={f.key} className="flex flex-col gap-1 text-sm">
+                        <span className="font-medium">{f.label}</span>
+                        <span className="text-muted-foreground tabular-nums">
+                          {f.sentences} sentences, average {f.average > 0 ? `+${f.average}` : f.average}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {f.negative} negative · {f.positive} positive
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </Panel>
               <Panel className="grid gap-4 text-sm sm:grid-cols-2">
                 {[
@@ -412,7 +449,7 @@ export default function GdeltPage() {
           )}
         </Section>
 
-        <Section n={11} title="Beside other election bills">
+        <Section n={23} title="Beside other election bills">
           {beside ? (
             <Panel>
               <CompareChart weeks={beside.weeks} names={beside.names} />
@@ -422,7 +459,235 @@ export default function GdeltPage() {
           )}
         </Section>
 
-        <Section n={12} title="Around the world">
+        <div className="flex flex-col gap-3 border-t pt-10">
+          <h2 className="font-heading text-2xl font-semibold tracking-tight">From the files</h2>
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground tabular-nums">
+            <span>{files.minutes} minutes of GDELT&rsquo;s own files, read {files.readAt} UTC</span>
+            <span>·</span>
+            <span>{files.articles.read.toLocaleString()} articles on legislation</span>
+            <span>·</span>
+            <span>{files.mentions.read.toLocaleString()} mentions</span>
+          </p>
+        </div>
+
+        <Section n={13} title="Tied to a bill by its own link" aside={`${files.billLinkCount} stories`}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+            {linked.map((row) => (
+              <div key={row.link + row.url} className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <a href={row.link} target="_blank" rel="noopener noreferrer" className="font-mono text-sm font-semibold text-foreground no-underline hover:underline">
+                    {row.bill.label}
+                  </a>
+                  <span className="text-xs text-muted-foreground">{row.bill.where}</span>
+                </div>
+                <a href={row.url} target="_blank" rel="noopener noreferrer" className="line-clamp-3 text-sm text-foreground no-underline hover:underline">
+                  {row.title || row.url}
+                </a>
+                <span className="mt-auto font-mono text-xs text-muted-foreground">{row.host}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section n={14} title="Quoted on legislation" aside={`${files.quoteCount} in ${files.minutes} minutes`}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {said2.map((q) => (
+              <div key={q.url + q.quote.slice(0, 40)} className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+                {q.pre ? <span className="text-xs text-muted-foreground">…{q.pre}</span> : null}
+                <p className="text-sm text-foreground">&ldquo;{q.quote}&rdquo;</p>
+                <a href={q.url} target="_blank" rel="noopener noreferrer" className="mt-auto font-mono text-xs text-muted-foreground no-underline hover:underline">
+                  {q.host}
+                </a>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section n={15} title="Who writes it">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel>
+              <Bars
+                rows={bylines.map((b) => ({
+                  key: `${b.author}-${b.source}`,
+                  label: (
+                    <span className="flex min-w-0 items-baseline gap-2 truncate">
+                      <span className="truncate">{b.author}</span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{b.source}</span>
+                    </span>
+                  ),
+                  value: b.articles,
+                  shown: String(b.articles),
+                }))}
+              />
+            </Panel>
+            <Panel className="flex flex-col gap-3">
+              <HourChart rows={hours} />
+              <span className="text-xs text-muted-foreground">Published by the hour, from each outlet&rsquo;s own timestamp</span>
+            </Panel>
+          </div>
+        </Section>
+
+        <Section n={16} title="Named in the coverage">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel>
+              <Bars
+                rows={names.map((n) => ({
+                  key: n.name,
+                  label: n.member ? (
+                    <a href={`/members/${n.member.id}`} className="flex min-w-0 items-baseline gap-2 truncate no-underline hover:underline">
+                      <span className="truncate text-foreground">{n.name}</span>
+                      <span className={`shrink-0 text-xs ${partyTone(n.member.party)}`}>{n.member.party}</span>
+                    </a>
+                  ) : (
+                    <span className="truncate">{n.name}</span>
+                  ),
+                  value: n.articles,
+                  shown: String(n.articles),
+                }))}
+              />
+            </Panel>
+            <Panel>
+              <Bars rows={orgs.map((o) => ({ key: o.name, label: <span className="truncate">{o.name}</span>, value: o.articles, shown: String(o.articles) }))} />
+            </Panel>
+          </div>
+        </Section>
+
+        <Section n={17} title="What the coverage is about">
+          <Panel>
+            <div className="flex flex-wrap gap-2">
+              {subjects.map((t) => (
+                <span key={t.code} className="rounded-md border px-2 py-1 text-sm">
+                  {t.theme} <span className="text-muted-foreground tabular-nums">{t.articles}</span>
+                </span>
+              ))}
+            </div>
+          </Panel>
+        </Section>
+
+        <Section n={18} title="Money it names">
+          <Panel className="p-0">
+            <ul className="divide-y">
+              {amounts.map((a) => (
+                <li key={a.url + a.what} className="flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm">
+                  <span className="tabular-nums">{a.value.toLocaleString()}</span>
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{a.what}</span>
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="shrink-0 font-mono text-xs text-muted-foreground no-underline hover:underline">
+                    {a.source}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </Section>
+
+        <Section n={19} title="Pressure on legislatures" aside={`${push.kept} events, about ${push.perDay.toLocaleString()} a day`}>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+            <Panel>
+              <Bars rows={push.types.map((t) => ({ key: t.label, label: <span className="truncate">{t.label}</span>, value: t.n, shown: String(t.n) }))} />
+            </Panel>
+            <Panel className="p-0">
+              <ul className="divide-y">
+                {push.rows.map((r) => (
+                  <li key={r.id} className="flex flex-col gap-1 px-4 py-2.5 text-sm">
+                    <span className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-medium">{r.from}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-medium">{r.to}</span>
+                      <span className="text-muted-foreground">· {r.label}</span>
+                    </span>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="flex flex-wrap gap-2 font-mono text-xs text-muted-foreground no-underline hover:underline">
+                      <span className="tabular-nums">tone {r.tone.toFixed(1)}</span>
+                      <span className="tabular-nums">{r.mentions} mentions</span>
+                      <span className="tabular-nums">{r.sources} outlets</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          </div>
+        </Section>
+
+        {ripple ? (
+          <Section n={20} title="How one story spread" aside={`${ripple.total} articles, ${ripple.outlets} outlets`}>
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+              <Panel className="flex flex-col gap-3">
+                <span className="text-sm">
+                  <span className="font-medium">{ripple.event.from}</span> <span className="text-muted-foreground">→</span> <span className="font-medium">{ripple.event.to}</span>{" "}
+                  <span className="text-muted-foreground">· {ripple.event.label}</span>
+                </span>
+                <SpreadChart rows={ripple.curve} />
+              </Panel>
+              <Panel className="flex flex-col gap-4">
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">In the first two sentences</span>
+                    <span className="tabular-nums">{ripple.lede}</span>
+                  </li>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Further down</span>
+                    <span className="tabular-nums">{ripple.buried}</span>
+                  </li>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Average tone</span>
+                    <span className="tabular-nums">{ripple.tone.toFixed(1)}</span>
+                  </li>
+                </ul>
+                <div className="flex flex-wrap gap-1.5 border-t pt-3">
+                  {ripple.sources.map((s) => (
+                    <span key={s} className="rounded-md border px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </Panel>
+            </div>
+          </Section>
+        ) : null}
+
+        <Section n={21} title="Tone of all legislative coverage" aside={`${files.articles.read.toLocaleString()} articles`}>
+          <Panel>
+            <BinChart rows={tones} />
+          </Panel>
+        </Section>
+
+        <Section n={22} title="What a day of it costs">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel className="p-0">
+              <ul className="divide-y text-sm">
+                {bill.read.map((r) => (
+                  <li key={r.feed} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
+                    <span className="capitalize">{r.feed}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {(r.size / 1e6).toFixed(1)} MB read · {(r.perDay / 1e6).toFixed(0)} MB a day
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+            <Panel>
+              <ul className="flex flex-col gap-2 text-sm">
+                <li className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Downloaded, a day</span>
+                  <span className="tabular-nums">{(bill.rawPerDay / 1e6).toFixed(0)} MB</span>
+                </li>
+                <li className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Downloaded, a year</span>
+                  <span className="tabular-nums">{(bill.rawPerYear / 1e9).toFixed(0)} GB</span>
+                </li>
+                <li className="flex justify-between gap-3 border-t pt-2">
+                  <span className="text-muted-foreground">Kept after filtering, a day</span>
+                  <span className="tabular-nums">{(bill.keptPerDay / 1e6).toFixed(1)} MB</span>
+                </li>
+                <li className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Kept after filtering, a year</span>
+                  <span className="tabular-nums">{(bill.keptPerYear / 1e9).toFixed(1)} GB</span>
+                </li>
+              </ul>
+            </Panel>
+          </div>
+        </Section>
+
+        <Section n={24} title="Around the world">
           {countries ? (
             <Panel>
               <Bars rows={countries.map((c) => ({ key: c.country, label: c.country, value: c.volume, shown: c.volume.toFixed(2) }))} />

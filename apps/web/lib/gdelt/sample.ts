@@ -98,6 +98,51 @@ export function moods() {
   }
 }
 
+/** The scores themselves, counted: how far from neutral the coverage runs. */
+export function scoreSpread() {
+  const said = sentences()
+  if (!said?.length) return null
+  const counts = new Map<number, number>()
+  for (const s of said) {
+    const score = Math.max(-8, Math.min(8, sentiment(s.sentence).score))
+    counts.set(score, (counts.get(score) ?? 0) + 1)
+  }
+  return [...counts].sort((a, b) => a[0] - b[0]).map(([score, sentences]) => ({ score, sentences }))
+}
+
+/** Which outlets are hardest on it: the average score of each outlet's sentences. */
+export function moodByOutlet() {
+  const said = sentences()
+  if (!said?.length) return null
+  const byOutlet = new Map<string, { total: number; n: number }>()
+  for (const s of said) {
+    const at = byOutlet.get(s.domain) ?? { total: 0, n: 0 }
+    byOutlet.set(s.domain, { total: at.total + sentiment(s.sentence).score, n: at.n + 1 })
+  }
+  return [...byOutlet]
+    .map(([domain, { total, n }]) => ({ domain, sentences: n, average: Math.round((total / n) * 10) / 10 }))
+    .sort((a, b) => a.average - b.average)
+    .slice(0, 10)
+}
+
+/** Sentiment against framing: does the integrity frame read differently from the access frame? */
+export function moodByFrame() {
+  const said = sentences()
+  if (!said?.length) return null
+  return FRAMES.map((f) => {
+    const matched = said.filter((s) => frames(s.sentence).some((x) => x.key === f.key))
+    const scores = matched.map((s) => sentiment(s.sentence).score)
+    return {
+      key: f.key,
+      label: f.label,
+      sentences: matched.length,
+      average: scores.length ? Math.round((scores.reduce((n, v) => n + v, 0) / scores.length) * 10) / 10 : 0,
+      negative: scores.filter((v) => v <= -1).length,
+      positive: scores.filter((v) => v >= 1).length,
+    }
+  })
+}
+
 /** How the sentences frame the bill. */
 export function framing() {
   const said = sentences()

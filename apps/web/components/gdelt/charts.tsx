@@ -110,3 +110,74 @@ export function CompareChart({ weeks, names }: { weeks: Record<string, number | 
     </ChartContainer>
   )
 }
+
+export function HourChart({ rows }: { rows: { hour: string; articles: number }[] }) {
+  const config = { articles: { label: "Articles", color: "var(--chart-3)" } } satisfies ChartConfig
+  return (
+    <ChartContainer config={config} className="h-[200px] w-full">
+      <BarChart accessibilityLayer data={rows} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis dataKey="hour" tickLine={false} axisLine={false} tickMargin={8} minTickGap={16} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(v) => `${v} UTC`} />} />
+        <Bar dataKey="articles" fill="var(--color-articles)" radius={3} />
+      </BarChart>
+    </ChartContainer>
+  )
+}
+
+export function BinChart({ rows, dataKey = "articles", xKey = "bin" }: { rows: Record<string, number>[]; dataKey?: string; xKey?: string }) {
+  const config = { [dataKey]: { label: "Articles", color: "var(--chart-1)" } } satisfies ChartConfig
+  return (
+    <ChartContainer config={config} className="h-[200px] w-full">
+      <BarChart accessibilityLayer data={rows} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis dataKey={xKey} tickLine={false} axisLine={false} tickMargin={8} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(v) => `Tone ${v}`} />} />
+        <Bar dataKey={dataKey} radius={3}>
+          {rows.map((r, i) => (
+            <Cell key={i} fill={Number(r[xKey]) < 0 ? "var(--destructive)" : Number(r[xKey]) > 0 ? "oklch(0.65 0.15 150)" : "var(--muted-foreground)"} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  )
+}
+
+export function SpreadChart({ rows }: { rows: { at: string; mentions: number; running: number }[] }) {
+  const config = {
+    mentions: { label: "Articles that minute", color: "var(--chart-4)" },
+    running: { label: "Running total", color: "var(--chart-1)" },
+  } satisfies ChartConfig
+  return (
+    <ChartContainer config={config} className="h-[220px] w-full">
+      <AreaChart accessibilityLayer data={rows} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis dataKey="at" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
+        <YAxis tickLine={false} axisLine={false} width={32} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Area type="stepAfter" dataKey="running" stroke="var(--color-running)" strokeWidth={1.5} fill="var(--color-running)" fillOpacity={0.12} />
+        <Area type="monotone" dataKey="mentions" stroke="var(--color-mentions)" strokeWidth={1.5} fill="var(--color-mentions)" fillOpacity={0.25} />
+      </AreaChart>
+    </ChartContainer>
+  )
+}
+
+/** The sentence scores of one bill's coverage, counted by score. */
+export function ScoreChart({ rows }: { rows: { score: number; sentences: number }[] }) {
+  const config = { sentences: { label: "Sentences", color: "var(--chart-2)" } } satisfies ChartConfig
+  return (
+    <ChartContainer config={config} className="h-[180px] w-full">
+      <BarChart accessibilityLayer data={rows} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis dataKey="score" tickLine={false} axisLine={false} tickMargin={8} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(v) => `Score ${v}`} />} />
+        <Bar dataKey="sentences" radius={3}>
+          {rows.map((r) => (
+            <Cell key={r.score} fill={r.score < 0 ? "var(--destructive)" : r.score > 0 ? "oklch(0.65 0.15 150)" : "var(--muted-foreground)"} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  )
+}
