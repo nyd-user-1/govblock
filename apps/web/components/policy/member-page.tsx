@@ -58,25 +58,35 @@ export function MemberIntroduction({
   state,
   counts,
   terms,
+  sessionName,
 }: {
   member: Record<string, unknown>
   state: string
   /** This session's record: the sentence sits under the session's heading and speaks for it (Brendan, 2026-09-05). */
   counts: { prime: number; cosponsor: number; aye: number; nay: number }
   terms: { chamber?: string; startYear?: number }[]
+  /** The session the page shows, named: a retired member's record speaks for their last one, in the past tense. */
+  sessionName?: string
 }) {
+  const retired = Boolean(member.archived)
   const name = String(member.name ?? "")
   const chamber = String(member.chamber ?? "")
   const title = honorific(String(member.role ?? ""), chamber)
   const party = member.party ? ` (${String(member.party)})` : ""
   const served = termsServed(terms, chamber)
   const surname = String(member.last_name ?? name.split(" ").slice(-1)[0] ?? "")
-  const tenure = served
-    ? `has represented ${seat(state, chamber, member.district ? String(member.district) : null)} for ${inWords(served)} ${served === 1 ? "term" : "terms"}`
-    : `represents ${seat(state, chamber, member.district ? String(member.district) : null)}`
+  const where = seat(state, chamber, member.district ? String(member.district) : null)
+  const tenure = retired
+    ? served
+      ? `represented ${where} for ${inWords(served)} ${served === 1 ? "term" : "terms"}`
+      : `represented ${where}`
+    : served
+      ? `has represented ${where} for ${inWords(served)} ${served === 1 ? "term" : "terms"}`
+      : `represents ${where}`
   return (
     <p>
-      <Chip>{`${title} ${name}${party}`}</Chip> {tenure}. This session, <Chip>{`${title} ${surname}`}</Chip> has sponsored <Figure>{fmtNumber(counts.prime)}</Figure> {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
+      <Chip>{`${title} ${name}${retired ? " (Ret.)" : ""}${party}`}</Chip> {tenure}. {retired ? `In ${sessionName ?? "their last session"}, ` : "This session, "}
+      <Chip>{`${title} ${surname}`}</Chip> {retired ? "" : "has "}sponsored <Figure>{fmtNumber(counts.prime)}</Figure> {counts.prime === 1 ? "bill" : "bills"}, co-sponsored{" "}
       <Figure>{fmtNumber(counts.cosponsor)}</Figure> {counts.cosponsor === 1 ? "bill" : "bills"}, voted Yes <Figure>{fmtNumber(counts.aye)}</Figure> {counts.aye === 1 ? "time" : "times"}, and No <Figure>{fmtNumber(counts.nay)}</Figure>{" "}
       {counts.nay === 1 ? "time" : "times"}.
     </p>
@@ -106,7 +116,7 @@ export function MemberHeader({
     <>
       <RecordHeader
         media={<MemberOfficialPortrait name={name} fallback={member.photo_url ? String(member.photo_url) : null} state={state} chamber={chamber} size={RECORD_MEDIA} />}
-        title={`${honorific(role, chamber)} ${name}`}
+        title={`${honorific(role, chamber)} ${name}${member.archived ? " (Ret.)" : ""}`}
         meta={[
           leadership ? <span className="font-medium text-foreground">{leadership}</span> : null,
           district,

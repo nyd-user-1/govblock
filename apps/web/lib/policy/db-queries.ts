@@ -865,11 +865,27 @@ export async function getMemberState(peopleId: number) {
   return row?.state ?? null
 }
 
+/**
+ * Whether a person still sits (Brendan, 2026-09-16): anyone not on their
+ * state's current session roster is retired, and "People".archived says so —
+ * set from "SessionPeople" against each state's newest roster. A retired
+ * member's page opens on their last session as a sitting member.
+ */
+export async function getMemberStanding(peopleId: number) {
+  const row = await one<{ state: string; archived: boolean | null; last_roster: number | null }>(
+    `select state, coalesce(archived, false) as archived,
+            (select max(year) from "SessionPeople" sp where sp.people_id = p.people_id)::int as last_roster
+       from "People" p where people_id = $1`,
+    [peopleId]
+  )
+  return row ? { state: row.state, retired: Boolean(row.archived), lastRoster: row.last_roster == null ? null : n(row.last_roster) } : null
+}
+
 export async function getMember(peopleId: number, session: number) {
   const person = await one<Record<string, unknown> & { people_id: number; name: string; state: string }>(
     `select people_id, name, first_name, last_name, party, role, chamber, district, bio_long, photo_url, email,
             phone_capitol, phone_district, address, leadership_title, state, legiscan_legislation_url, nys_bio_url, bio_url,
-            votesmart_id, opensecrets_id, ballotpedia, bioguide_id, fec_candidate_ids, committee_ids
+            votesmart_id, opensecrets_id, ballotpedia, bioguide_id, fec_candidate_ids, committee_ids, coalesce(archived, false) as archived
      from "People" where people_id = $1`,
     [peopleId]
   )
@@ -3118,6 +3134,47 @@ export async function getSubjectTerms(f: Resolved): Promise<{ policyAreas: Subje
     [f.state, f.session]
   )
   return { policyAreas: [], subjects: rows.map((r) => ({ name: r.name, bills: n(r.bills) })), bills: n((await total)?.n) }
+}
+
+export type SubjectHighlight = { name: string; bills: number; recent: number; policyArea: boolean }
+
+/**
+ * The three lists at the head of /tags (Brendan, 2026-09-16, on daily.dev's
+ * shape): what has moved in the last thirty days, what carries the most bills
+ * this session, and what the jurisdiction filed a bill under for the first time
+ * most recently. One statement, the same rows read three ways.
+ */
+export async function getSubjectHighlights(f: Resolved, limit = 8): Promise<{ trending: SubjectHighlight[]; popular: SubjectHighlight[]; recent: SubjectHighlight[] }> {
+  const rows =
+    f.state === "US"
+      ? await q<{ name: string; bills: number; recent: number; first_seen: string | null; policy_area: boolean }>(
+          `select cs.name, count(*)::int bills,
+                  count(*) filter (where b.last_action_date >= to_char(current_date - 30, 'YYYY-MM-DD'))::int recent,
+                  min(coalesce(cb.introduced_date, b.status_date, b.last_action_date)) first_seen,
+                  bool_or(cs.is_policy_area) policy_area
+             from congress_bill_subjects cs join "Bills" b using (bill_id) left join congress_bills cb using (bill_id)
+            where b.state = $1 and b.session_id = $2
+            group by cs.name`,
+          [f.state, f.session]
+        )
+      : await q<{ name: string; bills: number; recent: number; first_seen: string | null; policy_area: boolean }>(
+          `select sj.subject name, count(*)::int bills,
+                  count(*) filter (where b.last_action_date >= to_char(current_date - 30, 'YYYY-MM-DD'))::int recent,
+                  min(coalesce(b.status_date, b.last_action_date)) first_seen,
+                  false policy_area
+             from "Subjects" sj join "Bills" b using (bill_id)
+            where b.state = $1 and b.session_id = $2
+            group by 1`,
+          [f.state, f.session]
+        )
+  const terms = rows.map((r) => ({ name: r.name, bills: n(r.bills), recent: n(r.recent), policyArea: !!r.policy_area, firstSeen: r.first_seen ?? "" }))
+  const top = (sort: (a: (typeof terms)[number], b: (typeof terms)[number]) => number) =>
+    [...terms].sort(sort).slice(0, limit).map(({ firstSeen: _firstSeen, ...term }) => term)
+  return {
+    trending: top((a, b) => b.recent - a.recent || b.bills - a.bills).filter((t) => t.recent > 0),
+    popular: top((a, b) => b.bills - a.bills),
+    recent: top((a, b) => b.firstSeen.localeCompare(a.firstSeen) || b.bills - a.bills),
+  }
 }
 
 /**

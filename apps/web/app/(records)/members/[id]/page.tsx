@@ -17,7 +17,7 @@ import {
   getMemberDirectory,
   getMemberNeighbours,
   getMemberRecord,
-  getMemberState,
+  getMemberStanding,
   getSessionsWithTitles,
   latestSession,
 } from "@/lib/policy/db-queries"
@@ -66,13 +66,17 @@ export const dynamic = "force-dynamic"
 async function load(id: string, wanted?: string) {
   const peopleId = Number(id)
   if (!Number.isFinite(peopleId) || peopleId <= 0) return null
-  const state = await getMemberState(peopleId)
-  if (!state) return null
+  const standing = await getMemberStanding(peopleId)
+  if (!standing) return null
+  const state = standing.state
   // The Sessions menu on every block writes `?session=`; the page opens on it
   // when the member appears in it, else on the latest (Brendan, 2026-09-05).
-  const latest = await latestSession(state)
+  // A retired member opens on their last session as a sitting member instead
+  // (Brendan, 2026-09-16): their last roster, or failing that the last session
+  // they sponsored in.
   const asked = Number(wanted)
-  const careerAhead = Number.isFinite(asked) && asked > 0 ? await getMemberCareer(peopleId, state) : null
+  const careerAhead = (Number.isFinite(asked) && asked > 0) || standing.retired ? await getMemberCareer(peopleId, state) : null
+  const latest = standing.retired ? (standing.lastRoster ?? careerAhead?.sessions[0] ?? (await latestSession(state))) : await latestSession(state)
   const session = careerAhead && careerAhead.sessions.includes(asked) ? asked : latest
   // FEC totals are a federal record; a state seat files with its own board,
   // so the section exists only under Congress and says so when it is empty.
@@ -131,7 +135,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const data = await load(id, (await searchParams).session)
   if (!data) return { title: "Member" }
   const { member, state } = data
-  const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${member.name}`.trim()
+  const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${member.name}${member.archived ? " (Ret.)" : ""}`.trim()
   return {
     title,
     description: `${title} — ${chamberName(state, String(member.chamber ?? ""))}. Sponsored bills, aye and nay votes.`,
@@ -145,7 +149,10 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving } = data
 
   const name = String(member.name ?? "")
-  const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}`.trim()
+  const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}${member.archived ? " (Ret.)" : ""}`.trim()
+  // A retired member's record speaks for their last session, by name and in the past tense.
+  const retired = Boolean(member.archived)
+  const inSession = retired ? `in ${sessionName}` : "this session"
   const bioguide = member.bioguide_id ? String(member.bioguide_id) : null
   const biography = typeof member.bio_long === "string" ? member.bio_long : ""
   const fecIds = member.fec_candidate_ids
@@ -205,13 +212,13 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                   standard on every detail page (Brendan, 2026-09-05). The
                   Summary sentence is this session's. */}
                 <H2>Summary</H2>
-                <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} />
+                <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} sessionName={sessionName} />
 
                 <hr />
                 <H2>Record</H2>
                 <p>
-                  <Chip>{title}</Chip> is the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of <Figure>{fmtNumber(record.counts.cosponsor)}</Figure> this
-                  session.
+                  <Chip>{title}</Chip> {retired ? "was" : "is"} the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of <Figure>{fmtNumber(record.counts.cosponsor)}</Figure>{" "}
+                  {inSession}.
                 </p>
                 <H3>Bills</H3>
                 <PreviewFrame>
@@ -223,7 +230,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                         label: "Sponsored",
                         emoji: "😀",
                         count: record.counts.prime,
-                        content: <MemberFeed bills={record.prime} total={record.counts.prime} state={state} peopleId={peopleId} session={session} kind="prime" pageSize={5} empty={`${name} has sponsored nothing this session.`} />,
+                        content: <MemberFeed bills={record.prime} total={record.counts.prime} state={state} peopleId={peopleId} session={session} kind="prime" pageSize={5} empty={`${name} ${retired ? "sponsored" : "has sponsored"} nothing ${inSession}.`} />,
                       },
                       {
                         value: "cosponsor",
@@ -231,7 +238,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                         emoji: "🤝",
                         count: record.counts.cosponsor,
                         content: (
-                          <MemberFeed bills={record.cosponsor} total={record.counts.cosponsor} state={state} peopleId={peopleId} session={session} kind="cosponsor" pageSize={5} empty={`${name} has co-sponsored nothing this session.`} />
+                          <MemberFeed bills={record.cosponsor} total={record.counts.cosponsor} state={state} peopleId={peopleId} session={session} kind="cosponsor" pageSize={5} empty={`${name} ${retired ? "co-sponsored" : "has co-sponsored"} nothing ${inSession}.`} />
                         ),
                       },
                     ]}
@@ -247,7 +254,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
 
                 <H3>Votes</H3>
                 <p>
-                  <Chip>{title}</Chip> has voted Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> this session.
+                  <Chip>{title}</Chip> {retired ? "voted" : "has voted"} Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> {inSession}.
                 </p>
                 <PreviewFrame>
                   <MemberTabs
@@ -264,14 +271,14 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                         label: "Aye",
                         emoji: "✅",
                         count: record.counts.aye,
-                        content: <MemberFeed bills={record.aye} total={record.counts.aye} vote="Aye" state={state} peopleId={peopleId} session={session} kind="aye" pageSize={5} empty="No recorded aye votes this session." />,
+                        content: <MemberFeed bills={record.aye} total={record.counts.aye} vote="Aye" state={state} peopleId={peopleId} session={session} kind="aye" pageSize={5} empty={`No recorded aye votes ${inSession}.`} />,
                       },
                       {
                         value: "nay",
                         label: "Nay",
                         emoji: "❌",
                         count: record.counts.nay,
-                        content: <MemberFeed bills={record.nay} total={record.counts.nay} vote="Nay" state={state} peopleId={peopleId} session={session} kind="nay" pageSize={5} empty="No recorded nay votes this session." />,
+                        content: <MemberFeed bills={record.nay} total={record.counts.nay} vote="Nay" state={state} peopleId={peopleId} session={session} kind="nay" pageSize={5} empty={`No recorded nay votes ${inSession}.`} />,
                       },
                     ]}
                   />
