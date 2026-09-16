@@ -40,6 +40,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { BillStoryButton } from "@/components/clips/bill-story"
 import { PublicRail } from "@/components/block-card"
+import { RightRailSheet } from "@/components/rail-sheet"
 import { PreviewFrame } from "@/components/preview-frame"
 import {
   BillAmendmentsBlock,
@@ -358,15 +359,11 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
               <BackToTop />
             </div>
           </div>
-          <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-            <div className="h-(--top-spacing) shrink-0"></div>
-            <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-              <BillToc session={session} committees={bill.referrals.length > 0} lobbying={!!lobbying?.summary.filings} />
-            </div>
-            <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-              <PublicRail />
-            </div>
-          </div>
+          {/* The site's right rail (Brendan, 2026-09-16): the left rail's sheet, mirrored, holding this bill's contents. */}
+          <RightRailSheet>
+            <BillToc session={session} committees={bill.referrals.length > 0} lobbying={!!lobbying?.summary.filings} />
+            <PublicRail />
+          </RightRailSheet>
         </div>
       </BillDepthProvider>
     </BillCongressProvider>

@@ -1,8 +1,7 @@
 import { PublicRail } from "@/components/block-card"
+import { RightRailSheet } from "@/components/rail-sheet"
 import { CalendarCard } from "@/components/cards/calendar"
-import { AnalyticsGrid } from "@/components/home/analytics-grid"
-import { HomeColumns } from "@/components/home/home-columns"
-import { HomeSearch } from "@/components/home/home-search"
+import { HomeMain } from "@/components/home/home-main"
 import { ManualFetchProvider, RefreshButton } from "@/lib/policy/manual-fetch"
 
 // Account home (Brendan, 2026-09-07), on Cloudflare's: the greeting, the
@@ -20,22 +19,13 @@ export default function HomePage() {
       <RefreshButton className="fixed right-4 bottom-4 z-40 size-8 rounded-full shadow-sm" />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-1 flex-col gap-10 px-4 py-6 text-foreground md:px-6 lg:py-8">
-          <div className="flex flex-col items-center gap-8 pt-6">
-            <h1 className="text-3xl font-semibold tracking-tight">Building today?</h1>
-            <HomeSearch />
-          </div>
-          <HomeColumns />
-          <AnalyticsGrid />
-        </div>
+        <HomeMain />
       </div>
-      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-        <div className="h-(--top-spacing) shrink-0"></div>
-        <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 py-1 xl:flex">
-          <CalendarCard compact />
-          <PublicRail />
-        </div>
-      </div>
+      {/* The site's right rail (Brendan, 2026-09-16): the left rail's sheet, mirrored. */}
+      <RightRailSheet>
+        <CalendarCard compact />
+        <PublicRail />
+      </RightRailSheet>
     </div>
     </ManualFetchProvider>
   )
