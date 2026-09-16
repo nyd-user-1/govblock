@@ -212,7 +212,9 @@ export function television() {
     networks,
     weeks: [...weeks.values()].sort((a, b) => String(a.week).localeCompare(String(b.week))),
     stations: (stations ?? []).filter((s) => s.count > 0).sort((a, b) => b.count - a.count).map((s) => ({ station: s.station, share: Math.round(s.count * 10000) / 100 })),
-    clips: (clips ?? []).map((c) => ({
+    // One clip per station, show and caption: the gallery repeats a clip when
+    // the phrase is said more than once in a show.
+    clips: dedupe(clips ?? []).map((c) => ({
       station: c.station,
       show: c.show,
       date: c.date.slice(0, 10),
@@ -221,6 +223,14 @@ export function television() {
       url: `https://archive.org/details/${c.ia_show_id}`,
     })),
   }
+}
+
+const dedupe = (clips: Clip[]) => {
+  const seen = new Set<string>()
+  return clips.filter((c) => {
+    const key = `${c.station}|${c.show}|${c.snippet.trim().toLowerCase()}`
+    return !seen.has(key) && seen.add(key)
+  })
 }
 
 /** The sentences that name it, from GDELT's Context API. */

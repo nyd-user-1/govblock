@@ -145,28 +145,23 @@ export default function GdeltPage() {
 
         <Section n={2} title="Headlines" aside={news ? `${news.length} newest` : undefined}>
           {news ? (
-            <Panel className="p-0">
-              <ul className="divide-y">
-                {news.slice(0, 30).map((a) => (
-                  <li key={a.url}>
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 px-4 py-3 no-underline hover:bg-muted/40">
-                      {a.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={a.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-14 shrink-0 rounded-md border object-cover" />
-                      ) : (
-                        <span className="size-14 shrink-0 rounded-md border bg-muted" />
-                      )}
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="line-clamp-2 text-sm font-medium text-foreground">{a.title}</span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {a.domain} · {when(a.date)}
-                        </span>
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+              {news.slice(0, 30).map((a) => (
+                <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="flex flex-col overflow-hidden rounded-2xl border bg-card no-underline hover:border-foreground/20">
+                  {a.image ? (
+                    <img src={a.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="aspect-video w-full bg-muted object-cover" />
+                  ) : (
+                    <span className="aspect-video w-full bg-muted" />
+                  )}
+                  <span className="flex flex-col gap-1.5 p-3">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {a.domain} · {when(a.date)}
+                    </span>
+                    <span className="line-clamp-3 text-sm font-medium text-foreground">{a.title}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
           ) : (
             <Waiting />
           )}
