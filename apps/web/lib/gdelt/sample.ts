@@ -39,8 +39,15 @@ const ACTIONS = [{ date: "2026-01-29", label: "S. 3752 and H.R. 7296 introduced"
 
 /** 1 · The attention curve, its three highest days at least two weeks apart, its trend, and the bill's actions. */
 export function attention() {
-  const rows = share("volume")
-  if (!rows) return null
+  const all = share("volume")
+  if (!all) return null
+  // The curve starts where the story does: the first day with an article, or
+  // the day the bill was introduced, whichever comes first (Brendan,
+  // 2026-09-16). A run of empty days before either says nothing.
+  const firstArticle = all.findIndex((r) => r.articles > 0)
+  const firstAction = ACTIONS.map((a) => all.findIndex((r) => r.date === a.date)).filter((i) => i >= 0)
+  const from = Math.max(0, Math.min(...[firstArticle, ...firstAction].filter((i) => i >= 0)))
+  const rows = all.slice(from)
   const peaks: typeof rows = []
   for (const row of [...rows].sort((a, b) => b.share - a.share)) {
     if (peaks.length === 3) break
@@ -73,7 +80,9 @@ export function headlines() {
   const seen = new Set<string>()
   return list
     .filter((a) => !seen.has(a.url) && seen.add(a.url))
-    .sort((a, b) => b.seendate.localeCompare(a.seendate))
+    // A card with a picture reads better than one without, so the ones with a
+    // picture come first and the rest fall to the end (Brendan, 2026-09-16).
+    .sort((a, b) => Number(Boolean(b.socialimage)) - Number(Boolean(a.socialimage)) || b.seendate.localeCompare(a.seendate))
     .map((a) => ({ url: a.url, title: a.title, date: day(a.seendate), domain: a.domain, image: a.socialimage || null }))
 }
 

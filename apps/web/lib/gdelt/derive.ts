@@ -79,7 +79,7 @@ export function status(text: string): "stalled" | "moving" | "state" | null {
 
 /* -------------------------------------------------------------- members */
 
-type Member = { people_id: number; name: string; first_name: string; last_name: string; party: string; role: string; district: string | null; active: boolean }
+type Member = { people_id: number; name: string; first_name: string; last_name: string; party: string; role: string; chamber?: string | null; photo_url?: string | null; district: string | null; active: boolean }
 
 // Last names that are also ordinary capitalised words ("Justice Department").
 const COMMON = new Set(["Justice", "Banks", "Rose", "Bishop", "King", "Hill", "Frost", "Crane", "Carter", "Price", "Hunt", "Bell", "Guest", "Strong", "Sessions", "Wild", "Moore", "Scott", "Young", "Green", "Graves", "Miller", "Johnson"])
@@ -87,17 +87,54 @@ const COMMON = new Set(["Justice", "Banks", "Rose", "Bishop", "King", "Hill", "F
 const ACTIVE = (MEMBERS as Member[]).filter((m) => m.active)
 const LAST_COUNTS = ACTIVE.reduce((m, x) => m.set(x.last_name, (m.get(x.last_name) ?? 0) + 1), new Map<string, number>())
 
+const card = (m: Member) => ({
+  id: m.people_id,
+  name: m.name,
+  party: m.party,
+  role: m.role,
+  district: m.district,
+  chamber: m.chamber ?? null,
+  photo: m.photo_url ?? null,
+  // "HD-NC-12" and "SD-KY" both carry the state in the middle.
+  state: m.district?.split("-")[1] ?? "US",
+})
+
 /** The sitting members of Congress a text names: the full name, or a last name only one member has. */
 export function membersNamed(text: string) {
   return ACTIVE.filter((m) => {
     if (text.includes(m.name) || text.includes(`${m.first_name} ${m.last_name}`)) return true
     if (LAST_COUNTS.get(m.last_name) !== 1 || m.last_name.length < 5 || COMMON.has(m.last_name)) return false
     return new RegExp(`\\b(Rep\\.|Sen\\.|Senator|Representative|Speaker|Leader)?\\s*${m.last_name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}('s)?\\b`).test(text)
-  }).map((m) => ({ id: m.people_id, name: m.name, party: m.party, role: m.role, district: m.district }))
+  }).map(card)
 }
 
 /** The members a lower-case TV caption names in full ("senator mike lee"). */
 export function membersInCaption(caption: string) {
   const text = caption.toLowerCase()
-  return ACTIVE.filter((m) => text.includes(`${m.first_name} ${m.last_name}`.toLowerCase())).map((m) => ({ id: m.people_id, name: m.name, party: m.party, role: m.role, district: m.district }))
+  return ACTIVE.filter((m) => text.includes(`${m.first_name} ${m.last_name}`.toLowerCase())).map(card)
+}
+
+/* ------------------------------------------------------------- countries */
+
+// GDELT names a country in words; a flag needs its two letters. The ones its
+// US-politics coverage actually returns, plus the large press countries.
+const ISO2: Record<string, string> = {
+  "United States": "us", "United Kingdom": "gb", Canada: "ca", Australia: "au", Ireland: "ie", India: "in", Pakistan: "pk", Bangladesh: "bd",
+  China: "cn", Japan: "jp", "South Korea": "kr", "North Korea": "kp", Singapore: "sg", Malaysia: "my", Philippines: "ph", Indonesia: "id",
+  Israel: "il", Iran: "ir", Iraq: "iq", "Saudi Arabia": "sa", Turkey: "tr", Egypt: "eg", Nigeria: "ng", Kenya: "ke", "South Africa": "za",
+  Ghana: "gh", Liberia: "lr", "Sierra Leone": "sl", Ethiopia: "et", Zimbabwe: "zw", Uganda: "ug", Tanzania: "tz", Russia: "ru", Ukraine: "ua",
+  Germany: "de", France: "fr", Italy: "it", Spain: "es", Portugal: "pt", Netherlands: "nl", Belgium: "be", Sweden: "se", Norway: "no",
+  Denmark: "dk", Finland: "fi", Poland: "pl", Switzerland: "ch", Austria: "at", Greece: "gr", Mexico: "mx", Brazil: "br", Argentina: "ar",
+  Chile: "cl", Colombia: "co", Peru: "pe", Venezuela: "ve", Cuba: "cu", Jamaica: "jm", "Trinidad And Tobago": "tt", Guam: "gu",
+  "Puerto Rico": "pr", Afghanistan: "af", Tajikistan: "tj", Uzbekistan: "uz", Kazakhstan: "kz", Vietnam: "vn", Thailand: "th", Taiwan: "tw",
+  "New Zealand": "nz", Nepal: "np", "Sri Lanka": "lk", Qatar: "qa", "United Arab Emirates": "ae", Jordan: "jo", Lebanon: "lb", Syria: "sy",
+  Yemen: "ye", Somalia: "so", Sudan: "sd", Morocco: "ma", Algeria: "dz", Tunisia: "tn", Libya: "ly", Romania: "ro", Hungary: "hu",
+  "Czech Republic": "cz", Serbia: "rs", Croatia: "hr", Bulgaria: "bg",
+}
+
+/** A country's flag, as the two regional-indicator letters a system font draws. */
+export function countryFlag(country: string): string | null {
+  const code = ISO2[country.trim()]
+  if (!code) return null
+  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
 }
