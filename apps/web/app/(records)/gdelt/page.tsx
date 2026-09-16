@@ -7,6 +7,8 @@ import { countryFlag } from "@/lib/gdelt/derive"
 import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, SyndicationChart, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
 import { Count, Question, ShowMore } from "@/components/gdelt/sections"
 import { GdeltCards, type GdeltCard } from "@/components/gdelt/cards"
+import { BillCoverage } from "@/components/gdelt/bill-coverage"
+import { dayList, getDay } from "@/lib/gdelt/days"
 import { Chip } from "@/components/chip"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
@@ -181,6 +183,13 @@ export default function GdeltPage() {
           </a>
           <a href="#read" className="text-muted-foreground no-underline hover:text-foreground">
             How to read this page
+          </a>
+          <span className="mt-2 font-medium text-foreground">Built from this</span>
+          <a href="/gdelt/day" className="text-muted-foreground no-underline hover:text-foreground">
+            The daily round-up
+          </a>
+          <a href="/gdelt/state" className="text-muted-foreground no-underline hover:text-foreground">
+            By state
           </a>
         </nav>
       }
@@ -590,6 +599,16 @@ export default function GdeltPage() {
 
         <div className="flex flex-col gap-2 border-t pt-10">
           <h2 className="font-heading text-2xl font-semibold tracking-tight">Every legislative story, not one bill</h2>
+          <p className="text-sm">
+            <a href="/gdelt/day" className="font-medium no-underline hover:underline">
+              The daily round-up
+            </a>{" "}
+            and{" "}
+            <a href="/gdelt/state" className="font-medium no-underline hover:underline">
+              the state pages
+            </a>{" "}
+            are built from these feeds: {dayList().length} {dayList().length === 1 ? "day" : "days"} on file, the most recent holding {getDay(dayList()[0] ?? "")?.articles.toLocaleString() ?? 0} articles.
+          </p>
           <p className="text-sm text-muted-foreground">
             The panels above come from GDELT&rsquo;s APIs, which answer questions about one phrase at a time and refuse roughly one call every five minutes. The panels below come from GDELT&rsquo;s own files, which have no limit at all:{" "}
             {files.minutes} minutes of them, read {files.readAt} UTC — {files.articles.read.toLocaleString()} articles on legislation and {files.mentions.read.toLocaleString()} mentions.
@@ -852,6 +871,30 @@ export default function GdeltPage() {
             <BinChart rows={tones} />
           </Panel>
           <Count>{files.articles.read.toLocaleString()} articles</Count>
+        </Question>
+
+        <Question
+          id="what-does-one-bill-cost-on-demand"
+          question="What happens when a reader asks about one bill?"
+          answer={
+            <p>
+              Everything above this line is built from files, nightly, for every bill at once. One bill&rsquo;s own curve and headlines still need the article API, which allows about one call every five minutes — so it runs{" "}
+              <strong>when a reader presses the button</strong>, not on a schedule, and the answer is kept for a week so the next reader pays nothing. Press one of these to watch it happen; GDELT may refuse, and the panel says so
+              plainly rather than showing an empty chart. This is the shape the panel would take on a bill&rsquo;s own page.
+            </p>
+          }
+          method={<>Method: two calls on press — a year of daily volume, then the last three months&rsquo; articles — cached against the phrase for seven days. Source: GDELT DOC 2.0 API.</>}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { label: "SAVE America Act", phrase: "SAVE America Act" },
+              { label: "H.R. 3633", phrase: "Blockchain Regulatory Certainty Act" },
+              { label: "S. 3312", phrase: "Kids Online Safety Act" },
+              { label: "Ranked choice", phrase: "ranked choice voting" },
+            ].map((bill) => (
+              <BillCoverage key={bill.phrase} label={bill.label} phrase={bill.phrase} />
+            ))}
+          </div>
         </Question>
 
         <Question
