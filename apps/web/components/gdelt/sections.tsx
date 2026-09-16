@@ -8,38 +8,34 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@govblock/u
 import { cn } from "@govblock/ui/lib/utils"
 
 // Every panel on /gdelt is a question (Brendan, 2026-09-16): the heading asks
-// it, the answer is folded away until someone wants it, and the footnote says
-// how the number was arrived at and what it was read from. A reader who only
-// scans headings still learns what the page can tell them.
+// it, the answer is folded behind the chevron at the end of that same line, and
+// the footnote says how the figure was arrived at and what it was read from. A
+// reader who only scans headings still learns what the page can tell them.
 
 export function Question({
-  n,
+  id,
   question,
   answer,
   method,
-  aside,
   children,
 }: {
-  n: number
+  id: string
   question: string
-  /** Folded away by default. */
+  /** Folded away until the chevron is pressed. */
   answer: React.ReactNode
   /** How it was measured, and what it was read from. */
   method: React.ReactNode
-  aside?: string
   children: React.ReactNode
 }) {
   return (
-    <section className="not-typeset flex scroll-mt-24 flex-col gap-4" id={`q${n}`}>
+    <section className="not-typeset flex scroll-mt-24 flex-col gap-4" id={id}>
       <Collapsible>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline gap-3">
-            <span className="font-mono text-sm text-muted-foreground tabular-nums">{n}</span>
-            <h2 className="font-heading text-lg font-semibold tracking-tight sm:text-xl">{question}</h2>
-            {aside ? <span className="ml-auto shrink-0 text-sm text-muted-foreground tabular-nums">{aside}</span> : null}
-          </div>
-          <CollapsibleTrigger className="group/answer flex w-fit items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Answer
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-heading min-w-0 text-lg font-semibold tracking-tight sm:text-xl">{question}</h2>
+          <CollapsibleTrigger
+            aria-label="What this shows"
+            className="group/answer ml-auto flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]/answer:rotate-180" />
           </CollapsibleTrigger>
         </div>
@@ -83,7 +79,5 @@ export function ShowMore({
   )
 }
 
-/** Two panels side by side, the taller one's overflow folded away so they end level. */
-export function Pair({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn("grid gap-4 lg:grid-cols-2", className)}>{children}</div>
-}
+/** The count a panel reports, in the footnote's place above the method line. */
+export const Count = ({ children }: { children: React.ReactNode }) => <p className={cn("text-xs text-muted-foreground tabular-nums")}>{children}</p>

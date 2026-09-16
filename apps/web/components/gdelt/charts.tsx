@@ -181,3 +181,19 @@ export function ScoreChart({ rows }: { rows: { score: number; sentences: number 
     </ChartContainer>
   )
 }
+
+/** How many outlets ran the same sentence: one bar per repeated sentence. */
+export function SyndicationChart({ rows }: { rows: { label: string; outlets: number }[] }) {
+  const config = { outlets: { label: "Outlets", color: "var(--chart-4)" } } satisfies ChartConfig
+  return (
+    <ChartContainer config={config} className="h-[220px] w-full">
+      <BarChart accessibilityLayer data={rows} layout="vertical" margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+        <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+        <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
+        <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} width={150} tickMargin={8} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <Bar dataKey="outlets" fill="var(--color-outlets)" radius={3} />
+      </BarChart>
+    </ChartContainer>
+  )
+}

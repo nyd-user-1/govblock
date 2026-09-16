@@ -4,9 +4,9 @@ import { DocsPage } from "@/components/docs-page"
 import { attention, comparison, framing, headlines, members, moodByFrame, moodByOutlet, moods, outlets, phrase, programs, scoreSpread, sentences, span, standing, syndicated, television, tone, tvSpan, world } from "@/lib/gdelt/sample"
 import { cost, files, linkedBills, money, namesInCoverage, organisations, pressure, publishingHours, quotes as fileQuotes, reporters, spread, themes as fileThemes, toneSpread } from "@/lib/gdelt/files"
 import { countryFlag } from "@/lib/gdelt/derive"
-import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
-import { Question, ShowMore } from "@/components/gdelt/sections"
-import { CardBlock, type CardSpec } from "@/components/policy/card-block"
+import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, SyndicationChart, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
+import { Count, Question, ShowMore } from "@/components/gdelt/sections"
+import { GdeltCards, type GdeltCard } from "@/components/gdelt/cards"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 
@@ -133,7 +133,7 @@ export default function GdeltPage() {
   const tones = toneSpread()
   const bill = cost()
 
-  const headlineCards: CardSpec[] = (news ?? []).map((a) => ({
+  const headlineCards: GdeltCard[] = (news ?? []).map((a) => ({
     key: a.url,
     href: a.url,
     title: a.title,
@@ -141,7 +141,7 @@ export default function GdeltPage() {
     meta: `${a.domain} · ${when(a.date)}`,
   }))
 
-  const clipCards: CardSpec[] = (tv?.clips ?? []).map((c) => ({
+  const clipCards: GdeltCard[] = (tv?.clips ?? []).map((c) => ({
     key: `${c.url}-${c.snippet.slice(0, 24)}`,
     href: c.url,
     title: c.show,
@@ -149,7 +149,7 @@ export default function GdeltPage() {
     meta: `${c.station} · ${when(c.date)}`,
   }))
 
-  const billCards: CardSpec[] = linked.map((row) => ({
+  const billCards: GdeltCard[] = linked.map((row) => ({
     key: `${row.link}-${row.url}`,
     href: row.url,
     title: row.title || host(row.url),
@@ -162,13 +162,6 @@ export default function GdeltPage() {
     meta: `${row.bill.where} · ${row.host}`,
   }))
 
-  const quoteCards: CardSpec[] = quoted.map((q) => ({
-    key: `${q.url}-${q.quote.slice(0, 24)}`,
-    href: q.url,
-    title: `“${q.quote.slice(0, 120)}${q.quote.length > 120 ? "…" : ""}”`,
-    media: <Media src={null} />,
-    meta: q.pre ? `…${q.pre.slice(-60)}` : q.host,
-  }))
 
   return (
     <DocsPage
@@ -180,10 +173,10 @@ export default function GdeltPage() {
       rail={
         <nav className="flex flex-col gap-2 px-1 text-sm">
           <span className="font-medium text-foreground">On this page</span>
-          <a href="#q1" className="text-muted-foreground no-underline hover:text-foreground">
+          <a href="#one-bill" className="text-muted-foreground no-underline hover:text-foreground">
             One bill&rsquo;s coverage
           </a>
-          <a href="#q13" className="text-muted-foreground no-underline hover:text-foreground">
+          <a href="#all-coverage" className="text-muted-foreground no-underline hover:text-foreground">
             All legislative coverage
           </a>
           <a href="#read" className="text-muted-foreground no-underline hover:text-foreground">
@@ -201,9 +194,8 @@ export default function GdeltPage() {
         </div>
 
         <Question
-          n={1}
+          id="how-much-attention-has-this-bill-had"
           question="How much attention has this bill had?"
-          aside={curve ? `${curve.total.toLocaleString()} articles` : undefined}
           answer={
             <p>
               GDELT counts every article it monitors, so a bill&rsquo;s coverage can be read as a <strong>share of all US news</strong> rather than a raw number that rises and falls with the news cycle. This bill drew{" "}
@@ -233,9 +225,8 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={2}
+          id="what-is-the-press-actually-publishing-ab"
           question="What is the press actually publishing about it?"
-          aside={news ? `${news.length} articles` : undefined}
           answer={
             <p>
               The newest articles naming the bill, each linked to its outlet, with the picture the outlet chose for social sharing. Cards with a picture come first; the ones without carry GovBlock&rsquo;s mark instead. This is the raw
@@ -244,11 +235,11 @@ export default function GdeltPage() {
           }
           method={<>Method: the article list, newest first, one card per address. Source: GDELT Context API (sentence-level), read September 15, 2026; the DOC API&rsquo;s own article list was rate-limited at the time of the snapshot.</>}
         >
-          <CardBlock cards={headlineCards} initial={4} framed={false} empty="No articles in the snapshot." />
+          <GdeltCards cards={headlineCards} initial={4} noun="articles" />
         </Question>
 
         <Question
-          n={3}
+          id="does-the-coverage-read-for-it-or-against"
           question="Does the coverage read for it or against it?"
           answer={
             <p>
@@ -261,34 +252,11 @@ export default function GdeltPage() {
         >
           {feeling ? (
             <div className="flex flex-col gap-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Panel>
-                  <MoodBar label="Press sentences" tally={feeling.press} />
-                  <MoodBar label="TV captions" tally={feeling.tv} />
-                  {scores ? <ScoreChart rows={scores} /> : null}
-                </Panel>
-                <Panel>
-                  <div className="flex flex-col gap-4 text-sm">
-                    {[
-                      { label: "Hardest on the bill", list: feeling.negative, tone: "text-destructive", mark: "▼" },
-                      { label: "Warmest on the bill", list: feeling.positive, tone: "text-[oklch(0.55_0.15_150)]", mark: "▲" },
-                    ].map(({ label, list, tone: toneClass, mark }) => (
-                      <div key={label} className="flex flex-col gap-2">
-                        <span className={`flex items-center gap-1.5 text-xs font-semibold ${toneClass}`}>
-                          <span aria-hidden="true">{mark}</span>
-                          {label}
-                        </span>
-                        {list.slice(0, 2).map((s) => (
-                          <p key={s.url + s.sentence} className="text-sm text-foreground">
-                            <Marked text={s.sentence} />
-                            <span className={`ml-1.5 font-mono text-xs ${toneClass} tabular-nums`}>{s.score > 0 ? `+${s.score}` : s.score}</span>
-                          </p>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
-              </div>
+              <Panel>
+                <MoodBar label="Press sentences" tally={feeling.press} />
+                <MoodBar label="TV captions" tally={feeling.tv} />
+                {scores ? <ScoreChart rows={scores} /> : null}
+              </Panel>
               {mood?.rows ? (
                 <Panel>
                   <ToneChart rows={mood.rows} />
@@ -317,12 +285,30 @@ export default function GdeltPage() {
                   {mood?.bins.length ? <ToneHistogram bins={mood.bins} /> : null}
                 </Panel>
               </div>
+              <Panel>
+                <div className="flex flex-col gap-4 text-sm">
+                  {[
+                    { label: "Negative", list: feeling.negative, tone: "text-destructive" },
+                    { label: "Positive", list: feeling.positive, tone: "text-[oklch(0.55_0.15_150)]" },
+                  ].map(({ label, list, tone: toneClass }) => (
+                    <div key={label} className="flex flex-col gap-2">
+                      <span className={`text-xs font-semibold ${toneClass}`}>{label}</span>
+                      {list.slice(0, 2).map((x) => (
+                        <p key={x.url + x.sentence} className="text-sm text-foreground">
+                          <Marked text={x.sentence} />
+                          <span className={`ml-1.5 font-mono text-xs ${toneClass} tabular-nums`}>{x.score > 0 ? `+${x.score}` : x.score}</span>
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </Panel>
             </div>
           ) : null}
         </Question>
 
         <Question
-          n={4}
+          id="which-outlets-are-carrying-it"
           question="Which outlets are carrying it?"
           answer={
             <p>
@@ -352,9 +338,8 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={5}
+          id="did-it-reach-television"
           question="Did it reach television?"
-          aside={`${when(tvSpan.start)} – ${when(tvSpan.end)}`}
           answer={
             <p>
               Which networks said the bill&rsquo;s name, how often, and the clips themselves with their captions — each opening at the Internet Archive at the moment it was said. Read the dates: <strong>GDELT&rsquo;s television archive
@@ -365,11 +350,10 @@ export default function GdeltPage() {
         >
           {tv ? (
             <div className="flex flex-col gap-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Panel>
-                  <StackedWeeks weeks={tv.weeks} keys={tv.networks.map((_, i) => `n${i}`)} names={tv.networks} />
-                </Panel>
-                <Panel>
+              <Panel>
+                <StackedWeeks weeks={tv.weeks} keys={tv.networks.map((_, i) => `n${i}`)} names={tv.networks} />
+              </Panel>
+              <Panel>
                   <Bars rows={tv.stations.map((s) => ({ key: s.station, label: s.station, value: s.share, shown: `${s.share}%` }))} />
                   {shows ? (
                     <ShowMore initial={4} noun="programmes" className="flex flex-col gap-1 border-t pt-3 text-sm">
@@ -382,18 +366,19 @@ export default function GdeltPage() {
                         </div>
                       ))}
                     </ShowMore>
-                  ) : null}
-                </Panel>
-              </div>
-              <CardBlock cards={clipCards} initial={4} framed={false} empty="No clips." />
+                ) : null}
+              </Panel>
+              <GdeltCards cards={clipCards} initial={4} noun="clips" />
+              <Count>
+                {when(tvSpan.start)} – {when(tvSpan.end)}
+              </Count>
             </div>
           ) : null}
         </Question>
 
         <Question
-          n={6}
+          id="what-exactly-are-they-saying-about-it"
           question="What exactly are they saying about it?"
-          aside={said ? `${said.length} sentences` : undefined}
           answer={
             <p>
               Every sentence in the press that names the bill, with the bill&rsquo;s name marked. This is the one thing the volume charts cannot give: the actual claim being made, in the outlet&rsquo;s own words, which is what a reader
@@ -420,7 +405,7 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={7}
+          id="whose-language-is-the-coverage-using"
           question="Whose language is the coverage using?"
           answer={
             <p>
@@ -459,7 +444,7 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={8}
+          id="where-does-the-coverage-say-the-bill-sta"
           question="Where does the coverage say the bill stands?"
           answer={
             <p>
@@ -470,32 +455,31 @@ export default function GdeltPage() {
           method={<>Method: phrase patterns for stalled, moving and state-level action, applied to each sentence. Source: the snapshot&rsquo;s sentences; patterns in lib/gdelt/derive.ts.</>}
         >
           {stands ? (
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="steps steps-roomy mb-4 md:ml-4 md:border-l md:pl-8">
               {[
                 { key: "stalled", label: "Stalled", list: stands.groups.stalled },
                 { key: "moving", label: "Moving", list: stands.groups.moving },
                 { key: "state", label: "In the states", list: stands.groups.state },
               ].map((g) => (
-                <Panel key={g.key}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="font-medium">{g.label}</span>
-                    <span className="text-sm text-muted-foreground tabular-nums">{g.list.length}</span>
-                  </div>
-                  {g.list.slice(0, 2).map((s) => (
-                    <p key={s.url + s.sentence} className="text-sm text-muted-foreground">
-                      <Marked text={s.sentence} />
+                <div key={g.key} className="flex flex-col gap-2 pb-8 last:pb-0">
+                  <h3 className="font-heading flex items-baseline gap-2 text-base font-semibold">
+                    {g.label}
+                    <span className="text-sm font-normal text-muted-foreground tabular-nums">{g.list.length}</span>
+                  </h3>
+                  {g.list.slice(0, 3).map((x) => (
+                    <p key={x.url + x.sentence} className="text-sm text-muted-foreground">
+                      <Marked text={x.sentence} />
                     </p>
                   ))}
-                </Panel>
+                </div>
               ))}
             </div>
           ) : null}
         </Question>
 
         <Question
-          n={9}
+          id="which-members-of-congress-are-in-the-sto"
           question="Which members of Congress are in the story?"
-          aside={named?.length ? `${named.length} members` : undefined}
           answer={
             <p>
               The sitting members the coverage names, each linked to their page here. A member can be in a bill&rsquo;s news without being a sponsor or casting a vote — as its loudest opponent, or as the one asked about it on camera — and
@@ -525,9 +509,8 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={10}
+          id="how-much-of-it-is-the-same-story-twice"
           question="How much of it is the same story twice?"
-          aside={copies?.length ? `${copies.length} repeated` : undefined}
           answer={
             <p>
               One sentence, word for word, at sixteen public radio stations is one newsroom&rsquo;s work reaching sixteen markets. Without this check, a wire story looks like a wave of independent coverage — and any &ldquo;how much
@@ -537,29 +520,26 @@ export default function GdeltPage() {
           method={<>Method: identical sentences appearing at more than one outlet. Source: the snapshot&rsquo;s sentence list, grouped by sentence.</>}
         >
           {copies?.length ? (
-            <Panel className="p-0">
-              <ShowMore initial={3} noun="more" className="flex flex-col divide-y">
-                {copies.map((c) => (
-                  <div key={c.sentence} className="flex flex-col gap-1.5 px-4 py-3">
-                    <p className="text-sm text-foreground">
-                      <Marked text={c.sentence} />
-                    </p>
-                    <span className="flex flex-wrap gap-1.5">
-                      {c.domains.map((d) => (
-                        <span key={d} className="rounded-md border px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                          {d}
-                        </span>
-                      ))}
+            <Panel>
+              <SyndicationChart rows={copies.slice(0, 6).map((c) => ({ label: `${c.sentence.slice(0, 34)}…`, outlets: c.domains.length }))} />
+              <div className="flex flex-col gap-2 border-t pt-3">
+                <p className="text-sm text-foreground">
+                  <Marked text={copies[0]!.sentence} />
+                </p>
+                <span className="flex flex-wrap gap-1.5">
+                  {copies[0]!.domains.map((d) => (
+                    <span key={d} className="rounded-md border px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                      {d}
                     </span>
-                  </div>
-                ))}
-              </ShowMore>
+                  ))}
+                </span>
+              </div>
             </Panel>
           ) : null}
         </Question>
 
         <Question
-          n={11}
+          id="how-does-it-compare-with-other-bills-on-"
           question="How does it compare with other bills on the same subject?"
           answer={
             <p>
@@ -576,7 +556,7 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={12}
+          id="who-outside-the-united-states-is-coverin"
           question="Who outside the United States is covering it?"
           answer={
             <p>
@@ -617,9 +597,8 @@ export default function GdeltPage() {
         </div>
 
         <Question
-          n={13}
+          id="which-stories-can-be-tied-to-a-bill-with"
           question="Which stories can be tied to a bill with certainty?"
-          aside={`${files.billLinkCount} stories`}
           answer={
             <p>
               GDELT records every outbound link in an article. When a story links to a bill&rsquo;s own page on congress.gov or a legislature&rsquo;s site, the story is tied to <strong>that</strong> bill — no phrase matching, no deciding
@@ -628,13 +607,12 @@ export default function GdeltPage() {
           }
           method={<>Method: the page-links field of every legislative article, matched against bill-page address patterns for Congress, LegiScan and the state legislatures. Source: GDELT Global Knowledge Graph 2.1, {files.minutes} minutes of 15-minute files.</>}
         >
-          <CardBlock cards={billCards} initial={4} framed={false} empty="No linked bills in the snapshot." />
+          <GdeltCards cards={billCards} initial={4} noun="stories" />
         </Question>
 
         <Question
-          n={14}
+          id="who-is-being-quoted-on-legislation-right"
           question="Who is being quoted on legislation right now?"
-          aside={`${files.quoteCount} in ${files.minutes} minutes`}
           answer={
             <p>
               A separate GDELT feed pulls out every quoted sentence in the news, with the hundred characters either side. The words before a quote are nearly always who said it, so a bill page can carry what people actually said about a
@@ -643,11 +621,25 @@ export default function GdeltPage() {
           }
           method={<>Method: quotes kept when the quote or its introduction names a bill, chamber or lawmaker. Source: GDELT Global Quotation Graph, per-minute files, four minutes read.</>}
         >
-          <CardBlock cards={quoteCards} initial={4} framed={false} empty="No quotes in the snapshot." />
+          <RecordList className="mt-0 mb-0">
+            <ShowMore initial={6} noun="quotes" className="flex flex-col divide-y divide-border">
+              {quoted.map((q) => (
+                <RecordItem
+                  key={`${q.url}-${q.quote.slice(0, 24)}`}
+                  href={q.url}
+                  external
+                  title={q.host}
+                  meta={[q.pre ? `…${q.pre.slice(-70)}` : null]}
+                  description={`“${q.quote}”`}
+                  stacked
+                />
+              ))}
+            </ShowMore>
+          </RecordList>
         </Question>
 
         <Question
-          n={15}
+          id="who-writes-the-legislative-coverage-and-"
           question="Who writes the legislative coverage, and when do they file?"
           answer={
             <p>
@@ -657,7 +649,11 @@ export default function GdeltPage() {
           }
           method={<>Method: bylines and precise publication timestamps from the page-metadata field; bylines counted per outlet. Source: GDELT Global Knowledge Graph 2.1 (authors on 41% of articles, timestamps on 60%).</>}
         >
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <Panel>
+              <HourChart rows={hours} />
+              <span className="text-xs text-muted-foreground">Published by the hour, UTC, from each outlet&rsquo;s own timestamp</span>
+            </Panel>
             <Panel>
               <ShowMore initial={8} noun="reporters" className="flex flex-col gap-1.5">
                 {bylines.map((b) => (
@@ -674,15 +670,11 @@ export default function GdeltPage() {
                 ))}
               </ShowMore>
             </Panel>
-            <Panel>
-              <HourChart rows={hours} />
-              <span className="text-xs text-muted-foreground">Published by the hour, UTC, from each outlet&rsquo;s own timestamp</span>
-            </Panel>
           </div>
         </Question>
 
         <Question
-          n={16}
+          id="who-is-being-named-in-it"
           question="Who is being named in it?"
           answer={
             <p>
@@ -692,49 +684,41 @@ export default function GdeltPage() {
           }
           method={<>Method: extracted names and organisations, merged across title variants, places and institutions removed from the people column. Source: GDELT Global Knowledge Graph 2.1, {files.articles.read.toLocaleString()} legislative articles.</>}
         >
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Panel>
-              <ShowMore initial={10} noun="names" className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-6">
+            <RecordList className="mt-0 mb-0">
+              <ShowMore initial={8} noun="names" className="flex flex-col divide-y divide-border">
                 {names.map((n) => (
-                  <div key={n.name} className="grid grid-cols-[minmax(0,11rem)_1fr_3.5rem] items-center gap-3 text-sm">
-                    <span className="flex min-w-0 items-center gap-2 truncate">
-                      {n.member ? (
-                        <>
+                  <RecordItem
+                    key={n.name}
+                    href={n.member ? `/members/${n.member.id}` : `/search?q=${encodeURIComponent(n.name)}`}
+                    avatar={n.member ? <MemberPortrait name={n.member.name} photoUrl={n.member.photo} state={n.member.state} chamber={n.member.chamber} size={32} /> : undefined}
+                    title={
+                      n.member ? (
+                        <span className="flex items-center gap-2">
                           <PartyDot party={n.member.party} />
-                          <a href={`/members/${n.member.id}`} className="truncate text-foreground no-underline hover:underline">
-                            {n.name}
-                          </a>
-                        </>
+                          {n.name}
+                        </span>
                       ) : (
-                        <span className="truncate">{n.name}</span>
-                      )}
-                    </span>
-                    <span className="h-2 rounded-full bg-muted">
-                      <span className="block h-2 rounded-full bg-primary/70" style={{ width: `${(n.articles / (names[0]?.articles || 1)) * 100}%` }} />
-                    </span>
-                    <span className="text-right text-muted-foreground tabular-nums">{n.articles}</span>
-                  </div>
+                        n.name
+                      )
+                    }
+                    meta={[`${n.articles} articles`, n.member ? (n.member.role === "Sen" ? "Senator" : "Representative") : null, n.member?.district]}
+                  />
                 ))}
               </ShowMore>
-            </Panel>
-            <Panel>
-              <ShowMore initial={10} noun="bodies" className="flex flex-col gap-1.5">
+            </RecordList>
+            <RecordList className="mt-0 mb-0">
+              <ShowMore initial={6} noun="bodies" className="flex flex-col divide-y divide-border">
                 {orgs.map((o) => (
-                  <div key={o.name} className="grid grid-cols-[minmax(0,11rem)_1fr_3.5rem] items-center gap-3 text-sm">
-                    <span className="truncate">{o.name}</span>
-                    <span className="h-2 rounded-full bg-muted">
-                      <span className="block h-2 rounded-full bg-primary/70" style={{ width: `${(o.articles / (orgs[0]?.articles || 1)) * 100}%` }} />
-                    </span>
-                    <span className="text-right text-muted-foreground tabular-nums">{o.articles}</span>
-                  </div>
+                  <RecordItem key={o.name} href={`/search?q=${encodeURIComponent(o.name)}`} title={o.name} meta={[`${o.articles} articles`]} />
                 ))}
               </ShowMore>
-            </Panel>
+            </RecordList>
           </div>
         </Question>
 
         <Question
-          n={17}
+          id="what-subjects-does-legislative-news-sit-"
           question="What subjects does legislative news sit under?"
           answer={
             <p>
@@ -756,7 +740,7 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={18}
+          id="what-money-does-the-coverage-name"
           question="What money does the coverage name?"
           answer={
             <p>
@@ -782,9 +766,8 @@ export default function GdeltPage() {
         </Question>
 
         <Question
-          n={19}
+          id="who-is-pressing-legislatures-in-public"
           question="Who is pressing legislatures in public?"
-          aside={`${push.kept} events, about ${push.perDay.toLocaleString()} a day`}
           answer={
             <p>
               GDELT&rsquo;s event table codes news into who did what to whom. Filtered to a legislature, it becomes a record of public pressure: who appealed to Congress today, who praised it, who accused it — each with a tone score and
@@ -793,7 +776,7 @@ export default function GdeltPage() {
           }
           method={<>Method: US-located events whose actors include a legislature; action codes named from GDELT&rsquo;s CAMEO lookup. Source: GDELT 2.0 Event Database, {files.minutes} minutes of 15-minute files.</>}
         >
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
             <Panel>
               <ShowMore initial={8} noun="kinds" className="flex flex-col gap-1.5">
                 {push.types.map((t) => (
@@ -826,14 +809,16 @@ export default function GdeltPage() {
                 ))}
               </ShowMore>
             </Panel>
+            <Count>
+              {push.kept} events in {files.minutes} minutes, about {push.perDay.toLocaleString()} a day
+            </Count>
           </div>
         </Question>
 
         {ripple ? (
           <Question
-            n={20}
+          id="how-far-does-one-story-travel-and-who-bu"
             question="How far does one story travel, and who buries it?"
-            aside={`${ripple.total} articles, ${ripple.outlets} outlets`}
             answer={
               <p>
                 GDELT records every article that repeats an event, not just the first, with the sentence number the mention appears in. That gives two things no volume chart can: the <strong>spread over time</strong>, and{" "}
@@ -878,9 +863,8 @@ export default function GdeltPage() {
         ) : null}
 
         <Question
-          n={21}
+          id="is-legislative-coverage-positive-or-negative"
           question="Is legislative coverage generally positive or negative?"
-          aside={`${files.articles.read.toLocaleString()} articles`}
           answer={
             <p>
               The tone of every legislative article in the window, binned. It is the baseline a single bill&rsquo;s tone should be read against: news about legislation is negative on average, so a bill scoring slightly negative is
@@ -892,10 +876,11 @@ export default function GdeltPage() {
           <Panel>
             <BinChart rows={tones} />
           </Panel>
+          <Count>{files.articles.read.toLocaleString()} articles</Count>
         </Question>
 
         <Question
-          n={22}
+          id="what-would-it-cost-to-run-this-every-day"
           question="What would it cost to run this every day?"
           answer={
             <p>
