@@ -3,7 +3,8 @@ import Link from "next/link"
 import { Fragment } from "react"
 
 import { DocsPage } from "@/components/docs-page"
-import { DocsSidebar } from "@/components/docs-sidebar"
+import { LeftRailSheet } from "@/components/rail-sheet"
+import { railScript } from "@/lib/rail-script"
 import { DocsTableOfContents } from "@/components/docs-toc"
 import { H2, H3, Table } from "@/components/typeset"
 import { StatusViews } from "@/app/glossary/status-views"
@@ -277,13 +278,15 @@ const toc = [
 
 export default function GlossaryPage() {
   return (
-    <div className="container-wrapper flex flex-1 flex-col px-2">
+    <div className="container-wrapper flex flex-1 flex-col overflow-x-clip px-2">
+      {/* Closed by default, before the rails are laid out. */}
+      <script dangerouslySetInnerHTML={{ __html: railScript(true) }} />
       <SidebarProvider
-        className="min-h-min flex-1 items-start px-0 [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--top-spacing:calc(var(--spacing)*4)] 3xl:fixed:container 3xl:fixed:px-3 [[data-rail-left=closed]_&]:[--sidebar-width:calc(var(--spacing)*6)]!"
+        className="relative min-h-min flex-1 items-start px-0 [--top-spacing:0] lg:[--top-spacing:calc(var(--spacing)*4)] 3xl:fixed:container 3xl:fixed:px-3"
         style={{ "--sidebar-width": "calc(var(--spacing) * 72)" } as React.CSSProperties}
       >
-        <DocsSidebar />
-        <div className="h-full w-full">
+        <LeftRailSheet />
+        <div className="flex min-w-0 flex-1 flex-col px-6">
           <DocsPage title={title} description={description} slug="/glossary" next={{ name: "Docs", url: "/docs" }} rail={<DocsTableOfContents toc={toc} />}>
             <H2 id="action">Action</H2>
             <p>

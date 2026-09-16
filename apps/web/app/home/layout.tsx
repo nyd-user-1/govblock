@@ -1,20 +1,3 @@
-import { DocsSidebar } from "@/components/docs-sidebar"
-import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
-
-// The home page sits in the docs shell — the rail on the left, the page's
-// own rail on the right (Brendan, 2026-09-07: "all of this fits neatly onto
-// the /docs page design"). The sidebar draws the account rail here.
-export default function HomeLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="container-wrapper flex flex-1 flex-col px-2">
-      <SidebarProvider
-        // The provider writes --sidebar-width inline, so the closed state (the tab on the hairline, components/rail-toggle.tsx) narrows it to the strip with an important class — the only thing that outranks an inline style.
-        className="min-h-min flex-1 items-start px-0 [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--top-spacing:calc(var(--spacing)*4)] 3xl:fixed:container 3xl:fixed:px-3 [[data-rail-left=closed]_&]:[--sidebar-width:calc(var(--spacing)*6)]!"
-        style={{ "--sidebar-width": "calc(var(--spacing) * 72)" } as React.CSSProperties}
-      >
-        <DocsSidebar />
-        <div className="h-full w-full">{children}</div>
-      </SidebarProvider>
-    </div>
-  )
-}
+// The account home wears the same shell as the records pages: the left rail
+// as a sheet, the page beside it, its own right rail drawn by the page.
+export { default } from "@/app/docs/layout"
