@@ -69,8 +69,15 @@ export const linkedBills = () =>
 /** Who writes the legislative coverage. */
 export const reporters = () => files.authors.filter((a) => a.author.includes(" ")).slice(0, 18)
 
-/** What hour of the day legislative news is published, from the outlets' own timestamps. */
-export const publishingHours = () => files.hours.map((articles, hour) => ({ hour: `${String(hour).padStart(2, "0")}:00`, articles }))
+/** What hour of the day legislative news is published, on the clock a US newsroom keeps. */
+export function publishingHours() {
+  // The timestamps are UTC; September's Eastern is four hours behind it.
+  const eastern = new Array(24).fill(0)
+  files.hours.forEach((articles, hour) => {
+    eastern[(hour + 20) % 24] += articles
+  })
+  return eastern.map((articles, hour) => ({ hour: `${((hour + 11) % 12) + 1} ${hour < 12 ? "am" : "pm"}`, articles }))
+}
 
 // Places and institutions GDELT extracts as names; the panel is about people.
 const NOT_A_PERSON =
@@ -102,13 +109,40 @@ export const themes = () =>
     .slice(0, 20)
     .map(([theme, articles]) => ({ theme: titleCase(theme.replace(/^(TAX_FNCACT_|WB_\d+_|EPU_|SOC_|ECON_|UNGP_)/, "").replace(/_/g, " ")), code: theme, articles }))
 
-/** Quoted sentences about legislation, with the words that introduce them. */
+// Who said it, read out of the hundred characters before the quote: "…Sen.
+// Mike Lee said" or "Speaker Johnson told reporters". No speaker, no row —
+// a quotation with nobody attached is not worth a reader's time.
+const TITLE = "(?:Sen\\.|Senator|Rep\\.|Representative|Speaker|Leader|Gov\\.|Governor|President|Secretary|Chairman|Chairwoman|Justice|Judge|Attorney General|Mayor|Dr\\.)"
+const NAME = "[A-Z][\\w.'’-]+(?: [A-Z][\\w.'’-]+){0,3}"
+const SAYS = "(?:said|says|told|added|argued|wrote|noted|explained|insisted|declared|asked|warned|continued)"
+const SPEAKER = [
+  new RegExp(`(${TITLE} ${NAME})[ ,]*${SAYS}[^.]{0,30}$`),
+  new RegExp(`(${NAME})[ ,]*${SAYS}[^.]{0,30}$`),
+  new RegExp(`${SAYS} (${TITLE} ${NAME})[ ,.]*$`),
+  new RegExp(`${SAYS} (${NAME})[ ,.]*$`),
+  new RegExp(`(${TITLE} ${NAME})[ ,.]*$`),
+]
+
+// Capitalised words the patterns above will happily read as a person.
+const NOT_A_SPEAKER = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|The|This|That|It|He|She|They|We|But|And|When|While|After|Before|Last|Next|Earlier|Meanwhile|However)\b/
+
+export function speakerOf(pre: string): string | null {
+  for (const rule of SPEAKER) {
+    const found = rule.exec(pre.trim())?.[1]?.trim()
+    if (!found || found.length <= 3 || found.split(" ").length > 5) continue
+    if (NOT_A_SPEAKER.test(found)) continue
+    return found
+  }
+  return null
+}
+
+/** Quoted sentences about legislation, and the person the sentence before names as saying them. */
 export const quotes = () =>
   files.quotes
     .filter((q) => q.quote.length > 80)
-    .sort((a, b) => Number(b.named) - Number(a.named))
-    .slice(0, 18)
-    .map((q) => ({ ...q, host: (() => { try { return new URL(q.url).host.replace(/^www\./, "") } catch { return "" } })() }))
+    .map((q) => ({ ...q, speaker: speakerOf(q.pre), host: (() => { try { return new URL(q.url).host.replace(/^www\./, "") } catch { return "" } })() }))
+    .filter((q): q is typeof q & { speaker: string } => Boolean(q.speaker))
+    .slice(0, 20)
 
 /** The money the coverage names, once per figure: one wire story runs at dozens of sites. */
 export function money() {

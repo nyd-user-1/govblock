@@ -142,7 +142,11 @@ for (const stamp of stamps()) {
 // it, which is how a quote gets a speaker without a model.
 const quotes = []
 const SAYS = /\b(Sen\.|Senator|Rep\.|Representative|Speaker|Gov\.|Governor|President|Secretary|Chairman|Chairwoman|Leader|Democrat|Republican)\b/
-const ABOUT = /\b(bill|legislation|act\b|congress|senate|house|lawmakers?|statute|amendment|veto|filibuster)\b/i
+// A quote about American legislation, not any legislature anywhere: the
+// Quotation Graph is worldwide, and "act" alone lands on Indian and British
+// parliamentary copy (found 2026-09-16).
+const ABOUT = /\b(congress|senate|house bill|senate bill|the house|lawmakers?|capitol hill|filibuster|state legislature|governor|h\.r\.|s\.\s?\d|[a-z]+ act\b|the bill|this bill|legislation)\b/i
+const ELSEWHERE = /\b(parliament|lok sabha|rajya sabha|prime minister|westminster|holyrood|bundestag|knesset|duma|minister of|mps?\b|european union|brussels|ottawa|canberra)\b/i
 
 for (const stamp of stamps().slice(0, 4)) {
   // The Quotation Graph publishes the minute after each 15-minute heartbeat:
@@ -169,6 +173,7 @@ for (const stamp of stamps().slice(0, 4)) {
       const pre = String(q.pre ?? "").trim()
       if (quote.length < 60 || quote.length > 400) continue
       if (!ABOUT.test(quote) && !ABOUT.test(pre)) continue
+      if (ELSEWHERE.test(quote) || ELSEWHERE.test(pre)) continue
       quotes.push({
         quote,
         pre: pre.slice(-100),

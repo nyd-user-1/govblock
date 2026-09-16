@@ -2,11 +2,12 @@ import type { ReactNode } from "react"
 
 import { DocsPage } from "@/components/docs-page"
 import { attention, comparison, framing, headlines, members, moodByFrame, moodByOutlet, moods, outlets, phrase, programs, scoreSpread, sentences, span, standing, syndicated, television, tone, tvSpan, world } from "@/lib/gdelt/sample"
-import { cost, files, linkedBills, money, namesInCoverage, organisations, pressure, publishingHours, quotes as fileQuotes, reporters, spread, themes as fileThemes, toneSpread } from "@/lib/gdelt/files"
+import { cost, files, linkedBills, namesInCoverage, organisations, pressure, publishingHours, quotes as fileQuotes, reporters, spread, themes as fileThemes, toneSpread } from "@/lib/gdelt/files"
 import { countryFlag } from "@/lib/gdelt/derive"
 import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, SyndicationChart, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
 import { Count, Question, ShowMore } from "@/components/gdelt/sections"
 import { GdeltCards, type GdeltCard } from "@/components/gdelt/cards"
+import { Chip } from "@/components/chip"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 
@@ -127,7 +128,6 @@ export default function GdeltPage() {
   const orgs = organisations()
   const subjects = fileThemes()
   const quoted = fileQuotes()
-  const amounts = money()
   const push = pressure()
   const ripple = spread()
   const tones = toneSpread()
@@ -187,7 +187,7 @@ export default function GdeltPage() {
     >
       <div className="not-typeset flex flex-col gap-12">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <code className="rounded-md border bg-muted px-1.5 py-0.5 font-mono text-foreground">{phrase}</code>
+          <Chip className="rounded-md border bg-muted px-1.5 py-0.5 font-mono text-foreground">{phrase}</Chip>
           <span>
             {when(span.start)} – {when(span.end)}
           </span>
@@ -615,11 +615,12 @@ export default function GdeltPage() {
           question="Who is being quoted on legislation right now?"
           answer={
             <p>
-              A separate GDELT feed pulls out every quoted sentence in the news, with the hundred characters either side. The words before a quote are nearly always who said it, so a bill page can carry what people actually said about a
-              bill, attributed and dated, without a model summarising anything.
+              This is <strong>all</strong> legislative coverage, not this bill: every quoted sentence GDELT pulled out of the news in the window, where the sentence or its introduction mentions a bill, a chamber or a lawmaker. The
+              speaker is read out of the hundred characters before the quote — &ldquo;Sen. Mike Lee said&rdquo; — and a quote with no name attached is dropped. On a bill page it would be narrowed to that bill; here it shows what the feed
+              can do, which is put a named person&rsquo;s own words beside the legislation they were talking about.
             </p>
           }
-          method={<>Method: quotes kept when the quote or its introduction names a bill, chamber or lawmaker. Source: GDELT Global Quotation Graph, per-minute files, four minutes read.</>}
+          method={<>Method: quotes kept when the quote or its introduction names a bill, chamber or lawmaker, then only those whose introduction names a speaker. Source: GDELT Global Quotation Graph, per-minute files, four minutes read.</>}
         >
           <RecordList className="mt-0 mb-0">
             <ShowMore initial={6} noun="quotes" className="flex flex-col divide-y divide-border">
@@ -628,8 +629,8 @@ export default function GdeltPage() {
                   key={`${q.url}-${q.quote.slice(0, 24)}`}
                   href={q.url}
                   external
-                  title={q.host}
-                  meta={[q.pre ? `…${q.pre.slice(-70)}` : null]}
+                  title={q.speaker}
+                  meta={[q.host]}
                   description={`“${q.quote}”`}
                   stacked
                 />
@@ -736,32 +737,6 @@ export default function GdeltPage() {
                 </span>
               ))}
             </div>
-          </Panel>
-        </Question>
-
-        <Question
-          id="what-money-does-the-coverage-name"
-          question="What money does the coverage name?"
-          answer={
-            <p>
-              GDELT extracts the numbers an article states, with the words around them. On a bill page this is the figure the press attached to a bill — which is often the only dollar figure a reader ever sees, and rarely the one in the
-              bill&rsquo;s own text.
-            </p>
-          }
-          method={<>Method: extracted amounts of 1,000 or more, once per figure, since one wire story runs at dozens of sites. Source: GDELT Global Knowledge Graph 2.1, amounts field.</>}
-        >
-          <Panel className="p-0">
-            <ul className="flex flex-col divide-y">
-              {amounts.map((a) => (
-                <li key={a.url + a.what} className="flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm">
-                  <span className="tabular-nums">{a.value.toLocaleString()}</span>
-                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{a.what}</span>
-                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="shrink-0 font-mono text-xs text-muted-foreground no-underline hover:underline">
-                    {a.source}
-                  </a>
-                </li>
-              ))}
-            </ul>
           </Panel>
         </Question>
 
@@ -963,6 +938,106 @@ export default function GdeltPage() {
           The rest are worth looking at once and then arguing about. Some are diagnostics rather than reader features — question 21&rsquo;s baseline tells you how to read any single bill&rsquo;s tone; question 22 tells you what the whole
           thing costs. Some are honest about their limits: question 3&rsquo;s word-list score is blunt, question 19&rsquo;s events never name a bill, and question 5&rsquo;s television data is two years old and will not get newer.
         </p>
+        <h3 className="font-heading text-lg font-semibold">Everything GDELT offers, and what each one returns</h3>
+        <p>
+          Taken from GDELT&rsquo;s own documentation and checked against live calls on September 15 and 16, 2026. A question can only be asked of a field that exists, so this is the menu the page was written from — and the evidence for
+          what it leaves out.
+        </p>
+        <div className="not-typeset overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b text-xs text-muted-foreground uppercase">
+              <tr>
+                <th className="py-2 pr-4 font-medium">Feed</th>
+                <th className="py-2 pr-4 font-medium">Reach</th>
+                <th className="py-2 pr-4 font-medium">What a record holds</th>
+                <th className="py-2 font-medium">State</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y align-top">
+              {[
+                {
+                  feed: "DOC 2.0 API",
+                  reach: "Articles: 3 months. Timelines: 2017 on. 250 articles a call.",
+                  fields: "url, mobile url, title, seen date, social image, domain, language, source country. Timelines add volume, share, tone, language and country. Filters: phrase, domain, language, country, theme, tone, proximity, repetition, and seven image filters.",
+                  state: "Live, throttled",
+                },
+                {
+                  feed: "Context API",
+                  reach: "Recent days; sentence level.",
+                  fields: "the matching sentence, the paragraph around it, whether it is a direct quote, plus url, title, domain, language, seen date, social image.",
+                  state: "Live",
+                },
+                {
+                  feed: "TV 2.0 API",
+                  reach: "2009 to October 11, 2024. Dead since.",
+                  fields: "mentions per station over time, each station's share, and clips: station, programme, timestamp, caption text, thumbnail, an Internet Archive link at the second it was said.",
+                  state: "Live but frozen",
+                },
+                {
+                  feed: "Full Text Search API (v1)",
+                  reach: "Documented as the last 24 hours.",
+                  fields: "url, title, outlet, date, language, location, image; tone as a filter, never as a field. No article text, no byline.",
+                  state: "Returns nothing for any query",
+                },
+                {
+                  feed: "Global Knowledge Graph 2.1 (files)",
+                  reach: "Every 15 minutes, 2015 on. About 135,000 articles a day.",
+                  fields: "themes, people, organisations, locations with coordinates, every extracted proper name with its character offset, amounts, seven tone measures, 2,300 emotion scores, quotations, social images — and a metadata field carrying the page title, the exact publication timestamp, the byline, and every outbound link in the article.",
+                  state: "Live",
+                },
+                {
+                  feed: "Event Database 2.0 (files)",
+                  reach: "Every 15 minutes, 1979 on. About 98,000 events a day.",
+                  fields: "61 columns: two actors with country, type and role codes, the action's CAMEO code, a conflict-to-cooperation score, three sets of coordinates, article and source counts, average tone, and the article it was read from.",
+                  state: "Live",
+                },
+                {
+                  feed: "Mentions table 2.0 (files)",
+                  reach: "Every 15 minutes, paired with the events.",
+                  fields: "16 columns: the event's id, when it happened, when this article carried it, the outlet, the article, the sentence number the mention sits in, character offsets, a confidence score, the document's length and its tone.",
+                  state: "Live",
+                },
+                {
+                  feed: "Global Quotation Graph (files)",
+                  reach: "Every minute, 2020 on.",
+                  fields: "per article: date, url, title, language, and every quotation with 100 characters before and after it.",
+                  state: "Live",
+                },
+                {
+                  feed: "Global Entity Graph (files)",
+                  reach: "15 minutes, 2016 to June 18, 2026.",
+                  fields: "per article: sentiment score and magnitude, and entities with name, type, Wikipedia link, mention count and a salience score.",
+                  state: "Stopped",
+                },
+                {
+                  feed: "Global Frontpage Graph (files)",
+                  reach: "Hourly, 50,000 homepages.",
+                  fields: "date, the homepage, the link's position on it, the linked article, the link text.",
+                  state: "Publishing empty files",
+                },
+                {
+                  feed: "Television Ngrams (files)",
+                  reach: "Daily, 2009 to October 10, 2024.",
+                  fields: "date, station, hour, word or phrase, count.",
+                  state: "Stopped",
+                },
+                {
+                  feed: "Event archive (files)",
+                  reach: "1979–2005 by year, 2006–2013 by month, daily since. 49 GB in all.",
+                  fields: "the event columns above, by day. About 6 MB a day in 2026.",
+                  state: "Live",
+                },
+              ].map((row) => (
+                <tr key={row.feed}>
+                  <td className="py-3 pr-4 font-medium">{row.feed}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">{row.reach}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">{row.fields}</td>
+                  <td className="py-3 text-muted-foreground">{row.state}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <p>
           Nothing on this page runs on a schedule, and no feature here has been adopted. When a panel is chosen, it moves to a nightly job on the pipeline box — the same shape as the XML pipeline, filtering each fifteen-minute file and
           keeping only the rows a page will read.
