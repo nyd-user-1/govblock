@@ -362,6 +362,7 @@ export function MemberToc({
   contact,
   offices = false,
   staff = false,
+  prior = false,
   biography,
 }: {
   /** The record section's heading: the session's name. */
@@ -373,6 +374,8 @@ export function MemberToc({
   contact: boolean
   offices?: boolean
   staff?: boolean
+  /** Whether the member held an office we hold a record of. */
+  prior?: boolean
   biography: boolean
 }) {
   const { detail, votes } = use()
@@ -393,8 +396,9 @@ export function MemberToc({
     if (contact || offices || staff) items.push(["Contact", 2])
     if (offices) items.push(["Office", 3])
     if (staff) items.push(["Staff", 3])
+    if (prior) items.push(["Prior Office", 2])
     if (biography) items.push(["Biography", 2])
     return items.map(([title, depth, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
-  }, [record, finance, lobbying, committees, contact, offices, staff, biography, detail, votes])
+  }, [record, finance, lobbying, committees, contact, offices, staff, prior, biography, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }

@@ -19,6 +19,7 @@ import {
   getMemberRecord,
   getMemberStanding,
   getMemberSuccessor,
+  getMemberPriorOffices,
   getSessionsWithTitles,
   latestSession,
 } from "@/lib/policy/db-queries"
@@ -56,6 +57,8 @@ import { Chip } from "@/components/chip"
 
 // "Congress House" is not a thing anyone says, and it is the one place this
 // page would print the jurisdiction into a shell every reader shares.
+// A session is keyed by its first year; it reads as its own name's years ("2011-2012 Regular Session" → "2011-2012").
+const sessionLabel = (year: number, title?: string | null) => title?.match(/\d{4}(?:\s*[-–]\s*\d{4})?/)?.[0]?.replace(/\s+/g, "") ?? String(year)
 const chamberName = (state: string, chamber: string) => (state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`)
 
 // Rendered per request: the Sessions menu writes `?session=`, and a page that
@@ -88,6 +91,7 @@ async function load(id: string, wanted?: string) {
   // LDA is a federal statute and its filings cite congress.gov's own bills.
   const keys = state === "US" ? await sponsoredKeys(peopleId).catch(() => []) : []
   const successor = standing.retired && state !== "US" ? await getMemberSuccessor(peopleId) : null
+  const priorOffices = !standing.retired && state === "US" ? await getMemberPriorOffices(peopleId) : []
   const [member, record, fec, directory, career, sessions, neighbours, lobbying, revolving] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 20),
@@ -127,7 +131,7 @@ async function load(id: string, wanted?: string) {
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, successor, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
+  return { peopleId, state, session, successor, priorOffices, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
 }
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }
@@ -148,7 +152,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const { id } = await params
   const data = await load(id, (await searchParams).session)
   if (!data) notFound()
-  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving, successor } = data
+  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving, successor, priorOffices } = data
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}${member.archived ? " (Ret.)" : ""}`.trim()
@@ -303,6 +307,25 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                 <MemberContact senate={directory?.senate ?? null} sub={!!(directory?.offices.length || directory?.staff.length)} places={officePlaces(directory?.offices ?? [])} />
                 {directory && <MemberOffices offices={directory.offices} />}
                 {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
+                {priorOffices.length ? (
+                  <>
+                    <H2>Prior Office</H2>
+                    {priorOffices.map((prior) => (
+                      // The office they held before, where we hold that record (Brendan, 2026-09-16).
+                      <Callout key={prior.people_id} className="mt-4">
+                        <p className="flex flex-wrap items-center justify-between gap-3">
+                          <span>
+                            {prior.name} served in the {chamberName(prior.state, prior.chamber ?? (prior.role === "Sen" ? "Senate" : "House"))}
+                            {prior.last_session ? `, through ${sessionLabel(prior.last_session, prior.session_title)}` : ""}.
+                          </span>
+                          <Link href={`/members/${prior.people_id}`} className="inline-flex items-center gap-1 font-medium text-foreground no-underline hover:underline">
+                            Go to the prior record <IconArrowRight className="size-4" />
+                          </Link>
+                        </p>
+                      </Callout>
+                    ))}
+                  </>
+                ) : null}
 
                 {biography && (
                   <>
@@ -348,7 +371,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
             </div>
           </div>
           <RightRailSheet>
-            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
+            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} prior={priorOffices.length > 0} biography={!!biography} />
             <PublicRail />
           </RightRailSheet>
         </div>

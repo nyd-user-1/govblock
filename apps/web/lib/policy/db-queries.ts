@@ -903,6 +903,32 @@ export async function getMemberSuccessor(peopleId: number) {
   return rows.length === 1 ? rows[0]! : null
 }
 
+/**
+ * The offices a sitting member of Congress held before, where we hold that
+ * record (Brendan, 2026-09-16): the reverse of getMemberSuccessor — retired
+ * statehouse records with the same name in a state the member now represents,
+ * with the last session each one served.
+ */
+export async function getMemberPriorOffices(peopleId: number) {
+  return q<{ people_id: number; name: string; state: string; chamber: string | null; role: string | null; district: string | null; last_session: number | null; session_title: string | null }>(
+    `select r.*, (select b.session_title from "Bills" b where b.state = r.state and b.session_id = r.last_session and b.session_title is not null limit 1) as session_title
+       from (
+     select r.people_id, r.name, r.state, r.chamber, r.role, r.district,
+            coalesce(
+              (select max(sp.year) from "SessionPeople" sp where sp.people_id = r.people_id),
+              (select max(b.session_id) from "Sponsors" s join "Bills" b using (bill_id) where s.people_id = r.people_id)
+            )::int as last_session
+       from "People" c
+       join "People" r on lower(r.name) = lower(c.name) and r.people_id <> c.people_id
+        and r.state <> 'US' and coalesce(r.archived, false)
+        and c.district ~ ('-' || r.state || '(-|$)')
+      where c.people_id = $1 and c.state = 'US'
+     ) r
+      order by last_session desc nulls last`,
+    [peopleId]
+  )
+}
+
 export async function getMember(peopleId: number, session: number) {
   const person = await one<Record<string, unknown> & { people_id: number; name: string; state: string }>(
     `select people_id, name, first_name, last_name, party, role, chamber, district, bio_long, photo_url, email,
