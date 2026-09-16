@@ -1,3 +1,4 @@
+import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -116,7 +117,10 @@ export async function SubjectPage({ params }: Props) {
             <RecordHeader
               media={<ChamberSeal state={data.state} size={RECORD_MEDIA} />}
               title={term.name}
-              meta={[kind === "policy area" ? "Policy area" : congress ? "Legislative subject" : "Subject"]}
+              meta={[
+                kind === "policy area" ? "Policy area" : congress ? "Legislative subject" : "Subject",
+                `${fmtNumber(summary.bills)} ${summary.bills === 1 ? "bill" : "bills"}`,
+              ]}
               action={
                 <>
                   <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/policy-areas/${data.state.toLowerCase()}/${slug}`} />
@@ -221,15 +225,10 @@ export async function SubjectPage({ params }: Props) {
             <BackToTop />
           </div>
         </div>
-        <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-          <div className="h-(--top-spacing) shrink-0"></div>
-          <div className="flex scroll-fade scrollbar-none flex-col gap-8 overflow-y-auto px-8">
-            <DocsTableOfContents toc={toc} />
-          </div>
-          <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-            <PublicRail />
-          </div>
-        </div>
+        <RightRailSheet>
+          <DocsTableOfContents toc={toc} />
+          <PublicRail />
+        </RightRailSheet>
       </div>
     </>
   )

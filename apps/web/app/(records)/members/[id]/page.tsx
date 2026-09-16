@@ -1,3 +1,4 @@
+import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -323,15 +324,10 @@ export default async function MemberRoute({ params, searchParams }: Props) {
               <BackToTop />
             </div>
           </div>
-          <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-            <div className="h-(--top-spacing) shrink-0"></div>
-            <div className="scrollbar-none flex scroll-fade flex-col gap-8 overflow-y-auto px-8">
-              <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
-            </div>
-            <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-              <PublicRail />
-            </div>
-          </div>
+          <RightRailSheet>
+            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} biography={!!biography} />
+            <PublicRail />
+          </RightRailSheet>
         </div>
       </PendingSessionProvider>
     </MemberCongressProvider>

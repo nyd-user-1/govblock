@@ -1,3 +1,4 @@
+import { RightRailSheet } from "@/components/rail-sheet"
 import Link from "next/link"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
@@ -69,12 +70,9 @@ export default async function HearingsPage() {
           </div>
         </div>
       </div>
-      <div className="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[90svh] w-(--sidebar-width) flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
-        <div className="h-(--top-spacing) shrink-0"></div>
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <PublicRail />
-        </div>
-      </div>
+      <RightRailSheet>
+        <PublicRail />
+      </RightRailSheet>
     </div>
   )
 }
