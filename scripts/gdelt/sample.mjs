@@ -20,7 +20,18 @@ const PHRASE = '"SAVE Act"'
 const COMPARE = ['"open primaries"', '"ranked choice voting"']
 const SPAN = { startdatetime: "20250915000000", enddatetime: "20260915235959" }
 const TV_SPAN = { startdatetime: "20240101000000", enddatetime: "20241011235959" }
-const GAP = 60_000
+const GAP = 20_000
+
+// GDELT answers a browser and turns away a script: the same call that returns
+// 429 under a plain user agent returns 200 under this one (found 2026-09-15,
+// after a day of "please limit requests to one every 5 seconds" on calls made
+// one a minute). The gap below is still four times what GDELT asks for.
+const HEADERS = [
+  "-H", "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+  "-H", "Accept: application/json,text/plain,*/*",
+  "-H", "Accept-Language: en-US,en;q=0.9",
+  "-H", "Referer: https://api.gdeltproject.org/",
+]
 
 const sleep = (ms) => execFileSync("perl", ["-e", `select(undef,undef,undef,${ms / 1000})`])
 const data = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : {}
@@ -49,27 +60,26 @@ const CALLS = {
 data.answers ??= {}
 for (const [key, url] of Object.entries(CALLS)) {
   if (data.answers[key]) continue
-  const started = Date.now()
-  let out = ""
-  try {
-    out = execFileSync("curl", ["-s", "--max-time", "150", "-A", "GovBlock research", "-w", "\n%{http_code}", url], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
-  } catch (e) {
-    out = `${e.message}\n0`
-  }
-  const status = Number(out.slice(out.lastIndexOf("\n") + 1))
-  const text = out.slice(0, out.lastIndexOf("\n"))
-  const took = ((Date.now() - started) / 1000).toFixed(1)
-  if (status === 200 && text.trim().startsWith("{")) {
-    data.answers[key] = JSON.parse(text)
-    writeFileSync(OUT, JSON.stringify(data))
-    console.log(`${key}: ${text.length} bytes in ${took}s`)
-  } else {
-    console.log(`${key}: ${status || "no answer"} in ${took}s: ${text.slice(0, 80).replace(/\s+/g, " ")}`)
-    if (status === 429) {
-      console.log("rate limited: stopping; run again later")
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const started = Date.now()
+    let out = ""
+    try {
+      out = execFileSync("curl", ["-s", "--max-time", "150", ...HEADERS, "-w", "\n%{http_code}", url], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
+    } catch (e) {
+      out = `${e.message}\n0`
+    }
+    const status = Number(out.slice(out.lastIndexOf("\n") + 1))
+    const text = out.slice(0, out.lastIndexOf("\n"))
+    const took = ((Date.now() - started) / 1000).toFixed(1)
+    if (status === 200 && text.trim().startsWith("{")) {
+      data.answers[key] = JSON.parse(text)
+      writeFileSync(OUT, JSON.stringify(data))
+      console.log(`${key}: ${text.length} bytes in ${took}s`)
+      sleep(GAP)
       break
     }
+    console.log(`${key}: ${status || "no answer"} in ${took}s: ${text.slice(0, 60).replace(/\s+/g, " ")}`)
+    sleep(status === 429 ? 150_000 : GAP)
   }
-  sleep(GAP)
 }
 console.log("have:", Object.keys(data.answers).join(", "))

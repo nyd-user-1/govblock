@@ -59,7 +59,7 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
   return (
     <DocsPage
       title={`Legislative news, ${longDate(date)}`}
-      description={`${day.articles.toLocaleString()} articles on legislation, ${day.billCount} bills written about by name, ${day.quoteCount} quotations and ${day.events.kept} public appeals to a legislature.`}
+      description={`${day.articles.toLocaleString()} articles on legislation, ${day.billCount} bills the coverage linked to or named, ${day.quoteCount} quotations and ${day.events.kept} public appeals to a legislature.`}
       slug={`/gdelt/day/${date}`}
       previous={days[at + 1] ? { name: longDate(days[at + 1]!), url: `/gdelt/day/${days[at + 1]}` } : { name: "Every day", url: "/gdelt/day" }}
       next={days[at - 1] ? { name: longDate(days[at - 1]!), url: `/gdelt/day/${days[at - 1]}` } : { name: "By state", url: "/gdelt/state" }}
@@ -89,7 +89,12 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
                   avatar={/^(H\.|S\.)/.test(bill.label) && bill.state === "US" ? <ChamberSeal state="US" chamber={bill.label.startsWith("H") ? "House" : "Senate"} size={32} /> : <FlagChip state={bill.state} width={28} />}
                   title={bill.label}
                   lead={bill.stories[0]?.title ?? null}
-                  meta={[bill.state === "US" ? "Congress" : stateName(bill.state), `${bill.stories.length} ${bill.stories.length === 1 ? "story" : "stories"}`, bill.stories[0]?.source]}
+                  meta={[
+                    bill.state === "US" ? "Congress" : stateName(bill.state),
+                    bill.byLink ? `${bill.byLink} linked to it` : null,
+                    bill.byName ? `${bill.byName} named it` : null,
+                    bill.byLink === undefined ? `${bill.stories.length} ${bill.stories.length === 1 ? "story" : "stories"}` : null,
+                  ]}
                 />
               ))}
             </ShowMore>

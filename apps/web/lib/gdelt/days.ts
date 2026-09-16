@@ -6,8 +6,9 @@ import { speakerOf } from "@/lib/gdelt/files"
 // scripts/gdelt/daily.mjs writes. Nothing here calls GDELT or the database;
 // the pages read this file and nothing else.
 
-export type DayStory = { title: string; url: string; source: string; tone: number }
-export type DayBill = { label: string; state: string; link: string; stories: DayStory[] }
+export type DayStory = { title: string; url: string; source: string; tone: number; match?: "link" | "name" }
+/** A bill the day's coverage tied to: by a link to the bill's own page, or by naming it. */
+export type DayBill = { label: string; state: string; link: string; stories: DayStory[]; byLink?: number; byName?: number }
 export type DayState = {
   code: string
   articles: number

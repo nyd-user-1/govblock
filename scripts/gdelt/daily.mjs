@@ -111,6 +111,28 @@ function billOfLink(link) {
   return number ? number[1].toUpperCase().replace(/[-\s]/, " ") : null
 }
 
+/* ------------------------------------------------------------ bill names */
+
+// A story names a bill even when it does not link to it: GDELT's extracted
+// names carry "Clarity Act", "One Big Beautiful Bill Act". Each 119th Congress
+// title is registered whole and by every shorter tail that ends in "Act" and
+// belongs to that bill alone — "digital asset market clarity act", "market
+// clarity act", "clarity act" — so the press's short name finds the bill, and a
+// tail shared by many bills ("protection act") finds nothing.
+const TITLES = JSON.parse(readFileSync(new URL("./bill-titles-119.json", import.meta.url), "utf8"))
+const BY_NAME = new Map()
+const tails = new Map()
+for (const [title, labels] of Object.entries(TITLES)) {
+  if (labels.length === 1) BY_NAME.set(title, labels[0])
+  const words = title.split(" ")
+  for (let i = 1; i < words.length - 1; i++) {
+    const tail = words.slice(i).join(" ")
+    if (!tail.endsWith(" act") || tail.split(" ").length < 2) continue
+    tails.set(tail, [...new Set([...(tails.get(tail) ?? []), ...labels])])
+  }
+}
+for (const [tail, labels] of tails) if (labels.length === 1 && !BY_NAME.has(tail) && !TITLES[tail]) BY_NAME.set(tail, labels[0])
+
 /* -------------------------------------------------------------- the reading */
 
 const LEGISLATIVE = /LEGISLATION|GENERAL_GOVERNMENT|DEMOCRACY|ELECTION/
@@ -181,17 +203,30 @@ for (const stamp of stamps()) {
     }
 
     // The bill a story links to: the one certain tie between coverage and legislation.
+    const tie = (label, where, link, match) => {
+      const key = `${where}:${label}`
+      if (!bills.has(key)) bills.set(key, { label, state: where, link, stories: [], byLink: 0, byName: 0 })
+      const bill = bills.get(key)
+      if (bill.stories.some((x) => x.url === url)) return
+      bill.stories.push({ title: title.slice(0, 140), url, source: host, tone, match })
+      if (match === "link") bill.byLink++
+      else bill.byName++
+      const row = stateRow(where)
+      row.bills.set(key, (row.bills.get(key) ?? 0) + 1)
+    }
     for (const link of tag(extras, "PAGE_LINKS").split(";")) {
       if (!BILL_LINK.test(link)) continue
       const label = billOfLink(link)
-      if (!label) continue
-      const where = stateOfLink(link) ?? "US"
-      const key = `${where}:${label}`
-      if (!bills.has(key)) bills.set(key, { label, state: where, link: link.slice(0, 220), stories: [] })
-      const bill = bills.get(key)
-      if (!bill.stories.some((x) => x.url === url)) bill.stories.push({ title: title.slice(0, 140), url, source: host, tone })
-      const row = stateRow(where)
-      row.bills.set(key, (row.bills.get(key) ?? 0) + 1)
+      if (label) tie(label, stateOfLink(link) ?? "US", link.slice(0, 220), "link")
+    }
+    // And the bill a story names, where the story is about the United States.
+    const american = (c[GKG.locations] ?? "").split(";").some((loc) => loc.split("#")[2] === "US")
+    if (american) {
+      for (const name of people) {
+        if (!/\bAct$/.test(name)) continue
+        const label = BY_NAME.get(name.toLowerCase())
+        if (label) tie(label, "US", `https://www.congress.gov/search?q=${encodeURIComponent(JSON.stringify({ congress: "119", search: name }))}`, "name")
+      }
     }
   }
   process.stdout.write(`${stamp} `)
@@ -281,7 +316,7 @@ const day = {
   tone: articles ? Math.round((toneTotal / articles) * 100) / 100 : 0,
   toneBins: [...toneBins].sort((a, b) => a[0] - b[0]),
   hours: hourCounts,
-  bills: byStories.slice(0, 40).map((b) => ({ ...b, stories: b.stories.slice(0, 6) })),
+  bills: byStories.slice(0, 100).map((b) => ({ ...b, stories: b.stories.slice(0, 6) })),
   billCount: bills.size,
   quotes: quotes.slice(0, 40),
   quoteCount: quotes.length,

@@ -7,7 +7,6 @@ import { countryFlag } from "@/lib/gdelt/derive"
 import { AttentionChart, BinChart, CompareChart, HourChart, ScoreChart, SpreadChart, StackedWeeks, SyndicationChart, ToneChart, ToneHistogram } from "@/components/gdelt/charts"
 import { Count, Question, ShowMore } from "@/components/gdelt/sections"
 import { GdeltCards, type GdeltCard } from "@/components/gdelt/cards"
-import { BillCoverage } from "@/components/gdelt/bill-coverage"
 import { dayList, getDay } from "@/lib/gdelt/days"
 import { Chip } from "@/components/chip"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
@@ -871,30 +870,6 @@ export default function GdeltPage() {
             <BinChart rows={tones} />
           </Panel>
           <Count>{files.articles.read.toLocaleString()} articles</Count>
-        </Question>
-
-        <Question
-          id="what-does-one-bill-cost-on-demand"
-          question="What happens when a reader asks about one bill?"
-          answer={
-            <p>
-              Everything above this line is built from files, nightly, for every bill at once. One bill&rsquo;s own curve and headlines still need the article API, which allows about one call every five minutes — so it runs{" "}
-              <strong>when a reader presses the button</strong>, not on a schedule, and the answer is kept for a week so the next reader pays nothing. Press one of these to watch it happen; GDELT may refuse, and the panel says so
-              plainly rather than showing an empty chart. This is the shape the panel would take on a bill&rsquo;s own page.
-            </p>
-          }
-          method={<>Method: two calls on press — a year of daily volume, then the last three months&rsquo; articles — cached against the phrase for seven days. Source: GDELT DOC 2.0 API.</>}
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              { label: "SAVE America Act", phrase: "SAVE America Act" },
-              { label: "H.R. 3633", phrase: "Blockchain Regulatory Certainty Act" },
-              { label: "S. 3312", phrase: "Kids Online Safety Act" },
-              { label: "Ranked choice", phrase: "ranked choice voting" },
-            ].map((bill) => (
-              <BillCoverage key={bill.phrase} label={bill.label} phrase={bill.phrase} />
-            ))}
-          </div>
         </Question>
 
         <Question
