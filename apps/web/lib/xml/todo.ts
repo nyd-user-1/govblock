@@ -74,4 +74,10 @@ Our version:
 - Catch 1: Gemini needs about a minute or two on an hour-long hearing, longer than Amplify's 30-second limit. The call would have to run as a background job while the page checks back.
 - Catch 2: on the free tier, Google may use the requests to improve its products.`,
   },
+  {
+    id: "calendar-forward",
+    title: "Calendar: every committee meeting and hearing ahead, from congress.gov, on /calendar and everywhere a schedule shows",
+    status: "open",
+    prompt: `Brendan, 2026-09-16: the forward schedule is already ours to have. congress.gov's API lists committee meetings and hearings before they happen, so /calendar should carry every committee's upcoming meetings — and it does in one place and not in others. First find every surface that shows a schedule (/calendar, the calendar card in the right rails, committee pages, a member's page, the home page) and write down which read congress_committee_meetings / congress_hearings forward of today and which only show what already happened. Then make them one source: the upcoming meetings table, loaded nightly, read through the cache in lib/policy/db.ts, never on page load. Congress first; the states that publish schedules after. Raised while looking at GDELT's "dates mentioned in the article", which is the press guessing at what congress.gov already publishes.`,
+  },
 ]
