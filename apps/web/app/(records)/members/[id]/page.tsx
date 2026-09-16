@@ -38,6 +38,7 @@ import { SessionsMenu } from "@/components/policy/sessions-menu"
 import { VoteRecordPdf } from "@/components/policy/vote-record-pdf"
 import { MemberCongressProvider, MemberContact, MemberFinance, MemberToc, MemberVotes } from "@/components/policy/member-congress"
 import { LobbyingScopeBlock } from "@/components/policy/lobbying-scope"
+import { MemberPress } from "@/components/policy/member-press"
 import { H2, H3 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
@@ -239,6 +240,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                 <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
                 <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
                 <LobbyingScopeBlock data={lobbying} revolving={revolving} who={title} what="sponsored by" />
+                <MemberPress peopleId={peopleId} />
 
                 <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
 

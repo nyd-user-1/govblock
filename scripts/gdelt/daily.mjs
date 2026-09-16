@@ -133,10 +133,38 @@ for (const [title, labels] of Object.entries(TITLES)) {
 }
 for (const [tail, labels] of tails) if (labels.length === 1 && !BY_NAME.has(tail) && !TITLES[tail]) BY_NAME.set(tail, labels[0])
 
+/* ---------------------------------------------------------------- the press */
+
+// Every sitting legislator's press (Brendan, 2026-09-16): a story counts for a
+// person when GDELT's extracted people name them and the story is about their
+// state — or about the United States, for a member of Congress. A name several
+// people share in the same place is left alone rather than guessed, except in
+// Congress, where the current member list breaks the tie.
+const LEGISLATORS = JSON.parse(readFileSync(new URL("./legislators.json", import.meta.url), "utf8"))
+const SITTING = new Set(JSON.parse(readFileSync(new URL("../../apps/web/lib/data/members-us.json", import.meta.url), "utf8")).filter((m) => m.active).map((m) => String(m.people_id)))
+const PRESS_OUT = new URL("../../apps/web/lib/data/gdelt-press.json", import.meta.url)
+const press = new Map()
+
+function pressFor(personNames, statesInStory, american, story) {
+  for (const raw of personNames) {
+    const ids = LEGISLATORS.names[raw.toLowerCase()]
+    if (!ids) continue
+    let fits = [...new Set(ids.map(String))].filter((id) => {
+      const where = LEGISLATORS.people[id]?.state
+      return where === "US" ? american : statesInStory.has(where)
+    })
+    if (fits.length > 1) fits = fits.filter((id) => SITTING.has(id))
+    if (fits.length !== 1) continue
+    const list = press.get(fits[0]) ?? []
+    if (list.length < 12 && !list.some((x) => x.url === story.url)) list.push(story)
+    press.set(fits[0], list)
+  }
+}
+
 /* -------------------------------------------------------------- the reading */
 
 const LEGISLATIVE = /LEGISLATION|GENERAL_GOVERNMENT|DEMOCRACY|ELECTION/
-const GKG = { source: 3, url: 4, themes: 7, locations: 9, orgs: 14, tone: 15, names: 23, extras: 26 }
+const GKG = { source: 3, url: 4, themes: 7, locations: 9, persons: 12, orgs: 14, tone: 15, image: 18, names: 23, extras: 26 }
 const tag = (extras, name) => extras.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1] ?? ""
 
 const bills = new Map()
@@ -160,7 +188,30 @@ for (const stamp of stamps()) {
   if (!file) continue
   for (const line of unzip(file).split("\n")) {
     const c = line.split("\t")
-    if (c.length < 27 || !LEGISLATIVE.test(c[GKG.themes] ?? "")) continue
+    if (c.length < 27) continue
+    // Press about a legislator is press whatever it is about, so every article is read for people first.
+    {
+      const extras = c[GKG.extras] ?? ""
+      const locations = (c[GKG.locations] ?? "").split(";")
+      const american = locations.some((loc) => loc.split("#")[2] === "US")
+      if (american) {
+        const statesInStory = new Set(locations.map((loc) => loc.split("#")[3]).filter((adm1) => adm1 && /^US[A-Z]{2}$/.test(adm1)).map((adm1) => adm1.slice(2)))
+        const outlet = OUTLET_STATE.get((c[GKG.source] ?? "").replace(/^www\./, ""))
+        if (outlet) statesInStory.add(outlet)
+        const personNames = [...new Set((c[GKG.persons] ?? "").split(";").map((n) => n.split(",")[0].trim()).filter((n) => n.includes(" ")))]
+        if (personNames.length) {
+          pressFor(personNames, statesInStory, american, {
+            day: DAY,
+            title: tag(extras, "PAGE_TITLE").replace(/\s+/g, " ").trim().slice(0, 160),
+            url: c[GKG.url],
+            source: (c[GKG.source] ?? "").replace(/^www\./, ""),
+            image: c[GKG.image] || null,
+            tone: Math.round((Number((c[GKG.tone] ?? "").split(",")[0]) || 0) * 10) / 10,
+          })
+        }
+      }
+    }
+    if (!LEGISLATIVE.test(c[GKG.themes] ?? "")) continue
     articles++
     const extras = c[GKG.extras] ?? ""
     const tone = Number((c[GKG.tone] ?? "").split(",")[0]) || 0
@@ -339,6 +390,15 @@ const day = {
     }))
     .sort((a, b) => b.articles - a.articles),
 }
+
+// Each legislator's press, newest day first, the last 24 stories kept.
+const pressAll = existsSync(PRESS_OUT) ? JSON.parse(readFileSync(PRESS_OUT, "utf8")) : {}
+for (const [id, stories] of press) {
+  const kept = [...stories, ...(pressAll[id] ?? []).filter((old) => old.day !== DAY && !stories.some((x) => x.url === old.url))]
+  pressAll[id] = kept.sort((a, b) => b.day.localeCompare(a.day)).slice(0, 24)
+}
+writeFileSync(PRESS_OUT, JSON.stringify(pressAll))
+console.log(`press: ${press.size} legislators named, ${[...press.values()].reduce((n, l) => n + l.length, 0)} stories`)
 
 // Every day in one file, keyed by date: the page imports it once and reads
 // whichever day it needs.
