@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const busy = (error as Error).message === "busy"
     return Response.json(
-      { error: busy ? "GDELT is holding the line: it allows about one of these every five minutes. Try again shortly." : "GDELT did not answer." },
+      { error: busy ? "GDELT answers only about one of these requests every five minutes, and that slot is taken. Wait five minutes and press again." : "GDELT did not answer." },
       { status: busy ? 429 : 502 }
     )
   }
