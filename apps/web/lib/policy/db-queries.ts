@@ -881,6 +881,28 @@ export async function getMemberStanding(peopleId: number) {
   return row ? { state: row.state, retired: Boolean(row.archived), lastRoster: row.last_roster == null ? null : n(row.last_roster) } : null
 }
 
+/**
+ * Where a retired state legislator serves now, when that is Congress
+ * (Brendan, 2026-09-16): LegiScan gives a person a new id when they move from
+ * a statehouse to Congress, so Hakeem Jeffries is 1323 in the New York
+ * Assembly and 14137 in the House. The old record points to the new one when
+ * exactly one sitting member of Congress has the same name and represents the
+ * same state. Same-state namesakes are never linked — fathers and sons, two
+ * Louisiana Mike Johnsons.
+ */
+export async function getMemberSuccessor(peopleId: number) {
+  const rows = await q<{ people_id: number; name: string; role: string | null; chamber: string | null; district: string | null }>(
+    `select c.people_id, c.name, c.role, c.chamber, c.district
+       from "People" r
+       join "People" c on lower(c.name) = lower(r.name) and c.people_id <> r.people_id
+        and c.state = 'US' and not coalesce(c.archived, false)
+        and c.district ~ ('-' || r.state || '(-|$)')
+      where r.people_id = $1 and r.state <> 'US' and coalesce(r.archived, false)`,
+    [peopleId]
+  )
+  return rows.length === 1 ? rows[0]! : null
+}
+
 export async function getMember(peopleId: number, session: number) {
   const person = await one<Record<string, unknown> & { people_id: number; name: string; state: string }>(
     `select people_id, name, first_name, last_name, party, role, chamber, district, bio_long, photo_url, email,

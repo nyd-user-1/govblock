@@ -18,6 +18,7 @@ import {
   getMemberNeighbours,
   getMemberRecord,
   getMemberStanding,
+  getMemberSuccessor,
   getSessionsWithTitles,
   latestSession,
 } from "@/lib/policy/db-queries"
@@ -40,7 +41,7 @@ import { VoteRecordPdf } from "@/components/policy/vote-record-pdf"
 import { MemberCongressProvider, MemberContact, MemberFinance, MemberToc, MemberVotes } from "@/components/policy/member-congress"
 import { LobbyingScopeBlock } from "@/components/policy/lobbying-scope"
 import { MemberPress } from "@/components/policy/member-press"
-import { H2, H3 } from "@/components/typeset"
+import { Callout, H2, H3 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
 // A member's own page, keyed by `people_id` — globally unique, so the route
@@ -86,6 +87,7 @@ async function load(id: string, wanted?: string) {
   // Lobbying on the bills this member wrote. Federal, like the FEC totals: the
   // LDA is a federal statute and its filings cite congress.gov's own bills.
   const keys = state === "US" ? await sponsoredKeys(peopleId).catch(() => []) : []
+  const successor = standing.retired && state !== "US" ? await getMemberSuccessor(peopleId) : null
   const [member, record, fec, directory, career, sessions, neighbours, lobbying, revolving] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 20),
@@ -125,7 +127,7 @@ async function load(id: string, wanted?: string) {
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
+  return { peopleId, state, session, successor, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
 }
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }
@@ -146,7 +148,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const { id } = await params
   const data = await load(id, (await searchParams).session)
   if (!data) notFound()
-  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving } = data
+  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving, successor } = data
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}${member.archived ? " (Ret.)" : ""}`.trim()
@@ -211,6 +213,20 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                 {/* h1 the name, h2 Summary and Record, h3 the parts — the
                   standard on every detail page (Brendan, 2026-09-05). The
                   Summary sentence is this session's. */}
+                {successor ? (
+                  // A retired statehouse member now in Congress: the old record sends the reader on (Brendan, 2026-09-16).
+                  <Callout className="mt-0 mb-6 border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-50">
+                    <p className="flex flex-wrap items-center justify-between gap-3">
+                      <span>
+                        {successor.name} now serves in the U.S. {successor.chamber ?? (successor.role === "Sen" ? "Senate" : "House")}
+                        {successor.district && /^HD-/.test(successor.district) ? `, ${successor.district.replace(/^HD-([A-Z]{2})-0*(\d+)$/, "$1-$2")}` : ""}.
+                      </span>
+                      <Link href={`/members/${successor.people_id}`} className="inline-flex items-center gap-1 font-medium text-emerald-700 no-underline hover:underline dark:text-emerald-300">
+                        Go to the current record <IconArrowRight className="size-4" />
+                      </Link>
+                    </p>
+                  </Callout>
+                ) : null}
                 <H2>Summary</H2>
                 <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} sessionName={sessionName} />
 
