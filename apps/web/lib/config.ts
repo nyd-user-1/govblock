@@ -518,11 +518,11 @@ export const siteConfig = {
         },
         {
           label: "Watch",
-          items: ["/map", "/calendar", "/workspace/inbox", "/consensus"],
+          items: ["/map", "/calendar", "/workspace/inbox", "/consensus", "/simulator"],
         },
         { label: "Read", items: ["/clips"] },
       ],
-      // Twelve entries, alphabetical (Agents leads Agent Inbox by Brendan's call), three across. Each line says what the
+      // Thirteen entries, alphabetical (Agents leads Agent Inbox by Brendan's call), three across. Each line says what the
       // page is worth rather than restating its name (Brendan, 2026-09-08:
       // "stop calling an orange an orange").
       columns: 3,
@@ -593,6 +593,12 @@ export const siteConfig = {
           description:
             "Every congressional district, coloured by what the Census counts there.",
           icon: "MapPin",
+        },
+        {
+          href: "/simulator",
+          label: "Simulator",
+          description: "See which seats were settled before November, and what one open primary or a ranked-choice count would have changed, from the real votes.",
+          icon: "Scale",
         },
         {
           href: "/workspace/typeset",

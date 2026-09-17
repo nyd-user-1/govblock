@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Election simulator · designs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#171717;--muted:#737373;--hair:#e5e5e5;--soft:#f5f5f5;--paper:#fff;--d:#2563eb;--r:#dc2626;--i:#7c3aed;--o:#9ca3af;--dt:#dbeafe;--rt:#fee2e2;--radius:10px}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Geist,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;font-feature-settings:"tnum" 1,"cv11" 1}
+a{color:inherit}button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+.gbh{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--hair)}
+.gbh .logo{width:26px;height:26px;border:2px solid var(--r);border-radius:4px;position:relative}
+.gbh .logo:before{content:"";position:absolute;inset:4px;background:var(--r);opacity:.85;clip-path:polygon(0 0,45% 0,45% 45%,0 45%)}
+.gbh nav{display:flex;gap:22px;font-weight:500;font-size:15px}.gbh nav span:after{content:" ⌄";color:var(--muted)}
+.gbh .right{display:flex;gap:14px;align-items:center;font-size:13px}.gbh .signin{background:var(--d);color:#fff;padding:7px 14px;border-radius:8px;font-weight:500}
+/* controls */
+.seg{display:inline-flex;gap:4px}.seg button{border:1px solid var(--hair);border-radius:999px;padding:6px 12px;font-size:13px;line-height:1;white-space:nowrap;background:#fff}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}.seg button:disabled{color:#b3b3b3;border-style:dashed;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--hair);border-radius:999px;padding:6px 11px 6px 8px;font-size:13px;line-height:1;background:#fff}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}.chip[aria-pressed=false]{color:var(--muted);text-decoration:line-through;background:var(--soft)}.chip[aria-pressed=false] i{background:#fff!important;box-shadow:inset 0 0 0 2px currentColor}
+.kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.sentence{font-size:24px;line-height:1.25;font-weight:400;letter-spacing:-.01em;margin:0;text-wrap:pretty;max-width:56ch;min-height:2.5em}.sentence b{font-weight:600}
+.sentence .d{color:var(--d)}.sentence .r{color:var(--r)}
+.note{font-size:12.5px;color:var(--muted)}
+.range{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+.range::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--d) 0,var(--dt) 50%,var(--rt) 50%,var(--r) 100%)}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--ink);margin-top:-9px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.range::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--d) 0,var(--dt) 50%,var(--rt) 50%,var(--r) 100%)}
+.range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--ink)}
+.slider{position:relative;width:min(560px,100%)}.slider .mid{position:absolute;left:50%;top:6px;width:1px;height:16px;background:var(--ink);transform:translateX(-.5px);pointer-events:none}
+.slider .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:2px}.slider .ends b{font-weight:500}
+.tallies{display:flex;align-items:center;gap:22px;margin:4px auto 0;max-width:100%}.tallies .n{font-size:32px;font-weight:600;letter-spacing:-.02em;min-width:2ch}.tallies .n.d{color:var(--d)}.tallies .n.r{color:var(--r);text-align:right}.tallies .slot{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}.tallies .slot .slider{width:100%}
+.tallies .slider svg.track{position:absolute;left:0;top:7px;width:100%;height:14px;pointer-events:none}.tallies .range::-webkit-slider-runnable-track{background:transparent}.tallies .range::-moz-range-track{background:transparent}.tallies .slider .mid{z-index:1}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);align-items:center;flex-wrap:wrap}.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:11px;height:11px;border-radius:50%;display:inline-block;background:#bdbdbd}.legend i.hollow{background:#e5e5e5}.legend i.hollow.d{background:rgba(37,99,235,.14)}.legend i.hollow.r{background:rgba(220,38,38,.14)}.legend i.flip{background:var(--d)}.legend i.flip{background:#bdbdbd;box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink)}
+.legend i.d{background:var(--d)}.legend i.r{background:var(--r)}.legend i.pale{opacity:.32}
+.funnel{display:grid;grid-template-columns:max-content 1fr max-content;column-gap:12px;row-gap:7px;align-items:center;font-size:12.5px;width:100%}.funnel .l{color:var(--muted);white-space:nowrap}.funnel .bar{height:10px;background:var(--soft);border-radius:2px;overflow:hidden}.funnel .bar i{display:block;height:100%;background:#a3a3a3;transition:width .4s ease}.funnel .v{color:var(--muted)}.funnel .hi{color:var(--ink);font-weight:600}.funnel .bar.hi i{background:var(--ink)}.funnel .l.hi{padding-top:6px}.funnel .bar.hi,.funnel .v.hi{margin-top:6px}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 10px));display:none}
+.tip b{font-weight:600}.tip .m{color:#bbb}
+/* reading column */
+.reading{display:flex;flex-direction:column;gap:22px;font-size:13.5px}.reading h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+.bars{display:grid;grid-template-columns:40px 46px 1fr 46px;column-gap:8px;row-gap:8px;align-items:center;font-size:12px}.bars .lab{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px}
+.bars .v{font-weight:600;font-size:12px}.bars .v.d{color:var(--d);text-align:right}.bars .v.r{color:var(--r)}
+.bar{position:relative;height:16px;display:flex;border-radius:3px;overflow:hidden}.bar span{height:100%}.bar .d{background:var(--d)}.bar .r{background:var(--r)}.bar .o{background:var(--o)}
+.bars .mid{grid-column:3;position:relative;height:0}.bars .mid:after{content:"";position:absolute;left:50%;top:-52px;height:56px;border-left:1.5px dashed var(--ink);opacity:.6}
+.seatcard{border:1px solid var(--hair);border-radius:var(--radius);padding:12px 14px}.seatcard h4{margin:0 0 2px;font-size:14px;font-weight:600}.seatcard .who{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+.cand{display:grid;grid-template-columns:minmax(0,1fr) 62px;gap:8px;align-items:center;font-size:12.5px;margin-top:6px}.cand .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cand .b{height:8px;border-radius:0 3px 3px 0;grid-column:1/-1;margin-top:-2px}.cand .v{text-align:right;color:var(--muted)}
+.was{font-size:12.5px;color:var(--muted)}.was b{color:var(--ink);font-weight:600}
+table.h2h{border-collapse:collapse;font-size:13.5px;width:100%}.h2h th,.h2h td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--hair)}.h2h th{color:var(--muted);font-weight:500;font-size:12px}.h2h th:first-child,.h2h td:first-child{text-align:left}.h2h td.w{font-weight:600;background:#f0fdf4}.h2h td.l{color:var(--muted)}.h2h caption{caption-side:bottom;text-align:left;font-size:12px;color:var(--muted);padding-top:8px}
+/* dropdown */
+.pick{position:relative}.pick>button{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:500;border:1px solid var(--hair);border-radius:8px;padding:8px 12px;background:#fff}.pick>button:after{content:"⌄";color:var(--muted)}
+.pick menu{position:absolute;z-index:40;top:calc(100% + 6px);left:0;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid var(--hair);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);width:max-content;min-width:320px;display:none}
+.pick[open] menu{display:block}.pick menu .g{padding:8px 10px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.pick menu button{display:flex;width:100%;justify-content:space-between;gap:24px;padding:7px 10px;border-radius:6px;white-space:nowrap;text-align:left}.pick menu button:hover{background:var(--soft)}.pick menu button small{color:var(--muted)}
+/* tour */
+.tour-shade{position:fixed;inset:0;z-index:90;pointer-events:none}.tour-hole{position:fixed;z-index:91;border-radius:12px;box-shadow:0 0 0 9999px rgba(23,23,23,.55);pointer-events:none;transition:all .35s ease}
+.tour-card{position:fixed;z-index:92;background:#fff;border-radius:12px;padding:16px 18px;width:320px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14px;line-height:1.4}.tour-card .k{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}.tour-card .row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.tour-card .row button{padding:6px 12px;border-radius:8px;border:1px solid var(--hair)}.tour-card .row button.go{background:var(--ink);color:#fff;border-color:var(--ink)}
+.help{width:28px;height:28px;border:1px solid var(--hair);border-radius:50%;color:var(--muted);font-weight:500}
+/* rcv */
+.rcv svg text{font-family:inherit}
+.hatch{background:repeating-linear-gradient(135deg,#e5e5e5 0 3px,#fff 3px 6px)}
+</style></head><body>
+<style>.wrap{max-width:860px;margin:0 auto;padding:48px 24px 80px}h1{font-size:30px;letter-spacing:-.02em;margin:0 0 6px}.wrap p{font-size:15px;max-width:64ch}
+.list{list-style:none;padding:0;margin:28px 0 0;display:flex;flex-direction:column;gap:12px}.list a{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;border:1px solid var(--hair);border-radius:12px;padding:18px 20px;text-decoration:none}.list a:hover{border-color:var(--ink)}
+.list .n{font-size:26px;font-weight:600;color:var(--muted)}.list h2{margin:0 0 4px;font-size:18px}.list p{margin:0;color:var(--muted);font-size:14px}
+table{border-collapse:collapse;font-size:14px;margin-top:28px;width:100%}td,th{padding:8px 10px;border-bottom:1px solid var(--hair);text-align:left;vertical-align:top}th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}</style>
+<main class="wrap">
+<h1>Open Primary Simulator</h1>
+<p>Every view opens on a claim and then lets the reader test it against the real count. Each shows a real election as it was and as it would be under one of two reforms: one open primary with the top finishers advancing, or a ranked-choice count. Pick a primary to see the open-primary scenario, with the top two or the top four going on. Pick a ranked-choice contest to see the ranked-choice scenario, counted from the real ballots. Pick a chamber to swing the vote across every district. Featured contests: the 2024 U.S. House and Wisconsin Assembly, district by district; Alaska’s 2022 special election for the U.S. House; Burlington’s 2009 mayoral race; Maine’s 2nd District in 2018; New York City’s 2025 Democratic mayoral primary; and the 2022 primaries in Texas’s 28th and Alabama’s 5th.</p>
+<ul class="list">
+ <li><a href="A%20Instrument.html"><span class="n">A</span><div><h2>Instrument</h2><p>/simulator rebuilt on the current page. Opens on a real chamber with the lever in hand, not on a list. Subject picker, one sentence, the stage, a reading column, and cases at the foot. A six-step tour runs on first visit and from the ? button.</p></div></a></li>
+ <li><a href="B%20Console.html"><span class="n">B</span><div><h2>Console</h2><p>/simulator/map as the /map console with the simulation in it. Rail picks the election and the rule, the swing docks on the map, the panel holds the seat ring and the sentence, and the map and the ring select each other. Opens on the contiguous states; a state frames itself.</p></div></a></li>
+ <li><a href="C%20Cases.html"><span class="n">C</span><div><h2>Cases</h2><p>A different point of view: /simulator as five real stories, each with its lever pre-set and one instruction. Reading down the page is the tour. The last step opens the instrument.</p></div></a></li>
+</ul>
+<table><tr><th>Data shape</th><th>Stage</th><th>Lever</th><th>Mark of change</th></tr>
+<tr><td>A chamber, one year</td><td>Seat ring, closest races at the seam; votes-against-seats bars</td><td>Swing slider · matched to votes</td><td>Flipped seats ringed</td></tr>
+<tr><td>A ranked-choice contest</td><td>Rounds as stacked rows, transfers as ribbons, majority tick per round</td><td>Candidate chips (take out / put back)</td><td>The count reruns; the sentence names the old winner</td></tr>
+<tr><td>A primary</td><td>Candidates re-sort from two lists into one</td><td>Two primaries / one primary</td><td>The second advancing name changes colour</td></tr></table>
+</main></body></html>

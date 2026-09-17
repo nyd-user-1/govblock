@@ -55,6 +55,7 @@ export type Entity =
   | "news"
   | "dashboards"
   | "account"
+  | "simulator"
 
 /** The four the free scope opens; the brief and the news (Brendan, 2026-09-13: Congress's are always public, and a home state's with them); and the two that only describe the record — the sessions list, the search box. */
 const FREE = new Set<Entity>(["calendar", "bills", "members", "committees", "briefing", "news", "search", "meta"])
@@ -82,6 +83,7 @@ export const ENTITY_LABELS: Record<Entity, string> = {
   news: "news",
   dashboards: "dashboards",
   account: "your account",
+  simulator: "the simulator",
 }
 
 export type Verdict = "open" | "sign-in" | "plan"
@@ -101,7 +103,8 @@ export function entitled(reader: Reader, ask: Ask): Verdict {
   if (reader.admin || reader.license === "paid") return "open"
   const door: Verdict = reader.signedIn ? "plan" : "sign-in"
   const entity = ask.entity ?? "bills"
-  if (entity === "account") return reader.signedIn ? "open" : "sign-in"
+  // The simulator is for any registered reader, no plan (Brendan, 2026-09-16).
+  if (entity === "account" || entity === "simulator") return reader.signedIn ? "open" : "sign-in"
   const state = (ask.state || DEFAULT_STATE).toUpperCase()
   // The record's own shape — which sessions a jurisdiction has, which states
   // exist — is open for any jurisdiction: the locks are drawn from it. So is
@@ -135,6 +138,7 @@ export function reasonFor(reader: Reader, ask: Ask): Reason {
   const home = reader.home ? stateName(reader.home) : null
   const opens = home ? `Congress and ${home}` : "Congress"
   if (entity === "account") return { kind: "account", title: `Sign in to open ${ENTITY_LABELS.account}.`, body: "What you watch, keep and send is yours, and it needs an account." }
+  if (entity === "simulator") return { kind: "account", title: "Sign in to open the simulator.", body: "Recount real ranked-choice elections from their ballots and see who a top-two primary would have sent on. Free with an account." }
   if (state !== DEFAULT_STATE && !(reader.signedIn && state === reader.home)) {
     const name = stateName(state)
     // Signed out, the card is an invitation (Brendan, 2026-09-13): the state's flag, and a question.
@@ -159,7 +163,7 @@ export const doorHref = (verdict: Verdict) => (verdict === "plan" ? "/pricing" :
 // is a bill-shaped read: open within the scope, never beyond it.
 
 const RESOURCE_ENTITIES: [RegExp, Entity][] = [
-  [/^(sessions|states|state-stats|options|subjects|subject-terms|provenance|titles)$/, "meta"],
+  [/^(sessions|states|state-stats|options|subjects|subject-terms|subject-highlights|tags|provenance|titles)$/, "meta"],
   [/^search$/, "search"],
   [/^(calendar|hearings|hearing-days|hearings-held|hearings-recent|latest-hearing)$/, "calendar"],
   [/^(hearings-congress|hearing-index|transcript|committee-meetings)$/, "hearings"],
@@ -246,6 +250,8 @@ export function askOfPath(pathname: string): PathAsk {
     case "clips":
       // Open (Brendan, 2026-09-14): nothing in Clips needs an account yet.
       return { entity: "meta" }
+    case "simulator":
+      return { entity: "simulator" }
     case "watches":
     case "connectors":
     case "agent":

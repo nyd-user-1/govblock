@@ -141,9 +141,9 @@ function GroupIcon({ label, href, onClick, children }: { label: string; href?: s
   )
 }
 
-// The page's controls as one group of icons (Brendan, 2026-09-12): on a bill,
-// Typeset, Diff and Git, then Copy, then the menu; on any other page, Copy and
-// the menu. Each icon says what it is on hover; none carries a word.
+// The page's controls as one group (Brendan, 2026-09-12): on a bill, Typeset,
+// Diff and Git as icons, then Copy page with its word back (Brendan,
+// 2026-09-17), then the menu. A page can add its own entries to the menu.
 export function DocsCopyPage({
   page,
   url,
@@ -151,9 +151,11 @@ export function DocsCopyPage({
   diff,
   git,
   extra,
+  menu,
 }: {
   page: string
   url: string
+  /** A page's own entries at the top of the menu: a tour, a map (2026-09-17). Each is a link or a button, one line. */ menu?: React.ReactNode[]
   /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
   /** Where its printings open compared in Typeset, when it has more than one. */ diff?: string
   /** Where it opens as a file in Git, when it is a bill. */ git?: string
@@ -191,9 +193,10 @@ export function DocsCopyPage({
             <GitBranchIcon aria-hidden />
           </GroupIcon>
         )}
-        <GroupIcon label={isCopied ? "Copied" : "Copy page as Markdown"} onClick={() => copyToClipboard(page)}>
+        <Button variant="secondary" size="sm" className="h-8 shadow-none md:h-7 md:text-[0.8rem]" onClick={() => copyToClipboard(page)}>
           {isCopied ? <IconCheck /> : <IconCopy />}
-        </GroupIcon>
+          {isCopied ? "Copied" : "Copy page"}
+        </Button>
         {extra}
         <DropdownMenu>
           <DropdownMenuTrigger asChild className="hidden sm:flex">
@@ -203,6 +206,11 @@ export function DocsCopyPage({
             align="end"
             className="animate-none! rounded-lg shadow-none"
           >
+            {(menu ?? []).map((node, i) => (
+              <DropdownMenuItem key={`own-${i}`} asChild>
+                {node}
+              </DropdownMenuItem>
+            ))}
             {Object.entries(menuItems).map(([key, value]) => {
               const node = value(url, page, links)
               return node ? (
@@ -224,6 +232,11 @@ export function DocsCopyPage({
           className="w-52 origin-center! rounded-lg bg-background/70 p-1 shadow-none backdrop-blur-sm dark:bg-background/60"
           align="start"
         >
+          {(menu ?? []).map((node, i) => (
+            <Button variant="ghost" size="lg" asChild key={`own-${i}`} className="w-full justify-start text-base font-normal">
+              {node}
+            </Button>
+          ))}
           {Object.entries(menuItems).map(([key, value]) => (
             <Button
               variant="ghost"
