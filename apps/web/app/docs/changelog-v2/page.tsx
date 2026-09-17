@@ -24,7 +24,6 @@ export default async function ChangelogV2Page() {
     <ChangelogV2Body
       initial={entries}
       initialTexts={Object.fromEntries([...texts].map(([id, text]) => [String(id), text]))}
-      initialState={F.STATE}
     />
   )
 }
