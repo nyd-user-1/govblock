@@ -364,6 +364,7 @@ export function MemberToc({
   staff = false,
   prior = false,
   biography,
+  elections = false,
 }: {
   /** The record section's heading: the session's name. */
   record: string
@@ -377,6 +378,8 @@ export function MemberToc({
   /** Whether the member held an office we hold a record of. */
   prior?: boolean
   biography: boolean
+  /** Whether the sources hold any of this member's elections. */
+  elections?: boolean
 }) {
   const { detail, votes } = use()
   const toc = React.useMemo(() => {
@@ -393,12 +396,13 @@ export function MemberToc({
     if (lobbying) items.push(["Lobbying", 3])
     if (votes.length) items.push(["Roll Call", 3])
     items.push(["Votes", 3])
+    if (elections) items.push(["Elections", 2])
     if (contact || offices || staff) items.push(["Contact", 2])
     if (offices) items.push(["Office", 3])
     if (staff) items.push(["Staff", 3])
     if (prior) items.push(["Prior Office", 2])
     if (biography) items.push(["Biography", 2])
     return items.map(([title, depth, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth }))
-  }, [record, finance, lobbying, committees, contact, offices, staff, prior, biography, detail, votes])
+  }, [record, finance, lobbying, committees, contact, offices, staff, prior, biography, elections, detail, votes])
   return <DocsTableOfContents toc={toc} />
 }

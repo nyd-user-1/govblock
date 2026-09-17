@@ -55,16 +55,16 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
     <DocsPage
       title={`Legislative news, ${nameOf(state)}`}
       description={`${rollup.articles.toLocaleString()} articles from ${nameOf(state)}'s own press across ${rollup.days.length} ${rollup.days.length === 1 ? "day" : "days"}, and the bills their stories name.`}
-      slug={`/gdelt/state/${code}`}
-      previous={others[at - 1] ? { name: nameOf(others[at - 1]!.code), url: `/gdelt/state/${others[at - 1]!.code.toLowerCase()}` } : { name: "By state", url: "/gdelt/state" }}
-      next={others[at + 1] ? { name: nameOf(others[at + 1]!.code), url: `/gdelt/state/${others[at + 1]!.code.toLowerCase()}` } : { name: "By day", url: "/gdelt/day" }}
+      slug={`/mentions/state/${code}`}
+      previous={others[at - 1] ? { name: nameOf(others[at - 1]!.code), url: `/mentions/state/${others[at - 1]!.code.toLowerCase()}` } : { name: "By state", url: "/mentions/state" }}
+      next={others[at + 1] ? { name: nameOf(others[at + 1]!.code), url: `/mentions/state/${others[at + 1]!.code.toLowerCase()}` } : { name: "By day", url: "/mentions/day" }}
       rail={
         <nav className="flex flex-col gap-2 px-1 text-sm">
           <span className="font-medium text-foreground">Other jurisdictions</span>
           {others.slice(0, 12).map((row) => (
             <Link
               key={row.code}
-              href={`/gdelt/state/${row.code.toLowerCase()}`}
+              href={`/mentions/state/${row.code.toLowerCase()}`}
               className={row.code === state ? "flex items-center gap-2 text-foreground no-underline" : "flex items-center gap-2 text-muted-foreground no-underline hover:text-foreground"}
             >
               <FlagChip state={row.code} width={18} />
@@ -150,7 +150,7 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
             <ul className="flex flex-col gap-1.5">
               {rollup.days.map((d) => (
                 <li key={d.day} className="flex items-baseline justify-between gap-3 text-sm">
-                  <Link href={`/gdelt/day/${d.day}`} className="no-underline hover:underline">
+                  <Link href={`/mentions/day/${d.day}`} className="no-underline hover:underline">
                     {longDate(d.day)}
                   </Link>
                   <span className="text-muted-foreground tabular-nums">{d.articles} articles</span>

@@ -68,14 +68,14 @@ export default function DeepLensPage() {
   const disclose = byKeyword("DISCLOSE Act")
 
   return (
-    <DocsPage title={title} description={description} slug="/deep-lens" previous={{ name: "GDELT", url: "/gdelt" }} next={{ name: "Sources", url: "/sources" }}>
+    <DocsPage title={title} description={description} slug="/deep-lens" previous={{ name: "Mentions", url: "/mentions" }} next={{ name: "Sources", url: "/sources" }}>
       <div className="not-typeset flex flex-col gap-12">
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" asChild>
             <Link href="/plan">Deep Lens is on the paid plan</Link>
           </Button>
           <Button size="sm" variant="secondary" className="shadow-none" asChild>
-            <Link href="/gdelt/day/2026-09-15">The day these bills were found</Link>
+            <Link href="/mentions/day/2026-09-15">The day these bills were found</Link>
           </Button>
         </div>
 

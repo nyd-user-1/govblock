@@ -295,7 +295,14 @@ export function Chamber({ subject, rule, onRule, years, onYear, renderSentence, 
             </div>
           </>
         ) : (
-          <p className="py-16 text-center text-sm text-muted-foreground">Reading every district…</p>
+          <div aria-busy="true" aria-label="Reading every district" className="flex flex-col items-center">
+            <div className="h-[200px] w-full max-w-[640px] animate-pulse rounded-t-full bg-muted" style={{ clipPath: "polygon(0 100%, 0 46%, 8% 22%, 26% 4%, 50% 0, 74% 4%, 92% 22%, 100% 46%, 100% 100%, 72% 100%, 72% 62%, 62% 40%, 50% 34%, 38% 40%, 28% 62%, 28% 100%)" }} />
+            <div className="mt-2 flex w-full max-w-[640px] items-center gap-5">
+              <span className="h-8 w-10 animate-pulse rounded bg-muted" />
+              <span className="mx-auto h-4 w-40 animate-pulse rounded bg-muted" />
+              <span className="h-8 w-10 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
         )}
       </div>
 

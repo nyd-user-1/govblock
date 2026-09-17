@@ -12,14 +12,14 @@ import { Chip } from "@/components/chip"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 
-// /gdelt (Brendan, 2026-09-15, 2026-09-16): what GDELT can tell a bill page,
+// /mentions (Brendan, 2026-09-15, 2026-09-16): what GDELT can tell a bill page,
 // every use case laid out as a question a reader might ask, so the page can be
 // cut down to the ones worth keeping. Two halves: what the APIs answer for one
 // bill, and what the 15-minute files hold for legislation as a whole. Both are
 // snapshots on disk (scripts/gdelt/sample.mjs, scripts/gdelt/files.mjs) —
 // nothing here calls GDELT or reads the database when the page loads.
 
-const title = "GDELT"
+const title = "Mentions"
 const description = "What the world's news says about a bill, and how it travelled: one bill's coverage read through GDELT's APIs, and every legislative story in GDELT's own files, measured rather than assumed."
 
 export const metadata = { title, description }
@@ -168,7 +168,7 @@ export default function GdeltPage() {
     <DocsPage
       title={title}
       description={description}
-      slug="/gdelt"
+      slug="/mentions"
       previous={{ name: "Sources", url: "/sources" }}
       next={{ name: "Changelog", url: "/changelog" }}
       rail={
@@ -184,10 +184,10 @@ export default function GdeltPage() {
             How to read this page
           </a>
           <span className="mt-2 font-medium text-foreground">Built from this</span>
-          <a href="/gdelt/day" className="text-muted-foreground no-underline hover:text-foreground">
+          <a href="/mentions/day" className="text-muted-foreground no-underline hover:text-foreground">
             The daily round-up
           </a>
-          <a href="/gdelt/state" className="text-muted-foreground no-underline hover:text-foreground">
+          <a href="/mentions/state" className="text-muted-foreground no-underline hover:text-foreground">
             By state
           </a>
         </nav>
@@ -599,11 +599,11 @@ export default function GdeltPage() {
         <div className="flex flex-col gap-2 border-t pt-10">
           <h2 className="font-heading text-2xl font-semibold tracking-tight">Every legislative story, not one bill</h2>
           <p className="text-sm">
-            <a href="/gdelt/day" className="font-medium no-underline hover:underline">
+            <a href="/mentions/day" className="font-medium no-underline hover:underline">
               The daily round-up
             </a>{" "}
             and{" "}
-            <a href="/gdelt/state" className="font-medium no-underline hover:underline">
+            <a href="/mentions/state" className="font-medium no-underline hover:underline">
               the state pages
             </a>{" "}
             are built from these feeds: {dayList().length} {dayList().length === 1 ? "day" : "days"} on file, the most recent holding {getDay(dayList()[0] ?? "")?.articles.toLocaleString() ?? 0} articles.
@@ -872,195 +872,7 @@ export default function GdeltPage() {
           <Count>{files.articles.read.toLocaleString()} articles</Count>
         </Question>
 
-        <Question
-          id="what-would-it-cost-to-run-this-every-day"
-          question="What would it cost to run this every day?"
-          answer={
-            <p>
-              The files are free to download and there is no rate limit, so the only real cost is storage and a few minutes of a box we already run. Keeping the raw files would be {(bill.rawPerYear / 1e9).toFixed(0)} GB a year. Keeping
-              only the filtered rows — the legislative articles, the bill links, the quotes, the events — is about {(bill.keptPerYear / 1e9).toFixed(1)} GB a year, which is the same information for our purposes at roughly{" "}
-              {Math.round(bill.rawPerYear / bill.keptPerYear)} times less.
-            </p>
-          }
-          method={<>Method: bytes actually downloaded across {bill.minutes} minutes, projected to a day and a year; the kept figure is the size of the filtered snapshot on the same basis. Source: measured September 16, 2026.</>}
-        >
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Panel className="p-0">
-              <ul className="flex flex-col divide-y text-sm">
-                {bill.read.map((r) => (
-                  <li key={r.feed} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
-                    <span className="capitalize">{r.feed === "gkg" ? "Knowledge graph" : r.feed}</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {(r.size / 1e6).toFixed(1)} MB read · {(r.perDay / 1e6).toFixed(0)} MB a day
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-            <Panel>
-              <ul className="flex flex-col gap-2 text-sm">
-                <li className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">Downloaded a day</span>
-                  <span className="tabular-nums">{(bill.rawPerDay / 1e6).toFixed(0)} MB</span>
-                </li>
-                <li className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">Downloaded a year</span>
-                  <span className="tabular-nums">{(bill.rawPerYear / 1e9).toFixed(0)} GB</span>
-                </li>
-                <li className="flex justify-between gap-3 border-t pt-2">
-                  <span className="text-muted-foreground">Kept a day</span>
-                  <span className="tabular-nums">{(bill.keptPerDay / 1e6).toFixed(1)} MB</span>
-                </li>
-                <li className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">Kept a year</span>
-                  <span className="tabular-nums">{(bill.keptPerYear / 1e9).toFixed(1)} GB</span>
-                </li>
-              </ul>
-            </Panel>
-          </div>
-        </Question>
       </div>
-
-      <section id="read" className="mt-16 flex scroll-mt-24 flex-col gap-4 border-t pt-10">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight">How to read this page</h2>
-        <p>
-          This is a bench test, not a product. It exists to answer one question — which of GDELT&rsquo;s many feeds is worth wiring into GovBlock permanently — by showing each possible feature built against real data, at the size it
-          would actually appear.
-        </p>
-        <h3 className="font-heading text-lg font-semibold">How it was built</h3>
-        <p>
-          Two scripts wrote two files. <code>scripts/gdelt/sample.mjs</code> asks GDELT&rsquo;s APIs eleven questions about one bill, the SAVE Act, and saves the answers. <code>scripts/gdelt/files.mjs</code> downloads {files.minutes}{" "}
-          minutes of GDELT&rsquo;s own 15-minute files, keeps the rows about legislation, and throws the rest away. The page reads those two files and nothing else: no request here touches GDELT, and none touches the database.
-        </p>
-        <p>
-          That separation is the point. GDELT&rsquo;s APIs turn away a plain script and then allow roughly one article query every five minutes, so nothing built on them can serve a page on demand. Its files have no limit and arrive every
-          fifteen minutes, so anything built on them can. Four feeds proved dead on inspection: the Full Text Search API returns no results for any query, the Entity Graph stops in June, the television ngrams stop in October 2024, and the
-          Frontpage Graph ships empty files. What is here runs on the four that are alive.
-        </p>
-        <h3 className="font-heading text-lg font-semibold">How to read it</h3>
-        <p>
-          Every panel is a question. The heading asks it, the answer is folded away until you want it, and the footnote underneath says how the figure was measured and which feed it came from. Read the questions alone and you have the
-          menu; open an answer when a panel looks useful and you get the caveat with it.
-        </p>
-        <p>
-          The first twelve questions are <strong>one bill, deeply</strong>: how much coverage it drew, what was said, by whom, in whose language, where it stands, and how that compares with its rivals. The last ten are{" "}
-          <strong>all legislative coverage, broadly</strong>: what the feeds hold for every bill at once, and what running them would cost.
-        </p>
-        <h3 className="font-heading text-lg font-semibold">How to use it</h3>
-        <p>
-          Judge each panel against one test: would a reader on a bill page be better off with it than without it? Three earn that on the evidence here. <strong>Question 13</strong> ties a story to a bill by the link the story carries,
-          which is certainty no phrase matching can buy. <strong>Question 14</strong> gives attributed quotes about legislation. <strong>Question 1</strong> gives an attention curve that is honest, because it is a share of all coverage
-          rather than a raw count, and because question 10 shows how much of any total is a single wire story repeated.
-        </p>
-        <p>
-          The rest are worth looking at once and then arguing about. Some are diagnostics rather than reader features — question 21&rsquo;s baseline tells you how to read any single bill&rsquo;s tone; question 22 tells you what the whole
-          thing costs. Some are honest about their limits: question 3&rsquo;s word-list score is blunt, question 19&rsquo;s events never name a bill, and question 5&rsquo;s television data is two years old and will not get newer.
-        </p>
-        <h3 className="font-heading text-lg font-semibold">Everything GDELT offers, and what each one returns</h3>
-        <p>
-          Taken from GDELT&rsquo;s own documentation and checked against live calls on September 15 and 16, 2026. A question can only be asked of a field that exists, so this is the menu the page was written from — and the evidence for
-          what it leaves out.
-        </p>
-        <div className="not-typeset overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-xs text-muted-foreground uppercase">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Feed</th>
-                <th className="py-2 pr-4 font-medium">Reach</th>
-                <th className="py-2 pr-4 font-medium">What a record holds</th>
-                <th className="py-2 font-medium">State</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y align-top">
-              {[
-                {
-                  feed: "DOC 2.0 API",
-                  reach: "Articles: 3 months. Timelines: 2017 on. 250 articles a call.",
-                  fields: "url, mobile url, title, seen date, social image, domain, language, source country. Timelines add volume, share, tone, language and country. Filters: phrase, domain, language, country, theme, tone, proximity, repetition, and seven image filters.",
-                  state: "Live, throttled",
-                },
-                {
-                  feed: "Context API",
-                  reach: "Recent days; sentence level.",
-                  fields: "the matching sentence, the paragraph around it, whether it is a direct quote, plus url, title, domain, language, seen date, social image.",
-                  state: "Live",
-                },
-                {
-                  feed: "TV 2.0 API",
-                  reach: "2009 to October 11, 2024. Dead since.",
-                  fields: "mentions per station over time, each station's share, and clips: station, programme, timestamp, caption text, thumbnail, an Internet Archive link at the second it was said.",
-                  state: "Live but frozen",
-                },
-                {
-                  feed: "Full Text Search API (v1)",
-                  reach: "Documented as the last 24 hours.",
-                  fields: "url, title, outlet, date, language, location, image; tone as a filter, never as a field. No article text, no byline.",
-                  state: "Returns nothing for any query",
-                },
-                {
-                  feed: "Global Knowledge Graph 2.1 (files)",
-                  reach: "Every 15 minutes, 2015 on. About 135,000 articles a day.",
-                  fields: "themes, people, organisations, locations with coordinates, every extracted proper name with its character offset, amounts, seven tone measures, 2,300 emotion scores, quotations, social images — and a metadata field carrying the page title, the exact publication timestamp, the byline, and every outbound link in the article.",
-                  state: "Live",
-                },
-                {
-                  feed: "Event Database 2.0 (files)",
-                  reach: "Every 15 minutes, 1979 on. About 98,000 events a day.",
-                  fields: "61 columns: two actors with country, type and role codes, the action's CAMEO code, a conflict-to-cooperation score, three sets of coordinates, article and source counts, average tone, and the article it was read from.",
-                  state: "Live",
-                },
-                {
-                  feed: "Mentions table 2.0 (files)",
-                  reach: "Every 15 minutes, paired with the events.",
-                  fields: "16 columns: the event's id, when it happened, when this article carried it, the outlet, the article, the sentence number the mention sits in, character offsets, a confidence score, the document's length and its tone.",
-                  state: "Live",
-                },
-                {
-                  feed: "Global Quotation Graph (files)",
-                  reach: "Every minute, 2020 on.",
-                  fields: "per article: date, url, title, language, and every quotation with 100 characters before and after it.",
-                  state: "Live",
-                },
-                {
-                  feed: "Global Entity Graph (files)",
-                  reach: "15 minutes, 2016 to June 18, 2026.",
-                  fields: "per article: sentiment score and magnitude, and entities with name, type, Wikipedia link, mention count and a salience score.",
-                  state: "Stopped",
-                },
-                {
-                  feed: "Global Frontpage Graph (files)",
-                  reach: "Hourly, 50,000 homepages.",
-                  fields: "date, the homepage, the link's position on it, the linked article, the link text.",
-                  state: "Publishing empty files",
-                },
-                {
-                  feed: "Television Ngrams (files)",
-                  reach: "Daily, 2009 to October 10, 2024.",
-                  fields: "date, station, hour, word or phrase, count.",
-                  state: "Stopped",
-                },
-                {
-                  feed: "Event archive (files)",
-                  reach: "1979–2005 by year, 2006–2013 by month, daily since. 49 GB in all.",
-                  fields: "the event columns above, by day. About 6 MB a day in 2026.",
-                  state: "Live",
-                },
-              ].map((row) => (
-                <tr key={row.feed}>
-                  <td className="py-3 pr-4 font-medium">{row.feed}</td>
-                  <td className="py-3 pr-4 text-muted-foreground">{row.reach}</td>
-                  <td className="py-3 pr-4 text-muted-foreground">{row.fields}</td>
-                  <td className="py-3 text-muted-foreground">{row.state}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p>
-          Nothing on this page runs on a schedule, and no feature here has been adopted. When a panel is chosen, it moves to a nightly job on the pipeline box — the same shape as the XML pipeline, filtering each fifteen-minute file and
-          keeping only the rows a page will read.
-        </p>
-      </section>
     </DocsPage>
   )
 }

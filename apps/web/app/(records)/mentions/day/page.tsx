@@ -14,14 +14,14 @@ const longDate = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Numb
 export default function DaysPage() {
   const days = dayList()
   return (
-    <DocsPage title={title} description={description} slug="/gdelt/day" previous={{ name: "GDELT", url: "/gdelt" }} next={{ name: "By state", url: "/gdelt/state" }}>
+    <DocsPage title={title} description={description} slug="/mentions/day" previous={{ name: "Mentions", url: "/mentions" }} next={{ name: "By state", url: "/mentions/state" }}>
       <RecordList className="mt-0 mb-0">
         {days.map((date) => {
           const day = getDay(date)!
           return (
             <RecordItem
               key={date}
-              href={`/gdelt/day/${date}`}
+              href={`/mentions/day/${date}`}
               title={longDate(date)}
               lead={day.bills[0] ? `${day.bills[0].label}: ${day.bills[0].stories[0]?.title ?? ""}` : null}
               meta={[`${day.articles.toLocaleString()} articles`, `${day.billCount} bills`, `${day.quoteCount} quotations`, `${day.states.length} states`]}

@@ -153,7 +153,22 @@ function Pooled({ race, pool }: { race: PrimaryRace; pool: Pool }) {
   )
 }
 
-export function TopTwo({ subject, pool, onPool, renderSentence, renderReading }: { subject: RaceSubject; pool: Pool; onPool: (p: Pool) => void; renderSentence: (node: React.ReactNode) => void; renderReading: (r: { title: string; body: React.ReactNode } | null) => void }) {
+export function TopTwo({
+  subject,
+  pool,
+  onPool,
+  renderSentence,
+  renderReading,
+  picker,
+}: {
+  subject: RaceSubject
+  pool: Pool
+  onPool: (p: Pool) => void
+  renderSentence: (node: React.ReactNode) => void
+  renderReading: (r: { title: string; body: React.ReactNode } | null) => void
+  /** The year/state pickers, rendered at the right of the rule row. */
+  picker?: React.ReactNode
+}) {
   const [race, setRace] = React.useState<PrimaryRace | null>(null)
   const [failed, setFailed] = React.useState(false)
 
@@ -182,44 +197,51 @@ export function TopTwo({ subject, pool, onPool, renderSentence, renderReading }:
   const can = race ? race.system === "party primaries" && race.complete : false
   React.useEffect(() => renderReading(null), [renderReading])
 
-  if (failed) return <p className="text-sm text-destructive">This race&rsquo;s primaries could not be read.</p>
-  if (!race) return <p className="py-16 text-center text-sm text-muted-foreground">Reading the {subject.year} primaries…</p>
-  const by = new Map(race.candidates.map((c) => [c.name, c]))
+  const by = new Map(race?.candidates.map((c) => [c.name, c]) ?? [])
   return (
     <div className="flex flex-col gap-5">
-      <div data-tour="rules">
+      <div className="flex flex-wrap items-center gap-2" data-tour="rules">
         <ToggleGroup value={[pool]} onValueChange={(next) => next?.[0] && onPool(next[0] as Pool)} variant="outline" spacing={1}>
           <ToggleGroupItem value="run" className={PRESSED}>
-            Two Primaries
+            Closed
           </ToggleGroupItem>
           <ToggleGroupItem value="two" className={PRESSED} disabled={!can}>
-            Top Two
+            Top 2
           </ToggleGroupItem>
           <ToggleGroupItem value="four" className={PRESSED} disabled={!can}>
-            Top Four
+            Top 4
           </ToggleGroupItem>
         </ToggleGroup>
+        {picker}
       </div>
-      <div data-tour="ring">
-        <Pooled race={race} pool={can ? pool : "run"} />
-      </div>
-      <hr className="border-0 border-t border-border" />
-      <div className="flex flex-col gap-2">
-        <div className="mb-1 text-[11px] tracking-wider text-muted-foreground uppercase">General Election</div>
-        {(pool === "run" || !can ? race.general_two : advancing(race, pool)).map((nm) => {
-          const c = by.get(nm)
-          const won = nm === race.general_winner
-          return (
-            <div key={nm} className="flex items-baseline justify-between gap-2.5 text-sm">
-              <span>
-                <span className="mr-2 inline-block size-2.5 rounded-full" style={{ background: SEAT_COLOR[norm(c?.party)] }} />
-                {person(nm)} <Party p={c?.party ?? "?"} />
-              </span>
-              <span className={`tabular-nums ${won ? "font-semibold" : "text-muted-foreground"}`}>{pool === "run" && c?.general != null ? number.format(c.general) : "—"}</span>
-            </div>
-          )
-        })}
-      </div>
+      {failed ? (
+        <p className="text-sm text-destructive">This race&rsquo;s primaries could not be read.</p>
+      ) : !race ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">Reading the {subject.year} primaries…</p>
+      ) : (
+        <>
+          <div data-tour="ring">
+            <Pooled race={race} pool={can ? pool : "run"} />
+          </div>
+          <hr className="border-0 border-t border-border" />
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 text-[11px] tracking-wider text-muted-foreground uppercase">General Election</div>
+            {(pool === "run" || !can ? race.general_two : advancing(race, pool)).map((nm) => {
+              const c = by.get(nm)
+              const won = nm === race.general_winner
+              return (
+                <div key={nm} className="flex items-baseline justify-between gap-2.5 text-sm">
+                  <span>
+                    <span className="mr-2 inline-block size-2.5 rounded-full" style={{ background: SEAT_COLOR[norm(c?.party)] }} />
+                    {person(nm)} <Party p={c?.party ?? "?"} />
+                  </span>
+                  <span className={`tabular-nums ${won ? "font-semibold" : "text-muted-foreground"}`}>{pool === "run" && c?.general != null ? number.format(c.general) : "—"}</span>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

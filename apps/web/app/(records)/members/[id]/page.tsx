@@ -25,6 +25,8 @@ import {
 } from "@/lib/policy/db-queries"
 import { congressName } from "@/lib/policy/congress"
 import { getLobbyingOnBills, getRevolvingDoor, sponsoredKeys } from "@/lib/policy/lobbying-queries"
+import { getMemberElections } from "@/lib/policy/election-queries"
+import { MemberElections } from "@/components/policy/member-elections"
 import { BackToTop } from "@/components/back-to-top"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { DocsCopyPage } from "@/components/docs-copy-page"
@@ -92,7 +94,7 @@ async function load(id: string, wanted?: string) {
   const keys = state === "US" ? await sponsoredKeys(peopleId).catch(() => []) : []
   const successor = standing.retired && state !== "US" ? await getMemberSuccessor(peopleId) : null
   const priorOffices = !standing.retired && state === "US" ? await getMemberPriorOffices(peopleId) : []
-  const [member, record, fec, directory, career, sessions, neighbours, lobbying, revolving] = await Promise.all([
+  const [member, record, fec, directory, career, sessions, neighbours, lobbying, revolving, elections] = await Promise.all([
     getMember(peopleId, session),
     getMemberRecord({ state, session }, peopleId, 20),
     state === "US" ? getFec(peopleId) : Promise.resolve(null),
@@ -102,6 +104,7 @@ async function load(id: string, wanted?: string) {
     getMemberNeighbours({ state, session }, peopleId),
     keys.length ? getLobbyingOnBills(keys).catch(() => null) : Promise.resolve(null),
     keys.length ? getRevolvingDoor(keys).catch(() => []) : Promise.resolve([]),
+    getMemberElections(peopleId).catch(() => []),
   ])
   if (!member) return null
   // The record's heading is the session's name: "119th Congress", or a
@@ -131,7 +134,7 @@ async function load(id: string, wanted?: string) {
   // `getMember` selects the whole `"People"` row; the spread in its return
   // narrows the type back to the columns it names, so the rest are read here
   // the way the query fetched them.
-  return { peopleId, state, session, successor, priorOffices, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving }
+  return { peopleId, state, session, successor, priorOffices, member: member as typeof member & Record<string, unknown>, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, neighbours, lobbying, revolving, elections }
 }
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }
@@ -152,7 +155,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const { id } = await params
   const data = await load(id, (await searchParams).session)
   if (!data) notFound()
-  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving, successor, priorOffices } = data
+  const { peopleId, state, member, record, fec, directory, terms, committees, committeeCounts, career, sessionName, sessionOptions, session, neighbours, lobbying, revolving, elections, successor, priorOffices } = data
 
   const name = String(member.name ?? "")
   const title = `${honorific(String(member.role ?? ""), String(member.chamber ?? ""))} ${name}${member.archived ? " (Ret.)" : ""}`.trim()
@@ -304,6 +307,8 @@ export default async function MemberRoute({ params, searchParams }: Props) {
                   />
                 </PreviewFrame>
 
+                <MemberElections elections={elections} who={title} />
+
                 <MemberContact senate={directory?.senate ?? null} sub={!!(directory?.offices.length || directory?.staff.length)} places={officePlaces(directory?.offices ?? [])} />
                 {directory && <MemberOffices offices={directory.offices} />}
                 {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
@@ -371,7 +376,7 @@ export default async function MemberRoute({ params, searchParams }: Props) {
             </div>
           </div>
           <RightRailSheet>
-            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} prior={priorOffices.length > 0} biography={!!biography} />
+            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} prior={priorOffices.length > 0} biography={!!biography} elections={elections.length > 0} />
             <PublicRail />
           </RightRailSheet>
         </div>

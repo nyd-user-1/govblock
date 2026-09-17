@@ -3,9 +3,11 @@
 import Link from "next/link"
 import * as React from "react"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
+import { ChevronDown } from "lucide-react"
 
 import { Button } from "@govblock/ui/components/ny4/button"
-import { NativeSelect, NativeSelectOption } from "@govblock/ui/components/native-select"
+import { Button as NovaButton } from "@govblock/ui/components/nova/button"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { cn } from "@govblock/ui/lib/utils"
 
 import { PublicRail } from "@/components/block-card"
@@ -39,8 +41,6 @@ export type ChamberView = { year: number; state: string; office: "STATE HOUSE" |
 
 type Case = { title: string; hint: string; state: string; pair: "chamber" | "rcv" | "race"; chamber?: ChamberSubject; rule?: ChamberRule; contest?: ContestSummary; race?: RaceSubject; pool?: Pool }
 
-const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."]
-const longDate = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}, ${iso.slice(0, 4)}`
 const number = new Intl.NumberFormat("en-US")
 const TABLE = "w-full border-collapse text-sm [&_td]:border-b [&_td]:border-border [&_td]:px-3 [&_td]:py-1.5 [&_th]:border-b [&_th]:border-border [&_th]:bg-muted/50 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-xs [&_th]:font-medium [&_th]:text-muted-foreground"
 
@@ -191,8 +191,8 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
         <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
           <RecordHeader
             media={<FlagChip state="US" width={Math.round(RECORD_MEDIA * 1.5)} className="rounded-lg" />}
-            title="Open Primary Simulator"
-            meta={["Every chamber, contest and primary on file"]}
+            title="Simulator"
+            meta={["Open v. Close Primaries"]}
             action={
               <>
                 <DocsCopyPage
@@ -226,7 +226,8 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
               Most seats in Congress and the statehouses are settled before November, in a party primary. In the 2022 U.S. House, <code>288</code> of <code>435</code> were, in primaries that <code>19.8 million</code> people voted in: <code>8%</code> of voting-age citizens. The three charts below test what one open primary, and a ranked-choice count, would have changed, from the real votes.
             </p>
 
-            <H3>Chambers</H3>
+            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+            <H3 className="mt-0">Chambers</H3>
             <p data-tour="chamber-sentence">
               {chamber && (
                 <>
@@ -273,7 +274,8 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
               />
             </div>
 
-            <H3>Ranked choice</H3>
+            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+            <H3 className="mt-0">Ranked choice</H3>
             <p>
               {contest && (
                 <>
@@ -284,13 +286,13 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
               {sentences.rcv}
             </p>
             <div data-tour="rcv-ring">
-              <PreviewFrame>{contest && <RankedChoice contest={contest} removed={removed} onRemoved={setRemoved} renderSentence={say.rcv} renderReading={noReading} />}</PreviewFrame>
-            </div>
-            <div data-not-typeset="true" className="mb-12">
-              <ContestsTable contests={contests} current={contest} onOpen={openContest} />
+              <PreviewFrame>
+                {contest && <RankedChoice contest={contest} removed={removed} onRemoved={setRemoved} renderSentence={say.rcv} renderReading={noReading} picker={<RankedChoicePicker contests={contests} current={contest} onOpen={openContest} />} />}
+              </PreviewFrame>
             </div>
 
-            <H3>Primaries</H3>
+            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+            <H3 className="mt-0">Primaries</H3>
             <p>
               {race && (
                 <>
@@ -301,13 +303,13 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
               {sentences.race}
             </p>
             <div data-tour="race-ring">
-              <PreviewFrame>{race && <TopTwo subject={race} pool={pool} onPool={setPool} renderSentence={say.race} renderReading={noReading} />}</PreviewFrame>
-            </div>
-            <div data-not-typeset="true" className="mb-12">
-              <PrimariesTable years={years} current={race} onOpen={openRace} />
+              <PreviewFrame>
+                {race && <TopTwo subject={race} pool={pool} onPool={setPool} renderSentence={say.race} renderReading={noReading} picker={<PrimariesPicker years={years} current={race} onOpen={openRace} />} />}
+              </PreviewFrame>
             </div>
 
-            <H3>Case study</H3>
+            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+            <H3 className="mt-0">Case study</H3>
             <ul className="mt-4 grid list-none grid-cols-6 gap-3 p-0" data-not-typeset="true" data-tour="cases">
               {cases.map((c, i) => (
                 <li key={c.title} className={cn("m-0 p-0", i < 3 ? "col-span-3 sm:col-span-2" : "col-span-3")}>
@@ -382,34 +384,51 @@ function ChambersTable({ house, chambers, years, current, onOpen }: { house: Hou
   )
 }
 
-/** The 607 ranked-choice contests with their ballots on file. */
-function ContestsTable({ contests, current, onOpen }: { contests: ContestSummary[]; current: ContestSummary | null; onOpen: (c: ContestSummary) => void }) {
+/** Year and state, over the 607 ranked-choice contests on file; picking either opens the first contest that matches both. */
+function RankedChoicePicker({ contests, current, onOpen }: { contests: ContestSummary[]; current: ContestSummary | null; onOpen: (c: ContestSummary) => void }) {
+  const rcvYears = [...new Set(contests.map((c) => Number(c.date.slice(0, 4))))].sort((a, b) => b - a)
+  const [year, setYear] = React.useState(current ? Number(current.date.slice(0, 4)) : (rcvYears[0] ?? new Date().getFullYear()))
+  const inYear = contests.filter((c) => Number(c.date.slice(0, 4)) === year)
+  const rcvStates = [...new Set(inYear.map((c) => c.state))].sort((a, b) => stateName(a).localeCompare(stateName(b)))
+  const [state, setState] = React.useState(current?.state ?? "")
+  const st = rcvStates.includes(state) ? state : (rcvStates[0] ?? "")
+
+  React.useEffect(() => {
+    // Leaves an already-open contest alone (a case study, a shared link); only steps in once the reader picks a different year or state.
+    if (current && Number(current.date.slice(0, 4)) === year && current.state === st) return
+    const found = inYear.filter((c) => c.state === st).sort((a, b) => a.title.localeCompare(b.title))[0]
+    if (found) onOpen(found)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, st])
+
   return (
-    <div className="max-h-[300px] overflow-y-auto rounded-xl border">
-      <table className={TABLE}>
-        <thead>
-          <tr>
-            <th>Contest</th>
-            <th>Date</th>
-            <th className="text-right!">Ballots</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contests.map((c) => (
-            <tr key={c.id} className={cn("cursor-pointer hover:bg-muted", current?.id === c.id && "bg-muted")} onClick={() => onOpen(c)}>
-              <td>{c.title}</td>
-              <td className="whitespace-nowrap text-muted-foreground">{longDate(c.date)}</td>
-              <td className="text-right text-muted-foreground tabular-nums">{number.format(c.ballots)}</td>
-            </tr>
+    <div className="ml-auto flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<NovaButton variant="outline">{year} <ChevronDown /></NovaButton>} />
+        <DropdownMenuContent align="end" className="w-max min-w-28">
+          {rcvYears.map((y) => (
+            <DropdownMenuCheckboxItem key={y} className="whitespace-nowrap" checked={y === year} onCheckedChange={() => setYear(y)}>
+              {y}
+            </DropdownMenuCheckboxItem>
           ))}
-        </tbody>
-      </table>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<NovaButton variant="outline">{STATE_NAMES[st] ?? st} <ChevronDown /></NovaButton>} />
+        <DropdownMenuContent align="end" className="w-max min-w-44">
+          {rcvStates.map((s) => (
+            <DropdownMenuCheckboxItem key={s} className="whitespace-nowrap" checked={s === st} onCheckedChange={() => setState(s)}>
+              {STATE_NAMES[s] ?? s}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
 
-/** A year's races with their primaries on file, by state. */
-function PrimariesTable({ years, current, onOpen }: { years: TopTwoYear[]; current: RaceSubject | null; onOpen: (r: RaceSubject, p: Pool) => void }) {
+/** Year and state, over the year's races with primaries on file; picking either opens the first race that matches both. */
+function PrimariesPicker({ years, current, onOpen }: { years: TopTwoYear[]; current: RaceSubject | null; onOpen: (r: RaceSubject, p: Pool) => void }) {
   const [raceYear, setRaceYear] = React.useState<number>(current?.year ?? years[0]?.year ?? 2022)
   const [races, setRaces] = React.useState<PrimaryRace[] | null>(null)
   const [raceState, setRaceState] = React.useState(current?.state ?? "")
@@ -428,54 +447,39 @@ function PrimariesTable({ years, current, onOpen }: { years: TopTwoYear[]; curre
   }, [raceYear, years])
   const raceStates = [...new Set((races ?? []).map((r) => r.state))].sort((a, b) => stateName(a).localeCompare(stateName(b)))
   const st = raceStates.includes(raceState) ? raceState : (raceStates[0] ?? "")
-  const list = (races ?? []).filter((r) => r.state === st).sort((a, b) => a.office.localeCompare(b.office) || a.district.localeCompare(b.district, undefined, { numeric: true }))
   const y = years.find((x) => x.year === raceYear)
+
+  React.useEffect(() => {
+    if (!races || !y || !st) return
+    // Leaves an already-open race alone (a case study, a shared link); only steps in once the reader picks a different year or state.
+    if (current && current.year === raceYear && current.state === st) return
+    const found = races.filter((r) => r.state === st).sort((a, b) => a.office.localeCompare(b.office) || a.district.localeCompare(b.district, undefined, { numeric: true }))[0]
+    if (found) onOpen({ year: found.year, state: found.state, office: found.office, district: found.district, url: y.url }, found.complete && found.system === "party primaries" ? "two" : "run")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [races, st])
+
   return (
-    <>
-      <div className="mb-3 flex gap-2">
-        <NativeSelect value={String(raceYear)} onChange={(e) => setRaceYear(Number(e.target.value))} aria-label="Year">
+    <div className="ml-auto flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<NovaButton variant="outline">{raceYear} <ChevronDown /></NovaButton>} />
+        <DropdownMenuContent align="end" className="w-max min-w-28">
           {years.map((yy) => (
-            <NativeSelectOption key={yy.year} value={String(yy.year)}>
+            <DropdownMenuCheckboxItem key={yy.year} className="whitespace-nowrap" checked={yy.year === raceYear} onCheckedChange={() => setRaceYear(yy.year)}>
               {yy.year}
-            </NativeSelectOption>
+            </DropdownMenuCheckboxItem>
           ))}
-        </NativeSelect>
-        <NativeSelect value={st} onChange={(e) => setRaceState(e.target.value)} aria-label="State">
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<NovaButton variant="outline">{STATE_NAMES[st] ?? st} <ChevronDown /></NovaButton>} />
+        <DropdownMenuContent align="end" className="w-max min-w-44">
           {raceStates.map((s) => (
-            <NativeSelectOption key={s} value={s}>
+            <DropdownMenuCheckboxItem key={s} className="whitespace-nowrap" checked={s === st} onCheckedChange={() => setRaceState(s)}>
               {STATE_NAMES[s] ?? s}
-            </NativeSelectOption>
+            </DropdownMenuCheckboxItem>
           ))}
-        </NativeSelect>
-      </div>
-      <div className="max-h-[300px] overflow-y-auto rounded-xl border">
-        <table className={TABLE}>
-          <thead>
-            <tr>
-              <th>Race</th>
-              <th>Primaries</th>
-            </tr>
-          </thead>
-          <tbody>
-            {races === null && (
-              <tr>
-                <td colSpan={2} className="text-muted-foreground">
-                  Reading the {raceYear} primaries…
-                </td>
-              </tr>
-            )}
-            {list.map((r) => {
-              const isCurrent = current?.year === r.year && current.state === r.state && current.office === r.office && String(Number(current.district)) === String(Number(r.district))
-              return (
-                <tr key={`${r.state}-${r.office}-${r.district}-${r.label}`} className={cn("cursor-pointer hover:bg-muted", isCurrent && "bg-muted")} onClick={() => y && onOpen({ year: r.year, state: r.state, office: r.office, district: r.district, url: y.url }, r.complete && r.system === "party primaries" ? "two" : "run")}>
-                  <td>{raceName(r)}</td>
-                  <td className="text-muted-foreground">{r.system !== "party primaries" ? r.system : r.complete ? (r.same_party ? "same-party top two" : "counted") : "not counted"}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

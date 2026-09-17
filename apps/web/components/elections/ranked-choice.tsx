@@ -254,7 +254,22 @@ export function rcvSentence(data: Ballots, count: Count, wins: number[][], remov
   )
 }
 
-export function RankedChoice({ contest, removed, onRemoved, renderSentence, renderReading }: { contest: ContestSummary; removed: ReadonlySet<number>; onRemoved: (next: Set<number>) => void; renderSentence: (node: React.ReactNode) => void; renderReading: (r: { title: string; body: React.ReactNode } | null) => void }) {
+export function RankedChoice({
+  contest,
+  removed,
+  onRemoved,
+  renderSentence,
+  renderReading,
+  picker,
+}: {
+  contest: ContestSummary
+  removed: ReadonlySet<number>
+  onRemoved: (next: Set<number>) => void
+  renderSentence: (node: React.ReactNode) => void
+  renderReading: (r: { title: string; body: React.ReactNode } | null) => void
+  /** The year/state pickers, rendered at the right of the chip row. */
+  picker?: React.ReactNode
+}) {
   const [data, setData] = React.useState<Ballots | null>(null)
   const [failed, setFailed] = React.useState(false)
   const tip = useTip()
@@ -283,46 +298,53 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
 
   React.useEffect(() => renderReading(null), [renderReading])
 
-  if (failed) return <p className="text-sm text-destructive">The ballots for this contest could not be read.</p>
-  if (!data || !count) return <p className="py-16 text-center text-sm text-muted-foreground">Reading {number.format(contest.ballots)} ballots…</p>
-
-  const order = [...Array(n).keys()].sort((a, b) => (count.rounds[0].votes[b] ?? -1) - (count.rounds[0].votes[a] ?? -1))
+  const order = data && count ? [...Array(n).keys()].sort((a, b) => (count.rounds[0].votes[b] ?? -1) - (count.rounds[0].votes[a] ?? -1)) : []
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-1.5" data-tour="rules">
-        {order.map((i) => {
-          const out = removed.has(i)
-          return (
-            <button
-              key={i}
-              type="button"
-              aria-pressed={!out}
-              title={out ? "Put back" : "Take out"}
-              onClick={() => {
-                const next = new Set(removed)
-                if (out) next.delete(i)
-                else next.add(i)
-                onRemoved(next)
-              }}
-              className={`inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2.5 pl-2 text-xs leading-none hover:bg-muted ${out ? "bg-muted text-muted-foreground line-through" : ""}`}
-            >
-              <span className="size-2.5 rounded-full" style={out ? { boxShadow: `inset 0 0 0 2px ${colors[i]}` } : { background: colors[i] }} />
-              {surname(data.candidates[i])}
-            </button>
-          )
-        })}
+        {data &&
+          order.map((i) => {
+            const out = removed.has(i)
+            return (
+              <button
+                key={i}
+                type="button"
+                aria-pressed={!out}
+                title={out ? "Put back" : "Take out"}
+                onClick={() => {
+                  const next = new Set(removed)
+                  if (out) next.delete(i)
+                  else next.add(i)
+                  onRemoved(next)
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2.5 pl-2 text-xs leading-none hover:bg-muted ${out ? "bg-muted text-muted-foreground line-through" : ""}`}
+              >
+                <span className="size-2.5 rounded-full" style={out ? { boxShadow: `inset 0 0 0 2px ${colors[i]}` } : { background: colors[i] }} />
+                {surname(data.candidates[i])}
+              </button>
+            )
+          })}
         {removed.size > 0 && (
           <button type="button" onClick={() => onRemoved(new Set())} className="rounded-full border px-2.5 py-1.5 text-xs leading-none hover:bg-muted">
             All
           </button>
         )}
+        {picker}
       </div>
-      <div data-tour="ring">
-        <Rounds data={data} removed={removed} colors={colors} onHover={(body, e) => (body && e ? tip.show(body, e) : tip.hide())} />
-      </div>
-      <div className="mt-2" data-tour="reading">
-        <OneOnOne data={data} wins={wins} removed={removed} colors={colors} />
-      </div>
+      {failed ? (
+        <p className="text-sm text-destructive">The ballots for this contest could not be read.</p>
+      ) : !data || !count ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">Reading {number.format(contest.ballots)} ballots…</p>
+      ) : (
+        <>
+          <div data-tour="ring">
+            <Rounds data={data} removed={removed} colors={colors} onHover={(body, e) => (body && e ? tip.show(body, e) : tip.hide())} />
+          </div>
+          <div className="mt-2" data-tour="reading">
+            <OneOnOne data={data} wins={wins} removed={removed} colors={colors} />
+          </div>
+        </>
+      )}
       {tip.node}
     </div>
   )

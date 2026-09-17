@@ -4,4 +4,4 @@
 // plain module, since the server layouts inline it; the live store is
 // components/rail-toggle.tsx, which reads and writes the same keys.
 export const railScript = (defaultClosed: boolean) =>
-  `(function(){try{var d=document.documentElement,c=${defaultClosed ? "true" : "false"};["left","right","right-2"].forEach(function(s){var v=localStorage.getItem("rail:"+s);if(v==="closed"||(v!=="open"&&c))d.setAttribute("data-rail-"+s,"closed")})}catch(e){}})()`
+  `(function(){try{var d=document.documentElement,c=${defaultClosed ? "true" : "false"};["left","right","right-2","right-3","right-4"].forEach(function(s){var v=localStorage.getItem("rail:"+s);if(v==="closed"||(v!=="open"&&c))d.setAttribute("data-rail-"+s,"closed")})}catch(e){}})()`

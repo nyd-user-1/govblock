@@ -5,6 +5,7 @@ import { apiKeyOf, cacheFor, currentSession, gate } from "@/lib/entitlements-ser
 import { limitExceeded, presentedKey, rateLimitHeaders, recordUsage, touchApiKey } from "@/lib/api-keys"
 import { hasApiAccess } from "@/lib/plans"
 import { getStateStats } from "@/lib/policy/state-stats"
+import { getTagIndex } from "@/lib/policy/tag-queries"
 import { DEFAULT_STATE, readFilters, stateName } from "@/lib/filters"
 import { getBillComparison } from "@/lib/policy/bill-compare"
 import { getBillDiff } from "@/lib/policy/bill-diff"
@@ -82,6 +83,7 @@ import {
   getStream,
   getSubjects,
   getSubjectTerms,
+  getSubjectHighlights,
   getAdoptedBySession,
   getProvenance,
   bioguideOf,
@@ -303,6 +305,16 @@ async function dispatch(resource: string, sp: URLSearchParams) {
     case "subject-terms": {
       const f = await resolve(filters)
       return getSubjectTerms(f)
+    }
+    // GovBlock's own tags (2026-09-16): every tag with bills behind it here.
+    case "tags": {
+      const f = await resolve(filters)
+      return getTagIndex(f)
+    }
+    // The three lists /tags leads with: trending, popular, recently added.
+    case "subject-highlights": {
+      const f = await resolve(filters)
+      return getSubjectHighlights(f, int(sp.get("limit"), 8))
     }
     // The committee joins the tree needed (2026-09-03): a roster derived from
     // committee votes, and a committee's bills from its referrals.

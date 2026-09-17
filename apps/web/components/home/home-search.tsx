@@ -18,7 +18,8 @@ import { Kbd } from "@govblock/ui/components/nova/kbd"
 // bills, members and committees after — and ⌘K on this page lands here,
 // ahead of the header's dialog. Forty pixels tall (Brendan, 2026-09-07).
 
-export function HomeSearch() {
+/** `hotkey` off leaves ⌘K to the header, for a copy of the bar that is not the page's own. */
+export function HomeSearch({ hotkey = true }: { hotkey?: boolean } = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const { state } = useJurisdiction()
@@ -32,6 +33,7 @@ export function HomeSearch() {
   // ⌘K here focuses the bar. The header's dialog listens on the document, so
   // this listens on the window in the capture phase and stops the key there.
   React.useEffect(() => {
+    if (!hotkey) return
     const down = (event: KeyboardEvent) => {
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
@@ -42,7 +44,7 @@ export function HomeSearch() {
     }
     window.addEventListener("keydown", down, true)
     return () => window.removeEventListener("keydown", down, true)
-  }, [])
+  }, [hotkey])
 
   // A page change closes the list; so does a choice from it.
   React.useEffect(() => setOpen(false), [pathname])

@@ -142,7 +142,6 @@
   "devDependencies": {
     "@govblock/eslint-config": "workspace:^",
     "@govblock/typescript-config": "workspace:*",
-    "@react-trace/kit": "^0.0.8",
     "@tailwindcss/postcss": "^4",
     "@types/geojson": "^7946.0.16",
     "@types/lodash": "^4.17.25",

@@ -1,5 +1,7 @@
+import { ChangelogSheet } from "@/components/changelog-v2-body"
 import { ClipsApp } from "@/components/clips/clips-app"
 import { DocsSidebar } from "@/components/docs-sidebar"
+import { HomeSheet } from "@/components/home/home-sheet"
 import { MapWorkspace } from "@/components/map/map-workspace"
 import { RailStrip, RailToggle } from "@/components/rail-toggle"
 import { railScript } from "@/lib/rail-script"
@@ -27,6 +29,11 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // second screen until its line sits on the second screen's, its tab where
 // the outer tab sits. Closed, it paints nothing but its line and tab, so no
 // sheet edge shows beside the line (Brendan, 2026-09-14). On it: the Map.
+// The pattern twice more (Brendan, 2026-09-15): inside the Map's sheet, one
+// holding the changelog's center container across every state and Congress,
+// and inside that, one holding the account home's center container under
+// Congress. A sheet whose parent is closed is hidden with it, and both read
+// the API only once a reader has opened their way in.
 // The sheet's overrides reach its own sidebar only (the direct child), never a shell inside it: the Map's block shell has a sidebar of its own, and a descendant selector once forced it open and full width (2026-09-14).
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&>[data-slot=sidebar]>[data-slot=sidebar-content]]:flex!"
 const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
@@ -67,6 +74,22 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
               <RailToggle side="right-2" />
               <div className="ml-8 flex h-full min-h-0 flex-1 flex-col overflow-hidden py-1 pr-2.5 [[data-rail-right-2=closed]_&]:invisible">
                 <MapWorkspace />
+              </div>
+              <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:invisible [[data-rail-right-3=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-3=closed]_&]:bg-transparent`}>
+                <RailStrip side="right-3" />
+                <div className={LINE} />
+                <RailToggle side="right-3" />
+                <div className="scrollbar-none ml-8 h-full min-h-0 overflow-x-hidden overflow-y-auto py-1 pr-2.5 [[data-rail-right-3=closed]_&]:invisible">
+                  <ChangelogSheet />
+                </div>
+                <div className={`${SHEET} right-0 w-full [[data-rail-right-3=closed]_&]:invisible [[data-rail-right-4=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-4=closed]_&]:bg-transparent`}>
+                  <RailStrip side="right-4" />
+                  <div className={LINE} />
+                  <RailToggle side="right-4" />
+                  <div className="scrollbar-none ml-8 h-full min-h-0 overflow-x-hidden overflow-y-auto py-1 pr-2.5 [[data-rail-right-4=closed]_&]:invisible">
+                    <HomeSheet />
+                  </div>
+                </div>
               </div>
             </div>
           </Sidebar>

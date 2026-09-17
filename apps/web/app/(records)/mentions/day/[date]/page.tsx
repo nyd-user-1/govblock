@@ -60,18 +60,18 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
     <DocsPage
       title={`Legislative news, ${longDate(date)}`}
       description={`${day.articles.toLocaleString()} articles on legislation, ${day.billCount} bills the coverage linked to or named, ${day.quoteCount} quotations and ${day.events.kept} public appeals to a legislature.`}
-      slug={`/gdelt/day/${date}`}
-      previous={days[at + 1] ? { name: longDate(days[at + 1]!), url: `/gdelt/day/${days[at + 1]}` } : { name: "Every day", url: "/gdelt/day" }}
-      next={days[at - 1] ? { name: longDate(days[at - 1]!), url: `/gdelt/day/${days[at - 1]}` } : { name: "By state", url: "/gdelt/state" }}
+      slug={`/mentions/day/${date}`}
+      previous={days[at + 1] ? { name: longDate(days[at + 1]!), url: `/mentions/day/${days[at + 1]}` } : { name: "Every day", url: "/mentions/day" }}
+      next={days[at - 1] ? { name: longDate(days[at - 1]!), url: `/mentions/day/${days[at - 1]}` } : { name: "By state", url: "/mentions/state" }}
       rail={
         <nav className="flex flex-col gap-2 px-1 text-sm">
           <span className="font-medium text-foreground">Other days</span>
           {days.slice(0, 10).map((other) => (
-            <Link key={other} href={`/gdelt/day/${other}`} className={other === date ? "text-foreground no-underline" : "text-muted-foreground no-underline hover:text-foreground"}>
+            <Link key={other} href={`/mentions/day/${other}`} className={other === date ? "text-foreground no-underline" : "text-muted-foreground no-underline hover:text-foreground"}>
               {longDate(other)}
             </Link>
           ))}
-          <Link href="/gdelt/state" className="mt-2 text-muted-foreground no-underline hover:text-foreground">
+          <Link href="/mentions/state" className="mt-2 text-muted-foreground no-underline hover:text-foreground">
             By state
           </Link>
         </nav>
@@ -198,7 +198,7 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
               {day.states.map((s) => (
                 <RecordItem
                   key={s.code}
-                  href={`/gdelt/state/${s.code.toLowerCase()}`}
+                  href={`/mentions/state/${s.code.toLowerCase()}`}
                   avatar={<FlagChip state={s.code} width={28} />}
                   title={s.code === "US" ? "Congress" : stateName(s.code)}
                   lead={s.stories[0]?.title ?? null}

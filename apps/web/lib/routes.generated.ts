@@ -158,6 +158,14 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "api"
   },
   {
+    "path": "/api/live",
+    "kind": "api"
+  },
+  {
+    "path": "/api/live/v2",
+    "kind": "api"
+  },
+  {
     "path": "/api/map/geocode",
     "kind": "api"
   },
@@ -494,6 +502,10 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
+    "path": "/mentions",
+    "kind": "page"
+  },
+  {
     "path": "/glossary",
     "kind": "page"
   },
@@ -523,6 +535,10 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/legislative-subjects/[state]/[slug]",
+    "kind": "page"
+  },
+  {
+    "path": "/live",
     "kind": "page"
   },
   {

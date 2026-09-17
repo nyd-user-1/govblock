@@ -15,6 +15,7 @@ import {
   LayoutGridIcon,
   MapIcon,
   MenuIcon,
+  RadioIcon,
   TypeIcon,
 } from "lucide-react"
 
@@ -55,6 +56,7 @@ export type Workspace =
   | "typeset"
   | "blocks"
   | "map"
+  | "live"
 
 export const WORKSPACES: {
   key: Workspace
@@ -108,6 +110,7 @@ export const WORKSPACES: {
     icon: LayoutGridIcon,
   },
   { key: "map", label: "Map", href: "/map", icon: MapIcon },
+  { key: "live", label: "Live", href: "/live", icon: RadioIcon },
 ]
 
 /** The Filter chip: the same trigger as the mode switcher, ordering the page's rows. */

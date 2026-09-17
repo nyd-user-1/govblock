@@ -9,13 +9,20 @@ import { ArrowUpIcon } from "lucide-react"
 // (Brendan, later that day): it sits at the foot of the column and sticks to
 // the bottom of the viewport while the column runs on below it, so it is
 // always in the column's middle whatever the rails are doing.
-export function BackToTop() {
+// `scroller` names a box that scrolls on its own (the /live stream, Brendan,
+// 2026-09-15); the circle then sits at that box's foot and answers its scroll.
+export function BackToTop({ scroller }: { scroller?: () => HTMLElement | null } = {}) {
   const [shown, setShown] = React.useState(false)
+  const box = React.useRef<HTMLElement | null>(null)
   React.useEffect(() => {
-    const onScroll = () => setShown(window.scrollY > window.innerHeight)
+    const el = scroller?.() ?? null
+    box.current = el
+    const onScroll = () => setShown(el ? el.scrollTop > el.clientHeight : window.scrollY > window.innerHeight)
     onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+    const target: HTMLElement | Window = el ?? window
+    target.addEventListener("scroll", onScroll, { passive: true })
+    return () => target.removeEventListener("scroll", onScroll)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
     <div className="pointer-events-none sticky bottom-6 z-40 flex h-0 w-full justify-center">
@@ -24,7 +31,7 @@ export function BackToTop() {
         aria-label="Back to top"
         aria-hidden={!shown}
         tabIndex={shown ? 0 : -1}
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        onClick={() => (box.current ?? window).scrollTo({ top: 0, behavior: "smooth" })}
         data-shown={shown}
         className="pointer-events-auto absolute bottom-0 inline-flex size-10 items-center justify-center rounded-full border bg-background text-foreground shadow-md transition-all hover:bg-muted data-[shown=false]:pointer-events-none data-[shown=false]:translate-y-2 data-[shown=false]:opacity-0 [&_svg]:size-4"
       >

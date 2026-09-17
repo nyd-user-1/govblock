@@ -18,15 +18,15 @@ export default function StatesPage() {
     <DocsPage
       title={title}
       description={description}
-      slug="/gdelt/state"
-      previous={{ name: "By day", url: "/gdelt/day" }}
-      next={{ name: "GDELT", url: "/gdelt" }}
+      slug="/mentions/state"
+      previous={{ name: "By day", url: "/mentions/day" }}
+      next={{ name: "Mentions", url: "/mentions" }}
     >
       <RecordList className="mt-0 mb-0">
         {totals.map((row) => (
           <RecordItem
             key={row.code}
-            href={`/gdelt/state/${row.code.toLowerCase()}`}
+            href={`/mentions/state/${row.code.toLowerCase()}`}
             avatar={<FlagChip state={row.code} width={28} />}
             title={row.code === "US" ? "Congress" : stateName(row.code)}
             meta={[`${row.articles.toLocaleString()} articles`, `${row.outlets} outlets`, row.bills ? `${row.bills} bills` : null, `${row.days} of ${days.length} days`]}

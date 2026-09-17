@@ -648,9 +648,11 @@ export function DevInspector() {
         <Chip node={(frozen ?? hover)!} frozen={!!frozen} onRelease={() => setFrozen(null)} />
       )}
 
-      {/* The dock stays while the panel is open (Brendan, 2026-09-12) — the
-          crosshair has to stay reachable with the module up. */}
-      {ready && <Dock
+      {/* Nothing of the inspector sits on the page at rest (Brendan,
+          2026-09-16): the long ⌘C summons it, and the dock stays while it is
+          inspecting, latched or the panel is open — the crosshair has to stay
+          reachable with the module up. */}
+      {ready && (inspecting || latched || open) && <Dock
         inspecting={inspecting}
         onInspect={toggleInspect}
         open={open}

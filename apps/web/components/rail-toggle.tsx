@@ -16,8 +16,8 @@ import { cn } from "@govblock/ui/lib/utils"
 // context has to reach the three layouts that mount the left rail. Remembered
 // per browser.
 
-// "right-2" (Brendan, 2026-09-14) is the sheet inside the right rail's sheet: a second overlay, with its own strip, tab and memory.
-type Side = "left" | "right" | "right-2"
+// "right-2" (Brendan, 2026-09-14) is the sheet inside the right rail's sheet: a second overlay, with its own strip, tab and memory. "right-3" and "right-4" (2026-09-15) repeat it twice more, each inside the last.
+type Side = "left" | "right" | "right-2" | "right-3" | "right-4"
 
 const attr = (side: Side) => `data-rail-${side}`
 const key = (side: Side) => `rail:${side}`
@@ -58,6 +58,29 @@ export function setRail(side: Side, closed: boolean) {
 
 export function toggleRail(side: Side) {
   setRail(side, !isClosed(side))
+}
+
+/**
+ * True from the first moment every one of these rails is open at once, and
+ * from then on: a sheet that reads the API mounts what it holds when a reader
+ * first reaches it, not on every load of every page that wears the frame.
+ * Reads <html> directly, which the pre-paint script has already set.
+ */
+export function useReached(sides: Side[]) {
+  const key = sides.join(",")
+  const [reached, setReached] = React.useState(false)
+  React.useEffect(() => {
+    if (reached) return
+    const check = () => {
+      if ((key.split(",") as Side[]).every((side) => !isClosed(side))) setReached(true)
+    }
+    check()
+    const unsubscribe = subscribe(check)
+    return () => {
+      unsubscribe()
+    }
+  }, [key, reached])
+  return reached
 }
 
 /** Whether a rail is closed, live; the page renders open and the remembered state lands on mount. */
@@ -118,7 +141,13 @@ export function RailStrip({ side }: { side: Side }) {
       onClick={() => setRail(side, false)}
       className={cn(
         "absolute inset-y-0 z-40 hidden w-6 cursor-pointer",
-        side === "left" ? "right-2 [[data-rail-left=closed]_&]:block" : side === "right" ? "left-2 [[data-rail-right=closed]_&]:block" : "left-2 [[data-rail-right-2=closed]_&]:block"
+        {
+          left: "right-2 [[data-rail-left=closed]_&]:block",
+          right: "left-2 [[data-rail-right=closed]_&]:block",
+          "right-2": "left-2 [[data-rail-right-2=closed]_&]:block",
+          "right-3": "left-2 [[data-rail-right-3=closed]_&]:block",
+          "right-4": "left-2 [[data-rail-right-4=closed]_&]:block",
+        }[side]
       )}
     />
   )
