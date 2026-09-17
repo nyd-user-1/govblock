@@ -222,11 +222,13 @@ export function Chamber({ subject, rule, onRule, years, onYear, renderSentence, 
               ["top2", "Open (T2)"],
               ["top4", "Open (T4)"],
             ] as const
-          ).map(([k, label]) => (
-            <Button key={k} variant="outline" size="sm" aria-pressed={rule === k} disabled={(k === "top2" || k === "top4") && !subject.primaries} onClick={() => onRule(k)} className={cn(rule === k ? "border-foreground/60 text-foreground" : "text-muted-foreground")}>
-              {label}
-            </Button>
-          ))}
+          )
+            .filter(([k]) => subject.primaries || (k !== "top2" && k !== "top4"))
+            .map(([k, label]) => (
+              <Button key={k} variant="outline" size="sm" aria-pressed={rule === k} onClick={() => onRule(k)} className={cn(rule === k ? "border-foreground/60 text-foreground" : "text-muted-foreground")}>
+                {label}
+              </Button>
+            ))}
         </div>
         {years.length > 0 && (
           <DropdownMenu>

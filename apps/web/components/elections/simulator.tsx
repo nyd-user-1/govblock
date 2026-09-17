@@ -140,7 +140,7 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
     : subject.kind === "rcv"
       ? [`${parts.length > 2 ? parts.slice(1, -1).join(", ").replace(/^./, (c) => c.toUpperCase()) + " " : ""}${parts[parts.length - 1]}`, `${number.format(subject.contest.ballots)} ballots`]
       : subject.kind === "chamber"
-        ? [`General election ${subject.chamber.year}`, subject.chamber.primaries ? "Primaries on file" : "No primaries on file"]
+        ? [`General election ${subject.chamber.year}`]
         : [`Primaries ${subject.race.year}`]
   const [href, setHref] = React.useState("https://gov.nysgpt.com/simulator")
   React.useEffect(() => setHref(`https://gov.nysgpt.com/simulator${window.location.search}`), [subject, rule, pool])
@@ -309,9 +309,11 @@ function Browse({
   const [races, setRaces] = React.useState<PrimaryRace[] | null>(null)
   const [raceState, setRaceState] = React.useState("")
   const rows = React.useMemo(() => {
-    const out: { st: string; office: string; years: number[] }[] = [{ st: "US", office: "US HOUSE", years: house.map((h) => h.year) }]
+    // Only chamber-years whose primary results are on file, so every row can run the open-primary test.
+    const out: { st: string; office: string; years: number[] }[] = [{ st: "US", office: "US HOUSE", years: house.map((h) => h.year).filter((yy) => primariesFor(years, "US HOUSE", yy)) }]
     const seen = new Map<string, number[]>()
     for (const c of chambers) {
+      if (!primariesFor(years, c.office, c.year)) continue
       const k = `${c.state}|${c.office}`
       seen.set(k, [...(seen.get(k) ?? []), c.year])
     }
@@ -320,7 +322,7 @@ function Browse({
       out.push({ st, office, years: ys.sort((a, b) => b - a) })
     }
     return out
-  }, [house, chambers])
+  }, [house, chambers, years])
   const shown = contests
   React.useEffect(() => {
     const y = years.find((x) => x.year === raceYear)
@@ -373,7 +375,7 @@ function Browse({
                             type="button"
                             onClick={() => {
                               const s = chamberSubject(r.st, r.office, yy)
-                              if (s) onOpen({ kind: "chamber", chamber: s }, { rule: "held" })
+                              if (s) onOpen({ kind: "chamber", chamber: s }, { rule: "all" })
                             }}
                             className="rounded-md border px-1.5 py-0.5 text-xs tabular-nums hover:bg-muted"
                           >

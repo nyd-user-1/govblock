@@ -313,7 +313,7 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
         })}
         {removed.size > 0 && (
           <button type="button" onClick={() => onRemoved(new Set())} className="rounded-full border px-2.5 py-1.5 text-xs leading-none hover:bg-muted">
-            Everyone back
+            All
           </button>
         )}
       </div>
