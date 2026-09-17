@@ -2,10 +2,8 @@ import type { Metadata } from "next"
 
 import type { ContestSummary } from "@/components/elections/ranked-choice"
 import { Simulator, type ChamberView, type HouseView } from "@/components/elections/simulator"
+import { mapViews, rcvContests, topTwoYears } from "@/lib/elections/snapshots"
 import type { TopTwoYear } from "@/components/elections/top-two"
-import CONTESTS from "@/lib/data/elections/rcv-contests.json"
-import VIEWS from "@/lib/data/elections/map-views.json"
-import YEARS from "@/lib/data/elections/top-two-years.json"
 
 // /simulator — Open Primary Simulator. Every view opens on a claim and lets
 // the reader test it against the real count: a chamber's seats by where
@@ -19,12 +17,12 @@ export const metadata: Metadata = {
   description: "Every House and state legislative seat by where it was decided, and what one open primary or a ranked-choice count would have changed, from the real votes.",
 }
 
-export default function SimulatorPage() {
-  const views = VIEWS as { house: (HouseView & Record<string, unknown>)[]; legislatures: (ChamberView & Record<string, unknown>)[] }
+export default async function SimulatorPage() {
+  const [CONTESTS, YEARS, views] = await Promise.all([rcvContests(), topTwoYears(), mapViews()])
   return (
     <Simulator
-      contests={CONTESTS as ContestSummary[]}
-      years={YEARS as TopTwoYear[]}
+      contests={CONTESTS}
+      years={YEARS}
       house={views.house.map(({ year, congress, results }) => ({ year, congress, results })).sort((a, b) => b.year - a.year)}
       chambers={views.legislatures.map(({ year, state, office, results }) => ({ year, state, office, results }))}
     />
