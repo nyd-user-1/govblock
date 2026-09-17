@@ -307,7 +307,7 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
               className={`inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2.5 pl-2 text-xs leading-none hover:bg-muted ${out ? "bg-muted text-muted-foreground line-through" : ""}`}
             >
               <span className="size-2.5 rounded-full" style={out ? { boxShadow: `inset 0 0 0 2px ${colors[i]}` } : { background: colors[i] }} />
-              {person(data.candidates[i])}
+              {surname(data.candidates[i])}
             </button>
           )
         })}

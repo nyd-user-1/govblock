@@ -180,56 +180,45 @@ export function TopTwo({ subject, pool, onPool, renderSentence, renderReading }:
   }, [race, pool, renderSentence])
 
   const can = race ? race.system === "party primaries" && race.complete : false
-  React.useEffect(() => {
-    if (!race) return renderReading(null)
-    const by = new Map(race.candidates.map((c) => [c.name, c]))
-    const adv = can ? advancing(race, pool === "run" ? "two" : pool) : race.general_two
-    const two = pool === "run" || !can ? race.general_two : adv
-    renderReading({
-      title: `November${pool === "four" && can ? ", counted by ranked choice" : ""}`,
-      body: (
-        <>
-          <div className="flex flex-col gap-2">
-            {two.map((nm) => {
-              const c = by.get(nm)
-              const won = nm === race.general_winner
-              return (
-                <div key={nm} className="flex items-baseline justify-between gap-2.5 text-sm">
-                  <span>
-                    <span className="mr-2 inline-block size-2.5 rounded-full" style={{ background: SEAT_COLOR[norm(c?.party)] }} />
-                    {person(nm)} <Party p={c?.party ?? "?"} />
-                  </span>
-                  <span className={`tabular-nums ${won ? "font-semibold" : "text-muted-foreground"}`}>{pool === "run" && c?.general != null ? number.format(c.general) : "—"}</span>
-                </div>
-              )
-            })}
-          </div>
-          {can && pool === "four" && <p className="mt-2.5 text-xs text-muted-foreground">Nobody ranked these candidates, so there is no count to run. The general vote shown under &ldquo;as run&rdquo; is the real one.</p>}
-          {can && pool === "two" && race.differs && <p className="mt-2.5 text-xs text-muted-foreground">The general vote is the real one; a changed November has no count to show.</p>}
-        </>
-      ),
-    })
-  }, [race, pool, can, renderReading])
+  React.useEffect(() => renderReading(null), [renderReading])
 
   if (failed) return <p className="text-sm text-destructive">This race&rsquo;s primaries could not be read.</p>
   if (!race) return <p className="py-16 text-center text-sm text-muted-foreground">Reading the {subject.year} primaries…</p>
+  const by = new Map(race.candidates.map((c) => [c.name, c]))
   return (
     <div className="flex flex-col gap-5">
       <div data-tour="rules">
         <ToggleGroup value={[pool]} onValueChange={(next) => next?.[0] && onPool(next[0] as Pool)} variant="outline" spacing={1}>
           <ToggleGroupItem value="run" className={PRESSED}>
-            Two primaries, as run
+            Two Primaries
           </ToggleGroupItem>
           <ToggleGroupItem value="two" className={PRESSED} disabled={!can}>
-            One primary, top two advance
+            Top Two
           </ToggleGroupItem>
           <ToggleGroupItem value="four" className={PRESSED} disabled={!can}>
-            One primary, top four advance
+            Top Four
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
       <div data-tour="ring">
         <Pooled race={race} pool={can ? pool : "run"} />
+      </div>
+      <hr className="border-0 border-t border-border" />
+      <div className="flex flex-col gap-2">
+        <div className="mb-1 text-[11px] tracking-wider text-muted-foreground uppercase">General Election</div>
+        {(pool === "run" || !can ? race.general_two : advancing(race, pool)).map((nm) => {
+          const c = by.get(nm)
+          const won = nm === race.general_winner
+          return (
+            <div key={nm} className="flex items-baseline justify-between gap-2.5 text-sm">
+              <span>
+                <span className="mr-2 inline-block size-2.5 rounded-full" style={{ background: SEAT_COLOR[norm(c?.party)] }} />
+                {person(nm)} <Party p={c?.party ?? "?"} />
+              </span>
+              <span className={`tabular-nums ${won ? "font-semibold" : "text-muted-foreground"}`}>{pool === "run" && c?.general != null ? number.format(c.general) : "—"}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

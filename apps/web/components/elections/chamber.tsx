@@ -213,7 +213,7 @@ export function Chamber({ subject, rule, onRule, years, onYear, renderSentence, 
   return (
     <div className="flex flex-col gap-5">
       {/* The rules as the member page's Previous and Next buttons, the chosen one in ink; the Sessions menu at the right lists only the years whose primaries are on file. */}
-      <div className="flex flex-wrap items-center gap-2" data-tour="rules">
+      <div className="flex flex-wrap items-center gap-2" data-tour="chamber-rules">
         <div className="space-x-2">
           {(
             [
