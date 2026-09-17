@@ -2,7 +2,11 @@
 
 import * as React from "react"
 
-import { ToggleGroup, ToggleGroupItem } from "@govblock/ui/components/toggle-group"
+import { ChevronDown } from "lucide-react"
+
+import { Button } from "@govblock/ui/components/nova/button"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
+import { cn } from "@govblock/ui/lib/utils"
 
 import { Dot, Hemicycle, SEAT_COLOR } from "@/components/elections/hemicycle"
 import { useTip } from "@/components/elections/tip"
@@ -39,7 +43,6 @@ import {
 export type ChamberSubject = { st: string; office: string; year: number; results: string; primaries?: string }
 export type ChamberRule = "all" | "held" | "top2" | "top4"
 
-const PRESSED = "aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background"
 const number = new Intl.NumberFormat("en-US")
 const P = (p: "D" | "R") => <b className={p === "D" ? "text-[var(--party-d)]" : "text-[var(--party-r)]"}>{PARTY_NAME[p]}</b>
 const Score = ({ t }: { t: Record<string, number> }) =>
@@ -142,7 +145,7 @@ function SeatCard({ st, seat, rule }: { st: string; seat: SimSeat; rule: Chamber
 
 export type Reading = { title: string; body: React.ReactNode } | null
 
-export function Chamber({ subject, rule, onRule, renderSentence, renderReading }: { subject: ChamberSubject; rule: ChamberRule; onRule: (r: ChamberRule) => void; renderSentence: (node: React.ReactNode) => void; renderReading: (r: Reading) => void }) {
+export function Chamber({ subject, rule, onRule, years, onYear, renderSentence, renderReading }: { subject: ChamberSubject; rule: ChamberRule; onRule: (r: ChamberRule) => void; /** The chamber's other years whose primaries are on file, for the Sessions menu. */ years: number[]; onYear: (y: number) => void; renderSentence: (node: React.ReactNode) => void; renderReading: (r: Reading) => void }) {
   const [results, setResults] = React.useState<Results | null>(null)
   const [prim, setPrim] = React.useState<Record<string, PrimaryRace> | null>(null)
   const [failed, setFailed] = React.useState(false)
@@ -209,22 +212,40 @@ export function Chamber({ subject, rule, onRule, renderSentence, renderReading }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2.5" data-tour="rules">
-        <ToggleGroup value={[rule]} onValueChange={(next) => next?.[0] && onRule(next[0] as ChamberRule)} variant="outline" spacing={1}>
-          <ToggleGroupItem value="all" className={PRESSED}>
-            All
-          </ToggleGroupItem>
-          <ToggleGroupItem value="held" className={PRESSED}>
-            Closed
-          </ToggleGroupItem>
-          <ToggleGroupItem value="top2" className={PRESSED} disabled={!subject.primaries}>
-            Open (T2)
-          </ToggleGroupItem>
-          <ToggleGroupItem value="top4" className={PRESSED} disabled={!subject.primaries}>
-            Open (T4)
-          </ToggleGroupItem>
-        </ToggleGroup>
-        {!subject.primaries && <p className="text-xs text-muted-foreground">Open-primary rules need this chamber&rsquo;s primaries, which are not loaded for {subject.year}.</p>}
+      {/* The rules as the member page's Previous and Next buttons, the chosen one in ink; the Sessions menu at the right lists only the years whose primaries are on file. */}
+      <div className="flex flex-wrap items-center gap-2" data-tour="rules">
+        <div className="space-x-2">
+          {(
+            [
+              ["all", "All"],
+              ["held", "Closed"],
+              ["top2", "Open (T2)"],
+              ["top4", "Open (T4)"],
+            ] as const
+          ).map(([k, label]) => (
+            <Button key={k} variant="outline" size="sm" aria-pressed={rule === k} disabled={(k === "top2" || k === "top4") && !subject.primaries} onClick={() => onRule(k)} className={cn(rule === k ? "border-foreground/60 text-foreground" : "text-muted-foreground")}>
+              {label}
+            </Button>
+          ))}
+        </div>
+        {years.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" className="ml-auto">
+                  Sessions <ChevronDown />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-max min-w-44">
+              {years.map((y) => (
+                <DropdownMenuCheckboxItem key={y} className="whitespace-nowrap" checked={y === subject.year} onCheckedChange={() => onYear(y)}>
+                  {y}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div data-tour="ring">

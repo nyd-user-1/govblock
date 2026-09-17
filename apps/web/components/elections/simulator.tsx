@@ -6,7 +6,6 @@ import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { Tabs, TabsContent, TabsContents, TabsList, TabsTrigger } from "@govblock/ui/components/animate-ui/components/animate/tabs"
 import { Button } from "@govblock/ui/components/ny4/button"
-import { Input } from "@govblock/ui/components/input"
 import { NativeSelect, NativeSelectOption } from "@govblock/ui/components/native-select"
 
 import { Chamber, type ChamberRule, type ChamberSubject, type Reading } from "@/components/elections/chamber"
@@ -24,6 +23,7 @@ import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
 import { chamberName, subjectName, type PrimaryRace } from "@/lib/elections/seats"
 import { STATE_NAMES, stateName } from "@/lib/filters"
 import { PARTY_COLORS } from "@/lib/map/palette"
+import { cn } from "@govblock/ui/lib/utils"
 
 // /simulator. Every view opens on a claim and then lets the reader test it
 // against the real count: a chamber's seats by where they were decided and
@@ -60,15 +60,15 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
   const cases = React.useMemo<Case[]>(() => {
     const out: Case[] = []
     const h22 = chamberSubject("US", "US HOUSE", 2022)
-    if (h22) out.push({ title: "288 of 435 House seats were settled before November", hint: "U.S. House 2022 · press Closed, then open the primaries", state: "US", subject: { kind: "chamber", chamber: h22 }, preset: { rule: "held" } })
+    if (h22) out.push({ title: "288 decided in the Primary", hint: "U.S. House 2022", state: "US", subject: { kind: "chamber", chamber: h22 }, preset: { rule: "held" } })
     const ak = contests.find((c) => c.id === "alaska-2022-08-16-us-house-special")
-    if (ak) out.push({ title: "Begich beat everyone one on one. He finished third.", hint: "Alaska special election 2022 · take Palin out", state: "AK", subject: { kind: "rcv", contest: ak }, preset: {} })
+    if (ak) out.push({ title: "Begich beat everyone one on one. He finished third.", hint: "Alaska special election 2022", state: "AK", subject: { kind: "rcv", contest: ak }, preset: {} })
     const wi = chamberSubject("WI", "STATE HOUSE", 2024)
-    if (wi) out.push({ title: "64 of 99 Wisconsin Assembly seats were settled before November", hint: "Wisconsin Assembly 2024 · 16 had no opponent at all", state: "WI", subject: { kind: "chamber", chamber: wi }, preset: { rule: "held" } })
+    if (wi) out.push({ title: "64 of 99 Wisconsin Assembly seats were settled before November", hint: "Wisconsin Assembly 2024", state: "WI", subject: { kind: "chamber", chamber: wi }, preset: { rule: "held" } })
     const y22 = years.find((y) => y.year === 2022)
-    if (y22) out.push({ title: "Two Democrats would have met in November", hint: "Texas 28th, 2022 · pool the primaries", state: "TX", subject: { kind: "race", race: { year: 2022, state: "TX", office: "US HOUSE", district: "28", url: y22.url } }, preset: { pool: "two" } })
+    if (y22) out.push({ title: "Two Democrats would have met in November", hint: "Texas 28th, 2022", state: "TX", subject: { kind: "race", race: { year: 2022, state: "TX", office: "US HOUSE", district: "28", url: y22.url } }, preset: { pool: "two" } })
     const bu = contests.find((c) => c.id === "burlington-2009-03-03-mayor")
-    if (bu) out.push({ title: "Kiss won. Montroll beat him one on one.", hint: "Burlington mayor 2009 · the classic case", state: "VT", subject: { kind: "rcv", contest: bu }, preset: {} })
+    if (bu) out.push({ title: "Kiss won. Montroll beat him one on one.", hint: "Burlington mayor 2009", state: "VT", subject: { kind: "rcv", contest: bu }, preset: {} })
     return out
   }, [contests, years, chamberSubject])
 
@@ -151,6 +151,12 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+  // The chamber's years with both district results and primaries on file, for the Sessions menu.
+  const sessionYears =
+    subject?.kind === "chamber"
+      ? (subject.chamber.st === "US" ? house.map((h) => h.year) : chambers.filter((c) => c.state === subject.chamber.st && c.office === subject.chamber.office).map((c) => c.year)).filter((y) => primariesFor(years, subject.chamber.office, y)).sort((a, b) => b - a)
+      : []
+
   // The rail's contents: the sections as the headings print them, Chart, the reading, Files and Case study under Summary.
   const anchor = (t: string) => `#${t.trim().replace(/\s+/g, "-").replace(/'/g, "").replace(/\?/g, "").toLowerCase()}`
   const toc = [
@@ -227,7 +233,20 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
         <p data-tour="sentence">{sentence}</p>
         <H3>Chart</H3>
         <PreviewFrame>
-          {subject?.kind === "chamber" && <Chamber subject={subject.chamber} rule={rule} onRule={setRule} renderSentence={renderSentence} renderReading={renderReading} />}
+          {subject?.kind === "chamber" && (
+            <Chamber
+              subject={subject.chamber}
+              rule={rule}
+              onRule={setRule}
+              years={sessionYears}
+              onYear={(y) => {
+                const s = chamberSubject(subject.chamber.st, subject.chamber.office, y)
+                if (s) open({ kind: "chamber", chamber: s }, { rule: rule === "all" ? "held" : rule })
+              }}
+              renderSentence={renderSentence}
+              renderReading={renderReading}
+            />
+          )}
           {subject?.kind === "rcv" && <RankedChoice contest={subject.contest} removed={removed} onRemoved={setRemoved} renderSentence={renderSentence} renderReading={renderReading} />}
           {subject?.kind === "race" && <TopTwo subject={subject.race} pool={pool} onPool={setPool} renderSentence={renderSentence} renderReading={renderReading} />}
         </PreviewFrame>
@@ -244,10 +263,10 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
           <Browse contests={contests} years={years} house={house} chambers={chambers} chamberSubject={chamberSubject} onOpen={(s, p) => open(s, p)} />
         </div>
         <H3>Case study</H3>
-        <ul className="mt-4 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3" data-not-typeset="true" data-tour="cases">
+        <ul className="mt-4 grid list-none grid-cols-6 gap-3 p-0" data-not-typeset="true" data-tour="cases">
           {cases.map((c, i) => (
-            <li key={c.title} className="m-0 p-0">
-              <button type="button" onClick={() => open(c.subject, c.preset)} aria-current={i === caseIndex ? "true" : undefined} className="flex h-full w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left hover:border-foreground aria-[current=true]:border-foreground">
+            <li key={c.title} className={cn("m-0 p-0", i < 3 ? "col-span-3 sm:col-span-2" : "col-span-3")}>
+              <button type="button" onClick={() => open(c.subject, c.preset)} aria-current={i === caseIndex ? "true" : undefined} className="flex h-full w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left hover:bg-muted aria-[current=true]:bg-muted">
                 <FlagChip state={c.state} width={20} />
                 <span className="text-sm leading-tight font-semibold text-balance">{c.title}</span>
                 <span className="text-xs text-muted-foreground">{c.hint}</span>
@@ -286,7 +305,6 @@ function Browse({
   chamberSubject: (st: string, office: string, year: number) => ChamberSubject | null
   onOpen: (s: Subject, preset: Preset) => void
 }) {
-  const [query, setQuery] = React.useState("")
   const [raceYear, setRaceYear] = React.useState<number>(years[0]?.year ?? 2022)
   const [races, setRaces] = React.useState<PrimaryRace[] | null>(null)
   const [raceState, setRaceState] = React.useState("")
@@ -303,10 +321,7 @@ function Browse({
     }
     return out
   }, [house, chambers])
-  const shown = React.useMemo(() => {
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-    return contests.filter((c) => words.every((w) => `${c.title} ${c.state} ${c.winner}`.toLowerCase().includes(w))).slice(0, 60)
-  }, [contests, query])
+  const shown = contests
   React.useEffect(() => {
     const y = years.find((x) => x.year === raceYear)
     if (!y) return
@@ -333,7 +348,7 @@ function Browse({
       </TabsList>
       <TabsContents>
         <TabsContent value="chambers">
-          <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border">
+          <div className="mt-3 max-h-[300px] overflow-y-auto rounded-xl border">
             <table className={TABLE}>
               <thead>
                 <tr>
@@ -360,7 +375,7 @@ function Browse({
                               const s = chamberSubject(r.st, r.office, yy)
                               if (s) onOpen({ kind: "chamber", chamber: s }, { rule: "held" })
                             }}
-                            className="rounded-md border px-1.5 py-0.5 text-xs tabular-nums hover:border-foreground"
+                            className="rounded-md border px-1.5 py-0.5 text-xs tabular-nums hover:bg-muted"
                           >
                             {yy}
                           </button>
@@ -374,8 +389,7 @@ function Browse({
           </div>
         </TabsContent>
         <TabsContent value="rcv">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Place, office, year or winner" className="mt-3" />
-          <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border">
+          <div className="mt-3 max-h-[300px] overflow-y-auto rounded-xl border">
             <table className={TABLE}>
               <thead>
                 <tr>
@@ -386,7 +400,7 @@ function Browse({
               </thead>
               <tbody>
                 {shown.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onOpen({ kind: "rcv", contest: c }, {})}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-muted" onClick={() => onOpen({ kind: "rcv", contest: c }, {})}>
                     <td>{c.title}</td>
                     <td className="whitespace-nowrap text-muted-foreground">{longDate(c.date)}</td>
                     <td className="text-right text-muted-foreground tabular-nums">{number.format(c.ballots)}</td>
@@ -402,7 +416,6 @@ function Browse({
               </tbody>
             </table>
           </div>
-          {shown.length === 60 && <p className="mt-2 text-xs text-muted-foreground">The first 60 of {contests.length}; narrow the search for the rest.</p>}
         </TabsContent>
         <TabsContent value="primaries">
           <div className="mt-3 flex gap-2">
@@ -421,7 +434,7 @@ function Browse({
               ))}
             </NativeSelect>
           </div>
-          <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border">
+          <div className="mt-3 max-h-[300px] overflow-y-auto rounded-xl border">
             <table className={TABLE}>
               <thead>
                 <tr>
@@ -438,7 +451,7 @@ function Browse({
                   </tr>
                 )}
                 {raceList.map((r) => (
-                  <tr key={`${r.state}-${r.office}-${r.district}-${r.label}`} className="cursor-pointer hover:bg-muted/50" onClick={() => y && onOpen({ kind: "race", race: { year: r.year, state: r.state, office: r.office, district: r.district, url: y.url } }, { pool: r.complete && r.system === "party primaries" ? "two" : "run" })}>
+                  <tr key={`${r.state}-${r.office}-${r.district}-${r.label}`} className="cursor-pointer hover:bg-muted" onClick={() => y && onOpen({ kind: "race", race: { year: r.year, state: r.state, office: r.office, district: r.district, url: y.url } }, { pool: r.complete && r.system === "party primaries" ? "two" : "run" })}>
                     <td>{raceName(r)}</td>
                     <td className="text-muted-foreground">{r.system !== "party primaries" ? r.system : r.complete ? (r.same_party ? "same-party top two" : "counted") : "not counted"}</td>
                   </tr>

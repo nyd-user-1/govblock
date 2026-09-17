@@ -107,17 +107,18 @@ export function Rounds({ data, removed, colors, onHover }: { data: Ballots; remo
   const W = 640
   const RH = 36
   const GAP = 62
-  const LEFT = 52
-  const RIGHT = 104
+  const LEFT = 0
+  const RIGHT = 0
+  const TOP = 18
   const inner = W - LEFT - RIGHT
   const total = data.ballots
   const order = [...Array(n).keys()].filter((i) => !removed.has(i)).sort((a, b) => (count.rounds[0].votes[b] ?? 0) - (count.rounds[0].votes[a] ?? 0))
   const rows = count.rounds
-  const H = rows.length * RH + (rows.length - 1) * GAP + 30
+  const H = TOP + rows.length * RH + (rows.length - 1) * GAP + 8
   const segs: Record<number, { x: number; w: number }>[] = []
   const marks: React.ReactNode[] = []
   rows.forEach((r, ri) => {
-    const y = ri * (RH + GAP)
+    const y = TOP + ri * (RH + GAP)
     let x = LEFT
     const cont = order.reduce((a, i) => a + (r.votes[i] ?? 0), 0)
     const m: Record<number, { x: number; w: number }> = {}
@@ -165,35 +166,18 @@ export function Rounds({ data, removed, colors, onHover }: { data: Ballots; remo
     if (exW > 0) marks.push(<rect key={`ex-${ri}`} x={x} y={y} width={exW} height={RH} fill="url(#rcv-hatch)" />)
     const mx = LEFT + (cont / 2 / total) * inner
     marks.push(<line key={`mj-${ri}`} x1={mx} y1={y - 4} x2={mx} y2={y + RH + 4} stroke="currentColor" strokeWidth={1.5} />)
-    if (ri === 0)
+    if (rows.length > 1)
       marks.push(
-        <text key="mjl" x={mx} y={y - 8} fontSize={11} textAnchor="middle" fill="#737373">
-          majority
-        </text>
-      )
-    marks.push(
-      <text key={`rl-${ri}`} x={LEFT - 8} y={y + RH / 2 + 4} fontSize={11} textAnchor="end" fill="#737373">
-        Round {ri + 1}
-      </text>
-    )
-    if (r.out != null)
-      marks.push(
-        <text key={`out-${ri}`} x={LEFT + inner + 6} y={y + RH / 2 + 4} fontSize={11} fill="#737373">
-          − {surname(data.candidates[r.out])}
-        </text>
-      )
-    else if (count.winner >= 0)
-      marks.push(
-        <text key={`win-${ri}`} x={LEFT + inner + 6} y={y + RH / 2 + 4} fontSize={11} fill="currentColor" fontWeight={600}>
-          {surname(data.candidates[count.winner])} {pct(r.votes[count.winner] ?? 0, cont)}
+        <text key={`rl-${ri}`} x={LEFT} y={y - 6} fontSize={11} fill="#737373">
+          Round {ri + 1}
         </text>
       )
     segs.push(m)
   })
   const ribbons: React.ReactNode[] = []
   tr.forEach((t, ri) => {
-    const y0 = ri * (RH + GAP) + RH
-    const y1 = (ri + 1) * (RH + GAP)
+    const y0 = TOP + ri * (RH + GAP) + RH
+    const y1 = TOP + (ri + 1) * (RH + GAP)
     const from = segs[ri][t.from]
     if (!from) return
     let fx = from.x
@@ -224,18 +208,7 @@ export function Rounds({ data, removed, colors, onHover }: { data: Ballots; remo
 export function OneOnOne({ data, wins, removed, colors }: { data: Ballots; wins: number[][]; removed: ReadonlySet<number>; colors: string[] }) {
   const idx = [...Array(data.candidates.length).keys()].filter((i) => !removed.has(i) && !/write-?in/i.test(data.candidates[i])).slice(0, 8)
   return (
-    <table className="w-full border-collapse text-[13.5px] tabular-nums">
-      <caption className="pt-2 text-left text-xs text-muted-foreground [caption-side:bottom]">Share of ballots that rank the row&rsquo;s candidate above the column&rsquo;s. Green cells are wins.</caption>
-      <thead>
-        <tr>
-          <th className="border-b py-2 pr-3 text-left" />
-          {idx.map((j) => (
-            <th key={j} className="border-b px-3 py-2 text-right text-xs font-medium text-muted-foreground" title={data.candidates[j]}>
-              {surname(data.candidates[j])}
-            </th>
-          ))}
-        </tr>
-      </thead>
+    <table className="w-full border-collapse border-t text-[13.5px] tabular-nums">
       <tbody>
         {idx.map((i) => (
           <tr key={i}>
@@ -308,27 +281,7 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
     renderSentence(data && count ? rcvSentence(data, count, wins, removed) : null)
   }, [data, count, wins, removed, renderSentence])
 
-  React.useEffect(() => {
-    if (!data || !count) return renderReading(null)
-    const cw = condorcetWinner(wins, removed)
-    renderReading({
-      title: "One on one",
-      body: (
-        <>
-          <p className="mb-3 text-sm">
-            {cw >= 0 ? (
-              <>
-                <b>{person(data.candidates[cw])}</b> beats every other candidate one on one{count.winner >= 0 && cw !== count.winner ? ", and still loses the count" : ""}.
-              </>
-            ) : (
-              "No candidate beats every other one on one."
-            )}
-          </p>
-          <OneOnOne data={data} wins={wins} removed={removed} colors={colors} />
-        </>
-      ),
-    })
-  }, [data, count, wins, removed, colors, renderReading])
+  React.useEffect(() => renderReading(null), [renderReading])
 
   if (failed) return <p className="text-sm text-destructive">The ballots for this contest could not be read.</p>
   if (!data || !count) return <p className="py-16 text-center text-sm text-muted-foreground">Reading {number.format(contest.ballots)} ballots…</p>
@@ -351,7 +304,7 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
                 else next.add(i)
                 onRemoved(next)
               }}
-              className={`inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2.5 pl-2 text-xs leading-none ${out ? "bg-muted text-muted-foreground line-through" : ""}`}
+              className={`inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2.5 pl-2 text-xs leading-none hover:bg-muted ${out ? "bg-muted text-muted-foreground line-through" : ""}`}
             >
               <span className="size-2.5 rounded-full" style={out ? { boxShadow: `inset 0 0 0 2px ${colors[i]}` } : { background: colors[i] }} />
               {person(data.candidates[i])}
@@ -359,13 +312,16 @@ export function RankedChoice({ contest, removed, onRemoved, renderSentence, rend
           )
         })}
         {removed.size > 0 && (
-          <button type="button" onClick={() => onRemoved(new Set())} className="rounded-full border px-2.5 py-1.5 text-xs leading-none">
+          <button type="button" onClick={() => onRemoved(new Set())} className="rounded-full border px-2.5 py-1.5 text-xs leading-none hover:bg-muted">
             Everyone back
           </button>
         )}
       </div>
       <div data-tour="ring">
         <Rounds data={data} removed={removed} colors={colors} onHover={(body, e) => (body && e ? tip.show(body, e) : tip.hide())} />
+      </div>
+      <div className="mt-2" data-tour="reading">
+        <OneOnOne data={data} wins={wins} removed={removed} colors={colors} />
       </div>
       {tip.node}
     </div>
