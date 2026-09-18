@@ -52,8 +52,11 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
           <RailStrip side="left" />
           <DocsSidebar />
         </div>
-        {/* The strips' 24px kept clear on either side. */}
-        <div className="flex min-w-0 flex-1 flex-col px-6">{children}</div>
+        {/* The strips' 24px kept clear on either side. The column scrolls on
+            its own (2026-09-17): the Map in the right sheet is a designer
+            surface, and the site layout pins any page holding one to the
+            viewport, so /research, /state and the rest could not scroll. */}
+        <div className="flex h-[calc(100svh-var(--header-height))] min-w-0 flex-1 flex-col overflow-y-auto px-6">{children}</div>
         {/* The right sheet's left edge is half a rem short of the left line, so its own line (left-2) lands on it; closed, 24px stay in view. */}
         <div className={`${SHEET} right-0 w-[calc(100%-17rem)] [&>[data-slot=sidebar]]:w-full! [[data-rail-left=closed]_&]:w-[calc(100%-0.5rem)] [[data-rail-right=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
           <RailStrip side="right" />
