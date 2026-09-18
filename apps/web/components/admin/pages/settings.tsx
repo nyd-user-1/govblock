@@ -6,6 +6,7 @@ import { CheckIcon, CopyIcon, CreditCardIcon, KeyIcon, PlusIcon, RefreshCwIcon, 
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { Applicant } from "@/components/admin/pages/applicant"
 import { useAdminNav } from "@/components/admin/nav"
+import { SocialAccounts } from "@/components/posts/social-accounts"
 import { Avatar, AvatarFallback } from "@govblock/ui/components/nova/avatar"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -182,6 +183,7 @@ function Profile() {
           <Field label="Bio">
             <Textarea value={form?.bio ?? ""} onChange={(e) => set("bio", e.target.value)} rows={3} />
           </Field>
+          <SocialAccounts />
         </CardContent>
         <CardFooter className="gap-2">
           <Button onClick={save} disabled={saving || signedOut || !form}>

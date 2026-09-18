@@ -40,7 +40,7 @@ export function EventPopover({
   children: (open: boolean) => React.ReactElement
 }) {
   const { formSide } = useCalendar()
-  const { removeEvent, updateEvent, details, kind } = useCalendarEvents()
+  const { removeEvent, updateEvent, details } = useCalendarEvents()
   const { editingId, openEvent, closeEvent } = useEventEditor()
 
   const open = anchored && editingId === event.id
@@ -70,7 +70,7 @@ export function EventPopover({
           <PopoverContent
             side={formSide}
             sideOffset={8}
-            className={kind === "post" ? "w-96 p-2" : "w-74 p-2"}
+            className="w-74 p-2"
             // The content only mounts while it is open, which re-seeds the
             // form every time.
           >

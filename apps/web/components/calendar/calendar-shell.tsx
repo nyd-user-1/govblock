@@ -73,7 +73,7 @@ function CalendarLayout({ title = "Calendar", rail = <CalendarRail />, children 
   )
 }
 
-// /calendar by default; /posts hands in its own source, route and rail.
+// /calendar's hearings by default; another source, route and rail can be handed in.
 export function CalendarShell({ base, useSource = useHearingSource, children, ...layout }: ShellProps) {
   return (
     <CalendarProvider base={base} useSource={useSource}>

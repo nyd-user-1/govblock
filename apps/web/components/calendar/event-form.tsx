@@ -24,8 +24,6 @@ import {
 } from "@govblock/ui/components/nova/select"
 import { Textarea } from "@govblock/ui/components/nova/textarea"
 
-import { PostForm } from "@/components/posts/post-form"
-
 import {
   useCalendarEvents,
   useLatest,
@@ -46,7 +44,7 @@ interface FormState {
   description: string
 }
 
-export function parseDateTime(date: string, time: string): Date | null {
+function parseDateTime(date: string, time: string): Date | null {
   if (!date) {
     return null
   }
@@ -79,7 +77,7 @@ function range(data: FormState): { start: Date; end: Date } | null {
   return start && end ? { start, end } : null
 }
 
-export function DateField({
+function DateField({
   value,
   onChange,
   label,
@@ -128,7 +126,7 @@ export function DateField({
   )
 }
 
-export function TimeField({
+function TimeField({
   value,
   onChange,
   label,
@@ -158,15 +156,9 @@ export interface EventFormProps {
   onEscape?: () => void
 }
 
-// A post on /posts has a text and a place to go instead of an end and notes.
-export function EventForm(props: EventFormProps) {
-  const { kind } = useCalendarEvents()
-  return kind === "post" ? <PostForm {...props} /> : <CalendarEventForm {...props} />
-}
-
 // An event to edit, or the draft being drawn on the grid. The form owns
 // neither: it hands back what changed and the caller decides what that means.
-function CalendarEventForm({
+export function EventForm({
   event,
   draft,
   onUpdate,
@@ -415,7 +407,7 @@ function CalendarEventForm({
   )
 }
 
-export function EditorAnchor() {
+function EditorAnchor() {
   useRegisterEditorAnchor()
   return null
 }

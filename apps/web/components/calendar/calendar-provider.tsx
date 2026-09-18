@@ -178,12 +178,10 @@ function useCalendarState(base: string): CalendarContextValue {
 // Events store (useCalendarEvents)
 
 /**
- * Where a calendar's events come from and go to: /calendar's hearings and the
- * reader's own events, or /posts' LinkedIn posts. The views, the drag and the
- * form are the same over either.
+ * Where a calendar's events come from and go to: /calendar's are the
+ * hearings and the reader's own events (hearing-source.tsx).
  */
 export interface EventSource {
-  kind: "event" | "post"
   /** What a draft is called until it has a title. */
   defaultTitle: string
   calendars: Calendar[]
@@ -200,7 +198,6 @@ export interface EventSource {
 }
 
 interface EventsContextValue {
-  kind: EventSource["kind"]
   defaultTitle: string
   calendars: Calendar[]
   hiddenCalendars: string[]
@@ -314,7 +311,6 @@ function useEventsState(source: EventSource): EventsContextValue {
   )
 
   return {
-    kind: source.kind,
     defaultTitle: source.defaultTitle,
     calendars,
     hiddenCalendars,
@@ -455,7 +451,7 @@ function useDraftState(
   const origin = React.useRef<HTMLElement | null>(null)
   const gesture = React.useRef<Gesture | null>(null)
 
-  const { calendars, hiddenCalendars, addEvent, kind, defaultTitle } = events
+  const { calendars, hiddenCalendars, addEvent, defaultTitle } = events
   const { date, pathFor, navigate } = calendar
 
   const draftEvent = React.useMemo<CalendarEvent | null>(
@@ -534,20 +530,10 @@ function useDraftState(
       start: toLocalISO(current.start),
       end: toLocalISO(current.end),
       allDay: current.allDay || undefined,
-      post:
-        kind === "post"
-          ? {
-              title: current.title,
-              target: current.target ?? "profile",
-              status: "draft",
-              error: null,
-              urls: [],
-            }
-          : undefined,
     })
 
     discardDraft()
-  }, [addEvent, discardDraft, draftRef, kind, defaultTitle])
+  }, [addEvent, discardDraft, draftRef, defaultTitle])
 
   // The `+` button, `n` and the command palette. They draw on the date the
   // route is on rather than navigating somewhere else.

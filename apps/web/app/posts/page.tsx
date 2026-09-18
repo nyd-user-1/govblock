@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation"
-import { getLocalTimeZone, today } from "@internationalized/date"
+import { PostsWorkspace } from "@/components/posts/posts-workspace"
 
-export default function PostsIndexPage() {
-  redirect(`/posts/week/${today(getLocalTimeZone()).toString()}`)
+export default function PostsPage() {
+  return <PostsWorkspace />
 }

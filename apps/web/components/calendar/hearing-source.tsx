@@ -140,7 +140,6 @@ export function useHearingSource(): EventSource {
   )
 
   return {
-    kind: "event",
     defaultTitle: "New Event",
     calendars,
     store,

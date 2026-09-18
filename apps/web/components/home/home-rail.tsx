@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { BookOpen, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search, Settings } from "lucide-react"
+import { BookOpen, FileClock, FileText, Globe, History, Home, LayoutGrid, Newspaper, Search, Settings, Users } from "lucide-react"
 
 import { useAccount } from "@/lib/auth/use-account"
 import { AGENT_PAGES, hasItems, siteConfig, withScope } from "@/lib/config"
@@ -105,6 +105,9 @@ export function SiteRail() {
     item("news", "/news", "News", glyph(Newspaper), news),
     item("workspace", "/workspace", "Workspace", glyph(LayoutGrid), workspace),
   ]
+  // The record's groups fold like the nodes above them (Brendan, 2026-09-17),
+  // rather than standing open as lists under their own labels.
+  const recordNodes: RailItem[] = record.map((g) => item(g.key, g.items[0]?.href ?? "/bills", g.label, glyph(g.key === "committees" ? Users : FileClock), g.items))
   const account_: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
 
   return (
@@ -124,9 +127,7 @@ export function SiteRail() {
       </SidebarGroup>
       <RailGroup items={top} />
       <RailGroup items={nodes} />
-      {record.map((g) => (
-        <RailGroup key={g.key} label={g.label} items={g.items} />
-      ))}
+      <RailGroup items={recordNodes} />
       <RailGroup items={account_} className="border-t pt-3" />
     </>
   )
