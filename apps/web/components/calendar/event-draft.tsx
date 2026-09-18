@@ -8,7 +8,6 @@ import { formatTime } from "@/lib/calendar/dates"
 import { cn } from "@govblock/ui/lib/utils"
 
 import {
-  DEFAULT_TITLE,
   useCalendar,
   useCalendarEvents,
   useEventDraft,
@@ -46,14 +45,14 @@ export function EventDraft({
     discardDraft,
     commitDraft,
   } = useEventDraft()
-  const { calendars } = useCalendarEvents()
+  const { calendars, defaultTitle } = useCalendarEvents()
 
   useRegisterDraftAnchor()
 
   const color =
     calendars.find((calendar) => calendar.id === draft?.calendarId)?.color ??
     "blue"
-  const title = draft?.title || DEFAULT_TITLE
+  const title = draft?.title || defaultTitle
   const times =
     draft && !draft.allDay
       ? `${formatTime(draft.start)} – ${formatTime(draft.end)}`

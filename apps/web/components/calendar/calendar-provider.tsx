@@ -23,11 +23,6 @@ import {
   type RangeTitle,
 } from "@/lib/calendar/dates"
 import {
-  chamberCalendars,
-  hearingsToEvents,
-  isHearingEvent,
-} from "@/lib/calendar/hearings"
-import {
   DRAFT_EVENT_ID,
   DRAG_THRESHOLD,
   minutesInColumn,
@@ -41,10 +36,6 @@ import type {
   EventDraft,
   GridTarget,
 } from "@/lib/calendar/types"
-import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import type { Hearing } from "@/lib/policy/types"
-import { useLocal } from "@/lib/policy/use-local"
-import { usePolicy } from "@/lib/policy/use-policy"
 
 // A ref that always holds the latest value, synced after render so handlers
 // and effects read the current one without the render depending on it.
@@ -90,7 +81,7 @@ export function useCalendar() {
   return value
 }
 
-function useCalendarState(): CalendarContextValue {
+function useCalendarState(base: string): CalendarContextValue {
   const params = useParams<{ view?: string; date?: string }>()
   const router = useRouter()
 
@@ -139,8 +130,8 @@ function useCalendarState(): CalendarContextValue {
 
   const pathFor = React.useCallback(
     (target: CalendarDate, targetView: CalendarView = view) =>
-      `/calendar/${targetView}/${target.toString()}`,
-    [view]
+      `${base}/${targetView}/${target.toString()}`,
+    [base, view]
   )
 
   const navigate = React.useCallback(
@@ -186,7 +177,31 @@ function useCalendarState(): CalendarContextValue {
 // ---------------------------------------------------------------------------
 // Events store (useCalendarEvents)
 
+/**
+ * Where a calendar's events come from and go to: /calendar's hearings and the
+ * reader's own events, or /posts' LinkedIn posts. The views, the drag and the
+ * form are the same over either.
+ */
+export interface EventSource {
+  kind: "event" | "post"
+  /** What a draft is called until it has a title. */
+  defaultTitle: string
+  calendars: Calendar[]
+  store: Record<string, CalendarEvent>
+  loading: boolean
+  add: (event: CalendarEvent) => void
+  update: (event: CalendarEvent) => void
+  remove: (id: string) => void
+  /** Beneath an event's form in its popover. */
+  details?: (event: CalendarEvent) => React.ReactNode
+  // The jurisdiction the rail's Jurisdiction select moves.
+  state: string
+  setState: (state: string) => void
+}
+
 interface EventsContextValue {
+  kind: EventSource["kind"]
+  defaultTitle: string
   calendars: Calendar[]
   hiddenCalendars: string[]
   toggleCalendar: (id: string) => void
@@ -197,22 +212,9 @@ interface EventsContextValue {
   addEvent: (event: CalendarEvent) => void
   updateEvent: (event: CalendarEvent) => void
   removeEvent: (id: string) => void
-  // The jurisdiction whose committee hearings fill the calendar.
+  details?: EventSource["details"]
   state: string
   setState: (state: string) => void
-}
-
-const MINE_KEY = "livingston:calendar-events"
-
-// The hearings are fetched a window at a time around the visible date, so
-// paging through months never asks for the whole session at once.
-function fetchWindow(date: CalendarDate) {
-  const anchor = toDate(date)
-  const from = new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1)
-  const to = new Date(anchor.getFullYear(), anchor.getMonth() + 2, 0)
-  const iso = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-  return { from: iso(from), to: iso(to) }
 }
 
 const EventsContext = React.createContext<EventsContextValue | null>(null)
@@ -227,49 +229,8 @@ export function useCalendarEvents() {
 
 const HIDDEN_KEY = "calendar:hidden-calendars"
 
-function useEventsState(): EventsContextValue {
-  const params = useParams<{ view?: string; date?: string }>()
-  const date = React.useMemo(
-    () => (params.date && parseCalendarDate(params.date)) || todayDate(),
-    [params.date]
-  )
-  // The calendar used to keep its own jurisdiction in localStorage. It reads
-  // the shared scope now, so the header's switcher moves it and its own
-  // Jurisdiction select (which stays) writes the same place.
-  const { state, setState, session, isDefaultSession } = useJurisdiction()
-  const span = React.useMemo(() => fetchWindow(date), [date])
-  const { data: hearings, isLoading } = usePolicy<Hearing[]>(
-    "hearings",
-    isDefaultSession ? { state } : { state, session: String(session) },
-    { from: span.from, to: span.to, limit: 6000 }
-  )
-
-  // The user's own events stay in this browser; the hearings come from the
-  // policy database and are read-only.
-  const [mine, setMine] = useLocal<Record<string, CalendarEvent>>(MINE_KEY, {})
-  const [fetched, setFetched] = React.useState<Record<string, CalendarEvent>>(
-    {}
-  )
-
-  React.useEffect(() => {
-    if (!hearings) return
-    setFetched((current) => {
-      const next = { ...current }
-      for (const event of hearingsToEvents(hearings)) {
-        next[event.id] = event
-      }
-      return next
-    })
-  }, [hearings])
-
-  // A new jurisdiction starts from an empty calendar.
-  React.useEffect(() => {
-    setFetched({})
-  }, [state])
-
-  const store = React.useMemo(() => ({ ...fetched, ...mine }), [fetched, mine])
-  const loading = isLoading && Object.keys(fetched).length === 0
-  const calendars = React.useMemo(() => chamberCalendars(state), [state])
+function useEventsState(source: EventSource): EventsContextValue {
+  const { store, calendars } = source
 
   const [hiddenCalendars, setHiddenCalendars] = React.useState<string[]>([])
 
@@ -352,51 +313,22 @@ function useEventsState(): EventsContextValue {
     [eventsForDay]
   )
 
-  const addEvent = React.useCallback(
-    (event: CalendarEvent) => {
-      setMine((current) => ({
-        ...current,
-        [event.id]: { ...event, calendarId: "mine" },
-      }))
-    },
-    [setMine]
-  )
-
-  // Hearings are the legislature's schedule, not yours: they do not move.
-  const updateEvent = React.useCallback(
-    (event: CalendarEvent) => {
-      if (isHearingEvent(event.id)) return
-      setMine((current) =>
-        current[event.id] ? { ...current, [event.id]: event } : current
-      )
-    },
-    [setMine]
-  )
-
-  const removeEvent = React.useCallback(
-    (id: string) => {
-      if (isHearingEvent(id)) return
-      setMine((current) => {
-        const { [id]: _removed, ...rest } = current
-        return rest
-      })
-    },
-    [setMine]
-  )
-
   return {
+    kind: source.kind,
+    defaultTitle: source.defaultTitle,
     calendars,
     hiddenCalendars,
     toggleCalendar,
     events,
     eventsForDay,
     eventsForDays,
-    loading,
-    addEvent,
-    updateEvent,
-    removeEvent,
-    state,
-    setState,
+    loading: source.loading,
+    addEvent: source.add,
+    updateEvent: source.update,
+    removeEvent: source.remove,
+    details: source.details,
+    state: source.state,
+    setState: source.setState,
   }
 }
 
@@ -469,7 +401,6 @@ export function useRegisterEditorAnchor() {
 // The draft being drawn on a grid (useEventDraft)
 
 const DEFAULT_HOUR = 9
-export const DEFAULT_TITLE = "New Event"
 
 interface DraftContextValue {
   draft: EventDraft | null
@@ -524,7 +455,7 @@ function useDraftState(
   const origin = React.useRef<HTMLElement | null>(null)
   const gesture = React.useRef<Gesture | null>(null)
 
-  const { calendars, hiddenCalendars, addEvent } = events
+  const { calendars, hiddenCalendars, addEvent, kind, defaultTitle } = events
   const { date, pathFor, navigate } = calendar
 
   const draftEvent = React.useMemo<CalendarEvent | null>(
@@ -598,15 +529,25 @@ function useDraftState(
     addEvent({
       id: crypto.randomUUID(),
       calendarId: current.calendarId,
-      title: current.title || DEFAULT_TITLE,
+      title: current.title || defaultTitle,
       description: current.description || undefined,
       start: toLocalISO(current.start),
       end: toLocalISO(current.end),
       allDay: current.allDay || undefined,
+      post:
+        kind === "post"
+          ? {
+              title: current.title,
+              target: current.target ?? "profile",
+              status: "draft",
+              error: null,
+              urls: [],
+            }
+          : undefined,
     })
 
     discardDraft()
-  }, [addEvent, discardDraft, draftRef])
+  }, [addEvent, discardDraft, draftRef, kind, defaultTitle])
 
   // The `+` button, `n` and the command palette. They draw on the date the
   // route is on rather than navigating somewhere else.
@@ -1059,9 +1000,19 @@ function isTypingTarget(target: EventTarget | null): boolean {
   )
 }
 
-export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const calendar = useCalendarState()
-  const events = useEventsState()
+export function CalendarProvider({
+  base = "/calendar",
+  useSource,
+  children,
+}: {
+  /** The route the views live under: `${base}/${view}/${date}`. */
+  base?: string
+  /** Called once per render, like any hook; a provider never changes source. */
+  useSource: () => EventSource
+  children: React.ReactNode
+}) {
+  const calendar = useCalendarState(base)
+  const events = useEventsState(useSource())
   const editor = useEditorState()
   const draft = useDraftState(calendar, events)
   const move = useMoveState(events)

@@ -24,8 +24,9 @@ import {
 } from "@govblock/ui/components/nova/select"
 import { Textarea } from "@govblock/ui/components/nova/textarea"
 
+import { PostForm } from "@/components/posts/post-form"
+
 import {
-  DEFAULT_TITLE,
   useCalendarEvents,
   useLatest,
   useRegisterEditorAnchor,
@@ -45,7 +46,7 @@ interface FormState {
   description: string
 }
 
-function parseDateTime(date: string, time: string): Date | null {
+export function parseDateTime(date: string, time: string): Date | null {
   if (!date) {
     return null
   }
@@ -78,7 +79,7 @@ function range(data: FormState): { start: Date; end: Date } | null {
   return start && end ? { start, end } : null
 }
 
-function DateField({
+export function DateField({
   value,
   onChange,
   label,
@@ -127,7 +128,7 @@ function DateField({
   )
 }
 
-function TimeField({
+export function TimeField({
   value,
   onChange,
   label,
@@ -148,24 +149,32 @@ function TimeField({
   )
 }
 
-// An event to edit, or the draft being drawn on the grid. The form owns
-// neither: it hands back what changed and the caller decides what that means.
-export function EventForm({
-  event,
-  draft,
-  onUpdate,
-  onSave,
-  onRemove,
-  onEscape,
-}: {
+export interface EventFormProps {
   event?: CalendarEvent
   draft?: EventDraft
   onUpdate?: (patch: Partial<EventDraft>) => void
   onSave?: (event: CalendarEvent) => void
   onRemove?: (id: string) => void
   onEscape?: () => void
-}) {
-  const { calendars } = useCalendarEvents()
+}
+
+// A post on /posts has a text and a place to go instead of an end and notes.
+export function EventForm(props: EventFormProps) {
+  const { kind } = useCalendarEvents()
+  return kind === "post" ? <PostForm {...props} /> : <CalendarEventForm {...props} />
+}
+
+// An event to edit, or the draft being drawn on the grid. The form owns
+// neither: it hands back what changed and the caller decides what that means.
+function CalendarEventForm({
+  event,
+  draft,
+  onUpdate,
+  onSave,
+  onRemove,
+  onEscape,
+}: EventFormProps) {
+  const { calendars, defaultTitle } = useCalendarEvents()
 
   const [state, setState] = React.useState<FormState>(() => {
     const source = event ?? draft
@@ -283,7 +292,7 @@ export function EventForm({
           autoFocus
           value={state.title}
           maxLength={100}
-          placeholder={DEFAULT_TITLE}
+          placeholder={defaultTitle}
           aria-label="Title"
           onChange={(change) => patch({ title: change.target.value })}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -406,7 +415,7 @@ export function EventForm({
   )
 }
 
-function EditorAnchor() {
+export function EditorAnchor() {
   useRegisterEditorAnchor()
   return null
 }

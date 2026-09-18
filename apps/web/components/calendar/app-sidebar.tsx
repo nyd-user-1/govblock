@@ -30,7 +30,7 @@ export function CalendarRail() {
 }
 
 /** The same rail as a sheet below `lg`, where the shell's rail has no room. */
-export function CalendarMenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function CalendarMenuSheet({ open, onOpenChange, children }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 p-0 lg:hidden">
@@ -38,7 +38,7 @@ export function CalendarMenuSheet({ open, onOpenChange }: { open: boolean; onOpe
           <SheetTitle>Menu</SheetTitle>
           <SheetDescription>Calendar navigation</SheetDescription>
         </SheetHeader>
-        <CalendarRail />
+        {children}
       </SheetContent>
     </Sheet>
   )

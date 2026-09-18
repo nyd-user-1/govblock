@@ -12,7 +12,9 @@ import {
   CalendarProvider,
   useCalendar,
   useEventDraft,
+  type EventSource,
 } from "./calendar-provider"
+import { useHearingSource } from "./hearing-source"
 import { MonthView } from "./month-view"
 import { WeekView } from "./week-view"
 
@@ -21,7 +23,15 @@ import { WeekView } from "./week-view"
 // it. The rail is the site rail with the month at its top, open on arrival,
 // since the rail is what this page is for.
 
-function CalendarLayout({ children }: { children: React.ReactNode }) {
+interface ShellProps {
+  title?: string
+  rail?: React.ReactNode
+  base?: string
+  useSource?: () => EventSource
+  children: React.ReactNode
+}
+
+function CalendarLayout({ title = "Calendar", rail = <CalendarRail />, children }: Omit<ShellProps, "base" | "useSource">) {
   const { view, isSearchOpen } = useCalendar()
   const { draft } = useEventDraft()
   const pathname = usePathname()
@@ -40,7 +50,7 @@ function CalendarLayout({ children }: { children: React.ReactNode }) {
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
-            <BlockShell defaultOpen rail={<CalendarRail />} title="Calendar" contentClassName="overflow-hidden">
+            <BlockShell defaultOpen rail={rail} title={title} contentClassName="overflow-hidden">
               <div className="flex min-h-0 flex-1 flex-col">
                 <CalendarHeader onOpenMenu={() => setMenuOpen(true)} />
                 <div className="flex min-h-0 flex-1 flex-col">
@@ -52,7 +62,9 @@ function CalendarLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <CalendarMenuSheet open={menuOpen} onOpenChange={setMenuOpen} />
+      <CalendarMenuSheet open={menuOpen} onOpenChange={setMenuOpen}>
+        {rail}
+      </CalendarMenuSheet>
 
       {children}
 
@@ -61,10 +73,11 @@ function CalendarLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function CalendarShell({ children }: { children: React.ReactNode }) {
+// /calendar by default; /posts hands in its own source, route and rail.
+export function CalendarShell({ base, useSource = useHearingSource, children, ...layout }: ShellProps) {
   return (
-    <CalendarProvider>
-      <CalendarLayout>{children}</CalendarLayout>
+    <CalendarProvider base={base} useSource={useSource}>
+      <CalendarLayout {...layout}>{children}</CalendarLayout>
     </CalendarProvider>
   )
 }

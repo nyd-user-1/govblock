@@ -81,6 +81,15 @@ applications:
                 if [ -n "$value" ]; then printf '%s=%s\n' "$name" "$value" >> .env.production; fi
               done
               echo "resend env present: $(grep -c '^RESEND_' .env.production) of 2"
+            # LinkedIn, for /posts (2026-09-17): the app's client ID and
+            # secret, and the secret the minute-by-minute publisher call
+            # carries. Same rule: written only when Amplify holds the value.
+            - |
+              for name in LINKEDIN_CLIENT_ID LINKEDIN_CLIENT_SECRET LINKEDIN_CRON_SECRET LINKEDIN_ORGANIZATION; do
+                eval "value=\${$name:-}"
+                if [ -n "$value" ]; then printf '%s=%s\n' "$name" "$value" >> .env.production; fi
+              done
+              echo "linkedin env present: $(grep -c '^LINKEDIN_' .env.production) of 4"
             - pnpm -C ../.. exec turbo build --filter=web
             # Amplify caps a build output at 220 MB and job 237 came in at
             # 246 MB. Turbopack writes a source map beside every server chunk —

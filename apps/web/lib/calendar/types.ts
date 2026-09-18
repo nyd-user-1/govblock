@@ -1,3 +1,5 @@
+import type { PostStatus, PostTarget } from "@/lib/linkedin/types"
+
 export type CalendarView = "day" | "week" | "month"
 
 export interface DateRange {
@@ -24,6 +26,17 @@ export interface CalendarEvent {
   start: string
   end: string
   allDay?: boolean
+  /** A LinkedIn post on /posts: the calendar entry is when it goes out. */
+  post?: PostFields
+}
+
+export interface PostFields {
+  /** The post's own label, empty when the chip shows the opening of its text. */
+  title: string
+  target: PostTarget
+  status: PostStatus
+  error: string | null
+  urls: string[]
 }
 
 export interface EventDraft {
@@ -33,6 +46,7 @@ export interface EventDraft {
   title: string
   calendarId: string
   description: string
+  target?: PostTarget
 }
 
 // Where a gesture started, and what it should draw there. The month grid has
