@@ -55,7 +55,9 @@ export default async function ResearchPage() {
           ) : (
             <p className="text-sm text-muted-foreground">The studies could not be counted just now.</p>
           )}
-          <p className="text-sm text-muted-foreground">More studies are in progress.</p>
+          <p className="text-sm text-muted-foreground">
+            More at <Link href="/reports">Reports</Link>.
+          </p>
         </section>
 
         <section className="flex flex-col gap-3">

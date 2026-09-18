@@ -7,6 +7,9 @@ import { CheckIcon, CopyIcon } from "lucide-react"
 import { CONGRESS, STATE_CODES, stateName } from "@/lib/filters"
 import type { StateStats } from "@/lib/policy/state-stats"
 import { CHARTS, StateChart, type ChartId } from "@/components/charts/state-charts"
+import { ReportChart } from "@/components/reports/report-chart"
+import type { ChartSpec } from "@/lib/reports/chart-spec"
+import { reportBySlug } from "@/lib/reports/registry"
 import { FlagChip } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@govblock/ui/components/nova/select"
@@ -24,6 +27,16 @@ export function Studio({ initialState }: { initialState: string }) {
   const [stats, setStats] = React.useState<StateStats | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [copied, setCopied] = React.useState<string | null>(null)
+  // The reports' charts (2026-09-17): drawn from their own counts, not a jurisdiction's.
+  const [reportCharts, setReportCharts] = React.useState<ChartSpec[]>([])
+  const [reportId, setReportId] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    fetch("/api/reports/charts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setReportCharts)
+      .catch(() => {})
+  }, [])
+  const reportChart = reportCharts.find((c) => c.id === reportId) ?? null
   React.useEffect(() => {
     let alive = true
     setLoading(true)
@@ -37,7 +50,8 @@ export function Studio({ initialState }: { initialState: string }) {
       alive = false
     }
   }, [state])
-  const embed = typeof window !== "undefined" ? `${window.location.origin}/state/${state.toLowerCase()}/charts/embed?chart=${chart}` : ""
+  const origin = typeof window !== "undefined" ? window.location.origin : ""
+  const embed = reportChart ? `${origin}${reportBySlug(reportChart.report)?.href ?? "/reports"}` : `${origin}/state/${state.toLowerCase()}/charts/embed?chart=${chart}`
   const copy = async (what: string, text: string) => {
     await navigator.clipboard.writeText(text)
     setCopied(what)
@@ -70,19 +84,40 @@ export function Studio({ initialState }: { initialState: string }) {
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {CHARTS.map((c) => (
               <li key={c.id} className="m-0 p-0">
-                <button type="button" onClick={() => setChart(c.id)} className={cn("w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent", chart === c.id && "bg-accent font-medium")}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChart(c.id)
+                    setReportId(null)
+                  }}
+                  className={cn("w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent", !reportChart && chart === c.id && "bg-accent font-medium")}
+                >
                   {c.title}
                 </button>
               </li>
             ))}
           </ul>
         </div>
+        {reportCharts.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">From the reports</span>
+            <ul className="m-0 flex list-none flex-col gap-1 p-0">
+              {reportCharts.map((c) => (
+                <li key={c.id} className="m-0 p-0">
+                  <button type="button" onClick={() => setReportId(c.id)} className={cn("w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent", reportId === c.id && "bg-accent font-medium")}>
+                    {c.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <Button variant="outline" size="sm" onClick={() => copy("embed", embed)} className="justify-start gap-2">
             {copied === "embed" ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
             Copy embed link
           </Button>
-          <Button variant="outline" size="sm" onClick={() => copy("json", JSON.stringify(stats, null, 1))} disabled={!stats} className="justify-start gap-2">
+          <Button variant="outline" size="sm" onClick={() => copy("json", JSON.stringify(reportChart ?? stats, null, 1))} disabled={!reportChart && !stats} className="justify-start gap-2">
             {copied === "json" ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
             Copy the numbers as JSON
           </Button>
@@ -92,6 +127,11 @@ export function Studio({ initialState }: { initialState: string }) {
           </Button>
         </div>
       </aside>
+      {reportChart ? (
+        <section className="flex flex-col">
+          <ReportChart spec={reportChart} />
+        </section>
+      ) : (
       <section className="flex min-h-[420px] flex-col gap-4 rounded-xl border bg-card p-6">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-base font-semibold">{CHARTS.find((c) => c.id === chart)?.title}</h2>
@@ -99,6 +139,7 @@ export function Studio({ initialState }: { initialState: string }) {
         </div>
         {stats ? <StateChart id={chart} stats={stats} /> : <p className="text-sm text-muted-foreground">{loading ? <LoadingFlag /> : "Nothing on the record for this jurisdiction."}</p>}
       </section>
+      )}
     </div>
   )
 }
