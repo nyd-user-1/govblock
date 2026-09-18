@@ -37,9 +37,9 @@ export default async function HouseElectionsReport() {
     <DocsPage
       title={title}
       description={`Every House general election from ${first?.year} to ${last?.year}, every state legislative chamber from ${firstLeg?.year} to ${lastLeg?.year}, and ${fmtNumber(s.rcv.contests)} ranked-choice counts, read from the returns in the order the work was done.`}
-      slug="/reports/house-elections"
-      previous={{ name: "Open primaries", url: "/reports/open-primaries" }}
-      next={{ name: "Where Congress's money comes from", url: "/reports/fec-money" }}
+      slug="/research/house-elections"
+      previous={{ name: "Open primaries", url: "/research/open-primaries" }}
+      next={{ name: "Where Congress's money comes from", url: "/research/fec-money" }}
       rail={
         <DocsTableOfContents
           toc={[

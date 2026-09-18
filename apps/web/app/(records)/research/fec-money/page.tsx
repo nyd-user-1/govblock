@@ -34,9 +34,9 @@ export default async function FecMoneyReport() {
     <DocsPage
       title={title}
       description={`The 2024 cycle for ${fmtNumber(s.members)} members of Congress in the record, from the FEC's own numbers: where the money came from, in what size of gift, and what outside groups spent for and against them.`}
-      slug="/reports/fec-money"
-      previous={{ name: "Reports", url: "/reports" }}
-      next={{ name: "Government forms", url: "/reports/government-forms" }}
+      slug="/research/fec-money"
+      previous={{ name: "Research", url: "/research" }}
+      next={{ name: "Government forms", url: "/research/government-forms" }}
       rail={
         <DocsTableOfContents
           toc={[

@@ -4,7 +4,7 @@ import { ArrowRightIcon } from "lucide-react"
 import { fmtDate } from "@/lib/format"
 import { REPORTS } from "@/lib/reports/registry"
 
-// /reports' own reports as cards (2026-09-17): what it asks, how it is laid
+// /research's reports as cards (2026-09-17): what it asks, how it is laid
 // out, which bodies of data it reads.
 
 export function ReportCards() {

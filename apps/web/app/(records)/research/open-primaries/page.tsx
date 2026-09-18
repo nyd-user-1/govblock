@@ -33,9 +33,9 @@ export default async function OpenPrimariesReport() {
     <DocsPage
       title={title}
       description={`${fmtNumber(s.bills)} bills in ${fmtNumber(s.states)} jurisdictions since 2009 on who may vote in a primary, the thirteen that became law, and the money behind the 2024 ballot measures, in the order the work was done.`}
-      slug="/reports/open-primaries"
-      previous={{ name: "H.R. 1", url: "/reports/hr1-trace" }}
-      next={{ name: "Fifty years of House elections", url: "/reports/house-elections" }}
+      slug="/research/open-primaries"
+      previous={{ name: "H.R. 1", url: "/research/hr1-trace" }}
+      next={{ name: "Fifty years of House elections", url: "/research/house-elections" }}
       rail={
         <DocsTableOfContents
           toc={[

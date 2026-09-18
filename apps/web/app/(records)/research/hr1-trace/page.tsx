@@ -17,7 +17,7 @@ const title = "H.R. 1, from the lobbyists to the vote to the money"
 export const metadata: Metadata = { title, description: "The most-lobbied bill of the 119th Congress, followed across the bill's record, its lobbying disclosures, both chambers' roll calls and the FEC." }
 export const revalidate = 86400
 
-const money = (x: number) => `$${(x / 1e6).toFixed(1)} million`
+const money = (x: number) => (x >= 1e9 ? `$${(x / 1e9).toFixed(2)} billion` : `$${(x / 1e6).toFixed(1)} million`)
 const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000)
 
 const SOURCES = [
@@ -39,15 +39,15 @@ export default async function Hr1TraceReport() {
   const noTwice = Object.entries(noBoth).filter(([, count]) => count === 2).map(([name]) => name)
   const m = s.massie
   const opposed = m.opposed.reduce((a, o) => a + o.total, 0)
-  const ratio = s.lobbying.nextFilings ? s.lobbying.filings / s.lobbying.nextFilings : 0
+  const ratio = s.lobbying.nextFilings ? s.lobbying.named / s.lobbying.nextFilings : 0
 
   return (
     <DocsPage
       title={title}
       description="The most-lobbied bill of the 119th Congress, followed across four records in the order the work was done: the bill, the lobbying disclosures that named it, both chambers' roll calls, and the outside money in the cycle after."
-      slug="/reports/hr1-trace"
-      previous={{ name: "Reports", url: "/reports" }}
-      next={{ name: "Open primaries", url: "/reports/open-primaries" }}
+      slug="/research/hr1-trace"
+      previous={{ name: "Research", url: "/research" }}
+      next={{ name: "Open primaries", url: "/research/open-primaries" }}
       rail={
         <DocsTableOfContents
           toc={[
@@ -96,18 +96,18 @@ export default async function Hr1TraceReport() {
           id="lobbying"
           mark="LDA"
           source="Lobbying disclosures"
-          did="Every Lobbying Disclosure Act filing that named H.R. 1, counted once each."
+          did="Every Lobbying Disclosure Act filing that named H.R. 1, and the money each reported."
           returned={
             <>
               <p>
-                {fmtNumber(s.lobbying.filings)} filings, {fmtNumber(s.lobbying.clients)} clients, {fmtNumber(s.lobbying.firms)} registrants. The next most-named bill of the Congress, {s.lobbying.nextKey.replace(/^119-/, "").replace("-", " ")}, drew {fmtNumber(s.lobbying.nextFilings)}.
+                {fmtNumber(s.lobbying.named)} filings named the bill; the next most-named of the Congress, {s.lobbying.nextKey.replace(/^119-/, "").replace("-", " ")}, drew {fmtNumber(s.lobbying.nextFilings)}. With amendments folded into the filings they replace, {fmtNumber(s.lobbying.filings)} quarterly reports from {fmtNumber(s.lobbying.clients)} clients and {fmtNumber(s.lobbying.firms)} registrants, reporting {money(s.lobbying.dollars)} in lobbying spending.
               </p>
               <Table>
                 <thead>
                   <tr>
-                    <th className="w-[60%]">Client</th>
-                    <th className="text-right">Filings</th>
-                    <th className="pr-8 text-right">Firms</th>
+                    <th className="w-[55%]">Client</th>
+                    <th className="text-right">Reports</th>
+                    <th className="pr-8 text-right">Reported spending</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -115,17 +115,17 @@ export default async function Hr1TraceReport() {
                     <tr key={c.client}>
                       <td>{c.client}</td>
                       <td className="text-right tabular-nums">{fmtNumber(c.filings)}</td>
-                      <td className="pr-8 text-right tabular-nums">{fmtNumber(c.firms)}</td>
+                      <td className="pr-8 text-right tabular-nums">{money(c.dollars)}</td>
                     </tr>
                   ))}
                 </tbody>
               </Table>
             </>
           }
-          reading="A filing reports its client's spending across every bill it names, so no dollar figure can be laid on H.R. 1 alone; the trace counts filings and clients instead. The quarter the bill passed is the one to watch: a client files for the quarter in which it lobbied."
+          reading="A disclosure reports one figure for the quarter: what the client spent lobbying on everything, of which H.R. 1 was one item. So the dollars are the total spent by the clients who lobbied on the bill, in the quarters they lobbied on it: the money in the room, not a price on the bill. An amendment replaces the report it corrects, so each client, firm and quarter is counted once."
           output={
             <p>
-              {fmtNumber(s.lobbying.filings)} filings from {fmtNumber(s.lobbying.clients)} clients, about {Math.round(ratio)} times the next most-lobbied bill. The peak was {s.peak.label}, with {fmtNumber(s.peak.filings)} filings from {fmtNumber(s.peak.clients)} clients.
+              {money(s.lobbying.dollars)} in reported lobbying spending by {fmtNumber(s.lobbying.clients)} clients who named the bill, on about {Math.round(ratio)} times as many filings as the next most-lobbied bill. The peak was {s.peak.label}{s.peak.label === "2025 Q2" ? ", the quarter it passed the House" : ""}: {money(s.peak.dollars)} from {fmtNumber(s.peak.clients)} clients.
             </p>
           }
         >
@@ -252,7 +252,7 @@ export default async function Hr1TraceReport() {
           did="The four records, put together."
           returned={
             <ul>
-              <li>The bill was lobbied by more clients than any other of the Congress, and the lobbying peaked in the quarter it passed.</li>
+              <li>The bill was lobbied by more clients than any other of the Congress, {money(s.lobbying.dollars)} of reported spending among them, and the lobbying peaked in the quarter it passed.</li>
               <li>It passed each chamber with no margin to spare: one vote in the House, the Vice President&apos;s in the Senate.</li>
               <li>The one House Republican who voted against it at both votes became one of the most opposed members of his party in the next cycle, and raised more from small donors than he had in 2024.</li>
             </ul>

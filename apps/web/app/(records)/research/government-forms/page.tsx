@@ -29,9 +29,9 @@ export default async function GovernmentFormsReport() {
     <DocsPage
       title={title}
       description={`${fmtNumber(s.total)} PDFs catalogued from federal, New York State and New York City agencies, ${fmtNumber(s.inspected)} of them opened and measured.`}
-      slug="/reports/government-forms"
-      previous={{ name: "Where Congress's money comes from", url: "/reports/fec-money" }}
-      next={{ name: "Reports", url: "/reports" }}
+      slug="/research/government-forms"
+      previous={{ name: "Where Congress's money comes from", url: "/research/fec-money" }}
+      next={{ name: "Research", url: "/research" }}
       rail={
         <DocsTableOfContents
           toc={[
