@@ -44,7 +44,7 @@ export default async function CryptoMoneyReport() {
       description={`Fairshake, Defend American Jobs and Protect Progress spent ${money(spent)} for and against ${fmtNumber(s.spending.members)} members of Congress in 2024 and 2026. This report sets that money against every member's vote on the industry's bills.`}
       slug="/research/crypto-money"
       previous={{ name: "Research", url: "/research" }}
-      next={{ name: "H.R. 1", url: "/research/hr1" }}
+      next={{ name: "Who wrote the One Big Beautiful Bill?", url: "/research/who-wrote-obbb" }}
       rail={
         <DocsTableOfContents
           toc={[
