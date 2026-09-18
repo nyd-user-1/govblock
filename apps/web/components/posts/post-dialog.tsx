@@ -47,7 +47,7 @@ function initial(editing: NonNullable<Editing>): Draft {
 export function PostDialog({ editing, onClose, data }: { editing: Editing; onClose: () => void; data: Posts }) {
   return (
     <Dialog open={!!editing} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[350px] w-[500px] flex-col gap-3 sm:max-w-[500px] has-data-images:h-[420px]" showCloseButton={false}>
+      <DialogContent className="flex h-[350px] w-[500px] flex-col gap-3 sm:max-w-[500px] has-data-images:h-[420px]">
         {editing && <Body key={"post" in editing ? editing.post.id : editing.at.toISOString()} editing={editing} onClose={onClose} data={data} />}
       </DialogContent>
     </Dialog>
@@ -125,7 +125,7 @@ function Body({ editing, onClose, data }: { editing: NonNullable<Editing>; onClo
         void addFiles([...e.dataTransfer.files])
       }}
     >
-      <div className="flex items-center gap-2 pr-1">
+      <div className="flex items-center gap-2 pr-8">
         <DialogTitle className="sr-only">{post ? "Edit post" : "New post"}</DialogTitle>
         <input
           autoFocus={!locked}

@@ -1,14 +1,14 @@
-import Link from "next/link"
-
-import { fmtDate, fmtNumber } from "@/lib/format"
+import { fmtDate } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
 import { chamberName, getRollCallSessions, sessionName, sessionSlug } from "@/lib/policy/roll-call-queries"
 import { DocsPage } from "@/components/docs-page"
 import { DocsTableOfContents } from "@/components/docs-toc"
-import { H2, Table } from "@/components/typeset"
+import { H2 } from "@/components/typeset"
+
+import { SessionViews } from "./session-views"
 
 // Roll-call votes, on the Bulk Datasets page's shape: a section per congress,
-// and under it each chamber's sessions, the table alone (Brendan, 2026-09-17:
+// and under it each chamber's sessions as a table or as cards, the block alone (Brendan, 2026-09-17:
 // no prose above it, and Rolls as the last roll number rather than a range).
 // Open a session to see its votes, and a vote to see how every member voted —
 // congress.gov/roll-call-votes, drawn from our own two records.
@@ -38,42 +38,27 @@ export default async function RollCallVotesPage() {
       rail={<DocsTableOfContents toc={toc} />}
     >
       {congresses.length === 0 && <p>No roll calls on file yet.</p>}
-      {congresses.map((congress) => (
-        <div key={congress}>
-          <hr />
+      {/* A section per congress, a rule between each and the same air above
+          and below it, as the simulator's sections stand (2026-09-17). */}
+      {congresses.map((congress, i) => (
+        <section key={congress}>
+          {i > 0 && <hr className="my-[45px] border-0 border-t border-border" />}
           <H2 id={`congress-${congress}`}>{congressName(1789 + (congress - 1) * 2)}</H2>
-          <Table>
-            <thead>
-              <tr>
-                <th className="w-[22%]">Chamber</th>
-                <th className="w-[22%]">Session</th>
-                <th className="w-[24%]">Sitting</th>
-                <th className="w-[10%] text-right">Rolls</th>
-                <th className="w-[10%] text-right">On bills</th>
-                <th className="w-[12%] pr-8 text-right">Votes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions
-                .filter((s) => s.congress === congress)
-                .map((s) => (
-                  <tr key={sessionSlug(s.chamber, s.congress, s.session)}>
-                    <td>
-                      <Link href={`/roll-call-votes/${sessionSlug(s.chamber, s.congress, s.session)}`}>{chamberName(s.chamber)}</Link>
-                    </td>
-                    <td>{sessionName(s.session)}</td>
-                    <td className="whitespace-nowrap">
-                      {s.first_date ? fmtDate(s.first_date, false) : "—"}
-                      {s.last_date ? ` – ${fmtDate(s.last_date)}` : ""}
-                    </td>
-                    <td className="text-right tabular-nums">{s.last_roll}</td>
-                    <td className="text-right tabular-nums">{fmtNumber(s.on_bills)}</td>
-                    <td className="pr-8 text-right tabular-nums">{fmtNumber(s.votes)}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </Table>
-        </div>
+          <SessionViews
+            rows={sessions
+              .filter((s) => s.congress === congress)
+              .map((s) => ({
+                key: sessionSlug(s.chamber, s.congress, s.session),
+                href: `/roll-call-votes/${sessionSlug(s.chamber, s.congress, s.session)}`,
+                chamber: chamberName(s.chamber) as "House" | "Senate",
+                session: sessionName(s.session),
+                sitting: `${s.first_date ? fmtDate(s.first_date, false) : "—"}${s.last_date ? ` – ${fmtDate(s.last_date)}` : ""}`,
+                rolls: s.last_roll,
+                onBills: s.on_bills,
+                votes: s.votes,
+              }))}
+          />
+        </section>
       ))}
     </DocsPage>
   )
