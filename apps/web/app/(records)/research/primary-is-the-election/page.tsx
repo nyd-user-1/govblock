@@ -31,7 +31,7 @@ export default async function PrimaryIsTheElectionReport() {
       description={`Every House general election from ${s.cycles[0]?.year} to ${last?.year}, and the primary vote behind every seat settled before November from ${s.deciders[0]?.year} to ${recent?.year}.`}
       slug="/research/primary-is-the-election"
       previous={{ name: "Where bills go to die", url: "/research/where-bills-die" }}
-      next={{ name: "Research", url: "/research" }}
+      next={{ name: "The paperwork wall", url: "/research/paperwork-wall" }}
       rail={
         <DocsTableOfContents
           toc={[
