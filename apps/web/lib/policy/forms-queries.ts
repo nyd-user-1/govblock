@@ -409,3 +409,58 @@ export async function presignForm(key: string, expiresIn = 900): Promise<string 
 
   return `https://${host}${path}?${canonicalQuery}&X-Amz-Signature=${signature}`
 }
+
+/* -------------------------------------------------- fillable, for research */
+
+export type FillableSort = "number" | "title" | "agency" | "pages" | "fields"
+
+export type FillableQuery = { q?: string | null; agency?: string | null; sort?: FillableSort; dir?: "asc" | "desc"; page?: number; limit?: number }
+
+export type FillableResult = { count: number; rows: FormRow[]; agencies: { gov: string; agency: string; count: number }[] }
+
+const FILLABLE_ORDER: Record<FillableSort, string[]> = {
+  number: ["number"],
+  title: ["lower(nullif(f.title, ''))"],
+  agency: ["f.gov", "f.agency"],
+  pages: ["f.pages"],
+  fields: [FIELDS],
+}
+
+/**
+ * Every fetched PDF with at least one field to type into, across the federal,
+ * New York State and New York City harvests (2026-09-18): the table at the
+ * foot of /research/government-forms. Searchable on number, title and file,
+ * filterable by agency (`GOV:AGENCY`), sortable on any column.
+ */
+export async function getFillableForms(input: FillableQuery): Promise<FillableResult> {
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
+  const page = Math.max(input.page ?? 1, 1)
+  const term = (input.q ?? "").trim()
+  const [gov, agency] = (input.agency ?? "").split(":")
+  const params: unknown[] = []
+  const where = [FETCHED, `${FIELDS} > 0`]
+  if (term) {
+    params.push(`%${term.toUpperCase()}%`, `%${term.toLowerCase()}%`)
+    where.push(`(upper(f.form_number) like $${params.length - 1} or lower(f.title) like $${params.length} or lower(f.s3_key) like $${params.length})`)
+  }
+  const scoped = where.join(" and ")
+  const filtered = gov && agency ? `${scoped} and f.gov = $${params.length + 1} and f.agency = $${params.length + 2}` : scoped
+  const rowParams = gov && agency ? [...params, gov, agency] : params
+  const dir = input.dir === "desc" ? "desc" : "asc"
+  const order = FILLABLE_ORDER[input.sort ?? "fields"] ?? [FIELDS]
+  const [rows, counted, facets] = await Promise.all([
+    q<Record<string, unknown>>(
+      `select ${SELECT} from "Forms" f where ${filtered}
+       order by ${order.map((o) => `${o} ${dir} nulls last`).join(", ")}, f.id asc
+       limit ${limit} offset ${(page - 1) * limit}`,
+      rowParams
+    ),
+    q<Record<string, unknown>>(`select count(*)::int as n from "Forms" f where ${filtered}`, rowParams),
+    q<Record<string, unknown>>(`select f.gov, f.agency, count(*)::int as n from "Forms" f where ${scoped} group by 1, 2 order by 3 desc`, params),
+  ])
+  return {
+    count: Number(counted[0]?.n ?? 0),
+    rows: rows.map(row),
+    agencies: facets.map((r) => ({ gov: String(r.gov ?? ""), agency: String(r.agency ?? ""), count: Number(r.n ?? 0) })),
+  }
+}

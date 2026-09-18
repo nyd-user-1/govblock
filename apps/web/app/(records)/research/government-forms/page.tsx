@@ -4,6 +4,7 @@ import { fmtNumber } from "@/lib/format"
 import { formsStudy } from "@/lib/reports/forms"
 import { DocsPage } from "@/components/docs-page"
 import { DocsTableOfContents } from "@/components/docs-toc"
+import { FillableFormsTable } from "@/components/reports/fillable-forms-table"
 import { ReportChart } from "@/components/reports/report-chart"
 import { H2, Table } from "@/components/typeset"
 
@@ -41,6 +42,7 @@ export default async function GovernmentFormsReport() {
             { title: "3. Where the copy came from", url: "#copy", depth: 2 },
             { title: "4. How long they are", url: "#length", depth: 2 },
             { title: "5. Counting rules", url: "#rules", depth: 2 },
+            { title: "6. Every fillable form", url: "#fillable-forms", depth: 2 },
           ]}
         />
       }
@@ -133,6 +135,10 @@ export default async function GovernmentFormsReport() {
         <li>From the Archive means the copy held is the Internet Archive&apos;s capture of the agency&apos;s address, as the harvest recorded it. Not retrieved means the harvest has no copy of the file.</li>
         <li>The agency table lists the fourteen largest publishers. Recounted when the page is built, at most once a day. Data and findings are CC BY 4.0.</li>
       </ul>
+
+      <H2 id="fillable-forms">6. Every fillable form</H2>
+      <p>All {fmtNumber(s.fillable)} PDFs with at least one field to type into. Each opens on its form page, with its fields read out.</p>
+      <FillableFormsTable />
     </DocsPage>
   )
 }
