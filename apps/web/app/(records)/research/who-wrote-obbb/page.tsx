@@ -30,7 +30,7 @@ export default async function WhoWroteObbbReport() {
       description={`${fmtNumber(s.totals.clients)} clients named H.R. 1 in ${fmtNumber(s.totals.filings)} lobbying filings. This report reads what they said they lobbied on, sorts it into twenty provisions, and checks each against the enacted text of Public Law 119-21.`}
       slug="/research/who-wrote-obbb"
       previous={{ name: "Crypto money and the crypto votes", url: "/research/crypto-money" }}
-      next={{ name: "Research", url: "/research" }}
+      next={{ name: "Copy-and-paste lawmaking", url: "/research/model-bills" }}
       rail={
         <DocsTableOfContents
           toc={[
