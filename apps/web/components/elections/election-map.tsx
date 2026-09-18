@@ -13,14 +13,24 @@ import { LAYER, NO_DATA, PARTY_COLORS, RAMP } from "@/lib/map/palette"
 // seats the rule left them with (lib/elections/seats). A district the rule
 // changed — flipped by a swing, or moved to November by an open primary —
 // wears a dark outline. A district with no race that year (half a senate
-// is up) is drawn blank. The House opens on the contiguous states, the
-// frame /map opens on; a state chamber frames its own districts, so
-// Alaska's Aleutians never stretch the view around the world.
+// is up) is drawn blank. The House opens on the contiguous states; a state
+// chamber frames its own districts, so Alaska's Aleutians never stretch the
+// view around the world.
+//
+// Either frame is fitted, never a fixed zoom: this stage keeps the rail open
+// and a 400px panel beside it, so it has about half the room /map's has, and
+// the country has to be sized to the room it is given. It is fitted again
+// when the rail opens or the window changes, until the reader moves the map
+// themselves.
 
 export type ColorBy = "party" | "margin"
 export const BANDS = ["Under 5 points", "5 to 10", "10 to 20", "20 or more", "No opponent"]
 const SPLIT = "#a78bfa"
-const CONUS = { longitude: -96.5, latitude: 38.5, zoom: 3.4 }
+const CONUS: [[number, number], [number, number]] = [
+  [-124.8, 24.4],
+  [-66.9, 49.4],
+]
+const PAD = 24
 
 /** 0 close (under 5 points) … 3 safe (20 or more) … 4 nobody ran against the winner. */
 function band(seats: SimSeat[] | undefined) {
@@ -50,6 +60,9 @@ export function ElectionMap({
   onHover?: (key: string | null, e?: MapLayerMouseEvent) => void
 }) {
   const ref = React.useRef<MapRef>(null)
+  const stage = React.useRef<HTMLDivElement>(null)
+  /** Set once the reader pans or zooms: their view outranks a refit. */
+  const moved = React.useRef(false)
   const [data, setData] = React.useState<GeoJSON.FeatureCollection | null>(null)
   const [hovered, setHovered] = React.useState<string | null>(null)
 
@@ -90,13 +103,39 @@ export function ElectionMap({
     }
   }, [data, byKey])
 
+  const fit = React.useCallback(
+    (duration: number) => {
+      if (!ref.current) return
+      if (frame === "conus") return void ref.current.fitBounds(CONUS, { padding: PAD, duration })
+      if (!data) return
+      const box = empty()
+      for (const f of data.features) grow(box, f.geometry)
+      if (!isEmpty(box)) ref.current.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: PAD, duration })
+    },
+    [data, frame]
+  )
+
   React.useEffect(() => {
-    if (!data || !ref.current) return
-    if (frame === "conus") return void ref.current.easeTo({ center: [CONUS.longitude, CONUS.latitude], zoom: CONUS.zoom, duration: 700 })
-    const box = empty()
-    for (const f of data.features) grow(box, f.geometry)
-    if (!isEmpty(box)) ref.current.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 40, duration: 700 })
-  }, [data, frame])
+    moved.current = false
+    fit(700)
+  }, [fit])
+
+  // The rail opening and the window changing both take room from the stage;
+  // the country is sized to whatever is left.
+  React.useEffect(() => {
+    const el = stage.current
+    if (!el) return
+    let t: ReturnType<typeof setTimeout>
+    const ro = new ResizeObserver(() => {
+      clearTimeout(t)
+      t = setTimeout(() => !moved.current && fit(0), 150)
+    })
+    ro.observe(el)
+    return () => {
+      clearTimeout(t)
+      ro.disconnect()
+    }
+  }, [fit])
 
   const fill =
     colorBy === "party"
@@ -106,13 +145,16 @@ export function ElectionMap({
   const keyAt = (e: MapLayerMouseEvent) => (e.features?.[0]?.properties as { key?: string } | undefined)?.key ?? null
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={stage} className="relative h-full w-full">
       <MapGL
         ref={ref}
-        initialViewState={CONUS}
+        initialViewState={{ bounds: CONUS, fitBoundsOptions: { padding: PAD } }}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}
         interactiveLayerIds={["districts-fill"]}
+        onMoveStart={(e) => {
+          if (e.originalEvent) moved.current = true
+        }}
         onMouseMove={(e) => {
           const k = keyAt(e)
           setHovered(k)
