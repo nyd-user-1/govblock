@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import type { ChartSpec } from "@/lib/reports/chart-spec"
 import { billDeathsStudy } from "@/lib/reports/bill-deaths"
 import { cryptoStudy } from "@/lib/reports/crypto"
+import { modelBillsStudy } from "@/lib/reports/model-bills"
 import { obbbStudy } from "@/lib/reports/obbb"
 import { paperworkStudy } from "@/lib/reports/paperwork"
 import { primariesStudy } from "@/lib/reports/primaries"
@@ -18,7 +19,7 @@ import { openPrimariesStudy } from "@/lib/reports/open-primaries"
 export const revalidate = 86400
 
 export async function GET() {
-  const studies = await Promise.allSettled([paperworkStudy(), primariesStudy(), billDeathsStudy(), cryptoStudy(), obbbStudy(), hr1Study(), openPrimariesStudy(), electionsStudy(), fecStudy(), formsStudy()])
+  const studies = await Promise.allSettled([Promise.resolve(modelBillsStudy()), paperworkStudy(), primariesStudy(), billDeathsStudy(), cryptoStudy(), obbbStudy(), hr1Study(), openPrimariesStudy(), electionsStudy(), fecStudy(), formsStudy()])
   const charts: ChartSpec[] = studies.flatMap((s) => (s.status === "fulfilled" ? s.value.charts : []))
   return NextResponse.json(charts, { headers: { "cache-control": "public, s-maxage=86400, stale-while-revalidate=604800" } })
 }
