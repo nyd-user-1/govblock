@@ -13,7 +13,7 @@ import { CodeFrame, CodeLines, printedWithChanges } from "@/components/code-bloc
 import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { PublicRail } from "@/components/block-card"
 import { FlagChip } from "@/components/policy/imagery"
-import { useReached } from "@/components/rail-toggle"
+import { useWarmed } from "@/components/rail-toggle"
 import { Button } from "@govblock/ui/components/nova/button"
 
 // The body of changelog-v2, and the root's changelog sheet: every state with
@@ -197,9 +197,9 @@ function ChangelogMain({ entries, texts, empty }: { entries: Entry[]; texts: Map
   )
 }
 
-/** The root's changelog sheet: the center container alone, read once a reader has opened every sheet on the way to it. */
+/** The root's changelog sheet: the center container alone, read once the page has settled or a reader opens their way to it, whichever is first. */
 export function ChangelogSheet() {
-  const reached = useReached(["right", "right-2", "right-3"])
+  const reached = useWarmed(["right", "right-2", "right-3"], 1500)
   const { entries, texts } = useEveryState(reached)
   if (!reached) return null
   return <ChangelogMain entries={entries ?? []} texts={texts} empty={entries ? "Nothing on file." : <LoadingFlag />} />

@@ -33,7 +33,8 @@ import { Sidebar, SidebarContent, SidebarProvider } from "@govblock/ui/component
 // holding the changelog's center container across every state and Congress,
 // and inside that, one holding the account home's center container under
 // Congress. A sheet whose parent is closed is hidden with it, and both read
-// the API only once a reader has opened their way in.
+// the API once the page has settled (2026-09-17), so they are drawn before a
+// reader opens their way in.
 // The sheet's overrides reach its own sidebar only (the direct child), never a shell inside it: the Map's block shell has a sidebar of its own, and a descendant selector once forced it open and full width (2026-09-14).
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&>[data-slot=sidebar]>[data-slot=sidebar-content]]:flex!"
 const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
