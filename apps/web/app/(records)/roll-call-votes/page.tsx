@@ -8,7 +8,8 @@ import { DocsTableOfContents } from "@/components/docs-toc"
 import { H2, Table } from "@/components/typeset"
 
 // Roll-call votes, on the Bulk Datasets page's shape: a section per congress,
-// and under it each chamber's sessions with the roll numbers they run between.
+// and under it each chamber's sessions, the table alone (Brendan, 2026-09-17:
+// no prose above it, and Rolls as the last roll number rather than a range).
 // Open a session to see its votes, and a vote to see how every member voted —
 // congress.gov/roll-call-votes, drawn from our own two records.
 //
@@ -25,8 +26,6 @@ export const revalidate = 3600
 export default async function RollCallVotesPage() {
   const sessions = await getRollCallSessions().catch(() => [])
   const congresses = [...new Set(sessions.map((s) => s.congress))].sort((a, b) => b - a)
-  const votes = sessions.reduce((sum, s) => sum + s.votes, 0)
-  const positions = sessions.reduce((sum, s) => sum + s.positions, 0)
   const toc = congresses.map((c) => ({ title: congressName(1789 + (c - 1) * 2), url: `#congress-${c}`, depth: 2 }))
 
   return (
@@ -38,34 +37,11 @@ export default async function RollCallVotesPage() {
       next={{ name: "Finance", url: "/money" }}
       rail={<DocsTableOfContents toc={toc} />}
     >
-      <p>
-        A roll call is the vote itself: the question put, the result, and the name of every member who answered it.{" "}
-        <code>{fmtNumber(votes)}</code> of them are on file, carrying <code>{fmtNumber(positions)}</code> recorded positions.
-        Open a session for its votes, and a vote for its members.
-      </p>
-      <p>
-        The two chambers publish differently, and the page keeps the difference visible. The House&rsquo;s votes come from
-        congress.gov&rsquo;s vote API. The Senate has no API at all — congress.gov publishes House votes only — so the
-        Senate&rsquo;s come from the Senate&rsquo;s own XML, vote by vote, and carry an absence where the House counts a
-        member not voting.
-      </p>
       {congresses.length === 0 && <p>No roll calls on file yet.</p>}
       {congresses.map((congress) => (
         <div key={congress}>
           <hr />
           <H2 id={`congress-${congress}`}>{congressName(1789 + (congress - 1) * 2)}</H2>
-          <p>
-            {(() => {
-              const mine = sessions.filter((s) => s.congress === congress)
-              const total = mine.reduce((sum, s) => sum + s.votes, 0)
-              return (
-                <>
-                  <code>{fmtNumber(total)}</code> recorded {total === 1 ? "vote" : "votes"} across{" "}
-                  {mine.length} {mine.length === 1 ? "session" : "sessions"} of the two chambers.
-                </>
-              )
-            })()}
-          </p>
           <Table>
             <thead>
               <tr>
@@ -90,9 +66,7 @@ export default async function RollCallVotesPage() {
                       {s.first_date ? fmtDate(s.first_date, false) : "—"}
                       {s.last_date ? ` – ${fmtDate(s.last_date)}` : ""}
                     </td>
-                    <td className="text-right tabular-nums">
-                      {s.first_roll}–{s.last_roll}
-                    </td>
+                    <td className="text-right tabular-nums">{s.last_roll}</td>
                     <td className="text-right tabular-nums">{fmtNumber(s.on_bills)}</td>
                     <td className="pr-8 text-right tabular-nums">{fmtNumber(s.votes)}</td>
                   </tr>
