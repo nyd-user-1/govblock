@@ -14,6 +14,7 @@ export type Report = {
 }
 
 export const REPORTS: Report[] = [
+  { slug: "crypto-money", href: "/research/crypto-money", title: "Crypto money and the crypto votes: backed House Democrats voted yes twice as often", dek: "Nearly $150 million from the crypto industry's super PACs, set against every member's vote on the GENIUS Act, the CLARITY Act and the Anti-CBDC bill, and the lobbying behind them.", data: ["FEC", "Roll calls", "Lobbying"], published: "2026-09-18" },
   { slug: "hr1", href: "/research/hr1", title: "H.R. 1, from the lobbyists to the vote to the money", dek: "The most-lobbied bill of the 119th Congress followed across four records: the bill, its lobbying disclosures, both chambers' roll calls, and the outside money after.", data: ["Bills", "Lobbying", "Roll calls", "FEC"], published: "2026-09-17" },
   { slug: "open-primaries", href: "/research/open-primaries", title: "Open primaries: the bills, the laws, and the money", dek: "Every bill on who may vote in a primary since 2009, the thirteen that became law, and who paid for the 2024 ballot fights.", data: ["Bills", "Ballot measures"], published: "2026-09-17" },
   { slug: "house-elections", href: "/research/house-elections", title: "Fifty years of House elections: how few seats November decides", dek: "Every House general election since 1976, the state legislatures since 2008, and six hundred ranked-choice counts.", data: ["Election returns"], published: "2026-09-17" },
