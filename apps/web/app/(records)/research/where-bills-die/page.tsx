@@ -31,7 +31,7 @@ export default async function WhereBillsDieReport() {
       description={`Every bill of the sessions that began in 2023 in 49 state legislatures, ${fmtNumber(s.total.bills)} in all: how many never got a vote, which committees held them, and how much the sponsor's party decided it.`}
       slug="/research/where-bills-die"
       previous={{ name: "Copy-and-paste lawmaking", url: "/research/model-bills" }}
-      next={{ name: "Research", url: "/research" }}
+      next={{ name: "The primary is the election", url: "/research/primary-is-the-election" }}
       rail={
         <DocsTableOfContents
           toc={[
