@@ -2,9 +2,11 @@ import "server-only"
 
 import { one, q } from "@/lib/policy/db"
 
-import { administeredPages, publish } from "./api"
+import { getUpload } from "@/lib/typeset/uploads"
+
+import { administeredPages, publish, uploadImage } from "./api"
 import { seal, unseal } from "./seal"
-import { feedUrl, type LinkedInAccount, type Post, type PostStatus, type PostTarget } from "./types"
+import { feedUrl, type LinkedInAccount, type Post, type PostImage, type PostStatus, type PostTarget } from "./types"
 
 // The connection and the posts in Aurora (sql/031_linkedin.sql), and the
 // publisher that sends what is due.
@@ -29,6 +31,7 @@ type PostRow = {
   publish_at: string
   status: PostStatus
   error: string | null
+  images: PostImage[]
   posted_urns: string[]
 }
 
@@ -45,6 +48,7 @@ function toPost(row: PostRow): Post {
     publishAt: iso(row.publish_at),
     status: row.status,
     error: row.error,
+    images: row.images ?? [],
     urls: (row.posted_urns ?? []).map(feedUrl),
   }
 }
@@ -88,13 +92,13 @@ export async function listPosts(userId: string): Promise<Post[]> {
   return rows.map(toPost)
 }
 
-export type PostInput = { title?: string; body?: string; target?: PostTarget; publishAt?: string; status?: "draft" | "scheduled" }
+export type PostInput = { title?: string; body?: string; target?: PostTarget; publishAt?: string; status?: "draft" | "scheduled"; images?: PostImage[] }
 
 export async function createPost(userId: string, id: string, input: PostInput): Promise<Post> {
   const row = await one<PostRow>(
-    `insert into linkedin_posts (id, user_id, title, body, target, publish_at, status)
-     values ($1::uuid, $2, $3, $4, $5, $6::timestamptz, 'draft') returning *`,
-    [id, userId, input.title ?? "", input.body ?? "", input.target ?? "profile", input.publishAt ?? new Date().toISOString()]
+    `insert into linkedin_posts (id, user_id, title, body, target, publish_at, status, images)
+     values ($1::uuid, $2, $3, $4, $5, $6::timestamptz, 'draft', $7::jsonb) returning *`,
+    [id, userId, input.title ?? "", input.body ?? "", input.target ?? "profile", input.publishAt ?? new Date().toISOString(), JSON.stringify(input.images ?? [])]
   )
   return toPost(row!)
 }
@@ -113,10 +117,11 @@ export async function updatePost(userId: string, id: string, input: PostInput): 
        publish_at = coalesce($6::timestamptz, publish_at),
        status = coalesce($7::text, case when status = 'failed' then 'draft' else status end),
        error = case when $7::text is not null or status = 'failed' then null else error end,
+       images = coalesce($8::jsonb, images),
        updated_at = now()
      where id = $1::uuid and user_id = $2 and status in ('draft', 'scheduled', 'failed')
      returning *`,
-    [id, userId, input.title ?? null, input.body ?? null, input.target ?? null, input.publishAt ?? null, input.status ?? null]
+    [id, userId, input.title ?? null, input.body ?? null, input.target ?? null, input.publishAt ?? null, input.status ?? null, input.images ? JSON.stringify(input.images) : null]
   )
   return row ? toPost(row) : null
 }
@@ -169,7 +174,8 @@ export async function publishDue(only?: { userId: string; id: string }): Promise
 }
 
 async function send(post: PostRow): Promise<{ urns: string[]; error: string | null }> {
-  if (!post.body.trim()) return { urns: [], error: "The post has no text." }
+  const images = post.images ?? []
+  if (!post.body.trim() && !images.length) return { urns: [], error: "The post has no text or images." }
   const account = await one<AccountRow>(`select * from linkedin_accounts where user_id = $1`, [post.user_id])
   if (!account) return { urns: [], error: "LinkedIn is not connected." }
   if (new Date(iso(account.expires_at)) <= new Date()) return { urns: [], error: "The LinkedIn connection expired. Reconnect and schedule it again." }
@@ -184,10 +190,25 @@ async function send(post: PostRow): Promise<{ urns: string[]; error: string | nu
     authors.push(org)
   }
 
+  // Read once; uploaded again for each author, since an image belongs to its owner.
+  let files: { bytes: Uint8Array; type: string }[] = []
+  try {
+    files = await Promise.all(
+      images.map(async (image) => {
+        const object = await getUpload(image.key)
+        return { bytes: new Uint8Array(await object.Body!.transformToByteArray()), type: image.type }
+      })
+    )
+  } catch {
+    return { urns: [], error: "An image could not be read back from storage." }
+  }
+
   const urns: string[] = []
   for (const author of authors) {
     try {
-      urns.push(await publish(token, author, post.body))
+      const ids: string[] = []
+      for (const file of files) ids.push(await uploadImage(token, author, file.bytes, file.type))
+      urns.push(await publish(token, author, post.body, ids))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const where = author.startsWith("urn:li:organization") ? "the company page" : "the profile"

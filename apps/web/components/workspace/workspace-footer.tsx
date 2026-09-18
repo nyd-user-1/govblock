@@ -16,6 +16,7 @@ import {
   MapIcon,
   MenuIcon,
   RadioIcon,
+  SendIcon,
   TypeIcon,
 } from "lucide-react"
 
@@ -36,6 +37,7 @@ import {
   TooltipTrigger,
 } from "@govblock/ui/components/nova/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
+import { useAccount } from "@/lib/auth/use-account"
 
 // The footer every shell wears (Brendan, 2026-09-07): the two things the
 // floating pill used to hold, fixed to the bottom of the pane instead — the
@@ -57,12 +59,15 @@ export type Workspace =
   | "blocks"
   | "map"
   | "live"
+  | "posts"
 
 export const WORKSPACES: {
   key: Workspace
   label: string
   href: string
   icon: typeof DatabaseIcon
+  /** Listed for admins alone. */
+  admin?: boolean
 }[] = [
   // The root (Brendan, 2026-09-11): every workspace as a card.
   { key: "app", label: "Workspace", href: "/workspace", icon: AppWindowIcon },
@@ -111,6 +116,8 @@ export const WORKSPACES: {
   },
   { key: "map", label: "Map", href: "/map", icon: MapIcon },
   { key: "live", label: "Live", href: "/live", icon: RadioIcon },
+  // LinkedIn posts (2026-09-17): an admin's, since they publish as a real person and company.
+  { key: "posts", label: "Posts", href: "/posts", icon: SendIcon, admin: true },
 ]
 
 /** The Filter chip: the same trigger as the mode switcher, ordering the page's rows. */
@@ -189,12 +196,15 @@ export function WorkspaceFooter({
   children,
 }: {
   mode: Workspace
-  panelOpen: boolean
-  onTogglePanel: () => void
+  panelOpen?: boolean
+  /** The customizer's toggle; a surface without a customizer leaves it out and the hamburger goes. */
+  onTogglePanel?: () => void
   className?: string
   /** The page's own controls, after the mode switcher: typeset's pages. */ children?: React.ReactNode
 }) {
   const router = useRouter()
+  const { account } = useAccount()
+  const listed = WORKSPACES.filter((w) => !w.admin || account?.admin || w.key === mode)
   const current = WORKSPACES.find((w) => w.key === mode) ?? WORKSPACES[0]
   return (
     <div
@@ -203,6 +213,8 @@ export function WorkspaceFooter({
         className
       )}
     >
+      {onTogglePanel && (
+        <>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -228,6 +240,8 @@ export function WorkspaceFooter({
         orientation="vertical"
         className="mx-2 data-[orientation=vertical]:h-4"
       />
+        </>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -245,7 +259,7 @@ export function WorkspaceFooter({
           sideOffset={8}
           className="w-max min-w-44 rounded-lg"
         >
-          {WORKSPACES.map((w) => {
+          {listed.map((w) => {
             const Icon = w.icon
             return (
               <DropdownMenuItem

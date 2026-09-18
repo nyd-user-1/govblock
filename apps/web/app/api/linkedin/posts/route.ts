@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!userId) return refused()
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
   if (typeof body.id !== "string" || !UUID.test(body.id)) return NextResponse.json({ error: "id must be a UUID" }, { status: 400 })
-  const input = readInput(body)
+  const input = readInput(body, userId)
   if (typeof input === "string") return NextResponse.json({ error: input }, { status: 400 })
   return NextResponse.json(await createPost(userId, body.id, input), { status: 201, headers: PRIVATE })
 }

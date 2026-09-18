@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!userId) return refused()
   const { id } = await params
   if (!UUID.test(id)) return unknown()
-  const input = readInput((await request.json().catch(() => ({}))) as Record<string, unknown>)
+  const input = readInput((await request.json().catch(() => ({}))) as Record<string, unknown>, userId)
   if (typeof input === "string") return NextResponse.json({ error: input }, { status: 400 })
   const post = await updatePost(userId, id, input)
   if (!post) return NextResponse.json({ error: "That post has already gone out, or is not yours." }, { status: 409 })

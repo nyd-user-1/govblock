@@ -44,7 +44,7 @@ const PINS_LAYOUT_KEY = "govblock:workspace:app:pins:layout"
 const COLUMNS = 4
 
 /** The surfaces themselves; the root is where we are. */
-const SURFACES = WORKSPACES.filter((w) => w.key !== "app")
+const SURFACES = WORKSPACES.filter((w) => w.key !== "app" && !w.admin)
 
 function AppRail({ search }: { search: string }) {
   const router = useRouter()

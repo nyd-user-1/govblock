@@ -8,10 +8,11 @@ import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react"
 
 import { AccountFooter } from "@/components/admin/account-footer"
 import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
-import { BlockShell } from "@/components/policy/block-shell"
+import { BlockShell, ShellFooterProvider } from "@/components/policy/block-shell"
+import { WorkspaceFooter } from "@/components/workspace/workspace-footer"
 import { WorkspaceGrid, type GridItem } from "@/components/workspace/grid"
 import { dashboardHref } from "@/lib/workspace/dashboard"
-import { POST_TARGETS, type Post } from "@/lib/linkedin/types"
+import { imageUrl, POST_TARGETS, type Post } from "@/lib/linkedin/types"
 import { useUrlParams, writeUrlParams } from "@/lib/policy/url-state"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -269,6 +270,14 @@ function Month({ cursor, shift, byDate, count, onNew, onOpen, onMove }: { cursor
 // The cards and the table
 
 function LinkedInMark({ post }: { post: Post }) {
+  if (post.images[0])
+    return (
+      <span className="relative block size-24 overflow-hidden rounded-2xl bg-muted">
+        <img src={imageUrl(post.images[0])} alt="" className="size-full object-cover" />
+        {post.images.length > 1 && <span className="absolute top-1.5 left-1.5 rounded-full bg-background/90 px-1.5 text-[10px] font-medium">{post.images.length}</span>}
+        <span className={cn("absolute right-1.5 bottom-1.5 size-3 rounded-full ring-2 ring-white", STATUS[post.status].dot)} />
+      </span>
+    )
   return (
     <span className="relative flex size-24 items-center justify-center rounded-2xl bg-[#0a66c2] text-4xl font-bold text-white">
       in
@@ -386,6 +395,7 @@ export function PostsWorkspace() {
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
+            <ShellFooterProvider footer={<WorkspaceFooter mode="posts" />}>
             <BlockShell
               defaultOpen
               rail={<PostsRail data={data} cursor={cursor} setCursor={setCursor} byDate={byDate} on={on} setOn={setOn} />}
@@ -411,6 +421,7 @@ export function PostsWorkspace() {
                 </div>
               )}
             </BlockShell>
+            </ShellFooterProvider>
           </div>
         </div>
       </div>

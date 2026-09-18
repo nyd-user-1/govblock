@@ -134,13 +134,39 @@ export async function administeredPages(token: string): Promise<string[]> {
   return (body.elements ?? []).map((e) => e.organization).filter((urn): urn is string => !!urn)
 }
 
-/** Publishes `text` as `author`, a person or organization URN, and returns the post's URN. */
-export async function publish(token: string, author: string, text: string): Promise<string> {
+/**
+ * Uploads an image for `owner`, who must be the post's author, and returns
+ * its URN once LinkedIn has processed it.
+ */
+export async function uploadImage(token: string, owner: string, bytes: Uint8Array, type: string): Promise<string> {
+  const init = await rest(token, "/rest/images?action=initializeUpload", { method: "POST", body: JSON.stringify({ initializeUploadRequest: { owner } }) })
+  if (!init.ok) throw await failure(init, "LinkedIn refused the image upload")
+  const { value } = (await init.json()) as { value: { uploadUrl: string; image: string } }
+  const put = await fetch(value.uploadUrl, { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": type }, body: Buffer.from(bytes) })
+  if (!put.ok) throw await failure(put, "LinkedIn did not take the image")
+  // Processing is quick but not instant; a post naming an image still
+  // processing is refused.
+  for (let i = 0; i < 6; i++) {
+    const status = await rest(token, `/rest/images/${encodeURIComponent(value.image)}`)
+    if (status.ok) {
+      const body = (await status.json()) as { status?: string }
+      if (body.status === "AVAILABLE") break
+      if (body.status === "PROCESSING_FAILED") throw new Error("LinkedIn could not process an image")
+    }
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+  return value.image
+}
+
+/** Publishes `text`, with the images already uploaded for `author`, and returns the post's URN. */
+export async function publish(token: string, author: string, text: string, images: string[] = []): Promise<string> {
+  const content = images.length === 1 ? { media: { id: images[0] } } : images.length > 1 ? { multiImage: { images: images.map((id) => ({ id })) } } : undefined
   const response = await rest(token, "/rest/posts", {
     method: "POST",
     body: JSON.stringify({
       author,
       commentary: escapeCommentary(text),
+      ...(content ? { content } : {}),
       visibility: "PUBLIC",
       distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] },
       lifecycleState: "PUBLISHED",

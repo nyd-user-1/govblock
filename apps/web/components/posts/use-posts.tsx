@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import type { LinkedInAccount, Post } from "@/lib/linkedin/types"
+import type { LinkedInAccount, Post, PostImage } from "@/lib/linkedin/types"
 
 // /posts' data: the admin's LinkedIn posts and the connection, from
 // /api/linkedin, shared by the month, the cards, the table and the dialog.
@@ -16,7 +16,7 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-export type PostChanges = Partial<Pick<Post, "title" | "body" | "target" | "publishAt">> & { status?: "draft" | "scheduled" }
+export type PostChanges = Partial<Pick<Post, "title" | "body" | "target" | "publishAt" | "images">> & { status?: "draft" | "scheduled" }
 
 export function usePosts() {
   const [posts, setPosts] = React.useState<Post[] | null>(null)
@@ -91,7 +91,17 @@ export function usePosts() {
     [refresh]
   )
 
-  return { posts, account, notice, setNotice, save, remove, postNow }
+  /** Stores an image for a post; it is attached when the post is saved. */
+  const uploadImage = React.useCallback(async (file: File): Promise<PostImage> => {
+    const form = new FormData()
+    form.append("file", file)
+    const response = await fetch("/api/linkedin/images", { method: "POST", body: form })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error((body as { error?: string }).error ?? `Upload failed (${response.status})`)
+    return body as PostImage
+  }, [])
+
+  return { posts, account, notice, setNotice, save, remove, postNow, uploadImage }
 }
 
 export type Posts = ReturnType<typeof usePosts>
