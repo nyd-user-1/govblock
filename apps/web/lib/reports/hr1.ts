@@ -12,7 +12,7 @@ import { partyTone, type ChartSpec } from "./chart-spec"
 // disclosure reports one quarterly total, not a figure per bill. Amendments
 // replace their originals, so each client, firm and quarter counts once.
 
-const SLUG = "hr1-trace"
+const SLUG = "hr1"
 const KEY = "119-HR-1"
 
 const FILED = `
