@@ -15,7 +15,6 @@ import { TAG_BY_SLUG } from "@/lib/data/tags"
 import { stateName } from "@/lib/filters"
 import {
   DESK_MEMBERS,
-  USERS,
   USER_BY_HANDLE,
   type Post,
   type User,
@@ -40,8 +39,10 @@ import { Reputation, UserAvatar, compact } from "@/components/users/parts"
 
 type Props = { params: Promise<{ handle: string }> }
 
-export const generateStaticParams = () =>
-  USERS.map((u) => ({ handle: u.handle }))
+// Rendered on first request, not at build (2026-09-19): the build wrote a
+// page per mocked reader, 25 MB of the 238.2 MB Amplify refused against its
+// 230.7 MB cap (job 288). An unknown handle is a 404 either way.
+export const generateStaticParams = () => []
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const user = USER_BY_HANDLE.get((await params).handle)
