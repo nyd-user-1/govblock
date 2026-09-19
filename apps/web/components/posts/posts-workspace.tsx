@@ -27,7 +27,7 @@ import { PostDialog, type Editing } from "./post-dialog"
 import { STATUS, STATUS_FILTERS } from "./status"
 import { usePosts, type Posts } from "./use-posts"
 
-// /posts (Brendan, 2026-09-17): /workspace/calendar's shell and month, over
+// /content-calendar (/posts until 2026-09-18; Brendan, 2026-09-17): /workspace/calendar's shell and month, over
 // the admin's LinkedIn posts — the rail with the month and the statuses, the
 // month with a Post button where Today was and no padding round it, and the
 // same Card and Table looks. A click on a day starts a post there, a click on
@@ -148,8 +148,8 @@ function PostsRail({ data, cursor, setCursor, byDate, on, setOn }: { data: Posts
   return (
     <>
       <SidebarHeader className="flex-row items-center gap-2.5 p-4">
-        <Link href="/posts" className="text-xl font-semibold">
-          Posts
+        <Link href="/content-calendar" className="text-xl font-semibold">
+          Content Calendar
         </Link>
       </SidebarHeader>
       <SidebarContent className="no-scrollbar">

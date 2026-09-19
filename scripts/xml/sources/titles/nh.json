@@ -1,0 +1,276 @@
+{
+ "jurisdiction": "us-nh",
+ "source": "https://gc.nh.gov/rsa/html/nhtoc.htm",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [
+  {
+   "key": "I",
+   "name": "The State and Its Government"
+  },
+  {
+   "key": "II",
+   "name": "Counties"
+  },
+  {
+   "key": "III",
+   "name": "Towns, Cities, Village Districts, and Unincorporated Places"
+  },
+  {
+   "key": "IV",
+   "name": "Elections"
+  },
+  {
+   "key": "V",
+   "name": "Taxation"
+  },
+  {
+   "key": "VI",
+   "name": "Public Officers and Employees"
+  },
+  {
+   "key": "VII",
+   "name": "Sheriffs, Constables, and Police Officers"
+  },
+  {
+   "key": "VIII",
+   "name": "Public Defense and Veterans' Affairs"
+  },
+  {
+   "key": "IX",
+   "name": "Acquisition of Lands by United States; Federal Aid"
+  },
+  {
+   "key": "X",
+   "name": "Public Health"
+  },
+  {
+   "key": "XI",
+   "name": "Hospitals and Sanitaria"
+  },
+  {
+   "key": "XII",
+   "name": "Public Safety and Welfare"
+  },
+  {
+   "key": "XIII",
+   "name": "Alcoholic Beverages"
+  },
+  {
+   "key": "XIV",
+   "name": "Milk and Milk Products"
+  },
+  {
+   "key": "XV",
+   "name": "Education"
+  },
+  {
+   "key": "XVI",
+   "name": "Libraries"
+  },
+  {
+   "key": "XVII",
+   "name": "Housing and Redevelopment"
+  },
+  {
+   "key": "XVIII",
+   "name": "Fish and Game"
+  },
+  {
+   "key": "XIX",
+   "name": "Public Recreation"
+  },
+  {
+   "key": "XIX-A",
+   "name": "Forestry"
+  },
+  {
+   "key": "XX",
+   "name": "Transportation"
+  },
+  {
+   "key": "XXI",
+   "name": "Motor Vehicles"
+  },
+  {
+   "key": "XXII",
+   "name": "Navigation; Harbors; Coast Survey"
+  },
+  {
+   "key": "XXIII",
+   "name": "Labor"
+  },
+  {
+   "key": "XXIV",
+   "name": "Games, Amusements, and Athletic Exhibitions"
+  },
+  {
+   "key": "XXV",
+   "name": "Holidays"
+  },
+  {
+   "key": "XXVI",
+   "name": "Cemeteries; Burials; Dead Bodies"
+  },
+  {
+   "key": "XXVII",
+   "name": "Corporations, Associations, and Proprietors of Common Lands"
+  },
+  {
+   "key": "XXVIII",
+   "name": "Partnerships"
+  },
+  {
+   "key": "XXIX",
+   "name": "Religious Societies"
+  },
+  {
+   "key": "XXX",
+   "name": "Occupations and Professions"
+  },
+  {
+   "key": "XXXI",
+   "name": "Trade and Commerce"
+  },
+  {
+   "key": "XXXII",
+   "name": "Chattel Mortgages"
+  },
+  {
+   "key": "XXXIII",
+   "name": "Conditional Sales"
+  },
+  {
+   "key": "XXXIII-A",
+   "name": "Retail Installment Sales"
+  },
+  {
+   "key": "XXXIV",
+   "name": "Public Utilities"
+  },
+  {
+   "key": "XXXIV-A",
+   "name": "Uniform Commercial Code"
+  },
+  {
+   "key": "XXXV",
+   "name": "Banks and Banking; Loan Associations; Credit Unions"
+  },
+  {
+   "key": "XXXVI",
+   "name": "Pawnbrokers and Moneylenders"
+  },
+  {
+   "key": "XXXVII",
+   "name": "Insurance"
+  },
+  {
+   "key": "XXXVIII",
+   "name": "Securities"
+  },
+  {
+   "key": "XXXIX",
+   "name": "Aeronautics"
+  },
+  {
+   "key": "XL",
+   "name": "Agriculture, Horticulture and Animal Husbandry"
+  },
+  {
+   "key": "XLI",
+   "name": "Liens"
+  },
+  {
+   "key": "XLII",
+   "name": "Notaries, Commissioners, Justices of the Peace, and Acknowledgments"
+  },
+  {
+   "key": "XLIII",
+   "name": "Domestic Relations"
+  },
+  {
+   "key": "XLIV",
+   "name": "Guardians and Conservators"
+  },
+  {
+   "key": "XLV",
+   "name": "Animals"
+  },
+  {
+   "key": "XLVI",
+   "name": "Lost Property; Strays"
+  },
+  {
+   "key": "XLVII",
+   "name": "Boundaries, Fences and Common Fields"
+  },
+  {
+   "key": "XLVIII",
+   "name": "Conveyances and Mortgages of Realty"
+  },
+  {
+   "key": "XLIX",
+   "name": "Homesteads"
+  },
+  {
+   "key": "L",
+   "name": "Water Management and Protection"
+  },
+  {
+   "key": "LI",
+   "name": "Courts"
+  },
+  {
+   "key": "LII",
+   "name": "Actions, Process, and Service of Process"
+  },
+  {
+   "key": "LIII",
+   "name": "Proceedings in Court"
+  },
+  {
+   "key": "LIV",
+   "name": "Executions, Levies, Bail, and the Relief of Poor Debtors"
+  },
+  {
+   "key": "LV",
+   "name": "Proceedings in Special Cases"
+  },
+  {
+   "key": "LVI",
+   "name": "Probate Courts and Decedents' Estates"
+  },
+  {
+   "key": "LVII",
+   "name": "Insolvency Proceedings and Assignments for Creditors"
+  },
+  {
+   "key": "LVIII",
+   "name": "Public Justice"
+  },
+  {
+   "key": "LIX",
+   "name": "Proceedings in Criminal Cases"
+  },
+  {
+   "key": "LX",
+   "name": "Correction and Punishment"
+  },
+  {
+   "key": "LXI",
+   "name": "Acts Repealed"
+  },
+  {
+   "key": "LXII",
+   "name": "Criminal Code"
+  },
+  {
+   "key": "LXIII",
+   "name": "Elections"
+  },
+  {
+   "key": "LXIV",
+   "name": "Planning and Zoning"
+  }
+ ]
+}

@@ -7,6 +7,7 @@ import { DocsCopyPage } from "@/components/docs-copy-page"
 import { CalendarCard } from "@/components/cards/calendar"
 import { PublicRail } from "@/components/block-card"
 import { Button } from "@govblock/ui/components/ny4/button"
+import { BackToTop } from "@/components/back-to-top"
 
 // The committees doc, on the same header as /bills: title, Copy Page,
 // prev/next, description, then the search field directly beneath.
@@ -50,6 +51,8 @@ export default function CommitteesPage() {
               <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>
             </div>
           </div>
+          {/* The header's rule, at the distance RecordHeader keeps (2026-09-18). */}
+          <hr className="mt-6 border-0 border-t border-border" />
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
             <CommitteesList />
           </div>
@@ -65,6 +68,7 @@ export default function CommitteesPage() {
               </Link>
             </Button>
           </div>
+          <BackToTop />
         </div>
       </div>
       <RightRailSheet>

@@ -1,5 +1,6 @@
 import { PDFBool, PDFDocument, PDFName, PDFString, StandardFonts, type PDFCheckBox, type PDFDict, type PDFForm, type PDFRadioGroup, type PDFTextField } from "pdf-lib"
 
+import { assetUrl } from "@/lib/assets"
 import { keyDef, optionLabel, splitMulti } from "@/lib/forms/keys"
 import { formById } from "@/lib/forms/programs"
 import { asList, type Binding, type Computed, type FormSpec, type RepeatBinding } from "@/lib/forms/spec"
@@ -318,7 +319,7 @@ function plan(spec: FormSpec, values: Values): { plan: Plan; unmapped: string[] 
 
 async function loadBase(spec: FormSpec, base?: ArrayBuffer | Uint8Array) {
   if (base) return PDFDocument.load(base, { ignoreEncryption: true })
-  const response = await fetch(spec.base)
+  const response = await fetch(assetUrl(spec.base))
   if (!response.ok) throw new Error(`Could not load ${spec.code} (${response.status})`)
   return PDFDocument.load(await response.arrayBuffer(), { ignoreEncryption: true })
 }

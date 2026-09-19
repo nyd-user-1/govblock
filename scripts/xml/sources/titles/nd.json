@@ -1,0 +1,284 @@
+{
+ "jurisdiction": "us-nd",
+ "source": "https://www.ndlegis.gov/general-information/north-dakota-century-code",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [
+  {
+   "key": "1",
+   "name": "General Provisions"
+  },
+  {
+   "key": "2",
+   "name": "Aeronautics"
+  },
+  {
+   "key": "3",
+   "name": "Agency"
+  },
+  {
+   "key": "4",
+   "name": "Agriculture"
+  },
+  {
+   "key": "4.1",
+   "name": "Agriculture"
+  },
+  {
+   "key": "5",
+   "name": "Alcoholic Beverages"
+  },
+  {
+   "key": "6",
+   "name": "Banks and Banking"
+  },
+  {
+   "key": "8",
+   "name": "Carriage"
+  },
+  {
+   "key": "9",
+   "name": "Contracts and Obligations"
+  },
+  {
+   "key": "10",
+   "name": "Corporations"
+  },
+  {
+   "key": "11",
+   "name": "Counties"
+  },
+  {
+   "key": "12",
+   "name": "Corrections, Parole, and Probation"
+  },
+  {
+   "key": "12.1",
+   "name": "Criminal Code"
+  },
+  {
+   "key": "13",
+   "name": "Debtor and Creditor Relationship"
+  },
+  {
+   "key": "14",
+   "name": "Domestic Relations and Persons"
+  },
+  {
+   "key": "15",
+   "name": "Education"
+  },
+  {
+   "key": "15.1",
+   "name": "Elementary and Secondary Education"
+  },
+  {
+   "key": "16",
+   "name": "Elections"
+  },
+  {
+   "key": "16.1",
+   "name": "Elections"
+  },
+  {
+   "key": "17",
+   "name": "Energy"
+  },
+  {
+   "key": "18",
+   "name": "Fires"
+  },
+  {
+   "key": "19",
+   "name": "Foods, Drugs, Oils, and Compounds"
+  },
+  {
+   "key": "20.1",
+   "name": "Game, Fish, Predators, and Boating"
+  },
+  {
+   "key": "21",
+   "name": "Governmental Finance"
+  },
+  {
+   "key": "22",
+   "name": "Guaranty, Indemnity, and Suretyship"
+  },
+  {
+   "key": "23",
+   "name": "Health and Safety"
+  },
+  {
+   "key": "23.1",
+   "name": "Environmental Quality"
+  },
+  {
+   "key": "24",
+   "name": "Highways, Bridges, and Ferries"
+  },
+  {
+   "key": "25",
+   "name": "Mental and Physical Illness or Disability"
+  },
+  {
+   "key": "26.1",
+   "name": "Insurance"
+  },
+  {
+   "key": "27",
+   "name": "Judicial Branch of Government"
+  },
+  {
+   "key": "28",
+   "name": "Judicial Procedure, Civil"
+  },
+  {
+   "key": "29",
+   "name": "Judicial Procedure, Criminal"
+  },
+  {
+   "key": "30",
+   "name": "Judicial Procedure, Probate"
+  },
+  {
+   "key": "30.1",
+   "name": "Uniform Probate Code"
+  },
+  {
+   "key": "31",
+   "name": "Judicial Proof"
+  },
+  {
+   "key": "32",
+   "name": "Judicial Remedies"
+  },
+  {
+   "key": "33",
+   "name": "County Justice Court"
+  },
+  {
+   "key": "34",
+   "name": "Labor and Employment"
+  },
+  {
+   "key": "35",
+   "name": "Liens"
+  },
+  {
+   "key": "36",
+   "name": "Livestock"
+  },
+  {
+   "key": "37",
+   "name": "Military"
+  },
+  {
+   "key": "38",
+   "name": "Mining and Gas and Oil Production"
+  },
+  {
+   "key": "39",
+   "name": "Motor Vehicles"
+  },
+  {
+   "key": "40",
+   "name": "Municipal Government"
+  },
+  {
+   "key": "41",
+   "name": "Uniform Commercial Code"
+  },
+  {
+   "key": "42",
+   "name": "Nuisances"
+  },
+  {
+   "key": "43",
+   "name": "Occupations and Professions"
+  },
+  {
+   "key": "44",
+   "name": "Offices and Officers"
+  },
+  {
+   "key": "45",
+   "name": "Partnerships"
+  },
+  {
+   "key": "46",
+   "name": "Printing Laws"
+  },
+  {
+   "key": "47",
+   "name": "Property"
+  },
+  {
+   "key": "48",
+   "name": "Public Buildings"
+  },
+  {
+   "key": "49",
+   "name": "Public Utilities"
+  },
+  {
+   "key": "50",
+   "name": "Public Welfare"
+  },
+  {
+   "key": "51",
+   "name": "Sales and Exchanges"
+  },
+  {
+   "key": "52",
+   "name": "Social Security"
+  },
+  {
+   "key": "53",
+   "name": "Sports and Amusements"
+  },
+  {
+   "key": "54",
+   "name": "State Government"
+  },
+  {
+   "key": "55",
+   "name": "State Historical Society and State Parks"
+  },
+  {
+   "key": "57",
+   "name": "Taxation"
+  },
+  {
+   "key": "58",
+   "name": "Townships"
+  },
+  {
+   "key": "59",
+   "name": "Trusts, Uses, and Powers"
+  },
+  {
+   "key": "60",
+   "name": "Warehousing and Deposits"
+  },
+  {
+   "key": "61",
+   "name": "Waters"
+  },
+  {
+   "key": "62.1",
+   "name": "Weapons"
+  },
+  {
+   "key": "63",
+   "name": "Weeds"
+  },
+  {
+   "key": "64",
+   "name": "Weights, Measures, and Grades"
+  },
+  {
+   "key": "65",
+   "name": "Workforce Safety and Insurance"
+  }
+ ]
+}

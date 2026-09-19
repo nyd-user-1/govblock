@@ -2,6 +2,7 @@
 // state this browser remembers — or, on a page that opens closed, closed —
 // before the rails are laid out, so nothing flashes open and then shuts. A
 // plain module, since the server layouts inline it; the live store is
-// components/rail-toggle.tsx, which reads and writes the same keys.
+// components/rail-toggle.tsx, which reads and writes the same keys. It also
+// lands the right rail's remembered width (components/rail-resize.tsx).
 export const railScript = (defaultClosed: boolean) =>
-  `(function(){try{var d=document.documentElement,c=${defaultClosed ? "true" : "false"};["left","right","right-2","right-3","right-4"].forEach(function(s){var v=localStorage.getItem("rail:"+s);if(v==="closed"||(v!=="open"&&c))d.setAttribute("data-rail-"+s,"closed")})}catch(e){}})()`
+  `(function(){try{var d=document.documentElement,c=${defaultClosed ? "true" : "false"};["left","right","right-2","right-3","right-4"].forEach(function(s){var v=localStorage.getItem("rail:"+s);if(v==="closed"||(v!=="open"&&c))d.setAttribute("data-rail-"+s,"closed")});var w=+localStorage.getItem("rail:right:width");if(w>=260)d.style.setProperty("--rail-right-w",w+"px")}catch(e){}})()`

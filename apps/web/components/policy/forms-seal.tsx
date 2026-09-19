@@ -1,4 +1,5 @@
 import { RecordAvatar, RecordSeal } from "@/components/policy/record-item"
+import { assetUrl } from "@/lib/assets"
 
 // Which emblem an agency wears in the forms list, and what its initials stand
 // for.
@@ -8,7 +9,7 @@ import { RecordAvatar, RecordSeal } from "@/components/policy/record-item"
 // Department of Homeless Services, and `US:DOL` and `NYS:DOL` are two different
 // Departments of Labor.
 //
-// The seal map is deliberately short. `public/seals/` holds the federal
+// The seal map is deliberately short. The seals in the public bucket hold the federal
 // departments lane U harvested from Wikimedia Commons for the nominations list,
 // and an agency gets one **only where the agency is that organization**. A
 // bureau does not wear its parent's seal here: the Internal Revenue Service is
@@ -96,6 +97,6 @@ export function agencyName(gov: string, agency: string) {
 
 export function FormSeal({ gov, agency, size = 36 }: { gov: string; agency: string; size?: number }) {
   const file = SEALS[`${gov}:${agency}`]
-  if (file) return <RecordAvatar src={file} alt={agencyName(gov, agency)} size={size} />
+  if (file) return <RecordAvatar src={assetUrl(file)} alt={agencyName(gov, agency)} size={size} />
   return <RecordSeal state={stateOf(gov)} size={size} />
 }

@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { motion } from "motion/react"
+import { ArrowDownIcon } from "lucide-react"
+import { motion, MotionConfig } from "motion/react"
 
+import { BILLS_SECTION_ID } from "@/components/root-sections"
 import { FlagLoader } from "@/components/flag-loader"
 import ParticleMark from "@/components/flag-particles"
 import { Motto } from "@/components/motto"
@@ -183,6 +185,27 @@ export function SignStage({
           <Motto />
           {/* The flag's own red and blue, the mark's colours (Brendan, 2026-09-13); Explore has nowhere to go yet. */}
           <div className="mt-10 flex items-center gap-3">
+            {/* The way down to section two on the root (Brendan, 2026-09-18): the
+                back-to-top circle turned over, arriving last — after the flag
+                and the motto — and floating in place until it is pressed. A reader
+                who asks for reduced motion gets it still: MotionConfig drops the
+                float, and the server and the browser render the same markup. */}
+            {stage === "root" && (
+              <MotionConfig reducedMotion="user">
+                <motion.div initial={{ opacity: 0 }} animate={flagIn ? { opacity: 1 } : { opacity: 0 }} transition={{ ...arrive.transition, delay: 1.9 }}>
+                  <motion.button
+                    type="button"
+                    aria-label="Scroll to Bills"
+                    onClick={() => go(BILLS_SECTION_ID)}
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                    className="inline-flex size-10 items-center justify-center rounded-full border bg-background text-foreground shadow-md transition-colors hover:bg-muted [&_svg]:size-4"
+                  >
+                    <ArrowDownIcon />
+                  </motion.button>
+                </motion.div>
+              </MotionConfig>
+            )}
             {!welcome && shows("sign-up") && (
               <Button size="lg" onClick={() => choose("sign-up")} className="bg-[#b31942] text-white hover:bg-[#b31942]/90">
                 Sign-Up

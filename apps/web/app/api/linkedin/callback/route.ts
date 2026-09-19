@@ -5,7 +5,7 @@ import { adminId, refused } from "@/lib/linkedin/session"
 import { saveAccount } from "@/lib/linkedin/store"
 
 // GET /api/linkedin/callback: LinkedIn's answer. The code becomes a token,
-// the token says who the member is, and both are kept; then back to /posts,
+// the token says who the member is, and both are kept; then back to /content-calendar,
 // which reads `linkedin=` to say how it went.
 
 export const dynamic = "force-dynamic"
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (!userId) return refused()
   const url = new URL(request.url)
   const back = (outcome: string) => {
-    const response = NextResponse.redirect(`${publicOrigin(request)}/posts?linkedin=${encodeURIComponent(outcome)}`)
+    const response = NextResponse.redirect(`${publicOrigin(request)}/content-calendar?linkedin=${encodeURIComponent(outcome)}`)
     response.cookies.delete({ name: "linkedin_state", path: "/api/linkedin" })
     return response
   }

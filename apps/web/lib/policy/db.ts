@@ -1,5 +1,13 @@
 import { neon } from "@neondatabase/serverless"
-import { RDSDataClient, ExecuteStatementCommand, type Field } from "@aws-sdk/client-rds-data"
+import {
+  RDSDataClient,
+  BeginTransactionCommand,
+  CommitTransactionCommand,
+  ExecuteStatementCommand,
+  RollbackTransactionCommand,
+  type ExecuteStatementCommandOutput,
+  type Field,
+} from "@aws-sdk/client-rds-data"
 import { unstable_cache } from "next/cache"
 
 // The policy database, read only.
@@ -236,38 +244,95 @@ export async function q<T = Record<string, unknown>>(text: string, params: unkno
 
   const statement = toNamedParameters(text)
   return cached(text, params, async () => {
-    const command = new ExecuteStatementCommand({
-      resourceArn,
-      secretArn,
-      database,
-      sql: statement.text,
-      parameters: params.map((value, i) => parameter(`p${i}`, value)),
-      includeResultMetadata: true,
-    })
-    // Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers
-    // the first statements with DatabaseResumingException while it wakes
-    // (~20 s). Wait it out rather than 503 the first visitor (2026-09-04).
-    let response
-    for (let attempt = 0; ; attempt++) {
-      try {
-        response = await client.send(command)
-        break
-      } catch (error) {
-        const name = (error as { name?: string })?.name ?? ""
-        const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
-        if (!resuming || attempt >= 12) throw error
-        await new Promise((r) => setTimeout(r, 2500))
-      }
+    const response = await awake(() =>
+      client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          sql: statement.text,
+          parameters: params.map((value, i) => parameter(`p${i}`, value)),
+          includeResultMetadata: true,
+        })
+      )
+    )
+    return rowsOf<T>(response)
+  })
+}
+
+// Aurora Serverless v2 pauses at 0 ACU after five idle minutes and answers the
+// first statements with DatabaseResumingException while it wakes (~20 s). Wait
+// it out rather than 503 the first visitor (2026-09-04).
+async function awake<R>(send: () => Promise<R>): Promise<R> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await send()
+    } catch (error) {
+      const name = (error as { name?: string })?.name ?? ""
+      const resuming = name === "DatabaseResumingException" || /resuming after being auto-paused/i.test(String((error as Error)?.message))
+      if (!resuming || attempt >= 12) throw error
+      await new Promise((r) => setTimeout(r, 2500))
     }
-    const columns = response.columnMetadata ?? []
-    return (response.records ?? []).map((record) => {
-      const row: Record<string, unknown> = {}
-      record.forEach((field, i) => {
-        const column = columns[i]
-        row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
-      })
-      return row as T
+  }
+}
+
+function rowsOf<T>(response: ExecuteStatementCommandOutput): T[] {
+  const columns = response.columnMetadata ?? []
+  return (response.records ?? []).map((record) => {
+    const row: Record<string, unknown> = {}
+    record.forEach((field, i) => {
+      const column = columns[i]
+      row[column?.name ?? `column${i}`] = decode(field, column?.typeName)
     })
+    return row as T
+  })
+}
+
+/**
+ * A read with its own memory and a deadline (2026-09-18, the national search).
+ * The cluster's work_mem is 4 MB, and a search matching half a million
+ * documents overflows it: the bitmap goes lossy and Postgres re-reads every
+ * candidate's tsvector out of TOAST, which took "tax" across every session past
+ * the Data API's 45 s. At 64 MB the same search answered in 2.9 s cold. The
+ * settings are `set local`, so they last one transaction — the statement's own
+ * — and never reach another reader's; the timeout turns a runaway into an
+ * error the caller can answer, instead of a statement left running. Cached
+ * exactly as `q` is. Over a plain Postgres URL the settings are skipped.
+ */
+export async function qTuned<T = Record<string, unknown>>(text: string, params: unknown[] = [], { workMem = "64MB", timeoutMs = 8000 }: { workMem?: string; timeoutMs?: number } = {}): Promise<T[]> {
+  if (url || !client) return q<T>(text, params)
+  const statement = toNamedParameters(text)
+  return cached(text, params, async () => {
+    const begun = await awake(() => client.send(new BeginTransactionCommand({ resourceArn, secretArn, database })))
+    const transactionId = begun.transactionId
+    try {
+      await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          transactionId,
+          sql: "select set_config('work_mem', :mem, true), set_config('statement_timeout', :timeout, true)",
+          parameters: [parameter("mem", workMem), parameter("timeout", String(timeoutMs))],
+        })
+      )
+      const response = await client.send(
+        new ExecuteStatementCommand({
+          resourceArn,
+          secretArn,
+          database,
+          transactionId,
+          sql: statement.text,
+          parameters: params.map((value, i) => parameter(`p${i}`, value)),
+          includeResultMetadata: true,
+        })
+      )
+      await client.send(new CommitTransactionCommand({ resourceArn, secretArn, transactionId }))
+      return rowsOf<T>(response)
+    } catch (error) {
+      await client.send(new RollbackTransactionCommand({ resourceArn, secretArn, transactionId })).catch(() => {})
+      throw error
+    }
   })
 }
 

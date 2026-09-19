@@ -12,6 +12,7 @@ import { policyUrl } from "@/lib/policy/use-policy"
 import { CodeFrame, CodeLines, printedWithChanges } from "@/components/code-block"
 import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { PublicRail } from "@/components/block-card"
+import { FavoritesRail } from "@/components/favorites-rail"
 import { FlagChip } from "@/components/policy/imagery"
 import { useWarmed } from "@/components/rail-toggle"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -131,6 +132,7 @@ export function ChangelogV2Body({ initial, initialTexts }: { initial: Entry[]; i
           </div>
         </div>
         <div className="hidden flex-1 flex-col gap-6 overflow-y-auto px-6 xl:flex">
+          <FavoritesRail />
           <PublicRail />
         </div>
       </div>
@@ -199,7 +201,7 @@ function ChangelogMain({ entries, texts, empty }: { entries: Entry[]; texts: Map
 
 /** The root's changelog sheet: the center container alone, read once the page has settled or a reader opens their way to it, whichever is first. */
 export function ChangelogSheet() {
-  const reached = useWarmed(["right", "right-2", "right-3"], 1500)
+  const reached = useWarmed(["right", "right-2"], 1500)
   const { entries, texts } = useEveryState(reached)
   if (!reached) return null
   return <ChangelogMain entries={entries ?? []} texts={texts} empty={entries ? "Nothing on file." : <LoadingFlag />} />

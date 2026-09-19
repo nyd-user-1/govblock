@@ -268,11 +268,63 @@ export function createParticleScroll(
   let contentDirty = false;
   let wake = () => {};
 
+  // Chrome 153 paints a canvas nested in the captured subtree at the capture's
+  // origin rather than where the element sits, clipped to the element's box:
+  // the root's flag showed as one corner of itself (2026-09-19). So a nested
+  // canvas is hidden from the capture and drawn here instead, in place, at its
+  // ancestors' opacity. Hidden, its frames no longer ask for a paint, so the
+  // loop asks for one each frame while a nested canvas is in view.
+  const nested = new Set<HTMLCanvasElement>();
+  let nestedInView = false;
+
+  function drawNested() {
+    nestedInView = false;
+    const box = content.getBoundingClientRect();
+    const scale = source.width / Math.max(source.clientWidth, 1);
+    content.querySelectorAll<HTMLCanvasElement>("canvas").forEach((canvas) => {
+      if (!nested.has(canvas)) {
+        nested.add(canvas);
+        canvas.style.visibility = "hidden";
+      }
+      const rect = canvas.getBoundingClientRect();
+      if (!canvas.width || !canvas.height || !rect.width || !rect.height)
+        return;
+      if (
+        rect.bottom <= box.top ||
+        rect.top >= box.bottom ||
+        rect.right <= box.left ||
+        rect.left >= box.right
+      )
+        return;
+      nestedInView = true;
+      let alpha = 1;
+      for (
+        let el: Element | null = canvas;
+        el && el !== content;
+        el = el.parentElement
+      )
+        alpha *= Number(getComputedStyle(el).opacity);
+      if (!(alpha > 0)) return;
+      sourceCtx!.globalAlpha = Math.min(alpha, 1);
+      sourceCtx!.drawImage(
+        canvas,
+        (rect.left - box.left) * scale,
+        (rect.top - box.top) * scale,
+        rect.width * scale,
+        rect.height * scale,
+      );
+    });
+    sourceCtx!.globalAlpha = 1;
+  }
+
   if (htmlInCanvas) {
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
         sourceCtx!.drawElementImage!(content, 0, 0);
+        try {
+          drawNested();
+        } catch {}
         contentDirty = true;
         wake();
       } catch {}
@@ -621,9 +673,11 @@ export function createParticleScroll(
         : 1 - Math.exp(-delta / Math.max(tau, 1e-4));
     scrollSmooth += (scrollTop - scrollSmooth) * k;
     if (Math.abs(scrollTop - scrollSmooth) < 0.5) scrollSmooth = scrollTop;
+    if (nestedInView) paintable.requestPaint!();
     render(delta);
     if (
       !contentDirty &&
+      !nestedInView &&
       scrollSmooth === scrollTop &&
       !rowsAnimating &&
       rowsAssembled &&
@@ -706,6 +760,9 @@ export function createParticleScroll(
       gl!.deleteVertexArray(quadVao);
       gl!.deleteVertexArray(pointVao);
       if (htmlInCanvas) paintable.onpaint = null;
+      nested.forEach((canvas) => {
+        canvas.style.visibility = "";
+      });
     },
   };
 }

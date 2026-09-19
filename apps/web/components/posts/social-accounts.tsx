@@ -52,7 +52,7 @@ export function SocialAccounts() {
     account === undefined
       ? "…"
       : account === null
-        ? "Publishing from /posts is for admins"
+        ? "Publishing from /content-calendar is for admins"
         : !account.configured
           ? "The app's LinkedIn keys are not set"
           : account.connected

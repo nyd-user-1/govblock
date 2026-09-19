@@ -2550,19 +2550,19 @@ export async function getCommunications(limit = 50, offset = 0, chamber?: string
 // The newest session that actually has bills, per jurisdiction — the view the
 // matviews already define (sql/001_policy_matviews.sql). Cross-jurisdiction
 // rows come from these sessions, never from the archive.
-const CURRENT = `(select state, session::int as session_id from v_policy_latest_session)`
+export const CURRENT = `(select state, session::int as session_id from v_policy_latest_session)`
 
 // The oldest of those, as one InitPlan the bitmap scans can use as a lower
 // bound before the join prunes the rest. Without it "health" drags all 101,801
 // matching titles out of every session ever recorded.
-const SINCE = `(select min(session)::int from v_policy_latest_session)`
+export const SINCE = `(select min(session)::int from v_policy_latest_session)`
 
 // New York's Assembly texts arrive as a scrape of the whole page ahead of an
 // "<bill> Text:" marker (lib/policy/texts.ts, cleanBillText). A snippet cut
 // from that preamble quotes the site's navigation instead of the bill, so the
 // marker rule runs here too — over the first 20 k characters only, which is
 // where a preamble can be, rather than over an 11 MB body.
-const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
+export const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
   '(?n)^[[:blank:]]*[A-Z][0-9]+[A-Z]? Text:[[:blank:]]*$', 1, 1, 1), 1))`
 
 // "BillTextChunks" geometry. These three numbers are the contract between
@@ -2574,15 +2574,15 @@ const BODY = `substr(t.text, greatest(regexp_instr(left(t.text, 20000),
 // silently dropped, because the headline was cut from the wrong place and
 // contained no match. Change them here and in the script's FIRST/STRIDE/LEN
 // together, or not at all.
-const CHUNK_FIRST = 1
-const CHUNK_STRIDE = 79_000
-const CHUNK_LEN = 80_000
+export const CHUNK_FIRST = 1
+export const CHUNK_STRIDE = 79_000
+export const CHUNK_LEN = 80_000
 
 // Snippets, never bodies: the Data API caps a result at 1 MB, and ts_headline
 // over a whole 11 MB bill would cost more than the search did. « » delimit the
 // match — the surface splits on them, so nothing has to trust HTML from the
 // database.
-const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSel=»,FragmentDelimiter= … "
+export const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«,StopSel=»,FragmentDelimiter= … "
 
 // Both extras are opt-in, and for different reasons. `text` is a cost: the pass
 // over "BillTexts" is the expensive one and the ⌘K menu must not pay it.
@@ -2597,8 +2597,14 @@ export type SearchOptions = { text?: boolean; all?: boolean; perState?: number }
 /** Congress's bill letters as typed, to the letters LegiScan stores them under. */
 const FEDERAL_LETTERS: Record<string, string> = { hr: "HB", s: "SB", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR", hres: "HR", sres: "SR" }
 
-export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
-  const like = `%${term}%`
+/**
+ * A typed bill number, as the columns hold it — searchAll's rules, shared with
+ * the national search (lib/policy/national-search.ts, 2026-09-18) so the two
+ * cannot drift. `numberLike` is the prefix match; `exactUs` and `exactStates`
+ * are the exact-number patterns for Congress's rows and everyone else's, null
+ * when the term does not read as a number.
+ */
+export function billNumberMatch(term: string) {
   // The number a reader types is not the number on file. "HR119" is stored bare,
   // and it is typed "hr 119", "H.R. 119" and "hr119" — so every character that is
   // not a letter or a digit comes out of the term before it meets the column,
@@ -2616,6 +2622,13 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   const exactFor = (letters: string) => `^${letters || "[A-Z]+"}0*${numbered ? numbered[2].replace(/^0+(?=\d)/, "") : ""}$`
   const exactStates = numbered ? exactFor(numbered[1].toUpperCase()) : null
   const exactUs = numbered ? exactFor(numbered[1] ? (FEDERAL_LETTERS[numbered[1].toLowerCase()] ?? numbered[1].toUpperCase()) : "") : null
+  return { numberLike, numbered: !!numbered, exactUs, exactStates }
+}
+
+export async function searchAll(f: Resolved, term: string, limit = 8, options: SearchOptions = {}) {
+  const like = `%${term}%`
+  // The typed number's patterns: billNumberMatch, above.
+  const { numberLike, numbered, exactUs, exactStates } = billNumberMatch(term)
   const exact = (alias: string) =>
     numbered ? `((${alias}.state = 'US' and ${alias}.bill_number ~* $8) or (${alias}.state <> 'US' and ${alias}.bill_number ~* $9))` : "false"
   // Two rows a jurisdiction: enough that a reader sees the answer is national,

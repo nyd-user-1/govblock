@@ -1,4 +1,7 @@
 import { DocsSidebar } from "@/components/docs-sidebar"
+import { FavoritesRail } from "@/components/favorites-rail"
+import { RailViews } from "@/components/rail-views"
+import { RailResizeHandle } from "@/components/rail-resize"
 import { RailStrip, RailToggle } from "@/components/rail-toggle"
 import { Sidebar, SidebarContent } from "@govblock/ui/components/ny4/sidebar"
 
@@ -27,20 +30,38 @@ export function LeftRailSheet() {
   )
 }
 
-/** The same sheet on the other edge, holding whatever the page puts in its rail. */
-export function RightRailSheet({ children }: { children: React.ReactNode }) {
+/**
+ * The same sheet on the other edge, holding whatever the page puts in its
+ * rail, under Favorites — first in every right rail since 2026-09-19 (Brendan:
+ * "put favorites back at the top"). Resizable from its hairline since 2026-09-18 (components/rail-resize.tsx):
+ * 18rem until the reader drags it, and closed it still leaves its 24px strip.
+ */
+export function RightRailSheet({ children, settings }: { children: React.ReactNode; /** A second view, toggled at the rail's top (components/rail-views.tsx). */ settings?: React.ReactNode }) {
   return (
-    <div className={`${SHEET} right-0 [&>[data-slot=sidebar]]:w-72! [[data-rail-right=closed]_&]:translate-x-[calc(var(--spacing)*66)]`}>
+    <div className={`${SHEET} right-0 [&>[data-slot=sidebar]]:w-[var(--rail-right-w,18rem)]! [[data-rail-resizing]_&]:transition-none [[data-rail-right=closed]_&]:translate-x-[calc(var(--rail-right-w,18rem)-1.5rem)]`}>
       <RailStrip side="right" />
       <Sidebar
         side="right"
         collapsible="none"
-        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-72 shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
+        className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-[var(--rail-right-w,18rem)] shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
       >
         <div className={LINE} />
+        <RailResizeHandle />
         <RailToggle side="right" />
         {/* Past the tab's 16px and a little air, as the left rail's content sits past its own. */}
-        <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 scroll-fade gap-6 overflow-x-hidden overflow-y-auto py-1 pr-2.5">{children}</SidebarContent>
+        <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 scroll-fade gap-6 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
+          {settings ? (
+            <RailViews settings={settings}>
+              <FavoritesRail />
+              {children}
+            </RailViews>
+          ) : (
+            <>
+              <FavoritesRail />
+              {children}
+            </>
+          )}
+        </SidebarContent>
       </Sidebar>
     </div>
   )

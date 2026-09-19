@@ -58,6 +58,9 @@ export function CommitteeBlock() {
  * The whole rail: the callout, as shadcn's docs rail is. The Member Block and
  * Committee Block above came off it on 2026-09-05 (Brendan: "just remove the
  * member block and the committee block... but don't delete them").
+ *
+ * Favorites, which stood above the callout for an hour on 2026-09-19, head
+ * every right rail instead (components/rail-sheet.tsx).
  */
 export function PublicRail() {
   return <OpenInV0Cta />

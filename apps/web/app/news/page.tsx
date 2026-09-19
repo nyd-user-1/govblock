@@ -9,6 +9,7 @@ import { DocsCopyPage } from "@/components/docs-copy-page"
 import { CalendarCard } from "@/components/cards/calendar"
 import { PublicRail } from "@/components/block-card"
 import { Button } from "@govblock/ui/components/ny4/button"
+import { BackToTop } from "@/components/back-to-top"
 
 // The news index, on the committees doc's page (Brendan, 2026-09-09:
 // "duplicate this page as /news"): the same header, search field and card
@@ -80,6 +81,8 @@ export default async function NewsPage() {
               </p>
             </div>
           </div>
+          {/* The header's rule, at the distance RecordHeader keeps (2026-09-18). */}
+          <hr className="mt-6 border-0 border-t border-border" />
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
             {/* Today across the states: Exa's daily monitor writes a cited brief
                 over the statehouse press, and it stands at the top of the
@@ -117,6 +120,7 @@ export default async function NewsPage() {
               </Link>
             </Button>
           </div>
+          <BackToTop />
         </div>
       </div>
       <RightRailSheet>

@@ -1,0 +1,392 @@
+{
+ "jurisdiction": "us-ut",
+ "source": "https://le.utah.gov/xcode/C_1800010118000101.html",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [
+  {
+   "key": "3",
+   "name": "Uniform Agricultural Cooperative Association Act"
+  },
+  {
+   "key": "4",
+   "name": "Utah Agricultural Code"
+  },
+  {
+   "key": "6",
+   "name": "Assignment for Benefit of Creditors"
+  },
+  {
+   "key": "7",
+   "name": "Financial Institutions Act"
+  },
+  {
+   "key": "8",
+   "name": "Cemeteries"
+  },
+  {
+   "key": "9",
+   "name": "Cultural and Community Engagement"
+  },
+  {
+   "key": "10",
+   "name": "Utah Municipal Code"
+  },
+  {
+   "key": "11",
+   "name": "Cities, Counties, and Local Taxing Units"
+  },
+  {
+   "key": "12",
+   "name": "Collection Agencies"
+  },
+  {
+   "key": "13",
+   "name": "Commerce and Trade"
+  },
+  {
+   "key": "14",
+   "name": "Contractors' Bonds"
+  },
+  {
+   "key": "15",
+   "name": "Contracts and Obligations in General"
+  },
+  {
+   "key": "15A",
+   "name": "State Construction and Fire Codes Act"
+  },
+  {
+   "key": "16",
+   "name": "Corporations (Superseded 10/1/2026)"
+  },
+  {
+   "key": "17",
+   "name": "Counties"
+  },
+  {
+   "key": "17B",
+   "name": "Limited Purpose Local Government Entities - Special Districts"
+  },
+  {
+   "key": "17C",
+   "name": "Limited Purpose Local Government Entities - Community Reinvestment Agency Act"
+  },
+  {
+   "key": "17D",
+   "name": "Limited Purpose Local Government Entities - Other Entities"
+  },
+  {
+   "key": "17E",
+   "name": "Counties and State Government"
+  },
+  {
+   "key": "18",
+   "name": "Dogs"
+  },
+  {
+   "key": "19",
+   "name": "Environmental Quality Code"
+  },
+  {
+   "key": "20A",
+   "name": "Election Code"
+  },
+  {
+   "key": "23A",
+   "name": "Wildlife Resources Act"
+  },
+  {
+   "key": "25",
+   "name": "Fraud"
+  },
+  {
+   "key": "26A",
+   "name": "Local Health Authorities"
+  },
+  {
+   "key": "26B",
+   "name": "Utah Health and Human Services Code"
+  },
+  {
+   "key": "29",
+   "name": "Hotels and Hotel Keepers"
+  },
+  {
+   "key": "31A",
+   "name": "Insurance Code"
+  },
+  {
+   "key": "32B",
+   "name": "Alcoholic Beverage Control Act"
+  },
+  {
+   "key": "34",
+   "name": "Labor in General"
+  },
+  {
+   "key": "34A",
+   "name": "Utah Labor Code"
+  },
+  {
+   "key": "35A",
+   "name": "Utah Workforce Services Code"
+  },
+  {
+   "key": "36",
+   "name": "Legislature"
+  },
+  {
+   "key": "38",
+   "name": "Liens"
+  },
+  {
+   "key": "39A",
+   "name": "National Guard and Militia Act"
+  },
+  {
+   "key": "40",
+   "name": "Mines and Mining"
+  },
+  {
+   "key": "41",
+   "name": "Motor Vehicles"
+  },
+  {
+   "key": "42",
+   "name": "Names"
+  },
+  {
+   "key": "43",
+   "name": "Negotiable Certificates"
+  },
+  {
+   "key": "45",
+   "name": "Publication and Broadcasting"
+  },
+  {
+   "key": "46",
+   "name": "Notarization and Authentication of Documents, Electronic Signatures, and Legal Material"
+  },
+  {
+   "key": "48",
+   "name": "Unincorporated Business Entity Act"
+  },
+  {
+   "key": "49",
+   "name": "Utah State Retirement and Insurance Benefit Act"
+  },
+  {
+   "key": "50",
+   "name": "Pools and Trusts"
+  },
+  {
+   "key": "51",
+   "name": "Public Funds and Accounts"
+  },
+  {
+   "key": "52",
+   "name": "Public Officers"
+  },
+  {
+   "key": "53",
+   "name": "Public Safety Code"
+  },
+  {
+   "key": "53C",
+   "name": "School and Institutional Trust Lands Management Act"
+  },
+  {
+   "key": "53D",
+   "name": "School and Institutional Trust Fund Management and Land Trusts Protection and Advocacy Office"
+  },
+  {
+   "key": "53E",
+   "name": "Public Education System -- State Administration"
+  },
+  {
+   "key": "53F",
+   "name": "Public Education System -- Funding"
+  },
+  {
+   "key": "53G",
+   "name": "Public Education System -- Local Administration"
+  },
+  {
+   "key": "53H",
+   "name": "Higher Education"
+  },
+  {
+   "key": "54",
+   "name": "Public Utilities"
+  },
+  {
+   "key": "55",
+   "name": "Public Welfare"
+  },
+  {
+   "key": "56",
+   "name": "Railroads"
+  },
+  {
+   "key": "57",
+   "name": "Real Estate"
+  },
+  {
+   "key": "58",
+   "name": "Occupations and Professions"
+  },
+  {
+   "key": "59",
+   "name": "Revenue and Taxation"
+  },
+  {
+   "key": "61",
+   "name": "Securities Division - Real Estate Division"
+  },
+  {
+   "key": "63A",
+   "name": "Utah Government Operations Code"
+  },
+  {
+   "key": "63B",
+   "name": "Bonds"
+  },
+  {
+   "key": "63C",
+   "name": "State Commissions and Councils Code"
+  },
+  {
+   "key": "63D",
+   "name": "Information Technology Act"
+  },
+  {
+   "key": "63E",
+   "name": "Independent Entities Code"
+  },
+  {
+   "key": "63G",
+   "name": "General Government"
+  },
+  {
+   "key": "63H",
+   "name": "Independent State Entities"
+  },
+  {
+   "key": "63I",
+   "name": "Oversight"
+  },
+  {
+   "key": "63J",
+   "name": "Budgeting"
+  },
+  {
+   "key": "63L",
+   "name": "Lands"
+  },
+  {
+   "key": "63M",
+   "name": "Governor's Programs"
+  },
+  {
+   "key": "63N",
+   "name": "Economic Opportunity Act"
+  },
+  {
+   "key": "63O",
+   "name": "Capitol Hill"
+  },
+  {
+   "key": "64",
+   "name": "State Institutions"
+  },
+  {
+   "key": "65A",
+   "name": "Forestry, Fire, and State Lands"
+  },
+  {
+   "key": "67",
+   "name": "State Officers and Employees"
+  },
+  {
+   "key": "68",
+   "name": "Statutes"
+  },
+  {
+   "key": "69",
+   "name": "Telegraphic and Telephonic Transactions"
+  },
+  {
+   "key": "70",
+   "name": "Trademarks and Trade Names"
+  },
+  {
+   "key": "70A",
+   "name": "Uniform Commercial Code"
+  },
+  {
+   "key": "70C",
+   "name": "Utah Consumer Credit Code"
+  },
+  {
+   "key": "70D",
+   "name": "Financial Institution Mortgage Financing Regulation Act"
+  },
+  {
+   "key": "71A",
+   "name": "Veterans and Military Affairs"
+  },
+  {
+   "key": "72",
+   "name": "Transportation Code"
+  },
+  {
+   "key": "73",
+   "name": "Water and Irrigation"
+  },
+  {
+   "key": "75",
+   "name": "Utah Uniform Probate Code"
+  },
+  {
+   "key": "75A",
+   "name": "Fiduciaries"
+  },
+  {
+   "key": "75B",
+   "name": "Trusts"
+  },
+  {
+   "key": "75E",
+   "name": "Criminal and Juvenile Justice Administration"
+  },
+  {
+   "key": "76",
+   "name": "Criminal Offenses"
+  },
+  {
+   "key": "77",
+   "name": "Criminal Procedure"
+  },
+  {
+   "key": "78A",
+   "name": "Judiciary and Judicial Administration"
+  },
+  {
+   "key": "78B",
+   "name": "Judicial Code"
+  },
+  {
+   "key": "79",
+   "name": "Natural Resources"
+  },
+  {
+   "key": "80",
+   "name": "Utah Juvenile Code"
+  },
+  {
+   "key": "81",
+   "name": "Utah Domestic Relations Code"
+  }
+ ]
+}

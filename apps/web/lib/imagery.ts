@@ -1,4 +1,5 @@
 // Ported from livingston-v3 lib/policy/imagery.ts — which picture a thing gets.
+import { assetUrl } from "@/lib/assets"
 import { flagUrl } from "@/lib/filters"
 
 const SEALS: Record<string, string> = {
@@ -12,7 +13,8 @@ const SEALS: Record<string, string> = {
   // 2026-09-03 and rendered to 288 px. The `XX:` key is the jurisdiction's own
   // Great Seal and covers any row without a chamber; a chamber key exists only
   // where that chamber has a seal of its own. Files and licences are logged in
-  // public/chambers/SOURCES.md.
+  // apps/web/docs/assets/chambers-sources.md; the files are in the public
+  // bucket (lib/assets.ts).
   // Texas — House and Senate each have their own seal.
   "TX:House": "/chambers/tx-house.avif",
   "TX:Senate": "/chambers/tx-senate.avif",
@@ -160,7 +162,8 @@ const SEALS: Record<string, string> = {
 export function chamberImage(state: string, chamber?: string | null) {
   const code = (state || "").toUpperCase()
   const body = chamber ?? ""
-  return SEALS[`${code}:${body}`] ?? SEALS[`${code}:`] ?? flagUrl(code || "US")
+  const file = SEALS[`${code}:${body}`] ?? SEALS[`${code}:`]
+  return file ? assetUrl(file) : flagUrl(code || "US")
 }
 
 export function hasSeal(state: string, chamber?: string | null) {

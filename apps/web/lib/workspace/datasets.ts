@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assets"
 import { entitled, type Reader, type Verdict } from "@/lib/entitlements"
 import { STATE_CODES, STATE_NAMES, lowerChamber } from "@/lib/filters"
 
@@ -58,7 +59,7 @@ export function chambersOf(state: string): string[] {
 // way the department pages link it: without `state=US` a reader scoped to a
 // state would see that state's rows, or none.
 const forms = (code: string) => `/workspace/forms?state=US&agency=${encodeURIComponent(code)}`
-const dept = (key: string, title: string, seal: string, href: string): Dataset => ({ key, title, seal: { kind: "image", src: seal }, group: "department", href })
+const dept = (key: string, title: string, seal: string, href: string): Dataset => ({ key, title, seal: { kind: "image", src: assetUrl(seal) }, group: "department", href })
 
 const DEPARTMENTS: Dataset[] = [
   dept("fec", "Federal Election Commission", "/seals/federal-election-commission.avif", "/workspace/dashboard/finance"),

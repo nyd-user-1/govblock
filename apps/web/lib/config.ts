@@ -383,7 +383,7 @@ export const siteConfig = {
         },
         {
           label: "Talk",
-          items: ["/discussions", "/watercooler", "/leaderboard"],
+          items: ["/discussions", "/watercooler", "/leaderboard", "/users"],
         },
         {
           label: "Decide",
@@ -391,9 +391,10 @@ export const siteConfig = {
         },
         { label: "Watching", items: ["/watches", "/sources"] },
       ],
-      // Fifteen entries, alphabetical, three across (Brendan, 2026-09-09; the
+      // Sixteen entries, alphabetical, three across (Brendan, 2026-09-09; the
       // Consensus pages joined on 2026-09-11, and later that day Consensus
-      // itself moved to Workspace and Desk came in from Records). Eight have
+      // itself moved to Workspace and Desk came in from Records; Users joined
+      // 2026-09-18). Eight have
       // pages; the rest are named here first and built later.
       columns: 3,
       items: [
@@ -478,6 +479,12 @@ export const siteConfig = {
           description:
             "Every subject the record files a bill under, with its page.",
           icon: "Tag",
+        },
+        {
+          href: "/users",
+          label: "Users",
+          description: "The readers at the top of every board, and each one's page.",
+          icon: "Users",
         },
         {
           href: "/watches",

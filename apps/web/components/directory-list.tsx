@@ -5,6 +5,7 @@ import * as React from "react"
 import members from "@/lib/data/members-us.json"
 import { useScoped } from "@/lib/policy/use-scoped"
 import { memberHref, partyName, stateName } from "@/lib/filters"
+import { memberLine } from "@/lib/legislative-body"
 import { honorific, shortDistrict } from "@/lib/format"
 import { matchesQuery } from "@/lib/search-match"
 import { portraitFor } from "@/lib/imagery"
@@ -69,6 +70,7 @@ export function DirectoryList() {
             title={`${honorific(member.role, member.chamber)} ${member.name}`.trim()}
             lead={member.leadership_title}
             meta={[member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)]}
+            favoriteDetail={memberLine({ party: member.party, state, district: member.district })}
           />
         ))}
         {!shown.length && (

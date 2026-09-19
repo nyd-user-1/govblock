@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react"
 import { truncate } from "@/lib/format"
 import { hasSeal } from "@/lib/imagery"
 import { ChamberSeal } from "@/components/policy/imagery"
+import { FavoriteStar } from "@/components/favorite-star"
 import { cn } from "@govblock/ui/lib/utils"
 import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 
@@ -26,6 +27,12 @@ import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 //
 // No "use client" on purpose: server pages (member, committee) and client
 // lists (bills, the federal families) both render it.
+//
+// The star before the arrow (Brendan, 2026-09-19) keeps the item in the right
+// rail's Favorites (components/favorite-star.tsx). It is a button, so it stands
+// beside the link rather than inside it, and the row's hover group moved out
+// to the wrapper that holds them both. The data-record-* marks are what the
+// star reads the item's words from.
 
 /**
  * The list while it is still reading: rows in the canon item's own shape —
@@ -69,8 +76,11 @@ export function RecordItem({
   className,
   stacked = false,
   hover = "soft",
+  favoriteDetail,
 }: {
   href: string
+  /** The favorite's second line where the row's own words will not do: a member's party, state and district. */
+  favoriteDetail?: string | null
   /** Number, then the title on one line, then the meta — the member page's rows (Brendan, 2026-09-05). */
   stacked?: boolean
   /** The hover pill: the faint one, or the rail's solid accent ("model the hover like the recent bills hover"). */
@@ -102,23 +112,24 @@ export function RecordItem({
         hover === "rail" ? "group-hover/row:bg-sidebar-accent group-hover/row:text-sidebar-accent-foreground" : "group-hover/row:bg-muted/50"
       )}
     >
-      {avatar && <span className="shrink-0 pt-0.5">{avatar}</span>}
+      {avatar && <span data-record-avatar className="shrink-0 pt-0.5">{avatar}</span>}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex items-baseline gap-2 pr-6 text-base font-semibold text-foreground">
+        {/* pr-14 clears the star and the arrow in the corner. */}
+        <span className="flex items-baseline gap-2 pr-14 text-base font-semibold text-foreground">
           {/* The bold slot never wraps: a citation is one token and `PN730-2`
               broken across two lines reads as two different nominations. */}
-          <span className="shrink-0 whitespace-nowrap">{title}</span>
-          {lead && <span className="min-w-0 truncate font-normal text-muted-foreground">{truncate(lead, 90)}</span>}
+          <span data-record-title className="shrink-0 whitespace-nowrap">{title}</span>
+          {lead && <span data-record-lead className="min-w-0 truncate font-normal text-muted-foreground">{truncate(lead, 90)}</span>}
         </span>
         {stacked ? (
           <>
-            {description && <span className="mt-2 truncate text-base text-foreground">{description}</span>}
-            {line && <span className="mt-1 text-sm text-muted-foreground">{line}</span>}
+            {description && <span data-record-description className="mt-2 truncate text-base text-foreground">{description}</span>}
+            {line && <span data-record-meta className="mt-1 text-sm text-muted-foreground">{line}</span>}
           </>
         ) : (
           <>
-            {line && <span className="mt-1 text-xs text-muted-foreground">{line}</span>}
-            {description && <span className="mt-2 text-sm text-foreground">{description}</span>}
+            {line && <span data-record-meta className="mt-1 text-xs text-muted-foreground">{line}</span>}
+            {description && <span data-record-description className="mt-2 text-sm text-foreground">{description}</span>}
           </>
         )}
       </span>
@@ -129,18 +140,21 @@ export function RecordItem({
       />
     </span>
   )
-  const classes = cn("group/row block py-1 no-underline", className)
-  if (external) {
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
-        {body}
-      </a>
-    )
-  }
+  const classes = "block py-1 no-underline"
   return (
-    <Link href={href} className={classes}>
-      {body}
-    </Link>
+    <div data-record-item data-favorite-detail={favoriteDetail || undefined} className={cn("group/row relative", className)}>
+      {external ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
+          {body}
+        </a>
+      ) : (
+        <Link href={href} className={classes}>
+          {body}
+        </Link>
+      )}
+      {/* Centred on the arrow's line, its 16 px icon 8 px before the arrow. */}
+      <FavoriteStar href={href} external={external} className="absolute top-3 right-8" />
+    </div>
   )
 }
 

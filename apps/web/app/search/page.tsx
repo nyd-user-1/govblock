@@ -9,11 +9,12 @@ import { DocsPage } from "@/components/docs-page"
 import { memberHref, stateName } from "@/lib/filters"
 import { portraitFor } from "@/lib/imagery"
 import { fmtBill, fmtDate, truncate } from "@/lib/format"
-import { districtLabel, legislativeBody } from "@/lib/legislative-body"
+import { districtLabel, legislativeBody, memberLine } from "@/lib/legislative-body"
 import { isFiltered, readFilters, SearchFilters, sectionId, type SearchFilterState, writeFilters } from "@/components/search-filters"
-import { Highlight, Mark } from "@/components/search-highlight"
+import { Highlight } from "@/components/search-highlight"
+import { SearchSection as Section, Snippet } from "@/components/search-sections"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
-import { RecordItem, RecordList } from "@/components/policy/record-item"
+import { RecordItem } from "@/components/policy/record-item"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { matchPages } from "@/lib/search-pages"
@@ -60,43 +61,6 @@ type SearchPayload = {
     title: string
     snippet: string
   }[]
-}
-
-// ts_headline wraps the match in « », not in HTML — nothing has to trust markup
-// coming out of the database. A snippet is therefore split on the guillemets and
-// the odd pieces are the hits. (A bill that itself contains a « would show a
-// stray highlight; across 3.3 M documents that is a better trade than
-// dangerouslySetInnerHTML.)
-function Snippet({ text }: { text: string }) {
-  const pieces = text.split(/[«»]/)
-  return (
-    <span className="min-w-0 flex-1 text-muted-foreground">
-      {pieces.map((piece, i) =>
-        i % 2 ? (
-          <Mark key={i}>{piece}</Mark>
-        ) : (
-          <React.Fragment key={i}>{piece}</React.Fragment>
-        )
-      )}
-    </span>
-  )
-}
-
-// The section's bordered box and its `divide-y` are gone: the canon puts a 1 px
-// rule on the item itself, and a box around a list of ruled items draws the same
-// line twice and boxes it as well.
-function Section({ id, title, count, children }: { id: string; title: string; count: number; children: React.ReactNode }) {
-  if (!count) return null
-  return (
-    // scroll-mt clears the sticky header, so the rail's jump lands on the
-    // heading rather than a hand's width above it.
-    <section id={id} className="flex scroll-mt-[calc(var(--header-height)+2rem)] flex-col">
-      <h2 className="text-sm font-medium text-muted-foreground">
-        {title} <span className="tabular-nums">({count})</span>
-      </h2>
-      <RecordList className="mt-2 mb-2">{children}</RecordList>
-    </section>
-  )
 }
 
 function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFacets: (facets: Facets) => void }) {
@@ -265,6 +229,7 @@ function SearchResults({ filters, onFacets }: { filters: SearchFilterState; onFa
                 }
                 title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
                 meta={[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]}
+                favoriteDetail={memberLine(member)}
               />
             ))}
           </Section>

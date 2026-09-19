@@ -218,7 +218,6 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
               </>
             }
           />
-          <hr className="border-0 border-t border-border" />
           <div className="typeset w-full flex-1">
             {/* h2 Summary, then the three pairs and the case studies as h3 sub-sections; each pair is a claim, its chart, and the table of what it can open. */}
             <H2>Summary</H2>

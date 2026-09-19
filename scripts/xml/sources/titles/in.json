@@ -1,0 +1,28 @@
+{
+ "jurisdiction": "us-in",
+ "source": "https://iga.in.gov/ic/2025/Title_<n>.html (each title's own heading)",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [],
+ "chapterNames": {
+  "2": "General Assembly",
+  "3": "Elections",
+  "4": "State Offices and Administration",
+  "6": "Taxation",
+  "8": "Utilities and Transportation",
+  "11": "Corrections",
+  "12": "Human Services",
+  "13": "Environment",
+  "14": "Natural and Cultural Resources",
+  "15": "Agriculture and Animals",
+  "22": "Labor and Safety",
+  "24": "Trade Regulation",
+  "28": "Financial Institutions",
+  "29": "Probate",
+  "30": "Trusts and Fiduciaries",
+  "31": "Family Law and Juvenile Law",
+  "33": "Courts and Court Officers",
+  "35": "Criminal Law and Procedure"
+ },
+ "note": "Indiana's units are its titles; these name the ones the load left as 'Title N'"
+}

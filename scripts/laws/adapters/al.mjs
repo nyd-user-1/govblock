@@ -95,7 +95,19 @@ export default {
       if (!heading) continue
       const kind = heading[1]
       if (kind === "Title") {
-        title = { number: heading[2].replace(/\.$/, ""), name: titleCase(heading[3].replace(/\.$/, "")) }
+        const number = heading[2].replace(/\.$/, "")
+        // The Agency labels a subtitle "Title" too: "Title 1 Health and
+        // Environmental Control Generally" is Subtitle 1 of Title 22, and its
+        // range (§22-1-1 to §22-40A-24) says so. Taken for a title, it filed
+        // chapter 22-1 as T1C1, on top of Title 1's own chapter 1 — 46 laws
+        // held two or three titles' chapters at once (2026-09-19). A subtitle
+        // keeps the title it is in.
+        const within = /^§\s*(\d+[A-Z]?)-/.exec(item.range)?.[1]
+        if (title && within && within !== number && within === title.number) {
+          chapter = null
+          continue
+        }
+        title = { number, name: titleCase(heading[3].replace(/\.$/, "")) }
         chapter = null
         continue
       }

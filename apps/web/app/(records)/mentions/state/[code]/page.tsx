@@ -12,11 +12,13 @@ import { stateName } from "@/lib/filters"
 // press, the bills its coverage links to, the people it names, and the stories
 // themselves. The state is the outlet's, or the bill's own legislature.
 
-// New days and jurisdictions appear as the nightly job writes them, so a path
-// that was not prerendered still renders.
+// Rendered on first request, not at build (2026-09-19): the build wrote every
+// day and state page with its data, 37 MB of the 234.9 MB Amplify refused
+// against its 230.7 MB cap (job 287). A jurisdiction the nightly job adds
+// renders the same way.
 
 export function generateStaticParams() {
-  return stateTotals().map((row) => ({ code: row.code.toLowerCase() }))
+  return []
 }
 
 const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."]

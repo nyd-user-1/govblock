@@ -14,11 +14,13 @@ import { stateName } from "@/lib/filters"
 // bills the press wrote about, who was quoted, what travelled and how far.
 // The day file is on disk; this page calls nothing.
 
-// New days and jurisdictions appear as the nightly job writes them, so a path
-// that was not prerendered still renders.
+// Rendered on first request, not at build (2026-09-19): the build wrote every
+// day and state page with its data, 37 MB of the 234.9 MB Amplify refused
+// against its 230.7 MB cap (job 287). A day the nightly job adds renders the
+// same way.
 
 export function generateStaticParams() {
-  return dayList().map((date) => ({ date }))
+  return []
 }
 
 const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."]

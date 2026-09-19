@@ -15,6 +15,8 @@ import { one, q } from "@/lib/policy/db"
 //   ?law=GBS&text=1[&after=<seq>]    the law's nodes in order with their text, a page
 //                                    at a time (the Data API caps a response at 1 MB);
 //                                    `next` is the sequence to ask for after
+//   ?law=GBS&text=1&before=<seq>     the page ending before a sequence; `prev` is the
+//                                    sequence to ask for before (a reader scrolling up)
 
 const CACHE = "public, s-maxage=3600, stale-while-revalidate=86400"
 
@@ -57,6 +59,22 @@ export async function GET(request: Request) {
     const law = sp.get("law")
     if (!law) return NextResponse.json({ error: "law, q or list required" }, { status: 400 })
     if (sp.get("text")) {
+      // The page before a sequence, for a reader scrolling up (2026-09-19): up
+      // to 200 nodes ending before `before`, cut at 700 KB counting back from
+      // it; `prev` is the sequence to ask for before, null at the law's start.
+      if (sp.get("before")) {
+        const before = Number(sp.get("before"))
+        const nodes = await q<LawNode & { text: string | null }>(
+          `select ${NODE}, text from (
+             select ${NODE}, text, sum(length(coalesce(text, ''))) over (order by sequence_no desc) - length(coalesce(text, '')) run
+               from "Laws" where state = $1 and law_id = $2 and sequence_no < $3 order by sequence_no desc limit 200
+           ) page where run < 700000 order by sequence_no`,
+          [state, law, before]
+        )
+        const first = nodes[0]
+        const less = first ? await one<{ n: number }>(`select count(*)::int n from "Laws" where state = $1 and law_id = $2 and sequence_no < $3`, [state, law, first.sequence_no]) : null
+        return NextResponse.json({ nodes, prev: less && less.n > 0 && first ? first.sequence_no : null }, { headers: { "cache-control": CACHE } })
+      }
       const after = Number(sp.get("after") ?? -1)
       // Up to 200 nodes, cut where their text passes 700 KB; always at least one.
       const nodes = await q<LawNode & { text: string | null }>(

@@ -1,28 +1,35 @@
 import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
-import { TermsDirectory } from "@/components/subjects/terms-directory"
+import { TagsExplorer, type TagRow } from "@/components/tags/tags-explorer"
+import { TAGS } from "@/lib/data/tags"
+import { NEWS_TAGS, popularTags, recentTags, recommendedTags, trendingTags, type NewsTag } from "@/lib/gdelt/tags"
 
-// The tags index, on the committees doc's page (Brendan, 2026-09-09; it began
-// the day on the datasets index's link grid and was moved the same day): every
-// term the jurisdiction in scope files a bill under, the policy areas first
-// and the legislative subjects after, one card each.
+// The tags index (Brendan, 2026-09-09; on GDELT since 2026-09-18). It began on
+// the record's own filing — the policy areas and legislative subjects, which
+// keep their own pages — and now stands on what the news is about: every theme
+// GDELT's knowledge graph gave the legislative coverage of the window, laid out
+// as daily.dev lays out its tags. scripts/gdelt/tags.mjs writes the file.
+// GovBlock's own subject tags stand in the A-to-Z beside them, one entry where
+// the words agree.
+
+
 const title = "Tags"
-const description =
-  "Every subject the record files a bill under, in the jurisdiction in scope, with the bills under each."
+const description = "Browse the tags millions of policy makers follow. Search, jump to any letter, and follow the ones that matter to you."
 
 export const metadata = { title, description }
 
+const row = (t: NewsTag): TagRow => ({ slug: t.slug, name: t.name, total: t.total })
+
 export default function TagsPage() {
   return (
-    <DocsPage
-      title={title}
-      description={description}
-      slug="/tags"
-      previous={{ name: "News", url: "/news" }}
-      next={{ name: "Policy Areas", url: "/policy-areas" }}
-      rail={<CalendarCard compact />}
-    >
-      <TermsDirectory kind="all" />
+    <DocsPage title={title} description={description} slug="/tags" previous={{ name: "News", url: "/news" }} next={{ name: "Sources", url: "/sources" }} rail={<CalendarCard compact />}>
+      <TagsExplorer
+        tags={[...new Map([...TAGS.map((t) => [t.slug, { slug: t.slug, name: t.name, total: 0 }] as const), ...NEWS_TAGS.map((t) => [t.slug, row(t)] as const)]).values()].sort((a, b) => a.slug.localeCompare(b.slug))}
+        trending={trendingTags(20).map(row)}
+        popular={popularTags(20).map(row)}
+        recent={recentTags(20).map(row)}
+        recommended={recommendedTags(5).map(row)}
+      />
     </DocsPage>
   )
 }

@@ -6,6 +6,7 @@ import { DirectoryList } from "@/components/directory-list"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
 import { Button } from "@govblock/ui/components/ny4/button"
+import { BackToTop } from "@/components/back-to-top"
 
 // The members doc, on the same header as bills and committees.
 const title = "Members"
@@ -48,6 +49,8 @@ export default function DirectoryPage() {
               <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>
             </div>
           </div>
+          {/* The header's rule, at the distance RecordHeader keeps (2026-09-18). */}
+          <hr className="mt-6 border-0 border-t border-border" />
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
             <DirectoryList />
           </div>
@@ -63,6 +66,7 @@ export default function DirectoryPage() {
               </Link>
             </Button>
           </div>
+          <BackToTop />
         </div>
       </div>
       <RightRailSheet>

@@ -13,7 +13,7 @@ import { useWarmed } from "@/components/rail-toggle"
 const SCOPE: PathScope = { state: CONGRESS, session: null, year: null, chamber: null, sessions: [] }
 
 export function HomeSheet() {
-  const reached = useWarmed(["right", "right-2", "right-3", "right-4"], 4000)
+  const reached = useWarmed(["right", "right-2", "right-3"], 4000)
   if (!reached) return null
   return (
     <PathScopeContext.Provider value={SCOPE}>

@@ -5,7 +5,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
 import { foldGutter, foldKeymap, foldService } from "@codemirror/language"
 import { MergeView, unifiedMergeView } from "@codemirror/merge"
 import { highlightSelectionMatches, search, searchKeymap, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search"
-import { Compartment, EditorState, RangeSetBuilder, StateEffect } from "@codemirror/state"
+import { Compartment, EditorState, Prec, RangeSetBuilder, StateEffect } from "@codemirror/state"
 import { Decoration, EditorView, gutter, GutterMarker, keymap, lineNumbers, type DecorationSet } from "@codemirror/view"
 
 import { CHANGE_MARK, layoutBillText, type BillLayout } from "@/lib/policy/bill-text-layout"
@@ -127,6 +127,28 @@ const theme = EditorView.theme({
   ".cm-foldGutter .cm-gutterElement": { cursor: "pointer", opacity: "0.6" },
 })
 
+// Grown to its content, the page scrolls it (a law in the docs column,
+// Brendan, 2026-09-19): CodeMirror still draws only the lines in view, reading
+// the window's scroll instead of its own, and a line it jumps to clears the
+// sticky header.
+const grown = [
+  Prec.highest(EditorView.theme({ "&": { height: "auto" }, ".cm-scroller": { overflow: "visible" } })),
+  EditorView.scrollMargins.of(() => ({ top: 96 })),
+]
+
+/** The highlighted line, as an extension: nothing when there is no line or it is past the end. */
+function targetExtension(highlight: number | null) {
+  if (highlight == null || highlight < 0) return []
+  return EditorView.decorations.of((v) => {
+    const b = new RangeSetBuilder<Decoration>()
+    if (highlight < v.state.doc.lines) {
+      const line = v.state.doc.line(highlight + 1)
+      b.add(line.from, line.from, targetLine)
+    }
+    return b.finish()
+  })
+}
+
 export function collectMatches(doc: string, query: string, limit = 500): Match[] {
   if (!query.trim()) return []
   const state = EditorState.create({ doc })
@@ -160,9 +182,11 @@ export const CodeView = React.forwardRef<
     highlight?: number | null
     onMatches?: (matches: Match[], layout: BillLayout) => void
     onLayout?: (layout: BillLayout) => void
+    /** As tall as the document, scrolled by the page rather than by itself. */
+    grow?: boolean
     className?: string
   }
->(function CodeView({ text, original, diff = false, split = false, wrap = false, fold = true, center = false, query = "", highlight = null, onMatches, onLayout, className }, ref) {
+>(function CodeView({ text, original, diff = false, split = false, wrap = false, fold = true, center = false, query = "", highlight = null, onMatches, onLayout, grow = false, className }, ref) {
   const host = React.useRef<HTMLDivElement>(null)
   const view = React.useRef<EditorView | null>(null)
   const merge = React.useRef<MergeView | null>(null)
@@ -172,6 +196,10 @@ export const CodeView = React.forwardRef<
   const mergeConf = React.useRef(new Compartment())
   const targetConf = React.useRef(new Compartment())
   const layout = React.useMemo(() => layoutBillText(text), [text])
+  // Read when an editor is built, so a rebuilt one — a law's next page of text
+  // arriving — keeps the line the outline pointed at (2026-09-19).
+  const highlightNow = React.useRef(highlight)
+  highlightNow.current = highlight
   const originalLayout = React.useMemo(() => (original ? layoutBillText(original) : null), [original])
 
   React.useEffect(() => onLayout?.(layout), [layout, onLayout])
@@ -201,8 +229,9 @@ export const CodeView = React.forwardRef<
       EditorView.decorations.of((v) => lineDecorations(layout, v.state)),
       EditorView.decorations.of((v) => changeDecorations(v.state)),
       wrapConf.current.of(wrap ? EditorView.lineWrapping : []),
-      targetConf.current.of([]),
+      targetConf.current.of(targetExtension(highlightNow.current)),
       theme,
+      grow ? grown : [],
     ]
 
     // Side by side: two editors, the earlier version on the left, aligned by
@@ -254,7 +283,7 @@ export const CodeView = React.forwardRef<
       editor.destroy()
       view.current = null
     }
-  }, [layout, wrap, fold, sideBySide, originalLayout])
+  }, [layout, wrap, fold, sideBySide, originalLayout, grow])
 
   React.useEffect(() => {
     view.current?.dispatch({ effects: wrapConf.current.reconfigure(wrap ? EditorView.lineWrapping : []) })
@@ -264,18 +293,7 @@ export const CodeView = React.forwardRef<
   }, [fold])
 
   React.useEffect(() => {
-    const editor = view.current
-    if (!editor) return
-    const ext =
-      highlight == null || highlight < 0 || highlight >= editor.state.doc.lines
-        ? []
-        : EditorView.decorations.of((v) => {
-            const line = v.state.doc.line(highlight + 1)
-            const b = new RangeSetBuilder<Decoration>()
-            b.add(line.from, line.from, targetLine)
-            return b.finish()
-          })
-    editor.dispatch({ effects: targetConf.current.reconfigure(ext) })
+    view.current?.dispatch({ effects: targetConf.current.reconfigure(targetExtension(highlight)) })
   }, [highlight])
 
   React.useEffect(() => {
@@ -312,7 +330,7 @@ export const CodeView = React.forwardRef<
     []
   )
 
-  return <div ref={host} className={cn("h-full min-h-0 overflow-hidden", center && "mx-auto max-w-[120ch]", className)} />
+  return <div ref={host} className={cn(!grow && "h-full min-h-0 overflow-hidden", center && "mx-auto max-w-[120ch]", className)} />
 })
 
 /** The document as the code view sees it, for callers that want the outline without mounting an editor. */

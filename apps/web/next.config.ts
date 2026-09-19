@@ -11,6 +11,9 @@ import type { NextConfig } from "next"
 // the disk is 82% full and the cache reached 11 GB in a day on the Mac.
 const ROOMY = process.env.GOVBLOCK_DEV_BOX === "1"
 
+// The public bucket's folder for the files that left public/, as lib/assets.ts has it.
+const ASSET_BASE = process.env.NEXT_PUBLIC_ASSET_BASE ?? "https://govblock-geo-638175140432.s3.amazonaws.com/public"
+
 const nextConfig: NextConfig = {
   // @aws-sdk/client-s3 is bundled, not left external (2026-09-15): two copies
   // resolve in the workspace (Remotion carries its own), so Turbopack named the
@@ -126,6 +129,15 @@ const nextConfig: NextConfig = {
       { source: "/newsroom", has: [{ type: "query", key: "state", value: "(?<state>[A-Za-z]{2})" }], destination: "/desk/:state", permanent: true },
       { source: "/newsroom", destination: "/desk", permanent: true },
       { source: "/public-laws", destination: "/bills/us", permanent: true },
+      // The heavier static files moved to the public bucket (2026-09-19,
+      // lib/assets.ts); their old addresses follow them there: the registry
+      // that v0 and the shadcn CLI fetch, links to the PDFs and reports. Not
+      // permanent, so the bucket can move again. /forms and /reports are pages
+      // too, and only their files go.
+      ...["chambers", "seals", "unite", "r"].map((folder) => ({ source: `/${folder}/:path*`, destination: `${ASSET_BASE}/${folder}/:path*`, permanent: false })),
+      { source: "/forms/:file([^/]+\\.pdf)", destination: `${ASSET_BASE}/forms/:file`, permanent: false },
+      { source: "/reports/:file([^/]+\\.pdf)", destination: `${ASSET_BASE}/reports/:file`, permanent: false },
+      { source: "/reports/:file([^/]+\\.html)", destination: `${ASSET_BASE}/reports/:file`, permanent: false },
       // The old combined browser is the Tags page; a term's own page is now
       // filed under the kind it is.
       { source: "/docs/subjects", destination: "/tags", permanent: true },

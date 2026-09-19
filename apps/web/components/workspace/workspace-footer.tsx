@@ -117,7 +117,7 @@ export const WORKSPACES: {
   { key: "map", label: "Map", href: "/map", icon: MapIcon },
   { key: "live", label: "Live", href: "/live", icon: RadioIcon },
   // LinkedIn posts (2026-09-17): an admin's, since they publish as a real person and company.
-  { key: "posts", label: "Posts", href: "/posts", icon: SendIcon, admin: true },
+  { key: "posts", label: "Content Calendar", href: "/content-calendar", icon: SendIcon, admin: true },
 ]
 
 /** The Filter chip: the same trigger as the mode switcher, ordering the page's rows. */

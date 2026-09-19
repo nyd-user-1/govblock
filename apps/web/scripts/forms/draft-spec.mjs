@@ -2,8 +2,8 @@
 // type, page, rectangle, the on-value read from its appearance dictionary, and
 // the nearest printed label to its left or above from the text layer.
 //
-//   node scripts/forms/draft-spec.mjs public/forms/OCFS-6025.pdf > fields.json
-//   node scripts/forms/draft-spec.mjs public/forms/LDSS-2921.pdf --guesses ~/Code/livingston/.research/2921-field-map.json
+//   node scripts/forms/draft-spec.mjs OCFS-6025.pdf > fields.json
+//   node scripts/forms/draft-spec.mjs LDSS-2921.pdf --guesses ~/Code/livingston/.research/2921-field-map.json
 //
 // This is GSA pdf-filler's /fields and pdffiller's generateFDFTemplate, done
 // once per PDF. It prints JSON; the spec's `map`, `fixups` and `blank` are

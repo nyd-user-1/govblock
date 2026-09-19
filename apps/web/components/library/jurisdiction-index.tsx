@@ -41,7 +41,7 @@ export function JurisdictionIndex({
       <H2>All Jurisdictions</H2>
       <div data-not-typeset="true" className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-x-8 lg:gap-x-16 lg:gap-y-6 xl:gap-x-20">
         {JURISDICTIONS.map((j) => (
-          <Link key={j.code} href={`${base}/${j.code.toLowerCase()}`} className="inline-flex items-center gap-2 text-lg font-medium underline-offset-4 hover:underline md:text-base">
+          <Link key={j.code} href={`${base}/${j.code.toLowerCase()}`} className="-mx-2 inline-flex items-center gap-2 rounded-md px-2 py-1 text-lg font-medium underline-offset-4 transition-colors hover:bg-muted hover:underline md:text-base">
             {j.name}
           </Link>
         ))}

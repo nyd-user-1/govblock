@@ -2,7 +2,10 @@
 // so a map can be built by sight: find the box beside the printed label, read
 // its number, look the name up in the legend.
 //
-//   node scripts/forms/annotate.mjs public/forms/LDSS-2921.pdf <outdir> [dpi]
+//   node scripts/forms/annotate.mjs LDSS-2921.pdf <outdir> [dpi]
+//
+// The PDFs live in the public bucket (lib/assets.ts): curl -O "$ASSET/forms/LDSS-2921.pdf",
+// ASSET being https://govblock-geo-638175140432.s3.amazonaws.com/public.
 //
 // Writes <outdir>/annotated.pdf, <outdir>/page-N.png (via pdftoppm) and
 // <outdir>/legend.txt: one line per field — page, number, name, type, rect.

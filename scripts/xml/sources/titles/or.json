@@ -1,0 +1,488 @@
+{
+ "jurisdiction": "us-or",
+ "source": "https://www.oregonlegislature.gov/bills_laws/Pages/ORS.aspx (the page's own list of titles and their chapters)",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [
+  {
+   "key": "1",
+   "name": "Courts of Record; Court Officers; Juries",
+   "range": [
+    1,
+    10
+   ]
+  },
+  {
+   "key": "2",
+   "name": "Procedure in Civil Proceedings",
+   "range": [
+    11,
+    25
+   ]
+  },
+  {
+   "key": "3",
+   "name": "Remedies and Special Actions and Proceedings",
+   "range": [
+    26,
+    37
+   ]
+  },
+  {
+   "key": "4",
+   "name": "Evidence and Witnesses",
+   "range": [
+    40,
+    45
+   ]
+  },
+  {
+   "key": "5",
+   "name": "Small Claims Department of Circuit Court",
+   "range": [
+    46,
+    46
+   ]
+  },
+  {
+   "key": "6",
+   "name": "Justice Courts",
+   "range": [
+    51,
+    55
+   ]
+  },
+  {
+   "key": "7",
+   "name": "Corporations and Partnerships",
+   "range": [
+    56,
+    70
+   ]
+  },
+  {
+   "key": "8",
+   "name": "Commercial Transactions",
+   "range": [
+    71,
+    84
+   ]
+  },
+  {
+   "key": "9",
+   "name": "Mortgages and Liens",
+   "range": [
+    86,
+    88
+   ]
+  },
+  {
+   "key": "10",
+   "name": "Property Rights and Transactions",
+   "range": [
+    90,
+    105
+   ]
+  },
+  {
+   "key": "11",
+   "name": "Domestic Relations",
+   "range": [
+    106,
+    110
+   ]
+  },
+  {
+   "key": "12",
+   "name": "Probate Law",
+   "range": [
+    111,
+    121
+   ]
+  },
+  {
+   "key": "13",
+   "name": "Protective Proceedings; Powers of Attorney; Trusts",
+   "range": [
+    124,
+    130
+   ]
+  },
+  {
+   "key": "14",
+   "name": "Procedure in Criminal Matters Generally",
+   "range": [
+    131,
+    157
+   ]
+  },
+  {
+   "key": "16",
+   "name": "Crimes and Punishments",
+   "range": [
+    161,
+    169
+   ]
+  },
+  {
+   "key": "17",
+   "name": "State Legislative Department and Laws",
+   "range": [
+    171,
+    174
+   ]
+  },
+  {
+   "key": "18",
+   "name": "Executive Branch; Organization",
+   "range": [
+    176,
+    185
+   ]
+  },
+  {
+   "key": "19",
+   "name": "Miscellaneous Matters Related to Government and Public Affairs",
+   "range": [
+    186,
+    200
+   ]
+  },
+  {
+   "key": "20",
+   "name": "Counties and County officers",
+   "range": [
+    201,
+    215
+   ]
+  },
+  {
+   "key": "21",
+   "name": "Cities",
+   "range": [
+    221,
+    227
+   ]
+  },
+  {
+   "key": "22",
+   "name": "Public officers and Employees",
+   "range": [
+    236,
+    244
+   ]
+  },
+  {
+   "key": "23",
+   "name": "Elections",
+   "range": [
+    246,
+    260
+   ]
+  },
+  {
+   "key": "24",
+   "name": "Public Organizations for Community Service",
+   "range": [
+    261,
+    268
+   ]
+  },
+  {
+   "key": "25",
+   "name": "Public Lands",
+   "range": [
+    270,
+    275
+   ]
+  },
+  {
+   "key": "26",
+   "name": "Public Facilities, Contracting and insurance",
+   "range": [
+    276,
+    283
+   ]
+  },
+  {
+   "key": "26A",
+   "name": "Economic Development",
+   "range": [
+    284,
+    285
+   ]
+  },
+  {
+   "key": "27",
+   "name": "Public Borrowing",
+   "range": [
+    286,
+    289
+   ]
+  },
+  {
+   "key": "28",
+   "name": "Public Financial Administration",
+   "range": [
+    291,
+    297
+   ]
+  },
+  {
+   "key": "29",
+   "name": "Revenue and Taxation",
+   "range": [
+    305,
+    324
+   ]
+  },
+  {
+   "key": "30",
+   "name": "Education and Culture",
+   "range": [
+    326,
+    360
+   ]
+  },
+  {
+   "key": "31",
+   "name": "Highways, Roads, Bridges and Ferries",
+   "range": [
+    366,
+    391
+   ]
+  },
+  {
+   "key": "32",
+   "name": "Military Affairs; Emergency Services",
+   "range": [
+    396,
+    404
+   ]
+  },
+  {
+   "key": "33",
+   "name": "Privileges and Benefits of Veterans and Service Personnel",
+   "range": [
+    406,
+    408
+   ]
+  },
+  {
+   "key": "34",
+   "name": "Human Services; Juvenile Code; Corrections",
+   "range": [
+    409,
+    423
+   ]
+  },
+  {
+   "key": "35",
+   "name": "Mental Health and Developmental Disabilities; Substance Use Disorder Treatment",
+   "range": [
+    426,
+    430
+   ]
+  },
+  {
+   "key": "36",
+   "name": "Public Health and Safety",
+   "range": [
+    431,
+    454
+   ]
+  },
+  {
+   "key": "36A",
+   "name": "Housing; Lottery and Games; Environment",
+   "range": [
+    455,
+    470
+   ]
+  },
+  {
+   "key": "37",
+   "name": "Alcoholic Liquors; Controlled Substances; Drugs",
+   "range": [
+    471,
+    475
+   ]
+  },
+  {
+   "key": "38",
+   "name": "Protection from Fire",
+   "range": [
+    476,
+    494
+   ]
+  },
+  {
+   "key": "41",
+   "name": "Wildlife",
+   "range": [
+    496,
+    501
+   ]
+  },
+  {
+   "key": "42",
+   "name": "Commercial Fishing and Fisheries",
+   "range": [
+    506,
+    513
+   ]
+  },
+  {
+   "key": "43",
+   "name": "Mineral Resources",
+   "range": [
+    516,
+    523
+   ]
+  },
+  {
+   "key": "44",
+   "name": "Forestry and Forest Products",
+   "range": [
+    526,
+    532
+   ]
+  },
+  {
+   "key": "45",
+   "name": "Water Resources: Irrigation, Drainage, Flood Control, Reclamation",
+   "range": [
+    536,
+    558
+   ]
+  },
+  {
+   "key": "46",
+   "name": "Agriculture",
+   "range": [
+    561,
+    573
+   ]
+  },
+  {
+   "key": "47",
+   "name": "Agricultural Marketing and Warehousing",
+   "range": [
+    576,
+    587
+   ]
+  },
+  {
+   "key": "48",
+   "name": "Animals",
+   "range": [
+    596,
+    610
+   ]
+  },
+  {
+   "key": "49",
+   "name": "Food and Other Commodities; Purity, Sanitation, Grades, Standards, Labels, Weights and Measures",
+   "range": [
+    616,
+    635
+   ]
+  },
+  {
+   "key": "50",
+   "name": "Trade Regulations and Practices",
+   "range": [
+    645,
+    650
+   ]
+  },
+  {
+   "key": "51",
+   "name": "Labor and Employment; Unlawful Discrimination",
+   "range": [
+    651,
+    663
+   ]
+  },
+  {
+   "key": "52",
+   "name": "Occupations and Professions",
+   "range": [
+    670,
+    704
+   ]
+  },
+  {
+   "key": "52A",
+   "name": "Insurance and Finance Administration",
+   "range": [
+    705,
+    705
+   ]
+  },
+  {
+   "key": "53",
+   "name": "Financial Institutions",
+   "range": [
+    706,
+    717
+   ]
+  },
+  {
+   "key": "54",
+   "name": "Credit Unions, Lending Institutions and Pawnbrokers",
+   "range": [
+    721,
+    727
+   ]
+  },
+  {
+   "key": "56",
+   "name": "Insurance",
+   "range": [
+    731,
+    752
+   ]
+  },
+  {
+   "key": "57",
+   "name": "Utility Regulation",
+   "range": [
+    756,
+    774
+   ]
+  },
+  {
+   "key": "58",
+   "name": "Shipping and Navigation",
+   "range": [
+    776,
+    783
+   ]
+  },
+  {
+   "key": "59",
+   "name": "Oregon Vehicle Code",
+   "range": [
+    801,
+    826
+   ]
+  },
+  {
+   "key": "61",
+   "name": "Small Watercraft",
+   "range": [
+    830,
+    830
+   ]
+  },
+  {
+   "key": "62",
+   "name": "Aviation",
+   "range": [
+    835,
+    838
+   ]
+  }
+ ]
+}

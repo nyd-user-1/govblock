@@ -1,3 +1,4 @@
+import { BackToTop } from "@/components/back-to-top"
 import { RightRailSheet } from "@/components/rail-sheet"
 import Link from "next/link"
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
@@ -62,6 +63,8 @@ export function LobbyingBoard({
               <p className="text-[1.05rem] text-muted-foreground sm:text-base sm:text-balance md:max-w-[80%]">{description}</p>
             </div>
           </div>
+          {/* The header's rule, at the distance RecordHeader keeps (2026-09-18). */}
+          <hr className="mt-6 border-0 border-t border-border" />
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
             <LobbyingList kind={kind} />
           </div>
@@ -77,6 +80,7 @@ export function LobbyingBoard({
               </Link>
             </Button>
           </div>
+          <BackToTop />
         </div>
       </div>
       <RightRailSheet>

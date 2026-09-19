@@ -1,0 +1,192 @@
+{
+ "jurisdiction": "us-al",
+ "source": "https://gql.api.alison.legislature.state.al.us/graphql (codeOfAlabamaTitles, the Legislative Services Agency's own hierarchy)",
+ "fetched": "2026-09-19",
+ "label": "Title",
+ "titles": [
+  {
+   "key": "1",
+   "name": "General Provisions"
+  },
+  {
+   "key": "2",
+   "name": "Agriculture"
+  },
+  {
+   "key": "3",
+   "name": "Animals"
+  },
+  {
+   "key": "4",
+   "name": "Aviation"
+  },
+  {
+   "key": "5",
+   "name": "Banks and Financial Institutions"
+  },
+  {
+   "key": "6",
+   "name": "Civil Practice"
+  },
+  {
+   "key": "7",
+   "name": "Commercial Code"
+  },
+  {
+   "key": "8",
+   "name": "Commercial Law and Consumer Protection"
+  },
+  {
+   "key": "9",
+   "name": "Conservation and Natural Resources"
+  },
+  {
+   "key": "10",
+   "name": "Corporations, Partnerships, and Associations"
+  },
+  {
+   "key": "10A",
+   "name": "Alabama Business and Nonprofit Entities Code"
+  },
+  {
+   "key": "11",
+   "name": "Counties and Municipal Corporations"
+  },
+  {
+   "key": "12",
+   "name": "Courts"
+  },
+  {
+   "key": "13A",
+   "name": "Criminal Code"
+  },
+  {
+   "key": "14",
+   "name": "Criminal Correctional and Detention Facilities"
+  },
+  {
+   "key": "15",
+   "name": "Criminal Procedure"
+  },
+  {
+   "key": "16",
+   "name": "Education"
+  },
+  {
+   "key": "17",
+   "name": "Elections"
+  },
+  {
+   "key": "18",
+   "name": "Eminent Domain"
+  },
+  {
+   "key": "19",
+   "name": "Fiduciaries and Trusts"
+  },
+  {
+   "key": "20",
+   "name": "Food, Drugs and Cosmetics"
+  },
+  {
+   "key": "21",
+   "name": "Handicapped Persons"
+  },
+  {
+   "key": "22",
+   "name": "Health, Mental Health, and Environmental Control"
+  },
+  {
+   "key": "23",
+   "name": "Highways, Roads, Bridges and Ferries"
+  },
+  {
+   "key": "24",
+   "name": "Housing"
+  },
+  {
+   "key": "25",
+   "name": "Industrial Relations and Labor"
+  },
+  {
+   "key": "26",
+   "name": "Infants and Incompetents"
+  },
+  {
+   "key": "27",
+   "name": "Insurance"
+  },
+  {
+   "key": "28",
+   "name": "Intoxicating Liquor, Malt Beverages and Wine"
+  },
+  {
+   "key": "29",
+   "name": "Legislature"
+  },
+  {
+   "key": "30",
+   "name": "Marital and Domestic Relations"
+  },
+  {
+   "key": "31",
+   "name": "Military Affairs and Civil Defense"
+  },
+  {
+   "key": "32",
+   "name": "Motor Vehicles and Traffic"
+  },
+  {
+   "key": "33",
+   "name": "Navigation and Watercourses"
+  },
+  {
+   "key": "34",
+   "name": "Professions and Businesses"
+  },
+  {
+   "key": "35",
+   "name": "Property"
+  },
+  {
+   "key": "36",
+   "name": "Public Officers and Employees"
+  },
+  {
+   "key": "37",
+   "name": "Public Utilities and Public Transportation"
+  },
+  {
+   "key": "38",
+   "name": "Public Welfare"
+  },
+  {
+   "key": "39",
+   "name": "Public Works"
+  },
+  {
+   "key": "40",
+   "name": "Revenue and Taxation"
+  },
+  {
+   "key": "41",
+   "name": "State Government"
+  },
+  {
+   "key": "42",
+   "name": "United States"
+  },
+  {
+   "key": "43",
+   "name": "Wills and Decedents’ Estates"
+  },
+  {
+   "key": "44",
+   "name": "Youth Services"
+  },
+  {
+   "key": "45",
+   "name": "Local Laws"
+  }
+ ]
+}

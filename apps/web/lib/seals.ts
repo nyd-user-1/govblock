@@ -5,7 +5,7 @@
 // against a named Commons file — a search-only pass put the National Guard's
 // seal on the Army, Alabama's on the Department of Transportation and
 // Mississippi's judiciary on the federal one, so every entry below names the
-// exact file it came from. `public/seals/SOURCES.md` carries the file page and
+// exact file it came from. `apps/web/docs/assets/seals-sources.md` carries the file page and
 // licence for each; every one is public domain or CC0.
 //
 // The files are 144 px renderings, not the originals: an avatar is 36 CSS px
@@ -15,9 +15,11 @@
 // fall back to the Senate seal, which is honest — the Senate is the body the
 // nomination is before, and it is what this page can actually say.
 
+import { assetUrl } from "@/lib/assets"
+
 export type SealShape = "circle" | "rect"
 
-export const AGENCY_SEALS: Record<string, { file: string; shape: SealShape }> = {
+const SEAL_FILES: Record<string, { file: string; shape: SealShape }> = {
   "African Development Foundation": { file: "/seals/african-development-foundation.avif", shape: "circle" },
   "Air Force": { file: "/seals/air-force.avif", shape: "circle" },
   "Amtrak Board of Directors": { file: "/seals/amtrak-board-of-directors.avif", shape: "rect" },
@@ -100,6 +102,11 @@ export const AGENCY_SEALS: Record<string, { file: string; shape: SealShape }> = 
   "United States Sentencing Commission": { file: "/seals/united-states-sentencing-commission.avif", shape: "circle" },
   "United States Tax Court": { file: "/seals/united-states-tax-court.avif", shape: "circle" },
 }
+
+/** The same, each file at its address in the public bucket (lib/assets.ts). */
+export const AGENCY_SEALS: Record<string, { file: string; shape: SealShape }> = Object.fromEntries(
+  Object.entries(SEAL_FILES).map(([name, seal]) => [name, { ...seal, file: assetUrl(seal.file) }])
+)
 
 /** The research service's own logo, for the CRS reports list. */
 export const CRS_SEAL = AGENCY_SEALS["Congressional Research Service"]

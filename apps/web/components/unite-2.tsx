@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 
 import { ModeSwitcher } from "@/components/mode-switcher"
+import { assetUrl } from "@/lib/assets"
 import ParticleMark from "@/components/flag-particles"
 import { ParticleScroll } from "@/components/canvasui/ParticleScroll"
 import { Survey } from "@/components/consensus/survey"
@@ -24,7 +25,7 @@ import { openPrimaries } from "@/lib/consensus/open-primaries"
 
 // A section with `href` and `still` shows the tool in action first (Brendan,
 // 2026-09-11: "put the image first and the header and the description
-// underneath it"): a framed capture of the live page (public/unite/*.jpg, 1280×800 at 1.5×, cropped to
+// underneath it"): a framed capture of the live page (the bucket's unite/*.jpg, 1280×800 at 1.5×, cropped to
 // 16:9 from the top so the dev toolbar at the foot never shows), and the title
 // is the way into the tool itself. Stills, not embeds, on purpose (Brendan,
 // 2026-09-11): the page is snapshotted into a canvas by the particle scroller,
@@ -66,7 +67,7 @@ function Still({ href, title, still }: { href: string; title: string; still: str
       aria-label={`Open ${title}`}
       className="mb-2 block overflow-hidden rounded-xl border bg-card transition-colors hover:border-foreground/30"
     >
-      <img src={still} alt="" loading="lazy" className="aspect-video w-full object-cover object-top" />
+      <img src={assetUrl(still)} alt="" loading="lazy" className="aspect-video w-full object-cover object-top" />
     </Link>
   )
 }

@@ -23,24 +23,39 @@ export function RecordHeader({
   /** Copy Page and the arrows, top-aligned with the name. */
   action?: React.ReactNode
 }) {
-  const facts = (meta ?? []).filter((item) => item !== null && item !== undefined && item !== false && item !== "")
+  const facts = (meta ?? []).filter(
+    (item) =>
+      item !== null && item !== undefined && item !== false && item !== ""
+  )
+  // The rule under the header is part of it (Brendan, 2026-09-18), so its
+  // distance from the name is the same on every page: the header's 24px, then
+  // the column's gap.
   return (
-    <header className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-start sm:gap-6">
-      {media}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-        {facts.length > 0 && (
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            {facts.map((item, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <span>•</span>}
-                <span className="inline-flex items-center gap-1.5">{item}</span>
-              </React.Fragment>
-            ))}
-          </p>
+    <>
+      <header className="flex flex-col gap-4 pb-6 sm:flex-row sm:items-start sm:gap-6">
+        {media}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          {facts.length > 0 && (
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              {facts.map((item, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span>•</span>}
+                  <span className="inline-flex items-center gap-1.5">
+                    {item}
+                  </span>
+                </React.Fragment>
+              ))}
+            </p>
+          )}
+        </div>
+        {action && (
+          <div className="docs-nav hidden shrink-0 items-center gap-2 sm:flex">
+            {action}
+          </div>
         )}
-      </div>
-      {action && <div className="docs-nav hidden shrink-0 items-center gap-2 sm:flex">{action}</div>}
-    </header>
+      </header>
+      <hr className="border-0 border-t border-border" />
+    </>
   )
 }

@@ -1,4 +1,4 @@
-import { stateName } from "@/lib/filters"
+import { partyName, stateName } from "@/lib/filters"
 
 // A member's chamber, written the way the chamber writes it. "R · Senate ·
 // New York · 4" read like a US senator from New York; Monica Martinez is a
@@ -37,4 +37,20 @@ export function districtLabel(state: string | null | undefined, district: string
   if (!value) return ""
   if (/[A-Za-z]/.test(value)) return value
   return `District ${value}`
+}
+
+/**
+ * A member in one line, for a favorite's second line (Brendan, 2026-09-19):
+ * party, state, district — "Democrat, North Carolina, District 12". Congress's
+ * rows file the state under "US" and carry the member's own in the district
+ * ("HD-NC-12", a senator's "SD-NC"); a state's rows carry a bare seat
+ * ("SD-063").
+ */
+export function memberLine(member: { party?: string | null; state?: string | null; district?: string | null }): string {
+  const d = (member.district ?? "").trim().toUpperCase()
+  const federal = /^[HS]D-([A-Z]{2})(?:-0*(\d+|AL))?$/.exec(d)
+  const state = federal ? federal[1] : member.state ?? ""
+  const number = federal ? federal[2] : /^[A-Z]+-0*(\d+)$/.exec(d)?.[1]
+  const seat = number === "AL" ? "At large" : number ? `District ${number}` : federal ? null : d || null
+  return [partyName(member.party), state && state !== "US" ? stateName(state) : null, seat].filter(Boolean).join(", ")
 }
