@@ -90,6 +90,11 @@ applications:
                 if [ -n "$value" ]; then printf '%s=%s\n' "$name" "$value" >> .env.production; fi
               done
               echo "linkedin env present: $(grep -c '^LINKEDIN_' .env.production) of 4"
+            # The lab stays out of production (2026-09-20): app/lab and every
+            # route demoted on /routes (lib/lab-routes.json) are deleted from
+            # this checkout before the compile, so they are neither served nor
+            # counted against the output cap. The script names what it pruned.
+            - node scripts/routes/prune-lab.mjs
             - pnpm -C ../.. exec turbo build --filter=web
             # Amplify caps a build output at 220 MB and job 237 came in at
             # 246 MB. Turbopack writes a source map beside every server chunk —

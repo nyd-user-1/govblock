@@ -124,6 +124,12 @@ const nextConfig: NextConfig = {
       // Congress's bills. /docs/laws went to /public-laws for a few hours on
       // 2026-09-10.
       { source: "/docs/laws", destination: "/bills/us", permanent: true },
+      // The changelogs renamed (Brendan, 2026-09-20): GovBlock's own release
+      // notes went to /govblock-changelog so the second bill-stream changelog
+      // could take /changelog; the first went to the lab, and its address
+      // follows the second.
+      { source: "/docs/changelog-v2", destination: "/changelog", permanent: false },
+      { source: "/docs/changelog", destination: "/changelog", permanent: false },
       // /newsroom became /desk on 2026-09-11 (Brendan: "you've said desk so
       // many times"), a page per jurisdiction in the path.
       { source: "/newsroom", has: [{ type: "query", key: "state", value: "(?<state>[A-Za-z]{2})" }], destination: "/desk/:state", permanent: true },

@@ -1,7 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { LabSwitch } from "@/components/routes/lab-switch"
 import { STATE_NAMES } from "@/lib/filters"
+import { inLab, PINNED } from "@/lib/lab"
+import { adminId } from "@/lib/linkedin/session"
 import { ROUTES } from "@/lib/routes.generated"
 import { SURFACES } from "@/lib/workspace/path"
 
@@ -13,6 +16,12 @@ import { SURFACES } from "@/lib/workspace/path"
 // what a route is when its path does not say: the retired ones, the
 // sandboxes, the redirects. (The shadcn template's gallery — /blocks, /view —
 // came out the day this page was made.)
+//
+// Each route has a switch (Brendan, 2026-09-20): on is published, off is the
+// lab, where a route stays in development and is kept out of production and
+// out of Amplify's output cap (lib/lab.ts). The switches edit the working
+// tree, so they show in development, to an admin; everywhere else a route in
+// the lab is marked and not linked, since production does not serve it.
 
 export const metadata: Metadata = { title: "Routes", description: "Every URL the site serves." }
 
@@ -24,8 +33,8 @@ const NOTES: Record<string, string> = {
   "/typeset": "the old typeset; the editor is /workspace/typeset",
   "/workspace/typeset-2": "redirects to /workspace/typeset",
   "/preview/typeset/[name]": "the bill workspace's five pages in a preview frame",
-  "/docs/changelog-v2": "a second changelog, ported from livingston-v3",
-  "/unite-2": "sandbox: the ecosystem landing page",
+  "/lab/changelog": "the first bill-stream changelog, ported from livingston-v3; /changelog is the second",
+  "/lab/unite-2": "sandbox: the ecosystem landing page, with the root's old sections two and three",
   "/diff": "redirects to the RAISE Act's compare page",
   "/welcome": "onboarding after sign-in",
   "/routes": "this page",
@@ -37,6 +46,7 @@ const REDIRECTS: [string, string][] = [
   ["/newsroom?state=XX", "/desk/xx"],
   ["/public-laws", "/bills/us"],
   ["/docs/laws", "/bills/us"],
+  ["/docs/changelog-v2, /docs/changelog", "/changelog"],
   ["/docs/bills, /docs/committees, /docs/directory, …", "/bills, /committees, /members, …"],
   ["/anything.md", "/api/markdown/anything"],
 ]
@@ -69,28 +79,37 @@ const EXAMPLES: Record<string, string> = {
   "/policy-areas/[state]/[slug]": "/policy-areas/us/health",
 }
 
-function Row({ path, note, children }: { path: string; note?: string; children?: React.ReactNode }) {
+function Row({ path, note, lab, editable, children }: { path: string; note?: string; lab: boolean; editable: boolean; children?: React.ReactNode }) {
   return (
     <li className="flex flex-col gap-1 py-2">
       <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <code className="text-sm">{path}</code>
+        <code className={lab ? "text-sm text-muted-foreground" : "text-sm"}>{path}</code>
+        {lab && <span className="text-xs font-medium text-amber-600 dark:text-amber-500">lab</span>}
         {note && <span className="text-xs text-muted-foreground">{note}</span>}
+        {editable && (
+          <span className="ml-auto self-center">
+            <LabSwitch path={path} lab={lab} disabled={PINNED.has(path) || path.startsWith("/lab/")} />
+          </span>
+        )}
       </span>
       {children}
     </li>
   )
 }
 
-export default function RoutesPage() {
+export default async function RoutesPage() {
   const pages = ROUTES.filter((r) => r.kind === "page")
   const apis = ROUTES.filter((r) => r.kind === "api")
+  const dev = process.env.NODE_ENV === "development"
+  const editable = dev && Boolean(await adminId())
+  const labCount = ROUTES.filter((r) => inLab(r.path)).length
   return (
     <div className="container-wrapper px-4 py-10 md:px-6">
       <div className="container flex max-w-4xl flex-col gap-10 px-0">
         <header className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">Routes</h1>
           <p className="text-muted-foreground">
-            {pages.length} pages, {apis.length} API routes, {REGISTRY.length} registry files and the redirects, read off the app directory. The dynamic routes are opened out where their values are known.
+            {pages.length} pages, {apis.length} API routes, {REGISTRY.length} registry files and the redirects, read off the app directory; {labCount} in the lab, off production. The dynamic routes are opened out where their values are known.
           </p>
         </header>
         <section>
@@ -100,14 +119,16 @@ export default function RoutesPage() {
               const open = expand(r.path)
               const example = EXAMPLES[r.path]
               const isStatic = !r.path.includes("[")
+              const lab = inLab(r.path)
+              const served = dev || !lab
               return (
-                <Row key={r.path} path={r.path} note={NOTES[r.path]}>
-                  {isStatic && (
+                <Row key={r.path} path={r.path} note={NOTES[r.path]} lab={lab} editable={editable}>
+                  {isStatic && served && (
                     <Link href={r.path} className="w-fit text-xs text-primary hover:underline">
                       open
                     </Link>
                   )}
-                  {open && (
+                  {open && served && (
                     <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
                       {open.hrefs.map((h) => (
                         <Link key={h} href={h} className="text-xs text-primary hover:underline">
@@ -126,7 +147,7 @@ export default function RoutesPage() {
           <h2 className="mb-3 text-lg font-semibold">API</h2>
           <ul className="divide-y">
             {apis.map((r) => (
-              <Row key={r.path} path={r.path} />
+              <Row key={r.path} path={r.path} lab={inLab(r.path)} editable={editable} />
             ))}
           </ul>
         </section>

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 
+import { BillsSection } from "@/components/bills-index"
 import { ModeSwitcher } from "@/components/mode-switcher"
 import { assetUrl } from "@/lib/assets"
 import ParticleMark from "@/components/flag-particles"
@@ -322,6 +323,7 @@ export function Unite2() {
               <ParticleMark fit={1} className="absolute inset-0" />
             </div>
           </section>
+          <BillsSection />
           <UniteBody />
         </div>
       </ParticleScroll>

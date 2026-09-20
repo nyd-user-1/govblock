@@ -1,22 +1,13 @@
-import { BillsSection } from "@/components/bills-index"
 import { ParticleScroll } from "@/components/canvasui/ParticleScroll"
 import { RailsFrame } from "@/components/rails-frame"
 import { SignPage, type SignSearch } from "@/components/sign-page"
-import { UniteBody } from "@/components/unite-2"
 
-// The root (Brendan, 2026-09-14): the hero with all three buttons between
-// both site rails, then everything /unite-2 says below its own hero: the
-// conversation and the open-primaries survey, what GovBlocks brings, one
-// section per surface, and the premise. Sign-Up and Sign-In go to their own
-// pages.
+// The root (Brendan, 2026-09-14): the hero between both site rails, under
+// /unite-2's particle scroller. Sign-Up and Sign-In go to their own pages.
 //
-// Section two is /bills (Brendan, 2026-09-18): its header and the 52
-// jurisdiction cards, between the hero and the rest.
-//
-// Under /unite-2's particle scroller too (Brendan, 2026-09-14): the box is
-// the viewport below the header, everything scrolls inside it, and the sand
-// effect covers the hero and the copy alike where the HTML-in-Canvas API is
-// on; where it is not, the page is plain HTML in the same scroller.
+// The hero alone (Brendan, 2026-09-20): section two (/bills's layout) and
+// everything /unite-2 says below its own hero moved to /lab/unite-2; what, if
+// anything, goes beneath the hero is still to be decided.
 export const dynamic = "force-dynamic"
 
 export default function IndexPage({ searchParams }: { searchParams: SignSearch }) {
@@ -25,8 +16,6 @@ export default function IndexPage({ searchParams }: { searchParams: SignSearch }
       <ParticleScroll point={0.83} className="h-[calc(100svh-var(--header-height))]">
         <div className="min-h-full bg-background text-foreground">
           <SignPage stage="root" searchParams={searchParams} />
-          <BillsSection />
-          <UniteBody />
         </div>
       </ParticleScroll>
     </RailsFrame>

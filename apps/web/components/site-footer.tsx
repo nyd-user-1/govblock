@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation"
 import { siteConfig } from "@/lib/config"
 
 // Ported from livingston-v3 components/site-footer.tsx; the credit is ours (Brendan, 2026-09-07).
-// On /unite and /unite-2 only (Brendan, 2026-09-13): every other page goes without it.
-const WHERE = new Set(["/unite", "/unite-2"])
+// On /unite and /unite-2 only (Brendan, 2026-09-13): every other page goes without it. /unite-2 is /lab/unite-2 since 2026-09-20.
+const WHERE = new Set(["/unite", "/lab/unite-2"])
 
 export function SiteFooter() {
   const pathname = usePathname() ?? "/"
