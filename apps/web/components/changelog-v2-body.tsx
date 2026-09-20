@@ -20,7 +20,8 @@ import { DownloadButton } from "@/components/download-button"
 import { FavoriteToggle } from "@/components/favorite-star"
 import { HeadingAnchor } from "@/components/heading-anchor"
 import { ChamberSeal, FlagChip } from "@/components/policy/imagery"
-import { useWarmed } from "@/components/rail-toggle"
+import { useReached } from "@/components/rail-toggle"
+import { useRootSheets } from "@/lib/root-sheets"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@govblock/ui/components/tooltip"
 import { cn } from "@govblock/ui/lib/utils"
@@ -369,10 +370,16 @@ function Steps({ entries, texts, empty }: { entries: Entry[]; texts: Map<number,
   )
 }
 
-/** The root's changelog sheet: the center container alone, read once the page has settled or a reader opens their way to it, whichever is first. */
+/**
+ * The root's changelog sheet: the center container alone, and a demonstration (Brendan, 2026-09-20) — a dozen bills
+ * frozen in lib/data/root-sheets.json, not the API, mounted when a reader first opens their way to it. Until then it
+ * read every state a second and a half into each load of the root and drew a hundred bills' texts behind a closed
+ * sheet, which held the page for some four seconds.
+ */
 export function ChangelogSheet() {
-  const reached = useWarmed(["right", "right-2"], 1500)
-  const { entries, texts } = useEveryState(reached)
+  const reached = useReached(["right"])
+  const file = useRootSheets(reached)
+  const texts = React.useMemo(() => new Map(Object.entries(file?.changelog.texts ?? {}).map(([id, text]) => [Number(id), text])), [file])
   if (!reached) return null
-  return <ChangelogMain entries={entries ?? []} texts={texts} empty={entries ? "Nothing on file." : <LoadingFlag />} />
+  return <ChangelogMain entries={file?.changelog.entries ?? []} texts={texts} empty={file ? "Nothing on file." : <LoadingFlag />} />
 }

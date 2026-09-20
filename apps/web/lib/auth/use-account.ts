@@ -48,6 +48,19 @@ export function cacheAccount(patch: Partial<NonNullable<Account>>) {
   }
 }
 
+// One request for every surface that mounts together (2026-09-20): each hook
+// ran its own fetch, and the root sent six at once. The answer is shared only
+// while it is in flight — a surface that mounts later asks again, so signing
+// in or out is seen as it was.
+type Session = { user?: NonNullable<Account> } | null
+let inflight: Promise<Session> | null = null
+const readSession = () =>
+  (inflight ??= fetch("/api/auth/session", { credentials: "same-origin" })
+    .then((response) => (response.ok ? (response.json() as Promise<Session>) : null))
+    .finally(() => {
+      inflight = null
+    }))
+
 export function useAccount(enabled = true): { account: Account; signedIn: boolean; ready: boolean } {
   const [account, setAccount] = useState<Account>(null)
   const [ready, setReady] = useState(false)
@@ -58,9 +71,8 @@ export function useAccount(enabled = true): { account: Account; signedIn: boolea
     setAccount(known)
     if (known) setReady(true)
     let live = true
-    fetch("/api/auth/session", { credentials: "same-origin" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((session: { user?: NonNullable<Account> } | null) => {
+    readSession()
+      .then((session) => {
         if (!live) return
         const user = session?.user ? withAvatar(session.user) : null
         setAccount(user)

@@ -9,6 +9,7 @@ import { AGENT_PAGES, hasItems, siteConfig, withScope } from "@/lib/config"
 import { useHomeState } from "@/lib/policy/home-state"
 import { DEFAULT_STATE, stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
+import { RefreshButton } from "@/lib/policy/manual-fetch"
 import { RailGroup, useRecordGroups, type RailItem } from "@/components/directory-rail"
 import { useRecents } from "@/components/home/recents"
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
@@ -123,12 +124,14 @@ export function SiteRail() {
       <SidebarGroup className="pt-12">
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={openSearch} className="h-9 w-full max-w-52 justify-start rounded-lg border bg-background text-[0.8rem] text-muted-foreground shadow-xs hover:bg-muted">
+            {/* Where the rail reads the API only when asked (the root's frame, 2026-09-20), the asking is the icon beside the search; anywhere else it draws nothing. */}
+            <SidebarMenuItem className="flex max-w-52 items-center gap-1">
+              <SidebarMenuButton onClick={openSearch} className="h-9 w-full min-w-0 flex-1 justify-start rounded-lg border bg-background text-[0.8rem] text-muted-foreground shadow-xs hover:bg-muted">
                 {glyph(Search)}
                 <span className="min-w-0 flex-1 truncate text-left">Quick search…</span>
                 <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-block">⌘K</kbd>
               </SidebarMenuButton>
+              <RefreshButton variant="ghost" className="shrink-0 text-muted-foreground" what="the rail's lists" />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

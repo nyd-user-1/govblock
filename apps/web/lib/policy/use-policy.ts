@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { frozenAnswer, useFrozenPolicy } from "@/lib/policy/frozen"
 import { useManualFetch } from "@/lib/policy/manual-fetch"
 import { resolve, resolveCongress } from "@/lib/policy/snapshot"
 
@@ -30,9 +31,16 @@ export function useSnapshot<T>(key: string | null) {
   // runs every key on the page again. -1 is a page with no such gate.
   const manual = useManualFetch()
   const generation = manual ? manual.generation : -1
+  // Under a FrozenPolicyProvider (the root's account-home sheet) no request is
+  // ever made: the answer is the one on file, or Congress's committed snapshot.
+  const frozen = useFrozenPolicy()
   React.useEffect(() => {
     if (!key) {
       setState({ key: null, data: undefined })
+      return
+    }
+    if (frozen) {
+      setState({ key, data: (frozenAnswer(frozen, key) ?? resolve(key)) as T | undefined })
       return
     }
     if (generation === 0) {
@@ -86,7 +94,7 @@ export function useSnapshot<T>(key: string | null) {
     }
     // The previous key's rows stay on screen until the new ones land, which is
     // what SWR's keepPreviousData did for these callers.
-  }, [key, generation])
+  }, [key, generation, frozen])
   return { data: state.data, error: undefined as Error | undefined, isLoading: !!key && state.key !== key, locked: !!state.locked }
 }
 

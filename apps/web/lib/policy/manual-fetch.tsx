@@ -32,7 +32,7 @@ export function useManualFetch() {
 }
 
 /** The page's one call to the API, as a small icon; spins once per press. */
-export function RefreshButton({ className, variant = "outline" }: { className?: string; variant?: "outline" | "ghost" }) {
+export function RefreshButton({ className, variant = "outline", what = "the numbers" }: { className?: string; variant?: "outline" | "ghost"; /** What the press reads, for the label: "the numbers", "the rail's lists". */ what?: string }) {
   const manual = useManualFetch()
   const [spinning, setSpinning] = React.useState(false)
   if (!manual) return null
@@ -41,7 +41,7 @@ export function RefreshButton({ className, variant = "outline" }: { className?: 
       variant={variant}
       size="icon"
       className={cn("size-7 cursor-pointer", className)}
-      aria-label={manual.generation ? "Refresh the numbers" : "Load the numbers"}
+      aria-label={manual.generation ? `Refresh ${what}` : `Load ${what}`}
       title={manual.generation ? "Refresh" : "Load"}
       onClick={() => {
         setSpinning(true)

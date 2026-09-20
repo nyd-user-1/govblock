@@ -83,31 +83,6 @@ export function useReached(sides: Side[]) {
   return reached
 }
 
-/**
- * `useReached`, or sooner: once the page has settled, the sheet mounts behind
- * its closed tab so it is already drawn when a reader opens their way in
- * (Brendan, 2026-09-17). `after` staggers the sheets so they do not all read
- * the API in the page's first seconds. A reader who asked to save data waits
- * for the tab as before.
- */
-export function useWarmed(sides: Side[], after: number) {
-  const reached = useReached(sides)
-  const [idle, setIdle] = React.useState(false)
-  React.useEffect(() => {
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
-    if (connection?.saveData) return
-    let handle: number | undefined
-    const timer = window.setTimeout(() => {
-      handle = window.requestIdleCallback?.(() => setIdle(true), { timeout: 2000 }) ?? window.setTimeout(() => setIdle(true))
-    }, after)
-    return () => {
-      window.clearTimeout(timer)
-      if (handle !== undefined) (window.cancelIdleCallback ?? window.clearTimeout)(handle)
-    }
-  }, [after])
-  return reached || idle
-}
-
 /** Whether a rail is closed, live; the page renders open and the remembered state lands on mount. */
 export function useRailClosed(side: Side) {
   const closed = React.useSyncExternalStore(subscribe, () => isClosed(side), () => false)
