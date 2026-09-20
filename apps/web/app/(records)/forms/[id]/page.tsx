@@ -9,7 +9,8 @@ import { FORMS } from "@/lib/forms/programs"
 import { Chip } from "@/components/chip"
 import { DocsCopyPage } from "@/components/docs-copy-page"
 import { PublicRail } from "@/components/block-card"
-import { agencyName, FormSeal } from "@/components/policy/forms-seal"
+import { agencyName } from "@/components/policy/forms-seal"
+import { DOCS_DESCRIPTION } from "@/components/docs-header"
 import { FormsDoc } from "@/components/policy/forms-doc"
 import { H2, Table } from "@/components/typeset"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -93,13 +94,10 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-(--top-spacing) shrink-0" />
         <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
+          {/* The docs shell's header block (Brendan, 2026-09-20): the name, then the
+              facts as its sub-header, then the rule. The agency's seal stood above
+              the name until then. */}
           <div className="flex flex-col gap-2">
-            <div className="not-typeset flex items-center gap-3">
-              <FormSeal gov={form.gov} agency={form.agency} size={40} />
-              <span className="text-sm text-muted-foreground">
-                <Chip>{form.number}</Chip> · {agencyName(form.gov, form.agency)} · {form.gov}
-              </span>
-            </div>
             <div className="flex items-center justify-between md:items-start">
               <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight text-balance sm:text-3xl">{heading}</h1>
               <div className="docs-nav flex items-center gap-2">
@@ -121,12 +119,12 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
             </div>
-            {!form.title && (
-              <p className="text-[1.05rem] text-muted-foreground sm:text-base">
-                This PDF carries no title of its own. The name above is the file it was published as.
-              </p>
-            )}
+            <p className={DOCS_DESCRIPTION}>
+              <Chip>{form.number}</Chip> · {agencyName(form.gov, form.agency)} · {form.gov}
+            </p>
+            {!form.title && <p className={DOCS_DESCRIPTION}>This PDF carries no title of its own. The name above is the file it was published as.</p>}
           </div>
+          <hr className="mt-6 border-0 border-t border-border" />
 
           <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
             <Table>

@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { ProgressGroup } from "@/components/progress-group"
 import { LabSwitch } from "@/components/routes/lab-switch"
+import BUILD from "@/lib/build-sizes.json"
 import { STATE_NAMES } from "@/lib/filters"
 import { inLab, PINNED } from "@/lib/lab"
 import { adminId } from "@/lib/linkedin/session"
@@ -22,6 +24,11 @@ import { SURFACES } from "@/lib/workspace/path"
 // out of Amplify's output cap (lib/lab.ts). The switches edit the working
 // tree, so they show in development, to an admin; everywhere else a route in
 // the lab is marked and not linked, since production does not serve it.
+//
+// Above them, the build's budget (Brendan, 2026-09-20): the last good build's
+// output against Amplify's cap, by part, so what a route costs is in view
+// beside the switch that would take it out. scripts/routes/build-sizes.mjs
+// reads it off the build log after a deploy.
 
 export const metadata: Metadata = { title: "Routes", description: "Every URL the site serves." }
 
@@ -112,6 +119,16 @@ export default async function RoutesPage() {
             {pages.length} pages, {apis.length} API routes, {REGISTRY.length} registry files and the redirects, read off the app directory; {labCount} in the lab, off production. The dynamic routes are opened out where their values are known.
           </p>
         </header>
+        {editable && (
+          <section>
+            <h2 className="mb-1 text-lg font-semibold">Build</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Job {BUILD.job} · {BUILD.commit} · {new Date(BUILD.built).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              {BUILD.exact ? "" : " · sizes to the nearest megabyte of disk, a few percent over what Amplify weighs"}
+            </p>
+            <ProgressGroup parts={BUILD.parts.map((p) => ({ label: p.label, value: p.bytes }))} limit={BUILD.cap} format={(bytes) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`} />
+          </section>
+        )}
         <section>
           <h2 className="mb-3 text-lg font-semibold">Pages</h2>
           <ul className="divide-y">

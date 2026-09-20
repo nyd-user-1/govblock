@@ -69,6 +69,10 @@ export function DocsHeader({ title, description, lead, slug, previous, next, act
         </div>
       </div>
       {below}
+      {/* An index page's view buttons, at the right just above the rule (Brendan,
+          2026-09-20): the list below owns the choice and portals them in
+          (components/index-views.tsx). Empty, it takes no room. */}
+      <div data-slot="docs-views" className="-mt-3 -mb-9 flex justify-end gap-2 empty:hidden" />
       {/* The header's rule, at the distance RecordHeader keeps (2026-09-18). */}
       <hr className="mt-6 border-0 border-t border-border" />
     </>

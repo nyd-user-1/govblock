@@ -9,6 +9,7 @@ import { num, pct, priorSession, useActivity, useAdopted, useBills } from "@/com
 import { StatOrder } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardFooter, CardHeader } from "@govblock/ui/components/nova/card"
@@ -133,218 +134,225 @@ export function OrdersPage() {
           <StatOrder key={s.label} {...s} />
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardAnchor>Bills Overview</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <ListFilterIcon className="size-3.5" />
-                  Filter
-                </Button>
-                <Button variant="outline" size="sm" className="gap-1.5 max-sm:hidden">
-                  <SortAscIcon className="size-3.5" />
-                  Sort
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-end gap-3">
-              <span className="text-3xl font-semibold">{thisMonth ? num(thisMonth.bills) : "—"}</span>
-              <Badge variant="outline" className="mb-1 h-5 gap-1 text-green-600">
-                <ArrowUpRightIcon className="size-3" />
-                {lastMonth ? sign(pct(thisMonth?.bills ?? 0, lastMonth.bills)) : "—"}
-              </Badge>
-              <span className="mb-1 text-xs text-muted-foreground">
-                {lastMonth ? `${thisMonth && thisMonth.bills - lastMonth.bills >= 0 ? "+" : ""}${num((thisMonth?.bills ?? 0) - lastMonth.bills)} vs last month` : "bills with an action this month"}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {months.slice(-3).map((m) => (
-                <div key={m.ym} className="rounded-lg border p-3">
-                  <p className="text-lg font-semibold">{num(m.bills)}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(`${m.ym}-15T12:00:00`).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary" style={{ width: `${(senate / splitTotal) * 100}%` }} />
-                <div className="h-full bg-primary/40" style={{ width: `${(lower / splitTotal) * 100}%` }} />
-              </div>
-              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                {split.map((s, i) => (
-                  <span key={s.label} className="flex items-center gap-1.5">
-                    <span className={cn("size-2 rounded-full", i === 0 ? "bg-primary" : "bg-primary/40")} />
-                    {s.label} · {num(s.value)}
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/orders" initial={["bills-overview-and-daily-actions", "recent-bills"]}>
+        <OrderedBlock id="bills-overview-and-daily-actions" label="Bills Overview and Daily Actions">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardAnchor>Bills Overview</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <ListFilterIcon className="size-3.5" />
+                      Filter
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5 max-sm:hidden">
+                      <SortAscIcon className="size-3.5" />
+                      Sort
+                    </Button>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <div className="flex flex-wrap items-end gap-3">
+                  <span className="text-3xl font-semibold">{thisMonth ? num(thisMonth.bills) : "—"}</span>
+                  <Badge variant="outline" className="mb-1 h-5 gap-1 text-green-600">
+                    <ArrowUpRightIcon className="size-3" />
+                    {lastMonth ? sign(pct(thisMonth?.bills ?? 0, lastMonth.bills)) : "—"}
+                  </Badge>
+                  <span className="mb-1 text-xs text-muted-foreground">
+                    {lastMonth ? `${thisMonth && thisMonth.bills - lastMonth.bills >= 0 ? "+" : ""}${num((thisMonth?.bills ?? 0) - lastMonth.bills)} vs last month` : "bills with an action this month"}
                   </span>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardAnchor>Daily Actions</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Select defaultValue="week">
-                  <SelectTrigger className="w-max min-w-28" size="sm">
-                    <SelectValue>{(v: unknown) => (v === "last" ? "Last week" : "This week")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-max min-w-44">
-                    <SelectItem value="week" className="whitespace-nowrap">
-                      This week
-                    </SelectItem>
-                    <SelectItem value="last" className="whitespace-nowrap">
-                      Last week
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <ChartContainer config={weekConfig} className="aspect-video h-40 w-full">
-              <BarChart data={week}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Bar dataKey="bills" fill="var(--color-bills)" radius={6} />
-              </BarChart>
-            </ChartContainer>
-            <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
-              {week.map((d) => (
-                <div key={d.day} className="flex flex-col items-center gap-0.5 bg-card py-2">
-                  <span className="text-[10px] text-muted-foreground uppercase">{d.day}</span>
-                  <span className="text-sm font-semibold">{d.bills}</span>
-                  <span className="text-[10px] text-muted-foreground">Bills</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <span>
-              Busiest day <span className="font-medium">{best?.day}</span>: <span className="font-medium">{num(best?.bills ?? 0)}</span> bills moved
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="text-muted-foreground">Session status</span>
-              <Badge variant="outline" className="h-5 gap-1 text-green-600">
-                {thisMonth ? "In session" : "Adjourned"}
-              </Badge>
-            </span>
-          </CardFooter>
-        </Card>
-      </div>
-      <div className="mt-4 grid grid-cols-1 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
-            <CardAnchor>Recent Bills</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("list")}>
-                  <ListIcon className="size-3.5" />
-                  <span className="max-lg:hidden">List</span>
-                </Button>
-                <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("board")}>
-                  <KanbanIcon className="size-3.5" />
-                  <span className="max-lg:hidden">Board</span>
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            {view === "list" ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/60">
-                    <TableHead className="w-8">
-                      <Checkbox aria-label="Select all" />
-                    </TableHead>
-                    <TableHead>Bill</TableHead>
-                    <TableHead>Sponsor</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Committee</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Chamber</TableHead>
-                    <TableHead className="text-right">Last Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bills.pending && !bills.data
-                    ? Array.from({ length: 7 }, (_, i) => (
-                        <TableRow key={i}>
-                          <TableCell colSpan={10}>
-                            <Skeleton className="h-5 w-full" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : rows.map((b) => {
-                        const s = stage(b.status_desc)
-                        return (
-                          <TableRow key={b.bill_id}>
-                            <TableCell>
-                              <Checkbox aria-label={`Select ${b.bill_number}`} />
-                            </TableCell>
-                            <TableCell className="font-mono text-xs whitespace-nowrap">{fmtBill(b.bill_number, bills.scope.state)}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-medium whitespace-nowrap">{b.sponsor ?? "—"}</span>
-                                <span className="text-xs text-muted-foreground">{b.sponsor_party ? (b.sponsor_party === "D" ? "Democrat" : b.sponsor_party === "R" ? "Republican" : b.sponsor_party) : ""}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-64 truncate">{b.title}</TableCell>
-                            <TableCell className="max-w-40 truncate">{b.committee ?? "—"}</TableCell>
-                            <TableCell>
-                              <Badge variant={s.variant} className="h-5 gap-1 whitespace-nowrap">
-                                {b.status_desc || "Introduced"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="h-5 gap-1 whitespace-nowrap">
-                                {s.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Progress value={s.percent} className="h-1.5 w-16 **:data-[slot=progress-indicator]:bg-primary *:data-[slot=progress-track]:h-1.5" />
-                                <span className="text-xs text-muted-foreground">{s.percent}%</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{b.body}</TableCell>
-                            <TableCell className="text-right whitespace-nowrap">{fmtDate(b.last_action_date)}</TableCell>
-                          </TableRow>
-                        )
-                      })}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {["Introduced", "In Committee", "Engrossed", "Adopted"].map((col) => (
-                  <div key={col} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2">
-                    <p className="px-1 text-xs font-semibold text-muted-foreground uppercase">{col}</p>
-                    {rows
-                      .filter((b) => stage(b.status_desc).label === col || (col === "Introduced" && !["In Committee", "Engrossed", "Enrolled", "Adopted", "Failed"].includes(stage(b.status_desc).label)))
-                      .map((b) => (
-                        <Card key={b.bill_id} className="gap-1 py-3">
-                          <CardContent className="flex flex-col gap-1 px-3">
-                            <span className="font-mono text-xs">{fmtBill(b.bill_number, bills.scope.state)}</span>
-                            <span className="line-clamp-2 text-sm">{b.title}</span>
-                            <span className="text-xs text-muted-foreground">{b.sponsor ?? "—"}</span>
-                          </CardContent>
-                        </Card>
-                      ))}
+                <div className="grid grid-cols-3 gap-3">
+                  {months.slice(-3).map((m) => (
+                    <div key={m.ym} className="rounded-lg border p-3">
+                      <p className="text-lg font-semibold">{num(m.bills)}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(`${m.ym}-15T12:00:00`).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${(senate / splitTotal) * 100}%` }} />
+                    <div className="h-full bg-primary/40" style={{ width: `${(lower / splitTotal) * 100}%` }} />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    {split.map((s, i) => (
+                      <span key={s.label} className="flex items-center gap-1.5">
+                        <span className={cn("size-2 rounded-full", i === 0 ? "bg-primary" : "bg-primary/40")} />
+                        {s.label} · {num(s.value)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardAnchor>Daily Actions</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Select defaultValue="week">
+                      <SelectTrigger className="w-max min-w-28" size="sm">
+                        <SelectValue>{(v: unknown) => (v === "last" ? "Last week" : "This week")}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-max min-w-44">
+                        <SelectItem value="week" className="whitespace-nowrap">
+                          This week
+                        </SelectItem>
+                        <SelectItem value="last" className="whitespace-nowrap">
+                          Last week
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <ChartContainer config={weekConfig} className="aspect-video h-40 w-full">
+                  <BarChart data={week}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="bills" fill="var(--color-bills)" radius={6} />
+                  </BarChart>
+                </ChartContainer>
+                <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
+                  {week.map((d) => (
+                    <div key={d.day} className="flex flex-col items-center gap-0.5 bg-card py-2">
+                      <span className="text-[10px] text-muted-foreground uppercase">{d.day}</span>
+                      <span className="text-sm font-semibold">{d.bills}</span>
+                      <span className="text-[10px] text-muted-foreground">Bills</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-wrap items-center justify-between gap-4 text-sm">
+                <span>
+                  Busiest day <span className="font-medium">{best?.day}</span>: <span className="font-medium">{num(best?.bills ?? 0)}</span> bills moved
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Session status</span>
+                  <Badge variant="outline" className="h-5 gap-1 text-green-600">
+                    {thisMonth ? "In session" : "Adjourned"}
+                  </Badge>
+                </span>
+              </CardFooter>
+            </Card>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="recent-bills" label="Recent Bills">
+          <div className="grid grid-cols-1">
+            <Card className="gap-4">
+              <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
+                <CardAnchor>Recent Bills</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("list")}>
+                      <ListIcon className="size-3.5" />
+                      <span className="max-lg:hidden">List</span>
+                    </Button>
+                    <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="gap-1 max-lg:size-9" onClick={() => setView("board")}>
+                      <KanbanIcon className="size-3.5" />
+                      <span className="max-lg:hidden">Board</span>
+                    </Button>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="max-md:px-4">
+                {view === "list" ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/60">
+                        <TableHead className="w-8">
+                          <Checkbox aria-label="Select all" />
+                        </TableHead>
+                        <TableHead>Bill</TableHead>
+                        <TableHead>Sponsor</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Committee</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Chamber</TableHead>
+                        <TableHead className="text-right">Last Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bills.pending && !bills.data
+                        ? Array.from({ length: 7 }, (_, i) => (
+                            <TableRow key={i}>
+                              <TableCell colSpan={10}>
+                                <Skeleton className="h-5 w-full" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : rows.map((b) => {
+                            const s = stage(b.status_desc)
+                            return (
+                              <TableRow key={b.bill_id}>
+                                <TableCell>
+                                  <Checkbox aria-label={`Select ${b.bill_number}`} />
+                                </TableCell>
+                                <TableCell className="font-mono text-xs whitespace-nowrap">{fmtBill(b.bill_number, bills.scope.state)}</TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium whitespace-nowrap">{b.sponsor ?? "—"}</span>
+                                    <span className="text-xs text-muted-foreground">{b.sponsor_party ? (b.sponsor_party === "D" ? "Democrat" : b.sponsor_party === "R" ? "Republican" : b.sponsor_party) : ""}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="max-w-64 truncate">{b.title}</TableCell>
+                                <TableCell className="max-w-40 truncate">{b.committee ?? "—"}</TableCell>
+                                <TableCell>
+                                  <Badge variant={s.variant} className="h-5 gap-1 whitespace-nowrap">
+                                    {b.status_desc || "Introduced"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="h-5 gap-1 whitespace-nowrap">
+                                    {s.label}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={s.percent} className="h-1.5 w-16 **:data-[slot=progress-indicator]:bg-primary *:data-[slot=progress-track]:h-1.5" />
+                                    <span className="text-xs text-muted-foreground">{s.percent}%</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{b.body}</TableCell>
+                                <TableCell className="text-right whitespace-nowrap">{fmtDate(b.last_action_date)}</TableCell>
+                              </TableRow>
+                            )
+                          })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {["Introduced", "In Committee", "Engrossed", "Adopted"].map((col) => (
+                      <div key={col} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-2">
+                        <p className="px-1 text-xs font-semibold text-muted-foreground uppercase">{col}</p>
+                        {rows
+                          .filter((b) => stage(b.status_desc).label === col || (col === "Introduced" && !["In Committee", "Engrossed", "Enrolled", "Adopted", "Failed"].includes(stage(b.status_desc).label)))
+                          .map((b) => (
+                            <Card key={b.bill_id} className="gap-1 py-3">
+                              <CardContent className="flex flex-col gap-1 px-3">
+                                <span className="font-mono text-xs">{fmtBill(b.bill_number, bills.scope.state)}</span>
+                                <span className="line-clamp-2 text-sm">{b.title}</span>
+                                <span className="text-xs text-muted-foreground">{b.sponsor ?? "—"}</span>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

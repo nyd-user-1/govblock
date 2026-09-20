@@ -1,0 +1,70 @@
+{
+  "job": 290,
+  "commit": "a330f1b",
+  "built": "2026-09-20T07:15:44.075000-04:00",
+  "exact": false,
+  "cap": 230686720,
+  "total": 222298112,
+  "parts": [
+    {
+      "label": "/(records)",
+      "bytes": 14680064
+    },
+    {
+      "label": "/bills",
+      "bytes": 9437184
+    },
+    {
+      "label": "/research",
+      "bytes": 7340032
+    },
+    {
+      "label": "/workspace",
+      "bytes": 6291456
+    },
+    {
+      "label": "/docs",
+      "bytes": 4194304
+    },
+    {
+      "label": "/api",
+      "bytes": 3145728
+    },
+    {
+      "label": "/watches",
+      "bytes": 2097152
+    },
+    {
+      "label": "/simulator",
+      "bytes": 2097152
+    },
+    {
+      "label": "/mentions",
+      "bytes": 2097152
+    },
+    {
+      "label": "/consensus",
+      "bytes": 2097152
+    },
+    {
+      "label": "/clips",
+      "bytes": 2097152
+    },
+    {
+      "label": "Every other route",
+      "bytes": 39845888
+    },
+    {
+      "label": "Shared server code",
+      "bytes": 81788928
+    },
+    {
+      "label": "Browser code",
+      "bytes": 44040192
+    },
+    {
+      "label": "Everything else",
+      "bytes": 1048576
+    }
+  ]
+}

@@ -2,18 +2,21 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronDown, ChevronUp, Star } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Star } from "lucide-react"
 
-import { removeFavorite, updateFavorite, useFavorites, type Favorite } from "@/lib/favorites"
+import { favoritesFor, removeFavorite, updateFavorite, useFavorites, type Favorite } from "@/lib/favorites"
 import { memberLine } from "@/lib/legislative-body"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The right rail's Favorites (Brendan, 2026-09-19): as a general rule the
 // right rail is the favorites rail, and Favorites heads it, above the page's
 // own block. Drawn in the contents block's type: the small muted heading, the
-// small links. Three show; the chevron beside the heading opens the rest and
-// closes them again. The empty line waits for the browser, so a reader with
-// favorites never sees it flash.
+// small links. The page's own (Brendan, 2026-09-20): the ones starred in this
+// section of the site, three at most, the count beside the heading when there
+// are more; all of them are on /favorites, which took the chevron's place. The
+// empty line waits for the browser, so a reader with favorites never sees it
+// flash.
 
 const SHOWN = 3
 
@@ -40,9 +43,10 @@ function useMemberLines(favorites: Favorite[]) {
 }
 
 export function FavoritesRail({ className }: { className?: string }) {
-  const favorites = useFavorites()
+  const pathname = usePathname() ?? "/"
+  const all = useFavorites()
+  const favorites = React.useMemo(() => favoritesFor(all, pathname), [all, pathname])
   useMemberLines(favorites)
-  const [open, setOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
   return (
@@ -51,21 +55,10 @@ export function FavoritesRail({ className }: { className?: string }) {
         <p className="text-xs font-medium text-muted-foreground">
           Favorites{favorites.length > SHOWN ? ` · ${favorites.length}` : ""}
         </p>
-        {favorites.length > SHOWN && (
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-label={open ? "Show fewer favorites" : "Show every favorite"}
-            onClick={() => setOpen((o) => !o)}
-            className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-4"
-          >
-            {open ? <ChevronUp /> : <ChevronDown />}
-          </button>
-        )}
       </div>
       {favorites.length === 0
         ? mounted && <p className="text-[0.8rem] text-muted-foreground">Star an item to keep it here.</p>
-        : (open ? favorites : favorites.slice(0, SHOWN)).map((f) => (
+        : favorites.slice(0, SHOWN).map((f) => (
             <div key={f.href} className="group/fav relative flex items-start gap-2">
               {f.image && (
                 // eslint-disable-next-line @next/next/no-img-element

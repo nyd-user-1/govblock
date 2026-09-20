@@ -15,6 +15,22 @@ export type Favorite = {
   /** The avatar's image — a flag, a seal, a portrait — when it has one. */
   image: string | null
   external: boolean
+  /** The section of the site it was starred in — "bills", "members" — which is the right rail it shows in (2026-09-20). */
+  from?: string
+}
+
+/** A path's section: its first segment, "bills" for /bills/ny. */
+export const section = (path: string) => path.split(/[?#]/)[0].split("/")[1] ?? ""
+
+/**
+ * A page's own favorites (Brendan, 2026-09-20): the ones starred in its
+ * section of the site, which is what its right rail lists; /favorites lists
+ * them all. One kept before sections were recorded goes by its own address.
+ */
+export const favoritesFor = (list: Favorite[], pathname: string) => {
+  const here = section(pathname)
+  // Where it was starred, and where its own kind lives: a bill starred on /changelog shows there and on the bills pages.
+  return list.filter((f) => f.from === here || section(f.href) === here)
 }
 
 const KEY = "govblock-favorites"
@@ -71,7 +87,7 @@ export function isFavorite(list: Favorite[], href: string) {
 /** Keeps the item, or lets it go if it is already kept. */
 export function toggleFavorite(item: Favorite) {
   const list = read()
-  write(isFavorite(list, item.href) ? list.filter((f) => f.href !== item.href) : [item, ...list])
+  write(isFavorite(list, item.href) ? list.filter((f) => f.href !== item.href) : [{ ...item, from: item.from ?? section(window.location.pathname) }, ...list])
 }
 
 /** Fills in a kept item's fields, where it is still kept. */

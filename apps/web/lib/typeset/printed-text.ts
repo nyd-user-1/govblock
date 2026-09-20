@@ -53,6 +53,16 @@ export async function printedTexts(ids: number[]): Promise<Map<number, string>> 
   return out
 }
 
+/**
+ * Which printer each bill's code block came from (2026-09-20): "xml" where the stored XML read cleanly, "text" where
+ * the block fell back to the state's stored text, "none" where there is nothing to print. For counting, per state,
+ * how much of the record the XML pipeline covers (apps/web/scripts/xml/print-coverage.mjs).
+ */
+export async function codeBlockSources(ids: number[]): Promise<Record<string, "xml" | "text" | "none">> {
+  const [printed, plain] = await Promise.all([printedTexts(ids), getBillTexts(ids)])
+  return Object.fromEntries(ids.map((id) => [String(id), printed.has(id) ? "xml" : plain.has(id) && printBillText(plain.get(id) ?? "") ? "text" : "none"]))
+}
+
 /** What a code block prints for each bill: the XML where it read cleanly, the stored text printed the same way otherwise. */
 export async function codeBlockTexts(ids: number[]): Promise<Map<number, string>> {
   const [printed, plain] = await Promise.all([printedTexts(ids), getBillTexts(ids)])

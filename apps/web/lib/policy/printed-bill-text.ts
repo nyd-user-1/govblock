@@ -35,7 +35,10 @@ const headingLike = (line: string) => line.length <= 80 && !/[a-z]/.test(line) &
 
 /** A web page's markup captured where a printing should be (a legislature's search page, its scripts and styles): not bill text at all. */
 export function looksCaptured(text: string): boolean {
-  return /window\.(top\.)?location|document\.getElementById|display\s*:\s*none|<\/?script|function\s+\w+\s*\(\)\s*\{/i.test(String(text ?? "").slice(0, 4000))
+  const head = String(text ?? "").slice(0, 4000)
+  // A page's code, or a page's menu (2026-09-20): West Virginia's stored text opened "skip navigation / SENATE /
+  // PRESIDENT / SENATORS…", the legislature's site chrome rather than the bill.
+  return /window\.(top\.)?location|document\.getElementById|display\s*:\s*none|<\/?script|function\s+\w+\s*\(\)\s*\{/i.test(head) || /^\s*skip (to )?(the )?(main )?(navigation|content)\b/i.test(head)
 }
 
 /** A form's rules and leaders: a run of underscores ends a line; a dotted leader (". . . . .") is a space. */

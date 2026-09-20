@@ -10,6 +10,7 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
+import { LoadingFlag } from "@/components/loading-flag"
 
 // Finance: the canon item for every candidate account we hold. What we hold
 // is the FEC's candidate summaries for the 400 largest accounts of the
@@ -65,7 +66,14 @@ export function FinanceList() {
     return (data?.rows ?? []).filter((row) => has(q, row.name, row.office, row.state, stateName(row.state), PARTY(row.party), STANDING[row.ici ?? ""]))
   }, [data, query])
 
-  if (!resolved || !data) return null
+  // Still reading: the flag, not a blank page (Brendan, 2026-09-20).
+  if (!resolved || !data) {
+    return (
+      <div className="flex justify-center py-16">
+        <LoadingFlag />
+      </div>
+    )
+  }
   const held = data.rows.length
   const pages = pageCount(rows.length)
   const current = Math.min(page, pages)

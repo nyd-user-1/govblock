@@ -402,6 +402,10 @@ export const ROUTES: GeneratedRoute[] = [
     "kind": "page"
   },
   {
+    "path": "/bookmarks",
+    "kind": "page"
+  },
+  {
     "path": "/briefing",
     "kind": "page"
   },
@@ -539,6 +543,10 @@ export const ROUTES: GeneratedRoute[] = [
   },
   {
     "path": "/erd",
+    "kind": "page"
+  },
+  {
+    "path": "/favorites",
     "kind": "page"
   },
   {

@@ -14,7 +14,7 @@ import { useRecents } from "@/components/home/recents"
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@govblock/ui/components/ny4/sidebar"
 
 // The site's rail, on AnimBits' shape (Brendan, 2026-09-11): four rows at
-// the top — Quick search, Account home, Recents, Scope — then four nodes,
+// the top — Quick search, Account (Home, Bookmarks, Changelog, Favorites; 2026-09-20), Recents, Scope — then four nodes,
 // each folding open to its sub-sections and each sub-section to its items:
 // Agents (the index and each agent), ArXiv (the record's pages), News (the
 // desks and everything the News menu holds), Workspace (the workspace's
@@ -63,7 +63,15 @@ export function SiteRail() {
     { key: `${code}-members`, href: `/members?state=${code}`, label: "Members", active: false, muted },
   ]
   const top: RailItem[] = [
-    item("home", "/home", "Account home", glyph(Home)),
+    // Account (Brendan, 2026-09-20; Account home until then), folding open to
+    // what is the reader's own: home first, then the rest by name. The
+    // changelog moved here from Docs.
+    item("account", "/home", "Account", glyph(Home), [
+      { key: "/home", href: "/home", label: "Home", active: here("/home") },
+      { key: "/bookmarks", href: "/bookmarks", label: "Bookmarks", active: here("/bookmarks") },
+      { key: "/changelog", href: "/changelog", label: "Changelog", active: here("/changelog") },
+      { key: "/favorites", href: "/favorites", label: "Favorites", active: here("/favorites") },
+    ]),
     item(
       "recents",
       "/home",
@@ -87,7 +95,7 @@ export function SiteRail() {
   // The sections are the header's menus, in the header's order and with the
   // header's items (Brendan, 2026-09-12: "apply it to this section of the
   // left sidebar"). Docs holds what used to sit under Workspace as Build on it.
-  const docs: RailItem[] = pages("Docs").sort(byLabel).map(page)
+  const docs: RailItem[] = pages("Docs").filter((p) => p.href !== "/changelog").sort(byLabel).map(page)
   // Agents is a Workspace item in the header, so here it is a Workspace node
   // with the seven agent pages beneath it, not a section of its own.
   const agentsNode = item("agents", "/agents", "Agents", undefined, agents)

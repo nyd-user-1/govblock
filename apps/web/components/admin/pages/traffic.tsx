@@ -8,6 +8,7 @@ import { fmtCompact, fmtNumber } from "@/lib/format"
 import { StatAi } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { useSnapshot } from "@/lib/policy/use-policy"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -300,336 +301,345 @@ export function TrafficPage() {
           note={`${pct(threats30, requests30)}% of requests · policy.nysgpt.com is not behind Cloudflare`}
         />
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-5">
-        <div className="xl:col-span-3">
-          <Card className="max-2xl:gap-3 max-2xl:pt-4">
-            <CardHeader className="max-2xl:px-4">
-              <CardAnchor>Traffic Trends</CardAnchor>
-              <CardDescription className="max-sm:text-xs">
-                {tab === "govblock" ? "policy.nysgpt.com from Amplify's metrics, daily since August 31" : `The zone ${data?.zone_name ?? "nysgpt.com"} through Cloudflare, daily since July 1`}
-              </CardDescription>
-              <CardAction>
-                <CardTools className="gap-2">
-                  <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-                    <TabsList className="h-8">
-                      <TabsTrigger value="requests">Requests</TabsTrigger>
-                      <TabsTrigger value="views">Views</TabsTrigger>
-                      <TabsTrigger value="govblock">GovBlock</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </CardTools>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="sm:px-4">
-              <ChartContainer config={trendConfig} className="aspect-auto h-68 w-full">
-                <AreaChart data={(tab === "govblock" ? gbTrend : trend) as Record<string, string | number>[]}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => fmtDay(String(v))} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => fmtDay(String(v), true)} />} />
-                  {tab === "requests" ? (
-                    <>
-                      <Area dataKey="uncached" type="monotone" stackId="a" stroke="var(--color-uncached)" fill="var(--color-uncached)" fillOpacity={0.5} />
-                      <Area dataKey="cached" type="monotone" stackId="a" stroke="var(--color-cached)" fill="var(--color-cached)" fillOpacity={0.5} />
-                    </>
-                  ) : tab === "views" ? (
-                    <>
-                      <Area dataKey="views" type="monotone" stroke="var(--color-views)" fill="var(--color-views)" fillOpacity={0.3} />
-                      <Area dataKey="uniques" type="monotone" stroke="var(--color-uniques)" fill="var(--color-uniques)" fillOpacity={0.3} />
-                    </>
-                  ) : (
-                    <>
-                      <Area dataKey="requests" type="monotone" stroke="var(--color-requests)" fill="var(--color-requests)" fillOpacity={0.3} />
-                      <Area dataKey="errors" type="monotone" stroke="var(--color-errors)" fill="var(--color-errors)" fillOpacity={0.3} />
-                    </>
-                  )}
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="xl:col-span-2">
-          <Card>
-            <CardHeader className="max-2xl:px-4">
-              <CardAnchor>Traffic by Host</CardAnchor>
-              <CardDescription className="max-sm:text-xs">The last eight days, which is as far back as Cloudflare keeps the split</CardDescription>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <ChartContainer config={hostConfig} className="mx-auto aspect-square h-56">
-                  <PieChart>
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="host" />} />
-                    <Pie
-                      data={hosts.slice(0, 6).map((h, i) => ({
-                        ...h,
-                        fill: `var(--chart-${(i % 5) + 1})`,
-                      }))}
-                      dataKey="requests"
-                      nameKey="host"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      cornerRadius={4}
-                    />
-                  </PieChart>
-                </ChartContainer>
-                <div className="flex flex-col justify-center gap-3">
-                  {hosts.slice(0, 6).map((h, i) => (
-                    <div key={h.host} className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="size-2 shrink-0 rounded-full" style={{ background: `var(--chart-${(i % 5) + 1})` }} />
-                        <span className="truncate text-sm font-medium">{h.host}</span>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-semibold">{fmtNumber(h.requests)}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {pct(h.requests, hostTotal)}% · {fmtNumber(h.visits)} visits
-                        </p>
-                      </div>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/traffic" initial={["traffic-trends-and-traffic-by-host", "cached-vs-uncached-and-hourly-timeline", "top-paths"]}>
+        <OrderedBlock id="traffic-trends-and-traffic-by-host" label="Traffic Trends and Traffic by Host">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-5">
+            <div className="xl:col-span-3">
+              <Card className="max-2xl:gap-3 max-2xl:pt-4">
+                <CardHeader className="max-2xl:px-4">
+                  <CardAnchor>Traffic Trends</CardAnchor>
+                  <CardDescription className="max-sm:text-xs">
+                    {tab === "govblock" ? "policy.nysgpt.com from Amplify's metrics, daily since August 31" : `The zone ${data?.zone_name ?? "nysgpt.com"} through Cloudflare, daily since July 1`}
+                  </CardDescription>
+                  <CardAction>
+                    <CardTools className="gap-2">
+                      <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+                        <TabsList className="h-8">
+                          <TabsTrigger value="requests">Requests</TabsTrigger>
+                          <TabsTrigger value="views">Views</TabsTrigger>
+                          <TabsTrigger value="govblock">GovBlock</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="sm:px-4">
+                  <ChartContainer config={trendConfig} className="aspect-auto h-68 w-full">
+                    <AreaChart data={(tab === "govblock" ? gbTrend : trend) as Record<string, string | number>[]}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => fmtDay(String(v))} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => fmtDay(String(v), true)} />} />
+                      {tab === "requests" ? (
+                        <>
+                          <Area dataKey="uncached" type="monotone" stackId="a" stroke="var(--color-uncached)" fill="var(--color-uncached)" fillOpacity={0.5} />
+                          <Area dataKey="cached" type="monotone" stackId="a" stroke="var(--color-cached)" fill="var(--color-cached)" fillOpacity={0.5} />
+                        </>
+                      ) : tab === "views" ? (
+                        <>
+                          <Area dataKey="views" type="monotone" stroke="var(--color-views)" fill="var(--color-views)" fillOpacity={0.3} />
+                          <Area dataKey="uniques" type="monotone" stroke="var(--color-uniques)" fill="var(--color-uniques)" fillOpacity={0.3} />
+                        </>
+                      ) : (
+                        <>
+                          <Area dataKey="requests" type="monotone" stroke="var(--color-requests)" fill="var(--color-requests)" fillOpacity={0.3} />
+                          <Area dataKey="errors" type="monotone" stroke="var(--color-errors)" fill="var(--color-errors)" fillOpacity={0.3} />
+                        </>
+                      )}
+                    </AreaChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="xl:col-span-2">
+              <Card>
+                <CardHeader className="max-2xl:px-4">
+                  <CardAnchor>Traffic by Host</CardAnchor>
+                  <CardDescription className="max-sm:text-xs">The last eight days, which is as far back as Cloudflare keeps the split</CardDescription>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <ChartContainer config={hostConfig} className="mx-auto aspect-square h-56">
+                      <PieChart>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="host" />} />
+                        <Pie
+                          data={hosts.slice(0, 6).map((h, i) => ({
+                            ...h,
+                            fill: `var(--chart-${(i % 5) + 1})`,
+                          }))}
+                          dataKey="requests"
+                          nameKey="host"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={3}
+                          cornerRadius={4}
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="flex flex-col justify-center gap-3">
+                      {hosts.slice(0, 6).map((h, i) => (
+                        <div key={h.host} className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="size-2 shrink-0 rounded-full" style={{ background: `var(--chart-${(i % 5) + 1})` }} />
+                            <span className="truncate text-sm font-medium">{h.host}</span>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-sm font-semibold">{fmtNumber(h.requests)}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {pct(h.requests, hostTotal)}% · {fmtNumber(h.visits)} visits
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {!hosts.length && !pending && <p className="text-sm text-muted-foreground">No proxied host has served a request in eight days.</p>}
                     </div>
-                  ))}
-                  {!hosts.length && !pending && <p className="text-sm text-muted-foreground">No proxied host has served a request in eight days.</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="cached-vs-uncached-and-hourly-timeline" label="Cached vs Uncached and Hourly Timeline">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-3">
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Cached vs Uncached</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Badge variant="outline" className="h-6 font-normal">
+                      30d
+                    </Badge>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <p className="text-3xl font-semibold">
+                  {pct(cached30, requests30)}
+                  <span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> {Math.round((100 - pct(cached30, requests30)) * 10) / 10}
+                  <span className="text-base text-muted-foreground">%</span>
+                </p>
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${pct(cached30, requests30)}%` }} />
+                  <div className="h-full bg-primary/40" style={{ width: `${100 - pct(cached30, requests30)}%` }} />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-3">
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Cached vs Uncached</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Badge variant="outline" className="h-6 font-normal">
-                  30d
-                </Badge>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-3xl font-semibold">
-              {pct(cached30, requests30)}
-              <span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> {Math.round((100 - pct(cached30, requests30)) * 10) / 10}
-              <span className="text-base text-muted-foreground">%</span>
-            </p>
-            <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary" style={{ width: `${pct(cached30, requests30)}%` }} />
-              <div className="h-full bg-primary/40" style={{ width: `${100 - pct(cached30, requests30)}%` }} />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">{fmtCompact(cached30, false)}</span> cached
-              </span>
-              <span>
-                <span className="font-medium text-foreground">{fmtCompact(requests30 - cached30, false)}</span> uncached
-              </span>
-            </div>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <div>
-                <p className="text-xl font-semibold">{fmtCompact(gbRequests, false)}</p>
-                <p className="text-xs text-muted-foreground">GovBlock requests, Amplify</p>
-              </div>
-              <Separator orientation="vertical" className="h-10" />
-              <div>
-                <p className="text-xl font-semibold">{gbRequests ? pct(gb4xx + gb5xx, gbRequests) : 0}%</p>
-                <p className="text-xs text-muted-foreground">GovBlock error rate</p>
-              </div>
-            </div>
-            <div className="flex justify-between rounded-lg bg-muted/50 p-3 text-xs">
-              <span>
-                Top country: <span className="font-medium">{top(data?.countries, 1)[0]?.[0] ?? "—"}</span>
-              </span>
-              <span>
-                Top device: <span className="font-medium">{top(data?.devices, 1)[0]?.[0] ?? "—"}</span>
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Hourly Timeline</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Badge variant="outline" className="h-6 font-normal">
-                  3 days
-                </Badge>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-3xl font-semibold">
-              {fmtNumber(hourly[hourly.length - 1]?.requests ?? 0)}
-              <span className="text-base text-muted-foreground"> in the last hour</span>
-            </p>
-            <div className="flex gap-3 text-xs text-muted-foreground">
-              {["Requests", "Page views", "Visitors"].map((p, i) => (
-                <span key={p} className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />
-                  {p}
-                </span>
-              ))}
-            </div>
-            <ChartContainer config={hourConfig} className="aspect-auto h-40 w-full">
-              <LineChart data={hourly}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="t"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  minTickGap={40}
-                  tickFormatter={(v) =>
-                    new Date(String(v)).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                    })
-                  }
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      indicator="dot"
-                      labelFormatter={(v) =>
-                        new Date(String(v)).toLocaleString("en-US", {
-                          weekday: "short",
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    <span className="font-medium text-foreground">{fmtCompact(cached30, false)}</span> cached
+                  </span>
+                  <span>
+                    <span className="font-medium text-foreground">{fmtCompact(requests30 - cached30, false)}</span> uncached
+                  </span>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div>
+                    <p className="text-xl font-semibold">{fmtCompact(gbRequests, false)}</p>
+                    <p className="text-xs text-muted-foreground">GovBlock requests, Amplify</p>
+                  </div>
+                  <Separator orientation="vertical" className="h-10" />
+                  <div>
+                    <p className="text-xl font-semibold">{gbRequests ? pct(gb4xx + gb5xx, gbRequests) : 0}%</p>
+                    <p className="text-xs text-muted-foreground">GovBlock error rate</p>
+                  </div>
+                </div>
+                <div className="flex justify-between rounded-lg bg-muted/50 p-3 text-xs">
+                  <span>
+                    Top country: <span className="font-medium">{top(data?.countries, 1)[0]?.[0] ?? "—"}</span>
+                  </span>
+                  <span>
+                    Top device: <span className="font-medium">{top(data?.devices, 1)[0]?.[0] ?? "—"}</span>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Hourly Timeline</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Badge variant="outline" className="h-6 font-normal">
+                      3 days
+                    </Badge>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-3xl font-semibold">
+                  {fmtNumber(hourly[hourly.length - 1]?.requests ?? 0)}
+                  <span className="text-base text-muted-foreground"> in the last hour</span>
+                </p>
+                <div className="flex gap-3 text-xs text-muted-foreground">
+                  {["Requests", "Page views", "Visitors"].map((p, i) => (
+                    <span key={p} className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                <ChartContainer config={hourConfig} className="aspect-auto h-40 w-full">
+                  <LineChart data={hourly}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="t"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      minTickGap={40}
+                      tickFormatter={(v) =>
+                        new Date(String(v)).toLocaleTimeString("en-US", {
                           hour: "numeric",
                         })
                       }
                     />
-                  }
-                />
-                <Line dataKey="requests" type="monotone" stroke="var(--color-requests)" dot={false} strokeWidth={2} />
-                <Line dataKey="views" type="monotone" stroke="var(--color-views)" dot={false} strokeWidth={2} />
-                <Line dataKey="uniques" type="monotone" stroke="var(--color-uniques)" dot={false} strokeWidth={2} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Response Status</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Button variant="outline" size="sm" render={<a href="/api/traffic?refresh=1" target="_blank" rel="noreferrer" />}>
-                  <RefreshCwIcon className="size-3.5" />
-                  Refresh
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div>
-              <p className="text-3xl font-semibold">{fmtCompact(classTotal, false)}</p>
-              <p className="text-xs text-muted-foreground">Responses through Cloudflare (30d)</p>
-            </div>
-            <div className="flex flex-col gap-4">
-              {(Object.entries(classes) as [string, number][]).map(([code, count]) => (
-                <div key={code} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={cn("h-5 gap-1 font-mono", code === "2xx" ? "text-green-600" : code === "5xx" ? "text-destructive" : code === "4xx" ? "text-amber-600" : "text-muted-foreground")}>
-                      {code}
-                    </Badge>
-                    <span className="text-sm">{code === "2xx" ? "OK" : code === "3xx" ? "Redirect" : code === "4xx" ? "Client error" : "Server error"}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">{fmtNumber(count)}</p>
-                    <p className="text-[11px] text-muted-foreground">{pct(count, classTotal)}%</p>
-                  </div>
-                  <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${pct(count, classTotal)}%` }} />
-                  </div>
+                    <ChartTooltip
+                      cursor={false}
+                      content={
+                        <ChartTooltipContent
+                          indicator="dot"
+                          labelFormatter={(v) =>
+                            new Date(String(v)).toLocaleString("en-US", {
+                              weekday: "short",
+                              hour: "numeric",
+                            })
+                          }
+                        />
+                      }
+                    />
+                    <Line dataKey="requests" type="monotone" stroke="var(--color-requests)" dot={false} strokeWidth={2} />
+                    <Line dataKey="views" type="monotone" stroke="var(--color-views)" dot={false} strokeWidth={2} />
+                    <Line dataKey="uniques" type="monotone" stroke="var(--color-uniques)" dot={false} strokeWidth={2} />
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Response Status</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Button variant="outline" size="sm" render={<a href="/api/traffic?refresh=1" target="_blank" rel="noreferrer" />}>
+                      <RefreshCwIcon className="size-3.5" />
+                      Refresh
+                    </Button>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <div>
+                  <p className="text-3xl font-semibold">{fmtCompact(classTotal, false)}</p>
+                  <p className="text-xs text-muted-foreground">Responses through Cloudflare (30d)</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="mt-4 grid grid-cols-1 sm:mt-5">
-        <Card>
-          <CardHeader className="max-2xl:px-4">
-            <CardAnchor>Top Paths</CardAnchor>
-            <CardDescription className="max-sm:text-xs">The most requested paths per host over the last eight days, Cloudflare's window for the split.</CardDescription>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Badge variant="outline" className="h-6 font-normal text-muted-foreground">
-                  {data?.note ? "Cloudflare hosts only" : ""}
-                </Badge>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative grow sm:max-w-xs">
-                <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search paths" className="h-9 pl-8" />
-              </div>
-              <Select value={hostFilter} onValueChange={(v) => setHostFilter(String(v))}>
-                <SelectTrigger className="h-9 sm:w-48">
-                  <SelectValue>{() => (hostFilter === "all" ? "All hosts" : hostFilter)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent className="w-max min-w-44">
-                  <SelectItem value="all">All hosts</SelectItem>
-                  {hosts.map((h) => (
-                    <SelectItem key={h.host} value={h.host}>
-                      {h.host}
-                    </SelectItem>
+                <div className="flex flex-col gap-4">
+                  {(Object.entries(classes) as [string, number][]).map(([code, count]) => (
+                    <div key={code} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={cn("h-5 gap-1 font-mono", code === "2xx" ? "text-green-600" : code === "5xx" ? "text-destructive" : code === "4xx" ? "text-amber-600" : "text-muted-foreground")}>
+                          {code}
+                        </Badge>
+                        <span className="text-sm">{code === "2xx" ? "OK" : code === "3xx" ? "Redirect" : code === "4xx" ? "Client error" : "Server error"}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{fmtNumber(count)}</p>
+                        <p className="text-[11px] text-muted-foreground">{pct(count, classTotal)}%</p>
+                      </div>
+                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full bg-primary" style={{ width: `${pct(count, classTotal)}%` }} />
+                      </div>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Path</TableHead>
-                  <TableHead>Host</TableHead>
-                  <TableHead>Requests</TableHead>
-                  <TableHead>Visits</TableHead>
-                  <TableHead>Bytes</TableHead>
-                  <TableHead>Days seen</TableHead>
-                  <TableHead className="text-right">Open</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pending
-                  ? Array.from({ length: 6 }, (_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={7}>
-                          <Skeleton className="h-5 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="top-paths" label="Top Paths">
+          <div className="grid grid-cols-1">
+            <Card>
+              <CardHeader className="max-2xl:px-4">
+                <CardAnchor>Top Paths</CardAnchor>
+                <CardDescription className="max-sm:text-xs">The most requested paths per host over the last eight days, Cloudflare's window for the split.</CardDescription>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Badge variant="outline" className="h-6 font-normal text-muted-foreground">
+                      {data?.note ? "Cloudflare hosts only" : ""}
+                    </Badge>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative grow sm:max-w-xs">
+                    <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search paths" className="h-9 pl-8" />
+                  </div>
+                  <Select value={hostFilter} onValueChange={(v) => setHostFilter(String(v))}>
+                    <SelectTrigger className="h-9 sm:w-48">
+                      <SelectValue>{() => (hostFilter === "all" ? "All hosts" : hostFilter)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="w-max min-w-44">
+                      <SelectItem value="all">All hosts</SelectItem>
+                      {hosts.map((h) => (
+                        <SelectItem key={h.host} value={h.host}>
+                          {h.host}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/60">
+                      <TableHead>Path</TableHead>
+                      <TableHead>Host</TableHead>
+                      <TableHead>Requests</TableHead>
+                      <TableHead>Visits</TableHead>
+                      <TableHead>Bytes</TableHead>
+                      <TableHead>Days seen</TableHead>
+                      <TableHead className="text-right">Open</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pending
+                      ? Array.from({ length: 6 }, (_, i) => (
+                          <TableRow key={i}>
+                            <TableCell colSpan={7}>
+                              <Skeleton className="h-5 w-full" />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      : paths.map((p) => (
+                          <TableRow key={`${p.host}${p.path}`}>
+                            <TableCell className="max-w-96 truncate font-mono text-xs">{p.path}</TableCell>
+                            <TableCell className="whitespace-nowrap">{p.host}</TableCell>
+                            <TableCell>{fmtNumber(p.requests)}</TableCell>
+                            <TableCell>{fmtNumber(p.visits)}</TableCell>
+                            <TableCell className="whitespace-nowrap">{p.bytes > 1e6 ? `${(p.bytes / 1e6).toFixed(1)} MB` : `${Math.round(p.bytes / 1e3)} KB`}</TableCell>
+                            <TableCell>{p.days.size}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="gap-1" render={<a href={`https://${p.host}${p.path}`} target="_blank" rel="noreferrer" />}>
+                                Open
+                                <ArrowUpRightIcon className="size-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    {!pending && !paths.length && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          Nothing in the window.
                         </TableCell>
                       </TableRow>
-                    ))
-                  : paths.map((p) => (
-                      <TableRow key={`${p.host}${p.path}`}>
-                        <TableCell className="max-w-96 truncate font-mono text-xs">{p.path}</TableCell>
-                        <TableCell className="whitespace-nowrap">{p.host}</TableCell>
-                        <TableCell>{fmtNumber(p.requests)}</TableCell>
-                        <TableCell>{fmtNumber(p.visits)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{p.bytes > 1e6 ? `${(p.bytes / 1e6).toFixed(1)} MB` : `${Math.round(p.bytes / 1e3)} KB`}</TableCell>
-                        <TableCell>{p.days.size}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="gap-1" render={<a href={`https://${p.host}${p.path}`} target="_blank" rel="noreferrer" />}>
-                            Open
-                            <ArrowUpRightIcon className="size-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                {!pending && !paths.length && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      Nothing in the window.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <p className="text-xs text-muted-foreground">{data?.note}</p>
-          </CardContent>
-        </Card>
-      </div>
+                    )}
+                  </TableBody>
+                </Table>
+                <p className="text-xs text-muted-foreground">{data?.note}</p>
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

@@ -77,7 +77,10 @@ export function RecordItem({
   stacked = false,
   hover = "soft",
   favoriteDetail,
+  action,
 }: {
+  /** Stands where the star does, in its place: /bookmarks's rows carry a bookmark (2026-09-20). */
+  action?: React.ReactNode
   href: string
   /** The favorite's second line where the row's own words will not do: a member's party, state and district. */
   favoriteDetail?: string | null
@@ -153,7 +156,7 @@ export function RecordItem({
         </Link>
       )}
       {/* Centred on the arrow's line, its 16 px icon 8 px before the arrow. */}
-      <FavoriteStar href={href} external={external} className="absolute top-3 right-8" />
+      {action ?? <FavoriteStar href={href} external={external} className="absolute top-3 right-8" />}
     </div>
   )
 }

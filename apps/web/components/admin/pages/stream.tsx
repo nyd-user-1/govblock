@@ -6,6 +6,7 @@ import { CheckIcon, ClapperboardIcon, CopyIcon, ExternalLinkIcon, EyeIcon, EyeOf
 import { StatAi } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@govblock/ui/components/nova/card"
@@ -238,268 +239,273 @@ export function StreamPage() {
 
       {error && <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</p>}
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-5">
-        <div className="xl:col-span-3">
-          <Card className="gap-4">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <ClapperboardIcon className="size-4" />
-                <CardAnchor>Library</CardAnchor>
-              </div>
-              <CardDescription>Every video in the account, newest first. Pick one to play it.</CardDescription>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/60">
-                    <TableHead className="w-16">Frame</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Length</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Added</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pending
-                    ? Array.from({ length: 4 }, (_, i) => (
-                        <TableRow key={i}>
-                          <TableCell colSpan={6}>
-                            <Skeleton className="h-9 w-full" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : videos.map((v) => (
-                        <TableRow key={v.uid} className={cn(!v.placeholder && "cursor-pointer", selected === v.uid && "bg-muted/50")} onClick={() => !v.placeholder && setSelected(v.uid)}>
-                          <TableCell>
-                            {v.thumbnail ? (
-                              <img src={v.thumbnail} alt="" className="h-9 w-14 rounded object-cover" />
-                            ) : (
-                              <div className="flex h-9 w-14 items-center justify-center rounded bg-muted">
-                                <VideoIcon className="size-4 text-muted-foreground" />
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="max-w-64 truncate font-medium">{v.name}</span>
-                              <span className="font-mono text-[11px] text-muted-foreground">{v.uid}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">{fmtDuration(v.duration)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn("h-5 capitalize", v.readyToStream ? "text-green-600" : v.state === "error" ? "text-destructive" : "text-amber-600")}>
-                              {v.readyToStream ? "ready" : v.state}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">{fmtDate(v.created)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-0.5">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Play"
-                                disabled={v.placeholder}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelected(v.uid)
-                                }}
-                              >
-                                <PlayIcon className="size-3.5" />
-                              </Button>
-                              {!v.placeholder && embed(v.uid) && (
-                                <span onClick={(e) => e.stopPropagation()}>
-                                  <Copy text={`<iframe src="${embed(v.uid)}" title="${v.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
-                                </span>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Delete"
-                                className="text-destructive"
-                                disabled={v.placeholder || busy === v.uid}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (window.confirm(`Delete "${v.name}" from Stream? This cannot be undone.`)) void act({ action: "delete-video", uid: v.uid }, v.uid)
-                                }}
-                              >
-                                <Trash2Icon className="size-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  {!pending && !held.length && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="py-3 text-center text-xs text-muted-foreground">
-                        {data?.ok ? "Placeholders. Import a video from a URL on the right." : "Placeholders. The account's own library appears once Stream is reachable."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="flex flex-col gap-4 sm:gap-5 xl:col-span-2">
-          <Card className="gap-3 overflow-hidden py-0">
-            <CardContent className="px-0">
-              {selected && embed(selected) ? (
-                <iframe
-                  src={embed(selected) ?? undefined}
-                  title={current?.name ?? currentLive?.name ?? "Stream"}
-                  className="aspect-video w-full"
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
-                  <PlayIcon className="size-6" />
-                  <span className="text-sm">{selected && !customer ? "The player subdomain is unknown until a video exists" : "Pick a video or a live input"}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{current?.name ?? currentLive?.name ?? "Nothing selected"}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {current ? `${current.width ?? "?"}×${current.height ?? "?"} · ${fmtDuration(current.duration)} · ${fmtBytes(current.size)}` : currentLive ? `live input · ${currentLive.status ?? "idle"}` : ""}
-                  </p>
-                </div>
-                {current?.preview && (
-                  <Button variant="outline" size="sm" className="gap-1" render={<a href={current.preview} target="_blank" rel="noreferrer" />}>
-                    Open
-                    <ExternalLinkIcon className="size-3" />
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="gap-4">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <UploadIcon className="size-4" />
-                <CardAnchor>Import from a URL</CardAnchor>
-              </div>
-              <CardDescription>A public MP4, MOV, MKV, AVI, FLV, MPEG-2 TS or PS, MXF, LXF, GXF, 3GP, WebM, MPG or QuickTime file. Stream fetches and encodes it.</CardDescription>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              <div className="grid gap-1.5">
-                <Label>Video URL</Label>
-                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/hearing.mp4" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Senate Finance, September 10" />
-              </div>
-              <Button
-                disabled={!url || !data?.ok || busy === "copy"}
-                onClick={() =>
-                  void act({ action: "copy", url, name }, "copy").then((r) => {
-                    if (r?.uid) {
-                      setUrl("")
-                      setName("")
-                      setSelected(r.uid)
-                    }
-                  })
-                }
-              >
-                {busy === "copy" ? "Importing…" : "Import"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <RadioIcon className="size-4" />
-              <CardAnchor>Live inputs</CardAnchor>
-            </div>
-            <CardDescription>Each input is an RTMPS address and key for OBS or any encoder, recorded automatically, playable at the same player URL as a video.</CardDescription>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Input value={liveName} onChange={(e) => setLiveName(e.target.value)} placeholder="Name the input" className="h-8 w-48" />
-                <Button
-                  size="sm"
-                  className="gap-1"
-                  disabled={!data?.ok || busy === "live"}
-                  onClick={() =>
-                    void act({ action: "live", name: liveName }, "live").then((r) => {
-                      if (r?.uid) {
-                        setLiveName("")
-                        setSelected(r.uid)
-                      }
-                    })
-                  }
-                >
-                  <PlusIcon className="size-3.5" />
-                  {busy === "live" ? "Creating…" : "New input"}
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-            {live.map((l) => (
-              <div key={l.uid} className={cn("flex flex-col gap-2 rounded-lg border p-3 text-sm", selected === l.uid && "border-primary")}>
-                <div className="flex items-center justify-between gap-2">
-                  <button type="button" className="truncate text-left font-medium hover:underline" onClick={() => setSelected(l.uid)}>
-                    {l.name}
-                  </button>
-                  <Badge variant="outline" className={cn("h-5", l.status === "connected" ? "text-green-600" : "text-muted-foreground")}>
-                    {l.status ?? "idle"}
-                  </Badge>
-                </div>
-                <div className="grid gap-1 font-mono text-[11px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-muted-foreground">{l.rtmpsUrl ?? "—"}</span>
-                    {l.rtmpsUrl && <Copy text={l.rtmpsUrl} label="Copy RTMPS URL" />}
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/stream" initial={["library-and-import-from-a-url", "live-inputs"]}>
+        <OrderedBlock id="library-and-import-from-a-url" label="Library and Import from a URL">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-5">
+            <div className="xl:col-span-3">
+              <Card className="gap-4">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <ClapperboardIcon className="size-4" />
+                    <CardAnchor>Library</CardAnchor>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate">{showKeys[l.uid] ? l.rtmpsKey : "•".repeat(24)}</span>
-                    <div className="flex shrink-0">
-                      <Button variant="ghost" size="icon-sm" aria-label="Show key" onClick={() => setShowKeys((s) => ({ ...s, [l.uid]: !s[l.uid] }))}>
-                        {showKeys[l.uid] ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+                  <CardDescription>Every video in the account, newest first. Pick one to play it.</CardDescription>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/60">
+                        <TableHead className="w-16">Frame</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Length</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Added</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pending
+                        ? Array.from({ length: 4 }, (_, i) => (
+                            <TableRow key={i}>
+                              <TableCell colSpan={6}>
+                                <Skeleton className="h-9 w-full" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : videos.map((v) => (
+                            <TableRow key={v.uid} className={cn(!v.placeholder && "cursor-pointer", selected === v.uid && "bg-muted/50")} onClick={() => !v.placeholder && setSelected(v.uid)}>
+                              <TableCell>
+                                {v.thumbnail ? (
+                                  <img src={v.thumbnail} alt="" className="h-9 w-14 rounded object-cover" />
+                                ) : (
+                                  <div className="flex h-9 w-14 items-center justify-center rounded bg-muted">
+                                    <VideoIcon className="size-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="max-w-64 truncate font-medium">{v.name}</span>
+                                  <span className="font-mono text-[11px] text-muted-foreground">{v.uid}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">{fmtDuration(v.duration)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={cn("h-5 capitalize", v.readyToStream ? "text-green-600" : v.state === "error" ? "text-destructive" : "text-amber-600")}>
+                                  {v.readyToStream ? "ready" : v.state}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">{fmtDate(v.created)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Play"
+                                    disabled={v.placeholder}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelected(v.uid)
+                                    }}
+                                  >
+                                    <PlayIcon className="size-3.5" />
+                                  </Button>
+                                  {!v.placeholder && embed(v.uid) && (
+                                    <span onClick={(e) => e.stopPropagation()}>
+                                      <Copy text={`<iframe src="${embed(v.uid)}" title="${v.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
+                                    </span>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Delete"
+                                    className="text-destructive"
+                                    disabled={v.placeholder || busy === v.uid}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (window.confirm(`Delete "${v.name}" from Stream? This cannot be undone.`)) void act({ action: "delete-video", uid: v.uid }, v.uid)
+                                    }}
+                                  >
+                                    <Trash2Icon className="size-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      {!pending && !held.length && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="py-3 text-center text-xs text-muted-foreground">
+                            {data?.ok ? "Placeholders. Import a video from a URL on the right." : "Placeholders. The account's own library appears once Stream is reachable."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="flex flex-col gap-4 sm:gap-5 xl:col-span-2">
+              <Card className="gap-3 overflow-hidden py-0">
+                <CardContent className="px-0">
+                  {selected && embed(selected) ? (
+                    <iframe
+                      src={embed(selected) ?? undefined}
+                      title={current?.name ?? currentLive?.name ?? "Stream"}
+                      className="aspect-video w-full"
+                      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
+                      <PlayIcon className="size-6" />
+                      <span className="text-sm">{selected && !customer ? "The player subdomain is unknown until a video exists" : "Pick a video or a live input"}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{current?.name ?? currentLive?.name ?? "Nothing selected"}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {current ? `${current.width ?? "?"}×${current.height ?? "?"} · ${fmtDuration(current.duration)} · ${fmtBytes(current.size)}` : currentLive ? `live input · ${currentLive.status ?? "idle"}` : ""}
+                      </p>
+                    </div>
+                    {current?.preview && (
+                      <Button variant="outline" size="sm" className="gap-1" render={<a href={current.preview} target="_blank" rel="noreferrer" />}>
+                        Open
+                        <ExternalLinkIcon className="size-3" />
                       </Button>
-                      {l.rtmpsKey && <Copy text={l.rtmpsKey} label="Copy stream key" />}
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="gap-4">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <UploadIcon className="size-4" />
+                    <CardAnchor>Import from a URL</CardAnchor>
+                  </div>
+                  <CardDescription>A public MP4, MOV, MKV, AVI, FLV, MPEG-2 TS or PS, MXF, LXF, GXF, 3GP, WebM, MPG or QuickTime file. Stream fetches and encodes it.</CardDescription>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Video URL</Label>
+                    <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/hearing.mp4" />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Senate Finance, September 10" />
+                  </div>
+                  <Button
+                    disabled={!url || !data?.ok || busy === "copy"}
+                    onClick={() =>
+                      void act({ action: "copy", url, name }, "copy").then((r) => {
+                        if (r?.uid) {
+                          setUrl("")
+                          setName("")
+                          setSelected(r.uid)
+                        }
+                      })
+                    }
+                  >
+                    {busy === "copy" ? "Importing…" : "Import"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </OrderedBlock>
+
+        <OrderedBlock id="live-inputs" label="Live inputs">
+          <Card className="gap-4">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <RadioIcon className="size-4" />
+                <CardAnchor>Live inputs</CardAnchor>
+              </div>
+              <CardDescription>Each input is an RTMPS address and key for OBS or any encoder, recorded automatically, playable at the same player URL as a video.</CardDescription>
+              <CardAction>
+                <CardTools className="gap-2">
+                  <Input value={liveName} onChange={(e) => setLiveName(e.target.value)} placeholder="Name the input" className="h-8 w-48" />
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    disabled={!data?.ok || busy === "live"}
+                    onClick={() =>
+                      void act({ action: "live", name: liveName }, "live").then((r) => {
+                        if (r?.uid) {
+                          setLiveName("")
+                          setSelected(r.uid)
+                        }
+                      })
+                    }
+                  >
+                    <PlusIcon className="size-3.5" />
+                    {busy === "live" ? "Creating…" : "New input"}
+                  </Button>
+                </CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              {live.map((l) => (
+                <div key={l.uid} className={cn("flex flex-col gap-2 rounded-lg border p-3 text-sm", selected === l.uid && "border-primary")}>
+                  <div className="flex items-center justify-between gap-2">
+                    <button type="button" className="truncate text-left font-medium hover:underline" onClick={() => setSelected(l.uid)}>
+                      {l.name}
+                    </button>
+                    <Badge variant="outline" className={cn("h-5", l.status === "connected" ? "text-green-600" : "text-muted-foreground")}>
+                      {l.status ?? "idle"}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-1 font-mono text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-muted-foreground">{l.rtmpsUrl ?? "—"}</span>
+                      {l.rtmpsUrl && <Copy text={l.rtmpsUrl} label="Copy RTMPS URL" />}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate">{showKeys[l.uid] ? l.rtmpsKey : "•".repeat(24)}</span>
+                      <div className="flex shrink-0">
+                        <Button variant="ghost" size="icon-sm" aria-label="Show key" onClick={() => setShowKeys((s) => ({ ...s, [l.uid]: !s[l.uid] }))}>
+                          {showKeys[l.uid] ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+                        </Button>
+                        {l.rtmpsKey && <Copy text={l.rtmpsKey} label="Copy stream key" />}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {fmtDate(l.created)} · recording {l.recording ?? "off"}
+                    </span>
+                    <div className="flex gap-0.5">
+                      {embed(l.uid) && (
+                        <Copy text={`<iframe src="${embed(l.uid)}" title="${l.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Delete input"
+                        className="text-destructive"
+                        disabled={busy === l.uid}
+                        onClick={() => {
+                          if (window.confirm(`Delete live input "${l.name}"?`)) void act({ action: "delete-live", uid: l.uid }, l.uid)
+                        }}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {fmtDate(l.created)} · recording {l.recording ?? "off"}
-                  </span>
-                  <div className="flex gap-0.5">
-                    {embed(l.uid) && (
-                      <Copy text={`<iframe src="${embed(l.uid)}" title="${l.name}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`} label="Copy embed" />
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Delete input"
-                      className="text-destructive"
-                      disabled={busy === l.uid}
-                      onClick={() => {
-                        if (window.confirm(`Delete live input "${l.name}"?`)) void act({ action: "delete-live", uid: l.uid }, l.uid)
-                      }}
-                    >
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {!pending && !live.length && <p className="py-4 text-sm text-muted-foreground">{data?.ok ? "No live inputs. Create one and paste its address and key into OBS." : "Live inputs appear once Stream is reachable."}</p>}
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+              {!pending && !live.length && <p className="py-4 text-sm text-muted-foreground">{data?.ok ? "No live inputs. Create one and paste its address and key into OBS." : "Live inputs appear once Stream is reachable."}</p>}
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

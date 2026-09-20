@@ -7,6 +7,7 @@ import { Area, AreaChart, CartesianGrid, Label, PolarGrid, PolarRadiusAxis, Radi
 import { fmtCompact } from "@/lib/format"
 import { stateName } from "@/lib/filters"
 import { num, useProvenance, useStates, type Provenance } from "@/components/admin/data"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
 import { TodoCard } from "@/components/admin/blocks/todo-card"
@@ -190,293 +191,301 @@ export function DatabasePage() {
         <StatDatabaseGrid stats={tiles} />
       </div>
 
-      <div className="mt-4 sm:mt-5">
-        <TodoCard />
-      </div>
+      {/* The blocks move up and down (Brendan, 2026-09-20): Volume, Feeds and Jurisdictions lead, To Do closes. */}
+      <BlockOrder page="dashboard/database" initial={["volume", "feeds", "jurisdictions", "uslm", "health", "todo"]}>
+        <OrderedBlock id="todo" label="To Do">
+          <TodoCard />
+        </OrderedBlock>
 
-      <div className="mt-4 sm:mt-5">
-        <Card>
-          <CardHeader>
-            <CardAnchor>Volume</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Select value={metric} onValueChange={(v) => v && setMetric(v as (typeof METRICS)[number]["value"])}>
-                  <SelectTrigger className="h-8 w-32" size="sm" aria-label="What to count">
-                    <SelectValue>{() => METRICS.find((m) => m.value === metric)?.label ?? metric}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {METRICS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="h-4 w-px bg-border" />
-                <Select value={span} onValueChange={(v) => v && setSpan(v as (typeof SPANS)[number]["value"])}>
-                  <SelectTrigger className="h-8 w-28" size="sm" aria-label="How far back">
-                    <SelectValue>{() => SPANS.find((x) => x.value === span)?.label ?? span}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPANS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={seriesConfig} className="aspect-auto h-83 w-full">
-              <AreaChart data={series} margin={{ left: 0, right: 0, top: 8 }}>
-                <defs>
-                  <linearGradient id="fillLoad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.7} />
-                    <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric" })} />} />
-                <Area dataKey="value" type="monotone" stroke="var(--color-value)" fill="url(#fillLoad)" />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <OrderedBlock id="volume" label="Volume">
+          <Card>
+            <CardHeader>
+              <CardAnchor>Volume</CardAnchor>
+              <CardAction>
+                <CardTools className="gap-2">
+                  <Select value={metric} onValueChange={(v) => v && setMetric(v as (typeof METRICS)[number]["value"])}>
+                    <SelectTrigger className="h-8 w-32" size="sm" aria-label="What to count">
+                      <SelectValue>{() => METRICS.find((m) => m.value === metric)?.label ?? metric}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {METRICS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="h-4 w-px bg-border" />
+                  <Select value={span} onValueChange={(v) => v && setSpan(v as (typeof SPANS)[number]["value"])}>
+                    <SelectTrigger className="h-8 w-28" size="sm" aria-label="How far back">
+                      <SelectValue>{() => SPANS.find((x) => x.value === span)?.label ?? span}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPANS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={seriesConfig} className="aspect-auto h-83 w-full">
+                <AreaChart data={series} margin={{ left: 0, right: 0, top: 8 }}>
+                  <defs>
+                    <linearGradient id="fillLoad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.7} />
+                      <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} tickFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" labelFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric" })} />} />
+                  <Area dataKey="value" type="monotone" stroke="var(--color-value)" fill="url(#fillLoad)" />
+                </AreaChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
 
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="max-md:px-4">
-            <CardAnchor>Feeds</CardAnchor>
-            <CardAction>
-              <CardTools>
-                {clearCacheButton}
-                {refreshButton}
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead className="w-8">
-                    <Checkbox aria-label="Select all" />
-                  </TableHead>
-                  <TableHead>Feed / Source</TableHead>
-                  <TableHead>Cadence</TableHead>
-                  <TableHead>Covers</TableHead>
-                  <TableHead>Runs on</TableHead>
-                  <TableHead>Last write</TableHead>
-                  <TableHead>Rows</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-10 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!p
-                  ? Array.from({ length: 6 }, (_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={9}>
-                          <Skeleton className="h-5 w-full" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : rows.map((r) => {
-                      const h = health(r.at, r.cadence)
-                      return (
-                        <TableRow key={r.name}>
-                          <TableCell>
-                            <Checkbox aria-label={`Select ${r.name}`} />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium whitespace-nowrap">{r.name}</span>
-                              <span className="text-xs text-muted-foreground">{r.engine}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">{r.cadence}</TableCell>
-                          <TableCell className="max-w-56 truncate">{r.covers}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.nodes}</TableCell>
-                          <TableCell className="whitespace-nowrap">{fmtWhen(r.at)}</TableCell>
-                          <TableCell className="whitespace-nowrap">{r.rows}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn("h-5 gap-1", h.tone)}>
-                              {h.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ComponentActions className="justify-end" />
+        <OrderedBlock id="feeds" label="Feeds">
+          <Card className="gap-4">
+            <CardHeader className="max-md:px-4">
+              <CardAnchor>Feeds</CardAnchor>
+              <CardAction>
+                <CardTools>
+                  {clearCacheButton}
+                  {refreshButton}
+                </CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="max-md:px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/60">
+                    <TableHead className="w-8">
+                      <Checkbox aria-label="Select all" />
+                    </TableHead>
+                    <TableHead>Feed / Source</TableHead>
+                    <TableHead>Cadence</TableHead>
+                    <TableHead>Covers</TableHead>
+                    <TableHead>Runs on</TableHead>
+                    <TableHead>Last write</TableHead>
+                    <TableHead>Rows</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-10 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!p
+                    ? Array.from({ length: 6 }, (_, i) => (
+                        <TableRow key={i}>
+                          <TableCell colSpan={9}>
+                            <Skeleton className="h-5 w-full" />
                           </TableCell>
                         </TableRow>
+                      ))
+                    : rows.map((r) => {
+                        const h = health(r.at, r.cadence)
+                        return (
+                          <TableRow key={r.name}>
+                            <TableCell>
+                              <Checkbox aria-label={`Select ${r.name}`} />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium whitespace-nowrap">{r.name}</span>
+                                <span className="text-xs text-muted-foreground">{r.engine}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">{r.cadence}</TableCell>
+                            <TableCell className="max-w-56 truncate">{r.covers}</TableCell>
+                            <TableCell className="whitespace-nowrap">{r.nodes}</TableCell>
+                            <TableCell className="whitespace-nowrap">{fmtWhen(r.at)}</TableCell>
+                            <TableCell className="whitespace-nowrap">{r.rows}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn("h-5 gap-1", h.tone)}>
+                                {h.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <ComponentActions className="justify-end" />
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+
+        <OrderedBlock id="jurisdictions" label="Jurisdictions">
+          <Card className="gap-4">
+            <CardHeader>
+              <CardAnchor>Jurisdictions</CardAnchor>
+              <CardAction>
+                <CardTools>{refreshButton}</CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+                {(states.data ?? []).map((s) => {
+                  const f = p?.fresh.find((x) => x.state === s.state)
+                  const dot = feedState(s.state, f?.pulled_at ?? null)
+                  return (
+                    <a
+                      key={s.state}
+                      href={`/docs/datasets/${s.state.toLowerCase()}`}
+                      title={dot.label}
+                      className="group/tile relative flex h-[132px] flex-col justify-between rounded-xl border bg-card p-4 no-underline transition-colors hover:bg-accent/40 hover:ring-1 hover:ring-foreground/10"
+                    >
+                      <div className="flex items-start justify-between">
+                        <FlagChip state={s.state} width={36} />
+                        <span className={cn("mt-1 size-2.5 rounded-full", dot.tone, dot.blink && "animate-pulse")} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{stateName(s.state)}</p>
+                        <p className="truncate text-xs text-muted-foreground">{`${fmtCompact(s.bills, false)} bills · ${s.sessions} sessions`}</p>
+                        <p className="truncate text-xs text-muted-foreground tabular-nums">{f?.pulled_at ? `pulled ${fmtWhen(f.pulled_at, false)}` : p ? "no pull on record" : "…"}</p>
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+
+        <OrderedBlock id="uslm" label="USLM Parse">
+          <UslmParseCard />
+        </OrderedBlock>
+
+        <OrderedBlock id="health" label="Feed Health and Quotas">
+          {/* One block like the rest (Brendan, 2026-09-20): Feed Health and Quotas were two cards side by side. */}
+          <Card className="py-0">
+            <div className="grid grid-cols-1 xl:grid-cols-2 [&>[data-slot=card]]:py-6">
+              <Card className="rounded-none border-0 bg-transparent shadow-none ring-0">
+                <CardHeader>
+                  <CardAnchor>Feed Health</CardAnchor>
+                  <CardAction>
+                    <CardTools>
+                      <Button variant="outline" size="sm" render={<a href="/docs/datasets" />}>
+                        View Datasets
+                      </Button>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{ fresh: { label: "Fresh", color: "var(--chart-1)" } }} className="mx-auto aspect-square h-60">
+                    <RadialBarChart data={radial} startAngle={90} endAngle={90 - (freshShare / 100) * 360} innerRadius={80} outerRadius={110}>
+                      <PolarGrid gridType="circle" radialLines={false} stroke="none" className="first:fill-muted last:fill-background" polarRadius={[86, 74]} />
+                      <RadialBar dataKey="value" background cornerRadius={10} />
+                      <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                        <Label
+                          content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                              return (
+                                <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                  <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-4xl font-bold">
+                                    {p ? `${freshShare}%` : "…"}
+                                  </tspan>
+                                  <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
+                                    Recently updated
+                                  </tspan>
+                                </text>
+                              )
+                            }
+                            return null
+                          }}
+                        />
+                      </PolarRadiusAxis>
+                    </RadialBarChart>
+                  </ChartContainer>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {metrics.map((m) => (
+                      <div key={m.label} className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">{m.label}</p>
+                        <p className="text-lg font-semibold">{m.value}</p>
+                        <p className="truncate text-xs text-muted-foreground">{m.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="gap-3 rounded-none border-0 bg-transparent shadow-none ring-0 max-xl:border-t xl:border-l">
+                <CardHeader>
+                  <CardAnchor>Quotas</CardAnchor>
+                  <CardAction>
+                    <CardTools className="gap-2">
+                      <Select defaultValue="nightly">
+                        <SelectTrigger className="h-7 w-24" size="sm">
+                          <SelectValue>{(v: unknown) => (v === "weekly" ? "Weekly" : "Nightly")}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nightly">Nightly</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <ChartContainer config={{ value: { label: "Texts", color: "var(--chart-2)" } }} className="aspect-video h-40 w-full">
+                    <AreaChart data={series.slice(-7)} margin={{ left: 0, right: 0, top: 4 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                      <Area dataKey="value" type="monotone" stroke="var(--color-value)" fill="var(--color-value)" fillOpacity={0.2} />
+                    </AreaChart>
+                  </ChartContainer>
+                  <div className="flex flex-col gap-3">
+                    {quotas.map((q) => {
+                      const pctUsed = Math.min(100, Math.round((q.used / q.limit) * 100))
+                      return (
+                        <div key={q.label} className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{q.label}</p>
+                            <p className="truncate text-xs text-muted-foreground">{q.sub}</p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="text-sm font-semibold">
+                              {pctUsed}
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </span>
+                            <span className={cn("text-xs", pctUsed >= 85 ? "text-destructive" : "text-green-600")}>{pctUsed >= 85 ? "↑" : "↓"}</span>
+                            <span className="w-28 text-right font-mono text-[10px] text-muted-foreground">
+                              {q.used.toLocaleString()} / {q.limit.toLocaleString()} {q.unit}
+                            </span>
+                          </div>
+                        </div>
                       )
                     })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Jurisdictions</CardAnchor>
-            <CardAction>
-              <CardTools>{refreshButton}</CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
-              {(states.data ?? []).map((s) => {
-                const f = p?.fresh.find((x) => x.state === s.state)
-                const dot = feedState(s.state, f?.pulled_at ?? null)
-                return (
-                  <a
-                    key={s.state}
-                    href={`/docs/datasets/${s.state.toLowerCase()}`}
-                    title={dot.label}
-                    className="group/tile relative flex h-[132px] flex-col justify-between rounded-xl border bg-card p-4 no-underline transition-colors hover:bg-accent/40 hover:ring-1 hover:ring-foreground/10"
-                  >
-                    <div className="flex items-start justify-between">
-                      <FlagChip state={s.state} width={36} />
-                      <span className={cn("mt-1 size-2.5 rounded-full", dot.tone, dot.blink && "animate-pulse")} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                        <AlertTriangleIcon className="size-3.5" />
+                        Stalest feed
+                      </p>
+                      <p className="mt-1 truncate text-sm">{stalest ? `${stalest.name} | ${fmtWhen(stalest.at)}` : "—"}</p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{stateName(s.state)}</p>
-                      <p className="truncate text-xs text-muted-foreground">{`${fmtCompact(s.bills, false)} bills · ${s.sessions} sessions`}</p>
-                      <p className="truncate text-xs text-muted-foreground tabular-nums">{f?.pulled_at ? `pulled ${fmtWhen(f.pulled_at, false)}` : p ? "no pull on record" : "…"}</p>
-                    </div>
-                  </a>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-4 sm:mt-5">
-        <UslmParseCard />
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardAnchor>Feed Health</CardAnchor>
-            <CardAction>
-              <CardTools>
-                <Button variant="outline" size="sm" render={<a href="/docs/datasets" />}>
-                  View Datasets
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{ fresh: { label: "Fresh", color: "var(--chart-1)" } }} className="mx-auto aspect-square h-60">
-              <RadialBarChart data={radial} startAngle={90} endAngle={90 - (freshShare / 100) * 360} innerRadius={80} outerRadius={110}>
-                <PolarGrid gridType="circle" radialLines={false} stroke="none" className="first:fill-muted last:fill-background" polarRadius={[86, 74]} />
-                <RadialBar dataKey="value" background cornerRadius={10} />
-                <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-                  <Label
-                    content={({ viewBox }) => {
-                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                        return (
-                          <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                            <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-4xl font-bold">
-                              {p ? `${freshShare}%` : "…"}
-                            </tspan>
-                            <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
-                              Recently updated
-                            </tspan>
-                          </text>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                </PolarRadiusAxis>
-              </RadialBarChart>
-            </ChartContainer>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {metrics.map((m) => (
-                <div key={m.label} className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">{m.label}</p>
-                  <p className="text-lg font-semibold">{m.value}</p>
-                  <p className="truncate text-xs text-muted-foreground">{m.note}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-3">
-          <CardHeader>
-            <CardAnchor>Quotas</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Select defaultValue="nightly">
-                  <SelectTrigger className="h-7 w-24" size="sm">
-                    <SelectValue>{(v: unknown) => (v === "weekly" ? "Weekly" : "Nightly")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nightly">Nightly</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <ChartContainer config={{ value: { label: "Texts", color: "var(--chart-2)" } }} className="aspect-video h-40 w-full">
-              <AreaChart data={series.slice(-7)} margin={{ left: 0, right: 0, top: 4 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                <Area dataKey="value" type="monotone" stroke="var(--color-value)" fill="var(--color-value)" fillOpacity={0.2} />
-              </AreaChart>
-            </ChartContainer>
-            <div className="flex flex-col gap-3">
-              {quotas.map((q) => {
-                const pctUsed = Math.min(100, Math.round((q.used / q.limit) * 100))
-                return (
-                  <div key={q.label} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{q.label}</p>
-                      <p className="truncate text-xs text-muted-foreground">{q.sub}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        {pctUsed}
-                        <span className="text-xs text-muted-foreground">%</span>
-                      </span>
-                      <span className={cn("text-xs", pctUsed >= 85 ? "text-destructive" : "text-green-600")}>{pctUsed >= 85 ? "↑" : "↓"}</span>
-                      <span className="w-28 text-right font-mono text-[10px] text-muted-foreground">
-                        {q.used.toLocaleString()} / {q.limit.toLocaleString()} {q.unit}
-                      </span>
+                    <div className="rounded-lg border border-green-600/20 bg-green-600/5 p-3">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-green-700">
+                        <CheckCircle2Icon className="size-3.5" />
+                        Freshest feed
+                      </p>
+                      <p className="mt-1 truncate text-sm">{freshest ? `${freshest.name} | ${fmtWhen(freshest.at)}` : "—"}</p>
                     </div>
                   </div>
-                )
-              })}
+                </CardContent>
+              </Card>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
-                  <AlertTriangleIcon className="size-3.5" />
-                  Stalest feed
-                </p>
-                <p className="mt-1 truncate text-sm">{stalest ? `${stalest.name} | ${fmtWhen(stalest.at)}` : "—"}</p>
-              </div>
-              <div className="rounded-lg border border-green-600/20 bg-green-600/5 p-3">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-green-700">
-                  <CheckCircle2Icon className="size-3.5" />
-                  Freshest feed
-                </p>
-                <p className="mt-1 truncate text-sm">{freshest ? `${freshest.name} | ${fmtWhen(freshest.at)}` : "—"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </Card>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

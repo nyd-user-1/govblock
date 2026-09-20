@@ -6,6 +6,7 @@ import { fmtCompact, fmtNumber, truncate } from "@/lib/format"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
+import { LoadingFlag } from "@/components/loading-flag"
 import { RecordItem, RecordList } from "@/components/policy/record-item"
 
 // The lobbying register as a list, on the bills board's shape: the shared
@@ -104,7 +105,13 @@ export function LobbyingList({ kind }: { kind: LobbyingKind }) {
             />
           )
         })}
-        {!rows.length && (
+        {/* Still reading: the flag, never the empty line (Brendan, 2026-09-20). */}
+        {!data && (
+          <div className="flex justify-center py-16">
+            <LoadingFlag />
+          </div>
+        )}
+        {data && !rows.length && (
           <p className="py-10 text-center text-sm text-muted-foreground">
             No {spec.empty}
             {term ? `s matching “${term}”` : "s"}.

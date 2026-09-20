@@ -11,6 +11,7 @@ import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { StatCustomer } from "@/components/admin/blocks/stats"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
@@ -175,162 +176,169 @@ export function MemberPage() {
           <StatCustomer key={s.title} {...s} />
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-7">
-        <div className="xl:col-span-4">
-          <Card>
-            <CardHeader>
-              <CardAnchor>Passage</CardAnchor>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              <div className="grid grid-cols-3 gap-4">
-                {funnel.slice(0, 3).map((f, i) => (
-                  <div key={f.label}>
-                    <p className="text-2xl font-semibold">{activity.data ? (i === 0 ? num(f.value) : `${f.share}%`) : "—"}</p>
-                    <p className="text-xs text-muted-foreground">{i === 0 ? "Bills introduced" : f.label}</p>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/member" initial={["passage-and-votes-cast", "member-directory-and-committee-load"]}>
+        <OrderedBlock id="passage-and-votes-cast" label="Passage and Votes Cast">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-7">
+            <div className="xl:col-span-4">
+              <Card>
+                <CardHeader>
+                  <CardAnchor>Passage</CardAnchor>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    {funnel.slice(0, 3).map((f, i) => (
+                      <div key={f.label}>
+                        <p className="text-2xl font-semibold">{activity.data ? (i === 0 ? num(f.value) : `${f.share}%`) : "—"}</p>
+                        <p className="text-xs text-muted-foreground">{i === 0 ? "Bills introduced" : f.label}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="flex flex-col gap-3">
-                {funnel.map((f) => (
-                  <div key={f.label} className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-sm text-muted-foreground">{f.label}</span>
-                    <div className="h-8 grow overflow-hidden rounded-md bg-muted">
-                      <div className="flex h-full items-center justify-end rounded-md bg-primary/80 pr-2 text-xs font-medium text-primary-foreground transition-[width] duration-500" style={{ width: `${Math.max(f.share, 4)}%` }}>
-                        {num(f.value)}
+                  <div className="flex flex-col gap-3">
+                    {funnel.map((f) => (
+                      <div key={f.label} className="flex items-center gap-3">
+                        <span className="w-24 shrink-0 text-sm text-muted-foreground">{f.label}</span>
+                        <div className="h-8 grow overflow-hidden rounded-md bg-muted">
+                          <div className="flex h-full items-center justify-end rounded-md bg-primary/80 pr-2 text-xs font-medium text-primary-foreground transition-[width] duration-500" style={{ width: `${Math.max(f.share, 4)}%` }}>
+                            {num(f.value)}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="h-5 w-14 justify-center gap-1">
+                          {f.share}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="xl:col-span-3">
+              <Card>
+                <CardHeader>
+                  <CardAnchor>Votes Cast</CardAnchor>
+                  <CardAction>
+                    <CardTools className="gap-2">
+                      <Badge variant="outline">This Session</Badge>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={growthConfig} className="aspect-video h-68 w-full">
+                    <AreaChart data={growth} margin={{ left: 0, right: 0 }}>
+                      <defs>
+                        <linearGradient id="fillYea" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-yea)" stopOpacity={0.6} />
+                          <stop offset="95%" stopColor="var(--color-yea)" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} tickFormatter={(v) => monthLabel(String(v))} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                      <Area dataKey="yea" type="monotone" stroke="var(--color-yea)" fill="url(#fillYea)" stackId="a" />
+                      <Area dataKey="nay" type="monotone" stroke="var(--color-nay)" fill="var(--color-nay)" fillOpacity={0.3} stackId="a" />
+                    </AreaChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="member-directory-and-committee-load" label="Member Directory and Committee Load">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <Card className="gap-3 max-md:py-4!">
+                <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
+                  <CardAnchor>Member Directory</CardAnchor>
+                  <CardAction>
+                    <CardTools className="gap-2">
+                      <div className="relative">
+                        <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search members" className="h-9 w-56 pl-8" />
+                      </div>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="max-md:px-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/60">
+                        <TableHead className="w-8">
+                          <Checkbox aria-label="Select all" />
+                        </TableHead>
+                        <TableHead>Member ID</TableHead>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Party</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Chamber</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {members.pending && !members.data
+                        ? Array.from({ length: 5 }, (_, i) => (
+                            <TableRow key={i}>
+                              <TableCell colSpan={6}>
+                                <Skeleton className="h-5 w-full" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : filtered.map((m) => (
+                            <TableRow key={m.people_id}>
+                              <TableCell>
+                                <Checkbox aria-label={`Select ${m.name}`} />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">{m.people_id}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {honorific(m.role, m.chamber)} {m.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">{m.district ? `District ${m.district}` : (m.leadership_title ?? "")}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{m.party === "D" ? "Democrat" : m.party === "R" ? "Republican" : m.party || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={cn("h-5 gap-1", m.active ? "text-green-600" : "text-muted-foreground")}>
+                                  {m.active ? "Active" : "Former"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{m.chamber}</TableCell>
+                            </TableRow>
+                          ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="xl:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardAnchor>Committee Load</CardAnchor>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                  {goals.map((g) => (
+                    <div key={g.name} className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{g.name}</p>
+                        <p className="text-xs text-muted-foreground">{g.sub}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <Progress value={g.percent} className="h-1.5 w-28 max-w-28 **:data-[slot=progress-indicator]:bg-primary *:data-[slot=progress-track]:h-1.5" />
+                        <span className="w-9 text-right text-xs font-medium">{g.percent}%</span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="h-5 w-14 justify-center gap-1">
-                      {f.share}%
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="xl:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardAnchor>Votes Cast</CardAnchor>
-              <CardAction>
-                <CardTools className="gap-2">
-                  <Badge variant="outline">This Session</Badge>
-                </CardTools>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={growthConfig} className="aspect-video h-68 w-full">
-                <AreaChart data={growth} margin={{ left: 0, right: 0 }}>
-                  <defs>
-                    <linearGradient id="fillYea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-yea)" stopOpacity={0.6} />
-                      <stop offset="95%" stopColor="var(--color-yea)" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} tickFormatter={(v) => monthLabel(String(v))} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  <Area dataKey="yea" type="monotone" stroke="var(--color-yea)" fill="url(#fillYea)" stackId="a" />
-                  <Area dataKey="nay" type="monotone" stroke="var(--color-nay)" fill="var(--color-nay)" fillOpacity={0.3} stackId="a" />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <Card className="gap-3 max-md:py-4!">
-            <CardHeader className="flex-col gap-4 max-md:px-4 sm:flex-row sm:items-center">
-              <CardAnchor>Member Directory</CardAnchor>
-              <CardAction>
-                <CardTools className="gap-2">
-                  <div className="relative">
-                    <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search members" className="h-9 w-56 pl-8" />
-                  </div>
-                </CardTools>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="max-md:px-4">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/60">
-                    <TableHead className="w-8">
-                      <Checkbox aria-label="Select all" />
-                    </TableHead>
-                    <TableHead>Member ID</TableHead>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Party</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Chamber</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.pending && !members.data
-                    ? Array.from({ length: 5 }, (_, i) => (
-                        <TableRow key={i}>
-                          <TableCell colSpan={6}>
-                            <Skeleton className="h-5 w-full" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : filtered.map((m) => (
-                        <TableRow key={m.people_id}>
-                          <TableCell>
-                            <Checkbox aria-label={`Select ${m.name}`} />
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{m.people_id}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {honorific(m.role, m.chamber)} {m.name}
-                              </span>
-                              <span className="text-xs text-muted-foreground">{m.district ? `District ${m.district}` : (m.leadership_title ?? "")}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{m.party === "D" ? "Democrat" : m.party === "R" ? "Republican" : m.party || "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn("h-5 gap-1", m.active ? "text-green-600" : "text-muted-foreground")}>
-                              {m.active ? "Active" : "Former"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{m.chamber}</TableCell>
-                        </TableRow>
-                      ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="xl:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardAnchor>Committee Load</CardAnchor>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {goals.map((g) => (
-                <div key={g.name} className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{g.name}</p>
-                    <p className="text-xs text-muted-foreground">{g.sub}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Progress value={g.percent} className="h-1.5 w-28 max-w-28 **:data-[slot=progress-indicator]:bg-primary *:data-[slot=progress-track]:h-1.5" />
-                    <span className="w-9 text-right text-xs font-medium">{g.percent}%</span>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

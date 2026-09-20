@@ -14,7 +14,7 @@ import { Button } from "@govblock/ui/components/ny4/button"
 
 export { DOCS_COLUMN, DocsHeader, NAV_BUTTON, type DocsLink } from "@/components/docs-header"
 
-export function DocsPage({ title, description, lead, slug, previous, next, rail, railSettings, actions, railFirst, children }: { title: string; description: string; /** Drawn under the title in the description's place — a desk's eyebrow; the description still feeds Copy Page. */ lead?: React.ReactNode; slug: string; /** Absent on the first page, which has nothing before it. */ previous?: DocsLink; next: DocsLink; rail?: React.ReactNode; /** The right rail's second view, toggled at its top: the laws reader's Settings (2026-09-19). */ railSettings?: React.ReactNode; /** Small buttons before the Copy page group: a tag's Follow (2026-09-18). */ actions?: React.ReactNode; /** Draw Build with GovBlocks above the page's own rail instead of below it. */ railFirst?: boolean; children: React.ReactNode }) {
+export function DocsPage({ title, description, lead, slug, previous, next, rail, railSettings, actions, railFirst, publicRail = true, children }: { /** Off where the rail is the page's own from top to bottom: /changelog's index grows to the rail's end (2026-09-20). */ publicRail?: boolean; title: string; description: string; /** Drawn under the title in the description's place — a desk's eyebrow; the description still feeds Copy Page. */ lead?: React.ReactNode; slug: string; /** Absent on the first page, which has nothing before it. */ previous?: DocsLink; next: DocsLink; rail?: React.ReactNode; /** The right rail's second view, toggled at its top: the laws reader's Settings (2026-09-19). */ railSettings?: React.ReactNode; /** Small buttons before the Copy page group: a tag's Follow (2026-09-18). */ actions?: React.ReactNode; /** Draw Build with GovBlocks above the page's own rail instead of below it. */ railFirst?: boolean; children: React.ReactNode }) {
   return (
     <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -46,9 +46,9 @@ export function DocsPage({ title, description, lead, slug, previous, next, rail,
           in a column that pushed itself off screen at narrow widths — and it
           opens and closes on its own, independently of the left. */}
       <RightRailSheet settings={railSettings}>
-        {railFirst && <PublicRail />}
+        {publicRail && railFirst && <PublicRail />}
         {rail}
-        {!railFirst && <PublicRail />}
+        {publicRail && !railFirst && <PublicRail />}
       </RightRailSheet>
     </div>
   )

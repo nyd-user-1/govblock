@@ -12,7 +12,8 @@ import { portraitFor } from "@/lib/imagery"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
 import { MemberPortrait } from "@/components/policy/imagery"
-import { RecordItem, RecordList } from "@/components/policy/record-item"
+import { LoadingFlag } from "@/components/loading-flag"
+import { IndexEntries, useIndexView, type IndexEntry } from "@/components/index-views"
 
 // Ported from livingston-v3 components/directory-list.tsx: every sitting
 // member, fifty to a page, searchable by name, district or party. Each row is
@@ -32,9 +33,11 @@ const matches = (m: Member, q: string) =>
   matchesQuery(q, m.name, m.district, shortDistrict(m.district), partyName(m.party), m.chamber)
 
 export function DirectoryList() {
-  const { data, state, resolved } = useScoped<Member[]>("members", members)
+  const { data, state, resolved, pending } = useScoped<Member[]>("members", members)
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
+  // The list as ever, and cards and columns beside it (Brendan, 2026-09-20).
+  const { view, buttons } = useIndexView("/members", "list")
 
   // The page is "every sitting member": the roster is who sits this session.
   // Former members come back too — they sponsored the bills the rest of the app
@@ -53,6 +56,7 @@ export function DirectoryList() {
 
   return (
     <>
+      {buttons}
       <SearchDirectory
         query={query}
         setQuery={(value) => {
@@ -61,25 +65,34 @@ export function DirectoryList() {
         }}
         placeholder={resolved ? `Search ${stateName(state)} members by name, district or party…` : "Search members by name, district or party…"}
       />
-      <RecordList className="my-8">
-        {shown.map((member) => (
-          <RecordItem
-            key={member.people_id}
-            href={memberHref(member.people_id, state)}
-            avatar={<MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={36} />}
-            title={`${honorific(member.role, member.chamber)} ${member.name}`.trim()}
-            lead={member.leadership_title}
-            meta={[member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)]}
-            favoriteDetail={memberLine({ party: member.party, state, district: member.district })}
-          />
-        ))}
-        {!shown.length && (
+      <IndexEntries
+        view={view}
+        className="my-8"
+        entries={shown.map((member): IndexEntry => ({
+          key: String(member.people_id),
+          href: memberHref(member.people_id, state),
+          title: `${honorific(member.role, member.chamber)} ${member.name}`.trim(),
+          lead: member.leadership_title,
+          meta: [member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)],
+          avatar: <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={36} />,
+          cardMedia: <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={28} />,
+          favoriteDetail: memberLine({ party: member.party, state, district: member.district }),
+        }))}
+      />
+      <>
+        {/* Still reading: the flag, never the empty line (Brendan, 2026-09-20). */}
+        {pending && !shown.length && (
+          <div className="flex justify-center py-16">
+            <LoadingFlag />
+          </div>
+        )}
+        {!pending && !shown.length && (
           <p className="py-10 text-center text-sm text-muted-foreground">
             No members for {stateName(state)}
             {query ? ` matching “${query}”` : ""}.
           </p>
         )}
-      </RecordList>
+      </>
       <ListPager page={current} pages={pages} onPage={setPage} />
     </>
   )

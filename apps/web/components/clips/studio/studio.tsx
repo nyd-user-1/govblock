@@ -194,7 +194,15 @@ export function Studio() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const id = params.get("template")
-    if (id) setShared({ id, link: params.get("link") })
+    const bare = params.get("link")
+    if (id) setShared({ id, link: bare })
+    // A link on its own, /clips/studio?link=…, is a page's Make Clip (2026-09-20): the gallery opens fed by that page.
+    else if (bare) {
+      setLink(bare)
+      void load(bare)
+    }
+    // Read once, when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const openShared = async () => {
     if (!shared) return

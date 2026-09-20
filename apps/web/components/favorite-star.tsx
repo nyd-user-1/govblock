@@ -2,7 +2,7 @@
 
 import { Star } from "lucide-react"
 
-import { isFavorite, toggleFavorite, useFavorites } from "@/lib/favorites"
+import { isFavorite, toggleFavorite, useFavorites, type Favorite } from "@/lib/favorites"
 import { cn } from "@govblock/ui/lib/utils"
 
 // The star beside a record item's arrow (Brendan, 2026-09-19). What it keeps
@@ -43,6 +43,24 @@ export function FavoriteStar({ href, external = false, className }: { href: stri
         kept ? "text-yellow-400 opacity-100 hover:text-yellow-500" : "text-muted-foreground opacity-0 group-hover/row:opacity-100 hover:text-foreground",
         className
       )}
+    >
+      <Star className={cn(kept && "fill-current")} />
+    </button>
+  )
+}
+
+// The same star where there is no record row to read from (Brendan,
+// 2026-09-20): a file block's caption, to the right of its copy button. It is
+// handed what it keeps, and it always shows.
+export function FavoriteToggle({ item, className }: { item: Favorite; className?: string }) {
+  const kept = isFavorite(useFavorites(), item.href)
+  return (
+    <button
+      type="button"
+      aria-label={kept ? "Remove from favorites" : "Add to favorites"}
+      aria-pressed={kept}
+      onClick={() => toggleFavorite(item)}
+      className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors [&_svg]:size-4", kept ? "text-yellow-400 hover:text-yellow-500 [&_svg]:opacity-100!" : "text-muted-foreground hover:text-foreground", className)}
     >
       <Star className={cn(kept && "fill-current")} />
     </button>

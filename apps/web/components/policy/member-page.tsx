@@ -115,6 +115,7 @@ export function MemberHeader({
   return (
     <>
       <RecordHeader
+        seal
         media={<MemberOfficialPortrait name={name} fallback={member.photo_url ? String(member.photo_url) : null} state={state} chamber={chamber} size={RECORD_MEDIA} />}
         title={`${honorific(role, chamber)} ${name}${member.archived ? " (Ret.)" : ""}`}
         meta={[

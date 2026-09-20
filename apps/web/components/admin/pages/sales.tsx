@@ -15,6 +15,7 @@ import { Pending, Stat2, type Stat2Props } from "@/components/admin/blocks/stats
 import { Table3, type ProductRow } from "@/components/admin/blocks/tables"
 import { Analytics7, Promo1, type Source } from "@/components/admin/blocks/widgets"
 import { ChamberSeal } from "@/components/policy/imagery"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 
 // paceui's Sales Performance, as the session's performance: the four stats
 // are the session against the one before it, the bars are bills with an
@@ -219,46 +220,53 @@ export function SalesPage() {
           <Stat2 {...stat} key={stat.title} />
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-7">
-        <div className="xl:col-span-4">
-          <Chart3
-            title="Legislative Activity"
-            data={bars}
-            labels={{ item1: upper, item2: lower }}
-            tickFormatter={monthLabel}
-            onRefresh={refreshAll}
-            refreshing={activity.pending && !!activity.data}
-            fileName={`legislative-activity-${state.toLowerCase()}-${session ?? "session"}`}
-            figures={[
-              {
-                label: lastMonth ? monthName(lastMonth.ym) : "This month",
-                value: lastMonth ? num(lastMonth.bills) : "—",
-              },
-              { label: upper, value: lastMonth ? num(lastMonth.senate) : "—" },
-              {
-                label: lower,
-                value: lastMonth ? num(lastMonth.assembly) : "—",
-              },
-            ]}
-          />
-        </div>
-        <div className="xl:col-span-3">
-          <Table3 title="Top Sponsors" rows={members} pending={sponsors.pending} columns={["Portrait", "Member", state === "US" ? "State" : "Chamber", null, "Bills"]} />
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-2 2xl:grid-cols-3">
-        <Chart4 title="Seats by Party" totalLabel="Seats" data={chamberSlices} />
-        <Analytics7 title="Busiest Committees" note="This session" sources={busiest} />
-        <Promo1
-          icon={DownloadIcon}
-          badge="Bulk Datasets"
-          title="Take the session as a file"
-          description="Every family of the record, a session at a time, as JSON or CSV."
-          points={["Bills, sponsors, members, committees", "Roll calls, votes and history", "Cached a day, no key needed"]}
-          cta="Open Datasets"
-          href="/docs/datasets"
-        />
-      </div>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/sales" initial={["row-1", "row-2"]}>
+        <OrderedBlock id="row-1" label="Row 1">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-7">
+            <div className="xl:col-span-4">
+              <Chart3
+                title="Legislative Activity"
+                data={bars}
+                labels={{ item1: upper, item2: lower }}
+                tickFormatter={monthLabel}
+                onRefresh={refreshAll}
+                refreshing={activity.pending && !!activity.data}
+                fileName={`legislative-activity-${state.toLowerCase()}-${session ?? "session"}`}
+                figures={[
+                  {
+                    label: lastMonth ? monthName(lastMonth.ym) : "This month",
+                    value: lastMonth ? num(lastMonth.bills) : "—",
+                  },
+                  { label: upper, value: lastMonth ? num(lastMonth.senate) : "—" },
+                  {
+                    label: lower,
+                    value: lastMonth ? num(lastMonth.assembly) : "—",
+                  },
+                ]}
+              />
+            </div>
+            <div className="xl:col-span-3">
+              <Table3 title="Top Sponsors" rows={members} pending={sponsors.pending} columns={["Portrait", "Member", state === "US" ? "State" : "Chamber", null, "Bills"]} />
+            </div>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="row-2" label="Row 2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+            <Chart4 title="Seats by Party" totalLabel="Seats" data={chamberSlices} />
+            <Analytics7 title="Busiest Committees" note="This session" sources={busiest} />
+            <Promo1
+              icon={DownloadIcon}
+              badge="Bulk Datasets"
+              title="Take the session as a file"
+              description="Every family of the record, a session at a time, as JSON or CSV."
+              points={["Bills, sponsors, members, committees", "Roll calls, votes and history", "Cached a day, no key needed"]}
+              cta="Open Datasets"
+              href="/docs/datasets"
+            />
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

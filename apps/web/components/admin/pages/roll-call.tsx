@@ -10,6 +10,7 @@ import { Pending, Stat1, type Stat1Props } from "@/components/admin/blocks/stats
 import { Table1, type RequestRow } from "@/components/admin/blocks/tables"
 import { Widget1, Widget5, type LogEntry, type Quota } from "@/components/admin/blocks/widgets"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 
 // Roll Call (Brendan, 2026-09-07): the Activity Log page duplicated, to be
 // shaped around the roll calls. What follows is the log as it was:
@@ -181,28 +182,35 @@ export function RollCallPage() {
           <Stat1 {...stat} key={stat.title} />
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-7">
-        <div className="xl:col-span-4">
-          <Chart1
-            title="Bill Traffic"
-            data={series}
-            labels={{ a: "Bills", b: "Roll calls" }}
-            ranges={[
-              { value: "21d", label: "Last 3 weeks", days: 21 },
-              { value: "14d", label: "Last 2 weeks", days: 14 },
-              { value: "7d", label: "Last 7 days", days: 7 },
-            ]}
-          />
-        </div>
-        <div className="h-90 xl:col-span-3 2xl:h-94">
-          <Widget1 title="Live Stream" feed={feed} empty="Waiting for the record's stream..." />
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-2 2xl:grid-cols-3">
-        <Table1 title="Recent Roll Calls" rows={recent} pending={rollcalls.pending} columns={["Chamber", "Question", "Result", "Date", "Yea–Nay"]} />
-        <Chart2 title="Weekly Roll Calls" data={heat} columns={weekLabels} unit="roll calls" />
-        <Widget5 title="Pipeline" quotas={quotas} badge={<span className="text-xs text-muted-foreground">{num(total)} bills</span>} footer="Open the Bills" critical={101} />
-      </div>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/roll-call" initial={["row-1", "row-2"]}>
+        <OrderedBlock id="row-1" label="Row 1">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-7">
+            <div className="xl:col-span-4">
+              <Chart1
+                title="Bill Traffic"
+                data={series}
+                labels={{ a: "Bills", b: "Roll calls" }}
+                ranges={[
+                  { value: "21d", label: "Last 3 weeks", days: 21 },
+                  { value: "14d", label: "Last 2 weeks", days: 14 },
+                  { value: "7d", label: "Last 7 days", days: 7 },
+                ]}
+              />
+            </div>
+            <div className="h-90 xl:col-span-3 2xl:h-94">
+              <Widget1 title="Live Stream" feed={feed} empty="Waiting for the record's stream..." />
+            </div>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="row-2" label="Row 2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+            <Table1 title="Recent Roll Calls" rows={recent} pending={rollcalls.pending} columns={["Chamber", "Question", "Result", "Date", "Yea–Nay"]} />
+            <Chart2 title="Weekly Roll Calls" data={heat} columns={weekLabels} unit="roll calls" />
+            <Widget5 title="Pipeline" quotas={quotas} badge={<span className="text-xs text-muted-foreground">{num(total)} bills</span>} footer="Open the Bills" critical={101} />
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

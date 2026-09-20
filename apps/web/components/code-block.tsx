@@ -110,7 +110,7 @@ async function highlight(code: string, lang: string, highlighted?: Set<number>, 
 }
 
 /** The figure's chrome, shared by the highlighted and the plain forms. */
-export function CodeFrame({ title, code, icon, children, className, action }: { title?: string; code: string; icon?: React.ReactNode; children: React.ReactNode; className?: string; action?: React.ReactNode }) {
+export function CodeFrame({ title, code, icon, children, className, action, after }: { title?: string; code: string; icon?: React.ReactNode; children: React.ReactNode; className?: string; action?: React.ReactNode; /** To the right of the copy button: a bill's favorite star (2026-09-20). */ after?: React.ReactNode }) {
   return (
     <figure data-rehype-pretty-code-figure="" data-titled={title ? "" : undefined} className={cn("not-typeset relative mt-6 mb-6 overflow-hidden rounded-xl border border-border/50 bg-surface text-surface-foreground", className)}>
       {title ? (
@@ -119,6 +119,7 @@ export function CodeFrame({ title, code, icon, children, className, action }: { 
           <span className="min-w-0 flex-1 truncate">{title}</span>
           {action}
           <CopyButton value={code} className="static! size-7" />
+          {after}
         </figcaption>
       ) : (
         <CopyButton value={code} className="absolute top-2 right-2 z-10 size-7" />

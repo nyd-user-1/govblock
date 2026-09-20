@@ -117,6 +117,9 @@ applications:
               find .next/server -mindepth 1 -maxdepth 2 -type d -exec du -sm {} + | sort -rn | head -12 | sed 's/^/output size: /'
               find .next/server/app -mindepth 1 -maxdepth 1 -type d -exec du -sm {} + | sort -rn | head -20 | sed 's/^/output size: /'
               find .next/server -type f -size +2M -exec du -sm {} + | sort -rn | head -20 | sed 's/^/output size: /'
+              # Exact bytes, as Amplify weighs them, for /routes's budget bar (2026-09-20,
+              # scripts/routes/build-sizes.mjs): the whole, its halves, and every route folder.
+              { du -sb .next; (cd .next && du -sb static); du -sb .next/server/app .next/server/chunks; find .next/server/app -mindepth 1 -maxdepth 1 -type d -exec du -sb {} + | sort -rn | head -60; } | sed 's/^/output bytes: /'
             # Amplify packages <appRoot>/node_modules; prove next resolves there.
             - node -e "console.log('next at', require.resolve('next/package.json'))"
       artifacts:

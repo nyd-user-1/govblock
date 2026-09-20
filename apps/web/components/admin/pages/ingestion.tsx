@@ -9,6 +9,7 @@ import { useProvenance } from "@/components/admin/data"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
 import { FlagChip } from "@/components/policy/imagery"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
@@ -137,198 +138,203 @@ export function IngestionPage() {
         <StatDatabaseGrid stats={tiles} />
       </div>
 
-      <div className="mt-4 sm:mt-5">
-        <RunControls onQueued={refresh} />
-      </div>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/ingestion" initial={["row-1", "queue", "store", "coverage-and-fall-outs", "runs", "row-6"]}>
+        <OrderedBlock id="row-1" label="Row 1">
+          <RunControls onQueued={refresh} />
+        </OrderedBlock>
 
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="max-md:px-4">
-            <CardAnchor>Queue</CardAnchor>
-            <CardAction>
-              <CardTools>{refreshButton}</CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            <Tabs defaultValue="running">
-              <TabsList>
-                <TabsTrigger value="running">Running {s ? `(${s.running.length})` : ""}</TabsTrigger>
-                <TabsTrigger value="attention">Waiting and Failed {s ? `(${s.attention.length})` : ""}</TabsTrigger>
-                <TabsTrigger value="recent">Finished</TabsTrigger>
-                <TabsTrigger value="summary">By Jurisdiction</TabsTrigger>
-              </TabsList>
-              <TabsContent value="running">
-                <JobTable jobs={s?.running} onChange={refresh} />
-              </TabsContent>
-              <TabsContent value="attention">
-                <JobTable jobs={s?.attention} onChange={refresh} actions />
-              </TabsContent>
-              <TabsContent value="recent">
-                <JobTable jobs={s?.recent} onChange={refresh} actions />
-              </TabsContent>
-              <TabsContent value="summary">
-                <QueueGrid status={s} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+        <OrderedBlock id="queue" label="Queue">
+          <Card className="gap-4">
+            <CardHeader className="max-md:px-4">
+              <CardAnchor>Queue</CardAnchor>
+              <CardAction>
+                <CardTools>{refreshButton}</CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="max-md:px-4">
+              <Tabs defaultValue="running">
+                <TabsList>
+                  <TabsTrigger value="running">Running {s ? `(${s.running.length})` : ""}</TabsTrigger>
+                  <TabsTrigger value="attention">Waiting and Failed {s ? `(${s.attention.length})` : ""}</TabsTrigger>
+                  <TabsTrigger value="recent">Finished</TabsTrigger>
+                  <TabsTrigger value="summary">By Jurisdiction</TabsTrigger>
+                </TabsList>
+                <TabsContent value="running">
+                  <JobTable jobs={s?.running} onChange={refresh} />
+                </TabsContent>
+                <TabsContent value="attention">
+                  <JobTable jobs={s?.attention} onChange={refresh} actions />
+                </TabsContent>
+                <TabsContent value="recent">
+                  <JobTable jobs={s?.recent} onChange={refresh} actions />
+                </TabsContent>
+                <TabsContent value="summary">
+                  <QueueGrid status={s} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
 
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="max-md:px-4">
-            <CardAnchor>Store</CardAnchor>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Jurisdiction</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead className="text-right">Expressions</TableHead>
-                  <TableHead className="text-right">Sessions or Laws Done</TableHead>
-                  <TableHead className="text-right">Native XML</TableHead>
-                  <TableHead className="text-right">Coverage</TableHead>
-                  <TableHead className="text-right">Stored</TableHead>
-                  <TableHead>Last Built</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!s
-                  ? Array.from({ length: 4 }, (_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={8}>
-                          <Skeleton className="h-5 w-full" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : s.store.map((line) => (
-                      <TableRow key={`${line.jurisdiction}-${line.kind}`}>
-                        <TableCell className="whitespace-nowrap">
-                          <span className="flex items-center gap-2">
-                            <FlagChip state={jurisOf(line.jurisdiction)} width={20} />
-                            {stateName(jurisOf(line.jurisdiction))}
-                          </span>
-                        </TableCell>
-                        <TableCell className="capitalize">{line.kind === "bill" ? "bills" : "statutes"}</TableCell>
-                        <TableCell className="text-right tabular-nums">{line.expressions.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums">{line.units.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(line.native / Math.max(1, line.expressions))}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(line.coverage)}</TableCell>
-                        <TableCell className="text-right tabular-nums whitespace-nowrap">{`${(line.gz_bytes / 1e9).toFixed(2)} GB`}</TableCell>
-                        <TableCell className="whitespace-nowrap">{fmtWhen(line.last_built)}</TableCell>
+        <OrderedBlock id="store" label="Store">
+          <Card className="gap-4">
+            <CardHeader className="max-md:px-4">
+              <CardAnchor>Store</CardAnchor>
+            </CardHeader>
+            <CardContent className="max-md:px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/60">
+                    <TableHead>Jurisdiction</TableHead>
+                    <TableHead>Kind</TableHead>
+                    <TableHead className="text-right">Expressions</TableHead>
+                    <TableHead className="text-right">Sessions or Laws Done</TableHead>
+                    <TableHead className="text-right">Native XML</TableHead>
+                    <TableHead className="text-right">Coverage</TableHead>
+                    <TableHead className="text-right">Stored</TableHead>
+                    <TableHead>Last Built</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!s
+                    ? Array.from({ length: 4 }, (_, i) => (
+                        <TableRow key={i}>
+                          <TableCell colSpan={8}>
+                            <Skeleton className="h-5 w-full" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : s.store.map((line) => (
+                        <TableRow key={`${line.jurisdiction}-${line.kind}`}>
+                          <TableCell className="whitespace-nowrap">
+                            <span className="flex items-center gap-2">
+                              <FlagChip state={jurisOf(line.jurisdiction)} width={20} />
+                              {stateName(jurisOf(line.jurisdiction))}
+                            </span>
+                          </TableCell>
+                          <TableCell className="capitalize">{line.kind === "bill" ? "bills" : "statutes"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{line.expressions.toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums">{line.units.toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pct(line.native / Math.max(1, line.expressions))}</TableCell>
+                          <TableCell className="text-right tabular-nums">{pct(line.coverage)}</TableCell>
+                          <TableCell className="text-right tabular-nums whitespace-nowrap">{`${(line.gz_bytes / 1e9).toFixed(2)} GB`}</TableCell>
+                          <TableCell className="whitespace-nowrap">{fmtWhen(line.last_built)}</TableCell>
+                        </TableRow>
+                      ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+
+        <OrderedBlock id="coverage-and-fall-outs" label="Coverage and Fall-outs">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-2">
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Coverage</CardAnchor>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/60">
+                      <TableHead>Front End</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Sampled</TableHead>
+                      <TableHead className="text-right">Clean</TableHead>
+                      <TableHead className="text-right">Coverage</TableHead>
+                      <TableHead>Unknown Elements</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(s?.coverage ?? {}).map(([key, c]) => (
+                      <TableRow key={key}>
+                        <TableCell className="whitespace-nowrap">{stateName(c.jurisdiction)}</TableCell>
+                        <TableCell>{c.source}</TableCell>
+                        <TableCell className="text-right tabular-nums">{c.sampled}</TableCell>
+                        <TableCell className="text-right tabular-nums">{c.clean}</TableCell>
+                        <TableCell className="text-right tabular-nums">{pct(c.coverage)}</TableCell>
+                        <TableCell className="max-w-64 truncate font-mono text-xs text-muted-foreground">{Object.keys(c.unknown).slice(0, 6).join(" ") || "—"}</TableCell>
                       </TableRow>
                     ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Fall-outs</CardAnchor>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/60">
+                      <TableHead>Jurisdiction</TableHead>
+                      <TableHead>Stage</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead className="text-right">Samples</TableHead>
+                      <TableHead>Example</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(s?.fallouts ?? []).map((f) => (
+                      <TableRow key={`${f.jurisdiction}-${f.stage}-${f.reason}`}>
+                        <TableCell className="whitespace-nowrap">{stateName(jurisOf(f.jurisdiction))}</TableCell>
+                        <TableCell>{f.stage}</TableCell>
+                        <TableCell className="max-w-56 truncate">{f.reason}</TableCell>
+                        <TableCell className="text-right tabular-nums">{f.samples}</TableCell>
+                        <TableCell className="max-w-56 truncate font-mono text-xs text-muted-foreground">{f.example ?? "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-2">
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Coverage</CardAnchor>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Front End</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Sampled</TableHead>
-                  <TableHead className="text-right">Clean</TableHead>
-                  <TableHead className="text-right">Coverage</TableHead>
-                  <TableHead>Unknown Elements</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(s?.coverage ?? {}).map(([key, c]) => (
-                  <TableRow key={key}>
-                    <TableCell className="whitespace-nowrap">{stateName(c.jurisdiction)}</TableCell>
-                    <TableCell>{c.source}</TableCell>
-                    <TableCell className="text-right tabular-nums">{c.sampled}</TableCell>
-                    <TableCell className="text-right tabular-nums">{c.clean}</TableCell>
-                    <TableCell className="text-right tabular-nums">{pct(c.coverage)}</TableCell>
-                    <TableCell className="max-w-64 truncate font-mono text-xs text-muted-foreground">{Object.keys(c.unknown).slice(0, 6).join(" ") || "—"}</TableCell>
+        <OrderedBlock id="runs" label="Runs">
+          <Card className="gap-4">
+            <CardHeader className="max-md:px-4">
+              <CardAnchor>Runs</CardAnchor>
+            </CardHeader>
+            <CardContent className="max-md:px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/60">
+                    <TableHead>Run</TableHead>
+                    <TableHead className="text-right">Jobs</TableHead>
+                    <TableHead className="text-right">Done</TableHead>
+                    <TableHead className="text-right">Failed</TableHead>
+                    <TableHead className="text-right">Built</TableHead>
+                    <TableHead className="text-right">Fell Out</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Finished</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Fall-outs</CardAnchor>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Jurisdiction</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead className="text-right">Samples</TableHead>
-                  <TableHead>Example</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(s?.fallouts ?? []).map((f) => (
-                  <TableRow key={`${f.jurisdiction}-${f.stage}-${f.reason}`}>
-                    <TableCell className="whitespace-nowrap">{stateName(jurisOf(f.jurisdiction))}</TableCell>
-                    <TableCell>{f.stage}</TableCell>
-                    <TableCell className="max-w-56 truncate">{f.reason}</TableCell>
-                    <TableCell className="text-right tabular-nums">{f.samples}</TableCell>
-                    <TableCell className="max-w-56 truncate font-mono text-xs text-muted-foreground">{f.example ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {(s?.runs ?? []).map((r) => (
+                    <TableRow key={r.run}>
+                      <TableCell className="font-medium whitespace-nowrap">{r.run}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.jobs.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.done.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.failed.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{(r.built ?? 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{(r.fell_out ?? 0).toLocaleString()}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtWhen(r.started)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{fmtWhen(r.finished)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
 
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="max-md:px-4">
-            <CardAnchor>Runs</CardAnchor>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Run</TableHead>
-                  <TableHead className="text-right">Jobs</TableHead>
-                  <TableHead className="text-right">Done</TableHead>
-                  <TableHead className="text-right">Failed</TableHead>
-                  <TableHead className="text-right">Built</TableHead>
-                  <TableHead className="text-right">Fell Out</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Finished</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(s?.runs ?? []).map((r) => (
-                  <TableRow key={r.run}>
-                    <TableCell className="font-medium whitespace-nowrap">{r.run}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.jobs.toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.done.toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.failed.toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{(r.built ?? 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{(r.fell_out ?? 0).toLocaleString()}</TableCell>
-                    <TableCell className="whitespace-nowrap">{fmtWhen(r.started)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{fmtWhen(r.finished)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-4 sm:mt-5">
-        <NightlyFeeds lastXml={s?.runs.find((r) => r.run.startsWith("nightly-")) ?? null} />
-      </div>
+        <OrderedBlock id="row-6" label="Row 6">
+          <NightlyFeeds lastXml={s?.runs.find((r) => r.run.startsWith("nightly-")) ?? null} />
+        </OrderedBlock>
+      </BlockOrder>
 
       {s?.reports.length ? (
         <div className="mt-4 sm:mt-5">

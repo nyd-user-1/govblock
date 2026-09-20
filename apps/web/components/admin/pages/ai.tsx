@@ -7,6 +7,7 @@ import { Area, AreaChart, CartesianGrid, Line, LineChart, Pie, PieChart, XAxis }
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatAi } from "@/components/admin/blocks/stats"
 import { PageTitle } from "@/components/admin/page-title"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
@@ -185,314 +186,323 @@ export function AiPage() {
         <StatAi title="P95 Latency & TTFT" badge="-32ms" badgeTone="down" value="740" unit="ms" note="195ms TTFT | 0.14% error rate" />
         <StatAi title="Cache & Fallback Efficiency" badge="Saved" badgeTone="neutral" prefix="$" value="614.30" note="28.4% prompt cache hit rate" />
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-5">
-        <div className="xl:col-span-3">
-          <Card className="max-2xl:gap-3 max-2xl:pt-4">
-            <CardHeader className="max-2xl:px-4">
-              <CardAnchor>Model Usage & Cost Trends</CardAnchor>
-              <CardAction>
-                <CardTools className="gap-2">
-                  <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-                    <TabsList className="h-8">
-                      <TabsTrigger value="tokens">Tokens</TabsTrigger>
-                      <TabsTrigger value="cost">Cost ($)</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </CardTools>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="sm:px-4">
-              <ChartContainer config={tab === "tokens" ? usageConfig : { cost: { label: "Cost", color: "var(--chart-1)" } }} className="aspect-auto h-68 w-full">
-                <AreaChart data={days}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    minTickGap={32}
-                    tickFormatter={(v) =>
-                      new Date(`${v}T12:00:00`).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })
-                    }
-                  />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  {tab === "tokens" ? (
-                    <>
-                      <Area dataKey="gpt" type="monotone" stackId="a" stroke="var(--color-gpt)" fill="var(--color-gpt)" fillOpacity={0.5} />
-                      <Area dataKey="claude" type="monotone" stackId="a" stroke="var(--color-claude)" fill="var(--color-claude)" fillOpacity={0.5} />
-                      <Area dataKey="gemini" type="monotone" stackId="a" stroke="var(--color-gemini)" fill="var(--color-gemini)" fillOpacity={0.5} />
-                    </>
-                  ) : (
-                    <Area dataKey="cost" type="monotone" stroke="var(--color-cost)" fill="var(--color-cost)" fillOpacity={0.3} />
-                  )}
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="xl:col-span-2">
-          <Card>
-            <CardHeader className="max-2xl:px-4">
-              <CardAnchor>Provider Spend Allocation</CardAnchor>
-              <CardAction>
-                <CardTools />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <ChartContainer config={Object.fromEntries(providers.map((p) => [p.name, { label: p.name, color: p.fill }]))} className="mx-auto aspect-square h-56">
-                  <PieChart>
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="name" />} />
-                    <Pie data={providers} dataKey="spend" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={3} cornerRadius={4} />
-                  </PieChart>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/ai" initial={["model-usage-cost-trends-and-provider-spend-allocation", "input-vs-output-ratio-and-latency-timeline", "api-traces"]}>
+        <OrderedBlock id="model-usage-cost-trends-and-provider-spend-allocation" label="Model Usage & Cost Trends and Provider Spend Allocation">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-5">
+            <div className="xl:col-span-3">
+              <Card className="max-2xl:gap-3 max-2xl:pt-4">
+                <CardHeader className="max-2xl:px-4">
+                  <CardAnchor>Model Usage & Cost Trends</CardAnchor>
+                  <CardAction>
+                    <CardTools className="gap-2">
+                      <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+                        <TabsList className="h-8">
+                          <TabsTrigger value="tokens">Tokens</TabsTrigger>
+                          <TabsTrigger value="cost">Cost ($)</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </CardTools>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="sm:px-4">
+                  <ChartContainer config={tab === "tokens" ? usageConfig : { cost: { label: "Cost", color: "var(--chart-1)" } }} className="aspect-auto h-68 w-full">
+                    <AreaChart data={days}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        minTickGap={32}
+                        tickFormatter={(v) =>
+                          new Date(`${v}T12:00:00`).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        }
+                      />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                      {tab === "tokens" ? (
+                        <>
+                          <Area dataKey="gpt" type="monotone" stackId="a" stroke="var(--color-gpt)" fill="var(--color-gpt)" fillOpacity={0.5} />
+                          <Area dataKey="claude" type="monotone" stackId="a" stroke="var(--color-claude)" fill="var(--color-claude)" fillOpacity={0.5} />
+                          <Area dataKey="gemini" type="monotone" stackId="a" stroke="var(--color-gemini)" fill="var(--color-gemini)" fillOpacity={0.5} />
+                        </>
+                      ) : (
+                        <Area dataKey="cost" type="monotone" stroke="var(--color-cost)" fill="var(--color-cost)" fillOpacity={0.3} />
+                      )}
+                    </AreaChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="xl:col-span-2">
+              <Card>
+                <CardHeader className="max-2xl:px-4">
+                  <CardAnchor>Provider Spend Allocation</CardAnchor>
+                  <CardAction>
+                    <CardTools />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <ChartContainer config={Object.fromEntries(providers.map((p) => [p.name, { label: p.name, color: p.fill }]))} className="mx-auto aspect-square h-56">
+                      <PieChart>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="name" />} />
+                        <Pie data={providers} dataKey="spend" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={3} cornerRadius={4} />
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="flex flex-col justify-center gap-3">
+                      {providers.map((p) => (
+                        <div key={p.name} className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full" style={{ background: p.fill }} />
+                            <span className="text-sm font-medium">{p.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">
+                              <span className="text-muted-foreground">$</span>
+                              {p.spend.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                              })}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {p.share}% · {p.rate}/1K tokens
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="input-vs-output-ratio-and-latency-timeline" label="Input vs Output Ratio and Latency Timeline">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-3">
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Input vs Output Ratio</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Select defaultValue="24h">
+                      <SelectTrigger className="h-8 w-max min-w-28" size="sm">
+                        <SelectValue>{(v: unknown) => (v === "7d" ? "7 Days" : v === "30d" ? "30 Days" : "24 Hours")}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-max min-w-44">
+                        <SelectItem value="24h" className="whitespace-nowrap">
+                          24 Hours
+                        </SelectItem>
+                        <SelectItem value="7d" className="whitespace-nowrap">
+                          7 Days
+                        </SelectItem>
+                        <SelectItem value="30d" className="whitespace-nowrap">
+                          30 Days
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <p className="text-3xl font-semibold">
+                  75<span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> 25
+                  <span className="text-base text-muted-foreground">%</span>
+                </p>
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: "75%" }} />
+                  <div className="h-full bg-primary/40" style={{ width: "25%" }} />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    <span className="font-medium text-foreground">308.2M</span> prompt
+                  </span>
+                  <span>
+                    <span className="font-medium text-foreground">104.6M</span> completion
+                  </span>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div>
+                    <p className="text-xl font-semibold">1,240</p>
+                    <p className="text-xs text-muted-foreground">Avg Prompt Length</p>
+                  </div>
+                  <Separator orientation="vertical" className="h-10" />
+                  <div>
+                    <p className="text-xl font-semibold">413</p>
+                    <p className="text-xs text-muted-foreground">Avg Completion Length</p>
+                  </div>
+                </div>
+                <div className="flex justify-between rounded-lg bg-muted/50 p-3 text-xs">
+                  <span>
+                    Prompt cache: <span className="font-medium">28.4%</span>
+                  </span>
+                  <span>
+                    Ratio: <span className="font-medium">3.0:1</span>
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Latency Timeline</CardAnchor>
+                <CardAction>
+                  <CardTools />
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-3xl font-semibold">
+                  944<span className="text-base text-muted-foreground">ms</span>
+                </p>
+                <div className="flex gap-3 text-xs text-muted-foreground">
+                  {["P99", "P90", "P50"].map((p, i) => (
+                    <span key={p} className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                <ChartContainer config={latencyConfig} className="aspect-auto h-40 w-full">
+                  <LineChart data={latency}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="h" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    <Line dataKey="p99" type="monotone" stroke="var(--color-p99)" dot={false} strokeWidth={2} />
+                    <Line dataKey="p90" type="monotone" stroke="var(--color-p90)" dot={false} strokeWidth={2} />
+                    <Line dataKey="p50" type="monotone" stroke="var(--color-p50)" dot={false} strokeWidth={2} />
+                  </LineChart>
                 </ChartContainer>
-                <div className="flex flex-col justify-center gap-3">
-                  {providers.map((p) => (
-                    <div key={p.name} className="flex items-center justify-between gap-3">
+              </CardContent>
+            </Card>
+            <Card className="gap-4">
+              <CardHeader>
+                <CardAnchor>Request Status</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Button variant="outline" size="sm">
+                      View Logs
+                    </Button>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <div>
+                  <p className="text-3xl font-semibold">1,599</p>
+                  <p className="text-xs text-muted-foreground">Total requests (24h)</p>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {statuses.map((s) => (
+                    <div key={s.code} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="size-2 rounded-full" style={{ background: p.fill }} />
-                        <span className="text-sm font-medium">{p.name}</span>
+                        <Badge variant="outline" className={cn("h-5 gap-1 font-mono", s.tone)}>
+                          {s.code}
+                        </Badge>
+                        <span className="text-sm">{s.label}</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          <span className="text-muted-foreground">$</span>
-                          {p.spend.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {p.share}% · {p.rate}/1K tokens
-                        </p>
+                        <p className="text-sm font-semibold">{s.n.toLocaleString()}</p>
+                        <p className="text-[11px] text-muted-foreground">occurrences</p>
                       </div>
+                      <ChartContainer config={{ v: { label: "", color: "var(--chart-2)" } }} className="aspect-video h-10 w-20">
+                        <AreaChart
+                          data={Array.from({ length: 12 }, (_, i) => ({
+                            i,
+                            v: Math.random() * 10,
+                          }))}
+                        >
+                          <Area dataKey="v" type="monotone" stroke="var(--color-v)" fill="var(--color-v)" fillOpacity={0.3} />
+                        </AreaChart>
+                      </ChartContainer>
                     </div>
                   ))}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-5 sm:gap-5 xl:grid-cols-3">
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Input vs Output Ratio</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Select defaultValue="24h">
-                  <SelectTrigger className="h-8 w-max min-w-28" size="sm">
-                    <SelectValue>{(v: unknown) => (v === "7d" ? "7 Days" : v === "30d" ? "30 Days" : "24 Hours")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-max min-w-44">
-                    <SelectItem value="24h" className="whitespace-nowrap">
-                      24 Hours
-                    </SelectItem>
-                    <SelectItem value="7d" className="whitespace-nowrap">
-                      7 Days
-                    </SelectItem>
-                    <SelectItem value="30d" className="whitespace-nowrap">
-                      30 Days
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-3xl font-semibold">
-              75<span className="text-base text-muted-foreground">%</span> <span className="text-muted-foreground">/</span> 25
-              <span className="text-base text-muted-foreground">%</span>
-            </p>
-            <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary" style={{ width: "75%" }} />
-              <div className="h-full bg-primary/40" style={{ width: "25%" }} />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">308.2M</span> prompt
-              </span>
-              <span>
-                <span className="font-medium text-foreground">104.6M</span> completion
-              </span>
-            </div>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <div>
-                <p className="text-xl font-semibold">1,240</p>
-                <p className="text-xs text-muted-foreground">Avg Prompt Length</p>
-              </div>
-              <Separator orientation="vertical" className="h-10" />
-              <div>
-                <p className="text-xl font-semibold">413</p>
-                <p className="text-xs text-muted-foreground">Avg Completion Length</p>
-              </div>
-            </div>
-            <div className="flex justify-between rounded-lg bg-muted/50 p-3 text-xs">
-              <span>
-                Prompt cache: <span className="font-medium">28.4%</span>
-              </span>
-              <span>
-                Ratio: <span className="font-medium">3.0:1</span>
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Latency Timeline</CardAnchor>
-            <CardAction>
-              <CardTools />
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-3xl font-semibold">
-              944<span className="text-base text-muted-foreground">ms</span>
-            </p>
-            <div className="flex gap-3 text-xs text-muted-foreground">
-              {["P99", "P90", "P50"].map((p, i) => (
-                <span key={p} className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full" style={{ background: `var(--chart-${i + 1})` }} />
-                  {p}
-                </span>
-              ))}
-            </div>
-            <ChartContainer config={latencyConfig} className="aspect-auto h-40 w-full">
-              <LineChart data={latency}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="h" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                <Line dataKey="p99" type="monotone" stroke="var(--color-p99)" dot={false} strokeWidth={2} />
-                <Line dataKey="p90" type="monotone" stroke="var(--color-p90)" dot={false} strokeWidth={2} />
-                <Line dataKey="p50" type="monotone" stroke="var(--color-p50)" dot={false} strokeWidth={2} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Request Status</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Button variant="outline" size="sm">
-                  View Logs
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div>
-              <p className="text-3xl font-semibold">1,599</p>
-              <p className="text-xs text-muted-foreground">Total requests (24h)</p>
-            </div>
-            <div className="flex flex-col gap-4">
-              {statuses.map((s) => (
-                <div key={s.code} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={cn("h-5 gap-1 font-mono", s.tone)}>
-                      {s.code}
-                    </Badge>
-                    <span className="text-sm">{s.label}</span>
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+        <OrderedBlock id="api-traces" label="API Traces">
+          <div className="grid grid-cols-1">
+            <Card>
+              <CardHeader className="max-2xl:px-4">
+                <CardAnchor>API Traces</CardAnchor>
+                <CardAction>
+                  <CardTools className="gap-2">
+                    <Button variant="outline" size="sm">
+                      Actions
+                    </Button>
+                  </CardTools>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative grow sm:max-w-xs">
+                    <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input placeholder="Search traces" className="h-9 pl-8" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">{s.n.toLocaleString()}</p>
-                    <p className="text-[11px] text-muted-foreground">occurrences</p>
-                  </div>
-                  <ChartContainer config={{ v: { label: "", color: "var(--chart-2)" } }} className="aspect-video h-10 w-20">
-                    <AreaChart
-                      data={Array.from({ length: 12 }, (_, i) => ({
-                        i,
-                        v: Math.random() * 10,
-                      }))}
-                    >
-                      <Area dataKey="v" type="monotone" stroke="var(--color-v)" fill="var(--color-v)" fillOpacity={0.3} />
-                    </AreaChart>
-                  </ChartContainer>
+                  {["Status", "Provider", "Model"].map((f) => (
+                    <Select key={f} defaultValue="all">
+                      <SelectTrigger className="h-9 sm:w-36">
+                        <SelectValue>{() => `All ${f.toLowerCase()}s`}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All {f.toLowerCase()}s</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="mt-4 grid grid-cols-1 sm:mt-5">
-        <Card>
-          <CardHeader className="max-2xl:px-4">
-            <CardAnchor>API Traces</CardAnchor>
-            <CardAction>
-              <CardTools className="gap-2">
-                <Button variant="outline" size="sm">
-                  Actions
-                </Button>
-              </CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative grow sm:max-w-xs">
-                <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search traces" className="h-9 pl-8" />
-              </div>
-              {["Status", "Provider", "Model"].map((f) => (
-                <Select key={f} defaultValue="all">
-                  <SelectTrigger className="h-9 sm:w-36">
-                    <SelectValue>{() => `All ${f.toLowerCase()}s`}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All {f.toLowerCase()}s</SelectItem>
-                  </SelectContent>
-                </Select>
-              ))}
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Trace ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Tokens</TableHead>
-                  <TableHead>Latency</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {traces.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-mono text-xs">{t.id}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn("h-5 font-mono", t.status === 200 ? "text-green-600" : t.status === 429 ? "text-amber-600" : "text-destructive")}>
-                        {t.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">{t.when}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium whitespace-nowrap">{t.model}</span>
-                        <span className="text-xs text-muted-foreground">{t.provider}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs whitespace-nowrap">{t.tokens}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="whitespace-nowrap">{t.latency}ms</span>
-                        <span className="text-xs text-muted-foreground">{t.ttft}ms TTFT</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">${t.cost}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="gap-1">
-                        Inspect
-                        <ArrowUpRightIcon className="size-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/60">
+                      <TableHead>Trace ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Model</TableHead>
+                      <TableHead>Tokens</TableHead>
+                      <TableHead>Latency</TableHead>
+                      <TableHead>Cost</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {traces.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-mono text-xs">{t.id}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn("h-5 font-mono", t.status === 200 ? "text-green-600" : t.status === 429 ? "text-amber-600" : "text-destructive")}>
+                            {t.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{t.when}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium whitespace-nowrap">{t.model}</span>
+                            <span className="text-xs text-muted-foreground">{t.provider}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{t.tokens}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="whitespace-nowrap">{t.latency}ms</span>
+                            <span className="text-xs text-muted-foreground">{t.ttft}ms TTFT</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">${t.cost}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="gap-1">
+                            Inspect
+                            <ArrowUpRightIcon className="size-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }

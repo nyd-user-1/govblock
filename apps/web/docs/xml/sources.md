@@ -7,8 +7,8 @@ The acquisition review (program brief, decision 6). Tier is measured: the covera
 | US, bills | GovInfo BILLS packages (Bill DTD, USLM 2 for enrolled and public laws), 113th Congress on | yes, 2013 on | `us.ts` | 99.5% | before 2013 there is no XML; plain text stays the tier |
 | US, code | OLRC release point, USLM 2 | yes | `us.ts` | pass-through | keep the XML at ingest instead of flattening to `Laws.text` |
 | NY, statutes | Senate Open Legislation API (tree + text) | no | `ny.ts` | 97.1% | none needed for structure; the API is first party |
-| NY, bills | Senate Open Legislation text (via LegiScan) | no | `ny.ts` | 99.4% | the Senate API also serves bill text with the marks; same grammar |
-| every other state | LegiScan captures (HTML and PDF as text), the state adapters under `scripts/laws/adapters/` for statutes | varies | plain text | not yet measured | derive each grammar from the corpus, in order of corpus size (below) |
+| NY, bills | Senate Open Legislation API, first party (livingston `lv-bills-sync`) | no | `ny.ts` | 99.4% | the Senate API also serves bill text with the marks; same grammar |
+| every other state | the legislature's own site or feed, fetched by livingston's worker-box loaders (`~/Code/livingston/ops/box/jobs.d/`: the `state_link` walker for 47 sites; native feeds for CA pubinfo, TX FTP, MA and OH APIs, VA LIS); LegiScan gives the bill index and the link, never the text (corrected 2026-09-20). The state adapters under `scripts/laws/adapters/` for statutes | varies | plain text | not yet measured | derive each grammar from the corpus, in order of corpus size (below) |
 
 The order of the remaining front ends is the order of corpus size, measured in `apps/web/docs/xml/window-3.md`.
 

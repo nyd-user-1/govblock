@@ -12,6 +12,7 @@ import { SearchDirectory } from "@/components/directory-search"
 import { ChamberSeal } from "@/components/policy/imagery"
 import { RecordAvatar } from "@/components/policy/record-item"
 import { ProjectCard, ProjectGrid } from "@/components/project-card"
+import { H2 } from "@/components/typeset"
 
 // The departments doc, on the committees page's design: the search field,
 // then the cards — seal, name, bill count — two to a row, grouped by kind.
@@ -41,7 +42,8 @@ export function DepartmentsList() {
       <div className="my-8 flex flex-col gap-10">
         {groups.map(([kind, rows]) => (
           <section key={kind}>
-            <h3 className="mb-4 text-sm font-medium text-muted-foreground">{kind === "Department" ? "Departments" : kind === "Agency" ? "Agencies" : "Authorities"}</h3>
+            {/* The detail pages' H2 (Brendan, 2026-09-20), in place of the small muted label. */}
+            <H2 className="mt-0 mb-6">{kind === "Department" ? "Departments" : kind === "Agency" ? "Agencies" : "Authorities"}</H2>
             <ProjectGrid>
               {rows.map((d) => {
                 const bills = counts[d.slug]

@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { ArrowUpRight, MoreVertical, Pin, PinOff } from "lucide-react"
 
+import { FavoriteStar } from "@/components/favorite-star"
 import { useLocal } from "@/lib/policy/use-local"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
@@ -69,8 +70,14 @@ export function ProjectCard({
   menu: menuProp,
   feedHref,
   arrow,
+  star,
+  external,
   className,
 }: {
+  /** The favorite star at the top right, beside the menu when there is one (the index card standard, 2026-09-20). */
+  star?: boolean
+  /** The card opens another site, which a kept favorite remembers. */
+  external?: boolean
   href: string
   /** Opens the card in place of following `href` — /create's folders live in the URL's keys, not in paths. */
   onOpen?: () => void
@@ -91,6 +98,7 @@ export function ProjectCard({
   return (
     <div
       data-slot="project-card"
+      data-record-item
       className={cn(
         "group/project relative flex h-[132px] flex-col justify-between rounded-xl border bg-card p-6 transition-colors hover:bg-accent/40",
         className
@@ -109,9 +117,10 @@ export function ProjectCard({
         <span className="sr-only">{title}</span>
       </Link>
       <div className="pointer-events-none relative z-1 flex min-w-0 items-start gap-3">
-        {media}
+        {media ? <span data-record-avatar className="contents">{media}</span> : null}
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate text-sm font-medium text-foreground">
+          {/* Two lines at most, cut on the second; the card's height never changes (Brendan, 2026-09-20). */}
+          <span data-record-title className="line-clamp-2 text-sm font-medium text-foreground">
             {title}
           </span>
           {note ? (
@@ -121,15 +130,16 @@ export function ProjectCard({
           ) : null}
         </div>
       </div>
-      <div className="pointer-events-none relative z-1 truncate text-xs text-muted-foreground tabular-nums">
+      <div data-record-meta className="pointer-events-none relative z-1 truncate text-xs text-muted-foreground tabular-nums">
         {meta}
       </div>
-      {arrow && !menu && (
+      {arrow && (
         <ArrowUpRight
           aria-hidden
           className="pointer-events-none absolute right-4 bottom-4 z-1 size-4 translate-x-[-4px] translate-y-[4px] text-muted-foreground opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/project:translate-x-0 group-hover/project:translate-y-0 group-hover/project:opacity-100 group-hover/project:text-foreground"
         />
       )}
+      {star && <FavoriteStar href={href} external={external} className={cn("absolute top-3.5 z-10 group-hover/project:opacity-100", menu ? "right-11" : "right-3.5")} />}
       {menu ? (
         <div
           className={cn(

@@ -7,6 +7,7 @@ import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { CardAnchor, CardTools } from "@/components/admin/blocks/card-tools"
 import { StatDatabaseGrid, type DbStat } from "@/components/admin/blocks/stats"
 import { cutLink } from "@/components/clips/store"
+import { BlockOrder, OrderedBlock } from "@/components/admin/blocks/block-order"
 import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Card, CardAction, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
@@ -90,177 +91,182 @@ export function ClipsPage() {
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
       <StatDatabaseGrid stats={stats} />
 
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader>
-            <CardAnchor>Clips a day</CardAnchor>
-            <CardAction>
-              <CardTools>{refresh}</CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            {data ? (
-              <ChartContainer config={chart} className="aspect-auto h-56 w-full">
-                <AreaChart data={data.days} margin={{ left: 0, right: 0, top: 4 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v: string) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                  {(["generated", "cut", "recorded"] as const).map((k) => (
-                    <Area key={k} dataKey={k} type="monotone" stackId="a" stroke={`var(--color-${k})`} fill={`var(--color-${k})`} fillOpacity={0.25} />
-                  ))}
-                </AreaChart>
-              </ChartContainer>
-            ) : (
-              <Skeleton className="h-56 w-full" />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-4 sm:mt-5">
-        <Card className="gap-4">
-          <CardHeader className="max-md:px-4">
-            <CardAnchor>Queue</CardAnchor>
-            <CardAction>
-              <CardTools>{refresh}</CardTools>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="max-md:px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/60">
-                  <TableHead>Video</TableHead>
-                  <TableHead>Reader</TableHead>
-                  <TableHead>Pasted</TableHead>
-                  <TableHead>Took</TableHead>
-                  <TableHead>Captions</TableHead>
-                  <TableHead>Clips</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-10 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!data
-                  ? Array.from({ length: 5 }, (_, i) => (
-                      <TableRow key={i}>
-                        <TableCell colSpan={8}>
-                          <Skeleton className="h-5 w-full" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : data.queue.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="max-w-96">
-                          <div className="flex min-w-0 flex-col">
-                            {c.video_id ? (
-                              <a href={`/clips/transcript?v=${c.video_id}`} className="truncate font-medium">
-                                {c.title ?? c.video_id}
-                              </a>
-                            ) : (
-                              <span className="truncate font-medium">{c.title ?? c.source_url}</span>
-                            )}
-                            {c.error && <span className="truncate text-xs text-muted-foreground" title={c.error}>{c.error}</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{c.reader ?? "—"}</TableCell>
-                        <TableCell className="whitespace-nowrap">{when(c.created_at)}</TableCell>
-                        <TableCell className="whitespace-nowrap tabular-nums">{took(c.started_at, c.finished_at)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{c.transcript ?? (c.video_id ? "—" : "worker box")}</TableCell>
-                        <TableCell className="tabular-nums">{c.clips ?? "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={cn("h-5", TONE[c.status])}>
-                            {c.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {c.video_id && (c.status === "queued" || c.status === "running") && (
-                            <Button variant="ghost" size="icon-sm" aria-label="Run" disabled={running === c.id} onClick={() => void run(c.id)}>
-                              <PlayIcon className={cn(running === c.id && "animate-pulse")} />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
+      {/* The rows move up and down, kept per page (Brendan, 2026-09-20; components/admin/blocks/block-order.tsx). */}
+      <BlockOrder page="dashboard/clips" initial={["clips-a-day", "queue", "transcripts-and-worker-box"]}>
+        <OrderedBlock id="clips-a-day" label="Clips a day">
+          <Card className="gap-4">
+            <CardHeader>
+              <CardAnchor>Clips a day</CardAnchor>
+              <CardAction>
+                <CardTools>{refresh}</CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {data ? (
+                <ChartContainer config={chart} className="aspect-auto h-56 w-full">
+                  <AreaChart data={data.days} margin={{ left: 0, right: 0, top: 4 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v: string) => new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })} />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    {(["generated", "cut", "recorded"] as const).map((k) => (
+                      <Area key={k} dataKey={k} type="monotone" stackId="a" stroke={`var(--color-${k})`} fill={`var(--color-${k})`} fillOpacity={0.25} />
                     ))}
-                {data && data.queue.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-                      No links pasted yet.
-                    </TableCell>
+                  </AreaChart>
+                </ChartContainer>
+              ) : (
+                <Skeleton className="h-56 w-full" />
+              )}
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+
+        <OrderedBlock id="queue" label="Queue">
+          <Card className="gap-4">
+            <CardHeader className="max-md:px-4">
+              <CardAnchor>Queue</CardAnchor>
+              <CardAction>
+                <CardTools>{refresh}</CardTools>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="max-md:px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/60">
+                    <TableHead>Video</TableHead>
+                    <TableHead>Reader</TableHead>
+                    <TableHead>Pasted</TableHead>
+                    <TableHead>Took</TableHead>
+                    <TableHead>Captions</TableHead>
+                    <TableHead>Clips</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-10 text-right" />
                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!data
+                    ? Array.from({ length: 5 }, (_, i) => (
+                        <TableRow key={i}>
+                          <TableCell colSpan={8}>
+                            <Skeleton className="h-5 w-full" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : data.queue.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="max-w-96">
+                            <div className="flex min-w-0 flex-col">
+                              {c.video_id ? (
+                                <a href={`/clips/transcript?v=${c.video_id}`} className="truncate font-medium">
+                                  {c.title ?? c.video_id}
+                                </a>
+                              ) : (
+                                <span className="truncate font-medium">{c.title ?? c.source_url}</span>
+                              )}
+                              {c.error && <span className="truncate text-xs text-muted-foreground" title={c.error}>{c.error}</span>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">{c.reader ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{when(c.created_at)}</TableCell>
+                          <TableCell className="whitespace-nowrap tabular-nums">{took(c.started_at, c.finished_at)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{c.transcript ?? (c.video_id ? "—" : "worker box")}</TableCell>
+                          <TableCell className="tabular-nums">{c.clips ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={cn("h-5", TONE[c.status])}>
+                              {c.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {c.video_id && (c.status === "queued" || c.status === "running") && (
+                              <Button variant="ghost" size="icon-sm" aria-label="Run" disabled={running === c.id} onClick={() => void run(c.id)}>
+                                <PlayIcon className={cn(running === c.id && "animate-pulse")} />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  {data && data.queue.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                        No links pasted yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </OrderedBlock>
+
+        <OrderedBlock id="transcripts-and-worker-box" label="Transcripts and Worker box">
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
+            <Card className="gap-3">
+              <CardHeader>
+                <CardAnchor>Transcripts</CardAnchor>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 text-sm">
+                {data ? (
+                  <>
+                    <dl className="grid grid-cols-2 gap-2 text-center">
+                      {(["youtube", "worker"] as const).map((k) => (
+                        <div key={k} className="rounded-lg bg-muted/50 p-2">
+                          <dt className="text-xs text-muted-foreground">{k === "youtube" ? "From YouTube" : "From the worker box"}</dt>
+                          <dd className="text-lg font-semibold tabular-nums">{data.transcripts[k]}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="text-muted-foreground">YouTube refuses captions to AWS addresses, so the deployed site cuts only videos whose transcript is already kept; the rest wait for the worker box.</p>
+                  </>
+                ) : (
+                  <Skeleton className="h-28 w-full" />
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
 
-      <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-3">
-        <Card className="gap-3">
-          <CardHeader>
-            <CardAnchor>Transcripts</CardAnchor>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {data ? (
-              <>
-                <dl className="grid grid-cols-2 gap-2 text-center">
-                  {(["youtube", "worker"] as const).map((k) => (
-                    <div key={k} className="rounded-lg bg-muted/50 p-2">
-                      <dt className="text-xs text-muted-foreground">{k === "youtube" ? "From YouTube" : "From the worker box"}</dt>
-                      <dd className="text-lg font-semibold tabular-nums">{data.transcripts[k]}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="text-muted-foreground">YouTube refuses captions to AWS addresses, so the deployed site cuts only videos whose transcript is already kept; the rest wait for the worker box.</p>
-              </>
-            ) : (
-              <Skeleton className="h-28 w-full" />
-            )}
-          </CardContent>
-        </Card>
+            <Card className="gap-3">
+              <CardHeader>
+                <CardAnchor>Worker box</CardAnchor>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <ServerIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="font-medium">govblock-xml</p>
+                    <p className="text-muted-foreground">c7g.4xlarge · i-09c2fbf8624d91bdf · started by hand</p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground">Cuts what the site cannot: links other than YouTube, videos without captions, and vertical renders.</p>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Waiting for it</p>
+                  <p className="text-lg font-semibold tabular-nums">{data ? waiting : "…"}</p>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="gap-3">
-          <CardHeader>
-            <CardAnchor>Worker box</CardAnchor>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            <div className="flex items-start gap-3">
-              <ServerIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <p className="font-medium">govblock-xml</p>
-                <p className="text-muted-foreground">c7g.4xlarge · i-09c2fbf8624d91bdf · started by hand</p>
-              </div>
-            </div>
-            <p className="text-muted-foreground">Cuts what the site cannot: links other than YouTube, videos without captions, and vertical renders.</p>
-            <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-xs text-muted-foreground">Waiting for it</p>
-              <p className="text-lg font-semibold tabular-nums">{data ? waiting : "…"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="gap-3">
-          <CardHeader>
-            <CardAnchor>Reports</CardAnchor>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            {!data ? (
-              <Skeleton className="h-28 w-full" />
-            ) : data.reports.length === 0 ? (
-              <p className="text-muted-foreground">None open.</p>
-            ) : (
-              data.reports.map((r) => (
-                <a key={r.id} href={`/clips?c=${encodeURIComponent(r.clip_id)}`} className="flex flex-col rounded-lg px-2 py-1.5 no-underline hover:bg-muted">
-                  <span className="truncate font-medium">{r.title ?? r.clip_id}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {r.reason} · {when(r.created_at)}
-                    {r.details ? ` · ${r.details}` : ""}
-                  </span>
-                </a>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="gap-3">
+              <CardHeader>
+                <CardAnchor>Reports</CardAnchor>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                {!data ? (
+                  <Skeleton className="h-28 w-full" />
+                ) : data.reports.length === 0 ? (
+                  <p className="text-muted-foreground">None open.</p>
+                ) : (
+                  data.reports.map((r) => (
+                    <a key={r.id} href={`/clips?c=${encodeURIComponent(r.clip_id)}`} className="flex flex-col rounded-lg px-2 py-1.5 no-underline hover:bg-muted">
+                      <span className="truncate font-medium">{r.title ?? r.clip_id}</span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {r.reason} · {when(r.created_at)}
+                        {r.details ? ` · ${r.details}` : ""}
+                      </span>
+                    </a>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </OrderedBlock>
+      </BlockOrder>
     </div>
   )
 }
