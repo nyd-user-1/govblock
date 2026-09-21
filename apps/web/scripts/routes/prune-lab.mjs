@@ -35,9 +35,13 @@ for (const r of inLab) console.log(`lab: pruned ${r.path}`)
 const STAND_IN = `// Written over the real page by scripts/routes/prune-lab.mjs on Amplify: this route is in the lab.
 import type { Metadata } from "next"
 
-export { LabGatePage as default } from "@/components/stand-in"
+import { LabGatePage } from "@/components/stand-in"
 
 export const metadata: Metadata = { title: "In the lab", robots: { index: false } }
+
+export default function InTheLab() {
+  return <LabGatePage />
+}
 `
 
 const demoted = new Set(JSON.parse(fs.readFileSync(path.resolve("lib/lab-routes.json"), "utf8")))
