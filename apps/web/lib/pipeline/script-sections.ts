@@ -21,7 +21,10 @@ import { stateName } from "@/lib/filters"
 
 export type ScriptSection = { file: string; title: string; start: number; end: number; code: string }
 
-const REPO = process.env.LIVINGSTON_DIR || path.join(os.homedir(), "Code", "livingston")
+// turbopackIgnore on every path below (2026-09-20): these read a repository beside this one on a developer's
+// machine, which the build's file tracer cannot scope, so it carried the whole project into the compute bundle —
+// Next's own warning, and 6 MB over Amplify's cap (job 295). Nothing here exists in production to trace.
+const REPO = process.env.LIVINGSTON_DIR || path.join(/*turbopackIgnore: true*/ os.homedir(), "Code", "livingston")
 const DRIVER = "scripts/box/text-backfill.mjs"
 const HANDLER = "api/bill-text.ts"
 
@@ -46,7 +49,7 @@ function block(lines: string[], opens: (line: string) => boolean, closes: (line:
 
 export async function scriptSections(state: string): Promise<ScriptSection[] | null> {
   const source = loaderSource(state)
-  const [driver, handler] = await Promise.all([fs.readFile(path.join(REPO, DRIVER), "utf8").catch(() => null), fs.readFile(path.join(REPO, HANDLER), "utf8").catch(() => null)])
+  const [driver, handler] = await Promise.all([fs.readFile(path.join(/*turbopackIgnore: true*/ REPO, DRIVER), "utf8").catch(() => null), fs.readFile(path.join(/*turbopackIgnore: true*/ REPO, HANDLER), "utf8").catch(() => null)])
   if (!driver || !handler) return null
   const out: ScriptSection[] = []
   const d = driver.split("\n")
@@ -68,7 +71,7 @@ export async function scriptSections(state: string): Promise<ScriptSection[] | n
   // A jurisdiction with a feed of its own has a file of its own: that is its script, whole.
   const own = OWN_FILE[source]
   if (own) {
-    const text = await fs.readFile(path.join(REPO, own), "utf8").catch(() => null)
+    const text = await fs.readFile(path.join(/*turbopackIgnore: true*/ REPO, own), "utf8").catch(() => null)
     if (text) out.push(slice(text.split("\n"), 0, text.split("\n").length, own, `${stateName(state)}'s own loader, whole`))
   }
 

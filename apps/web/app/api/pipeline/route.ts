@@ -39,7 +39,7 @@ function clearAfter(runs: unknown) {
 }
 
 async function launcher(...args: string[]) {
-  const { stdout } = await run("node", ["scripts/pipeline/launch.mjs", ...args], { cwd: process.cwd(), timeout: 120_000, maxBuffer: 1 << 24 })
+  const { stdout } = await run("node", ["scripts/pipeline/launch.mjs", ...args], { cwd: /*turbopackIgnore: true*/ process.cwd(), timeout: 120_000, maxBuffer: 1 << 24 })
   return JSON.parse(stdout || "null") as unknown
 }
 
