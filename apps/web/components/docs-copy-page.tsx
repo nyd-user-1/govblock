@@ -82,9 +82,11 @@ export function DocsCopyPage({
   git,
   extra,
   menu,
+  label,
 }: {
   page: string
   url: string
+  /** The group as a picker instead (a jurisdiction's charts, 2026-09-20): this word and the chevron as one button in Copy page's place, opening the page's own entries and nothing else. */ label?: string
   /** A page's own entries at the top of the menu: a tour, a map (2026-09-17). Each is a link or a button, one line. */ menu?: React.ReactNode[]
   /** Where this page opens in the Typeset workspace, when it does. */ typeset?: string
   /** Where its printings open compared in Typeset, when it has more than one. */ diff?: string
@@ -93,7 +95,7 @@ export function DocsCopyPage({
 }) {
   const { copyToClipboard, isCopied } = useCopyToClipboard()
   const links: TypesetLinks = { typeset, diff, git }
-  const hasMenu = (menu?.length ?? 0) > 0 || Boolean(typeset || diff || git)
+  const hasMenu = !label && ((menu?.length ?? 0) > 0 || Boolean(typeset || diff || git))
   // "# Title", a blank line, the description: what the page hands Copy page.
   const [heading, , ...rest] = page.split("\n")
   const bookmark = { title: heading.replace(/^#\s*/, ""), detail: rest.join(" ").trim().slice(0, 240) || null }
@@ -113,7 +115,25 @@ export function DocsCopyPage({
       <div className="flex items-center gap-2">
         {extra}
         {!hasMenu && <BookmarkButton {...bookmark} />}
-        <div className="group/buttons relative flex rounded-lg bg-secondary *:[[data-slot=button]]:focus-visible:relative *:[[data-slot=button]]:focus-visible:z-10">
+        {label && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" className="h-8 shadow-none md:h-7 md:text-[0.8rem]">
+                {label}
+                <IconChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            {/* Every entry on one row, and a long list scrolls inside the menu. */}
+            <DropdownMenuContent align="end" className="animate-none! max-h-80 w-max min-w-44 overflow-y-auto rounded-lg shadow-none">
+              {(menu ?? []).map((node, i) => (
+                <DropdownMenuItem key={i} asChild className="whitespace-nowrap">
+                  {node}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        <div className={label ? "hidden" : "group/buttons relative flex rounded-lg bg-secondary *:[[data-slot=button]]:focus-visible:relative *:[[data-slot=button]]:focus-visible:z-10"}>
           <PopoverAnchor />
           <Button variant="secondary" size="sm" className="h-8 shadow-none md:h-7 md:text-[0.8rem]" onClick={() => copyToClipboard(page)}>
             {isCopied ? <IconCheck /> : <IconCopy />}

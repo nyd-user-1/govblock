@@ -2,6 +2,8 @@ import * as React from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+
+import { DocsPage } from "@/components/docs-page"
 import {
   IconArrowBigUp,
   IconBrandGithub,
@@ -19,14 +21,10 @@ import {
   type Post,
   type User,
 } from "@/lib/users/mock"
-import { BackToTop } from "@/components/back-to-top"
-import { PublicRail } from "@/components/block-card"
 import { ChamberSeal, FlagChip } from "@/components/policy/imagery"
 import { H2 } from "@/components/typeset"
-import { RightRailSheet } from "@/components/rail-sheet"
 import { ActivityTabs } from "@/components/users/activity-tabs"
 import {
-  CopyProfileLink,
   FollowButton,
 } from "@/components/users/profile-actions"
 import { Reputation, UserAvatar, compact } from "@/components/users/parts"
@@ -311,250 +309,224 @@ export default async function UserPage({ params }: Props) {
   const s = user.stats
 
   return (
-    <div
-      data-slot="docs"
-      className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full"
-    >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8">
-          <header className="overflow-hidden rounded-2xl border bg-card">
-            <div className="h-32 bg-muted bg-[radial-gradient(circle_at_20%_20%,oklch(0.55_0.2_280/.55),transparent_55%),radial-gradient(circle_at_85%_40%,oklch(0.6_0.18_20/.45),transparent_50%)] sm:h-40" />
-            <div className="flex flex-col gap-4 px-5 pb-5 sm:px-6">
-              <div className="-mt-12 flex items-end justify-between">
-                <UserAvatar
-                  name={user.name}
-                  handle={user.handle}
-                  size={96}
-                  className="rounded-2xl ring-4 ring-card"
-                />
-                <CopyProfileLink />
-              </div>
-              <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  {user.name}
-                </h1>
-                <p className="text-base">{user.headline}</p>
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <FlagChip
-                    state={user.state}
-                    width={18}
-                    className="rounded-sm"
-                  />{" "}
-                  {user.org} ·{" "}
-                  {user.state === "US"
-                    ? "United States"
-                    : stateName(user.state)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  @{user.handle} · Joined {longDate(user.joined)}
-                </p>
-              </div>
-              <div>
-                <FollowButton />
-              </div>
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-                <span className="flex items-center gap-1">
-                  <Reputation value={s.reputation} />{" "}
-                  <span className="text-muted-foreground">Reputation</span>
-                </span>
-                <span>
-                  <b>{compact.format(s.upvotes)}</b>{" "}
-                  <span className="text-muted-foreground">Upvotes</span>
-                </span>
-                <span>
-                  <b>{compact.format(s.followers)}</b>{" "}
-                  <span className="text-muted-foreground">Followers</span>
-                </span>
-                <span>
-                  <b>{compact.format(s.following)}</b>{" "}
-                  <span className="text-muted-foreground">Following</span>
-                </span>
-              </div>
-            </div>
-          </header>
-
-          <div className="typeset w-full flex-1 pb-16 sm:pb-0">
-            <H2>About</H2>
-            <div className="not-typeset flex gap-2">
-              {user.links.map((l) => {
-                const Icon = LINK_ICONS[l.kind]
-                return (
-                  <a
-                    key={l.url}
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={l.kind}
-                    className="flex size-9 items-center justify-center rounded-lg border text-foreground hover:bg-muted"
-                  >
-                    <Icon className="size-4" />
-                  </a>
-                )
-              })}
-            </div>
-            {user.bio.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
-
-            <hr />
-            <H2>Issues</H2>
-            <div className="not-typeset mt-4 flex flex-wrap gap-2">
-              {user.issues.map((slug) => (
-                <Link
-                  key={slug}
-                  href={`/tags/${slug}`}
-                  className="rounded-xl border px-3 py-1.5 text-sm font-medium text-foreground no-underline hover:bg-muted"
-                >
-                  {tagName(slug)}
-                </Link>
-              ))}
-            </div>
-
-            <hr />
-            <H2 id="hot-takes">Hot Takes</H2>
-            <ul className="not-typeset mt-4 flex flex-col gap-3">
-              {user.takes.map((t) => (
-                <li
-                  key={t.title}
-                  className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4"
-                >
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-2xl">
-                    {t.emoji}
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="font-semibold">{t.title}</span>
-                    {t.sub && (
-                      <span className="text-sm text-muted-foreground">
-                        {t.sub}
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground tabular-nums">
-                    <IconArrowBigUp className="size-4" /> {t.upvotes}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <hr />
-            <H2>Activity</H2>
-            <ActivityTabs
-              tabs={[
-                {
-                  value: "posts",
-                  label: "Posts",
-                  content: (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {user.posts.map((p) => (
-                        <PostCard key={p.title} post={p} user={user} />
-                      ))}
-                    </div>
-                  ),
-                },
-                {
-                  value: "replies",
-                  label: "Replies",
-                  content: (
-                    <ul className="flex flex-col divide-y">
-                      {user.replies.map((r) => (
-                        <li key={r.text} className="flex flex-col gap-1 py-3">
-                          <span className="text-xs text-muted-foreground">
-                            On{" "}
-                            <span className="font-medium text-foreground">
-                              {r.on}
-                            </span>{" "}
-                            · {ago(r.day)}
-                          </span>
-                          <span className="text-sm">{r.text}</span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <IconArrowBigUp className="size-3.5" /> {r.upvotes}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ),
-                },
-                {
-                  value: "upvoted",
-                  label: "Upvoted",
-                  content: (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {user.upvoted.map((p) => (
-                        <PostCard key={p.title} post={p} user={user} />
-                      ))}
-                    </div>
-                  ),
-                },
-              ]}
-            />
-
-            <hr />
-            <H2>Work Experience</H2>
-            <ul className="not-typeset mt-4 flex flex-col gap-5">
-              {user.work.map((job) => (
-                <li key={job.org} className="flex gap-3">
-                  {/House|Assembly|Senate/.test(job.org) ? (
-                    <ChamberSeal
-                      state={job.org.startsWith("U.S.") ? "US" : job.state}
-                      chamber={
-                        /Senate/.test(job.org)
-                          ? "Senate"
-                          : /Assembly/.test(job.org)
-                            ? "Assembly"
-                            : "House"
-                      }
-                      size={40}
-                    />
-                  ) : (
-                    <UserAvatar
-                      name={job.org}
-                      handle={job.org}
-                      size={40}
-                      className="rounded-full"
-                    />
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{job.org}</span>
-                      {!job.roles.some((r) => r.to) && (
-                        <span className="rounded-md border px-1.5 text-xs">
-                          Current
-                        </span>
-                      )}
-                      {job.verified && (
-                        <span className="rounded-md bg-emerald-500/15 px-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    {job.roles.map((r) => (
-                      <div
-                        key={r.title}
-                        className="flex flex-col border-l pl-3"
-                      >
-                        <span className="text-sm font-medium">{r.title}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {monthYear(r.from)} –{" "}
-                          {r.to ? monthYear(r.to) : "Present"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <BackToTop />
-        </div>
-      </div>
-      <RightRailSheet>
-        <div className="flex flex-col gap-4">
+    <DocsPage
+      title={user.name}
+      description={user.headline}
+      lead={
+        <>
+          <p className="text-base">{user.headline}</p>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <FlagChip state={user.state} width={18} className="rounded-sm" /> {user.org} · {user.state === "US" ? "United States" : stateName(user.state)}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            @{user.handle} · Joined {longDate(user.joined)}
+          </p>
+        </>
+      }
+      slug={`/users/${user.handle}`}
+      previous={{ name: "Users", url: "/users" }}
+      rail={
+        <>
           <ReadingOverview user={user} />
           <Desks user={user} />
-          <PublicRail />
+        </>
+      }
+    >
+      {/* The banner, the portrait, Follow and the counts. The name, the
+          headline and the two muted lines under it are the shell's head
+          since 2026-09-20. */}
+      <header className="not-typeset overflow-hidden rounded-2xl border bg-card">
+        <div className="h-32 bg-muted bg-[radial-gradient(circle_at_20%_20%,oklch(0.55_0.2_280/.55),transparent_55%),radial-gradient(circle_at_85%_40%,oklch(0.6_0.18_20/.45),transparent_50%)] sm:h-40" />
+        <div className="flex flex-col gap-4 px-5 pb-5 sm:px-6">
+          <div className="-mt-12 flex items-end justify-between">
+            <UserAvatar name={user.name} handle={user.handle} size={96} className="rounded-2xl ring-4 ring-card" />
+            <FollowButton />
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <span className="flex items-center gap-1">
+              <Reputation value={s.reputation} /> <span className="text-muted-foreground">Reputation</span>
+            </span>
+            <span>
+              <b>{compact.format(s.upvotes)}</b> <span className="text-muted-foreground">Upvotes</span>
+            </span>
+            <span>
+              <b>{compact.format(s.followers)}</b> <span className="text-muted-foreground">Followers</span>
+            </span>
+            <span>
+              <b>{compact.format(s.following)}</b> <span className="text-muted-foreground">Following</span>
+            </span>
+          </div>
         </div>
-      </RightRailSheet>
-    </div>
+      </header>
+      <H2>About</H2>
+      <div className="not-typeset flex gap-2">
+        {user.links.map((l) => {
+          const Icon = LINK_ICONS[l.kind]
+          return (
+            <a
+              key={l.url}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={l.kind}
+              className="flex size-9 items-center justify-center rounded-lg border text-foreground hover:bg-muted"
+            >
+              <Icon className="size-4" />
+            </a>
+          )
+        })}
+      </div>
+      {user.bio.map((p) => (
+        <p key={p}>{p}</p>
+      ))}
+
+      <hr />
+      <H2>Issues</H2>
+      <div className="not-typeset mt-4 flex flex-wrap gap-2">
+        {user.issues.map((slug) => (
+          <Link
+            key={slug}
+            href={`/tags/${slug}`}
+            className="rounded-xl border px-3 py-1.5 text-sm font-medium text-foreground no-underline hover:bg-muted"
+          >
+            {tagName(slug)}
+          </Link>
+        ))}
+      </div>
+
+      <hr />
+      <H2 id="hot-takes">Hot Takes</H2>
+      <ul className="not-typeset mt-4 flex flex-col gap-3">
+        {user.takes.map((t) => (
+          <li
+            key={t.title}
+            className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4"
+          >
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-2xl">
+              {t.emoji}
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-semibold">{t.title}</span>
+              {t.sub && (
+                <span className="text-sm text-muted-foreground">
+                  {t.sub}
+                </span>
+              )}
+            </span>
+            <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground tabular-nums">
+              <IconArrowBigUp className="size-4" /> {t.upvotes}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <hr />
+      <H2>Activity</H2>
+      <ActivityTabs
+        tabs={[
+          {
+            value: "posts",
+            label: "Posts",
+            content: (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {user.posts.map((p) => (
+                  <PostCard key={p.title} post={p} user={user} />
+                ))}
+              </div>
+            ),
+          },
+          {
+            value: "replies",
+            label: "Replies",
+            content: (
+              <ul className="flex flex-col divide-y">
+                {user.replies.map((r) => (
+                  <li key={r.text} className="flex flex-col gap-1 py-3">
+                    <span className="text-xs text-muted-foreground">
+                      On{" "}
+                      <span className="font-medium text-foreground">
+                        {r.on}
+                      </span>{" "}
+                      · {ago(r.day)}
+                    </span>
+                    <span className="text-sm">{r.text}</span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <IconArrowBigUp className="size-3.5" /> {r.upvotes}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ),
+          },
+          {
+            value: "upvoted",
+            label: "Upvoted",
+            content: (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {user.upvoted.map((p) => (
+                  <PostCard key={p.title} post={p} user={user} />
+                ))}
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      <hr />
+      <H2>Work Experience</H2>
+      <ul className="not-typeset mt-4 flex flex-col gap-5">
+        {user.work.map((job) => (
+          <li key={job.org} className="flex gap-3">
+            {/House|Assembly|Senate/.test(job.org) ? (
+              <ChamberSeal
+                state={job.org.startsWith("U.S.") ? "US" : job.state}
+                chamber={
+                  /Senate/.test(job.org)
+                    ? "Senate"
+                    : /Assembly/.test(job.org)
+                      ? "Assembly"
+                      : "House"
+                }
+                size={40}
+              />
+            ) : (
+              <UserAvatar
+                name={job.org}
+                handle={job.org}
+                size={40}
+                className="rounded-full"
+              />
+            )}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{job.org}</span>
+                {!job.roles.some((r) => r.to) && (
+                  <span className="rounded-md border px-1.5 text-xs">
+                    Current
+                  </span>
+                )}
+                {job.verified && (
+                  <span className="rounded-md bg-emerald-500/15 px-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                    Verified
+                  </span>
+                )}
+              </div>
+              {job.roles.map((r) => (
+                <div
+                  key={r.title}
+                  className="flex flex-col border-l pl-3"
+                >
+                  <span className="text-sm font-medium">{r.title}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {monthYear(r.from)} –{" "}
+                    {r.to ? monthYear(r.to) : "Present"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </DocsPage>
   )
 }

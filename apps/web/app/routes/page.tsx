@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import { DocsPage } from "@/components/docs-page"
+import { DocsTableOfContents } from "@/components/docs-toc"
 import { ProgressGroup } from "@/components/progress-group"
 import { LabSwitch } from "@/components/routes/lab-switch"
 import BUILD from "@/lib/build-sizes.json"
@@ -9,6 +11,7 @@ import { inLab, PINNED } from "@/lib/lab"
 import { adminId } from "@/lib/linkedin/session"
 import { ROUTES } from "@/lib/routes.generated"
 import { SURFACES } from "@/lib/workspace/path"
+import { H2 } from "@/components/typeset"
 
 // /routes (Brendan, 2026-09-11): every URL the app serves, so the ones nobody
 // remembers can be found and cut. The list is read off the app directory by
@@ -29,6 +32,9 @@ import { SURFACES } from "@/lib/workspace/path"
 // output against Amplify's cap, by part, so what a route costs is in view
 // beside the switch that would take it out. scripts/routes/build-sizes.mjs
 // reads it off the build log after a deploy.
+//
+// On the docs shell (Brendan, 2026-09-20): its head, its headings and rules,
+// and the index of the page's sections in the right rail.
 
 export const metadata: Metadata = { title: "Routes", description: "Every URL the site serves." }
 
@@ -110,88 +116,85 @@ export default async function RoutesPage() {
   const dev = process.env.NODE_ENV === "development"
   const editable = dev && Boolean(await adminId())
   const labCount = ROUTES.filter((r) => inLab(r.path)).length
+  const sections = [...(editable ? ["Build"] : []), "Pages", "API", "Registry files", "Redirects"]
   return (
-    <div className="container-wrapper px-4 py-10 md:px-6">
-      <div className="container flex max-w-4xl flex-col gap-10 px-0">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Routes</h1>
-          <p className="text-muted-foreground">
-            {pages.length} pages, {apis.length} API routes, {REGISTRY.length} registry files and the redirects, read off the app directory; {labCount} in the lab, off production. The dynamic routes are opened out where their values are known.
+    <DocsPage
+      title="Routes"
+      description={`${pages.length} pages, ${apis.length} API routes, ${REGISTRY.length} registry files and the redirects, read off the app directory; ${labCount} in the lab, off production. The dynamic routes are opened out where their values are known.`}
+      slug="/routes"
+      next={{ name: "ERD", url: "/erd" }}
+      rail={<DocsTableOfContents toc={sections.map((title) => ({ title, url: `#${title.toLowerCase().replace(/\s+/g, "-")}`, depth: 2 }))} />}
+    >
+      {editable && (
+        <>
+          <H2>Build</H2>
+          <p>
+            Job {BUILD.job} · {BUILD.commit} · {new Date(BUILD.built).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            {BUILD.exact ? "" : " · sizes to the nearest megabyte of disk, a few percent over what Amplify weighs"}
           </p>
-        </header>
-        {editable && (
-          <section>
-            <h2 className="mb-1 text-lg font-semibold">Build</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Job {BUILD.job} · {BUILD.commit} · {new Date(BUILD.built).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-              {BUILD.exact ? "" : " · sizes to the nearest megabyte of disk, a few percent over what Amplify weighs"}
-            </p>
+          <div data-not-typeset="true" className="mt-4">
             <ProgressGroup parts={BUILD.parts.map((p) => ({ label: p.label, value: p.bytes }))} limit={BUILD.cap} format={(bytes) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`} />
-          </section>
-        )}
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">Pages</h2>
-          <ul className="divide-y">
-            {pages.map((r) => {
-              const open = expand(r.path)
-              const example = EXAMPLES[r.path]
-              const isStatic = !r.path.includes("[")
-              const lab = inLab(r.path)
-              const served = dev || !lab
-              return (
-                <Row key={r.path} path={r.path} note={NOTES[r.path]} lab={lab} editable={editable}>
-                  {isStatic && served && (
-                    <Link href={r.path} className="w-fit text-xs text-primary hover:underline">
-                      open
-                    </Link>
-                  )}
-                  {open && served && (
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
-                      {open.hrefs.map((h) => (
-                        <Link key={h} href={h} className="text-xs text-primary hover:underline">
-                          {h}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  {!open && example && <span className="text-xs text-muted-foreground">e.g. {example}</span>}
-                </Row>
-              )
-            })}
-          </ul>
-        </section>
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">API</h2>
-          <ul className="divide-y">
-            {apis.map((r) => (
-              <Row key={r.path} path={r.path} lab={inLab(r.path)} editable={editable} />
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">Registry files</h2>
-          <p className="mb-3 text-sm text-muted-foreground">Static JSON in the public bucket, the @44gov shadcn registry.</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {REGISTRY.map((n) => (
-              <a key={n} href={`/r/${n}.json`} className="text-xs text-primary hover:underline">
-                /r/{n}.json
-              </a>
-            ))}
           </div>
-        </section>
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">Redirects</h2>
-          <ul className="divide-y">
-            {REDIRECTS.map(([from, to]) => (
-              <li key={from} className="flex flex-wrap gap-x-3 py-2 text-sm">
-                <code>{from}</code>
-                <span className="text-muted-foreground">to</span>
-                <code>{to}</code>
-              </li>
-            ))}
-          </ul>
-        </section>
+          <hr />
+        </>
+      )}
+      <H2>Pages</H2>
+      <ul data-not-typeset="true" className="m-0 mt-4 list-none divide-y p-0">
+        {pages.map((r) => {
+          const open = expand(r.path)
+          const example = EXAMPLES[r.path]
+          const isStatic = !r.path.includes("[")
+          const lab = inLab(r.path)
+          const served = dev || !lab
+          return (
+            <Row key={r.path} path={r.path} note={NOTES[r.path]} lab={lab} editable={editable}>
+              {isStatic && served && (
+                <Link href={r.path} className="w-fit text-xs text-primary hover:underline">
+                  open
+                </Link>
+              )}
+              {open && served && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
+                  {open.hrefs.map((h) => (
+                    <Link key={h} href={h} className="text-xs text-primary hover:underline">
+                      {h}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {!open && example && <span className="text-xs text-muted-foreground">e.g. {example}</span>}
+            </Row>
+          )
+        })}
+      </ul>
+      <hr />
+      <H2>API</H2>
+      <ul data-not-typeset="true" className="m-0 mt-4 list-none divide-y p-0">
+        {apis.map((r) => (
+          <Row key={r.path} path={r.path} lab={inLab(r.path)} editable={editable} />
+        ))}
+      </ul>
+      <hr />
+      <H2>Registry files</H2>
+      <p>Static JSON in the public bucket, the @44gov shadcn registry.</p>
+      <div data-not-typeset="true" className="mt-4 flex flex-wrap gap-x-3 gap-y-1">
+        {REGISTRY.map((n) => (
+          <a key={n} href={`/r/${n}.json`} className="text-xs text-primary hover:underline">
+            /r/{n}.json
+          </a>
+        ))}
       </div>
-    </div>
+      <hr />
+      <H2>Redirects</H2>
+      <ul data-not-typeset="true" className="m-0 mt-4 list-none divide-y p-0">
+        {REDIRECTS.map(([from, to]) => (
+          <li key={from} className="flex flex-wrap gap-x-3 py-2 text-sm">
+            <code>{from}</code>
+            <span className="text-muted-foreground">to</span>
+            <code>{to}</code>
+          </li>
+        ))}
+      </ul>
+    </DocsPage>
   )
 }

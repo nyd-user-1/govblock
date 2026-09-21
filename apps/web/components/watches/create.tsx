@@ -53,7 +53,7 @@ export function CreateWatch() {
   const current = stage === "method" || stage === "templates" ? 0 : 1
 
   return (
-    <CreateFrame label="Create a watch" steps={steps} current={current}>
+    <CreateFrame steps={steps} current={current}>
       {stage === "method" && (
         <CreateCard title="Make something new" description="Start from a template, build your own, or drop in a list of bills.">
           <div className="grid gap-3 sm:grid-cols-2">

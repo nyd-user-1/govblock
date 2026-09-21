@@ -14,7 +14,8 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { policyUrl } from "@/lib/policy/use-policy"
 import { PageIcon } from "@/components/page-icon"
 import { districtLabel, legislativeBody } from "@/lib/legislative-body"
-import { matchPages, SEARCH_PAGES } from "@/lib/search-pages"
+import { JURISDICTIONS, summary, type Jurisdiction } from "@/lib/jurisdictions"
+import { matchPages, MENU_PAGES, type SearchPage } from "@/lib/search-pages"
 import { SlashResults, useSlashLibrary } from "@/components/slash-library"
 import {
   Command,
@@ -69,7 +70,9 @@ export type SiteSearch = {
   bills: SearchPayload["bills"]
   members: SearchPayload["members"]
   committees: SearchPayload["committees"]
-  pages: typeof SEARCH_PAGES
+  /** Every jurisdiction, A to Z, before a word is typed; the ones whose name or code the word is in, after. */
+  jurisdictions: Jurisdiction[]
+  pages: SearchPage[]
   hasRecords: boolean
   selected: string
   setSelected: (value: string) => void
@@ -80,6 +83,11 @@ export type SiteSearch = {
  * the item to select before a word is typed, when the caller has one to put
  * above the pages (the home's recents).
  */
+const matchJurisdictions = (term: string) => {
+  const t = term.trim().toLowerCase()
+  return JURISDICTIONS.filter((j) => j.name.toLowerCase().includes(t) || j.state.toLowerCase() === t)
+}
+
 export function useSiteSearch({ active, term, lead }: { active: boolean; term: string; lead?: string }): SiteSearch {
   const { state, session, resolved } = useJurisdiction()
   const [results, setResults] = React.useState<SearchPayload | null>(null)
@@ -121,12 +129,14 @@ export function useSiteSearch({ active, term, lead }: { active: boolean; term: s
     const b = results?.bills?.[0]
     const m = results?.members?.[0]
     const c = results?.committees?.[0]
-    const p = (query.length >= 2 ? matchPages(query) : SEARCH_PAGES)[0]
+    const j = (query.length >= 2 ? matchJurisdictions(query) : JURISDICTIONS)[0]
+    const p = (query.length >= 2 ? matchPages(query, 6, MENU_PAGES) : MENU_PAGES)[0]
     setSelected(
       b ? `bill-${b.bill_id}`
         : m ? `member-${m.people_id}`
         : c ? `committee-${c.committee}`
         : query.length < 2 && lead ? lead
+        : j ? `jurisdiction-${j.state}`
         : p ? `page-${p.href}`
         : query.length >= 2 ? `see-all-${query}`
         : ""
@@ -136,8 +146,9 @@ export function useSiteSearch({ active, term, lead }: { active: boolean; term: s
   const bills = results?.bills ?? []
   const members = results?.members ?? []
   const committees = results?.committees ?? []
-  const pages = query.length >= 2 ? matchPages(query) : SEARCH_PAGES
-  return { query, bills, members, committees, pages, hasRecords: bills.length + members.length + committees.length > 0, selected, setSelected }
+  const jurisdictions = query.length >= 2 ? matchJurisdictions(query) : JURISDICTIONS
+  const pages = query.length >= 2 ? matchPages(query, 6, MENU_PAGES) : MENU_PAGES
+  return { query, bills, members, committees, jurisdictions, pages, hasRecords: bills.length + members.length + committees.length > 0, selected, setSelected }
 }
 
 /** The result groups, inside a CommandList: records first, then pages, then the way to every result. */
@@ -157,7 +168,7 @@ export function warmFlags() {
 const LABEL = "w-48 shrink-0 truncate font-medium"
 
 export function SearchResults({ search, state, go }: { search: SiteSearch; state: string; go: (href: string) => void }) {
-  const { query, bills, members, committees, pages, hasRecords } = search
+  const { query, bills, members, committees, jurisdictions, pages, hasRecords } = search
   return (
     <>
       <CommandEmpty>
@@ -231,6 +242,18 @@ export function SearchResults({ search, state, go }: { search: SiteSearch; state
               <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">
                 {[committee.chamber, `${committee.bills} bills`].filter(Boolean).join(" · ")}
               </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+      {/* Before the pages (Brendan, 2026-09-20): every jurisdiction A to Z, its flag, and what is on file for it, from the frozen counts. */}
+      {jurisdictions.length > 0 && (
+        <CommandGroup heading="Jurisdictions">
+          {jurisdictions.map((j) => (
+            <CommandItem key={j.state} className="group/row" value={`jurisdiction-${j.state}`} onSelect={() => go(`/state/${j.state.toLowerCase()}`)}>
+              <FlagChip state={j.state} width={20} />
+              <span className={LABEL}>{j.name}</span>
+              <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{summary(j)}</span>
             </CommandItem>
           ))}
         </CommandGroup>

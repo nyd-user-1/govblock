@@ -52,9 +52,10 @@ export type StateStats = {
 
 const num = (v: unknown) => Number(v ?? 0) || 0
 
-export async function getStateStats(state: string): Promise<StateStats> {
+/** `wanted` is the session the one-session charts read — seats, progress, sponsors, types, committees (the charts page's Session menu, 2026-09-20); the latest without it. */
+export async function getStateStats(state: string, wanted?: number): Promise<StateStats> {
   const code = state.toUpperCase()
-  const session = await latestSession(code)
+  const session = wanted ?? (await latestSession(code))
   const [sessions, sponsorship, seats, statuses, types, bipartisan, committees, roster] = await Promise.all([
     q<Record<string, unknown>>(
       `select session_id, count(*) filter (where bill_type = 'B')::int bills,

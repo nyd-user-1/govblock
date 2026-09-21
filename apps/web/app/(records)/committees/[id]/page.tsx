@@ -1,8 +1,5 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { ScopeMark } from "@/components/scope-mark"
@@ -31,12 +28,8 @@ import { shortName } from "@/lib/policy/committee-slug"
 import { resolveCommittee } from "@/lib/policy/committee-resolve"
 import CODES from "@/lib/data/congress/committee-codes.json"
 import { latestHearing } from "@/lib/policy/committee-video"
-import { BackToTop } from "@/components/back-to-top"
-import { Button } from "@govblock/ui/components/ny4/button"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
-import { ChamberSeal } from "@/components/policy/imagery"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { DocsPage } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
 import { Figure, PendingSessionProvider } from "@/components/policy/pending-session"
 import { SessionsMenu } from "@/components/policy/sessions-menu"
 import {
@@ -59,6 +52,10 @@ import { LobbyingScopeBlock } from "@/components/policy/lobbying-scope"
 import { H2 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
+// One committee, on DocsPage since 2026-09-20 (Brendan): the shell draws
+// the head, the arrows, Copy Page and the rail it had a copy of, and the
+// facts are its sub-header.
+//
 // One committee, on the member page's design (Brendan, 2026-09-06). Three
 // kinds of id reach here:
 //
@@ -171,7 +168,6 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
   ]
   const description = `${title}, ${chamberLabel}. ${fmtNumber(referred)} bills before it this session.`
   const markdown = [`# ${title}`, "", description].join("\n")
-  const arrow = "extend-touch-target size-8 shadow-none md:size-7"
   const menu = sessionOptions.length > 1 ? <SessionsMenu sessions={sessionOptions} current={session} /> : undefined
 
   const parts: string[] = []
@@ -188,141 +184,87 @@ export default async function CommitteeRoute({ params, searchParams }: Props) {
   return (
     <PendingSessionProvider>
       <ScopeMark state={state} session={session} current={latest} entity="committees" />
-      <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="h-(--top-spacing) shrink-0" />
-          <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-            <RecordHeader
-              media={<ChamberSeal state={state} chamber={committee.chamber} size={RECORD_MEDIA} />}
-              title={title}
-              meta={facts}
-              action={
-                <>
-                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/committees/${code}`} />
-                  {neighbours.previous ? (
-                    <Button variant="secondary" size="icon" className={arrow} asChild>
-                      <Link href={`/committees/${neighbours.previous.key}`} title={neighbours.previous.name}>
-                        <IconArrowLeft />
-                        <span className="sr-only">Previous committee</span>
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="icon" className={arrow} asChild>
-                      <Link href={`/committees?state=${state}`}>
-                        <IconArrowLeft />
-                        <span className="sr-only">All committees</span>
-                      </Link>
-                    </Button>
-                  )}
-                  {neighbours.next ? (
-                    <Button variant="secondary" size="icon" className={arrow} asChild>
-                      <Link href={`/committees/${neighbours.next.key}`} title={neighbours.next.name}>
-                        <IconArrowRight />
-                        <span className="sr-only">Next committee</span>
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="icon" className={arrow} disabled>
-                      <IconArrowRight />
-                    </Button>
-                  )}
-                </>
-              }
-            />
-            <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              {/* h1 the name, h2 Summary and Record, h3 the parts — the
-                  standard on every detail page (Brendan, 2026-09-05). */}
-              <H2>Summary</H2>
-              {ny ? (
-                <>
-                  <p>
-                    {ny.description ? `${ny.description.replace(/\.?$/, "")}. ` : null}
-                    <Chip>{who}</Chip> is a {ny.type ? ny.type.toLowerCase() : "standing"} committee of the {stateName(state)} {ny.chamber}
-                    {roster.length ? <> with {roster.length} members</> : null}. It has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"} before it this session.
-                  </p>
-                </>
-              ) : federal ? (
-                <CommitteeSummary record={record} roster={roster} bills={referred} state={state} who={who} hearings={hearings.length} reports={reports.length} />
-              ) : (
-                <p>
-                  <Chip>{who}</Chip> is a committee of the {stateName(state)} {committee.chamber}. It has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"} before it this session.
-                </p>
-              )}
+      <DocsPage
+        title={title}
+        description={description}
+        page={markdown}
+        lead={<RecordFacts meta={facts} />}
+        slug={`/committees/${code}`}
+        previous={neighbours.previous ? { name: neighbours.previous.name, url: `/committees/${neighbours.previous.key}` } : { name: "Committees", url: `/committees?state=${state}` }}
+        next={neighbours.next ? { name: neighbours.next.name, url: `/committees/${neighbours.next.key}` } : undefined}
+        rail={
+          <>
+            {federal && <CommitteeVideo latest={video} />}
+            <CommitteeToc parts={parts} history={!!record?.history.length} />
+          </>
+        }
+      >
+        {/* h1 the name, h2 Summary and Record, h3 the parts — the
+            standard on every detail page (Brendan, 2026-09-05). */}
+        <H2>Summary</H2>
+        {ny ? (
+          <>
+            <p>
+              {ny.description ? `${ny.description.replace(/\.?$/, "")}. ` : null}
+              <Chip>{who}</Chip> is a {ny.type ? ny.type.toLowerCase() : "standing"} committee of the {stateName(state)} {ny.chamber}
+              {roster.length ? <> with {roster.length} members</> : null}. It has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"} before it this session.
+            </p>
+          </>
+        ) : federal ? (
+          <CommitteeSummary record={record} roster={roster} bills={referred} state={state} who={who} hearings={hearings.length} reports={reports.length} />
+        ) : (
+          <p>
+            <Chip>{who}</Chip> is a committee of the {stateName(state)} {committee.chamber}. It has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"} before it this session.
+          </p>
+        )}
 
-              {/* The H2 after the rule is Chair, with the chair's paragraph
-                  under it and the record's sentence after that (Brendan's
-                  image, 2026-09-06). */}
-              <hr />
-              <H2>Chair</H2>
-              <CommitteeChair record={record} roster={roster} state={state} website={ny?.url ?? null} />
-              <p>
-                <Chip>{who}</Chip> has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"}
-                {federal ? (
-                  <>
-                    , {fmtNumber(hearings.length + meetings.length)} {hearings.length + meetings.length === 1 ? "meeting" : "meetings"} and {fmtNumber(reports.length)} {reports.length === 1 ? "report" : "reports"}
-                  </>
-                ) : calendar.length ? (
-                  <>
-                    {" "}
-                    and {fmtNumber(calendar.length)} {calendar.length === 1 ? "hearing" : "hearings"}
-                  </>
-                ) : null}{" "}
-                on the record this session.
-              </p>
+        {/* The H2 after the rule is Chair, with the chair's paragraph
+            under it and the record's sentence after that (Brendan's
+            image, 2026-09-06). */}
+        <hr />
+        <H2>Chair</H2>
+        <CommitteeChair record={record} roster={roster} state={state} website={ny?.url ?? null} />
+        <p>
+          <Chip>{who}</Chip> has <Figure>{fmtNumber(referred)}</Figure> {referred === 1 ? "bill" : "bills"}
+          {federal ? (
+            <>
+              , {fmtNumber(hearings.length + meetings.length)} {hearings.length + meetings.length === 1 ? "meeting" : "meetings"} and {fmtNumber(reports.length)} {reports.length === 1 ? "report" : "reports"}
+            </>
+          ) : calendar.length ? (
+            <>
+              {" "}
+              and {fmtNumber(calendar.length)} {calendar.length === 1 ? "hearing" : "hearings"}
+            </>
+          ) : null}{" "}
+          on the record this session.
+        </p>
 
-              <CommitteeMembers roster={roster} state={state} who={who} />
-              <CommitteeSubcommittees record={record} counts={subCounts} state={state} />
-              <CommitteeBills tabs={tabs} name={legiscanName} state={state} session={session} who={who} menu={menu} />
-              {federal && <CommitteeMeetings meetings={meetings.map(meetingLite)} hearings={hearings} calendar={calendar} who={who} />}
-              {!federal && <CommitteeCalendar rows={calendar} who={who} state={state} chamber={committee.chamber} />}
-              <CommitteeReports reports={reports} prints={prints} who={who} />
-              <CommitteeNominations rows={nominations.rows} total={nominations.total} code={code} who={who} state={state} />
-              <CommitteeCommunications rows={communications.rows} total={communications.total} code={code} who={who} state={state} />
-              <LobbyingScopeBlock data={lobbying} who={who} what="referred to" />
+        <CommitteeMembers roster={roster} state={state} who={who} />
+        <CommitteeSubcommittees record={record} counts={subCounts} state={state} />
+        <CommitteeBills tabs={tabs} name={legiscanName} state={state} session={session} who={who} menu={menu} />
+        {federal && <CommitteeMeetings meetings={meetings.map(meetingLite)} hearings={hearings} calendar={calendar} who={who} />}
+        {!federal && <CommitteeCalendar rows={calendar} who={who} state={state} chamber={committee.chamber} />}
+        <CommitteeReports reports={reports} prints={prints} who={who} />
+        <CommitteeNominations rows={nominations.rows} total={nominations.total} code={code} who={who} state={state} />
+        <CommitteeCommunications rows={communications.rows} total={communications.total} code={code} who={who} state={state} />
+        <LobbyingScopeBlock data={lobbying} who={who} what="referred to" />
 
-              <CommitteeHistory record={record} />
-              {ny && (ny.address || ny.chair_email) && (
+        <CommitteeHistory record={record} />
+        {ny && (ny.address || ny.chair_email) && (
+          <>
+            <hr />
+            <H2>Contact</H2>
+            <p>
+              {ny.address ? `${ny.address}. ` : null}
+              {ny.chair_email ? (
                 <>
-                  <hr />
-                  <H2>Contact</H2>
-                  <p>
-                    {ny.address ? `${ny.address}. ` : null}
-                    {ny.chair_email ? (
-                      <>
-                        The chair's office answers at <a href={`mailto:${ny.chair_email}`}>{ny.chair_email}</a>.
-                      </>
-                    ) : null}
-                  </p>
+                  The chair's office answers at <a href={`mailto:${ny.chair_email}`}>{ny.chair_email}</a>.
                 </>
-              )}
-            </div>
-            {(neighbours.previous || neighbours.next) && (
-              <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-                {neighbours.previous && (
-                  <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                    <Link href={`/committees/${neighbours.previous.key}`}>
-                      <IconArrowLeft /> {shortName(neighbours.previous.name)}
-                    </Link>
-                  </Button>
-                )}
-                {neighbours.next && (
-                  <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                    <Link href={`/committees/${neighbours.next.key}`}>
-                      {shortName(neighbours.next.name)} <IconArrowRight />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            )}
-            <BackToTop />
-          </div>
-        </div>
-        <RightRailSheet>
-          {federal && <CommitteeVideo latest={video} />}
-          <CommitteeToc parts={parts} history={!!record?.history.length} />
-          <PublicRail />
-        </RightRailSheet>
-      </div>
+              ) : null}
+            </p>
+          </>
+        )}
+      </DocsPage>
     </PendingSessionProvider>
   )
 }

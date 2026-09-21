@@ -12,12 +12,19 @@ export function SearchDirectory({
   query,
   setQuery,
   placeholder = "Search",
+  onSubmit,
 }: {
   query: string
   setQuery: (value: string | null) => void
   placeholder?: string
+  /**
+   * Where the field waits for Enter rather than searching on every keystroke
+   * (Brendan, 2026-09-20): /search asks the database for six sections and the
+   * bill text, and a half-typed word was a query of its own.
+   */
+  onSubmit?: () => void
 }) {
-  return (
+  const field = (
     <Field>
       <InputGroup>
         <InputGroupAddon>
@@ -25,11 +32,22 @@ export function SearchDirectory({
         </InputGroupAddon>
         <InputGroupInput className="h-full" placeholder={placeholder} value={query} onChange={(e) => setQuery(e.target.value)} />
         <InputGroupAddon align="inline-end" data-disabled={!query.length} className="data-[disabled=true]:hidden">
-          <InputGroupButton aria-label="Clear" size="icon-xs" onClick={() => setQuery(null)}>
+          <InputGroupButton type="button" aria-label="Clear" size="icon-xs" onClick={() => setQuery(null)}>
             <X />
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
     </Field>
+  )
+  if (!onSubmit) return field
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit()
+      }}
+    >
+      {field}
+    </form>
   )
 }

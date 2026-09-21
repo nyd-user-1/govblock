@@ -3,7 +3,6 @@ import { notFound } from "next/navigation"
 
 import { isJurisdiction, stateName } from "@/lib/filters"
 import { getStories } from "@/lib/policy/news"
-import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
 import { StoriesDirectory } from "@/components/news/stories-directory"
 
@@ -51,7 +50,7 @@ export default async function DeskPage({
       slug={`/news/${state.toLowerCase()}`}
       previous={{ name: "News", url: "/news" }}
       next={{ name: "Desk", url: `/desk/${code.toLowerCase()}` }}
-      rail={<CalendarCard compact />}
+     
     >
       <StoriesDirectory state={code} stories={stories} />
     </DocsPage>

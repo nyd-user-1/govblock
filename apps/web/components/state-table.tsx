@@ -1,16 +1,19 @@
 import Link from "next/link"
 
-import type { IndexRow } from "@/lib/policy/state-index"
+import { coverage, type Jurisdiction } from "@/lib/jurisdictions"
 import { FlagChip } from "@/components/policy/imagery"
 import { Skeleton } from "@govblock/ui/components/ny4/skeleton"
 
 // The jurisdictions table (Brendan, 2026-09-18): /state draws it, and the root
 // page's second section draws it in place of the cards when a reader picks the
-// table. Each count is its own link, drawn like the name beside it; the first
-// session's year opens that session's bills. A member count of 0 prints as a
-// dash, unlinked, as a missing year does: Wisconsin's current session is 2026,
+// table. Each count is its own link, drawn like the name beside it. A member
+// count of 0 prints as a dash, unlinked: Wisconsin's current session is 2026,
 // two bills old, and its roster is filed under 2025, so nobody there reads as
 // sitting yet. The table keeps its own look rather than typeset's.
+//
+// Coverage, not Since (Brendan, 2026-09-20): the years on file as a span,
+// 2009–2026, and plain, since a span opens no one session. The rows are the
+// counts frozen in lib/data/jurisdictions.json, so the table asks nothing.
 
 const LINK = "no-underline hover:underline"
 const CELL = "py-2 pr-4 text-right tabular-nums"
@@ -20,7 +23,7 @@ function Head() {
     <thead>
       <tr className="border-b text-left text-xs text-muted-foreground">
         <th className="py-2 pr-4 font-medium">Jurisdiction</th>
-        <th className="py-2 pr-4 font-medium">Since</th>
+        <th className="py-2 pr-4 font-medium">Coverage</th>
         <th className="py-2 pr-4 text-right font-medium">Bills</th>
         <th className="py-2 pr-4 text-right font-medium">Laws</th>
         <th className="py-2 text-right font-medium">Members</th>
@@ -29,7 +32,7 @@ function Head() {
   )
 }
 
-export function StateTable({ rows }: { rows: IndexRow[] }) {
+export function StateTable({ rows }: { rows: Jurisdiction[] }) {
   return (
     <div data-not-typeset="true" className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -45,9 +48,7 @@ export function StateTable({ rows }: { rows: IndexRow[] }) {
                     {r.name}
                   </Link>
                 </td>
-                <td className="py-2 pr-4 tabular-nums">
-                  {r.firstSession ? <Link href={`/bills/${code}?session=${r.firstSession}`} className={LINK}>{r.firstSession}</Link> : "—"}
-                </td>
+                <td className="py-2 pr-4 whitespace-nowrap tabular-nums">{coverage(r)}</td>
                 <td className={CELL}>
                   <Link href={`/bills/${code}`} className={LINK}>{r.bills.toLocaleString()}</Link>
                 </td>
@@ -96,7 +97,7 @@ export function StateTableSkeleton({ rows = 52 }: { rows?: number }) {
                   </div>
                 </td>
                 <td className="py-2 pr-4">
-                  <Skeleton className="h-3.5 w-8" />
+                  <Skeleton className="h-3.5 w-18" />
                 </td>
                 {[bills, laws].map((width, j) => (
                   <td key={j} className="py-2 pr-4">

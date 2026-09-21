@@ -98,6 +98,32 @@ export function Donut({ slices, colors, size = 160 }: { slices: { label: string;
   )
 }
 
+/**
+ * The donut's shares as horizontal bars (Brendan, 2026-09-20): one row a slice, its name, a bar against the
+ * largest slice, the count and the share. A part-to-whole read off lengths on one baseline, where the ring asked
+ * a reader to compare angles. Markup rather than SVG, so the names and numbers are the page's own type.
+ */
+export function HBars({ slices, colors }: { slices: { label: string; n: number }[]; colors?: string[] }) {
+  const total = slices.reduce((t, s) => t + s.n, 0)
+  if (!total) return null
+  const max = Math.max(...slices.map((s) => s.n))
+  return (
+    <ul role="img" aria-label={slices.map((s) => `${s.label} ${s.n}`).join(", ")} className="m-0 grid list-none grid-cols-[max-content_1fr_max-content] items-center gap-x-3 gap-y-2.5 p-0 text-sm">
+      {slices.map((s, i) => (
+        <li key={s.label} className="col-span-3 m-0 grid grid-cols-subgrid items-center p-0">
+          <span className="min-w-0">{s.label}</span>
+          <span className="h-3 rounded-sm bg-muted">
+            <span className="block h-full min-w-0.5 rounded-sm" style={{ width: `${(100 * s.n) / max}%`, background: colors?.[i] ?? PARTY[s.label] ?? PALETTE[i % PALETTE.length] }} />
+          </span>
+          <span className="text-right text-muted-foreground tabular-nums">
+            {s.n.toLocaleString("en-US")} · {Math.round((100 * s.n) / total)}%
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 type XY = { x: number; y: number }
 type Frame = { w: number; h: number; left: number; right: number; top: number; bottom: number }
 const FRAME: Frame = { w: 640, h: 300, left: 48, right: 12, top: 12, bottom: 36 }

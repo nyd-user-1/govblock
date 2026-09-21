@@ -1,26 +1,22 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { memberHref } from "@/lib/filters"
 import { fmtDate, fmtNumber, honorific, shortDistrict } from "@/lib/format"
 import { citationOf, congressGovHref } from "@/lib/policy/congress"
 import { getAmendment, getAmendmentActions, getAmendmentCosponsors, getAmendmentNeighbours, getAmendmentTexts, getPeopleByBioguide } from "@/lib/policy/committee-queries"
-import { BackToTop } from "@/components/back-to-top"
-import { Button } from "@govblock/ui/components/ny4/button"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
-import { ChamberSeal } from "@/components/policy/imagery"
 import type { MemberCardRow } from "@/components/policy/member-card"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { DocsPage } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
 import { amendmentPath, fmtAmendment } from "@/lib/policy/congress-hrefs"
 import { AmendmentActions, AmendmentSponsors, AmendmentTextBlock, AmendmentToc } from "@/components/policy/amendment-page"
 import { H2 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
-// One amendment, by "samdt-5512", on the bill page's design.
+// One amendment, by "samdt-5512". On DocsPage since 2026-09-20 (Brendan):
+// the shell draws the head, the arrows, Copy Page and the rail it had a copy
+// of, and the facts are its sub-header.
 
 export const revalidate = 3600
 
@@ -93,121 +89,66 @@ export default async function AmendmentRoute({ params }: Props) {
   ]
   const source = congressGovHref("amendment", amendment.type, amendment.number, amendment.congress)
   const markdown = [`# ${name}`, "", amendment.purpose ?? amendment.description ?? "", "", amendment.latest_action ?? ""].join("\n")
-  const arrow = "extend-touch-target size-8 shadow-none md:size-7"
   const parts = ["Text"]
   if (sponsorRows.length) parts.push("Sponsors")
   if (actions.length) parts.push("Actions")
 
+  const pathOf = (n: NonNullable<typeof neighbours.previous>) => amendmentPath(n.amendment_type, n.number)
+
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-          <RecordHeader
-            media={<ChamberSeal state={STATE} chamber={chamber} size={RECORD_MEDIA} />}
-            title={name}
-            meta={facts}
-            action={
-              <>
-                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com${amendmentPath(amendment.type, amendment.number)}`} />
-                {neighbours.previous ? (
-                  <Button variant="secondary" size="icon" className={arrow} asChild>
-                    <Link href={amendmentPath(neighbours.previous.amendment_type, neighbours.previous.number)} title={fmtAmendment(neighbours.previous.amendment_type, neighbours.previous.number)}>
-                      <IconArrowLeft />
-                      <span className="sr-only">Previous amendment</span>
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button variant="secondary" size="icon" className={arrow} disabled>
-                    <IconArrowLeft />
-                  </Button>
-                )}
-                {neighbours.next ? (
-                  <Button variant="secondary" size="icon" className={arrow} asChild>
-                    <Link href={amendmentPath(neighbours.next.amendment_type, neighbours.next.number)} title={fmtAmendment(neighbours.next.amendment_type, neighbours.next.number)}>
-                      <IconArrowRight />
-                      <span className="sr-only">Next amendment</span>
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button variant="secondary" size="icon" className={arrow} disabled>
-                    <IconArrowRight />
-                  </Button>
-                )}
-              </>
-            }
-          />
-          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-            <H2>Summary</H2>
-            <p>
-              {who ? (
-                <>
-                  <Chip>{who}</Chip> offered <Chip>{name}</Chip>
-                </>
-              ) : (
-                <>
-                  <Chip>{name}</Chip> was offered
-                </>
-              )}
-              {billName ? (
-                <>
-                  {" "}
-                  to <Chip>{billName}</Chip>
-                  {bill?.title ? <>, the {bill.title.replace(/\.$/, "")},</> : null}
-                </>
-              ) : null}
-              {amendment.submitted ? <> on {fmtDate(amendment.submitted)}</> : null}
-              {amendment.purpose ? <> {amendment.purpose.charAt(0).toLowerCase() + amendment.purpose.slice(1).replace(/\.$/, "")}</> : null}.
-            </p>
-            {amendment.latest_action && (
-              <p>
-                {amendment.latest_action_date ? (
-                  <>
-                    On {fmtDate(amendment.latest_action_date)}: {amendment.latest_action}
-                  </>
-                ) : (
-                  amendment.latest_action
-                )}
-              </p>
-            )}
-            {amendment.description && amendment.description !== amendment.purpose && <p>{amendment.description}</p>}
-
-            <hr />
-            <H2>Record</H2>
-            <p>
-              <Chip>{name}</Chip> has {fmtNumber(cosponsors.length)} {cosponsors.length === 1 ? "co-sponsor" : "co-sponsors"}, {fmtNumber(actions.length)} {actions.length === 1 ? "action" : "actions"} and {fmtNumber(texts.length)} text{" "}
-              {texts.length === 1 ? "version" : "versions"} on the record.
-            </p>
-            <AmendmentTextBlock texts={texts} who={name} source={source} />
-            <AmendmentSponsors rows={sponsorRows} who={name} />
-            <AmendmentActions actions={actions} who={name} />
-
-          </div>
-          {(neighbours.previous || neighbours.next) && (
-            <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-              {neighbours.previous && (
-                <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                  <Link href={amendmentPath(neighbours.previous.amendment_type, neighbours.previous.number)}>
-                    <IconArrowLeft /> {fmtAmendment(neighbours.previous.amendment_type, neighbours.previous.number)}
-                  </Link>
-                </Button>
-              )}
-              {neighbours.next && (
-                <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                  <Link href={amendmentPath(neighbours.next.amendment_type, neighbours.next.number)}>
-                    {fmtAmendment(neighbours.next.amendment_type, neighbours.next.number)} <IconArrowRight />
-                  </Link>
-                </Button>
-              )}
-            </div>
+    <DocsPage
+      title={name}
+      description={amendment.purpose ?? amendment.description ?? "An amendment before Congress."}
+      page={markdown}
+      lead={<RecordFacts meta={facts} />}
+      slug={amendmentPath(amendment.type, amendment.number)}
+      previous={neighbours.previous ? { name: fmtAmendment(neighbours.previous.amendment_type, neighbours.previous.number), url: pathOf(neighbours.previous) } : { name: "Amendments", url: "/amendments" }}
+      next={neighbours.next ? { name: fmtAmendment(neighbours.next.amendment_type, neighbours.next.number), url: pathOf(neighbours.next) } : undefined}
+      rail={<AmendmentToc parts={parts} />}
+    >
+      <H2>Summary</H2>
+      <p>
+        {who ? (
+          <>
+            <Chip>{who}</Chip> offered <Chip>{name}</Chip>
+          </>
+        ) : (
+          <>
+            <Chip>{name}</Chip> was offered
+          </>
+        )}
+        {billName ? (
+          <>
+            {" "}
+            to <Chip>{billName}</Chip>
+            {bill?.title ? <>, the {bill.title.replace(/\.$/, "")},</> : null}
+          </>
+        ) : null}
+        {amendment.submitted ? <> on {fmtDate(amendment.submitted)}</> : null}
+        {amendment.purpose ? <> {amendment.purpose.charAt(0).toLowerCase() + amendment.purpose.slice(1).replace(/\.$/, "")}</> : null}.
+      </p>
+      {amendment.latest_action && (
+        <p>
+          {amendment.latest_action_date ? (
+            <>
+              On {fmtDate(amendment.latest_action_date)}: {amendment.latest_action}
+            </>
+          ) : (
+            amendment.latest_action
           )}
-          <BackToTop />
-        </div>
-      </div>
-      <RightRailSheet>
-        <AmendmentToc parts={parts} />
-        <PublicRail />
-      </RightRailSheet>
-    </div>
+        </p>
+      )}
+      {amendment.description && amendment.description !== amendment.purpose && <p>{amendment.description}</p>}
+
+      <hr />
+      <H2>Record</H2>
+      <p>
+        <Chip>{name}</Chip> has {fmtNumber(cosponsors.length)} {cosponsors.length === 1 ? "co-sponsor" : "co-sponsors"}, {fmtNumber(actions.length)} {actions.length === 1 ? "action" : "actions"} and {fmtNumber(texts.length)} text{" "}
+        {texts.length === 1 ? "version" : "versions"} on the record.
+      </p>
+      <AmendmentTextBlock texts={texts} who={name} source={source} />
+      <AmendmentSponsors rows={sponsorRows} who={name} />
+      <AmendmentActions actions={actions} who={name} />
+    </DocsPage>
   )
 }

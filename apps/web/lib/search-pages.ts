@@ -17,8 +17,14 @@ export const SEARCH_PAGES: SearchPage[] = [
   // The landing page is not a page to find (Brendan, 2026-09-13): the list sits under a Pages heading already.
 ].filter((page, index, all) => page.href !== "/" && all.findIndex((other) => other.href === page.href) === index)
 
-export function matchPages(term: string, limit = 6) {
+// The ⌘K menu's pages (Brendan, 2026-09-20): these fifteen and no others, A to
+// Z, before a word is typed and after. /search still matches every page.
+const MENU_HREFS = ["/bills", "/calendar", "/changelog", "/chat", "/committees", "/workspace/dashboard", "/docs/datasets", "/hearings", "/laws", "/legislative-subjects", "/map", "/policy-areas", "/roll-call-votes", "/simulator", "/sources"]
+
+export const MENU_PAGES: SearchPage[] = SEARCH_PAGES.filter((page) => MENU_HREFS.includes(page.href)).sort((a, b) => a.name.localeCompare(b.name))
+
+export function matchPages(term: string, limit = 6, pages: SearchPage[] = SEARCH_PAGES) {
   const t = term.trim().toLowerCase()
   if (!t) return []
-  return SEARCH_PAGES.filter((p) => p.name.toLowerCase().includes(t) || (p.description ?? "").toLowerCase().includes(t)).slice(0, limit)
+  return pages.filter((p) => p.name.toLowerCase().includes(t) || (p.description ?? "").toLowerCase().includes(t)).slice(0, limit)
 }

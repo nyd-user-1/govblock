@@ -6,6 +6,7 @@ import { Badge } from "@govblock/ui/components/nova/badge"
 import { Button } from "@govblock/ui/components/nova/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 import { cn } from "@govblock/ui/lib/utils"
+import { WidePage } from "@/components/wide-page"
 
 // /pricing (Brendan, 2026-09-13). Four plans, per seat, and the table under
 // them. The prices are Brendan's floor: the market checked the same day —
@@ -13,6 +14,9 @@ import { cn } from "@govblock/ui/lib/utils"
 // for one state and $420 for all of them with unlimited users, Quorum and
 // FiscalNote unpublished and quoted higher — sits under it, so the floor
 // stands. Checkout is not wired: every button goes to the account.
+//
+// On WidePage (Brendan, 2026-09-20), the account home's width: four plans and
+// their table want more than DocsPage's column and less than the whole window.
 export const metadata: Metadata = { title: "Pricing", description: "Congress and your home state are free. A plan opens the rest, one state at a time or all fifty." }
 
 const STATE_ADD_ON = 49
@@ -58,9 +62,9 @@ function Cell({ value }: { value: string | boolean }) {
 
 export default function PricingPage() {
   return (
-    <div className="container-wrapper flex flex-1 flex-col gap-16 px-6 py-16">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-4xl font-bold tracking-tight">Select a plan that opens the record you need</h1>
+    <WidePage>
+      <div className="flex flex-col gap-3 pt-6">
+        <h1 className="text-3xl font-semibold tracking-tight">Select a plan that opens the record you need</h1>
         <p className="max-w-3xl text-lg text-balance text-muted-foreground">
           Congress and your home state are free. A plan opens every other state, every session for twenty years, and the tools that read them for you. Every plan is priced per seat.{" "}
           <Link href="/pricing/api" className="underline underline-offset-4">
@@ -70,7 +74,8 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {/* Two across: four to a row left each plan 226px of the 64rem column, and "$399 per month" no room. */}
+      <div className="grid gap-6 md:grid-cols-2">
         {PLANS.map((plan) => (
           <section key={plan.name} className="flex flex-col gap-6 rounded-2xl border bg-card p-6">
             <div className="flex items-start justify-between">
@@ -136,6 +141,6 @@ export default function PricingPage() {
           </Table>
         </div>
       </div>
-    </div>
+    </WidePage>
   )
 }

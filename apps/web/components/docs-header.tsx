@@ -27,19 +27,25 @@ export const DOCS_COLUMN = "mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-co
  * rail, back-to-top circle and pager, which the root frame keeps its own of.
  * `nav` takes the prev/next arrows' place: the root section's cards and table
  * buttons (Brendan, 2026-09-18). `below` sits under the description, before
- * the rule: the root section's search bar (Brendan, the same day).
+ * the rule: the root section's search bar (Brendan, the same day). `media` is
+ * the variant with an emblem before the name, as RecordHeader's seal stands
+ * before a member (Brendan, 2026-09-20): a jurisdiction's hub puts its flag
+ * there. `page` is the markdown Copy Page hands over where the name and the
+ * sub-header are not the whole of it — a record's facts, its latest action
+ * (Brendan, 2026-09-20).
  */
-export function DocsHeader({ title, description, lead, slug, previous, next, actions, nav, below }: { title: string; description: string; lead?: React.ReactNode; slug: string; previous?: DocsLink; next?: DocsLink; actions?: React.ReactNode; nav?: React.ReactNode; below?: React.ReactNode }) {
+export function DocsHeader({ title, description, page, lead, slug, previous, next, actions, nav, below, media, picker, menu }: { /** The page's own entries in Copy page's menu, where it has no picker: the simulator's tour and map (2026-09-20). */ menu?: React.ReactNode[]; /** The markdown Copy Page hands over; the name and the sub-header when nothing is passed. */ page?: string; /** Copy page's group as a picker: its word and its entries (a jurisdiction's charts and their sessions, 2026-09-20). */ picker?: { label: string; menu: React.ReactNode[] }; title: string; description: string; lead?: React.ReactNode; slug: string; previous?: DocsLink; next?: DocsLink; actions?: React.ReactNode; nav?: React.ReactNode; below?: React.ReactNode; /** The emblem before the name — a flag, a seal — at RecordHeader's RECORD_MEDIA height. */ media?: React.ReactNode }) {
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-2">
+      <div className={media ? "flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6" : "flex flex-col gap-2"}>
+        {media}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex items-center justify-between md:items-start">
             <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
             <div className="docs-nav flex items-center gap-2">
               {actions}
               <div className="hidden sm:block">
-                <DocsCopyPage page={`# ${title}\n\n${description}`} url={`https://gov.nysgpt.com${slug}`} />
+                <DocsCopyPage page={page ?? `# ${title}\n\n${description}`} url={`https://gov.nysgpt.com${slug}`} label={picker?.label} menu={picker?.menu ?? menu} />
               </div>
               <div className="ml-auto flex gap-2">
                 {nav ?? (

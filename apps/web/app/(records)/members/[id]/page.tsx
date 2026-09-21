@@ -1,8 +1,7 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
 import Link from "next/link"
+import { IconArrowRight } from "@tabler/icons-react"
 import { notFound } from "next/navigation"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { ScopeMark } from "@/components/scope-mark"
@@ -27,12 +26,10 @@ import { congressName } from "@/lib/policy/congress"
 import { getLobbyingOnBills, getRevolvingDoor, sponsoredKeys } from "@/lib/policy/lobbying-queries"
 import { getMemberElections } from "@/lib/policy/election-queries"
 import { MemberElections } from "@/components/policy/member-elections"
-import { BackToTop } from "@/components/back-to-top"
-import { Button } from "@govblock/ui/components/ny4/button"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
 import { MemberFeed } from "@/components/policy/member-feed"
-import { MemberHeader, MemberIntroduction } from "@/components/policy/member-page"
+import { DocsPage } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
+import { memberHead, MemberIntroduction } from "@/components/policy/member-page"
 import { MemberCommittees } from "@/components/policy/member-committees"
 import { MemberOffices, MemberStaff } from "@/components/policy/member-directory"
 import { officePlaces } from "@/lib/policy/office-places"
@@ -169,217 +166,162 @@ export default async function MemberRoute({ params, searchParams }: Props) {
   const description = [member.leadership_title ? String(member.leadership_title) : null, member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null, chamberName(state, String(member.chamber ?? ""))]
     .filter(Boolean)
     .join(" · ")
+  const heading = memberHead(member, state)
   const markdown = [`# ${title}`, "", description, "", `${record.counts.prime} prime · ${record.counts.cosponsor} co-sponsored · ${record.counts.aye} aye · ${record.counts.nay} nay`].join("\n")
 
   return (
     <MemberCongressProvider peopleId={peopleId} bioguide={bioguide} state={state} who={title}>
       <ScopeMark state={state} entity="members" />
       <PendingSessionProvider>
-        <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="h-(--top-spacing) shrink-0" />
-            <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-              {/* The Copy Page control rides inside the header so the name
-                top-aligns with it, the way /bills does — it used to sit in
-                a row of its own with the portrait block below. */}
-              <MemberHeader
-                peopleId={peopleId}
-                state={state}
-                member={member}
-                action={
-                  <div className="docs-nav flex items-center gap-2">
-                    <div className="hidden sm:block">
-                      <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/members/${peopleId}`} />
-                    </div>
-                    {/* The arrows the index pages carry beside Copy Page, walking to
-                      the previous and next sitting member (Brendan, 2026-09-05). */}
-                    {(neighbours.previous || neighbours.next) && (
-                      <div className="ml-auto flex gap-2">
-                        {neighbours.previous && (
-                          <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
-                            <Link href={`/members/${neighbours.previous.people_id}?state=${state}`}>
-                              <IconArrowLeft />
-                              <span className="sr-only">Previous</span>
-                            </Link>
-                          </Button>
-                        )}
-                        {neighbours.next && (
-                          <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
-                            <Link href={`/members/${neighbours.next.people_id}?state=${state}`}>
-                              <span className="sr-only">Next</span>
-                              <IconArrowRight />
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                }
-              />
-              <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-                {/* h1 the name, h2 Summary and Record, h3 the parts — the
-                  standard on every detail page (Brendan, 2026-09-05). The
-                  Summary sentence is this session's. */}
-                {successor ? (
-                  // A retired statehouse member now in Congress: the old record sends the reader on (Brendan, 2026-09-16).
-                  <Callout className="mt-0 mb-6 border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-50">
-                    <p className="flex flex-wrap items-center justify-between gap-3">
-                      <span>
-                        {successor.name} now serves in the U.S. {successor.chamber ?? (successor.role === "Sen" ? "Senate" : "House")}
-                        {successor.district && /^HD-/.test(successor.district) ? `, ${successor.district.replace(/^HD-([A-Z]{2})-0*(\d+)$/, "$1-$2")}` : ""}.
-                      </span>
-                      <Link href={`/members/${successor.people_id}`} className="inline-flex items-center gap-1 font-medium text-emerald-700 no-underline hover:underline dark:text-emerald-300">
-                        Go to the current record <IconArrowRight className="size-4" />
-                      </Link>
-                    </p>
-                  </Callout>
-                ) : null}
-                <H2>Summary</H2>
-                <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} sessionName={sessionName} />
+        <DocsPage
+          media={heading.media}
+          title={heading.title}
+          description={description}
+          page={markdown}
+          lead={<RecordFacts meta={heading.meta} />}
+          slug={`/members/${peopleId}`}
+          previous={neighbours.previous ? { name: String(neighbours.previous.name ?? "Previous"), url: `/members/${neighbours.previous.people_id}?state=${state}` } : { name: "Members", url: `/members?state=${state}` }}
+          next={neighbours.next ? { name: String(neighbours.next.name ?? "Next"), url: `/members/${neighbours.next.people_id}?state=${state}` } : undefined}
+          rail={<MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} prior={priorOffices.length > 0} biography={!!biography} elections={elections.length > 0} />}
+        >
+          <span className="sr-only">{peopleId}</span>
+          {/* h1 the name, h2 Summary and Record, h3 the parts — the
+            standard on every detail page (Brendan, 2026-09-05). The
+            Summary sentence is this session's. */}
+          {successor ? (
+            // A retired statehouse member now in Congress: the old record sends the reader on (Brendan, 2026-09-16).
+            <Callout className="mt-0 mb-6 border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-50">
+              <p className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  {successor.name} now serves in the U.S. {successor.chamber ?? (successor.role === "Sen" ? "Senate" : "House")}
+                  {successor.district && /^HD-/.test(successor.district) ? `, ${successor.district.replace(/^HD-([A-Z]{2})-0*(\d+)$/, "$1-$2")}` : ""}.
+                </span>
+                <Link href={`/members/${successor.people_id}`} className="inline-flex items-center gap-1 font-medium text-emerald-700 no-underline hover:underline dark:text-emerald-300">
+                  Go to the current record <IconArrowRight className="size-4" />
+                </Link>
+              </p>
+            </Callout>
+          ) : null}
+          <H2>Summary</H2>
+          <MemberIntroduction member={member} state={state} counts={record.counts} terms={terms} sessionName={sessionName} />
 
-                <hr />
-                <H2>Record</H2>
-                <p>
-                  <Chip>{title}</Chip> {retired ? "was" : "is"} the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of <Figure>{fmtNumber(record.counts.cosponsor)}</Figure>{" "}
-                  {inSession}.
-                </p>
-                <H3>Bills</H3>
-                <PreviewFrame>
-                  <MemberTabs
-                    menu={<SessionsMenu sessions={sessionOptions} current={session} />}
-                    tabs={[
-                      {
-                        value: "prime",
-                        label: "Sponsored",
-                        emoji: "😀",
-                        count: record.counts.prime,
-                        content: <MemberFeed bills={record.prime} total={record.counts.prime} state={state} peopleId={peopleId} session={session} kind="prime" pageSize={5} empty={`${name} ${retired ? "sponsored" : "has sponsored"} nothing ${inSession}.`} />,
-                      },
-                      {
-                        value: "cosponsor",
-                        label: "Co-Sponsored",
-                        emoji: "🤝",
-                        count: record.counts.cosponsor,
-                        content: (
-                          <MemberFeed bills={record.cosponsor} total={record.counts.cosponsor} state={state} peopleId={peopleId} session={session} kind="cosponsor" pageSize={5} empty={`${name} ${retired ? "co-sponsored" : "has co-sponsored"} nothing ${inSession}.`} />
-                        ),
-                      },
-                    ]}
-                  />
-                </PreviewFrame>
+          <hr />
+          <H2>Record</H2>
+          <p>
+            <Chip>{title}</Chip> {retired ? "was" : "is"} the prime sponsor of <Figure>{fmtNumber(record.counts.prime)}</Figure> {record.counts.prime === 1 ? "bill" : "bills"} and a co-sponsor of <Figure>{fmtNumber(record.counts.cosponsor)}</Figure>{" "}
+            {inSession}.
+          </p>
+          <H3>Bills</H3>
+          <PreviewFrame>
+            <MemberTabs
+              menu={<SessionsMenu sessions={sessionOptions} current={session} />}
+              tabs={[
+                {
+                  value: "prime",
+                  label: "Sponsored",
+                  emoji: "😀",
+                  count: record.counts.prime,
+                  content: <MemberFeed bills={record.prime} total={record.counts.prime} state={state} peopleId={peopleId} session={session} kind="prime" pageSize={5} empty={`${name} ${retired ? "sponsored" : "has sponsored"} nothing ${inSession}.`} />,
+                },
+                {
+                  value: "cosponsor",
+                  label: "Co-Sponsored",
+                  emoji: "🤝",
+                  count: record.counts.cosponsor,
+                  content: (
+                    <MemberFeed bills={record.cosponsor} total={record.counts.cosponsor} state={state} peopleId={peopleId} session={session} kind="cosponsor" pageSize={5} empty={`${name} ${retired ? "co-sponsored" : "has co-sponsored"} nothing ${inSession}.`} />
+                  ),
+                },
+              ]}
+            />
+          </PreviewFrame>
 
-                <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
-                <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
-                <LobbyingScopeBlock data={lobbying} revolving={revolving} who={title} what="sponsored by" />
-                <MemberPress peopleId={peopleId} />
+          <MemberCommittees committees={committees} counts={committeeCounts} who={title} menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
+          <MemberFinance totals={(fec?.totals ?? []).map((row) => ({ ...row, fecId: fecId }))} />
+          <LobbyingScopeBlock data={lobbying} revolving={revolving} who={title} what="sponsored by" />
+          <MemberPress peopleId={peopleId} />
 
-                <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
+          <MemberVotes menu={<SessionsMenu sessions={sessionOptions} current={session} />} />
 
-                <H3>Votes</H3>
-                <p>
-                  <Chip>{title}</Chip> {retired ? "voted" : "has voted"} Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> {inSession}.
-                </p>
-                <PreviewFrame>
-                  <MemberTabs
-                    // Their whole record as a PDF, at the block's top right beside the Sessions menu (Brendan, 2026-09-06).
-                    menu={
-                      <>
-                        <VoteRecordPdf peopleId={peopleId} state={state} who={title} seat={description} />
-                        <SessionsMenu sessions={sessionOptions} current={session} />
-                      </>
+          <H3>Votes</H3>
+          <p>
+            <Chip>{title}</Chip> {retired ? "voted" : "has voted"} Yes on <Figure>{fmtNumber(record.counts.aye)}</Figure> bills and No on <Figure>{fmtNumber(record.counts.nay)}</Figure> {inSession}.
+          </p>
+          <PreviewFrame>
+            <MemberTabs
+              // Their whole record as a PDF, at the block's top right beside the Sessions menu (Brendan, 2026-09-06).
+              menu={
+                <>
+                  <VoteRecordPdf peopleId={peopleId} state={state} who={title} seat={description} />
+                  <SessionsMenu sessions={sessionOptions} current={session} />
+                </>
+              }
+              tabs={[
+                {
+                  value: "aye",
+                  label: "Aye",
+                  emoji: "✅",
+                  count: record.counts.aye,
+                  content: <MemberFeed bills={record.aye} total={record.counts.aye} vote="Aye" state={state} peopleId={peopleId} session={session} kind="aye" pageSize={5} empty={`No recorded aye votes ${inSession}.`} />,
+                },
+                {
+                  value: "nay",
+                  label: "Nay",
+                  emoji: "❌",
+                  count: record.counts.nay,
+                  content: <MemberFeed bills={record.nay} total={record.counts.nay} vote="Nay" state={state} peopleId={peopleId} session={session} kind="nay" pageSize={5} empty={`No recorded nay votes ${inSession}.`} />,
+                },
+              ]}
+            />
+          </PreviewFrame>
+
+          <MemberElections elections={elections} who={title} />
+
+          <MemberContact senate={directory?.senate ?? null} sub={!!(directory?.offices.length || directory?.staff.length)} places={officePlaces(directory?.offices ?? [])} />
+          {directory && <MemberOffices offices={directory.offices} />}
+          {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
+          {priorOffices.length ? (
+            <>
+              <H2>Prior Office</H2>
+              {priorOffices.map((prior) => (
+                // The office they held before, where we hold that record (Brendan, 2026-09-16).
+                <Callout key={prior.people_id} className="mt-4">
+                  <p className="flex flex-wrap items-center justify-between gap-3">
+                    <span>
+                      {prior.name} served in the {chamberName(prior.state, prior.chamber ?? (prior.role === "Sen" ? "Senate" : "House"))}
+                      {prior.last_session ? `, through ${sessionLabel(prior.last_session, prior.session_title)}` : ""}.
+                    </span>
+                    <Link href={`/members/${prior.people_id}`} className="inline-flex items-center gap-1 font-medium text-foreground no-underline hover:underline">
+                      Go to the prior record <IconArrowRight className="size-4" />
+                    </Link>
+                  </p>
+                </Callout>
+              ))}
+            </>
+          ) : null}
+
+          {biography && (
+            <>
+              <hr />
+              <H2>Biography</H2>
+              <p>
+                The official biography on file for <Chip>{title}</Chip>
+                {member.bio_url ? (
+                  <>
+                    , from{" "}
+                    {
+                      String(member.bio_url)
+                        .replace(/^https?:\/\//, "")
+                        .split("/")[0]
                     }
-                    tabs={[
-                      {
-                        value: "aye",
-                        label: "Aye",
-                        emoji: "✅",
-                        count: record.counts.aye,
-                        content: <MemberFeed bills={record.aye} total={record.counts.aye} vote="Aye" state={state} peopleId={peopleId} session={session} kind="aye" pageSize={5} empty={`No recorded aye votes ${inSession}.`} />,
-                      },
-                      {
-                        value: "nay",
-                        label: "Nay",
-                        emoji: "❌",
-                        count: record.counts.nay,
-                        content: <MemberFeed bills={record.nay} total={record.counts.nay} vote="Nay" state={state} peopleId={peopleId} session={session} kind="nay" pageSize={5} empty={`No recorded nay votes ${inSession}.`} />,
-                      },
-                    ]}
-                  />
-                </PreviewFrame>
-
-                <MemberElections elections={elections} who={title} />
-
-                <MemberContact senate={directory?.senate ?? null} sub={!!(directory?.offices.length || directory?.staff.length)} places={officePlaces(directory?.offices ?? [])} />
-                {directory && <MemberOffices offices={directory.offices} />}
-                {directory && <MemberStaff staff={directory.staff} offices={directory.offices} who={title} surname={String(member.last_name ?? "")} />}
-                {priorOffices.length ? (
-                  <>
-                    <H2>Prior Office</H2>
-                    {priorOffices.map((prior) => (
-                      // The office they held before, where we hold that record (Brendan, 2026-09-16).
-                      <Callout key={prior.people_id} className="mt-4">
-                        <p className="flex flex-wrap items-center justify-between gap-3">
-                          <span>
-                            {prior.name} served in the {chamberName(prior.state, prior.chamber ?? (prior.role === "Sen" ? "Senate" : "House"))}
-                            {prior.last_session ? `, through ${sessionLabel(prior.last_session, prior.session_title)}` : ""}.
-                          </span>
-                          <Link href={`/members/${prior.people_id}`} className="inline-flex items-center gap-1 font-medium text-foreground no-underline hover:underline">
-                            Go to the prior record <IconArrowRight className="size-4" />
-                          </Link>
-                        </p>
-                      </Callout>
-                    ))}
                   </>
                 ) : null}
-
-                {biography && (
-                  <>
-                    <hr />
-                    <H2>Biography</H2>
-                    <p>
-                      The official biography on file for <Chip>{title}</Chip>
-                      {member.bio_url ? (
-                        <>
-                          , from{" "}
-                          {
-                            String(member.bio_url)
-                              .replace(/^https?:\/\//, "")
-                              .split("/")[0]
-                          }
-                        </>
-                      ) : null}
-                      .
-                    </p>
-                    <p>{biography}</p>
-                  </>
-                )}
-              </div>
-              {(neighbours.previous || neighbours.next) && (
-                <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-                  {neighbours.previous && (
-                    <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                      <Link href={`/members/${neighbours.previous.people_id}?state=${state}`}>
-                        <IconArrowLeft /> {honorific(neighbours.previous.role ?? "", neighbours.previous.chamber ?? "")} {neighbours.previous.name}
-                      </Link>
-                    </Button>
-                  )}
-                  {neighbours.next && (
-                    <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                      <Link href={`/members/${neighbours.next.people_id}?state=${state}`}>
-                        {honorific(neighbours.next.role ?? "", neighbours.next.chamber ?? "")} {neighbours.next.name} <IconArrowRight />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              )}
-              <BackToTop />
-            </div>
-          </div>
-          <RightRailSheet>
-            <MemberToc record={sessionName} finance={!!fec?.totals.length} lobbying={!!lobbying} committees={committees.length > 0} contact={!!directory?.senate} offices={!!directory?.offices.length} staff={!!directory?.staff.length} prior={priorOffices.length > 0} biography={!!biography} elections={elections.length > 0} />
-            <PublicRail />
-          </RightRailSheet>
-        </div>
+                .
+              </p>
+              <p>{biography}</p>
+            </>
+          )}
+        </DocsPage>
       </PendingSessionProvider>
     </MemberCongressProvider>
   )

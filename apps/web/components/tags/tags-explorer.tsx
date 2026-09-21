@@ -16,8 +16,9 @@ import { cn } from "@govblock/ui/lib/utils"
 
 export type TagRow = { slug: string; name: string; total: number }
 
-const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
-const letterOf = (name: string) => {
+export const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
+/** The section a tag falls under: its first letter, or # for anything else. */
+export const letterOf = (name: string) => {
   const first = name.charAt(0).toUpperCase()
   return /[A-Z]/.test(first) ? first : "#"
 }
@@ -45,7 +46,7 @@ function Column({ title, rows }: { title: string; rows: TagRow[] }) {
   )
 }
 
-const letterId = (letter: string) => `letter-${letter === "#" ? "other" : letter.toLowerCase()}`
+export const letterId = (letter: string) => `letter-${letter === "#" ? "other" : letter.toLowerCase()}`
 
 /** The letter copies a link to its own section; the copy icon shows on hover. */
 function LetterHeading({ letter }: { letter: string }) {

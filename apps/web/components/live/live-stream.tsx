@@ -12,7 +12,6 @@ import { BackToTop } from "@/components/back-to-top"
 import { FlagLoader } from "@/components/flag-loader"
 import { ChamberSeal, FlagChip, MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Card, CardContent, CardHeader } from "@govblock/ui/components/nova/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +33,11 @@ import { cn } from "@govblock/ui/lib/utils"
 // the same frame, so nothing jumps. A pointer over the stream, or a row's menu
 // open, holds it still. On hover a row's time gives way to its menu, as a
 // conversation's date does in Claude's chat list.
+//
+// No card of its own (Brendan, 2026-09-20): the stream was a bordered table
+// inside the workspace's pane, one container too many. The rows fill the pane
+// now, and the stream's light, its name and its pause and clear are handed to
+// whoever frames it (`shell`), which puts them in the pane's own header.
 
 /** 32px a second, the glide Brendan approved on 2026-09-15. */
 const SPEED = 32 / 1000
@@ -68,7 +72,10 @@ const ACTIONS = [
 
 type Line = LiveEvent & { id: string }
 
-export function LiveStream({ events, jurisdiction }: { events: LiveEvent[] | undefined; jurisdiction: string | null }) {
+/** The stream in three parts, for the frame that draws it: the light and the name, the pause and clear, and the rows. */
+export type LiveStreamParts = { title: React.ReactNode; tools: React.ReactNode; body: React.ReactNode }
+
+export function LiveStream({ events, jurisdiction, shell }: { events: LiveEvent[] | undefined; jurisdiction: string | null; shell: (parts: LiveStreamParts) => React.ReactNode }) {
   const [lines, setLines] = React.useState<Line[]>([])
   const [paused, setPaused] = React.useState(false)
   const [hovered, setHovered] = React.useState(false)
@@ -153,31 +160,33 @@ export function LiveStream({ events, jurisdiction }: { events: LiveEvent[] | und
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [still, loop, matches])
 
-  return (
-    <Card className="flex h-full flex-col gap-0 pt-3 pb-0">
-      <CardHeader className="flex items-center justify-between space-y-0 border-b px-4 pb-3!">
-        <div className="flex items-center gap-3 whitespace-nowrap">
-          {/* The stream's own light, where the terminal glyph was (Brendan, 2026-09-15). */}
-          <span className={cn("size-1.25 rounded-full", still ? "bg-foreground/15" : "animate-pulse bg-green-500")} />
-          <CardAnchor>Live Stream</CardAnchor>
-        </div>
-        <CardTools className="gap-0">
-          <Button variant="ghost" size="icon-sm" onClick={() => setPaused((p) => !p)} aria-label={paused ? "Resume" : "Pause"}>
-            {paused ? <PlayIcon className="size-4" /> : <PauseIcon className="size-4" />}
-          </Button>
-          <Button aria-label="Clear" variant="destructive" className="bg-transparent" size="icon-sm" onClick={() => setLines([])}>
-            <Trash2Icon className="size-4" />
-          </Button>
-        </CardTools>
-      </CardHeader>
-      <CardContent className="min-h-0 grow px-1.5 pt-0">
+  const title = (
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      {/* The stream's own light, where the terminal glyph was (Brendan, 2026-09-15). */}
+      <span className={cn("size-1.25 rounded-full", still ? "bg-foreground/15" : "animate-pulse bg-green-500")} />
+      <CardAnchor>Live Stream</CardAnchor>
+    </div>
+  )
+  const tools = (
+    <CardTools className="gap-0">
+      <Button variant="ghost" size="icon-sm" onClick={() => setPaused((p) => !p)} aria-label={paused ? "Resume" : "Pause"}>
+        {paused ? <PlayIcon className="size-4" /> : <PauseIcon className="size-4" />}
+      </Button>
+      <Button aria-label="Clear" variant="destructive" className="bg-transparent" size="icon-sm" onClick={() => setLines([])}>
+        <Trash2Icon className="size-4" />
+      </Button>
+    </CardTools>
+  )
+  const body = (
+      <div className="h-full min-h-0 w-full px-1.5">
         {lines.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-3 py-4 text-muted-foreground">
             <FlagLoader width={96} />
             <span>{events && !loop.length ? "No events in the last seven days on file." : "Waiting for the first event..."}</span>
           </div>
         )}
-        <ScrollArea ref={scrollRef} className="flex h-full flex-col" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+        {/* Radix lays the viewport's content out as a table, as wide as its widest row, so a long line ran off the pane's edge and was never cut (Brendan, 2026-09-20). As a block it is the pane's width, and a row's text truncates inside it. */}
+        <ScrollArea ref={scrollRef} className="flex h-full flex-col [&_[data-slot=scroll-area-viewport]>div]:block!" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
           <div ref={listRef} style={{ transform: `translate3d(0, ${-BUFFER * ROW}px, 0)`, willChange: "transform" }}>
             {lines.map((line) => {
               const failed = line.kind === "vote" && /fail|reject|not agreed|veto/i.test(line.text)
@@ -240,10 +249,12 @@ export function LiveStream({ events, jurisdiction }: { events: LiveEvent[] | und
                       )
                     )}
                   </span>
-                  <span className="grow truncate text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
                     {bill && <span className="text-foreground">{bill}</span>}
                     {bill && " · "}
                     {line.text}
+                    {/* What the bill does, on every row (Brendan, 2026-09-20), cut where the row ends; a floor line that already quotes the title says it once. */}
+                    {line.title && !line.text.includes(line.title) && ` · ${line.title}`}
                   </span>
                   {line.yea != null && (
                     <span className={cn("min-w-12 shrink-0 text-end text-xs whitespace-nowrap text-muted-foreground tabular-nums", failed && "text-destructive")}>
@@ -252,11 +263,11 @@ export function LiveStream({ events, jurisdiction }: { events: LiveEvent[] | und
                   )}
                 </>
               )
-              // ROW tall, exactly (the glide counts on it), the 1px rules inside that height.
-              const className = cn(
-                "group flex h-13 items-center gap-3 rounded-md border-y border-transparent px-2.5 text-sm no-underline hover:border-border hover:bg-accent",
-                open && "border-border bg-accent"
-              )
+              // A 1px rule over and under every row (Brendan, 2026-09-20). Each row is a pixel taller than ROW and pulled
+              // up a pixel, so its top rule lies on the bottom rule of the row above — one line between rows, not two —
+              // and the rows still step ROW apart, exactly, which the glide counts on. Square, since a rule that ends in
+              // a rounded corner curls.
+              const className = cn("group -mt-px flex h-[53px] items-center gap-3 border-y border-border px-2.5 text-sm no-underline hover:bg-accent", open && "bg-accent")
               return line.bill_id ? (
                 <a key={line.id} href={`/bills/${line.bill_id}`} title={line.title ?? undefined} className={className}>
                   {row}
@@ -270,7 +281,7 @@ export function LiveStream({ events, jurisdiction }: { events: LiveEvent[] | und
           </div>
           <BackToTop scroller={viewport} />
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
   )
+  return shell({ title, tools, body })
 }

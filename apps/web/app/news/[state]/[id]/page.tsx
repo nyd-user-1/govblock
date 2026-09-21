@@ -4,7 +4,6 @@ import { notFound } from "next/navigation"
 import { isJurisdiction, stateName } from "@/lib/filters"
 import { fmtLongDate } from "@/lib/format"
 import { getStory } from "@/lib/policy/news"
-import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
 
 // One story, on the docs page (Brendan, 2026-09-09: "for the articles
@@ -60,7 +59,7 @@ export default async function StoryPage({
       slug={`${desk}/${story.id}`}
       previous={{ name: stateName(code), url: desk }}
       next={{ name: "News", url: "/news" }}
-      rail={<CalendarCard compact />}
+     
     >
       <p className="text-sm text-muted-foreground">
         {source}

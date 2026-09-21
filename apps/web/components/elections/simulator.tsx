@@ -10,8 +10,6 @@ import { Button as NovaButton } from "@govblock/ui/components/nova/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { cn } from "@govblock/ui/lib/utils"
 
-import { PublicRail } from "@/components/block-card"
-import { DocsCopyPage } from "@/components/docs-copy-page"
 import { DocsTableOfContents } from "@/components/docs-toc"
 import { Chamber, type ChamberRule, type ChamberSubject, type Reading } from "@/components/elections/chamber"
 import { RankedChoice, type ContestSummary } from "@/components/elections/ranked-choice"
@@ -19,8 +17,8 @@ import { TopTwo, raceName, type Pool, type RaceSubject, type TopTwoYear } from "
 import { Tour, type TourStep } from "@/components/elections/tour"
 import { FlagChip } from "@/components/policy/imagery"
 import { PreviewFrame } from "@/components/preview-frame"
-import { RightRailSheet } from "@/components/rail-sheet"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { DocsPage, NAV_BUTTON } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
 import { H2, H3 } from "@/components/typeset"
 import { chamberName, type PrimaryRace } from "@/lib/elections/seats"
 import { STATE_NAMES, stateName } from "@/lib/filters"
@@ -158,8 +156,9 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
     }
   }, [])
 
-  const [href, setHref] = React.useState("https://gov.nysgpt.com/simulator")
-  React.useEffect(() => setHref(`https://gov.nysgpt.com/simulator${window.location.search}`), [chamber, rule, contest, race, pool])
+  // The link Copy page hands over is the reader's own view, filters and all.
+  const [path, setPath] = React.useState("/simulator")
+  React.useEffect(() => setPath(`/simulator${window.location.search}`), [chamber, rule, contest, race, pool])
   const stepCase = (by: 1 | -1) => {
     const i = (caseIndex + by + cases.length) % cases.length
     if (cases[i]) openCase(cases[i], i)
@@ -185,150 +184,136 @@ export function Simulator({ contests, years, house, chambers }: { contests: Cont
   const chamberTitle = chamber ? (chamber.st === "US" ? "U.S. House" : `${STATE_NAMES[chamber.st] ?? chamber.st} ${chamberName(chamber.st, chamber.office)}`) : ""
 
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full" style={{ "--party-d": PARTY_COLORS.D, "--party-r": PARTY_COLORS.R } as React.CSSProperties}>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-          <RecordHeader
-            media={<FlagChip state="US" width={Math.round(RECORD_MEDIA * 1.5)} className="rounded-lg" />}
-            title="Simulator"
-            meta={["Open v. Close Primaries"]}
-            action={
-              <>
-                <DocsCopyPage
-                  page={`# Open Primary Simulator\n\n${href}`}
-                  url={href}
-                  menu={[
-                    <button key="tour" type="button" onClick={() => setTour(true)}>
-                      Page tour
-                    </button>,
-                    <Link key="map" href="/simulator/map">
-                      Map
-                    </Link>,
-                  ]}
-                />
-                <div className="ml-auto flex gap-2">
-                  <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" onClick={() => stepCase(-1)} aria-label="Previous case">
-                    <IconArrowLeft />
-                  </Button>
-                  <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" onClick={() => stepCase(1)} aria-label="Next case">
-                    <IconArrowRight />
-                  </Button>
-                </div>
-              </>
-            }
-          />
-          <div className="typeset w-full flex-1">
-            {/* h2 Summary, then the three pairs and the case studies as h3 sub-sections; each pair is a claim, its chart, and the table of what it can open. */}
-            <H2>Summary</H2>
-            <p>
-              Most seats in Congress and the statehouses are settled before November, in a party primary. In the 2022 U.S. House, <code>288</code> of <code>435</code> were, in primaries that <code>19.8 million</code> people voted in: <code>8%</code> of voting-age citizens. The three charts below test what one open primary, and a ranked-choice count, would have changed, from the real votes.
-            </p>
+    <DocsPage
+      title="Simulator"
+      description="Open v. Close Primaries"
+      page={`# Open Primary Simulator\n\nhttps://gov.nysgpt.com${path}`}
+      lead={<RecordFacts meta={["Open v. Close Primaries"]} />}
+      slug={path}
+      menu={[
+        <button key="tour" type="button" onClick={() => setTour(true)}>
+          Page tour
+        </button>,
+        <Link key="map" href="/simulator/map">
+          Map
+        </Link>,
+      ]}
+      nav={
+        <>
+          <Button variant="secondary" size="icon" className={NAV_BUTTON} onClick={() => stepCase(-1)} aria-label="Previous case">
+            <IconArrowLeft />
+          </Button>
+          <Button variant="secondary" size="icon" className={NAV_BUTTON} onClick={() => stepCase(1)} aria-label="Next case">
+            <IconArrowRight />
+          </Button>
+        </>
+      }
+      style={{ "--party-d": PARTY_COLORS.D, "--party-r": PARTY_COLORS.R } as React.CSSProperties}
+      rail={<DocsTableOfContents toc={toc} />}
+    >
+      {/* h2 Summary, then the three pairs and the case studies as h3 sub-sections; each pair is a claim, its chart, and the table of what it can open. */}
+      <H2>Summary</H2>
+      <p>
+        Most seats in Congress and the statehouses are settled before November, in a party primary. In the 2022 U.S. House, <code>288</code> of <code>435</code> were, in primaries that <code>19.8 million</code> people voted in: <code>8%</code> of voting-age citizens. The three charts below test what one open primary, and a ranked-choice count, would have changed, from the real votes.
+      </p>
 
-            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
-            <H3 className="mt-0">Chambers</H3>
-            <p data-tour="chamber-sentence">
-              {chamber && (
-                <>
-                  <FlagChip state={chamber.st} width={18} className="mr-1.5 inline-block align-[-3px]" />
-                  <b>{chamberTitle}</b>, {chamber.year}.{" "}
-                </>
-              )}
-              {sentences.chamber}
-            </p>
-            <div data-tour="chamber-ring">
-              <PreviewFrame>
-                {chamber && (
-                  <Chamber
-                    subject={chamber}
-                    rule={rule}
-                    onRule={setRule}
-                    years={sessionYears}
-                    onYear={(y) => {
-                      const s = chamberSubject(chamber.st, chamber.office, y)
-                      if (s) openChamber(s, rule)
-                    }}
-                    renderSentence={say.chamber}
-                    renderReading={renderReading}
-                  />
-                )}
-              </PreviewFrame>
-            </div>
-            {reading && (
-              <div className="-mt-8 mb-12" data-not-typeset="true">
-                <div className="mb-2 text-[11px] tracking-wider text-muted-foreground uppercase">{reading.title}</div>
-                {reading.body}
-              </div>
-            )}
-            <div data-not-typeset="true" className="mb-12">
-              <ChambersTable
-                house={house}
-                chambers={chambers}
-                years={years}
-                current={chamber}
-                onOpen={(st, office, y) => {
-                  const s = chamberSubject(st, office, y)
-                  if (s) openChamber(s, "all")
-                }}
-              />
-            </div>
-
-            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
-            <H3 className="mt-0">Ranked choice</H3>
-            <p>
-              {contest && (
-                <>
-                  <FlagChip state={contest.state} width={18} className="mr-1.5 inline-block align-[-3px]" />
-                  <b>{contest.title}</b>, {number.format(contest.ballots)} ballots.{" "}
-                </>
-              )}
-              {sentences.rcv}
-            </p>
-            <div data-tour="rcv-ring">
-              <PreviewFrame>
-                {contest && <RankedChoice contest={contest} removed={removed} onRemoved={setRemoved} renderSentence={say.rcv} renderReading={noReading} picker={<RankedChoicePicker contests={contests} current={contest} onOpen={openContest} />} />}
-              </PreviewFrame>
-            </div>
-
-            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
-            <H3 className="mt-0">Primaries</H3>
-            <p>
-              {race && (
-                <>
-                  <FlagChip state={race.state} width={18} className="mr-1.5 inline-block align-[-3px]" />
-                  <b>{raceName(race)}</b>.{" "}
-                </>
-              )}
-              {sentences.race}
-            </p>
-            <div data-tour="race-ring">
-              <PreviewFrame>
-                {race && <TopTwo subject={race} pool={pool} onPool={setPool} renderSentence={say.race} renderReading={noReading} picker={<PrimariesPicker years={years} current={race} onOpen={openRace} />} />}
-              </PreviewFrame>
-            </div>
-
-            <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
-            <H3 className="mt-0">Case study</H3>
-            <ul className="mt-4 grid list-none grid-cols-6 gap-3 p-0" data-not-typeset="true" data-tour="cases">
-              {cases.map((c, i) => (
-                <li key={c.title} className={cn("m-0 p-0", i < 3 ? "col-span-3 sm:col-span-2" : "col-span-3")}>
-                  <button type="button" onClick={() => openCase(c, i)} aria-current={i === caseIndex ? "true" : undefined} className="flex h-full w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left hover:bg-muted aria-[current=true]:bg-muted">
-                    <FlagChip state={c.state} width={20} />
-                    <span className="text-sm leading-tight font-semibold text-balance">{c.title}</span>
-                    <span className="text-xs text-muted-foreground">{c.hint}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {tour && <Tour steps={steps} onDone={() => setTour(false)} />}
-        </div>
+      <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+      <H3 className="mt-0">Chambers</H3>
+      <p data-tour="chamber-sentence">
+        {chamber && (
+          <>
+            <FlagChip state={chamber.st} width={18} className="mr-1.5 inline-block align-[-3px]" />
+            <b>{chamberTitle}</b>, {chamber.year}.{" "}
+          </>
+        )}
+        {sentences.chamber}
+      </p>
+      <div data-tour="chamber-ring">
+        <PreviewFrame>
+          {chamber && (
+            <Chamber
+              subject={chamber}
+              rule={rule}
+              onRule={setRule}
+              years={sessionYears}
+              onYear={(y) => {
+                const s = chamberSubject(chamber.st, chamber.office, y)
+                if (s) openChamber(s, rule)
+              }}
+              renderSentence={say.chamber}
+              renderReading={renderReading}
+            />
+          )}
+        </PreviewFrame>
       </div>
-      <RightRailSheet>
-        <DocsTableOfContents toc={toc} />
-        <PublicRail />
-      </RightRailSheet>
-    </div>
+      {reading && (
+        <div className="-mt-8 mb-12" data-not-typeset="true">
+          <div className="mb-2 text-[11px] tracking-wider text-muted-foreground uppercase">{reading.title}</div>
+          {reading.body}
+        </div>
+      )}
+      <div data-not-typeset="true" className="mb-12">
+        <ChambersTable
+          house={house}
+          chambers={chambers}
+          years={years}
+          current={chamber}
+          onOpen={(st, office, y) => {
+            const s = chamberSubject(st, office, y)
+            if (s) openChamber(s, "all")
+          }}
+        />
+      </div>
+
+      <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+      <H3 className="mt-0">Ranked choice</H3>
+      <p>
+        {contest && (
+          <>
+            <FlagChip state={contest.state} width={18} className="mr-1.5 inline-block align-[-3px]" />
+            <b>{contest.title}</b>, {number.format(contest.ballots)} ballots.{" "}
+          </>
+        )}
+        {sentences.rcv}
+      </p>
+      <div data-tour="rcv-ring">
+        <PreviewFrame>
+          {contest && <RankedChoice contest={contest} removed={removed} onRemoved={setRemoved} renderSentence={say.rcv} renderReading={noReading} picker={<RankedChoicePicker contests={contests} current={contest} onOpen={openContest} />} />}
+        </PreviewFrame>
+      </div>
+
+      <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+      <H3 className="mt-0">Primaries</H3>
+      <p>
+        {race && (
+          <>
+            <FlagChip state={race.state} width={18} className="mr-1.5 inline-block align-[-3px]" />
+            <b>{raceName(race)}</b>.{" "}
+          </>
+        )}
+        {sentences.race}
+      </p>
+      <div data-tour="race-ring">
+        <PreviewFrame>
+          {race && <TopTwo subject={race} pool={pool} onPool={setPool} renderSentence={say.race} renderReading={noReading} picker={<PrimariesPicker years={years} current={race} onOpen={openRace} />} />}
+        </PreviewFrame>
+      </div>
+
+      <hr className="border-0 border-t border-border mt-[45px] mb-[45px]" />
+      <H3 className="mt-0">Case study</H3>
+      <ul className="mt-4 grid list-none grid-cols-6 gap-3 p-0" data-not-typeset="true" data-tour="cases">
+        {cases.map((c, i) => (
+          <li key={c.title} className={cn("m-0 p-0", i < 3 ? "col-span-3 sm:col-span-2" : "col-span-3")}>
+            <button type="button" onClick={() => openCase(c, i)} aria-current={i === caseIndex ? "true" : undefined} className="flex h-full w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left hover:bg-muted aria-[current=true]:bg-muted">
+              <FlagChip state={c.state} width={20} />
+              <span className="text-sm leading-tight font-semibold text-balance">{c.title}</span>
+              <span className="text-xs text-muted-foreground">{c.hint}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {tour && <Tour steps={steps} onDone={() => setTour(false)} />}
+    </DocsPage>
   )
 }
 

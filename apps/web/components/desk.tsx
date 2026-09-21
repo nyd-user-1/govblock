@@ -8,8 +8,6 @@ import type { Desk } from "@/lib/policy/desk"
 import { STAGES } from "@/lib/policy/desk"
 import type { NewsBrief, NewsStory } from "@/lib/policy/news"
 import type { StreamGroup } from "@/lib/policy/stream"
-import { BillsScope } from "@/components/bills-scope"
-import { CalendarCard } from "@/components/cards/calendar"
 import { DeskRefreshable } from "@/components/desk-refresh"
 import { FlagChip } from "@/components/policy/imagery"
 import { RecordItem, RecordList, RecordSeal } from "@/components/policy/record-item"
@@ -147,13 +145,6 @@ export function DeskRail({ desk, others, headlines, briefs }: { desk: Desk; othe
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <RailHeading>Calendar</RailHeading>
-        <BillsScope state={state}>
-          <CalendarCard compact />
-        </BillsScope>
       </section>
 
       <section className="flex flex-col gap-4">

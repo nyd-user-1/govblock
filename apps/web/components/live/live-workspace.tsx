@@ -4,7 +4,6 @@ import * as React from "react"
 
 import { stateName } from "@/lib/filters"
 import type { LiveEvent } from "@/lib/policy/live-stream"
-import { APP_CRUMB, PathBar } from "@/components/create/path-bar"
 import { LiveStream } from "@/components/live/live-stream"
 import { FlagChip } from "@/components/policy/imagery"
 import { BlockShell } from "@/components/policy/block-shell"
@@ -94,18 +93,16 @@ export function LiveWorkspace() {
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring ring-foreground/10 md:ring-muted dark:ring-foreground/10">
           <div className="absolute inset-0 bg-muted dark:bg-muted/30" />
           <div className="relative z-0 flex min-h-0 flex-1 flex-col bg-background">
-            <BlockShell
-              open={railOpen}
-              onOpenChange={setRailOpen}
-              rail={rail}
-              title={<PathBar crumbs={[APP_CRUMB, { label: "Live" }]} folder onGo={() => {}} />}
-              footer={footer}
-              contentClassName="overflow-hidden"
-            >
-              <div className="h-full w-full p-4">
-                <LiveStream events={events} jurisdiction={jurisdiction} />
-              </div>
-            </BlockShell>
+            {/* The stream's light and name stand where the path was, its pause and clear opposite them, and its rows fill the pane (Brendan, 2026-09-20). */}
+            <LiveStream
+              events={events}
+              jurisdiction={jurisdiction}
+              shell={({ title, tools, body }) => (
+                <BlockShell open={railOpen} onOpenChange={setRailOpen} rail={rail} title={title} actions={tools} footer={footer} contentClassName="overflow-hidden">
+                  {body}
+                </BlockShell>
+              )}
+            />
           </div>
         </div>
       </div>

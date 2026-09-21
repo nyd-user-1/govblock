@@ -11,9 +11,12 @@ import { matchesQuery } from "@/lib/search-match"
 import { portraitFor } from "@/lib/imagery"
 import { SearchDirectory } from "@/components/directory-search"
 import { ListPager, PAGE_SIZE, pageCount } from "@/components/list-pager"
-import { MemberPortrait } from "@/components/policy/imagery"
+import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
 import { LoadingFlag } from "@/components/loading-flag"
 import { IndexEntries, useIndexView, type IndexEntry } from "@/components/index-views"
+
+/** "New York State Senate", "U.S. House", "D.C. Council": the chamber with whose it is. */
+const body = (state: string, chamber: string) => (state === "US" ? `U.S. ${chamber}` : state === "DC" ? `D.C. ${chamber}` : `${stateName(state)} State ${chamber}`)
 
 // Ported from livingston-v3 components/directory-list.tsx: every sitting
 // member, fifty to a page, searchable by name, district or party. Each row is
@@ -73,9 +76,22 @@ export function DirectoryList() {
           href: memberHref(member.people_id, state),
           title: `${honorific(member.role, member.chamber)} ${member.name}`.trim(),
           lead: member.leadership_title,
-          meta: [member.chamber, member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)],
-          avatar: <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={36} />,
-          cardMedia: <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={28} />,
+          // "New York State Senate", not "Senate" (Brendan, 2026-09-20): the row says whose chamber it is.
+          meta: [body(state, member.chamber), member.district ? member.district.replace(/^[A-Z]+-0*/, "District ") : null, partyName(member.party)],
+          // The party's dot on the portrait's corner, as /search's member rows wear it, and before the name where a view has no portrait (Brendan, 2026-09-20).
+          avatar: (
+            <span className="relative block">
+              <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={36} />
+              <PartyDot party={member.party} className="absolute right-0 bottom-0 size-2.5 ring-2 ring-background" />
+            </span>
+          ),
+          cardMedia: (
+            <span className="relative block shrink-0">
+              <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={28} />
+              <PartyDot party={member.party} className="absolute right-0 bottom-0 ring-2 ring-card" />
+            </span>
+          ),
+          mark: <PartyDot party={member.party} className="mr-2 inline-block align-middle" />,
           favoriteDetail: memberLine({ party: member.party, state, district: member.district }),
         }))}
       />

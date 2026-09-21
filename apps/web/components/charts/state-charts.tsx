@@ -1,4 +1,4 @@
-import { Bars, Donut, Lines, PALETTE, Seats, StackedArea } from "@/components/charts/svg"
+import { Bars, HBars, Lines, PALETTE, Seats, StackedArea } from "@/components/charts/svg"
 import type { StateStats } from "@/lib/policy/state-stats"
 
 // The charts a jurisdiction's numbers draw (2026-09-13), each one named so
@@ -43,12 +43,13 @@ export function StateChart({ id, stats }: { id: ChartId; stats: StateStats }) {
         </div>
       )
     }
+    // Shares as horizontal bars, not rings (Brendan, 2026-09-20).
     case "progress":
-      return <Donut slices={stats.progress} colors={["#c4c4c4", "#5b8db8", "#3f8f5f", "#b31942", "#e08a1e"]} />
+      return <HBars slices={stats.progress} colors={["#c4c4c4", "#5b8db8", "#3f8f5f", "#b31942", "#e08a1e"]} />
     case "sponsors":
-      return <Donut slices={stats.sponsors} />
+      return <HBars slices={stats.sponsors} />
     case "types":
-      return <Donut slices={stats.types} colors={PALETTE} />
+      return <HBars slices={stats.types} colors={PALETTE} />
     case "introduced":
       return (
         <Lines

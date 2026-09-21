@@ -29,6 +29,7 @@ export type SearchFilterState = {
 export const SECTIONS: { key: string; label: string }[] = [
   { key: "bills", label: "Bills" },
   { key: "texts", label: "Text" },
+  { key: "laws", label: "Laws" },
   { key: "members", label: "Members" },
   { key: "committees", label: "Committees" },
   { key: "topics", label: "Topics" },

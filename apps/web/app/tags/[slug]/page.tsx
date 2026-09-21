@@ -7,7 +7,6 @@ import { fmtBill, fmtNumber } from "@/lib/format"
 import { NEWS_TAGS, NEWS_TAG_BY_SLUG, firstSeen, tagStories, tagsFile } from "@/lib/gdelt/tags"
 import { latestSession } from "@/lib/policy/db-queries"
 import { getTagBills } from "@/lib/policy/tag-queries"
-import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
 import { FollowTagButton } from "@/components/tags/follow"
 import { ChamberSeal } from "@/components/policy/imagery"
@@ -84,7 +83,7 @@ export default async function TagPage({ params, searchParams }: Props) {
       title={tag.name}
       description={tag.blurb}
       lead={<p className="text-[1.05rem] text-muted-foreground sm:text-base">{news ? `Tag · ${fmtNumber(news.total)} ${news.total === 1 ? "story" : "stories"}` : "Tag"}</p>}
-      slug={`/tags/${slug}`} previous={link(at - 1)} next={link(at + 1) ?? { name: "Tags", url: "/tags" }} rail={<CalendarCard compact />} actions={<FollowTagButton slug={slug} />}>
+      slug={`/tags/${slug}`} previous={link(at - 1)} next={link(at + 1) ?? { name: "Tags", url: "/tags" }} actions={<FollowTagButton slug={slug} />}>
       {news && (
         <>
           <H2>In the news</H2>

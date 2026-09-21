@@ -2635,6 +2635,13 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   // few enough that 51 other jurisdictions cannot bury the one they are in.
   const perState = options.all ? (options.perState ?? 2) : 0
   const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
+  // Congress is a group of its own on /search, ahead of the reader's state and
+  // of everyone else (Brendan, 2026-09-20), so it gets the scoped group's cap
+  // rather than the two rows a jurisdiction gets. Until then it was one of the
+  // fifty-one "elsewhere", ranked by state code under one shared cap — and
+  // "US" sorts after Texas, so Congress fell off the end of every search made
+  // from a state. Nothing when the reader's scope is Congress already.
+  const congressCap = options.all && f.state !== "US" ? limit : 0
   // Four words is more than any name here needs and keeps the parameter list
   // bounded; a one-word query is the old behaviour exactly.
   const nameTokens = term
@@ -2691,13 +2698,13 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                              h.last_action_date desc nulls last, h.bill_id desc)::int as rn
            from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
          ) ranked
-         where ranked.rn <= $6
+         where ranked.rn <= case when ranked.state = 'US' then $5 else $6 end
        )
        select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, tier
        from (select * from scoped union all select * from elsewhere) hits
-       order by tier, exact desc, rn, state
+       order by tier, (state = 'US') desc, exact desc, rn, state
        limit $7`,
-      [f.state, f.session, numberLike, like, limit, perState, limit + elsewhereCap, ...(numbered ? [exactUs, exactStates] : [])]
+      [f.state, f.session, numberLike, like, limit, perState, limit + congressCap + elsewhereCap, ...(numbered ? [exactUs, exactStates] : [])]
     ),
     q<{
       people_id: number
@@ -2759,9 +2766,9 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
          and coalesce(p.first_name, '') <> '' and coalesce(p.last_name, '') <> ''
          and p.role in ('Rep', 'Sen')
          and ${nameTokens.map((_, i) => `(p.name ilike $${i + 2} or p.aliases ilike $${i + 2})`).join(" and ") || "false"}
-       order by (p.state = $1) desc, active desc, p.last_name, p.first_name
+       order by (p.state = $1) desc, (p.state = 'US') desc, active desc, p.last_name, p.first_name
        limit $${nameTokens.length + 2}`,
-      [f.state, ...nameTokens, limit + perState * 4]
+      [f.state, ...nameTokens, limit + perState * 4 + (congressCap ? 8 : 0)]
     ),
     q<{ committee: string; bills: number; chamber: string; state: string; tier: number }>(
       // Committees are a group-by, so the two tiers are one pass with the
@@ -2781,10 +2788,10 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
          from hits h join ${CURRENT} c on c.state = h.state and c.session_id = h.session_id
          group by h.committee, h.state
        ) g
-       where g.tier = 0 or g.rn <= $3
-       order by tier, bills desc
+       where g.tier = 0 or g.rn <= $3 or (g.state = 'US' and g.rn <= 6)
+       order by tier, (state = 'US') desc, bills desc
        limit $4`,
-      [f.state, like, perState, Math.min(limit, 6) + 12]
+      [f.state, like, perState, Math.min(limit, 6) + 12 + (congressCap ? 6 : 0)]
     ),
     options.text
       ? q<{
@@ -2800,10 +2807,14 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
           // billtexts_scope_search_idx cuts state, session and the tsquery
           // together, so each slice hands back only its own matches. The active
           // jurisdiction is the first row of `scopes` and takes the larger cap.
+          // Congress sorts ahead of the other jurisdictions and takes $9 rows, not
+          // their two (2026-09-20): ordered by state under the shared cap its
+          // texts never made the shortlist. Half the scoped cap, because each
+          // row here is a ts_headline over a federal bill.
           `with scopes as (
              select $1::text as state, $2::int as session_id, 0 as tier, $3::int as cap
              union all
-             select c.state, c.session_id, 1, $4::int from ${CURRENT} c
+             select c.state, c.session_id, 1, case when c.state = 'US' then $9::int else $4::int end from ${CURRENT} c
               where c.state <> $1 and ${options.all ? "true" : "false"}
            ),
            picked as (
@@ -2847,7 +2858,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
            -- 110 headlines to show at most $7 of them. $8 leaves headroom for
            -- the unhighlighted rows dropped below.
            shortlist as (
-             select * from picked order by tier, state, bill_id desc limit $8
+             select * from picked order by tier, (state = 'US') desc, state, bill_id desc limit $8
            ),
            snippets as (
              select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title,
@@ -2872,9 +2883,9 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
            select tier, bill_id, document_id, state, bill_number, title, snippet
            from snippets
            where snippet like '%«%'
-           order by tier, state
+           order by tier, (state = 'US') desc, state
            limit $7`,
-          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12, limit + 24]
+          [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12 + Math.ceil(congressCap / 2), limit + 24 + Math.ceil(congressCap / 2), Math.ceil(congressCap / 2)]
         )
       : Promise.resolve([]),
   ])

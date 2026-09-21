@@ -1,5 +1,4 @@
 import { CommitteesList } from "@/components/committees-list"
-import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
 
 // The committees doc, on the docs shell (components/docs-page.tsx) since
@@ -11,7 +10,7 @@ export const metadata = { title, description }
 
 export default function CommitteesPage() {
   return (
-    <DocsPage title={title} description={description} slug="/committees" previous={{ name: "Laws", url: "/laws" }} next={{ name: "Subjects", url: "/tags" }} rail={<CalendarCard compact />}>
+    <DocsPage title={title} description={description} slug="/committees" previous={{ name: "Laws", url: "/laws" }} next={{ name: "Subjects", url: "/tags" }}>
       <CommitteesList />
     </DocsPage>
   )

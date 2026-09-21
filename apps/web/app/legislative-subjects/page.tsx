@@ -1,4 +1,3 @@
-import { CalendarCard } from "@/components/cards/calendar"
 import { DocsPage } from "@/components/docs-page"
 import { TermsDirectory } from "@/components/subjects/terms-directory"
 
@@ -20,7 +19,7 @@ export default function LegislativeSubjectsPage() {
       slug="/legislative-subjects"
       previous={{ name: "Policy Areas", url: "/policy-areas" }}
       next={{ name: "Briefing", url: "/briefing" }}
-      rail={<CalendarCard compact />}
+     
     >
       <TermsDirectory kind="legislative" />
     </DocsPage>

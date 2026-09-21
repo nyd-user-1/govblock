@@ -5,7 +5,7 @@ import { honorific } from "@/lib/format"
 import { PartyDot } from "@/components/policy/imagery"
 import { Figure } from "@/components/policy/pending-session"
 import { MemberOfficialPortrait } from "@/components/policy/member-congress"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { RECORD_MEDIA } from "@/components/record-header"
 import { Chip } from "@/components/chip"
 
 // Ported from livingston-v3 components/policy/member-page.tsx. There was no
@@ -93,18 +93,13 @@ export function MemberIntroduction({
   )
 }
 
-export function MemberHeader({
-  peopleId,
-  state,
-  member,
-  action,
-}: {
-  peopleId: number
-  state: string
-  member: Record<string, unknown>
-  /** The Copy Page control, so it top-aligns with the name as /bills does. */
-  action?: React.ReactNode
-}) {
+/**
+ * The member's head, as DocsPage's three slots (Brendan, 2026-09-20): the
+ * official portrait, the name with its honorific, and the facts line —
+ * leadership, district, party, chamber. The page drew RecordHeader itself
+ * until the record pages moved onto the shell.
+ */
+export function memberHead(member: Record<string, unknown>, state: string) {
   const name = String(member.name ?? "")
   const role = String(member.role ?? "")
   const chamber = String(member.chamber ?? "")
@@ -112,26 +107,19 @@ export function MemberHeader({
   const leadership = member.leadership_title ? String(member.leadership_title) : null
   const district = member.district ? String(member.district).replace(/^[A-Z]+-0*/, "District ") : null
 
-  return (
-    <>
-      <RecordHeader
-        seal
-        media={<MemberOfficialPortrait name={name} fallback={member.photo_url ? String(member.photo_url) : null} state={state} chamber={chamber} size={RECORD_MEDIA} />}
-        title={`${honorific(role, chamber)} ${name}${member.archived ? " (Ret.)" : ""}`}
-        meta={[
-          leadership ? <span className="font-medium text-foreground">{leadership}</span> : null,
-          district,
-          <>
-            <PartyDot party={party} />({party ?? "—"})
-          </>,
-          // "Congress House" is not a thing anyone says. Every other
-          // jurisdiction reads "New York Assembly"; the federal one reads
-          // "U.S. House".
-          state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`,
-        ]}
-        action={action}
-      />
-      <span className="sr-only">{peopleId}</span>
-    </>
-  )
+  return {
+    media: <MemberOfficialPortrait name={name} fallback={member.photo_url ? String(member.photo_url) : null} state={state} chamber={chamber} size={RECORD_MEDIA} />,
+    title: `${honorific(role, chamber)} ${name}${member.archived ? " (Ret.)" : ""}`,
+    meta: [
+      leadership ? <span className="font-medium text-foreground">{leadership}</span> : null,
+      district,
+      <>
+        <PartyDot party={party} />({party ?? "—"})
+      </>,
+      // "Congress House" is not a thing anyone says. Every other
+      // jurisdiction reads "New York Assembly"; the federal one reads
+      // "U.S. House".
+      state === "US" ? `U.S. ${chamber}` : `${stateName(state)} ${chamber}`,
+    ] as React.ReactNode[],
+  }
 }

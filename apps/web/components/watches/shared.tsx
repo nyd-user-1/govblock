@@ -102,22 +102,22 @@ export function OptionRow({
   )
 }
 
-/** The create flow's frame: the label, the card, the steps. */
-export function CreateFrame({ label, steps, current, children }: { label: string; steps: string[]; current: number; children: React.ReactNode }) {
+/**
+ * The create flow's frame: the steps, then the card. Inside DocsPage since 2026-09-20 (Brendan): the flow's label
+ * is the shell's title now, and the steps run in a row over the card, where a column either side of it once held them.
+ */
+export function CreateFrame({ steps, current, children }: { steps: string[]; current: number; children: React.ReactNode }) {
   return (
-    <div className="container-wrapper">
-      <div className="grid gap-6 px-4 py-8 lg:grid-cols-[200px_minmax(0,1fr)_200px] lg:gap-10 lg:px-6 lg:py-14">
-        <p className="text-base font-medium lg:pt-6">{label}</p>
-        <div className="mx-auto w-full max-w-2xl">{children}</div>
-        <ol className="flex gap-4 text-sm lg:flex-col lg:pt-6">
-          {steps.map((s, i) => (
-            <li key={s} className={cn("flex items-center gap-2", i === current ? "text-foreground" : "text-muted-foreground")}>
-              <span className={cn("size-2 rounded-full border", i === current ? "border-foreground bg-foreground" : i < current ? "border-foreground" : "border-muted-foreground/60")} />
-              {s}
-            </li>
-          ))}
-        </ol>
-      </div>
+    <div data-not-typeset="true" className="flex flex-col gap-6">
+      <ol className="m-0 flex list-none flex-wrap gap-4 p-0 text-sm">
+        {steps.map((s, i) => (
+          <li key={s} className={cn("m-0 flex items-center gap-2 p-0", i === current ? "text-foreground" : "text-muted-foreground")}>
+            <span className={cn("size-2 rounded-full border", i === current ? "border-foreground bg-foreground" : i < current ? "border-foreground" : "border-muted-foreground/60")} />
+            {s}
+          </li>
+        ))}
+      </ol>
+      {children}
     </div>
   )
 }

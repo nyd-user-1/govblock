@@ -69,7 +69,7 @@ export type Jurisdiction = {
 
 const JURISDICTION_PARAMS = ["state", "session"] as const
 
-type Stored = { state: string; recent: string[] }
+type Stored = { state: string; recent: string[]; /** Written by the picker. Without it the stored state is not a preference and the profile's home stands. */ picked?: boolean }
 
 const EMPTY_SESSIONS: SessionRow[] = []
 
@@ -98,18 +98,19 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
   const fromUrl = params.state?.toUpperCase()
   const urlState = isJurisdiction(fromUrl) ? fromUrl : ""
 
-  // A scope that arrives by URL becomes this browser's memory too, so a
-  // shared `?state=TX` link followed by a nav click (plain hrefs) stays in
-  // Texas instead of dropping back to the default. Brendan, 2026-09-01. Only
-  // one the reader may open (2026-09-13): a gated link is not a preference.
+  // A jurisdiction the reader never picked is not a preference (Brendan,
+  // 2026-09-20). A `?state=` used to be written here, so opening one Rhode
+  // Island row from a search that spans every jurisdiction left the reader
+  // scoped to Rhode Island — placeholder, entitlement and all — with nothing
+  // said and no way back but the picker. The URL still scopes the page it is
+  // on; only the picker writes this memory, and until it does the profile's
+  // home stands. This also repairs a browser the old rule wrote to.
   React.useEffect(() => {
-    if (!urlState || !ready || entitled(reader, { state: urlState }) !== "open") return
-    setStored((previous) =>
-      previous.state === urlState
-        ? previous
-        : { state: urlState, recent: [urlState, ...(previous.recent ?? []).filter((c) => c !== urlState)].slice(0, 5) }
-    )
-  }, [urlState, ready, reader, setStored])
+    if (!ready || stored.picked) return
+    const home = account?.home?.toUpperCase()
+    const want = isJurisdiction(home) && entitled(reader, { state: home }) === "open" ? home : DEFAULT_STATE
+    setStored((previous) => (previous.picked || previous.state === want ? previous : { ...previous, state: want }))
+  }, [ready, stored.picked, account?.home, reader, setStored])
 
   const remembered = React.useMemo(() => {
     const code = stored.state?.toUpperCase()
@@ -120,7 +121,7 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
   // on every load while the pre-paint script waits for the resolution.
   React.useEffect(() => {
     if (!ready || urlState || remembered === DEFAULT_STATE || entitled(reader, { state: remembered }) === "open") return
-    setStored((previous) => ({ state: DEFAULT_STATE, recent: previous.recent ?? [] }))
+    setStored((previous) => ({ ...previous, state: DEFAULT_STATE }))
   }, [ready, urlState, remembered, reader, setStored])
   const requested = urlState || remembered
   const verdict = React.useMemo(() => entitled(reader, { state: requested }), [reader, requested])
@@ -168,6 +169,7 @@ function useJurisdictionValue(active: boolean): Jurisdiction {
       }
       setStored((previous) => ({
         state: code,
+        picked: true,
         recent: [
           code,
           ...(previous.recent ?? []).filter((c) => c !== code),

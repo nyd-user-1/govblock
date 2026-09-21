@@ -1,21 +1,14 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
 import { congressName } from "@/lib/policy/congress"
 import { getBills, getSessionsWithTitles, getSubjectSummary, getSubjectTerms, latestSession } from "@/lib/policy/db-queries"
 import { subjectSlug } from "@/lib/policy/subject-kinds"
-import { BackToTop } from "@/components/back-to-top"
-import { Button } from "@govblock/ui/components/ny4/button"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
 import { DocsTableOfContents } from "@/components/docs-toc"
-import { ChamberSeal } from "@/components/policy/imagery"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { DocsPage } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
 import { SubjectBills } from "@/components/subjects/subject-bills"
 import { H2, H3 } from "@/components/typeset"
 
@@ -106,130 +99,69 @@ export async function SubjectPage({ params }: Props) {
     { title: "Record", url: "#record", depth: 2 },
     { title: "Bills", url: "#bills", depth: 3 },
   ]
-  const arrow = "extend-touch-target size-8 shadow-none md:size-7"
 
   return (
-    <>
-      <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="h-(--top-spacing) shrink-0" />
-          <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-            <RecordHeader
-              media={<ChamberSeal state={data.state} size={RECORD_MEDIA} />}
-              title={term.name}
-              meta={[
-                kind === "policy area" ? "Policy area" : congress ? "Legislative subject" : "Subject",
-                `${fmtNumber(summary.bills)} ${summary.bills === 1 ? "bill" : "bills"}`,
-              ]}
-              action={
-                <>
-                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/policy-areas/${data.state.toLowerCase()}/${slug}`} />
-                  {previous ? (
-                    <Button variant="secondary" size="icon" className={arrow} asChild>
-                      <Link href={href(previous.name)} title={previous.name}>
-                        <IconArrowLeft />
-                        <span className="sr-only">Previous subject</span>
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="icon" className={arrow} disabled>
-                      <IconArrowLeft />
-                    </Button>
-                  )}
-                  {next ? (
-                    <Button variant="secondary" size="icon" className={arrow} asChild>
-                      <Link href={href(next.name)} title={next.name}>
-                        <IconArrowRight />
-                        <span className="sr-only">Next subject</span>
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="icon" className={arrow} disabled>
-                      <IconArrowRight />
-                    </Button>
-                  )}
-                </>
-              }
-            />
-            <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-              <H2>Summary</H2>
-              <p>
-                {who} files <code>{fmtNumber(summary.bills)}</code> {summary.bills === 1 ? "bill" : "bills"} of {sessionPhrase} under{" "}
-                <code>{term.name}</code>
-                {congress ? <>, {kind === "policy area" ? <>one of its <code>{fmtNumber(data.areas)}</code> policy areas</> : "a legislative subject"}</> : null}.
-                {summary.bills > 0 && (
-                  <>
-                    {" "}
-                    <code>{fmtNumber(passed)}</code> {passed === 1 ? "has" : "have"} passed at least one chamber
-                    {law ? (
-                      <>
-                        {" "}
-                        and <code>{fmtNumber(law)}</code> {law === 1 ? "has" : "have"} become law
-                      </>
-                    ) : null}
-                    {busiest ? (
-                      <>
-                        ; most sit before <code>{busiest.committee}</code>
-                      </>
-                    ) : null}
-                    .
-                  </>
-                )}
-              </p>
+    <DocsPage
+      title={term.name}
+      description={description}
+      page={markdown}
+      lead={<RecordFacts meta={[kind === "policy area" ? "Policy area" : congress ? "Legislative subject" : "Subject", `${fmtNumber(summary.bills)} ${summary.bills === 1 ? "bill" : "bills"}`]} />}
+      slug={`/policy-areas/${data.state.toLowerCase()}/${slug}`}
+      previous={previous ? { name: previous.name, url: href(previous.name) } : undefined}
+      next={next ? { name: next.name, url: href(next.name) } : undefined}
+      rail={<DocsTableOfContents toc={toc} />}
+    >
+      <H2>Summary</H2>
+      <p>
+        {who} files <code>{fmtNumber(summary.bills)}</code> {summary.bills === 1 ? "bill" : "bills"} of {sessionPhrase} under{" "}
+        <code>{term.name}</code>
+        {congress ? <>, {kind === "policy area" ? <>one of its <code>{fmtNumber(data.areas)}</code> policy areas</> : "a legislative subject"}</> : null}.
+        {summary.bills > 0 && (
+          <>
+            {" "}
+            <code>{fmtNumber(passed)}</code> {passed === 1 ? "has" : "have"} passed at least one chamber
+            {law ? (
+              <>
+                {" "}
+                and <code>{fmtNumber(law)}</code> {law === 1 ? "has" : "have"} become law
+              </>
+            ) : null}
+            {busiest ? (
+              <>
+                ; most sit before <code>{busiest.committee}</code>
+              </>
+            ) : null}
+            .
+          </>
+        )}
+      </p>
 
-              <hr />
-              <H2>Record</H2>
-              <p>
-                In {sessionPhrase}, <code>{fmtNumber(summary.bills)}</code> {summary.bills === 1 ? "bill carries" : "bills carry"} the term
-                {summary.chambers.length > 1 ? (
-                  <>
-                    : <code>{fmtNumber(summary.chambers[0].bills)}</code> from the {summary.chambers[0].chamber} and{" "}
-                    <code>{fmtNumber(summary.chambers[1].bills)}</code> from the {summary.chambers[1].chamber}
-                  </>
-                ) : summary.chambers[0] ? (
-                  <>, all from the {summary.chambers[0].chamber}</>
-                ) : null}
-                .
-              </p>
-              <H3>Bills</H3>
-              <p>
-                The bills, newest action first. The order and the chamber are in the Sort control at the block&rsquo;s right.
-              </p>
-              <SubjectBills
-                state={data.state}
-                session={data.session}
-                subject={term.name}
-                bills={page.rows}
-                total={page.total}
-                chambers={summary.chambers.map((row) => row.chamber)}
-              />
-            </div>
-            {(previous || next) && (
-              <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-                {previous && (
-                  <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                    <Link href={href(previous.name)}>
-                      <IconArrowLeft /> {previous.name}
-                    </Link>
-                  </Button>
-                )}
-                {next && (
-                  <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                    <Link href={href(next.name)}>
-                      {next.name} <IconArrowRight />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            )}
-            <BackToTop />
-          </div>
-        </div>
-        <RightRailSheet>
-          <DocsTableOfContents toc={toc} />
-          <PublicRail />
-        </RightRailSheet>
-      </div>
-    </>
+      <hr />
+      <H2>Record</H2>
+      <p>
+        In {sessionPhrase}, <code>{fmtNumber(summary.bills)}</code> {summary.bills === 1 ? "bill carries" : "bills carry"} the term
+        {summary.chambers.length > 1 ? (
+          <>
+            : <code>{fmtNumber(summary.chambers[0].bills)}</code> from the {summary.chambers[0].chamber} and{" "}
+            <code>{fmtNumber(summary.chambers[1].bills)}</code> from the {summary.chambers[1].chamber}
+          </>
+        ) : summary.chambers[0] ? (
+          <>, all from the {summary.chambers[0].chamber}</>
+        ) : null}
+        .
+      </p>
+      <H3>Bills</H3>
+      <p>
+        The bills, newest action first. The order and the chamber are in the Sort control at the block&rsquo;s right.
+      </p>
+      <SubjectBills
+        state={data.state}
+        session={data.session}
+        subject={term.name}
+        bills={page.rows}
+        total={page.total}
+        chambers={summary.chambers.map((row) => row.chamber)}
+      />
+    </DocsPage>
   )
 }

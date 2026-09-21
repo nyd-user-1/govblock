@@ -1,24 +1,18 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import { type Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
 
 import { fmtDate, fmtNumber, fmtTime } from "@/lib/format"
 import { getBillsByCongressNumber, getHearing, getMeeting, getMeetingNeighbours, type HearingRecord } from "@/lib/policy/committee-queries"
-import { BackToTop } from "@/components/back-to-top"
-import { Button } from "@govblock/ui/components/ny4/button"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
-import { ChamberSeal } from "@/components/policy/imagery"
-import { RECORD_MEDIA, RecordHeader } from "@/components/record-header"
+import { DocsPage } from "@/components/docs-page"
+import { RecordFacts } from "@/components/record-header"
 import { HearingTranscript } from "@/components/policy/hearing-page"
 import { MeetingBills, MeetingDocuments, MeetingToc, MeetingVideo, MeetingWitnesses } from "@/components/policy/meeting-page"
 import { H2 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 
-// One committee meeting, by congress.gov's event id, on the member page's
-// design: the title as the name, the kind, the committee and the day as the
+// One committee meeting, by congress.gov's event id, on DocsPage (Brendan,
+// 2026-09-20): the title as the name, the kind, the committee and the day as the
 // facts; then the video, the transcript once GPO has printed it, the
 // witnesses with their papers, the documents, and the bills.
 
@@ -79,7 +73,6 @@ export default async function MeetingRoute({ params }: Props) {
   ]
   const room = [meeting.building, meeting.room ? `Room ${meeting.room}` : null].filter(Boolean).join(", ")
   const markdown = [`# ${name}`, "", [kind, committee?.name, at.date ? fmtDate(at.date) : null].filter(Boolean).join(" · ")].join("\n")
-  const arrow = "extend-touch-target size-8 shadow-none md:size-7"
   const parts: string[] = []
   if (meeting.videos.some((v) => /youtu/.test(v.url))) parts.push("Video")
   if (hearing) parts.push("Transcript")
@@ -90,114 +83,62 @@ export default async function MeetingRoute({ params }: Props) {
   const heldBills = Object.fromEntries(held)
 
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-          <RecordHeader
-            media={<ChamberSeal state={STATE} chamber={meeting.chamber} size={RECORD_MEDIA} />}
-            title={name}
-            meta={facts}
-            action={
-              <>
-                <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/meetings/${meeting.event_id}`} />
-                {neighbours.previous ? (
-                  <Button variant="secondary" size="icon" className={arrow} asChild>
-                    <Link href={`/meetings/${neighbours.previous.event_id}`} title={neighbours.previous.title ?? undefined}>
-                      <IconArrowLeft />
-                      <span className="sr-only">Previous meeting</span>
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button variant="secondary" size="icon" className={arrow} asChild>
-                    <Link href={committee ? `/committees/${committee.code.toLowerCase()}` : "/committees?state=US"}>
-                      <IconArrowLeft />
-                      <span className="sr-only">The committee</span>
-                    </Link>
-                  </Button>
-                )}
-                {neighbours.next ? (
-                  <Button variant="secondary" size="icon" className={arrow} asChild>
-                    <Link href={`/meetings/${neighbours.next.event_id}`} title={neighbours.next.title ?? undefined}>
-                      <IconArrowRight />
-                      <span className="sr-only">Next meeting</span>
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button variant="secondary" size="icon" className={arrow} disabled>
-                    <IconArrowRight />
-                  </Button>
-                )}
-              </>
-            }
-          />
-          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-            <H2>Summary</H2>
-            <p>
-              {committee ? <Chip>{committee.name}</Chip> : "The committee"} {past ? "held" : "holds"} {/^[aeiou]/i.test(kind) ? "an" : "a"} {kind.toLowerCase()}
-              {at.date ? (
-                <>
-                  {" "}
-                  on {fmtDate(at.date)}
-                  {at.time ? <> at {fmtTime(at.time)}</> : null}
-                </>
-              ) : null}
-              {room ? ` in ${room}` : ""}
-              {meeting.status && meeting.status !== "Scheduled" ? `, ${meeting.status.toLowerCase()}` : ""}.
-              {meeting.witnesses.length ? (
-                <>
-                  {" "}
-                  {fmtNumber(meeting.witnesses.length)} {meeting.witnesses.length === 1 ? "witness" : "witnesses"} {past ? "appeared" : "are called"}.
-                </>
-              ) : null}
-            </p>
-            {!meeting.detailed && <p>The record holds the listing alone so far; the witnesses, documents and video land with the harvest.</p>}
+    <DocsPage
+      title={name}
+      description={[committee?.name, at.date ? fmtDate(at.date) : null].filter(Boolean).join(" · ")}
+      page={markdown}
+      lead={<RecordFacts meta={facts} />}
+      slug={`/meetings/${meeting.event_id}`}
+      previous={
+        neighbours.previous
+          ? { name: neighbours.previous.title ?? `Meeting ${neighbours.previous.event_id}`, url: `/meetings/${neighbours.previous.event_id}` }
+          : committee
+            ? { name: committee.name, url: `/committees/${committee.code.toLowerCase()}` }
+            : { name: "Committees", url: "/committees?state=US" }
+      }
+      next={neighbours.next ? { name: neighbours.next.title ?? `Meeting ${neighbours.next.event_id}`, url: `/meetings/${neighbours.next.event_id}` } : undefined}
+      rail={<MeetingToc parts={parts} />}
+    >
+      <H2>Summary</H2>
+      <p>
+        {committee ? <Chip>{committee.name}</Chip> : "The committee"} {past ? "held" : "holds"} {/^[aeiou]/i.test(kind) ? "an" : "a"} {kind.toLowerCase()}
+        {at.date ? (
+          <>
+            {" "}
+            on {fmtDate(at.date)}
+            {at.time ? <> at {fmtTime(at.time)}</> : null}
+          </>
+        ) : null}
+        {room ? ` in ${room}` : ""}
+        {meeting.status && meeting.status !== "Scheduled" ? `, ${meeting.status.toLowerCase()}` : ""}.
+        {meeting.witnesses.length ? (
+          <>
+            {" "}
+            {fmtNumber(meeting.witnesses.length)} {meeting.witnesses.length === 1 ? "witness" : "witnesses"} {past ? "appeared" : "are called"}.
+          </>
+        ) : null}
+      </p>
+      {!meeting.detailed && <p>The record holds the listing alone so far; the witnesses, documents and video land with the harvest.</p>}
 
-            <hr />
-            <H2>Record</H2>
-            <p>
-              The meeting has{" "}
-              {parts.length
-                ? parts.map((p, i) => (
-                    <span key={p}>
-                      {i > 0 ? (i === parts.length - 1 ? " and " : ", ") : ""}
-                      {p.toLowerCase() === "video" ? "its video" : p.toLowerCase() === "transcript" ? "its transcript" : `${p.toLowerCase()}`}
-                    </span>
-                  ))
-                : "nothing but its listing"}{" "}
-              on the record.
-            </p>
-            <MeetingVideo meeting={meeting} />
-            {hearing && <HearingTranscript hearing={hearing} state={STATE} />}
-            <MeetingWitnesses meeting={meeting} />
-            <MeetingDocuments meeting={meeting} />
-            <MeetingBills meeting={meeting} held={heldBills} />
-          </div>
-          {(neighbours.previous || neighbours.next) && (
-            <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-              {neighbours.previous && (
-                <Button variant="secondary" size="sm" className="shadow-none" asChild>
-                  <Link href={`/meetings/${neighbours.previous.event_id}`}>
-                    <IconArrowLeft /> {neighbours.previous.meeting_date ? fmtDate(neighbours.previous.meeting_date) : "Previous"}
-                  </Link>
-                </Button>
-              )}
-              {neighbours.next && (
-                <Button variant="secondary" size="sm" className="ml-auto shadow-none" asChild>
-                  <Link href={`/meetings/${neighbours.next.event_id}`}>
-                    {neighbours.next.meeting_date ? fmtDate(neighbours.next.meeting_date) : "Next"} <IconArrowRight />
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
-          <BackToTop />
-        </div>
-      </div>
-      <RightRailSheet>
-        <MeetingToc parts={parts} />
-        <PublicRail />
-      </RightRailSheet>
-    </div>
+      <hr />
+      <H2>Record</H2>
+      <p>
+        The meeting has{" "}
+        {parts.length
+          ? parts.map((p, i) => (
+              <span key={p}>
+                {i > 0 ? (i === parts.length - 1 ? " and " : ", ") : ""}
+                {p.toLowerCase() === "video" ? "its video" : p.toLowerCase() === "transcript" ? "its transcript" : `${p.toLowerCase()}`}
+              </span>
+            ))
+          : "nothing but its listing"}{" "}
+        on the record.
+      </p>
+      <MeetingVideo meeting={meeting} />
+      {hearing && <HearingTranscript hearing={hearing} state={STATE} />}
+      <MeetingWitnesses meeting={meeting} />
+      <MeetingDocuments meeting={meeting} />
+      <MeetingBills meeting={meeting} held={heldBills} />
+    </DocsPage>
   )
 }

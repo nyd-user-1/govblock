@@ -6,7 +6,6 @@ import { getLatestBrief, getStoryCounts } from "@/lib/policy/news"
 import { Brief, BriefByline } from "@/components/news/brief"
 import { NewsIndex } from "@/components/news-index"
 import { DocsCopyPage } from "@/components/docs-copy-page"
-import { CalendarCard } from "@/components/cards/calendar"
 import { PublicRail } from "@/components/block-card"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { BackToTop } from "@/components/back-to-top"
@@ -124,7 +123,6 @@ export default async function NewsPage() {
         </div>
       </div>
       <RightRailSheet>
-        <CalendarCard compact />
         <PublicRail />
       </RightRailSheet>
     </div>

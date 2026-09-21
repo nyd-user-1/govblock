@@ -3,6 +3,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { KeyRound, Link2, X } from "lucide-react"
 
+import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@govblock/ui/components/ny4/sidebar"
+import { DashboardPage } from "@/components/dashboard-page"
 import { HEADER_H, ROW_H, type Graph, type Link, type PlacedTable } from "@/lib/erd/model"
 import { cn } from "@/lib/utils"
 
@@ -288,8 +290,108 @@ export function ErdCanvas({ graph }: { graph: Graph }) {
     return { out: graph.links.filter((l) => l.from === selected && shown(l)), in: graph.links.filter((l) => l.to === selected && shown(l)) }
   }, [graph, selected, hidden])
 
+  // Everything the canvas is steered by lives in the shell (Brendan,
+  // 2026-09-20): the find bar and the domains in the rail, the zoom and the
+  // undo pair in the header. They floated over the drawing until now, which
+  // put two sets of chrome on one page once /erd took the full-screen frame.
+  const counts = useMemo(() => {
+    const tables = graph.tables.filter((t) => t.kind === "table").length
+    const rowCount = graph.tables.reduce((n, t) => n + (t.rows ?? 0), 0)
+    const declared = graph.links.filter((l) => l.declared).length
+    return { tables, views: graph.tables.length - tables, schemas: new Set(graph.tables.map((t) => t.schema)).size, rows: rowCount, declared, inferred: graph.links.length - declared }
+  }, [graph])
+
+  const rail = (
+    <SidebarContent className="scrollbar-none overflow-x-hidden">
+      <SidebarGroup>
+        <div className="relative">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matches[0]) {
+                goTo(matches[0].key)
+                setQuery("")
+              }
+            }}
+            placeholder="Find a table or column"
+            className="h-8 w-full rounded-md border bg-background px-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          {matches.length > 0 && (
+            <ul className="absolute left-0 top-9 z-20 w-full rounded-md border bg-popover p-1 text-sm shadow-md">
+              {matches.map((t) => (
+                <li key={t.key}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      goTo(t.key)
+                      setQuery("")
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-accent"
+                  >
+                    <span className="size-2 shrink-0 rounded-full" style={{ background: colors[t.domain] }} />
+                    <span className="truncate">{t.schema !== "public" ? `${t.schema}.` : ""}{t.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{rows(t.rows)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Domains</SidebarGroupLabel>
+        <SidebarGroupContent className="flex flex-col gap-0.5">
+          {graph.domains.map((d) => (
+            <div key={d.id} className="group/domain flex items-center rounded-md text-sm hover:bg-sidebar-accent">
+              <button type="button" onClick={() => fitTo(d.x, d.y, d.w, d.h)} className="flex min-w-0 flex-1 items-center gap-2 rounded-l-md py-1.5 pl-2 pr-1 text-left">
+                <span className="size-2 shrink-0 rounded-full" style={{ background: d.color }} />
+                <span className="truncate">{d.label}</span>
+                <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">{d.count}</span>
+              </button>
+              <button
+                type="button"
+                aria-label={`Hide ${d.label}`}
+                onClick={() => hideDomain(d.id)}
+                className="flex shrink-0 items-center rounded-r-md px-1.5 py-1.5 text-muted-foreground opacity-0 group-hover/domain:opacity-100 hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <label className="flex items-center gap-2 px-2 text-sm">
+          <input type="checkbox" checked={showInferred} onChange={(e) => setShowInferred(e.target.checked)} />
+          Inferred links
+        </label>
+      </SidebarGroup>
+      <div className="mt-auto px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
+        {counts.tables} tables and {counts.views} views in {counts.schemas} schemas, {(counts.rows / 1e6).toFixed(0)}M rows. {counts.declared} links the database declares, {counts.inferred} read off column
+        names. Snapshot of {graph.generatedAt.slice(0, 10)}.
+      </div>
+    </SidebarContent>
+  )
+
+  const actions = (
+    <>
+      <div className="flex h-8 items-center gap-1 rounded-md border bg-background px-1 text-sm shadow-sm">
+        <button type="button" onClick={() => zoomBy(1 / 1.4)} aria-label="Zoom out" className="size-6 rounded hover:bg-accent">−</button>
+        <span className="w-12 text-center text-xs tabular-nums text-muted-foreground">{Math.round(view.k * 100)}%</span>
+        <button type="button" onClick={() => zoomBy(1.4)} aria-label="Zoom in" className="size-6 rounded hover:bg-accent">+</button>
+        <button type="button" onClick={fitAll} className="rounded px-2 text-xs hover:bg-accent">Fit</button>
+      </div>
+      <div className="flex h-8 items-center gap-1 rounded-md border bg-background px-1 text-xs shadow-sm">
+        <button type="button" onClick={undo} disabled={!canUndo} title="⌘Z" className="rounded px-2 hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent">Undo</button>
+        <button type="button" onClick={redo} disabled={!canRedo} title="⌘⇧Z" className="rounded px-2 hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent">Redo</button>
+      </div>
+    </>
+  )
+
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border bg-muted/30">
+    <DashboardPage rail={rail} title="ERD" actions={actions}>
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-muted/30">
       <div
         ref={ref}
         className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
@@ -328,73 +430,8 @@ export function ErdCanvas({ graph }: { graph: Graph }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-wrap items-start gap-2 p-3">
-        <div className="pointer-events-auto relative">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && matches[0]) {
-                goTo(matches[0].key)
-                setQuery("")
-              }
-            }}
-            placeholder="Find a table or column"
-            className="h-8 w-64 rounded-md border bg-background px-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          {matches.length > 0 && (
-            <ul className="absolute left-0 top-9 z-10 w-72 rounded-md border bg-popover p-1 text-sm shadow-md">
-              {matches.map((t) => (
-                <li key={t.key}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      goTo(t.key)
-                      setQuery("")
-                    }}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-accent"
-                  >
-                    <span className="size-2 shrink-0 rounded-full" style={{ background: colors[t.domain] }} />
-                    <span className="truncate">{t.schema !== "public" ? `${t.schema}.` : ""}{t.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{rows(t.rows)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="pointer-events-auto flex h-8 items-center gap-1 rounded-md border bg-background px-1 text-sm shadow-sm">
-          <button type="button" onClick={() => zoomBy(1 / 1.4)} className="size-6 rounded hover:bg-accent">−</button>
-          <span className="w-12 text-center tabular-nums text-xs text-muted-foreground">{Math.round(view.k * 100)}%</span>
-          <button type="button" onClick={() => zoomBy(1.4)} className="size-6 rounded hover:bg-accent">+</button>
-          <button type="button" onClick={fitAll} className="rounded px-2 text-xs hover:bg-accent">Fit</button>
-        </div>
-        <div className="pointer-events-auto flex h-8 items-center gap-1 rounded-md border bg-background px-1 text-xs shadow-sm">
-          <button type="button" onClick={undo} disabled={!canUndo} title="⌘Z" className="rounded px-2 hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent">Undo</button>
-          <button type="button" onClick={redo} disabled={!canRedo} title="⌘⇧Z" className="rounded px-2 hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent">Redo</button>
-        </div>
-        <label className="pointer-events-auto flex h-8 items-center gap-2 rounded-md border bg-background px-2 text-xs shadow-sm">
-          <input type="checkbox" checked={showInferred} onChange={(e) => setShowInferred(e.target.checked)} />
-          inferred links
-        </label>
-        <div className="pointer-events-auto flex flex-wrap gap-1">
-          {graph.domains.map((d) => (
-            <div key={d.id} className="flex h-8 items-center rounded-md border bg-background text-xs shadow-sm">
-              <button type="button" onClick={() => fitTo(d.x, d.y, d.w, d.h)} className="flex h-full items-center gap-1.5 rounded-l-md pl-2 pr-1.5 hover:bg-accent">
-                <span className="size-2 rounded-full" style={{ background: d.color }} />
-                {d.label}
-                <span className="text-muted-foreground">{d.count}</span>
-              </button>
-              <button type="button" aria-label={`Hide ${d.label}`} onClick={() => hideDomain(d.id)} className="flex h-full items-center rounded-r-md px-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">
-                <X className="size-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {current && (
-        <aside className="absolute bottom-3 right-3 top-16 w-80 overflow-y-auto rounded-md border bg-background p-3 text-sm shadow-md">
+        <aside className="absolute bottom-3 right-3 top-3 w-80 overflow-y-auto rounded-md border bg-background p-3 text-sm shadow-md">
           <div className="flex items-baseline gap-2">
             <span className="size-2.5 shrink-0 rounded-full" style={{ background: colors[current.domain] }} />
             <h2 className="truncate font-semibold">{current.schema !== "public" ? `${current.schema}.` : ""}{current.name}</h2>
@@ -441,6 +478,7 @@ export function ErdCanvas({ graph }: { graph: Graph }) {
           <p className="mt-3 text-[11px] text-muted-foreground">Italic links are inferred from the column name; the database declares no foreign key for them.</p>
         </aside>
       )}
-    </div>
+      </div>
+    </DashboardPage>
   )
 }

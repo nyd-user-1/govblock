@@ -1,26 +1,23 @@
-import { RightRailSheet } from "@/components/rail-sheet"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { IconArrowLeft } from "@tabler/icons-react"
 
 import { fmtNumber } from "@/lib/format"
 import { fieldName, getForm } from "@/lib/policy/forms-queries"
 import { FORMS } from "@/lib/forms/programs"
 import { Chip } from "@/components/chip"
-import { DocsCopyPage } from "@/components/docs-copy-page"
-import { PublicRail } from "@/components/block-card"
 import { agencyName } from "@/components/policy/forms-seal"
 import { DOCS_DESCRIPTION } from "@/components/docs-header"
+import { DocsPage } from "@/components/docs-page"
 import { FormsDoc } from "@/components/policy/forms-doc"
 import { H2, Table } from "@/components/typeset"
 import { Button } from "@govblock/ui/components/ny4/button"
 
 // One form: what we know about it, the PDF, and the fields it asks for.
 //
-// The shell is the docs shell, copied from `docs-page.tsx` rather than used
-// through it, because a form needs a kicker line above the title — number ·
-// agency · jurisdiction — and `DocsPage` has no slot for one. Every className
-// below is that file's; nothing here is a new layout.
+// On DocsPage (Brendan, 2026-09-20). The shell was copied from
+// `docs-page.tsx` rather than used through it, for want of a line above the
+// title; the number, the agency and the jurisdiction are the shell's
+// sub-header instead.
 
 // Rows change only when the harvest runs again. An hour is the site's default.
 export const revalidate = 3600
@@ -90,105 +87,76 @@ export default async function FormRoute({ params }: { params: Promise<{ id: stri
   const markdown = [`# ${heading}`, "", `${form.number} · ${agencyName(form.gov, form.agency)} · ${form.gov}`].join("\n")
 
   return (
-    <div data-slot="docs" className="flex scroll-mt-24 items-stretch pb-8 text-[1.05rem] sm:text-[15px] xl:w-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-(--top-spacing) shrink-0" />
-        <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
-          {/* The docs shell's header block (Brendan, 2026-09-20): the name, then the
-              facts as its sub-header, then the rule. The agency's seal stood above
-              the name until then. */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between md:items-start">
-              <h1 className="scroll-m-24 text-3xl font-semibold tracking-tight text-balance sm:text-3xl">{heading}</h1>
-              <div className="docs-nav flex items-center gap-2">
-                <div className="hidden sm:block">
-                  <DocsCopyPage page={markdown} url={`https://gov.nysgpt.com/forms/${form.id}`} />
-                </div>
-                <div className="ml-auto flex gap-2">
-                  {fillable && (
-                    <Button size="sm" className="shadow-none" asChild>
-                      <Link href={`/chat?form=${fillable.id}`}>Fill this form</Link>
-                    </Button>
-                  )}
-                  <Button variant="secondary" size="icon" className="extend-touch-target size-8 shadow-none md:size-7" asChild>
-                    <Link href={`/forms?state=${scope}`}>
-                      <IconArrowLeft />
-                      <span className="sr-only">All forms</span>
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <p className={DOCS_DESCRIPTION}>
-              <Chip>{form.number}</Chip> · {agencyName(form.gov, form.agency)} · {form.gov}
-            </p>
-            {!form.title && <p className={DOCS_DESCRIPTION}>This PDF carries no title of its own. The name above is the file it was published as.</p>}
-          </div>
-          <hr className="mt-6 border-0 border-t border-border" />
+    <DocsPage
+      title={heading}
+      description={`${form.number} · ${agencyName(form.gov, form.agency)} · ${form.gov}`}
+      page={markdown}
+      lead={
+        <>
+          <p className={DOCS_DESCRIPTION}>
+            <Chip>{form.number}</Chip> · {agencyName(form.gov, form.agency)} · {form.gov}
+          </p>
+          {!form.title && <p className={DOCS_DESCRIPTION}>This PDF carries no title of its own. The name above is the file it was published as.</p>}
+        </>
+      }
+      slug={`/forms/${form.id}`}
+      actions={
+        fillable ? (
+          <Button size="sm" className="shadow-none" asChild>
+            <Link href={`/chat?form=${fillable.id}`}>Fill this form</Link>
+          </Button>
+        ) : undefined
+      }
+      previous={{ name: "Forms", url: `/forms?state=${scope}` }}
+    >
+      <Table>
+        <tbody>
+          {facts.map(([label, value]) => (
+            <tr key={label}>
+              <td className="w-40 font-medium">{label}</td>
+              <td>{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
 
-          <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-            <Table>
-              <tbody>
-                {facts.map(([label, value]) => (
-                  <tr key={label}>
-                    <td className="w-40 font-medium">{label}</td>
-                    <td>{value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+      <FormsDoc id={form.id} title={heading} />
 
-            <FormsDoc id={form.id} title={heading} />
-
-            <H2>Fields</H2>
-            {!form.inspected ? (
-              <p className="text-sm text-muted-foreground">
-                We have this PDF but have never opened it, so we cannot say whether it can be filled in. It is one of
-                195,530 files — every US DOL and USDA-FNS document — still waiting on an inspection pass.
-              </p>
-            ) : !form.fieldNames.length ? (
-              <p className="text-sm text-muted-foreground">
-                A flat PDF: we opened it and it carries no fillable fields. It is printed and filled in by hand.
-              </p>
-            ) : (
+      <H2>Fields</H2>
+      {!form.inspected ? (
+        <p className="text-sm text-muted-foreground">
+          We have this PDF but have never opened it, so we cannot say whether it can be filled in. It is one of
+          195,530 files — every US DOL and USDA-FNS document — still waiting on an inspection pass.
+        </p>
+      ) : !form.fieldNames.length ? (
+        <p className="text-sm text-muted-foreground">
+          A flat PDF: we opened it and it carries no fillable fields. It is printed and filled in by hand.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {fmtNumber(readable.length)} of {fmtNumber(form.fieldNames.length)}{" "}
+            {form.fieldNames.length === 1 ? "field" : "fields"} named in the PDF.
+            {unreadable > 0 && (
               <>
-                <p className="text-sm text-muted-foreground">
-                  {fmtNumber(readable.length)} of {fmtNumber(form.fieldNames.length)}{" "}
-                  {form.fieldNames.length === 1 ? "field" : "fields"} named in the PDF.
-                  {unreadable > 0 && (
-                    <>
-                      {" "}
-                      The other {fmtNumber(unreadable)} could not be read — the file is compressed or encrypted and the
-                      inspector recorded the raw bytes rather than the name, so we are not printing them as if they were
-                      a schema.
-                    </>
-                  )}
-                </p>
-                {readable.length > 0 && (
-                  <ul className="not-typeset mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                    {readable.map((name, index) => (
-                      <li key={`${name}-${index}`} className="font-mono text-xs text-muted-foreground">
-                        {name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {" "}
+                The other {fmtNumber(unreadable)} could not be read — the file is compressed or encrypted and the
+                inspector recorded the raw bytes rather than the name, so we are not printing them as if they were
+                a schema.
               </>
             )}
-          </div>
-
-          <div className="hidden h-16 w-full items-center gap-2 px-4 sm:flex sm:px-0">
-            <Button variant="secondary" size="sm" className="shadow-none" asChild>
-              <Link href={`/forms?state=${scope}`}>
-                <IconArrowLeft /> Forms
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-      <RightRailSheet>
-        <PublicRail />
-      </RightRailSheet>
-    </div>
+          </p>
+          {readable.length > 0 && (
+            <ul className="not-typeset mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+              {readable.map((name, index) => (
+                <li key={`${name}-${index}`} className="font-mono text-xs text-muted-foreground">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </DocsPage>
   )
 }

@@ -2,11 +2,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
+import { DOCS_DESCRIPTION } from "@/components/docs-header"
+import { DocsPage } from "@/components/docs-page"
 
 // /pricing/api (Brendan, 2026-09-13): the API's own price list, on LegiScan's
 // schedule (LegiScan_Price_List.pdf at the repo root) — a row per number of
 // states, Public free, Pull and Push priced by the year, Push twice Pull.
 // The schedule steps $100 a state, with a $25 lift at 12, 23, 34 and 45.
+// On the docs shell since 2026-09-20 (Brendan).
 export const metadata: Metadata = { title: "API pricing", description: "The GovBlocks API, priced by the year and the number of states." }
 
 /** Pull, by the year, for n states: LegiScan's ladder, to the dollar. */
@@ -30,20 +33,24 @@ const NOTES = [
 
 export default function ApiPricingPage() {
   return (
-    <div className="container-wrapper flex flex-1 flex-col gap-12 px-6 py-16">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-4xl font-bold tracking-tight">API pricing</h1>
-        <p className="max-w-3xl text-lg text-balance text-muted-foreground">
+    <DocsPage
+      title="API pricing"
+      description="The record as JSON, by the year and by the number of states. Public is free. Pull is a keyed interface at higher limits. Push sends every change to you. Plans for readers are priced separately."
+      lead={
+        <p className={DOCS_DESCRIPTION}>
           The record as JSON, by the year and by the number of states. Public is free. Pull is a keyed interface at higher limits. Push sends every change to you.{" "}
           <Link href="/pricing" className="underline underline-offset-4">
             Plans for readers
           </Link>{" "}
           are priced separately.
         </p>
-      </div>
-
-      <div className="overflow-x-auto">
-        <Table className="max-w-3xl">
+      }
+      slug="/pricing/api"
+      previous={{ name: "Pricing", url: "/pricing" }}
+      next={{ name: "API", url: "/docs/api" }}
+    >
+      <div data-not-typeset="true" className="overflow-x-auto">
+        <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-28">
@@ -73,7 +80,7 @@ export default function ApiPricingPage() {
         </Table>
       </div>
 
-      <ol className="m-0 flex max-w-3xl list-none flex-col gap-2 p-0 text-sm text-muted-foreground">
+      <ol data-not-typeset="true" className="m-0 mt-8 flex list-none flex-col gap-2 p-0 text-sm text-muted-foreground">
         {NOTES.map((note, i) => (
           <li key={i} className="flex gap-2">
             <span className="shrink-0 tabular-nums">{i + 1}.</span>
@@ -81,6 +88,6 @@ export default function ApiPricingPage() {
           </li>
         ))}
       </ol>
-    </div>
+    </DocsPage>
   )
 }

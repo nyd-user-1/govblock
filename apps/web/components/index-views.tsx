@@ -31,6 +31,8 @@ export type IndexEntry = {
   href: string
   external?: boolean
   title: string
+  /** A mark before the name in the columns view, which has no emblem to carry it: a member's party dot (2026-09-20). */
+  mark?: React.ReactNode
   /** The list row's muted tail after the title. */
   lead?: string | null
   /** The list row's second line, and the card's one line when it has no `count`. */
@@ -99,7 +101,10 @@ export function IndexEntries({ view, entries, className }: { view: IndexView; en
       <div data-not-typeset="true" className={cn("grid grid-cols-1 items-start gap-4 sm:grid-cols-2 md:gap-x-8 lg:gap-x-16 lg:gap-y-6", className)}>
         {entries.map((e) => (
           <Link key={e.key} href={e.href} title={e.title} {...(e.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="group/cell -mx-2 flex items-start justify-between gap-2 self-start rounded-md px-2 py-1 text-lg font-medium underline-offset-4 transition-colors hover:bg-muted hover:underline md:text-base">
-            <span className="min-w-0">{e.title}</span>
+            <span className="min-w-0">
+              {e.mark}
+              {e.title}
+            </span>
             <ArrowUpRight aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/cell:opacity-100 group-focus-visible/cell:opacity-100" />
           </Link>
         ))}
