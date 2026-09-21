@@ -1,7 +1,7 @@
 import * as F from "@/lib/fixtures"
 import { getStream, scopeStates } from "@/lib/policy/stream"
 import { codeBlockTexts } from "@/lib/typeset/printed-text"
-import { ChangelogIndex, ChangelogProvider, ChangelogRss, ChangelogSteps, type Entry } from "@/components/changelog-v2-body"
+import { ChangelogIndex, ChangelogProvider, ChangelogSteps, type Entry } from "@/components/changelog-v2-body"
 import { DocsPage } from "@/components/docs-page"
 
 // Ported from livingston-v3 app/(app)/docs/changelog-v2/page.tsx: the bill
@@ -28,7 +28,7 @@ export default async function ChangelogPage() {
 
   return (
     <ChangelogProvider initial={entries} initialTexts={Object.fromEntries([...texts].map(([id, text]) => [String(id), text]))}>
-      <DocsPage title={title} description={description} slug="/changelog" previous={{ name: "Bookmarks", url: "/bookmarks" }} next={{ name: "Favorites", url: "/favorites" }} actions={<ChangelogRss />} rail={<ChangelogIndex />} publicRail={false}>
+      <DocsPage title={title} description={description} slug="/changelog" previous={{ name: "Bookmarks", url: "/bookmarks" }} next={{ name: "Favorites", url: "/favorites" }} rail={<ChangelogIndex />} publicRail={false}>
         <ChangelogSteps />
       </DocsPage>
     </ChangelogProvider>

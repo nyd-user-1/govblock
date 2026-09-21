@@ -204,16 +204,6 @@ function ChangelogMore() {
   )
 }
 
-/** The page's RSS button, beside Copy page. */
-export function ChangelogRss() {
-  return (
-    <Button variant="secondary" size="sm" className="h-8 shadow-none md:h-7 md:text-[0.8rem]" render={<a href="/rss.xml" target="_blank" rel="noopener noreferrer" />} nativeButton={false}>
-      <IconRss />
-      RSS
-    </Button>
-  )
-}
-
 /** The center container: the heading, then a step per bill with its text beneath. */
 function ChangelogMain({ entries, texts, empty }: { entries: Entry[]; texts: Map<number, string>; empty: React.ReactNode }) {
   return (
