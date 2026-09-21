@@ -10,8 +10,8 @@ import { DOCS_DESCRIPTION } from "@/components/docs-header"
 //
 // The docs shell's header block, with or without a seal (Brendan, 2026-09-20):
 // that is the only variant. The seal is off unless a page asks for it — the
-// member page does, and a department's, whose seal or logo came back the same
-// day — and the facts line wears the shell's
+// member page does, a department's, whose seal or logo came back the same
+// day, and every bill's, its chamber's seal (2026-09-21) — and the facts line wears the shell's
 // sub-header: its size, colour and width (DOCS_DESCRIPTION).
 
 /** The emblem's size: the name's line and the facts line together, so it stands no taller than the text beside it (Brendan, 2026-09-05). */

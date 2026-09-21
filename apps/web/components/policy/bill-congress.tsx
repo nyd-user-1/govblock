@@ -948,7 +948,8 @@ export function BillToc({
       ["Record", 2],
       ["Text", 3],
     ]
-    if (depth?.onCongress) items.push(["Tracker", 3])
+    // The progress bar is on every bill, not Congress's alone (2026-09-21).
+    items.push(["Progress", 3])
     if (c?.summaries.length) items.push(["CRS Summary", 3])
     items.push(["Sponsors", 3])
     const known = depth?.committees.some((row) => row.activity && row.activity.toLowerCase() !== "unknown")

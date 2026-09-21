@@ -65,14 +65,14 @@ import {
   BillDepthProvider,
   BillNotes,
   BillSubjects,
-  BillTracker,
+  BillProgressBar,
   type DepthInitial,
 } from "@/components/policy/bill-depth"
 import { BillLobbyingBlock } from "@/components/policy/bill-lobbying"
 import { H2, H3 } from "@/components/typeset"
 
 // A bill's own page, on the member page's design (2026-09-05): the session's
-// heading over the sentence, the text, the Tracker and the CRS Summary; the
+// heading over the sentence, the text, the progress bar and the CRS Summary; the
 // rule; the session again as the record — Sponsors, Committees, Reports,
 // Actions, Votes, Amendments, Related bills, Titles, Cost estimate — then
 // Classification, and the constitutional authority statement last. One derived sentence under every heading; every
@@ -247,6 +247,8 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
             <div className="h-(--top-spacing) shrink-0" />
             <div className="mx-auto flex w-full max-w-160 min-w-0 flex-1 flex-col gap-6 px-4 py-6 text-foreground md:px-0 lg:py-8 dark:text-foreground">
               <RecordHeader
+                // The seal variant (Brendan, 2026-09-21: "add the seal variant back to the header for all bill pages"): the chamber's seal before the number, as a member's portrait stands before the name. The page had gone on handing the seal over after 2026-09-20, when the variant became something a page asks for, and never asked.
+                seal
                 media={<ChamberSeal state={bill.state} chamber={chamber} size={RECORD_MEDIA} />}
                 title={number}
                 meta={[chamber ? (federal ? `U.S. ${chamber}` : `${stateName(bill.state)} ${chamber}`) : null, bill.status_desc ?? null]}
@@ -311,15 +313,14 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                   texts={bill.texts}
                   source={sources[0] ?? null}
                 />
-                {federal && (
-                  <>
-                    <H3>Tracker</H3>
-                    <p>The tracker indicates the progress of this legislation as it moves through the legislative process.</p>
-                    <PreviewFrame>
-                      <BillTracker framed />
-                    </PreviewFrame>
-                  </>
-                )}
+                {/* The progress bar, on every bill in every jurisdiction (Brendan, 2026-09-21; Congress alone had it, under
+                    rungs of its own, and it was called a tracker). One bar, on the glossary's normalized stages
+                    (components/policy/bill-depth.tsx). */}
+                <H3>Progress</H3>
+                <p>The progress bar shows how far this legislation has moved through the legislative process.</p>
+                <PreviewFrame>
+                  <BillProgressBar progress={bill.progress ?? []} history={bill.history} statusDesc={bill.status_desc ?? null} statusDate={bill.status_date ? day(bill.status_date) : null} framed />
+                </PreviewFrame>
                 <BillSummaries fallback={<p>{summary}</p>} chamber={chamber} />
 
                 <BillSponsorsBlock sponsors={bill.sponsors} state={bill.state} bill={number} />

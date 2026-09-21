@@ -459,11 +459,13 @@ export async function getBill(billId: number) {
       session_id: number
       session_title: string | null
       status_date: string | null
+      /** LegiScan's standard status, 1 to 6, where the jurisdiction's loader sets it: one of the progress bar's three sources. */
+      status_code: number | null
       bill_type: string | null
       created_at: string
     }
   >(
-    `select ${BILL_COLUMNS}, b.state, b.session_id, b.session_title, b.status_date, b.bill_type, b.created_at
+    `select ${BILL_COLUMNS}, b.state, b.session_id, b.session_title, b.status_date, b.status::int as status_code, b.bill_type, b.created_at
      from "Bills" b ${PRIME_SPONSOR} where b.bill_id = $1`,
     [billId]
   )

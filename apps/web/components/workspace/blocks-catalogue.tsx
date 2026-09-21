@@ -89,7 +89,7 @@ const bill = (slug: string, title: string, render: () => React.ReactNode, size: 
 export const BILL_BLOCKS: BlockEntry[] = [
   bill("bill-text", "Bill text", () => <BillTextCard />, { cols: 2, rows: 2 }),
   bill("bill-sponsors", "Sponsors", () => <BillSponsorsCard />, { cols: 2, rows: 2 }),
-  bill("bill-tracker", "Tracker", () => <BillTrackerCard />, { cols: 2, rows: 1 }),
+  bill("bill-tracker", "Progress bar", () => <BillTrackerCard />, { cols: 2, rows: 1 }),
   bill("bill-actions", "Actions", () => <BillActionsCard />, { cols: 2, rows: 2 }),
   bill("bill-votes", "Votes", () => <BillVotesCard />, { cols: 2, rows: 2 }),
   bill("bill-subjects", "Subjects", () => <BillSubjectsCard />, { cols: 2, rows: 1 }),

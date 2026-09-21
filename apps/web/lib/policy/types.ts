@@ -66,6 +66,8 @@ export type Bill = BillRow & {
   session_id: number
   session_title: string | null
   status_date: string | null
+  /** LegiScan's standard status, 1 to 6, where the jurisdiction's loader sets it: one of the progress bar's three sources. */
+  status_code?: number | null
   bill_type: string | null
   sponsors: Sponsor[]
   history: { date: string; chamber: string; action: string; sequence: number }[]

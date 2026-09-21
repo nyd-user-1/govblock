@@ -287,8 +287,13 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
   if (!steps.length || !c.actions.length) {
     return <p className="text-sm text-muted-foreground">Progress not harvested for this bill yet.</p>
   }
-  const current = steps.filter((s) => s.done).at(-1)
+  return <ProgressSteps steps={steps} framed={framed} />
+}
 
+export type ProgressStep = { title: string; date: string | null; done: boolean; failed: boolean }
+
+/** The progress bar's drawing, the same for Congress and for every state: a rung a stage, filled to where the bill has reached, red where it stopped. */
+export function ProgressSteps({ steps, framed = false }: { steps: ProgressStep[]; framed?: boolean }) {
   return (
     <div className={cn("not-typeset", !framed && "mt-6")} aria-label="Status of legislation">
       <ol className="flex flex-wrap items-stretch gap-1">
@@ -304,6 +309,74 @@ export function BillTracker({ framed = false }: { framed?: boolean }) {
       </ol>
     </div>
   )
+}
+
+/**
+ * The progress bar, one for every bill in all 52 jurisdictions (Brendan, 2026-09-21). Its rungs are the normalized
+ * stages the glossary defines and docs/state-bill-stages.md derived on 2026-09-13 — the events every state, the
+ * District and Congress record in "Progress" — in the order a bill meets them: Introduced, Referred to committee,
+ * Reported, Engrossed, Passed, Enrolled, Chaptered. The other four are how a bill stops or restarts: "Reported: do
+ * not pass" and Failed and Vetoed are drawn in red on the rung they stopped at, and an Override carries a vetoed
+ * bill on to Chaptered. The bar was Congress's alone until now, read from congress.gov's action codes under
+ * Congress's own rung names; it is the same bar everywhere now, Congress included.
+ *
+ * Two sources, the second for what the first lacks. The dated events, on nearly every bill. And the status
+ * description, which is on every bill in every jurisdiction and is written in one vocabulary — "In Senate
+ * Committee", "House Floor Calendar", "Engrossed", "Passed", "Signed by Governor", "Vetoed", "Failed" — so where a
+ * bill has no events its status still says which rung it stands on, dated by the status's date. The status *number*
+ * is not used: in this database 2 is both "In committee" and "Engrossed".
+ */
+const RUNGS = ["Introduced", "Referred to committee", "Reported", "Engrossed", "Passed", "Enrolled", "Chaptered"] as const
+type Rung = (typeof RUNGS)[number]
+
+/** The rung a status description stands on, or how it stopped. */
+function rungOfStatus(status: string | null): { rung?: Rung; stopped?: "Vetoed" | "Failed" } {
+  const d = (status ?? "").trim().toLowerCase()
+  if (!d) return {}
+  if (d === "vetoed") return { stopped: "Vetoed" }
+  if (d === "failed" || d === "stricken") return { stopped: "Failed" }
+  if (d === "introduced" || d === "prefiled") return { rung: "Introduced" }
+  if (/^in .+ committee$/.test(d)) return { rung: "Referred to committee" }
+  if (/floor calendar$/.test(d)) return { rung: "Reported" }
+  if (d === "engrossed" || /^passed (senate|house|assembly)/.test(d)) return { rung: "Engrossed" }
+  if (d === "passed" || d === "adopted") return { rung: "Passed" }
+  if (d === "enrolled" || d === "delivered to governor") return { rung: "Enrolled" }
+  if (d === "signed by governor" || d === "chaptered" || d === "became law") return { rung: "Chaptered" }
+  return {}
+}
+
+export function BillProgressBar({ progress, history, statusDesc, statusDate, framed = false }: { /** The bill's normalized stage events, oldest first. */ progress: { date: string; event: string }[]; history: { date: string; action: string }[]; statusDesc: string | null; statusDate: string | null; framed?: boolean }) {
+  const steps = React.useMemo<ProgressStep[]>(() => {
+    // The day a bill first reached a stage is the day it reached it.
+    const first = (event: string) => progress.find((p) => p.event === event)?.date ?? null
+    const reached = new Map<Rung, string | null>()
+    const mark = (rung: Rung, date: string | null | undefined) => {
+      if (!reached.has(rung) || (!reached.get(rung) && date)) reached.set(rung, date ? String(date).slice(0, 10) : null)
+    }
+    for (const rung of RUNGS) {
+      const date = rung === "Reported" ? first("Reported: do pass") : first(rung)
+      if (date) mark(rung, date)
+    }
+    // A veto overridden is law.
+    if (first("Override")) mark("Chaptered", first("Override"))
+    const status = rungOfStatus(statusDesc)
+    if (status.rung) mark(status.rung, statusDate)
+    // Every bill on file was introduced, whether or not an event says so.
+    mark("Introduced", history[0]?.date ?? null)
+
+    const last = Math.max(...RUNGS.map((rung, i) => (reached.has(rung) ? i : -1)))
+    const law = reached.has("Chaptered")
+    const vetoed = !law && (first("Vetoed") ?? (status.stopped === "Vetoed" ? statusDate : null))
+    const failed = !law && !vetoed && (first("Failed") ?? first("Reported: do not pass") ?? (status.stopped === "Failed" ? statusDate : null))
+    const notPassed = !!first("Reported: do not pass") && !reached.has("Reported")
+    return RUNGS.map((rung, i) => {
+      // Where it stopped, in red: a veto in Chaptered's place, a committee's "do not pass" in Reported's, any other failure on the first rung the bill never reached.
+      if (vetoed && rung === "Chaptered") return { title: "Vetoed", date: String(vetoed).slice(0, 10), done: false, failed: true }
+      if (failed && (notPassed ? rung === "Reported" : i === last + 1)) return { title: notPassed ? "Reported: do not pass" : "Failed", date: String(failed).slice(0, 10), done: false, failed: true }
+      return { title: rung, date: reached.get(rung) ?? null, done: i <= last, failed: false }
+    })
+  }, [progress, history, statusDesc, statusDate])
+  return <ProgressSteps steps={steps} framed={framed} />
 }
 
 /* ---- actions -------------------------------------------------------------- */
