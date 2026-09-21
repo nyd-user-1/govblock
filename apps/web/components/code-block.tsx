@@ -36,10 +36,10 @@ export function languageOf(title?: string, fallback = "tsx") {
 }
 
 /** Plain lines in the figure's markup, for client components and for text with no tokens to colour. */
-export function CodeLines({ code, highlighted, numbers = true }: { code: string; highlighted?: Set<number>; numbers?: boolean }) {
+export function CodeLines({ code, highlighted, numbers = true, start = 1 }: { code: string; highlighted?: Set<number>; numbers?: boolean; /** The first line's number, for a section cut from a longer file (2026-09-20). */ start?: number }) {
   return (
     <pre data-language="txt" className="min-w-0 overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-6 outline-none">
-      <code {...(numbers ? { "data-line-numbers": "" } : {})}>
+      <code {...(numbers ? { "data-line-numbers": "" } : {})} style={start > 1 ? { counterReset: `line ${start - 1}` } : undefined}>
         {code.split("\n").map((line, index) => (
           <span key={index} data-line="" className="flex" {...(highlighted?.has(index + 1) ? { "data-highlighted-line": "" } : {})}>
             {/* A long line wraps under its own start, not under the line number (2026-09-15). */}
