@@ -3318,7 +3318,7 @@ export async function getDatasetCounts(state: string) {
  */
 export async function getProvenance() {
   const day = (col: string) => `to_char(${col}, 'YYYY-MM-DD')`
-  const [totals, texts, datasets, feeds, fresh, coverage] = await Promise.all([
+  const [totals, texts, datasets, feeds, fresh, coverage, since] = await Promise.all([
     one<{ bills: number; sessions: number; states: number; rollcalls: number; people: number; committees: number; texts: number }>(
       `select (select count(*)::int from "Bills") as bills,
               (select count(*)::int from "LegiscanDatasets" where bills > 0) as sessions,
@@ -3368,9 +3368,14 @@ export async function getProvenance() {
     // data or api or harvested that site") — the last time a loader wrote it:
     // the dataset ledger's import, or for Congress the pipeline's last run.
     q<{ state: string; last_action: string; bills: number; recent: number; pulled_at: string | null }>(
-      `select b.state, max(b.last_action_date) as last_action, count(*)::int as bills,
+      // Looked at counts as pulled (2026-09-20): a sweep that compares a session's hash and finds it unchanged stamps
+      // checked_at (sql/035), so a legislature that has gone home does not read as a feed gone dark. So does a text
+      // fetch in the last eight days, which is all New York's own API leaves behind; it writes no ledger row.
+      `with t as (select state, max(fetched_at) as at from "BillTexts" where fetched_at > now() - interval '8 days' group by 1)
+       select b.state, max(b.last_action_date) as last_action, count(*)::int as bills,
               count(*) filter (where b.last_action_date >= to_char(now() - interval '7 days', 'YYYY-MM-DD'))::int as recent,
-              greatest((select max(imported_at) from "LegiscanDatasets" d where d.state = b.state),
+              greatest((select max(greatest(imported_at, checked_at)) from "LegiscanDatasets" d where d.state = b.state),
+                       (select at from t where t.state = b.state),
                        case when b.state = 'US' then (select max(last_run) from congress_sync_state) end)::text as pulled_at
          from "Bills" b where b.session_id >= 2025 group by 1 order by 1`
     ),
@@ -3378,6 +3383,11 @@ export async function getProvenance() {
       `select count(*) filter (where coalesce(text_chars, 0) > 0)::int as with_text, count(*)::int as of
          from "Bills" where session_id >= 2025`
     ),
+    // The record as it stood before the day's runs began: the first snapshot of the last 24 hours (sql/036). The
+    // tiles' change numbers are today's totals less these, never a count of rows stamped today.
+    one<{ at: string; bills: number | null; texts: number | null; rollcalls: number | null; people: number | null }>(
+      `select to_char(at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as at, bills, texts, rollcalls, people from "CorpusSnapshots" where at > now() - interval '24 hours' order by at limit 1`
+    ).catch(() => null),
   ])
   const days = new Map<string, { day: string; texts: number; datasets: number; bills: number }>()
   for (const t of texts) days.set(t.day, { day: t.day, texts: n(t.texts), datasets: 0, bills: 0 })
@@ -3414,5 +3424,6 @@ export async function getProvenance() {
     },
     fresh: fresh.map((f) => ({ state: f.state, last_action: f.last_action, bills: n(f.bills), recent: n(f.recent), pulled_at: f.pulled_at ?? null })),
     coverage: { with_text: n(coverage?.with_text), of: n(coverage?.of) },
+    since: since ? { at: since.at, bills: since.bills, texts: since.texts, rollcalls: since.rollcalls, people: since.people } : null,
   }
 }

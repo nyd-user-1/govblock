@@ -116,7 +116,12 @@ export function SiteRail() {
   ]
   // The record's groups fold like the nodes above them (Brendan, 2026-09-17),
   // rather than standing open as lists under their own labels.
-  const recordNodes: RailItem[] = record.map((g) => item(g.key, g.items[0]?.href ?? "/bills", g.label, glyph(g.key === "committees" ? Users : FileClock), g.items))
+  // Where the rail reads the API only when asked (the root's frame, 2026-09-20), the asking is an icon in the Recent
+  // Bills row itself, at its right (Brendan, 2026-09-20); anywhere else the button draws nothing.
+  const recordNodes: RailItem[] = record.map((g) => ({
+    ...item(g.key, g.items[0]?.href ?? "/bills", g.label, glyph(g.key === "committees" ? Users : FileClock), g.items),
+    ...(g.key === "recent" ? { action: <RefreshButton variant="ghost" className="size-6 text-muted-foreground" what="the rail's lists" /> } : {}),
+  }))
   const account_: RailItem[] = [item("account", "/auth", "Manage account", glyph(Settings))]
 
   return (
@@ -124,14 +129,12 @@ export function SiteRail() {
       <SidebarGroup className="pt-12">
         <SidebarGroupContent>
           <SidebarMenu>
-            {/* Where the rail reads the API only when asked (the root's frame, 2026-09-20), the asking is the icon beside the search; anywhere else it draws nothing. */}
-            <SidebarMenuItem className="flex max-w-52 items-center gap-1">
-              <SidebarMenuButton onClick={openSearch} className="h-9 w-full min-w-0 flex-1 justify-start rounded-lg border bg-background text-[0.8rem] text-muted-foreground shadow-xs hover:bg-muted">
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={openSearch} className="h-9 w-full max-w-52 justify-start rounded-lg border bg-background text-[0.8rem] text-muted-foreground shadow-xs hover:bg-muted">
                 {glyph(Search)}
                 <span className="min-w-0 flex-1 truncate text-left">Quick search…</span>
                 <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-block">⌘K</kbd>
               </SidebarMenuButton>
-              <RefreshButton variant="ghost" className="shrink-0 text-muted-foreground" what="the rail's lists" />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

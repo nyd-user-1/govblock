@@ -5,6 +5,7 @@ import * as React from "react"
 import { fmtNumber } from "@/lib/format"
 import { useScope } from "@/lib/policy/scope"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { asDate } from "@/lib/as-date"
 
 // What the Admin pages read from the record, under the rail's scope. Each
 // hook is one resource; a page calls the ones its shape needs, so opening
@@ -133,6 +134,8 @@ export type Provenance = {
     pulled_at: string | null
   }[]
   coverage: { with_text: number; of: number }
+  /** The record before the day's runs began (sql/036); null when no run has been launched in 24 hours. */
+  since?: { at: string; bills: number | null; texts: number | null; rollcalls: number | null; people: number | null } | null
 }
 
 function useRecord<T>(resource: string | null, extra: Record<string, string | number | undefined> = {}) {
@@ -207,7 +210,7 @@ export const num = (v: number | null | undefined) => fmtNumber(v ?? 0)
 /** "2026-09-03 12:50:21.9+00" → "Sep 3, 12:50" or "—". */
 export function fmtStamp(value: string | null | undefined) {
   if (!value) return "—"
-  const d = new Date(value.replace(" ", "T"))
+  const d = asDate(value)
   if (!Number.isFinite(d.getTime())) return value
   return d.toLocaleString("en-US", {
     month: "short",
@@ -220,7 +223,7 @@ export function fmtStamp(value: string | null | undefined) {
 /** How long ago, in words. */
 export function ago(value: string | null | undefined) {
   if (!value) return "never"
-  const d = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}${/[+Z]/.test(value) ? "" : "Z"}`)
+  const d = asDate(value)
   const ms = Date.now() - d.getTime()
   if (!Number.isFinite(ms)) return value
   const h = Math.floor(ms / 36e5)

@@ -109,10 +109,11 @@ export function ScopeGuard({ children }: { children: React.ReactNode }) {
 
   const exempt = fromPath.exempt && !mark
   const ask = React.useMemo<Ask>(() => ({ state, session, current, entity }), [state, session, current, entity])
-  // The card is judged as everyone else would be judged: an admin meets the
-  // same card (2026-09-14), with the rule itself already open for them.
+  // An admin never meets the gate (Brendan, 2026-09-20: "get rid of the gate please. it's wrong and annoying" —
+  // it had stood over the Database dashboard because the header's flag was on South Carolina). Until then the
+  // card was judged for an admin as for everyone else (2026-09-14), with only its x to close it.
   const admin = j.reader.admin === true
-  const verdict: Verdict = exempt ? "open" : entitled({ ...j.reader, admin: false }, ask)
+  const verdict: Verdict = exempt || admin ? "open" : entitled(j.reader, ask)
   // The x, the admin's alone on production, everyone's on a dev server
   // (Brendan, 2026-09-14): the card closes for this page and this scope,
   // and comes back on the next one. The gate itself stands in both.

@@ -21,6 +21,7 @@ import { Skeleton } from "@govblock/ui/components/nova/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@govblock/ui/components/nova/table"
 import { Tabs, TabsList, TabsTrigger } from "@govblock/ui/components/nova/tabs"
 import { cn } from "@govblock/ui/lib/utils"
+import { asDate } from "@/lib/as-date"
 
 // paceui's AI Tokens page, as the site's traffic (Brendan, 2026-09-06: "tie
 // it to one of the admin dashboard views and pull in all analytics data
@@ -249,7 +250,7 @@ export function TrafficPage() {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="h-6 gap-1.5 font-normal text-muted-foreground">
               <span className={cn("size-1.5 rounded-full", data?.pulled_at ? "bg-green-500" : "bg-muted-foreground/40")} />
-              {data?.pulled_at ? `Cloudflare · pulled ${new Date(data.pulled_at.replace(" ", "T")).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Cloudflare"}
+              {data?.pulled_at ? `Cloudflare · pulled ${asDate(data.pulled_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Cloudflare"}
             </Badge>
             <Select value={days} onValueChange={(v) => v && setDays(String(v))}>
               <SelectTrigger className="h-8 w-max min-w-32" size="sm">

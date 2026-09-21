@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@govblock/ui/components/nova/tabs"
 import { cn } from "@govblock/ui/lib/utils"
 import type { JobLine, PipelineStatus } from "@/lib/policy/expressions"
+import { asDate } from "@/lib/as-date"
 
 // Ingestion: the Data Pipeline page's frame, repurposed (Brendan, 2026-09-14)
 // as the monitor of the legislative XML program until it is done and the
@@ -53,7 +54,7 @@ const STATUS_TONE: Record<string, string> = {
 const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."]
 function fmtWhen(value: string | null | undefined) {
   if (!value) return "—"
-  const d = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}${/[+Z]/.test(value) ? "" : "Z"}`)
+  const d = asDate(value)
   if (!Number.isFinite(d.getTime())) return value
   return `${MONTHS[d.getMonth()]} ${d.getDate()} | ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
 }
@@ -386,7 +387,7 @@ function NightlyFeeds({ lastXml }: { lastXml: PipelineStatus["runs"][number] | n
   ]
   const tone = (at: string | null | undefined) => {
     if (!at) return { label: "No run on record", className: "text-muted-foreground" }
-    const hours = (Date.now() - new Date(at.includes("T") ? at : `${at.replace(" ", "T")}${/[+Z]/.test(at) ? "" : "Z"}`).getTime()) / 36e5
+    const hours = (Date.now() - asDate(at).getTime()) / 36e5
     return hours < 36 ? { label: "Ran last night", className: "text-green-600" } : hours < 24 * 8 ? { label: "This week", className: "text-amber-600" } : { label: "Stale", className: "text-destructive" }
   }
   return (

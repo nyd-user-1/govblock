@@ -45,6 +45,8 @@ export type RailItem = {
   muted?: boolean
   active: boolean
   items?: RailItem[]
+  /** A control of the row's own, inline at its right edge and outside its link: the rail's refresh, in Recent Bills. */
+  action?: React.ReactNode
 }
 
 function Badge({ text }: { text: string }) {
@@ -78,8 +80,9 @@ function RailNode({ item }: { item: RailItem }) {
   const children = item.items ?? []
   if (!children.length) {
     return (
-      <SidebarMenuItem>
+      <SidebarMenuItem className={item.action ? "max-w-52" : undefined}>
         <RailButton item={item} />
+        {item.action && <span className="absolute top-1/2 right-1 z-10 flex -translate-y-1/2 items-center">{item.action}</span>}
       </SidebarMenuItem>
     )
   }
@@ -88,7 +91,7 @@ function RailNode({ item }: { item: RailItem }) {
   const highlight = item.active && !(open && children.some((child) => child.active))
   return (
     <Collapsible asChild open={open} onOpenChange={setOpen} className="group/collapsible">
-      <SidebarMenuItem>
+      <SidebarMenuItem className={item.action ? "max-w-52" : undefined}>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton isActive={highlight} className={cn(MENU_CLASS, item.muted && "opacity-60")}>
             {item.icon}
@@ -97,6 +100,8 @@ function RailNode({ item }: { item: RailItem }) {
             <ChevronRight aria-hidden className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
+        {/* Beside the chevron, not inside the trigger: a button in a button is not one a reader can press. */}
+        {item.action && <span className="absolute top-[15px] right-7 z-10 flex -translate-y-1/2 items-center">{item.action}</span>}
         <CollapsibleContent>
           {/* AnimBits' three levels (Brendan, 2026-09-11): a child with items of its own is a node again, folded the same way. */}
           <SidebarMenuSub>

@@ -215,6 +215,8 @@ export type DbStat = {
   title: string
   value: React.ReactNode
   change?: string
+  /** What the change is measured from, on hover. */
+  hint?: string
   direction?: "up" | "down" | "neutral"
   note?: string
 }
@@ -234,7 +236,7 @@ export function StatDatabaseGrid({ stats }: { stats: DbStat[] }) {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl font-semibold">{s.value}</span>
                   {s.change && (
-                    <span className={cn("flex items-center gap-0.5 text-xs font-medium", d === "up" ? "text-green-600" : d === "down" ? "text-destructive" : "text-muted-foreground")}>
+                    <span title={s.hint} className={cn("flex items-center gap-0.5 text-xs font-medium", d === "up" ? "text-green-600" : d === "down" ? "text-destructive" : "text-muted-foreground")}>
                       <Icon className="size-3.5" />
                       {s.change}
                     </span>

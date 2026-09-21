@@ -130,7 +130,7 @@ function ChooseSession() {
   )
 }
 
-export function ComponentActions({ className, children, rows, id }: { className?: string; children?: React.ReactNode; rows?: readonly Record<string, unknown>[]; id?: string }) {
+export function ComponentActions({ className, children, rows, id, views, view, onView }: { className?: string; children?: React.ReactNode; rows?: readonly Record<string, unknown>[]; id?: string; /** What the card can show in its one slot (Brendan, 2026-09-20): the menu's first group switches between them. */ views?: readonly { value: string; label: string }[]; view?: string; onView?: (value: string) => void }) {
   // On the workspace grid (Brendan, 2026-09-07) the card's own ⋮ is the grid's menu.
   const cell = useGridCell()
   if (cell)
@@ -156,7 +156,19 @@ export function ComponentActions({ className, children, rows, id }: { className?
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Component options" />}>
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-52">
+        <DropdownMenuContent align="end" className="w-max min-w-52">
+          {views && views.length > 1 && (
+            <>
+              <DropdownMenuRadioGroup value={view ?? ""} onValueChange={(value) => onView?.(String(value))}>
+                {views.map((v) => (
+                  <DropdownMenuRadioItem key={v.value} value={v.value} className="whitespace-nowrap">
+                    {v.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <ChooseSession />
           <Gated action="Edit Block" />
           <Gated action="Choose Block" />

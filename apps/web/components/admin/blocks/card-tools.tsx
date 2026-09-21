@@ -49,6 +49,10 @@ export function CardAnchor({ children, id, className }: { children: string; id?:
 }
 
 /** The card's controls: whatever it had, then the standard menu. Goes inside CardAction. */
-export function CardTools({ children, className }: { children?: React.ReactNode; className?: string }) {
-  return <ComponentActions className={className}>{children}</ComponentActions>
+export function CardTools({ children, className, views, view, onView }: { children?: React.ReactNode; className?: string; /** The views the card's slot can hold; the menu switches between them (2026-09-20). */ views?: readonly { value: string; label: string }[]; view?: string; onView?: (value: string) => void }) {
+  return (
+    <ComponentActions className={className} views={views} view={view} onView={onView}>
+      {children}
+    </ComponentActions>
+  )
 }
