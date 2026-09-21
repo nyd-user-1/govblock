@@ -12,7 +12,8 @@ import { Separator } from "@govblock/ui/components/ny4/separator"
 // nav and the designer actions are not ported yet).
 export function SiteHeader() {
   return (
-    <header data-slot="site-header" className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden group-has-[[data-slot=unite]]/layout:hidden">
+    // The header is the fixed point of a page transition: named, so it is lifted out of the page's snapshot and stands still while the page under it moves (globals.css).
+    <header data-slot="site-header" style={{ viewTransitionName: "site-header" }} className="sticky top-0 z-50 w-full bg-background group-has-[[data-slot=view]]/layout:hidden group-has-[[data-slot=unite]]/layout:hidden">
       <ScrollShade />
       {/* A hairline and a shadow under the header, both only while something passes under it (Brendan, 2026-09-13). */}
       <div className="container-wrapper border-b border-transparent px-6 transition-[border-color,box-shadow] duration-200 3xl:fixed:px-0 [[data-scrolled]_&]:border-border [[data-scrolled]_&]:shadow-[0_2px_8px_rgba(0,0,0,0.06)]">

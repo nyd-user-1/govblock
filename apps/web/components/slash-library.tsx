@@ -82,7 +82,7 @@ function AtGroup({ heading, items, go }: { heading: string; items: AtItem[]; go:
 
 const LABEL = "w-48 shrink-0 truncate font-medium"
 
-export function SlashResults({ mode, result, at, pending, term, go }: { mode: CorpusMode; result: SlashResponse | null; at?: AtResponse | null; pending: boolean; term: string; go: (href: string) => void }) {
+export function SlashResults({ mode, result, at, pending, term, go, place = false, limit }: { mode: CorpusMode; result: SlashResponse | null; at?: AtResponse | null; pending: boolean; term: string; go: (href: string) => void; /** Under a place's doors (`/ak`): the codes are one group of several, headed by their kind, and the library's own row stays out (Brendan, 2026-09-21). */ place?: boolean; /** The first so many of the items, where the group shares the list with others. */ limit?: number }) {
   if (mode === "at") {
     if (term.length < 3) return <CommandEmpty>@10 U.S.C. 130i, @section 16 of the agriculture and markets law, or a member or committee by name</CommandEmpty>
     if (!at || !(at.citations.length || at.members.length || at.committees.length)) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : "Nothing by that reference."}</CommandEmpty>
@@ -98,16 +98,16 @@ export function SlashResults({ mode, result, at, pending, term, go }: { mode: Co
   if (!result) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : "Nothing at that address."}</CommandEmpty>
   if (!result.items.length && !result.href) return <CommandEmpty>{pending ? <LoadingFlag width={28} /> : `Nothing under ${result.label || term}.`}</CommandEmpty>
   return (
-    <CommandGroup heading={result.label}>
+    <CommandGroup heading={place ? (limit && result.items.length > limit ? `Laws · ${limit} of ${result.items.length}` : "Laws") : result.label}>
       {/* Where the query lives (window 4): the library, or the Work in the XML view. Enter opens it. */}
-      {result.href && (
+      {result.href && !place && (
         <CommandItem className="group/row" value={`slash-open-${result.href}`} onSelect={() => go(result.href!)}>
           <LibraryIcon className="text-muted-foreground" />
           <span className={LABEL}>{result.label}</span>
           <span className="min-w-0 flex-1 truncate pl-2 text-left text-muted-foreground">{result.href}</span>
         </CommandItem>
       )}
-      {result.items.map((item: SlashItem) => (
+      {(limit ? result.items.slice(0, limit) : result.items).map((item: SlashItem) => (
         <CommandItem key={`${item.address}-${item.href}`} className="group/row" value={`slash-${item.href ?? item.address}`} onSelect={() => item.href && go(item.href)}>
           {item.state ? <FlagChip state={item.state} width={20} /> : <LibraryIcon className="text-muted-foreground" />}
           <span className={LABEL}>{item.label}</span>

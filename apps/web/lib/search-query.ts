@@ -20,15 +20,18 @@ import { STATE_NAMES } from "@/lib/filters"
 // means it. `@` narrows who. A lone token that is none of these goes to the
 // library and the citation resolver exactly as before.
 
-export type SearchKind = "bills" | "laws" | "members" | "committees"
+// A kind is an index (Brendan, 2026-09-21: "a `/` is the index: if it's an index page and has entries then it should
+// be able to be a `/` that becomes a chip"). Beside a place it lists that index's entries: `/ny /members`, `/ak /sessions`.
+export type SearchKind = "bills" | "laws" | "members" | "committees" | "sessions"
 
-export const KIND_LABELS: Record<SearchKind, string> = { bills: "Bills", laws: "Laws", members: "Members", committees: "Committees" }
+export const KIND_LABELS: Record<SearchKind, string> = { bills: "Bills", laws: "Laws", members: "Members", committees: "Committees", sessions: "Sessions" }
 
 const KIND_WORDS: Record<string, SearchKind> = {
   bill: "bills", bills: "bills",
   law: "laws", laws: "laws", code: "laws", codes: "laws",
   member: "members", members: "members", legislator: "members", legislators: "members",
   committee: "committees", committees: "committees",
+  session: "sessions", sessions: "sessions",
 }
 
 const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
@@ -108,5 +111,7 @@ export function kindHref(kind: SearchKind, code: string): string {
   const c = code.toLowerCase()
   if (kind === "bills") return `/bills/${c}`
   if (kind === "laws") return `/laws/${c}`
+  // Sessions have no index page of their own; the jurisdiction's page lists them.
+  if (kind === "sessions") return `/state/${c}`
   return `/${kind}?state=${code}`
 }

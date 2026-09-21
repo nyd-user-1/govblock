@@ -18,7 +18,7 @@ import {
 import { ScopeGuard } from "@/components/scope-guard"
 import { ScopeReady } from "@/components/scope-ready"
 import { AssistPanelProvider } from "@/lib/assist-panel"
-import { PageCurtainHost } from "@/components/page-curtain"
+import { PageRise } from "@/components/page-rise"
 import { DevInspector } from "@/components/dev/inspector"
 import { AssistPanel, AssistShell } from "@/components/assist-panel"
 import { CardGateProvider } from "@/components/card-gate"
@@ -84,14 +84,14 @@ export default function RootLayout({
                           className="flex min-h-0 flex-1 flex-col"
                         >
                           {/* The gate (Brendan, 2026-09-13): any page whose scope the reader may not open sits blurred under a card with the two ways on. */}
-                          <ScopeGuard>{children}</ScopeGuard>
+                          <ScopeGuard>
+                            <PageRise>{children}</PageRise>
+                          </ScopeGuard>
                         </main>
                       </AssistShell>
                       <SiteFooter />
                     </div>
                     <AssistPanel />
-                    {/* The page curtain, over everything and outside the routed pages, so it outlives the navigation it covers. */}
-                    <PageCurtainHost />
                     {/* Ours won (Brendan, 2026-09-16): @react-trace/kit is
                         uninstalled and only this inspector remains, resolving a
                         real file:line through /api/dev-locate. It draws nothing

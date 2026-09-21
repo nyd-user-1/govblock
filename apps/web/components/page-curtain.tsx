@@ -15,8 +15,10 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 // trails a beat behind it, so what is seen drawing back is always the second
 // colour, never the page still painting underneath.
 //
-// The host lives in the root layout, so the sheet survives the navigation it
-// covers. A link asks for a curtain with `runCurtain`; the page it lands on
+// The host lived in the root layout, where the sheet survives the navigation it
+// covers, until 2026-09-21: nothing on the site asked for a curtain, so it came
+// out of the layout (Brendan: "it can be left with /unite-2 and/or /unite"). A
+// page that wants one mounts <PageCurtainHost /> in a layout of its own. A link asks for a curtain with `runCurtain`; the page it lands on
 // calls `useCurtainArrival` when it mounts, which is the cue to draw back.
 
 export type CurtainDirection = "forward" | "back"

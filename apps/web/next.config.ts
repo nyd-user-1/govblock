@@ -45,6 +45,10 @@ const nextConfig: NextConfig = {
         : { "@/components/dev/inspector": "./components/dev/inspector.stub.tsx" },
   },
   experimental: {
+    // React's <ViewTransition> on navigations (Brendan, 2026-09-21: a result chosen from the search bar's drop-down
+    // should "appear in place"). The flag lets a router.push carry transition types; components/page-rise.tsx is
+    // the one transition that uses it, and a navigation that names no type animates nothing.
+    viewTransition: true,
     // The /docs pages prerender against the live database. Eight at a time per
     // worker was the default; against a just-resumed Aurora that stampede is
     // what made every page take over a minute (job 193, 2026-09-03).

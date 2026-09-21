@@ -3,6 +3,7 @@ import { RailsFrame } from "@/components/rails-frame"
 import { RootSearchSection } from "@/components/root-search-section"
 import { SignPage, type SignSearch } from "@/components/sign-page"
 import { RootFooter } from "@/components/root-footer"
+import { RootHashScroll } from "@/components/root-hash-scroll"
 import { StateSection } from "@/components/state-section"
 
 // The root (Brendan, 2026-09-14): the hero between both site rails, under
@@ -27,6 +28,7 @@ export default function IndexPage({ searchParams }: { searchParams: SignSearch }
           <RootSearchSection />
           <StateSection />
           <RootFooter />
+          <RootHashScroll />
         </div>
       </ParticleScroll>
     </RailsFrame>

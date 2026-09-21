@@ -4,7 +4,7 @@ import * as React from "react"
 import { ArrowDownIcon } from "lucide-react"
 import { motion, MotionConfig } from "motion/react"
 
-import { SEARCH_SECTION_ID } from "@/components/root-sections"
+import { SEARCH_SECTION_ID, goToSection } from "@/components/root-sections"
 import { FlagLoader } from "@/components/flag-loader"
 import ParticleMark from "@/components/flag-particles"
 import { Motto } from "@/components/motto"
@@ -196,7 +196,7 @@ export function SignStage({
                   <motion.button
                     type="button"
                     aria-label="Scroll to Search"
-                    onClick={() => go(SEARCH_SECTION_ID)}
+                    onClick={() => goToSection(SEARCH_SECTION_ID)}
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
                     className="inline-flex size-10 items-center justify-center rounded-full border bg-background text-foreground shadow-md transition-colors hover:bg-muted [&_svg]:size-4"

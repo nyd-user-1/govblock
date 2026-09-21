@@ -28,7 +28,7 @@ export function HomeSheet() {
   return (
     <FrozenPolicyProvider answers={file.home}>
       <PathScopeContext.Provider value={SCOPE}>
-        <HomeMain />
+        <HomeMain hotkey={false} />
       </PathScopeContext.Provider>
     </FrozenPolicyProvider>
   )

@@ -19,7 +19,8 @@ export const STATE_PAGE = {
 
 export function StateSection() {
   return (
-    <section id={JURISDICTIONS_SECTION_ID} className={`${DOCS_COLUMN} pb-16 text-[1.05rem] sm:text-[15px]`}>
+    // The top padding is section two's (Brendan, 2026-09-21): the arrow lands the h1's top level with the rails' tabs', 200px down the window.
+    <section id={JURISDICTIONS_SECTION_ID} className={`${DOCS_COLUMN} pt-[calc(200px-var(--header-height))] pb-16 text-[1.05rem] sm:text-[15px] lg:pt-[calc(200px-var(--header-height))]`}>
       <DocsHeader {...STATE_PAGE} />
       <div className="typeset w-full">
         <StateTable rows={JURISDICTIONS_TABLE} />

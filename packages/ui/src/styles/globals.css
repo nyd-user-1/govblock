@@ -523,3 +523,44 @@
     --highlight: oklch(0.852 0.199 91.936);
     --brand: oklch(0.707 0.165 254.624);
 }
+
+
+/* A page that appears in place (components/page-rise.tsx, 2026-09-21): chosen from the search bar's drop-down, the
+   page being left slides up and away and the page arriving rises into its spot, as the next section of a long page
+   scrolling into view; the header, named, stands still over both. */
+@keyframes page-rise-out {
+  to {
+    transform: translateY(-38vh);
+    opacity: 0;
+  }
+}
+@keyframes page-rise-in {
+  from {
+    transform: translateY(62vh);
+    opacity: 0;
+  }
+}
+::view-transition-old(.search-open) {
+  animation: 380ms cubic-bezier(0.4, 0, 0.2, 1) both page-rise-out;
+}
+::view-transition-new(.search-open) {
+  animation: 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both page-rise-in;
+}
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
