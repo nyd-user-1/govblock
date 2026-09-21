@@ -27,7 +27,6 @@ import {
   useEventMove,
   useRegisterDraftHost,
 } from "./calendar-provider"
-import { HEADER_TOTAL } from "./chrome"
 import { DayColumn } from "./day-column"
 import { EventChip } from "./event-chip"
 import { EventDraft } from "./event-draft"
@@ -43,7 +42,7 @@ const ALL_DAY_ROW_BORDER = 1
 const START_OFFSET = 7 * HOUR_HEIGHT
 
 export function WeekView() {
-  const { date, range } = useCalendar()
+  const { date, range, headerTotal } = useCalendar()
   const { eventsForDay, eventsForDays, loading } = useCalendarEvents()
   const { draftEvent, onGridPointerdown, onGridDblclick } = useEventDraft()
   const { movingId, preview } = useEventMove()
@@ -130,7 +129,7 @@ export function WeekView() {
     measuredChrome ||
     DAY_HEADER_HEIGHT + allDayLanes * ALL_DAY_LANE_HEIGHT + ALL_DAY_ROW_BORDER
 
-  const chromeOffset = HEADER_TOTAL + chromeHeight
+  const chromeOffset = headerTotal + chromeHeight
 
   const container = React.useRef<HTMLDivElement>(null)
 
@@ -178,7 +177,7 @@ export function WeekView() {
       <div
         ref={chrome}
         className="absolute inset-x-0 z-30 border-b border-border bg-background/80 backdrop-blur-md"
-        style={{ top: `${HEADER_TOTAL}px` }}
+        style={{ top: `${headerTotal}px` }}
       >
         <div className="grid" style={gridStyle}>
           <div />

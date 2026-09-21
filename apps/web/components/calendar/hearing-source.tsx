@@ -5,7 +5,7 @@ import type { CalendarDate } from "@internationalized/date"
 import { useParams } from "next/navigation"
 
 import { parseCalendarDate, toDate, todayDate } from "@/lib/calendar/dates"
-import { chamberCalendars, hearingsToEvents, isHearingEvent } from "@/lib/calendar/hearings"
+import { chamberCalendars, hearingsToEvents, isHearingEvent, WORKSPACE_CALENDARS } from "@/lib/calendar/hearings"
 import type { CalendarEvent } from "@/lib/calendar/types"
 import { capitolZone } from "@/lib/policy/hearing-when"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -32,11 +32,14 @@ function fetchWindow(date: CalendarDate) {
   return { from: iso(from), to: iso(to) }
 }
 
-export function useHearingSource(): EventSource {
+export function useHearingSource(at?: CalendarDate, options?: { /** The workspace's five calendars in place of the chambers'. */ workspace?: boolean }): EventSource {
   const params = useParams<{ view?: string; date?: string }>()
+  const workspace = options?.workspace === true
+  // The provider hands over the date in view; the route's is the fallback.
+  const atKey = at?.toString()
   const date = React.useMemo(
-    () => (params.date && parseCalendarDate(params.date)) || todayDate(),
-    [params.date]
+    () => (atKey && parseCalendarDate(atKey)) || (params.date && parseCalendarDate(params.date)) || todayDate(),
+    [atKey, params.date]
   )
   // The calendar used to keep its own jurisdiction in localStorage. It reads
   // the shared scope now, so the header's switcher moves it and its own
@@ -58,12 +61,12 @@ export function useHearingSource(): EventSource {
     if (!hearings) return
     setFetched((current) => {
       const next = { ...current }
-      for (const event of hearingsToEvents(hearings)) {
+      for (const event of hearingsToEvents(hearings, { workspace })) {
         next[event.id] = event
       }
       return next
     })
-  }, [hearings])
+  }, [hearings, workspace])
 
   // A new jurisdiction starts from an empty calendar.
   React.useEffect(() => {
@@ -71,7 +74,7 @@ export function useHearingSource(): EventSource {
   }, [state])
 
   const store = React.useMemo(() => ({ ...fetched, ...mine }), [fetched, mine])
-  const calendars = React.useMemo(() => chamberCalendars(state), [state])
+  const calendars = React.useMemo(() => (workspace ? WORKSPACE_CALENDARS : chamberCalendars(state)), [state, workspace])
 
   const add = React.useCallback(
     (event: CalendarEvent) => {
@@ -151,4 +154,53 @@ export function useHearingSource(): EventSource {
     state,
     setState,
   }
+}
+
+
+// /workspace/calendar's events (Brendan, 2026-09-21): the hearings above under
+// the workspace's five calendars, and beside the jurisdiction in scope the
+// ones the rail's + has added, each read a window at a time like the first.
+// Three more at most: hooks are counted, and the scope a reader is entitled to
+// is Congress and a home state before a plan adds a third.
+const ADDED_KEY = "govblock:calendar-jurisdictions"
+export const MAX_ADDED = 3
+
+export function useWorkspaceSource(at?: CalendarDate): EventSource {
+  const base = useHearingSource(at, { workspace: true })
+  const [stored, setStored] = useLocal<string[]>(ADDED_KEY, [])
+  const added = React.useMemo(() => stored.filter((code) => code !== base.state).slice(0, MAX_ADDED), [stored, base.state])
+  const atKey = at?.toString()
+  const span = React.useMemo(() => fetchWindow((atKey && parseCalendarDate(atKey)) || todayDate()), [atKey])
+  const window_ = { from: span.from, to: span.to, limit: 6000 }
+  const first = usePolicy<Hearing[]>(added[0] ? "hearings" : null, { state: added[0] ?? "" }, window_)
+  const second = usePolicy<Hearing[]>(added[1] ? "hearings" : null, { state: added[1] ?? "" }, window_)
+  const third = usePolicy<Hearing[]>(added[2] ? "hearings" : null, { state: added[2] ?? "" }, window_)
+
+  const [extra, setExtra] = React.useState<Record<string, CalendarEvent>>({})
+  React.useEffect(() => {
+    setExtra((current) => {
+      // A jurisdiction taken off the list takes its events with it.
+      const next = Object.fromEntries(Object.entries(current).filter(([, event]) => event.within?.some((id) => id.startsWith("j:") && added.includes(id.slice(2)))))
+      ;[first.data, second.data, third.data].forEach((rows, i) => {
+        const code = added[i]
+        if (!code || !Array.isArray(rows)) return
+        for (const event of hearingsToEvents(rows, { workspace: true, added: code })) next[event.id] = event
+      })
+      return next
+    })
+  }, [added, first.data, second.data, third.data])
+
+  const store = React.useMemo(() => ({ ...extra, ...base.store }), [extra, base.store])
+  const addJurisdiction = React.useCallback((code: string) => setStored((current) => (current.includes(code) ? current : [...current, code].slice(-MAX_ADDED))), [setStored])
+  const removeJurisdiction = React.useCallback((code: string) => setStored((current) => current.filter((c) => c !== code)), [setStored])
+  return { ...base, store, added, addJurisdiction, removeJurisdiction }
+}
+
+// /calendar's events (Brendan, 2026-09-21): the same calendar as a showpiece,
+// the legislature's schedule and nothing of the reader's — no events of their
+// own, and none to add. The provider it feeds is read-only.
+export function usePublicSource(at?: CalendarDate): EventSource {
+  const source = useWorkspaceSource(at)
+  const store = React.useMemo(() => Object.fromEntries(Object.entries(source.store).filter(([id]) => isHearingEvent(id))), [source.store])
+  return { ...source, store }
 }

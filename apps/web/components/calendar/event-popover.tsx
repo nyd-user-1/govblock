@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@govblock/ui/components/nova/popover"
 
+import { formatTime } from "@/lib/calendar/dates"
 import {
   useCalendar,
   useCalendarEvents,
@@ -39,7 +40,7 @@ export function EventPopover({
   // The trigger element; receives `open` so it can hold its pressed shade.
   children: (open: boolean) => React.ReactElement
 }) {
-  const { formSide } = useCalendar()
+  const { formSide, readOnly } = useCalendar()
   const { removeEvent, updateEvent, details } = useCalendarEvents()
   const { editingId, openEvent, closeEvent } = useEventEditor()
 
@@ -62,6 +63,24 @@ export function EventPopover({
     removeEvent(event.id)
   }
 
+  // Read-only (/calendar, and a signed-out reader anywhere): the event opens
+  // to what it is — no form to change it, no menu to delete it.
+  if (readOnly) {
+    return (
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger render={children(open)} nativeButton />
+        <PopoverContent side={formSide} sideOffset={8} className="w-90 max-w-[calc(100vw-1.5rem)] p-2">
+          {open && (
+            <>
+              <EventSummary event={event} />
+              {details?.(event)}
+            </>
+          )}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
   return (
     <ContextMenu>
       <ContextMenuTrigger render={<div className="contents" />}>
@@ -70,7 +89,7 @@ export function EventPopover({
           <PopoverContent
             side={formSide}
             sideOffset={8}
-            className="w-74 p-2"
+            className="w-90 max-w-[calc(100vw-1.5rem)] p-2"
             // The content only mounts while it is open, which re-seeds the
             // form every time.
           >
@@ -99,5 +118,22 @@ export function EventPopover({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+  )
+}
+
+const DAY = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+
+/** What an event is, in the card the form would have filled: its name, its day and hours, its notes. */
+function EventSummary({ event }: { event: CalendarEvent }) {
+  const start = new Date(event.start)
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="rounded-md bg-muted px-3 py-2 text-sm font-medium">{event.title}</p>
+      <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground tabular-nums">
+        {DAY.format(start)}
+        {event.allDay ? "" : ` · ${formatTime(start)} – ${formatTime(new Date(event.end))}`}
+      </p>
+      {event.description && <p className="rounded-md bg-muted px-3 py-2 text-sm whitespace-pre-line text-muted-foreground">{event.description}</p>}
+    </div>
   )
 }

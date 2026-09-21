@@ -24,7 +24,7 @@ import {
   useEventDraft,
   useRegisterDraftHost,
 } from "./calendar-provider"
-import { CHROME_HEIGHT, DOCK_TOP, HEADER_TOTAL, WEEKDAY_HEIGHT } from "./chrome"
+import { CHROME_HEIGHT, DOCK_TOP, WEEKDAY_HEIGHT } from "./chrome"
 import { MonthWeek } from "./month-week"
 
 // ±5 years of week rows, windowed so only the visible ones render.
@@ -50,6 +50,8 @@ function monthKey(month: CalendarDate): number {
 
 export function MonthView() {
   const {
+    embedded,
+    headerTotal,
     date,
     pathFor,
     navigate,
@@ -57,6 +59,11 @@ export function MonthView() {
     monthLabelsVisible,
     wakeMonthLabels,
   } = useCalendar()
+  // What floats over the top of the scroller: the pane's header, when it has
+  // one, and the weekday bar. Embedded, the host's header holds the month and
+  // stands still while the weeks scroll under the weekday bar (Brendan,
+  // 2026-09-21), so nothing slides over the grid and nothing is docked.
+  const chromeHeight = headerTotal + WEEKDAY_HEIGHT
   const { draft, pendingScroll } = useEventDraft()
 
   useRegisterDraftHost()
@@ -374,12 +381,12 @@ export function MonthView() {
       <div
         ref={scroller}
         className="flex-1 snap-y snap-proximity overflow-y-auto overscroll-contain"
-        style={{ scrollPaddingTop: `${CHROME_HEIGHT}px` }}
+        style={{ scrollPaddingTop: `${chromeHeight}px` }}
       >
         <div
           className="relative"
           style={{
-            height: `${CHROME_HEIGHT + weeks.length * ROW_HEIGHT}px`,
+            height: `${chromeHeight + weeks.length * ROW_HEIGHT}px`,
           }}
         >
           {rows.map((index) => (
@@ -387,7 +394,7 @@ export function MonthView() {
               key={weeks[index]!.getTime()}
               className="absolute inset-x-0 snap-start"
               style={{
-                top: `${CHROME_HEIGHT + index * ROW_HEIGHT}px`,
+                top: `${chromeHeight + index * ROW_HEIGHT}px`,
                 height: `${ROW_HEIGHT}px`,
               }}
             >
@@ -403,7 +410,7 @@ export function MonthView() {
       {/* The weekday bar, over the scroller so the grid slides under it. */}
       <div
         className="absolute inset-x-0 z-30 grid grid-cols-7 border-b border-border bg-background/80 backdrop-blur-md"
-        style={{ top: `${HEADER_TOTAL}px`, height: `${WEEKDAY_HEIGHT}px` }}
+        style={{ top: `${headerTotal}px`, height: `${WEEKDAY_HEIGHT}px` }}
       >
         {weekdays.map((weekday, index) => (
           <span
@@ -419,7 +426,7 @@ export function MonthView() {
       </div>
 
       {/* Month labels, from the docked header title spot down over the grid. */}
-      <div
+      {!embedded && <div
         className={cn(
           "pointer-events-none absolute inset-x-0 bottom-0 z-40 overflow-hidden transition-opacity",
           monthLabelsVisible
@@ -440,7 +447,7 @@ export function MonthView() {
             </span>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   )
 }

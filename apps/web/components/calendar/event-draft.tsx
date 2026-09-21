@@ -150,7 +150,7 @@ export function EventDraft({
         >
           <PopoverPrimitive.Popup
             data-slot="popover-content"
-            className="z-50 flex w-74 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+            className="z-50 flex w-90 max-w-[calc(100vw-1.5rem)] origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
           >
             {draft && (
               <EventForm

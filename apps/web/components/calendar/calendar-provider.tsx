@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
+import { HEADER_TOTAL } from "./chrome"
 import type { CalendarDate } from "@internationalized/date"
 import {
   addDays,
@@ -53,6 +54,12 @@ export function useLatest<T>(value: T): React.RefObject<T> {
 // Route + navigation (useCalendar)
 
 interface CalendarContextValue {
+  /** Held in the component, not the route; the host draws the header. */
+  embedded: boolean
+  /** The height of the pane's own floating header: nothing when embedded. */
+  headerTotal: number
+  /** Nothing can be added, moved, edited or deleted: /calendar always, the other two until the reader signs in (Brendan, 2026-09-21). */
+  readOnly: boolean
   view: CalendarView
   date: CalendarDate
   range: DateRange
@@ -81,16 +88,26 @@ export function useCalendar() {
   return value
 }
 
-function useCalendarState(base: string): CalendarContextValue {
+function useCalendarState(base: string, embedded: boolean, readOnly: boolean): CalendarContextValue {
   const params = useParams<{ view?: string; date?: string }>()
   const router = useRouter()
 
-  const view: CalendarView =
-    params.view === "day" || params.view === "month" ? params.view : "week"
+  // Embedded (Brendan, 2026-09-21: /workspace/calendar's shell, and the
+  // account home's Calendar section), the view and the date are the
+  // component's own, not the route's: nothing is written to the URL, so a
+  // scroll through the months cannot fight the address for the date.
+  const [held, setHeld] = React.useState<{ view: CalendarView; date: string }>(
+    () => ({ view: "month", date: todayDate().toString() })
+  )
 
+  const routeView: CalendarView =
+    params.view === "day" || params.view === "month" ? params.view : "week"
+  const view = embedded ? held.view : routeView
+
+  const dateParam = embedded ? held.date : params.date
   const date = React.useMemo(
-    () => (params.date && parseCalendarDate(params.date)) || todayDate(),
-    [params.date]
+    () => (dateParam && parseCalendarDate(dateParam)) || todayDate(),
+    [dateParam]
   )
 
   const range = React.useMemo(() => rangeFor(view, date), [view, date])
@@ -136,13 +153,25 @@ function useCalendarState(base: string): CalendarContextValue {
 
   const navigate = React.useCallback(
     (path: string, options?: { replace?: boolean }) => {
+      if (embedded) {
+        // The path is pathFor's own: `${base}/${view}/${date}`.
+        const [nextDate, nextView] = path.split("/").reverse()
+        if (
+          nextDate &&
+          parseCalendarDate(nextDate) &&
+          (nextView === "day" || nextView === "week" || nextView === "month")
+        ) {
+          setHeld({ view: nextView, date: nextDate })
+        }
+        return
+      }
       if (options?.replace) {
         router.replace(path, { scroll: false })
       } else {
         router.push(path, { scroll: false })
       }
     },
-    [router]
+    [router, embedded]
   )
 
   const setDirection = React.useCallback((direction: "left" | "right") => {
@@ -155,6 +184,9 @@ function useCalendarState(base: string): CalendarContextValue {
   const [isSearchOpen, setSearchOpen] = React.useState(false)
 
   return {
+    embedded,
+    headerTotal: embedded ? 0 : HEADER_TOTAL,
+    readOnly,
     view,
     date,
     range,
@@ -195,6 +227,10 @@ export interface EventSource {
   // The jurisdiction the rail's Jurisdiction select moves.
   state: string
   setState: (state: string) => void
+  /** The jurisdictions whose calendars were added beside that one (the workspace rail's +), and the two ways to change them. */
+  added?: string[]
+  addJurisdiction?: (state: string) => void
+  removeJurisdiction?: (state: string) => void
 }
 
 interface EventsContextValue {
@@ -212,6 +248,9 @@ interface EventsContextValue {
   details?: EventSource["details"]
   state: string
   setState: (state: string) => void
+  added: string[]
+  addJurisdiction?: EventSource["addJurisdiction"]
+  removeJurisdiction?: EventSource["removeJurisdiction"]
 }
 
 const EventsContext = React.createContext<EventsContextValue | null>(null)
@@ -226,19 +265,19 @@ export function useCalendarEvents() {
 
 const HIDDEN_KEY = "calendar:hidden-calendars"
 
-function useEventsState(source: EventSource): EventsContextValue {
+function useEventsState(source: EventSource, hiddenKey = HIDDEN_KEY): EventsContextValue {
   const { store, calendars } = source
 
   const [hiddenCalendars, setHiddenCalendars] = React.useState<string[]>([])
 
   React.useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? "[]")
+      const stored = JSON.parse(localStorage.getItem(hiddenKey) ?? "[]")
       if (Array.isArray(stored)) {
         setHiddenCalendars(stored)
       }
     } catch {}
-  }, [])
+  }, [hiddenKey])
 
   const toggleCalendar = React.useCallback((id: string) => {
     setHiddenCalendars((hidden) => {
@@ -246,16 +285,20 @@ function useEventsState(source: EventSource): EventsContextValue {
         ? hidden.filter((item) => item !== id)
         : [...hidden, id]
       try {
-        localStorage.setItem(HIDDEN_KEY, JSON.stringify(next))
+        localStorage.setItem(hiddenKey, JSON.stringify(next))
       } catch {}
       return next
     })
-  }, [])
+  }, [hiddenKey])
 
   const events = React.useMemo(
     () =>
       Object.values(store).filter(
-        (event) => !hiddenCalendars.includes(event.calendarId)
+        (event) =>
+          // Its own calendar is on (unless that calendar is one of its kinds, judged below), everything it sits inside is on, and so is at least one kind that claims it.
+          (event.claims?.includes(event.calendarId) || !hiddenCalendars.includes(event.calendarId)) &&
+          !event.within?.some((id) => hiddenCalendars.includes(id)) &&
+          (!event.claims?.length || event.claims.some((id) => !hiddenCalendars.includes(id)))
       ),
     [store, hiddenCalendars]
   )
@@ -325,6 +368,9 @@ function useEventsState(source: EventSource): EventsContextValue {
     details: source.details,
     state: source.state,
     setState: source.setState,
+    added: source.added ?? [],
+    addJurisdiction: source.addJurisdiction,
+    removeJurisdiction: source.removeJurisdiction,
   }
 }
 
@@ -440,6 +486,8 @@ function useDraftState(
   calendar: CalendarContextValue,
   events: EventsContextValue
 ): DraftContextValue {
+  // Read-only, no gesture starts a draft: not the double click, not the drag, not the N key or a + button.
+  const locked = useLatest(calendar.readOnly)
   const [draft, setDraft] = React.useState<EventDraft | null>(null)
   const draftRef = useLatest(draft)
   const [drawing, setDrawing] = React.useState(false)
@@ -475,6 +523,9 @@ function useDraftState(
 
   const createDraft = React.useCallback(
     (input: { start: Date; end: Date; allDay?: boolean; scroll?: boolean }) => {
+      if (locked.current) {
+        return
+      }
       setDraft({
         start: input.start,
         end: input.end,
@@ -667,6 +718,7 @@ function useDraftState(
   const onGridPointerdown = React.useCallback(
     (event: React.PointerEvent, target: GridTarget) => {
       if (
+        locked.current ||
         event.button !== 0 ||
         event.pointerType === "touch" ||
         !onEmptySpace(event)
@@ -692,7 +744,7 @@ function useDraftState(
 
   const onGridDblclick = React.useCallback(
     (event: React.MouseEvent, target: GridTarget) => {
-      if (!onEmptySpace(event)) {
+      if (locked.current || !onEmptySpace(event)) {
         return
       }
 
@@ -819,7 +871,8 @@ interface MoveGesture {
   cancelled: boolean
 }
 
-function useMoveState(events: EventsContextValue): MoveContextValue {
+function useMoveState(events: EventsContextValue, readOnly: boolean): MoveContextValue {
+  const locked = useLatest(readOnly)
   const { updateEvent } = events
 
   const [source, setSource] = React.useState<CalendarEvent | null>(null)
@@ -932,7 +985,7 @@ function useMoveState(events: EventsContextValue): MoveContextValue {
 
   const onPointerdown = React.useCallback(
     (pointerEvent: React.PointerEvent, event: CalendarEvent) => {
-      if (pointerEvent.button !== 0 || pointerEvent.pointerType === "touch") {
+      if (locked.current || pointerEvent.button !== 0 || pointerEvent.pointerType === "touch") {
         return
       }
 
@@ -988,20 +1041,30 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export function CalendarProvider({
   base = "/calendar",
+  embedded = false,
+  shortcuts = true,
+  readOnly = false,
   useSource,
   children,
 }: {
+  /** No adding, moving, editing or deleting. */
+  readOnly?: boolean
   /** The route the views live under: `${base}/${view}/${date}`. */
   base?: string
-  /** Called once per render, like any hook; a provider never changes source. */
-  useSource: () => EventSource
+  /** The view and the date are held here, not in the route, and the pane has no header of its own: the host draws the month and the controls. */
+  embedded?: boolean
+  /** The keyboard shortcuts; off where the calendar is one section of a longer page. */
+  shortcuts?: boolean
+  /** Called once per render, like any hook, with the date in view; a provider never changes source. */
+  useSource: (date: CalendarDate) => EventSource
   children: React.ReactNode
 }) {
-  const calendar = useCalendarState(base)
-  const events = useEventsState(useSource())
+  const calendar = useCalendarState(base, embedded, readOnly)
+  // The embedded calendar's calendars are the workspace's five, another set from /calendar's chambers, so what is hidden is kept apart.
+  const events = useEventsState(useSource(calendar.date), embedded ? `${HIDDEN_KEY}:workspace` : HIDDEN_KEY)
   const editor = useEditorState()
   const draft = useDraftState(calendar, events)
-  const move = useMoveState(events)
+  const move = useMoveState(events, readOnly)
 
   // Keyboard shortcuts, the ones the template's `defineShortcuts` installs.
   const latest = useLatest({ calendar, editor, draft })
@@ -1010,7 +1073,12 @@ export function CalendarProvider({
     function onKeydown(event: KeyboardEvent) {
       const { calendar, editor, draft } = latest.current
 
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if (!shortcuts) {
+        return
+      }
+
+      // Embedded, ⌘K is the site's: the calendar's own search is not mounted.
+      if (!calendar.embedded && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault()
         calendar.setSearchOpen(!calendar.isSearchOpen)
         return

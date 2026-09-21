@@ -24,6 +24,17 @@ export interface CalendarEvent {
   start: string
   end: string
   allDay?: boolean
+  /**
+   * The kinds of event that claim it, where a calendar is a filter rather than
+   * a folder (the workspace's Committees, Hearings and Floor Sessions: a
+   * committee's hearing is both of the first two). It shows while any of them
+   * is on — on Congress's calendar every event is a committee's hearing, and
+   * under "all of them" either box alone emptied the month (2026-09-21).
+   * `calendarId` is the calendar that colours it, the chamber where it has one.
+   */
+  claims?: string[]
+  /** Calendars it sits inside and is hidden with: a jurisdiction added beside the one in scope (`j:TX`). */
+  within?: string[]
 }
 
 export interface EventDraft {

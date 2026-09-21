@@ -120,7 +120,7 @@ function DateField({
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="bg-transparent text-sm tabular-nums outline-none focus-visible:rounded-xs focus-visible:bg-primary/10"
+        className="bg-transparent text-sm tabular-nums outline-none focus-visible:rounded-xs focus-visible:bg-primary/10 [&::-webkit-calendar-picker-indicator]:hidden"
       />
     </div>
   )

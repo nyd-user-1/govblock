@@ -1,32 +1,7 @@
-import { type Metadata } from "next"
-import { notFound } from "next/navigation"
-import { parseDate } from "@internationalized/date"
+import { redirect } from "next/navigation"
 
-export const metadata: Metadata = {
-  title: "Calendar",
-  description:
-    "Day, week and month views, drag and drop, and keyboard shortcuts.",
-}
-
-// The calendar itself renders from the `/calendar` layout, which persists
-// while the month view rewrites the date in the URL as it scrolls. This page
-// only validates the route.
-export default async function CalendarViewPage({
-  params,
-}: {
-  params: Promise<{ view: string; date: string }>
-}) {
-  const { view, date } = await params
-
-  if (!["day", "week", "month"].includes(view)) {
-    notFound()
-  }
-
-  try {
-    parseDate(date)
-  } catch {
-    notFound()
-  }
-
-  return null
+// The calendar kept its view and its date in this address until 2026-09-21;
+// it holds them itself now, so an old link lands on the calendar.
+export default function CalendarViewPage() {
+  redirect("/calendar")
 }
