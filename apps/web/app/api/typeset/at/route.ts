@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 
+import { memberHref } from "@/lib/filters"
 import { q } from "@/lib/policy/db"
+import { resolve, searchAll } from "@/lib/policy/db-queries"
+import { legislativeBody } from "@/lib/legislative-body"
 import { findExpression } from "@/lib/typeset/expression-document"
 import { recognize, worksOf } from "@/lib/typeset/cite"
 import { resolveWorks } from "@/lib/typeset/resolve"
@@ -20,6 +23,9 @@ export const dynamic = "force-dynamic"
 
 export type AtItem = {
   kind: "citation" | "member" | "committee"
+  /** A member's chamber and party, for the seal before the body's name and the dot in place of the letter. */
+  chamber?: string | null
+  party?: string | null
   label: string
   detail: string | null
   /** Where the item opens. */
@@ -66,24 +72,35 @@ export async function GET(request: Request) {
   const text = (sp.get("q") ?? "").replace(/^@/, "").trim()
   const jurisdiction = sp.get("jurisdiction") ?? "us"
   const state = (sp.get("state") ?? "").toUpperCase() || null
+  // `in` narrows members and committees to one jurisdiction (the search's `@martinez /ny`, 2026-09-21); `state` only orders.
+  const within = /^[A-Za-z]{2}$/.test(sp.get("in") ?? "") ? (sp.get("in") as string).toUpperCase() : null
   if (text.length < 2) return NextResponse.json({ citations: [], members: [], committees: [] } satisfies AtResponse)
-  const like = `%${text.replace(/[%_\\]/g, (c) => `\\${c}`)}%`
   try {
-    const [cites, people, committees] = await Promise.all([
-      citations(text, jurisdiction),
-      q<{ people_id: number; name: string; party: string | null; role: string | null; chamber: string | null; state: string | null }>(
-        `select people_id, name, party, role, chamber, state from "People" where name ilike $1 order by (state = $2) desc nulls last, name limit 8`,
-        [like, state]
-      ),
-      q<{ committee_id: number; committee_name: string; chamber: string | null; slug: string | null }>(
-        `select committee_id, committee_name, chamber, slug from "Committees" where committee_name ilike $1 order by committee_name limit 6`,
-        [like]
-      ),
-    ])
+    // Members and committees are the site search's own (Brendan, 2026-09-21).
+    // This route used to ask "People" by name and the "Committees" table
+    // itself, and both were wrong: LegiScan files some committees as people
+    // (462 rows in 23 states, more with no name in two parts), so "@jud" listed
+    // Oregon's Committee On Judiciary as a member; and "Committees" is the 82
+    // New York committees the site began with, so a reader who had not signed
+    // in was shown the New York Assembly's and nobody else's. searchAll had
+    // already solved both — the member filter, and committees from every
+    // jurisdiction's current session, Congress first — so there is one answer.
+    // Every row carries its jurisdiction, for its flag and for the gate: a row
+    // opens its own jurisdiction's page, where a reader it is closed to meets
+    // the door (lib/entitlements.ts), rather than being hidden here.
+    const f = await resolve({ state: within ?? state ?? "US" })
+    const [cites, found] = await Promise.all([citations(text, jurisdiction), searchAll(f, text, within ? 40 : 8, { all: !within })])
+    if (within) found.members = found.members.filter((p) => p.state === within)
     return NextResponse.json({
       citations: cites,
-      members: people.map((p) => ({ kind: "member", label: p.name, detail: [p.role, p.chamber, p.party, p.state].filter(Boolean).join(" · ") || null, href: `/members/${p.people_id}`, insert: { text: p.name, href: `/members/${p.people_id}` }, state: p.state })),
-      committees: committees.map((c) => ({ kind: "committee", label: c.committee_name, detail: c.chamber, href: c.slug ? `/committees/${c.slug}` : null, insert: { text: c.committee_name, href: c.slug ? `/committees/${c.slug}` : null }, state: null })),
+      members: found.members.slice(0, 8).map((p) => {
+        const href = memberHref(p.people_id, p.state ?? undefined)
+        return { kind: "member" as const, chamber: p.chamber ?? null, party: p.party ?? null, label: p.name, detail: (p.state ? legislativeBody(p.state, p.chamber ?? "") : p.chamber) || null, href, insert: { text: p.name, href }, state: p.state }
+      }),
+      committees: found.committees.slice(0, 12).map((c) => {
+        const href = `/bills?state=${c.state}&committee=${encodeURIComponent(c.committee)}`
+        return { kind: "committee" as const, label: c.committee, detail: [legislativeBody(c.state, c.chamber ?? ""), `${c.bills.toLocaleString("en-US")} bills`].filter(Boolean).join(" · "), href, insert: { text: c.committee, href }, state: c.state }
+      }),
     } satisfies AtResponse)
   } catch (error) {
     return NextResponse.json({ citations: [], members: [], committees: [], error: String((error as Error)?.message ?? error).slice(0, 200) }, { status: 500 })

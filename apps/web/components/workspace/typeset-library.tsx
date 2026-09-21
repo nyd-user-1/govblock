@@ -193,7 +193,14 @@ function Menu<T extends string>({ label, icon, value, options, onSelect }: { lab
   )
 }
 
-function FolderTable({ label, folders }: { label: string | null; folders: FolderItem[] }) {
+/**
+ * What a folder of the library holds, in a reader's word (Brendan, 2026-09-21). "Work" is the schema's term for
+ * one addressable document and stays in the code; on screen a session's folder holds bills, a code's holds
+ * sections, and a folder above both — a jurisdiction, the library itself — holds documents.
+ */
+const unitOf = (path: string) => (/(^|\/)bill(\/|$)/.test(path) ? "Bill" : /(^|\/)(code|usc|const)(\/|$)/.test(path) ? "Section" : "Document")
+
+function FolderTable({ label, folders, unit }: { label: string | null; folders: FolderItem[]; /** Bill, Section or Document: what the count column counts. */ unit: string }) {
   const [all, setAll] = React.useState(false)
   const shown = all ? folders : folders.slice(0, 300)
   return (
@@ -201,7 +208,7 @@ function FolderTable({ label, folders }: { label: string | null; folders: Folder
       <thead>
         <tr className="border-b text-left text-xs text-muted-foreground">
           <th className="px-4 py-2 font-medium">{label ?? ""}</th>
-          <th className="w-24 px-2 py-2 text-right font-medium">Works</th>
+          <th className="w-24 px-2 py-2 text-right font-medium">{unit}s</th>
           <th className="hidden w-24 px-2 py-2 text-right font-medium sm:table-cell">Coverage</th>
           <th className="hidden w-32 px-4 py-2 text-right font-medium md:table-cell">Latest</th>
         </tr>
@@ -237,7 +244,7 @@ function FolderTable({ label, folders }: { label: string | null; folders: Folder
   )
 }
 
-function WorkTable({ works, flags, label = "Work" }: { works: WorkItem[]; flags: boolean; label?: string }) {
+function WorkTable({ works, flags, label }: { works: WorkItem[]; flags: boolean; label: string }) {
   return (
     <table className="w-full table-fixed text-sm">
       <thead>
@@ -329,6 +336,7 @@ export function LibraryBody({ listing, replace = true }: { listing: Listing; rep
 
   const flags = Boolean(listing.jurisdictions) || listing.query.show === "bills"
   const empty = !listing.groups.length && !works?.length && !found?.items.length
+  const unit = unitOf(listing.path)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -352,7 +360,7 @@ export function LibraryBody({ listing, replace = true }: { listing: Listing; rep
           />
         )}
         <Menu<LibrarySort> label={SORT_LABEL[listing.query.sort]} icon={<ArrowUpDownIcon className="size-3.5" />} value={listing.query.sort} options={listing.sorts.map((s) => ({ value: s, label: SORT_LABEL[s] }))} onSelect={(sort) => navigate({ sort })} />
-        {listing.total !== null && <span className="ml-auto text-xs text-muted-foreground tabular-nums">{fmtCount(listing.total)} Works</span>}
+        {listing.total !== null && <span className="ml-auto text-xs text-muted-foreground tabular-nums">{fmtCount(listing.total)} {unit.toLowerCase()}{listing.total === 1 ? "" : "s"}</span>}
       </div>
       {listing.note && <p className="shrink-0 border-b px-4 py-1.5 text-xs text-muted-foreground">{listing.note}</p>}
       <div className="relative min-h-0 flex-1 overflow-y-auto">
@@ -364,9 +372,9 @@ export function LibraryBody({ listing, replace = true }: { listing: Listing; rep
           />
         )}
         {listing.groups.map((group) => (
-          <FolderTable key={group.key} label={group.label} folders={group.folders} />
+          <FolderTable key={group.key} label={group.label} folders={group.folders} unit={unit} />
         ))}
-        {works && works.length > 0 && <WorkTable works={works} flags={flags} />}
+        {works && works.length > 0 && <WorkTable works={works} flags={flags} label={unit} />}
         {more && (
           <div className="px-4 py-3">
             <Button variant="ghost" size="sm" className="h-7 text-xs" disabled={pending} onClick={loadMore}>

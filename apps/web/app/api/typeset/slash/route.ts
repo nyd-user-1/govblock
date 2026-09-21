@@ -44,17 +44,24 @@ const billItem = (b: BillRow): SlashItem => ({
   state: b.state,
 })
 
+// What a row holds, in a reader's word (Brendan, 2026-09-21: "why isn't it called 15 Sections"). "Work" is the
+// schema's term for one addressable document (docs/xml/schema.md) and stays in the code; on screen a session
+// holds bills and a code holds sections.
+const held = (r: CatalogueRow) => `${r.works.toLocaleString("en-US")} ${r.kind === "bill" ? "bill" : "section"}${r.works === 1 ? "" : "s"}`
+
 const rowItem = (r: CatalogueRow): SlashItem => ({
   label: codeName(r),
-  description: `${jurisdictionName(r.jurisdiction)} · ${r.works.toLocaleString("en-US")} Works`,
+  description: `${jurisdictionName(r.jurisdiction)} · ${held(r)}`,
   address: r.prefix,
   href: libraryHref(r.prefix),
   state: stateOf(r.jurisdiction),
 })
 
-async function bills(where: string, params: unknown[]): Promise<SlashItem[]> {
+async function bills(where: string, params: unknown[], federalFirst = false): Promise<SlashItem[]> {
+  // Typed in Congress's own letters ("hr 1", "hjres 2"), the bill meant is Congress's: its sessions lead, then the
+  // states' bills the same letters reach. A bare number has no such claim, and runs newest session first.
   const rows = await q<BillRow>(
-    `select bill_id, bill_number, state, session_id, session_title, title from "Bills" where ${where} order by session_id desc, last_action_date desc nulls last limit ${LIMIT}`,
+    `select bill_id, bill_number, state, session_id, session_title, title from "Bills" where ${where} order by ${federalFirst ? "(state = 'US') desc, " : ""}session_id desc, (state = 'US') desc, last_action_date desc nulls last limit ${LIMIT}`,
     params
   )
   return rows.map(billItem)
@@ -70,24 +77,45 @@ async function library(slug: string): Promise<{ label: string; href: string | nu
     const label = scoped.jurisdiction ? `${jurisdictionName(scoped.jurisdiction)} ${scoped.family.name}` : scoped.family.name
     return { label, href: libraryHref(slug), items: codes.slice(0, 40).map(rowItem) }
   }
-  const place = Object.keys(JURISDICTION_NAMES).find((j) => jurisdictionSlug(j) === slug)
+  // A jurisdiction by its name, its address (`us-ma`) or its two letters (`ma`, `ny`). Until 2026-09-21 only the
+  // name was known, so `/us-ma` and `/ny` fell through to the words below, which matched letters anywhere:
+  // "us" and "ma" found B-us-iness codes in Ma-ryland, and "ny" found every Limited Liability Compa-ny act.
+  const places = Object.keys(JURISDICTION_NAMES)
+  const place = places.find((j) => jurisdictionSlug(j) === slug || j === slug || j === `us-${slug}`)
   if (place) return { label: jurisdictionName(place), href: libraryHref(place), items: rows.filter((r) => r.jurisdiction === place && r.kind !== "bill").sort((a, b) => b.works - a.works).slice(0, 40).map(rowItem) }
+  // Part of one, still being typed (`/us-m`, `/new`): the jurisdictions it could become, A to Z, each a library.
+  const becoming = places.filter((j) => j.startsWith(slug) || jurisdictionSlug(j).startsWith(slug)).sort((a, b) => jurisdictionName(a).localeCompare(jurisdictionName(b)))
+  if (becoming.length && slug.length >= 2) {
+    const sections = (j: string) => rows.filter((r) => r.jurisdiction === j && r.kind !== "bill").reduce((sum, r) => sum + r.works, 0)
+    return {
+      label: "Jurisdictions",
+      href: null,
+      items: becoming.map((j) => ({ label: jurisdictionName(j), description: `${sections(j).toLocaleString("en-US")} sections`, address: `/${j}`, href: libraryHref(j), state: stateOf(j) })),
+    }
+  }
+  // Words in a code's name, each at the start of a word — "ny" is not in "Company".
   const words = slug.split("-").filter((w) => w.length > 1)
+  const starts = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(text)
   const hits = words.length
-    ? rows.filter((r) => r.kind !== "bill" && words.every((w) => `${codeName(r)} ${jurisdictionName(r.jurisdiction)}`.toLowerCase().includes(w))).sort((a, b) => b.works - a.works)
+    ? rows.filter((r) => r.kind !== "bill" && words.every((w) => starts(`${codeName(r)} ${jurisdictionName(r.jurisdiction)}`.toLowerCase(), w))).sort((a, b) => b.works - a.works)
     : []
   return { label: `Codes named “${words.join(" ")}”`, href: null, items: hits.slice(0, 40).map(rowItem) }
 }
 
 export async function GET(request: Request) {
-  const input = new URL(request.url).searchParams.get("q") ?? ""
+  const params = new URL(request.url).searchParams
+  const input = params.get("q") ?? ""
+  // `in` narrows a bill number to one jurisdiction (the search's `/809 /nj`, 2026-09-21): 809 is a bill in forty legislatures.
+  const within = /^[A-Za-z]{2}$/.test(params.get("in") ?? "") ? (params.get("in") as string).toUpperCase() : null
   const target = resolveSlash(input)
   const reply = (label: string, href: string | null, items: SlashItem[]) => NextResponse.json({ target, label, href, items } satisfies SlashResponse)
   if (!target) return reply("", null, [])
   try {
     if (target.kind === "number") {
       const pattern = `^${target.type ? (FEDERAL_LEGISCAN[target.type] ?? target.type.toUpperCase()) : "[A-Z]+"}\\s*0*${target.number}$`
-      return reply(target.type ? target.label : `Bills numbered ${target.number}`, null, await bills(`bill_number ~* $1`, [pattern]))
+      // Congress first, then the newest session: `/hr1` used to lead with a state's HB 1 from a special session.
+      const label = target.type ? target.label : `Bills numbered ${target.number}`
+      return reply(within ? `${label} in ${jurisdictionName(within === "US" ? "us" : `us-${within.toLowerCase()}`)}` : label, null, await bills(within ? `bill_number ~* $1 and state = $2` : `bill_number ~* $1`, within ? [pattern, within] : [pattern], !!target.type && target.type in FEDERAL_LEGISCAN && target.type !== "s"))
     }
     if (target.kind === "library") {
       const found = await library(target.slug)
