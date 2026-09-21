@@ -9,6 +9,8 @@ import { DEFAULT_STATE, stateName } from "@/lib/filters"
 //                current session, the same four entities.
 //   A plan       Everything else: every other jurisdiction, every earlier
 //                session, every other entity. Nobody has one yet.
+//   The law      Outside the three above (2026-09-21): the U.S. Code for
+//                everyone, every state's laws for anyone signed in.
 //
 // A reader who is signed out is sent to sign in first for anything beyond
 // the free scope; a reader who is signed in is sent to the plan. The
@@ -111,6 +113,8 @@ export function entitled(reader: Reader, ask: Ask): Verdict {
   // search (Brendan, 2026-09-13): every result from every state shows, and
   // the gate is on the record a result opens.
   if (entity === "meta" || entity === "search") return "open"
+  // The law (Brendan, 2026-09-21): the federal statutes are open to everyone, and every state's to any reader who has signed in. No plan, no home state.
+  if (entity === "laws") return state === DEFAULT_STATE || reader.signedIn ? "open" : "sign-in"
   if (state !== DEFAULT_STATE && !(reader.signedIn && state === reader.home)) return door
   // A Team plan (2026-09-13): the whole record, every session, for Congress and the home state.
   if (reader.license === "team") return "open"
@@ -139,6 +143,10 @@ export function reasonFor(reader: Reader, ask: Ask): Reason {
   const opens = home ? `Congress and ${home}` : "Congress"
   if (entity === "account") return { kind: "account", title: `Sign in to open ${ENTITY_LABELS.account}.`, body: "What you watch, keep and send is yours, and it needs an account." }
   if (entity === "simulator") return { kind: "account", title: "Sign in to open the simulator.", body: "Recount real ranked-choice elections from their ballots and see who a top-two primary would have sent on. Free with an account." }
+  if (entity === "laws")
+    return state !== DEFAULT_STATE && !reader.signedIn
+      ? { kind: "state", title: `Sign in to read ${stateName(state)}'s laws.`, body: "The U.S. Code is open to everyone. Every state's laws are free to read with an account." }
+      : { kind: "open", title: "Open.", body: "" }
   if (state !== DEFAULT_STATE && !(reader.signedIn && state === reader.home)) {
     const name = stateName(state)
     // Signed out, the card is an invitation (Brendan, 2026-09-13): the state's flag, and a question.
