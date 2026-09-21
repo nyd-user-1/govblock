@@ -41,7 +41,8 @@ export function StateTable({ rows }: { rows: Jurisdiction[] }) {
           {rows.map((r) => {
             const code = r.state.toLowerCase()
             return (
-              <tr key={r.state} className="border-b">
+              // The row answers the pointer (Brendan, 2026-09-20): the table's own hover, as shadcn's rows have it.
+              <tr key={r.state} className="border-b transition-colors hover:bg-muted/50">
                 <td className="py-2 pr-4">
                   <Link href={`/state/${code}`} className="flex items-center gap-2 no-underline hover:underline">
                     <FlagChip state={r.state} width={24} />
