@@ -2,13 +2,18 @@
 
 import * as React from "react"
 
-import { flagUrl, STATE_CODES } from "@/lib/filters"
+import { CONGRESS, flagUrl, STATE_CODES } from "@/lib/filters"
 
 // The loader (Brendan, 2026-09-13): the fifty state flags and the District's,
 // shuffled, one every 70ms, in the place the flag is about to take. All of
 // them are in the tree at once so every image is fetched before the first
 // swap and none of the swaps shows a blank.
-const CODES = [...STATE_CODES, "DC"]
+//
+// The flag of the United States leads (Brendan, 2026-09-21): it is the first
+// flag every time, before and after the shuffle, where Alabama's used to be —
+// the alphabet's accident, and the only flag a short wait ever showed.
+const STATES = [...STATE_CODES, "DC"]
+const CODES = [CONGRESS, ...STATES]
 
 function shuffled<T>(xs: T[]) {
   const a = [...xs]
@@ -25,7 +30,7 @@ export function FlagLoader({ width = 96, className }: { width?: number; classNam
   const [order, setOrder] = React.useState(CODES)
   const [i, setI] = React.useState(0)
   React.useEffect(() => {
-    setOrder(shuffled(CODES))
+    setOrder([CONGRESS, ...shuffled(STATES)])
     const id = window.setInterval(() => setI((n) => (n + 1) % CODES.length), 70)
     return () => window.clearInterval(id)
   }, [])

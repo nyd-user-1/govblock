@@ -3,11 +3,12 @@
 import * as React from "react"
 import { LoadingFlag } from "@/components/loading-flag"
 import Link from "next/link"
-import { Bot, ChevronRight, Columns2, History, MoreHorizontal, Plus, Radar, Tag, Trash2 } from "lucide-react"
+import { Bot, ChevronRight, Columns2, FileText, History, MoreHorizontal, Plus, Radar, Tag, Trash2 } from "lucide-react"
 
 import { AGENTS } from "@/lib/agents/registry"
 import { useAccount } from "@/lib/auth/use-account"
-import { CONGRESS, memberHref, STATE_CODES, stateName } from "@/lib/filters"
+import { CONGRESS, DISTRICT, memberHref, STATE_CODES, stateName } from "@/lib/filters"
+import { fmtBill } from "@/lib/format"
 import { geoUrl } from "@/lib/map/geo-url"
 import { representationAt, type Representation } from "@/lib/map/join"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
@@ -43,17 +44,31 @@ import { Separator } from "@govblock/ui/components/nova/separator"
 // row wears its seal. Each column's ⋯ is a menu on Cloudflare's, and Change
 // column swaps what a column holds. The jurisdictions followed and the order
 // of the columns live in the browser; the rest comes from the profile.
+//
+// The second row is Bills, Laws, Interests (Brendan, 2026-09-21): the
+// jurisdiction's latest bills, the laws of each jurisdiction followed, and
+// the reader's interests — four tags standing in, with an invitation, until
+// the reader has chosen their own. Members, Agents and Tracking are columns a
+// reader swaps in through Change column. A second-row column stops at five
+// rows, the rest behind its View all. Each column is a stop in the page's On
+// This Page index (HomeToc), which follows the columns as they are swapped.
 
-type Kind = "jurisdictions" | "committees" | "members" | "tracking" | "interests" | "agents" | "recents"
-const KINDS: Record<Kind, string> = { jurisdictions: "Jurisdictions", committees: "Committees", members: "Members", tracking: "Tracking", interests: "Interests", agents: "Agents", recents: "Recents" }
-// Recents first (Brendan, 2026-09-13), two rows of three, Agents last; Tracking is a column a reader can swap in.
-const ORDER: Kind[] = ["recents", "jurisdictions", "committees", "members", "interests", "agents"]
+type Kind = "jurisdictions" | "committees" | "bills" | "laws" | "members" | "tracking" | "interests" | "agents" | "recents"
+export const KINDS: Record<Kind, string> = { jurisdictions: "Jurisdictions", committees: "Committees", bills: "Bills", laws: "Laws", members: "Members", tracking: "Tracking", interests: "Interests", agents: "Agents", recents: "Recents" }
+// Recents first (Brendan, 2026-09-13), two rows of three; Members, Agents and Tracking are columns a reader can swap in.
+const ORDER: Kind[] = ["recents", "jurisdictions", "committees", "bills", "laws", "interests"]
 const FIRST_ROW = 3
-/** The first row's columns stop at four rows; the second's run their full length — the descending array (Brendan, 2026-09-13). */
+/** The first row's columns stop at four rows, the second's at five (Brendan, 2026-09-21; they ran their full length until then). */
 const ROWS = 4
-const ALL = Infinity
-const COLUMNS_KEY = "govblock:home-columns"
+const SECOND_ROWS = 5
+/** What Interests shows before the reader has any of their own. */
+const PLACEHOLDER_INTERESTS = ["Artificial Intelligence", "Workforce Development", "Healthcare", "Renewable Energy"]
+// -2: the default columns changed on 2026-09-21, and an order stored before then would have kept the old ones on screen.
+const COLUMNS_KEY = "govblock:home-columns-2"
 const FOLLOWED_KEY = "govblock:home-jurisdictions"
+
+/** Every state with laws on file, A to Z: the fifty and the District. Puerto Rico has a seal and no laws here. */
+const LAW_CODES = [...STATE_CODES.filter((code) => code !== "PR"), DISTRICT].sort((a, b) => stateName(a).localeCompare(stateName(b)))
 
 const isKind = (value: string): value is Kind => value in KINDS
 const isCode = (value: string): value is string => STATE_CODES.includes(value)
@@ -63,20 +78,27 @@ function useStoredList<T extends string>(key: string, fallback: T[], valid: (val
   const [list, setList] = React.useState<T[]>(fallback)
   const [ready, setReady] = React.useState(false)
   React.useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(key)
-      const parsed = raw ? (JSON.parse(raw) as unknown) : null
-      if (Array.isArray(parsed)) setList(parsed.filter((v): v is T => typeof v === "string" && valid(v)))
-    } catch {
-      // The default stands.
+    const read = () => {
+      try {
+        const raw = window.localStorage.getItem(key)
+        const parsed = raw ? (JSON.parse(raw) as unknown) : null
+        if (Array.isArray(parsed)) setList(parsed.filter((v): v is T => typeof v === "string" && valid(v)))
+      } catch {
+        // The default stands.
+      }
     }
+    read()
     setReady(true)
+    // A write anywhere on the page is an event under the key's name, so the rail's index follows a column swapped in the page.
+    window.addEventListener(key, read)
+    return () => window.removeEventListener(key, read)
   }, [key, valid])
   const write = React.useCallback(
     (next: T[]) => {
       setList(next)
       try {
         window.localStorage.setItem(key, JSON.stringify(next))
+        window.dispatchEvent(new Event(key))
       } catch {
         // A convenience, not a record.
       }
@@ -84,6 +106,13 @@ function useStoredList<T extends string>(key: string, fallback: T[], valid: (val
     [key]
   )
   return [list, write, ready] as const
+}
+
+/** The six columns on the page, in order: the stored order when it is whole, the default otherwise. */
+export function useHomeColumns() {
+  const [stored, setColumns] = useStoredList<Kind>(COLUMNS_KEY, ORDER, isKind)
+  const columns = stored.length === ORDER.length && new Set(stored).size === ORDER.length ? stored : ORDER
+  return [columns, setColumns] as const
 }
 
 /** The reader's profile, read once: the home state, the interests, and the address as a point. */
@@ -162,6 +191,7 @@ const COMMITTEE_WORDS: Record<string, string[]> = {
   Veterans: ["veteran"],
 }
 type CommitteeRow = { committee_name: string; chamber: string; bills: number }
+type BillRow = { bill_id: number; bill_number: string; title: string }
 function committeesFor(interests: string[], rows: CommitteeRow[]): CommitteeRow[] {
   const out: CommitteeRow[] = []
   for (const interest of interests) {
@@ -172,9 +202,9 @@ function committeesFor(interests: string[], rows: CommitteeRow[]): CommitteeRow[
   return out
 }
 
-function Column({ title, href, menu, all, children }: { title: string; href?: string; menu: React.ReactNode; /** View all, under the rows. */ all?: string; children: React.ReactNode }) {
+function Column({ id, title, href, menu, all, children }: { /** The column's anchor, for the On This Page index. */ id: string; title: string; href?: string; menu: React.ReactNode; /** View all, under the rows. */ all?: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0">
+    <div id={id} className="min-w-0 scroll-mt-24">
       <div className="flex h-8 items-center gap-1 text-sm text-muted-foreground">
         {href ? (
           <Link href={href} className="inline-flex items-center gap-1 no-underline hover:text-foreground">
@@ -198,7 +228,8 @@ function Column({ title, href, menu, all, children }: { title: string; href?: st
 function Row({ href, icon, children, muted }: { href: string; icon: React.ReactNode; children: React.ReactNode; muted?: React.ReactNode }) {
   return (
     <li className="m-0 p-0">
-      <Link href={href} className="group/row flex h-[66px] items-center gap-3 text-[15px] font-medium text-foreground no-underline">
+      {/* The hover is a wash a little wider than the row (Brendan, 2026-09-21): the chevron's nudge alone did not read. */}
+      <Link href={href} className="group/row -mx-3 flex h-[66px] items-center gap-3 rounded-lg px-3 text-[15px] font-medium text-foreground no-underline transition-colors hover:bg-muted focus-visible:bg-muted">
         <span className="shrink-0 text-muted-foreground">{icon}</span>
         <span className="min-w-0 flex-1 truncate">
           {muted && <span className="font-normal text-muted-foreground">{muted} / </span>}
@@ -259,17 +290,18 @@ export function HomeColumns() {
   const home = profile?.home_state && profile.home_state !== CONGRESS ? profile.home_state : null
   const point = profile?.lng != null && profile?.lat != null ? { lng: profile.lng, lat: profile.lat } : null
   const interests = profile?.interests ?? []
-  const recents = useRecents(ALL === Infinity ? 20 : ROWS)
+  const recents = useRecents(20)
   const watches = useWatches(signedIn)
   const { senators, rep } = useRepresentatives(home, point)
   const { data: homeCommittees } = usePolicy<CommitteeRow[]>(home ? "committees" : null, { state: home ?? "" }, { limit: 300 })
   const { data: usCommittees } = usePolicy<CommitteeRow[]>("committees", { state: CONGRESS }, { limit: 300 })
 
-  const [storedColumns, setColumns] = useStoredList<Kind>(COLUMNS_KEY, ORDER, isKind)
+  const [columns, setColumns] = useHomeColumns()
   // Congress is followed until it is unchecked; the home state, or the jurisdiction in scope, sits beside it.
   const [followed, setFollowed, followedReady] = useStoredList<string>(FOLLOWED_KEY, [CONGRESS], isCode)
-  const columns = storedColumns.length === ORDER.length && new Set(storedColumns).size === ORDER.length ? storedColumns : ORDER
   const scoped = home ?? state
+  // The jurisdiction's latest bills, the rail's Recent Bills request, asked only while the column is on the page.
+  const { data: billData } = usePolicy<{ rows: BillRow[] }>(columns.includes("bills") ? "bills" : null, { state: scoped }, { limit: 12 })
   const shown = [CONGRESS, scoped, ...followed].filter((code, i, all) => all.indexOf(code) === i)
   const follow = (code: string, on: boolean) => setFollowed(on ? [...followed.filter((c) => c !== code), code] : followed.filter((c) => c !== code))
   const scope = `?state=${scoped}`
@@ -299,6 +331,7 @@ export function HomeColumns() {
         return (
           <Column
             key={kind}
+            id={kind}
             title={KINDS[kind]}
             href={`/bills${scope}`}
             all="/workspace/data"
@@ -334,7 +367,7 @@ export function HomeColumns() {
         )
       case "committees":
         return (
-          <Column key={kind} title={KINDS[kind]} href={`/committees${scope}`} all={`/committees${scope}`} menu={menu(showAll(`/committees${scope}`))}>
+          <Column key={kind} id={kind} title={KINDS[kind]} href={`/committees${scope}`} all={`/committees${scope}`} menu={menu(showAll(`/committees${scope}`))}>
             {committees.length ? (
               committees.slice(0, cap).map((c) => (
                 <Row key={`${c.state}-${c.chamber}-${c.committee_name}`} href={`/bills?state=${c.state}&committee=${encodeURIComponent(c.committee_name)}`} icon={<ChamberSeal state={c.state} chamber={c.chamber} size={28} />}>
@@ -346,6 +379,41 @@ export function HomeColumns() {
             )}
           </Column>
         )
+      case "bills": {
+        const bills = billData?.rows ?? []
+        return (
+          <Column key={kind} id={kind} title={KINDS[kind]} href={`/bills${scope}`} all={`/bills${scope}`} menu={menu(showAll(`/bills${scope}`))}>
+            {bills.length ? (
+              bills.slice(0, cap).map((b) => (
+                <Row key={b.bill_id} href={`/bills/${b.bill_id}?state=${scoped}`} icon={<FileText className="size-4" />} muted={fmtBill(b.bill_number, scoped)}>
+                  {b.title}
+                </Row>
+              ))
+            ) : (
+              <Empty>
+                <LoadingFlag />
+              </Empty>
+            )}
+          </Column>
+        )
+      }
+      case "laws":
+        // The U.S. Code, open to everyone, then every state's laws (Brendan, 2026-09-21): the
+        // jurisdictions the reader follows first, the rest A to Z behind View all. A state's page
+        // asks a signed-out reader to sign in — the rule is lib/entitlements.ts's, the card the gate's.
+        return (
+          <Column key={kind} id={kind} title={KINDS[kind]} href="/laws" all="/laws" menu={menu(showAll("/laws"))}>
+            {followedReady &&
+              [...shown, ...LAW_CODES]
+                .filter((code, i, all) => all.indexOf(code) === i)
+                .slice(0, cap)
+                .map((code) => (
+                  <Row key={code} href={`/laws/${code.toLowerCase()}`} icon={<FlagChip state={code} width={24} />}>
+                    {code === CONGRESS ? "U.S. Code" : stateName(code)}
+                  </Row>
+                ))}
+          </Column>
+        )
       case "members": {
         const rows = [
           ...senators.map((m) => ({ key: `us-${m.people_id}`, href: memberHref(m.people_id), state: CONGRESS, chamber: "Senate", name: m.name })),
@@ -353,7 +421,7 @@ export function HomeColumns() {
           ...(rep?.chambers ?? []).flatMap((c) => c.seats.map((s) => ({ key: `${c.id}-${s.name}`, href: s.people_id ? memberHref(s.people_id, home ?? undefined) : `/members${scope}`, state: home ?? CONGRESS, chamber: c.chamber, name: s.name }))),
         ]
         return (
-          <Column key={kind} title={KINDS[kind]} href={`/members${scope}`} all={`/members${scope}`} menu={menu(showAll(`/members${scope}`))}>
+          <Column key={kind} id={kind} title={KINDS[kind]} href={`/members${scope}`} all={`/members${scope}`} menu={menu(showAll(`/members${scope}`))}>
             {rows.length ? (
               rows.slice(0, cap).map((r) => (
                 <Row key={r.key} href={r.href} icon={<ChamberSeal state={r.state} chamber={r.chamber} size={28} />}>
@@ -368,7 +436,7 @@ export function HomeColumns() {
       }
       case "tracking":
         return (
-          <Column key={kind} title={KINDS[kind]} href="/watches" all="/watches" menu={menu(showAll("/watches"))}>
+          <Column key={kind} id={kind} title={KINDS[kind]} href="/watches" all="/watches" menu={menu(showAll("/watches"))}>
             {watches && watches.length ? (
               watches.slice(0, cap).map((w) => (
                 <Row key={w.id} href={`/watches/${w.id}`} icon={<Radar className="size-4" />}>
@@ -382,21 +450,34 @@ export function HomeColumns() {
         )
       case "interests":
         return (
-          <Column key={kind} title={KINDS[kind]} href="/workspace/dashboard/settings/profile" all="/workspace/dashboard/settings/profile" menu={menu(showAll("/workspace/dashboard/settings/profile"))}>
-            {interests.length ? (
-              interests.slice(0, cap).map((interest) => (
-                <Row key={interest} href={`/search?q=${encodeURIComponent(interest)}&state=${scoped}`} icon={<Tag className="size-4" />}>
-                  {interest}
-                </Row>
-              ))
-            ) : (
-              <Empty>{signedIn ? "Nothing followed yet." : "Sign in and what you follow collects here."}</Empty>
+          <Column key={kind} id={kind} title={KINDS[kind]} href="/workspace/dashboard/settings/profile" all="/workspace/dashboard/settings/profile" menu={menu(showAll("/workspace/dashboard/settings/profile"))}>
+            {(interests.length ? interests : PLACEHOLDER_INTERESTS).slice(0, cap).map((interest) => (
+              <Row key={interest} href={`/search?q=${encodeURIComponent(interest)}&state=${scoped}`} icon={<Tag className="size-4" />}>
+                {interest}
+              </Row>
+            ))}
+            {!interests.length && (
+              <Empty>
+                {signedIn ? (
+                  <Link href="/workspace/dashboard/settings/profile" className="text-foreground underline underline-offset-4">
+                    Update your preferences
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/sign-in" className="text-foreground underline underline-offset-4">
+                      Sign in
+                    </Link>{" "}
+                    and update your preferences
+                  </>
+                )}{" "}
+                to choose your own.
+              </Empty>
             )}
           </Column>
         )
       case "agents":
         return (
-          <Column key={kind} title={KINDS[kind]} href="/agents" all="/agents" menu={menu(showAll("/agents"))}>
+          <Column key={kind} id={kind} title={KINDS[kind]} href="/agents" all="/agents" menu={menu(showAll("/agents"))}>
             {AGENTS.slice(0, cap).map((a) => (
               <Row key={a.slug} href={`/agents/${a.slug}`} icon={<Bot className="size-4" />}>
                 {a.name}
@@ -408,6 +489,7 @@ export function HomeColumns() {
         return (
           <Column
             key={kind}
+            id={kind}
             title={KINDS[kind]}
             menu={menu(
               <>
@@ -436,7 +518,7 @@ export function HomeColumns() {
     <div className="flex flex-col gap-8">
       <div className="grid gap-8 md:grid-cols-3">{columns.slice(0, FIRST_ROW).map((k) => column(k, ROWS))}</div>
       <Separator />
-      <div className="grid gap-8 md:grid-cols-3">{columns.slice(FIRST_ROW).map((k) => column(k, ALL))}</div>
+      <div className="grid gap-8 md:grid-cols-3">{columns.slice(FIRST_ROW).map((k) => column(k, SECOND_ROWS))}</div>
     </div>
   )
 }

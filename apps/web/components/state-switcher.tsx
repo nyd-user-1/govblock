@@ -43,7 +43,7 @@ function Rows({ codes, current, onSelect }: { codes: string[]; current: string; 
 // Active (Brendan, 2026-09-11): what the reader is entitled to — Congress,
 // and once they have signed in and chosen a home state, that state beside
 // it. Everyone else sees Congress alone at the top.
-function StatePicker({ state, active, onSelect, className }: { state: string; active: string[]; onSelect: (code: string) => void; className?: string }) {
+export function StatePicker({ state, active, onSelect, className }: { state: string; active: string[]; onSelect: (code: string) => void; className?: string }) {
   return (
     <Command className={className} loop>
       <CommandInput placeholder="Search jurisdictions…" autoFocus />

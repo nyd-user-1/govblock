@@ -20,7 +20,7 @@ const CONGRESS = "US"
 const STATES = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI SC SD TN TX UT VT VA WA WV WI WY".split(" ")
 // The account home's tiles: every metric over every window its menu offers.
 const METRICS = ["votes", "introduced", "engrossed", "passed", "vetoed", "hearings-scheduled", "hearings-held", "actions", "amendments"]
-const DAYS = [7, 30, 90, 365]
+const DAYS = ["session", 7, 30, 90, 365]
 
 const chunk = (list, size) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size))
 const read = async (path) => {

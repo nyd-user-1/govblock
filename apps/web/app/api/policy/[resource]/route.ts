@@ -374,7 +374,7 @@ async function dispatch(resource: string, sp: URLSearchParams) {
       const f = await resolve(filters)
       const key = sp.get("metric") as MetricKey | null
       if (!key) throw new Error("metric required")
-      const days = Math.min(Math.max(int(sp.get("days"), 30), 1), 366)
+      const days = sp.get("days") === "session" ? "session" : Math.min(Math.max(int(sp.get("days"), 30), 1), 366)
       const answer = await getMetric(f, key, days)
       if (!answer) throw new Error(`no such metric: ${key}`)
       return answer

@@ -26,6 +26,17 @@ export function ManualFetchProvider({ children }: { children: React.ReactNode })
   return <Context.Provider value={value}>{children}</Context.Provider>
 }
 
+/**
+ * A part of a manual page that reads as it opens (the account home's
+ * Analytics, Brendan, 2026-09-21: "connect this so that it is live"). The gate
+ * is a day older than the read cache in lib/policy/db.ts; what reads through
+ * that cache costs the cluster nothing on an open tab, which was the gate's
+ * whole reason.
+ */
+export function LiveFetch({ children }: { children: React.ReactNode }) {
+  return <Context.Provider value={null}>{children}</Context.Provider>
+}
+
 /** null outside a manual page: fetch as usual. */
 export function useManualFetch() {
   return React.useContext(Context)

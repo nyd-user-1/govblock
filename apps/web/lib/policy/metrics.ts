@@ -26,12 +26,13 @@ export const METRICS: { key: MetricKey; label: string; description: string }[] =
 export type MetricSeries = {
   key: MetricKey
   label: string
-  days: number
+  /** The window in days, or "session": the session's own span, from its first of January to today. */
+  days: number | "session"
   from: string
   to: string
   total: number
-  /** The same count for the window before this one, for the change. */
-  previous: number
+  /** The same count for the window before this one, for the change; null over a session, which has no window before it. */
+  previous: number | null
   series: { date: string; value: number }[]
 }
 
@@ -88,13 +89,29 @@ function sqlFor(key: MetricKey): { sql: string; params: (f: Resolved, from: stri
 /**
  * One metric over the last `days` (or, for what is scheduled, the next
  * `days`), by day, with the window before it for the change.
+ *
+ * "session" is the session's own span (Brendan, 2026-09-21, the tiles'
+ * default): a session is named for the year it opened and runs two years at
+ * most, so the window is that first of January to today, or to the end of
+ * the second year for a session already over. Every count is the session's
+ * already, so there is no window before it to measure a change against.
  */
-export async function getMetric(f: Resolved, key: MetricKey, days = 30): Promise<MetricSeries | null> {
+export async function getMetric(f: Resolved, key: MetricKey, days: number | "session" = 30): Promise<MetricSeries | null> {
   const def = METRICS.find((m) => m.key === key)
   const spec = sqlFor(key)
   if (!def || !spec) return null
   const today = day(new Date())
   const ahead = key === "hearings-scheduled"
+  if (days === "session") {
+    const last = `${f.session + 1}-12-31`
+    const from = ahead ? shift(today, 1) : `${f.session}-01-01`
+    const to = ahead ? last : today < last ? today : last
+    const rows = from <= to ? await q<{ date: string; value: number }>(spec.sql, spec.params(f, from, to)) : []
+    const byDay = new Map(rows.map((r) => [String(r.date).slice(0, 10), n(r.value)]))
+    const series: { date: string; value: number }[] = []
+    for (let d = from; d <= to; d = shift(d, 1)) series.push({ date: d, value: byDay.get(d) ?? 0 })
+    return { key, label: def.label, days, from, to, total: series.reduce((sum, r) => sum + r.value, 0), previous: null, series }
+  }
   const from = ahead ? shift(today, 1) : shift(today, -(days - 1))
   const to = ahead ? shift(today, days) : today
   const prevFrom = ahead ? shift(today, -(days - 1)) : shift(from, -days)

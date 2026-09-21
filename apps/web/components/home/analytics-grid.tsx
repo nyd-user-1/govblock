@@ -1,14 +1,20 @@
 "use client"
 
 import * as React from "react"
-import { CalendarDays, ChevronDown, MoreHorizontal, Plus, RefreshCw, Trash2, X } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { CalendarDays, ChevronDown, GripVertical, MoreHorizontal, Plus, RefreshCw, Trash2, X } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts"
 
+import { doorHref, entitled } from "@/lib/entitlements"
+import { CONGRESS, stateName } from "@/lib/filters"
 import { fmtDate, fmtNumber } from "@/lib/format"
 import type { MetricKey, MetricSeries } from "@/lib/policy/metrics"
+import type { SessionRow } from "@/lib/policy/types"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { useManualFetch } from "@/lib/policy/manual-fetch"
+import { LiveFetch } from "@/lib/policy/manual-fetch"
 import { usePolicy } from "@/lib/policy/use-policy"
+import { FlagChip } from "@/components/policy/imagery"
+import { StatePicker } from "@/components/state-switcher"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@govblock/ui/components/chart"
@@ -19,10 +25,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components
 // four-column grid of tiles, each one metric over a window — the number,
 // the change against the window before, the days as a line. A tile's corner
 // drags it to two columns wide and back, as hq's grid resizes (pointer
-// events, no library); its menu refreshes or removes it; the + opens
+// events, no library); the grip beside its menu drags it to another tile's
+// place (Brendan, 2026-09-21); its menu refreshes or removes it; the + opens
 // Cloudflare's "Add metric" panel (Brendan, 2026-09-07), the metrics not yet
 // on the grid one to a row; the empty slots in the last row are + too. The
 // layout and the window live in the browser.
+//
+// Two buttons lead the head (Brendan, 2026-09-21): the sessions, and the
+// jurisdiction, which opens on U.S. Congress and is the grid's own, not the
+// header's flag. The first lists the jurisdiction's sessions, newest first and
+// open on the current one — a session's own span rather than a run of days —
+// and, under a rule, the runs of days, which count within the current
+// session. An earlier session is a plan's, as it is everywhere else: the pick
+// leads to the door rather than to a grid of refusals.
 
 const COLUMNS = 4
 const KEY = "govblock:home-tiles"
@@ -51,25 +66,34 @@ const DEFAULT: Tile[] = [
   { id: "t7", metric: "hearings-held", span: 1 },
 ]
 
-const RANGES: { days: number; label: string }[] = [
+type Days = number | "session"
+
+const RANGES: { days: Days; label: string }[] = [
+  { days: "session", label: "Session" },
   { days: 7, label: "Last 7 days" },
   { days: 30, label: "Last 30 days" },
   { days: 90, label: "Last 90 days" },
   { days: 365, label: "Last 12 months" },
 ]
 
-type Saved = { tiles: Tile[]; days: number }
+/** `session` is null for the jurisdiction's current one, which the API resolves; a number is an earlier one, and its window is always the session. */
+type Saved = { tiles: Tile[]; days: Days; state: string; session: number | null }
+
+const FRESH: Saved = { tiles: DEFAULT, days: "session", state: CONGRESS, session: null }
 
 function load(): Saved {
-  if (typeof window === "undefined") return { tiles: DEFAULT, days: 30 }
+  if (typeof window === "undefined") return FRESH
   try {
     const raw = window.localStorage.getItem(KEY)
-    if (!raw) return { tiles: DEFAULT, days: 30 }
+    if (!raw) return FRESH
     const saved = JSON.parse(raw) as Partial<Saved>
     const tiles = Array.isArray(saved.tiles) ? saved.tiles.filter((t) => t && METRICS.some((m) => m.key === t.metric)) : DEFAULT
-    return { tiles: tiles.length ? tiles : DEFAULT, days: RANGES.some((r) => r.days === saved.days) ? (saved.days as number) : 30 }
+    // A layout saved before the grid had a jurisdiction of its own keeps its tiles and takes the new defaults for the rest.
+    if (typeof saved.state !== "string") return { ...FRESH, tiles: tiles.length ? tiles : DEFAULT }
+    const session = typeof saved.session === "number" ? saved.session : null
+    return { tiles: tiles.length ? tiles : DEFAULT, days: session == null && RANGES.some((r) => r.days === saved.days) ? (saved.days as Days) : "session", state: saved.state, session }
   } catch {
-    return { tiles: DEFAULT, days: 30 }
+    return FRESH
   }
 }
 
@@ -84,15 +108,19 @@ function save(saved: Saved) {
 const chartConfig = { value: { label: "Count", color: "var(--chart-1)" } } satisfies ChartConfig
 
 /** One tile: the metric over the window. */
-function MetricTile({ tile, days, nonce, columnWidth, onSpan, onRemove, onRefresh }: { tile: Tile; days: number; nonce: number; columnWidth: number; onSpan: (span: 1 | 2) => void; onRemove: () => void; onRefresh: () => void }) {
-  const { state, session, resolved } = useJurisdiction()
-  const { data, isLoading } = usePolicy<MetricSeries>(resolved ? "metric" : null, { state, session: session ? String(session) : undefined }, { metric: tile.metric, days, nonce })
+function MetricTile({ tile, state, session, days, nonce, columnWidth, dragging, onSpan, onRemove, onRefresh, onDragStart, onDragEnter, onDragEnd }: { tile: Tile; /** The grid's jurisdiction. */ state: string; /** An earlier session; null is the current one, which the API resolves. */ session: number | null; days: Days; nonce: number; columnWidth: number; /** This tile is the one in the air. */ dragging: boolean; onSpan: (span: 1 | 2) => void; onRemove: () => void; onRefresh: () => void; onDragStart: () => void; onDragEnter: () => void; onDragEnd: () => void }) {
+  const { data, isLoading } = usePolicy<MetricSeries>("metric", { state, session: session == null ? undefined : String(session) }, { metric: tile.metric, days, nonce })
   const meta = METRICS.find((m) => m.key === tile.metric)
   const total = data?.total ?? 0
   const previous = data?.previous ?? 0
-  const change = previous > 0 ? ((total - previous) / previous) * 100 : total > 0 ? 100 : null
+  // A session has no window before it, so no change to show.
+  const change = data?.previous == null ? null : previous > 0 ? ((total - previous) / previous) * 100 : total > 0 ? 100 : null
   const empty = !isLoading && data != null && total === 0
   const [resizing, setResizing] = React.useState(false)
+  // The grip makes the tile draggable for as long as it is held, as the
+  // workspace grid's does (components/workspace/grid.tsx): `draggable` has to
+  // be true before the drag starts, which is what pressing the grip sets.
+  const [byHandle, setByHandle] = React.useState(false)
 
   // The corner drag: the pointer's travel, against the column, decides the span.
   const onHandle = (event: React.PointerEvent) => {
@@ -116,8 +144,21 @@ function MetricTile({ tile, days, nonce, columnWidth, onSpan, onRemove, onRefres
 
   return (
     <div
-      className={cn("relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-xs", resizing && "ring-2 ring-ring/40", tile.span === 2 ? "col-span-2" : "col-span-1")}
+      className={cn("relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-xs", resizing && "ring-2 ring-ring/40", dragging && "opacity-40", tile.span === 2 ? "col-span-2" : "col-span-1")}
       data-span={tile.span}
+      draggable={byHandle}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move"
+        e.dataTransfer.setData("text/plain", tile.id)
+        onDragStart()
+      }}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => e.preventDefault()}
+      onDragEnd={() => {
+        setByHandle(false)
+        onDragEnd()
+      }}
     >
       <div className="flex items-start gap-3 px-4 pt-3 pb-0.5">
         <div className="min-w-0 flex-1">
@@ -125,6 +166,15 @@ function MetricTile({ tile, days, nonce, columnWidth, onSpan, onRemove, onRefres
             {meta?.label ?? tile.metric}
           </div>
         </div>
+        <span
+          aria-hidden
+          title="Drag to move"
+          onPointerDown={() => setByHandle(true)}
+          onPointerUp={() => setByHandle(false)}
+          className="-mt-1 -mr-3 flex size-7 cursor-grab items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:cursor-grabbing [&_svg]:size-4"
+        >
+          <GripVertical />
+        </span>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -294,14 +344,25 @@ function NoData() {
   )
 }
 
+/** The grid reads as the page opens, whatever gate the page is under — its tiles and its list of sessions alike. */
 export function AnalyticsGrid() {
-  const [saved, setSaved] = React.useState<Saved>({ tiles: DEFAULT, days: 30 })
+  return (
+    <LiveFetch>
+      <Grid />
+    </LiveFetch>
+  )
+}
+
+function Grid() {
+  const [saved, setSaved] = React.useState<Saved>(FRESH)
+  const router = useRouter()
+  const { reader } = useJurisdiction()
+  const [picking, setPicking] = React.useState(false)
   const [ready, setReady] = React.useState(false)
   const [nonce, setNonce] = React.useState(0)
   const grid = React.useRef<HTMLDivElement>(null)
   const [columnWidth, setColumnWidth] = React.useState(0)
-  // A tile's own Refresh counts as the page's press when the page is gated.
-  const manual = useManualFetch()
+  const [dragging, setDragging] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     setSaved(load())
@@ -320,16 +381,47 @@ export function AnalyticsGrid() {
     return () => observer.disconnect()
   }, [])
 
-  const { tiles, days } = saved
+  const { tiles, days, state, session } = saved
+  const { data: sessionRows } = usePolicy<SessionRow[]>("sessions", { state })
+  const sessions = Array.isArray(sessionRows) ? sessionRows : []
+  // The current session is the newest with bills on file, as the header's scope picks it.
+  const current = (sessions.find((row) => Number(row.bills) > 0) ?? sessions[0])?.session_id ?? null
+  const sessionTitle = (id: number | null) => sessions.find((row) => Number(row.session_id) === Number(id))?.title ?? (id == null ? "Session" : `${id} Session`)
+  const pickSession = (id: number) => {
+    if (current != null && Number(id) === Number(current)) return update({ session: null, days: "session" })
+    const allowed = entitled(reader, { state, session: id, current, entity: "bills" })
+    if (allowed !== "open") return router.push(doorHref(allowed))
+    update({ session: id, days: "session" })
+  }
+  // Congress, and the home state once there is one: what the header's switcher calls Active.
+  const active = reader.home && reader.home !== CONGRESS ? [CONGRESS, reader.home] : [CONGRESS]
+  // The header's rule (lib/policy/jurisdiction.tsx): a jurisdiction the reader may not open leads to sign-in or the plan, not to a grid of refusals.
+  const pick = (code: string) => {
+    setPicking(false)
+    const allowed = entitled(reader, { state: code })
+    if (allowed !== "open") return router.push(doorHref(allowed))
+    update({ state: code, session: null })
+  }
   const update = (next: Partial<Saved>) => setSaved((current) => ({ ...current, ...next }))
   const setTile = (id: string, patch: Partial<Tile>) => update({ tiles: tiles.map((t) => (t.id === id ? { ...t, ...patch } : t)) })
   const remove = (id: string) => update({ tiles: tiles.filter((t) => t.id !== id) })
+  // The tile in the air takes the place of the tile it is dragged onto; the order is the saved layout's.
+  const moveTo = (id: string, onto: string) => {
+    const from = tiles.findIndex((t) => t.id === id)
+    const to = tiles.findIndex((t) => t.id === onto)
+    if (from < 0 || to < 0 || from === to) return
+    const next = [...tiles]
+    next.splice(to, 0, ...next.splice(from, 1))
+    update({ tiles: next })
+  }
   const add = (metric: MetricKey) => update({ tiles: [...tiles, { id: `t${Date.now().toString(36)}`, metric, span: 1 }] })
   const unused = METRICS.filter((m) => !tiles.some((t) => t.metric === m.key))
   // The empty slots that finish the last row, each a + (Cloudflare's dashed tiles).
   const used = tiles.reduce((sum, t) => sum + t.span, 0) % COLUMNS
   const blanks = used === 0 ? 0 : COLUMNS - used
-  const range = RANGES.find((r) => r.days === days) ?? RANGES[1]
+  const windows = RANGES.filter((r) => r.days !== "session")
+  const label = days === "session" ? sessionTitle(session ?? current) : (windows.find((r) => r.days === days)?.label ?? sessionTitle(current))
+  const chosen = days === "session" ? `s:${session ?? current ?? ""}` : `d:${days}`
 
   return (
     <section id="analytics" className="scroll-mt-24">
@@ -340,20 +432,38 @@ export function AnalyticsGrid() {
             <DropdownMenuTrigger
               render={
                 <Button variant="outline">
-                  <CalendarDays /> {range.label}
+                  <CalendarDays /> {label}
                 </Button>
               }
             />
-            <DropdownMenuContent align="end" className="w-max min-w-44">
-              <DropdownMenuRadioGroup value={String(days)} onValueChange={(value) => update({ days: Number(value) })}>
-                {RANGES.map((r) => (
-                  <DropdownMenuRadioItem key={r.days} value={String(r.days)} className="whitespace-nowrap">
+            <DropdownMenuContent align="end" className="max-h-96 w-max min-w-44 overflow-y-auto">
+              <DropdownMenuRadioGroup value={chosen} onValueChange={(value) => (value.startsWith("s:") ? pickSession(Number(value.slice(2))) : update({ session: null, days: Number(value.slice(2)) }))}>
+                {sessions.map((row) => (
+                  <DropdownMenuRadioItem key={row.session_id} value={`s:${row.session_id}`} className="whitespace-nowrap">
+                    {row.title ?? `${row.session_id} Session`}
+                  </DropdownMenuRadioItem>
+                ))}
+                {sessions.length > 0 && <DropdownMenuSeparator />}
+                {windows.map((r) => (
+                  <DropdownMenuRadioItem key={r.days} value={`d:${r.days}`} className="whitespace-nowrap">
                     {r.label}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Popover open={picking} onOpenChange={setPicking}>
+            <PopoverTrigger
+              render={
+                <Button variant="outline" aria-label={`Jurisdiction: ${stateName(state)}. Change jurisdiction`}>
+                  <FlagChip state={state} /> {state === CONGRESS ? "U.S. Congress" : stateName(state)}
+                </Button>
+              }
+            />
+            <PopoverContent align="end" className="w-64 p-0" aria-label="Jurisdictions">
+              <StatePicker state={state} active={active} onSelect={pick} className="rounded-lg!" />
+            </PopoverContent>
+          </Popover>
           <AddMetric
             align="end"
             unused={unused}
@@ -370,10 +480,28 @@ export function AnalyticsGrid() {
         </div>
       </div>
       <div ref={grid} className="grid auto-rows-[224px] grid-cols-4 gap-4">
-        {ready &&
-          tiles.map((tile) => (
-            <MetricTile key={tile.id} tile={tile} days={days} nonce={nonce} columnWidth={columnWidth} onSpan={(span) => setTile(tile.id, { span })} onRemove={() => remove(tile.id)} onRefresh={() => (manual ? manual.refresh() : setNonce((n) => n + 1))} />
-          ))}
+        {/* A refresh, the header's or a tile's, is a new nonce. */}
+        <>
+          {ready &&
+            tiles.map((tile) => (
+              <MetricTile
+                key={tile.id}
+                tile={tile}
+                state={state}
+                session={session}
+                days={days}
+                nonce={nonce}
+                columnWidth={columnWidth}
+                dragging={dragging === tile.id}
+                onSpan={(span) => setTile(tile.id, { span })}
+                onRemove={() => remove(tile.id)}
+                onRefresh={() => setNonce((n) => n + 1)}
+                onDragStart={() => setDragging(tile.id)}
+                onDragEnter={() => dragging && dragging !== tile.id && moveTo(dragging, tile.id)}
+                onDragEnd={() => setDragging(null)}
+              />
+            ))}
+        </>
         {ready &&
           Array.from({ length: blanks }, (_, i) => (
             <AddMetric

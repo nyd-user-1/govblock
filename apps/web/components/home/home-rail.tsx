@@ -7,7 +7,7 @@ import { BookOpen, FileClock, FileText, Globe, History, Home, LayoutGrid, Newspa
 import { useAccount } from "@/lib/auth/use-account"
 import { AGENT_PAGES, hasItems, siteConfig, withScope } from "@/lib/config"
 import { useHomeState } from "@/lib/policy/home-state"
-import { DEFAULT_STATE, stateName } from "@/lib/filters"
+import { stateName } from "@/lib/filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { RefreshButton } from "@/lib/policy/manual-fetch"
 import { RailGroup, useRecordGroups, type RailItem } from "@/components/directory-rail"
@@ -20,8 +20,8 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, Side
 // Agents (the index and each agent), ArXiv (the record's pages), News (the
 // desks and everything the News menu holds), Workspace (the workspace's
 // surfaces, with Consensus and Data as nodes of their own). Scope is what the
-// reader is entitled to: Congress, and their home state — shown either way,
-// muted until they sign in. The record's own groups follow, then Manage
+// reader is entitled to: Congress for everyone, and the home state beside it
+// once they have signed in and chosen one; a third jurisdiction is a plan's. The record's own groups follow, then Manage
 // account at the foot.
 
 const glyph = (Icon: React.ComponentType<{ className?: string }>) => <Icon className="size-4 shrink-0 text-muted-foreground" />
@@ -57,7 +57,9 @@ export function SiteRail() {
   const page = (p: { href: string; label: string }): RailItem => ({ key: p.href, href: withScope(p.href, state), label: p.label, active: pathname.startsWith(p.href) })
 
   // Scope: Congress and the home state, each with the three lists a jurisdiction is read through.
-  const home = homeState ?? (state !== "US" ? state : DEFAULT_STATE)
+  // Signed out, Congress alone (Brendan, 2026-09-21): the second jurisdiction is the home state chosen at
+  // onboarding, and there is none until then. It used to fall back to the default, which drew Congress twice.
+  const home = signedIn && homeState && homeState !== "US" ? homeState : null
   const lists = (code: string, muted: boolean): RailItem[] => [
     { key: `${code}-bills`, href: `/bills/${code.toLowerCase()}`, label: "Bills", active: here(`/bills/${code.toLowerCase()}`), muted },
     { key: `${code}-committees`, href: `/committees?state=${code}`, label: "Committees", active: false, muted },
@@ -82,7 +84,7 @@ export function SiteRail() {
     ),
     item("scope", "/bills", "Scope", glyph(Globe), [
       item("congress", "/bills/us", "Congress", undefined, lists("US", false)),
-      item("home-state", `/bills/${home.toLowerCase()}`, stateName(home), undefined, lists(home, !signedIn), !signedIn),
+      ...(home ? [item("home-state", `/bills/${home.toLowerCase()}`, stateName(home), undefined, lists(home, false))] : []),
     ]),
   ]
 

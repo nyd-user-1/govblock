@@ -831,6 +831,8 @@ export function ParticleScroll({
         {native ? (
           <div
             ref={contentRef}
+            // The page scrolls in here, not in the window: the header's shade reads this mark (components/scroll-shade.tsx).
+            data-page-scroller=""
             style={{
               position: "relative",
               width: "100%",
@@ -845,6 +847,7 @@ export function ParticleScroll({
       {!native ? (
         <div
           ref={contentRef}
+          data-page-scroller=""
           style={{
             position: "relative",
             width: "100%",
