@@ -1,6 +1,7 @@
 import { DocsPage } from "@/components/docs-page"
 import { DocsTableOfContents } from "@/components/docs-toc"
-import { LETTERS, letterId, letterOf, TagsExplorer, type TagRow } from "@/components/tags/tags-explorer"
+import { TagsExplorer, type TagRow } from "@/components/tags/tags-explorer"
+import { LETTERS, letterId, letterOf } from "@/lib/tags/letters"
 import { TAGS } from "@/lib/data/tags"
 import { NEWS_TAGS, popularTags, recentTags, recommendedTags, trendingTags, type NewsTag } from "@/lib/gdelt/tags"
 

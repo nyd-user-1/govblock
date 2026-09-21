@@ -8,6 +8,7 @@ import { TagItem } from "@/components/tags/follow"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 
 import { cn } from "@govblock/ui/lib/utils"
+import { LETTERS, letterId, letterOf } from "@/lib/tags/letters"
 
 // /tags as daily.dev lays its tags out (Brendan, 2026-09-18): a search over
 // every tag, the recommended few under it, a letter bar, the trending, popular
@@ -16,12 +17,6 @@ import { cn } from "@govblock/ui/lib/utils"
 
 export type TagRow = { slug: string; name: string; total: number }
 
-export const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
-/** The section a tag falls under: its first letter, or # for anything else. */
-export const letterOf = (name: string) => {
-  const first = name.charAt(0).toUpperCase()
-  return /[A-Z]/.test(first) ? first : "#"
-}
 const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 })
 
 function Column({ title, rows }: { title: string; rows: TagRow[] }) {
@@ -46,7 +41,6 @@ function Column({ title, rows }: { title: string; rows: TagRow[] }) {
   )
 }
 
-export const letterId = (letter: string) => `letter-${letter === "#" ? "other" : letter.toLowerCase()}`
 
 /** The letter copies a link to its own section; the copy icon shows on hover. */
 function LetterHeading({ letter }: { letter: string }) {
