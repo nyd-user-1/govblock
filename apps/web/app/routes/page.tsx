@@ -31,12 +31,18 @@ import { H2 } from "@/components/typeset"
 // Above them, the build's budget (Brendan, 2026-09-20): the last good build's
 // output against Amplify's cap, by part, so what a route costs is in view
 // beside the switch that would take it out. scripts/routes/build-sizes.mjs
-// reads it off the build log after a deploy.
+// reads it off the build log after a deploy, and keeps the build before it,
+// drawn as a second bar, so what a round of switches saved can be seen.
 //
 // On the docs shell (Brendan, 2026-09-20): its head, its headings and rules,
 // and the index of the page's sections in the right rail.
 
 export const metadata: Metadata = { title: "Routes", description: "Every URL the site serves." }
+
+const MEGABYTES = (bytes: number) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`
+type BuildRecord = { job: number; commit: string; built: string; total: number; parts: { label: string; bytes: number }[] }
+/** The build before the one on file, once build-sizes.mjs has seen two. */
+const PREVIOUS = (BUILD as { previous?: BuildRecord | null }).previous ?? null
 
 const JURISDICTIONS = Object.keys(STATE_NAMES).filter((c) => c !== "PR").map((c) => c.toLowerCase())
 
@@ -133,8 +139,20 @@ export default async function RoutesPage() {
             {BUILD.exact ? "" : " · sizes to the nearest megabyte of disk, a few percent over what Amplify weighs"}
           </p>
           <div data-not-typeset="true" className="mt-4">
-            <ProgressGroup parts={BUILD.parts.map((p) => ({ label: p.label, value: p.bytes }))} limit={BUILD.cap} format={(bytes) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`} />
+            <ProgressGroup parts={BUILD.parts.map((p) => ({ label: p.label, value: p.bytes }))} limit={BUILD.cap} format={MEGABYTES} />
           </div>
+          {/* The build before, under the same cap (Brendan, 2026-09-21: "so I can see the difference" after routes went to the lab). */}
+          {PREVIOUS && (
+            <>
+              <p>
+                Job {PREVIOUS.job} · {PREVIOUS.commit} · {new Date(PREVIOUS.built).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · the build before,{" "}
+                {MEGABYTES(Math.abs(PREVIOUS.total - BUILD.total))} {PREVIOUS.total >= BUILD.total ? "heavier" : "lighter"}
+              </p>
+              <div data-not-typeset="true" className="mt-4">
+                <ProgressGroup parts={PREVIOUS.parts.map((p) => ({ label: p.label, value: p.bytes }))} limit={BUILD.cap} format={MEGABYTES} />
+              </div>
+            </>
+          )}
           <hr />
         </>
       )}

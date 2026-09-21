@@ -41,6 +41,12 @@ const parts = [
 ]
 parts.push({ label: "Everything else", bytes: Math.max(0, total - parts.reduce((n, p) => n + p.bytes, 0)) })
 
-const out = { job: Number(good.jobId), commit: good.commitId.slice(0, 7), built: good.endTime, exact: exact.length > 0, cap: CAP, total, parts: parts.filter((p) => p.bytes > 0) }
-fs.writeFileSync(path.resolve("lib/build-sizes.json"), JSON.stringify(out, null, 2) + "\n")
+// The build before this one stays on file (Brendan, 2026-09-21: "so I can see the difference" after routes went to the
+// lab): /routes draws it as a second bar under the first. Run twice on one job, the earlier build is kept.
+const file = path.resolve("lib/build-sizes.json")
+const before = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null
+const previous = before && before.job !== Number(good.jobId) ? { job: before.job, commit: before.commit, built: before.built, exact: before.exact, total: before.total, parts: before.parts } : (before?.previous ?? null)
+
+const out = { job: Number(good.jobId), commit: good.commitId.slice(0, 7), built: good.endTime, exact: exact.length > 0, cap: CAP, total, parts: parts.filter((p) => p.bytes > 0), previous }
+fs.writeFileSync(file, JSON.stringify(out, null, 2) + "\n")
 console.log(`job ${out.job}: ${(total / MB).toFixed(0)} of ${(CAP / MB).toFixed(0)} MiB, ${out.parts.length} parts, ${out.exact ? "exact bytes" : "du megabytes"}`)
