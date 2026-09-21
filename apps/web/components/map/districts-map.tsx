@@ -292,6 +292,11 @@ export function DistrictsMap({
       live = false
     }
   }, [])
+  // The States boundary: the same file, each state washed its own colour as a county is.
+  const statesWashed = React.useMemo(
+    () => (statesFc && overlays.has("states") ? wash(statesFc, (p) => String(p.fips ?? "")) : null),
+    [statesFc, overlays]
+  )
   const statesJoined = React.useMemo(() => {
     if (!statesFc) return null
     return {
@@ -366,7 +371,7 @@ export function DistrictsMap({
   // strength; several are washes that add rather than hide, and the white
   // hairlines keep each region's edge readable through the others.
   const washes =
-    (overlays.has("counties") ? 1 : 0) + (overlays.has("zips") ? 1 : 0)
+    (overlays.has("states") ? 1 : 0) + (overlays.has("counties") ? 1 : 0) + (overlays.has("zips") ? 1 : 0)
   const stacked = fills.length + washes
   const each = stacked > 1 ? LAYER.shared : LAYER.solo
   const washOpacity = stacked > 1 ? LAYER.shared : LAYER.solo
@@ -452,6 +457,28 @@ export function DistrictsMap({
               type="line"
               filter={["==", ["get", "geoid"], selectedCd]}
               paint={{ "line-color": "#111827", "line-width": 1 }}
+            />
+          </Source>
+        )}
+        {/* Under the counties and the ZIP codes, so the smaller regions draw over the larger. */}
+        {statesWashed && (
+          <Source id="states-wash" type="geojson" data={statesWashed}>
+            <Layer
+              id="states-wash-fill"
+              type="fill"
+              paint={{
+                "fill-color": ["get", "color"] as never,
+                "fill-opacity": washOpacity,
+              }}
+            />
+            <Layer
+              id="states-wash-line"
+              type="line"
+              paint={{
+                "line-color": LAYER.hairline.color,
+                "line-width": LAYER.hairline.width,
+                "line-opacity": LAYER.hairline.opacity,
+              }}
             />
           </Source>
         )}

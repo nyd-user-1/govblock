@@ -177,6 +177,19 @@ export function MapLegend({
             </div>
           )
         }
+        if (id === "states")
+          return (
+            <Block
+              key={id}
+              title="States"
+              items={[
+                {
+                  swatch: square("#cbd5e1"),
+                  label: "56 with the District and the territories, each its own colour",
+                },
+              ]}
+            />
+          )
         if (id === "counties")
           return (
             <Block

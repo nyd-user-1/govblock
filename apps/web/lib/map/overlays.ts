@@ -21,6 +21,7 @@ export type CoreOverlayId =
   | "heat"
   | "population"
   | "income"
+  | "states"
   | "counties"
   | "zips"
 
@@ -89,6 +90,15 @@ const CORE: Overlay[] = [
     label: "Median income",
     kind: "fill",
     group: "Congress",
+    scope: "public",
+  },
+  {
+    // The largest of the three boundaries, and the one left off until 2026-09-20 (Brendan): a wash a state, as the
+    // counties are, from the states file the map already holds for its focus outline.
+    id: "states",
+    label: "States",
+    kind: "fill",
+    group: "Boundaries",
     scope: "public",
   },
   {

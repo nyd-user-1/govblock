@@ -41,13 +41,13 @@ export const LAYER = {
 /** The steps a counted reading climbs, light to dark, in the site's blue. */
 export const RAMP = ["#dbe4ff", "#a9bdff", "#6f8fff", "#3b5cff", "#1f3ed6"]
 
-/** Money reads amber, as Solar reads it. */
+/** Money reads green (Brendan, 2026-09-20; amber, as Solar reads it, until then), light to dark. */
 export const MONEY_RAMP = [
-  "#fef3c7",
-  "#fbbf24",
-  "#f59e0b",
-  "#d97706",
-  "#92400e",
+  "#dcfce7",
+  "#86efac",
+  "#22c55e",
+  "#15803d",
+  "#14532d",
 ]
 
 /** Heat reads warm, from nothing to a lot. */
