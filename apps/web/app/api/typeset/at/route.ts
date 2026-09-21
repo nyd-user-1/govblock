@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { memberHref } from "@/lib/filters"
 import { q } from "@/lib/policy/db"
 import { resolve, searchAll } from "@/lib/policy/db-queries"
-import { legislativeBody } from "@/lib/legislative-body"
+import { federalSeat, legislativeBody } from "@/lib/legislative-body"
 import { findExpression } from "@/lib/typeset/expression-document"
 import { recognize, worksOf } from "@/lib/typeset/cite"
 import { resolveWorks } from "@/lib/typeset/resolve"
@@ -95,7 +95,9 @@ export async function GET(request: Request) {
       citations: cites,
       members: found.members.slice(0, 8).map((p) => {
         const href = memberHref(p.people_id, p.state ?? undefined)
-        return { kind: "member" as const, chamber: p.chamber ?? null, party: p.party ?? null, label: p.name, detail: (p.state ? legislativeBody(p.state, p.chamber ?? "") : p.chamber) || null, href, insert: { text: p.name, href }, state: p.state }
+        // A member of Congress says where from: "U.S. Senate, NY", "U.S. House, NY-14" (Brendan, 2026-09-21).
+        const body = (p.state ? legislativeBody(p.state, p.chamber ?? "") : p.chamber) || null
+        return { kind: "member" as const, chamber: p.chamber ?? null, party: p.party ?? null, label: p.name, detail: [body, federalSeat(p.district)].filter(Boolean).join(", ") || null, href, insert: { text: p.name, href }, state: p.state }
       }),
       committees: found.committees.slice(0, 12).map((c) => {
         const href = `/bills?state=${c.state}&committee=${encodeURIComponent(c.committee)}`

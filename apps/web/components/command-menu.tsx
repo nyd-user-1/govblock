@@ -457,7 +457,8 @@ export function SearchPanel({ engine, term, setTerm, go, listClassName = "max-h-
             <CommandItem key={door.key} className="group/row" value={`door-${door.key}`} onSelect={() => go(door.href)}>
               <FlagChip state={door.state} width={20} />
               <span className={LABEL}>{door.label}</span>
-              <span className="min-w-0 flex-1 truncate pl-2 text-left font-mono text-xs text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{door.detail}</span>
+              {/* The address, where the page has one of its own (Brendan, 2026-09-21): /bills/ny, not the "?state=" a members or committees page still answers to. */}
+              <span className="min-w-0 flex-1 truncate pl-2 text-left font-mono text-xs text-muted-foreground transition-colors group-data-[selected=true]/row:text-foreground">{door.detail.includes("?") ? "" : door.detail}</span>
             </CommandItem>
           ))}
         </CommandGroup>

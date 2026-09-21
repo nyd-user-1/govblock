@@ -33,9 +33,12 @@ export async function POST(request: Request) {
          email text primary key, topics text[] not null default '{}', state text,
          created_at timestamptz not null default now(), updated_at timestamptz not null default now())`
     )
+    // Topics are added to, not replaced (2026-09-21): an address that asks about a lab route keeps what it asked for before.
     await q(
       `insert into "Subscribers" (email, topics, state) values ($1, $2::text[], $3)
-       on conflict (email) do update set topics = excluded.topics, state = excluded.state, updated_at = now()`,
+       on conflict (email) do update set
+         topics =(select coalesce(array_agg(distinct t), '{}') from unnest("Subscribers".topics || excluded.topics) t),
+         state = coalesce(excluded.state, "Subscribers".state), updated_at = now()`,
       [email, topics, state]
     )
   } catch (error) {

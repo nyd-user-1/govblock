@@ -206,6 +206,24 @@ export function HomeSearch({ hotkey = true }: { hotkey?: boolean } = {}) {
             aria-label="Search"
             className="h-full min-w-0 flex-1 bg-transparent text-foreground outline-hidden placeholder:text-muted-foreground"
           />
+          {/* The cross, while the bar is in use (Brendan, 2026-09-21): it empties the box and its chips, and with nothing left to empty it closes the list. */}
+          {(open || term || chipsHeld.length > 0) && (
+            <button
+              type="button"
+              aria-label={term || chipsHeld.length ? "Clear the search" : "Close the search"}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={(event) => {
+                event.preventDefault()
+                if (!term && !chipsHeld.length) return close()
+                setTerm("")
+                setHeld(NONE)
+                input.current?.focus()
+              }}
+              className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <XIcon className="size-4" />
+            </button>
+          )}
           <span className="flex items-center gap-1">
             <Kbd className="border bg-background">⌘</Kbd>
             <Kbd className="border bg-background">K</Kbd>

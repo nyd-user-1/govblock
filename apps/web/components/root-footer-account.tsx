@@ -4,8 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 
 import { useAccount } from "@/lib/auth/use-account"
-import { Button } from "@govblock/ui/components/nova/button"
-import { Input } from "@govblock/ui/components/input"
+import { SubscribeField } from "@/components/subscribe-field"
 import { Separator } from "@govblock/ui/components/nova/separator"
 
 // The footer's card: the way into an account (or back to it), the subscribe
@@ -25,47 +24,13 @@ const XMark = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function FooterAccount({ github, twitter }: { github: string; twitter: string }) {
   const { signedIn } = useAccount()
-  const [email, setEmail] = React.useState("")
-  const [state, setState] = React.useState<"idle" | "busy" | "done" | "error">("idle")
-  const [message, setMessage] = React.useState<string | null>(null)
-  const subscribe = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (state === "busy") return
-    setState("busy")
-    try {
-      const response = await fetch("/api/subscribe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, topics: ["bills", "committees", "members"] }) })
-      const body = (await response.json().catch(() => ({}))) as { error?: string }
-      if (!response.ok) throw new Error(body.error ?? "That did not go through.")
-      setState("done")
-      setMessage(`${email} is on the list.`)
-      setEmail("")
-    } catch (error) {
-      setState("error")
-      setMessage(error instanceof Error ? error.message : "That did not go through.")
-    }
-  }
   return (
     <div className="flex h-fit flex-col gap-6 rounded-2xl bg-muted p-6">
       <Link href={signedIn ? "/home" : "/sign-in"} className="w-fit text-lg font-medium text-foreground underline underline-offset-4">
         {signedIn ? "Account Home" : "Sign In or Create Account"}
       </Link>
       <Separator />
-      <form onSubmit={subscribe} className="flex flex-col gap-2">
-        <label htmlFor="footer-subscribe" className="text-sm font-medium">
-          New bills, hearings and votes, by email.
-        </label>
-        <div className="flex gap-2">
-          <Input id="footer-subscribe" type="email" required autoComplete="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-background" />
-          <Button type="submit" disabled={state === "busy"}>
-            Subscribe
-          </Button>
-        </div>
-        {message && (
-          <p role="status" className={state === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
-            {message}
-          </p>
-        )}
-      </form>
+      <SubscribeField id="footer-subscribe" label="New bills, hearings and votes, by email." topics={["bills", "committees", "members"]} />
       <Separator />
       <div className="flex items-center gap-4 text-foreground">
         <a href={github} target="_blank" rel="noreferrer" aria-label="GovBlock on GitHub" className="transition-opacity hover:opacity-70">

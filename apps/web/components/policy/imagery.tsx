@@ -65,7 +65,8 @@ export function ChamberSeal({
       )}
       style={{ width: size, height: size }}
     >
-      <img src={src} alt="" aria-hidden="true" loading="lazy" decoding="async" className="m-0 size-full object-contain p-0.5" />
+      {/* Drawn as MemberPortrait draws its seal — laid over the circle, and not lazily: in the search's drop-down the lazy one never arrived and the circle stood empty (Brendan, 2026-09-21). A chamber's seal is one file for all its rows. */}
+      <img src={src} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 m-0 size-full object-contain p-0.5" />
     </span>
   )
 }

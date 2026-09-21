@@ -39,6 +39,12 @@ export function districtLabel(state: string | null | undefined, district: string
   return `District ${value}`
 }
 
+/** A member of Congress's own seat, short — "NY" for a senator, "NY-14" in the House — from the district Congress's rows carry ("SD-NY", "HD-NY-14"); empty for a state's member. */
+export function federalSeat(district: string | null | undefined): string {
+  const federal = /^[HS]D-([A-Z]{2})(?:-0*(\d+|AL))?$/.exec((district ?? "").trim().toUpperCase())
+  return federal ? [federal[1], federal[2]].filter(Boolean).join("-") : ""
+}
+
 /**
  * A member in one line, for a favorite's second line (Brendan, 2026-09-19):
  * party, state, district — "Democrat, North Carolina, District 12". Congress's
