@@ -25,7 +25,14 @@ const nextConfig: NextConfig = {
   // compute bundle on every deploy (Next's own warning; Amplify's 220 MB cap,
   // jobs 255–257, 2026-09-11). The page is fully static and no other slug
   // exists, so at runtime it needs nothing traced at all.
-  outputFileTracingExcludes: { "/docs/blocks/[slug]": ["**/*"] },
+  //
+  // /api/pipeline the same way (2026-09-20, jobs 295 and 296): its run route
+  // launches a script from process.cwd() and reads a repository beside this
+  // one on a developer's machine, the tracer carried the whole project again
+  // — 237.0 MB against the 230.7 MB cap, where job 291's larger .next had
+  // passed — and turbopackIgnore comments on those paths did not stop it. In
+  // production the route only reads the database, and launches nothing.
+  outputFileTracingExcludes: { "/docs/blocks/[slug]": ["**/*"], "/api/pipeline": ["**/*"] },
   // The inspector is development-only, and the guard inside it is not what
   // keeps it out of the build: an internal early return makes the body
   // unreachable while the module still ships (verified in 44b — its strings
