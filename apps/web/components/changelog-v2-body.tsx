@@ -225,7 +225,7 @@ function ChangelogMain({ entries, texts, empty }: { entries: Entry[]; texts: Map
   )
 }
 
-// Where the bill stands, as a callout after its text (Brendan, 2026-09-20): one line — the status in the one
+// Where the bill stands, as a callout over its text (Brendan, 2026-09-20; after the text until later that day): one line — the status in the one
 // vocabulary every jurisdiction shares, the committee, the day — and the colour says the outcome before a word
 // is read. The icon explains its colour on hover: the check and the cross for the two endings, the info circle
 // for the two that are still open.
@@ -332,7 +332,9 @@ function Steps({ entries, texts, empty }: { entries: Entry[]; texts: Map<number,
                 {/* A title and a description for every bill (Brendan, 2026-09-20); many records carry the title twice, and it is printed once. */}
                 <p className="line-clamp-2 font-medium">{bill.title}</p>
                 {description && <p className="mt-1! line-clamp-3 text-muted-foreground">{description}</p>}
-                {/* The rule sits under the title and description, above the text (Brendan, 2026-09-20). */}
+                {/* Where it stands comes before the text, not after it (Brendan, 2026-09-20, later): the callout under the
+                    description, then the rule, then the text. */}
+                <StatusCallout bill={bill} origin={origin} />
                 <hr className="mt-4! mb-0! border-0 border-t border-border" />
                 {block && (
                   // Bill text has no tokens to colour, and this is a client component, so the plain frame.
@@ -346,7 +348,6 @@ function Steps({ entries, texts, empty }: { entries: Entry[]; texts: Map<number,
                     </CodeFrame>
                   )
                 )}
-                <StatusCallout bill={bill} origin={origin} />
               </React.Fragment>
             )
           })}
