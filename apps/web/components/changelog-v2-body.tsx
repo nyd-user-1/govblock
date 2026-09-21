@@ -38,22 +38,17 @@ const MAX_LINES = 400
 
 export type Entry = StreamBill & { state: string; session: number }
 
-const byDate = (a: Entry, b: Entry) => ((a.last_action_date ?? "") < (b.last_action_date ?? "") ? 1 : -1)
+// Newest last action first, whoever's it is (Brendan, 2026-09-20): a changelog reads in the order things happened.
+// On a day two jurisdictions share, Congress leads and the states follow by name, so the order does not shuffle
+// between reads. Until then the bills were dealt a round at a time with Congress first in each (2026-09-15), which
+// put a Congress bill of August 27 over a Pennsylvania bill of September 18.
+export const byLastAction = (a: Entry, b: Entry) =>
+  (b.last_action_date ?? "").localeCompare(a.last_action_date ?? "") ||
+  Number(b.state === CONGRESS) - Number(a.state === CONGRESS) ||
+  stateName(a.state).localeCompare(stateName(b.state)) ||
+  Number(b.bill_id) - Number(a.bill_id)
 
-// Congress and every state, a round at a time (Brendan, 2026-09-15: "show both"): each jurisdiction's newest
-// bill, Congress first and the states newest first, then each one's next. Sorting all of them by date buried
-// Congress under fifty states' later dates.
-const newestFirst = (groups: StreamGroup[]): Entry[] => {
-  const lists = groups.map((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session })).sort(byDate))
-  const out: Entry[] = []
-  for (let round = 0; ; round++) {
-    const next = lists.map((list) => list[round]).filter((entry): entry is Entry => !!entry)
-    if (!next.length) break
-    next.sort((a, b) => (a.state === CONGRESS ? -1 : b.state === CONGRESS ? 1 : byDate(a, b)))
-    out.push(...next)
-  }
-  return out
-}
+const newestFirst = (groups: StreamGroup[]): Entry[] => groups.flatMap((group) => group.bills.map((bill) => ({ ...bill, state: group.state, session: group.session }))).sort(byLastAction)
 
 // The stream route reads six jurisdictions a request and bill-texts forty
 // ids, so both go out in batches, in parallel; the bills land first and their
@@ -380,6 +375,7 @@ export function ChangelogSheet() {
   const reached = useReached(["right"])
   const file = useRootSheets(reached)
   const texts = React.useMemo(() => new Map(Object.entries(file?.changelog.texts ?? {}).map(([id, text]) => [Number(id), text])), [file])
+  const entries = React.useMemo(() => [...(file?.changelog.entries ?? [])].sort(byLastAction), [file])
   if (!reached) return null
-  return <ChangelogMain entries={file?.changelog.entries ?? []} texts={texts} empty={file ? "Nothing on file." : <LoadingFlag />} />
+  return <ChangelogMain entries={entries} texts={texts} empty={file ? "Nothing on file." : <LoadingFlag />} />
 }
