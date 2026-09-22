@@ -21,14 +21,12 @@ const laws = JURISDICTIONS_TABLE.reduce((total, row) => total + row.laws, 0)
 const members = JURISDICTIONS_TABLE.reduce((total, row) => total + row.members, 0)
 const busiest = [...JURISDICTIONS_TABLE].sort((a, b) => b.bills - a.bills).slice(0, 3)
 
-function Card({ label, table, value, lead, children }: { label: string; table: string; value: string; lead: string; children?: React.ReactNode }) {
+function Card({ label, value, lead, children }: { label: string; value: string; lead: string; children?: React.ReactNode }) {
   return (
     <div className="flex h-56 flex-col rounded-lg border bg-background p-4">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">{label}</p>
-          {/* The table it stands over: a block is a shape over a table, and the sample says so. */}
-          <p className="font-mono text-[11px] text-muted-foreground">{table}</p>
         </div>
       </div>
       <div className="mt-2 flex flex-col">
@@ -49,7 +47,7 @@ export function BlocksSample() {
         <p className="text-xl tracking-tight text-muted-foreground">One shape over one table, in one jurisdiction.</p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card label="Bills" table="Bills" value={fmtNumber(bills)} lead="bills on file">
+        <Card label="Bills" value={fmtNumber(bills)} lead="bills on file">
           {busiest.map((row) => (
             <div key={row.state} className="flex items-center gap-2 text-sm">
               <FlagChip state={row.state} width={16} />
@@ -58,9 +56,9 @@ export function BlocksSample() {
             </div>
           ))}
         </Card>
-        <Card label="Laws" table="Laws" value={fmtNumber(laws)} lead="sections of standing law" />
-        <Card label="Members" table="People" value={fmtNumber(members)} lead="legislators sitting" />
-        <Card label="Jurisdictions" table="Bills" value={fmtNumber(JURISDICTIONS_TABLE.length)} lead="legislatures on file">
+        <Card label="Laws" value={fmtNumber(laws)} lead="sections of standing law" />
+        <Card label="Members" value={fmtNumber(members)} lead="legislators sitting" />
+        <Card label="Jurisdictions" value={fmtNumber(JURISDICTIONS_TABLE.length)} lead="legislatures on file">
           {TRENDING.slice(0, 3).map((item) => (
             <div key={item.term} className="flex items-center gap-2 text-sm">
               <span className="min-w-0 flex-1 truncate">{item.term}</span>

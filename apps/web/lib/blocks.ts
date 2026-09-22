@@ -14,6 +14,18 @@
 
 export type BlockShape = "count" | "list"
 
+/**
+ * One record a block can stand over instead of a whole table (Brendan,
+ * 2026-09-22: "how do we use this to add a particular bill?"). A block has two
+ * axes now — which table, and how wide: a jurisdiction, or a single record in
+ * it. The record is found with the site's own search, so nothing new is asked
+ * of the database to pick one.
+ */
+export type BlockRecord = { id: string; label: string; state: string }
+
+/** The tables whose records the search can find directly; a roll call and an amendment live under a bill and wait their turn. */
+export type Pickable = "bills" | "committees" | "members"
+
 export type BlockKey =
   | "bills"
   | "committees"
@@ -39,6 +51,14 @@ export type BlockSpec = {
   extra?: Record<string, string | number>
   /** Where the tile's title leads. */
   href: (state: string) => string
+  /** Where a single record of this table can be picked, and how its own tile reads it. */
+  pick?: {
+    kind: Pickable
+    /** The resource one record is read from, and the parameter its id goes in. */
+    resource: string
+    param: "id" | "name"
+    href: (record: BlockRecord) => string
+  }
 }
 
 export const BLOCKS: BlockSpec[] = [
@@ -51,6 +71,7 @@ export const BLOCKS: BlockSpec[] = [
     resource: "bills",
     extra: { limit: 4 },
     href: (state) => `/bills/${state.toLowerCase()}`,
+    pick: { kind: "bills", resource: "bill", param: "id", href: (r) => `/bills/${r.id}?state=${r.state}` },
   },
   {
     key: "committees",
@@ -60,6 +81,7 @@ export const BLOCKS: BlockSpec[] = [
     shape: "list",
     resource: "committees",
     href: (state) => `/committees?state=${state}`,
+    pick: { kind: "committees", resource: "committee", param: "name", href: (r) => `/bills?state=${r.state}&committee=${encodeURIComponent(r.id)}` },
   },
   {
     key: "members",
@@ -69,6 +91,7 @@ export const BLOCKS: BlockSpec[] = [
     shape: "count",
     resource: "members",
     href: (state) => `/members?state=${state}`,
+    pick: { kind: "members", resource: "member", param: "id", href: (r) => `/members/${r.id}?state=${r.state}` },
   },
   {
     key: "sessions",

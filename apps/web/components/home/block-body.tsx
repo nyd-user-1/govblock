@@ -9,7 +9,10 @@ import { JURISDICTIONS_TABLE } from "@/lib/jurisdictions"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { FlagChip } from "@/components/policy/imagery"
 import { LoadingFlag } from "@/components/loading-flag"
-import type { BlockSpec } from "@/lib/blocks"
+import { MemberPortrait, PartyDot } from "@/components/policy/imagery"
+import { districtLabel, legislativeBody } from "@/lib/legislative-body"
+import { portraitFor } from "@/lib/imagery"
+import type { BlockRecord, BlockSpec } from "@/lib/blocks"
 
 // What stands inside a block (Brendan, 2026-09-22): two shapes, and nothing
 // else until a third is needed. `count` is one figure with a line under it —
@@ -46,6 +49,91 @@ type CommitteeRow = { committee_name?: string; committee?: string; chamber: stri
 type MemberRow = { people_id: number; party: string; active?: boolean }
 type SessionRow = { session_id: number; bills: number; title: string }
 type Metric = { total: number; label: string }
+
+/** One record's own tile: the shapes the record pages already use, at a tile's size. */
+export function RecordBody({ spec, record, session, nonce }: { spec: BlockSpec; record: BlockRecord; session: number | null; nonce: number }) {
+  const pick = spec.pick
+  const { data, isLoading, locked } = usePolicy<unknown>(pick ? pick.resource : null, { state: record.state, session: session ? String(session) : undefined }, { [pick?.param ?? "id"]: record.id, nonce })
+
+  if (locked) return <p className="mt-3 text-sm text-muted-foreground">{stateName(record.state)} is part of a plan.</p>
+  if (isLoading && data === undefined) {
+    return (
+      <div className="mt-6 flex justify-center">
+        <LoadingFlag width={28} />
+      </div>
+    )
+  }
+
+  if (pick?.kind === "bills") {
+    const bill = data as (BillRow & { description?: string | null; last_action?: string | null; sponsor?: string | null }) | undefined
+    if (!bill) return <p className="mt-3 text-sm text-muted-foreground">Not on file.</p>
+    return (
+      <>
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-xl font-semibold">{fmtBill(bill.bill_number, bill.state ?? record.state)}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{bill.status_desc}</span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm">{bill.title}</p>
+        <Rows>
+          {bill.last_action && (
+            <div className="flex flex-col">
+              <span className="line-clamp-2 text-sm text-muted-foreground">{bill.last_action}</span>
+              {bill.last_action_date && <span className="text-xs text-muted-foreground">{fmtDate(bill.last_action_date)}</span>}
+            </div>
+          )}
+        </Rows>
+      </>
+    )
+  }
+
+  if (pick?.kind === "members") {
+    const member = data as { name: string; party: string; chamber: string; district: string; state: string; photo_url?: string | null; bioguide_id?: string | null; prime?: number; cosponsor?: number } | undefined
+    if (!member) return <p className="mt-3 text-sm text-muted-foreground">Not on file.</p>
+    return (
+      <>
+        <div className="mt-2 flex items-center gap-3">
+          <span className="relative shrink-0">
+            <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={member.state ?? record.state} chamber={member.chamber} size={40} />
+            <PartyDot party={member.party} className="absolute right-0 bottom-0 ring-2 ring-background" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{member.name}</span>
+            <span className="block truncate text-sm text-muted-foreground">
+              {[legislativeBody(member.state ?? record.state, member.chamber), districtLabel(member.state ?? record.state, member.district)].filter(Boolean).join(" · ")}
+            </span>
+          </span>
+        </div>
+        <Rows>
+          <div className={LINE}>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">Sponsored</span>
+            <span className="shrink-0 tabular-nums">{fmtNumber(member.prime ?? 0)}</span>
+          </div>
+          <div className={LINE}>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">Cosponsored</span>
+            <span className="shrink-0 tabular-nums">{fmtNumber(member.cosponsor ?? 0)}</span>
+          </div>
+        </Rows>
+      </>
+    )
+  }
+
+  // A committee: how many bills sit before it, and the three most recent.
+  const committee = data as { bills?: BillRow[]; hearings?: unknown[] } | undefined
+  const rows = committee?.bills ?? []
+  return (
+    <>
+      <Count value={rows.length} lead="bills before it" />
+      <Rows>
+        {rows.slice(0, 3).map((bill) => (
+          <Link key={bill.bill_id} href={`/bills/${bill.bill_id}?state=${bill.state ?? record.state}`} className={`${LINE} no-underline`}>
+            <span className="shrink-0 font-medium">{fmtBill(bill.bill_number, bill.state ?? record.state)}</span>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
+          </Link>
+        ))}
+      </Rows>
+    </>
+  )
+}
 
 export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; state: string; session: number | null; nonce: number }) {
   const { data, loading, locked } = useBlockData(spec, state, session, nonce)

@@ -3,20 +3,22 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, GripVertical, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { ArrowUpRight, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
 
-import { BLOCKS, DEFAULT_BLOCKS, blockOf, type BlockKey, type BlockSpec } from "@/lib/blocks"
+import { BLOCKS, DEFAULT_BLOCKS, blockOf, type BlockKey, type BlockRecord, type BlockSpec } from "@/lib/blocks"
 import { doorHref, entitled } from "@/lib/entitlements"
 import { CONGRESS, stateName } from "@/lib/filters"
+import { fmtBill, fmtNumber } from "@/lib/format"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { LiveFetch } from "@/lib/policy/manual-fetch"
-import { usePolicy } from "@/lib/policy/use-policy"
+import { policyUrl, usePolicy } from "@/lib/policy/use-policy"
 import type { SessionRow } from "@/lib/policy/types"
-import { BlockBody } from "@/components/home/block-body"
+import { BlockBody, RecordBody } from "@/components/home/block-body"
 import { FlagChip } from "@/components/policy/imagery"
 import { StatePicker } from "@/components/state-switcher"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@govblock/ui/components/nova/command"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components/nova/popover"
 
@@ -34,7 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components
 const COLUMNS = 4
 const KEY = "govblock:home-blocks"
 
-export type Block = { id: string; key: BlockKey; span: 1 | 2 }
+export type Block = { id: string; key: BlockKey; span: 1 | 2; /** One record rather than the whole table (2026-09-22). */ record?: BlockRecord }
 type Saved = { blocks: Block[]; state: string }
 
 const FRESH: Saved = { blocks: [], state: CONGRESS }
@@ -64,40 +66,147 @@ function save(saved: Saved) {
   }
 }
 
-/** The add panel: the tables not on the grid yet, one to a row, each saying what it shows. */
-function AddBlock({ unused, onAdd, trigger, align = "end" }: { unused: BlockSpec[]; onAdd: (key: BlockKey) => void; trigger: React.ReactNode; align?: "start" | "end" }) {
+type Found = { id: string; label: string; detail: string; state: string }
+
+/** The second step's list: the site's own search, narrowed to the table the reader picked. */
+function useRecords(spec: BlockSpec | null, state: string, term: string) {
+  const [rows, setRows] = React.useState<Found[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const query = term.trim()
+  React.useEffect(() => {
+    if (!spec?.pick || query.length < 2) {
+      setRows([])
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    const handle = setTimeout(async () => {
+      try {
+        const response = await fetch(policyUrl("search", { state }, { q: query, limit: 8 }))
+        const data = response.ok ? ((await response.json()) as SearchAnswer) : null
+        if (cancelled) return
+        const kind = spec.pick!.kind
+        setRows(
+          kind === "bills"
+            ? (data?.bills ?? []).map((b) => ({ id: String(b.bill_id), label: fmtBill(b.bill_number, b.state ?? state), detail: b.title, state: b.state ?? state }))
+            : kind === "members"
+              ? (data?.members ?? []).map((m) => ({ id: String(m.people_id), label: m.name, detail: [m.party, m.chamber].filter(Boolean).join(" · "), state: m.state ?? state }))
+              : (data?.committees ?? []).map((c) => ({ id: c.committee, label: c.committee, detail: `${fmtNumber(c.bills)} bills`, state: c.state ?? state }))
+        )
+      } catch {
+        if (!cancelled) setRows([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
+  }, [spec, state, query])
+  return { rows, loading }
+}
+
+type SearchAnswer = {
+  bills?: { bill_id: number; bill_number: string; title: string; state?: string }[]
+  members?: { people_id: number; name: string; party: string; chamber: string; state?: string }[]
+  committees?: { committee: string; bills: number; state?: string }[]
+}
+
+/**
+ * The add panel, in two steps (Brendan, 2026-09-22: "how do we use this to add a particular bill?"). The first is the
+ * table — the ones not on the grid yet, each saying what it shows. The second, for a table whose records the search
+ * can find, is the whole table or one record of it, typed for by name or number. The second step is the site's own
+ * search narrowed to that table, so picking a bill here is picking a bill anywhere.
+ */
+function AddBlock({ unused, state, onAdd, trigger, align = "end" }: { unused: BlockSpec[]; state: string; onAdd: (key: BlockKey, record?: BlockRecord) => void; trigger: React.ReactNode; align?: "start" | "end" }) {
   const [open, setOpen] = React.useState(false)
+  const [step, setStep] = React.useState<BlockSpec | null>(null)
+  const [term, setTerm] = React.useState("")
+  const { rows, loading } = useRecords(step, state, term)
+
+  const close = () => {
+    setOpen(false)
+    setStep(null)
+    setTerm("")
+  }
+  const take = (key: BlockKey, record?: BlockRecord) => {
+    onAdd(key, record)
+    close()
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) {
+          setStep(null)
+          setTerm("")
+        }
+      }}
+    >
       <PopoverTrigger render={trigger as React.ReactElement} />
       <PopoverContent align={align} className="w-80 p-0" aria-label="Add a block">
-        <div className="border-b px-3 py-2">
-          <p className="text-sm font-medium">Add a block</p>
-          <p className="text-xs text-muted-foreground">One shape over one table, in the jurisdiction above.</p>
-        </div>
-        {unused.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-muted-foreground">Every block is on the grid.</p>
-        ) : (
-          <div className="max-h-80 overflow-y-auto p-1">
-            {unused.map((spec) => (
-              <button
-                key={spec.key}
-                type="button"
-                onClick={() => {
-                  onAdd(spec.key)
-                  setOpen(false)
-                }}
-                className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted"
-              >
-                <span className="flex w-full items-center gap-2">
-                  <span className="text-sm font-medium">{spec.label}</span>
-                  {/* The table it stands over, said plainly: the reader is choosing data, not a widget. */}
-                  <span className="ml-auto font-mono text-[11px] text-muted-foreground">{spec.table}</span>
-                </span>
-                <span className="text-xs text-muted-foreground">{spec.description}</span>
+        {step ? (
+          <>
+            <div className="flex items-center gap-2 border-b px-2 py-2">
+              <button type="button" onClick={() => setStep(null)} aria-label="Back to the tables" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <ChevronLeft className="size-4" />
               </button>
-            ))}
-          </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{step.label}</p>
+                <p className="truncate text-xs text-muted-foreground">The whole table, or one of them</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => take(step.key)} className="flex w-full items-center gap-2 border-b px-3 py-2 text-left text-sm transition-colors hover:bg-muted">
+              <FlagChip state={state} width={16} />
+              <span className="min-w-0 flex-1 truncate">All of {state === CONGRESS ? "Congress" : stateName(state)}</span>
+            </button>
+            <Command loop shouldFilter={false} className="rounded-none! border-0">
+              <CommandInput placeholder={`Find a ${step.label.replace(/s$/, "").toLowerCase()}…`} value={term} onValueChange={setTerm} autoFocus />
+              <CommandList className="max-h-64">
+                <CommandEmpty>{loading ? "Looking…" : term.trim().length < 2 ? "Type a name or a number." : "Nothing found."}</CommandEmpty>
+                {rows.map((row) => (
+                  <CommandItem key={`${row.state}-${row.id}`} value={`${row.label} ${row.detail}`} onSelect={() => take(step.key, { id: row.id, label: row.label, state: row.state })} className="gap-2">
+                    <FlagChip state={row.state} width={16} />
+                    <span className="shrink-0 font-medium">{row.label}</span>
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">{row.detail}</span>
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </Command>
+          </>
+        ) : (
+          <>
+            <div className="border-b px-3 py-2">
+              <p className="text-sm font-medium">Add a block</p>
+              <p className="text-xs text-muted-foreground">One shape over one table, whole or a single record.</p>
+            </div>
+            {unused.length === 0 && BLOCKS.every((b) => !b.pick) ? (
+              <p className="px-3 py-4 text-sm text-muted-foreground">Every block is on the grid.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto p-1">
+                {/* A table whose records can be picked stays on the list even once its own block is up: a reader may want the table and three of its bills. */}
+                {BLOCKS.filter((spec) => spec.pick || unused.some((u) => u.key === spec.key)).map((spec) => (
+                  <button
+                    key={spec.key}
+                    type="button"
+                    onClick={() => (spec.pick ? setStep(spec) : take(spec.key))}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted"
+                  >
+                    <span className="flex w-full items-center gap-2">
+                      <span className="text-sm font-medium">{spec.label}</span>
+                      {/* The table it stands over, said plainly: the reader is choosing data, not a widget. */}
+                      <span className="ml-auto font-mono text-[11px] text-muted-foreground">{spec.table}</span>
+                      {spec.pick && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{spec.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </PopoverContent>
     </Popover>
@@ -134,6 +243,10 @@ function BlockTile({
   const spec = blockOf(block.key)
   const [grabbed, setGrabbed] = React.useState<{ x: number; span: 1 | 2 } | null>(null)
   if (!spec) return null
+  // A block over one record wears that record's name and leads to its page; over the table, the table's.
+  const record = block.record
+  const title = record ? record.label : spec.label
+  const href = record && spec.pick ? spec.pick.href(record) : spec.href(state)
   return (
     <div
       onDragEnter={onDragEnter}
@@ -146,14 +259,13 @@ function BlockTile({
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <Link href={spec.href(state)} className="text-sm font-medium no-underline hover:underline">
-            {spec.label}
+          <Link href={href} className="truncate text-sm font-medium no-underline hover:underline">
+            {title}
           </Link>
-          <p className="font-mono text-[11px] text-muted-foreground">{spec.table}</p>
         </div>
         <button
           type="button"
-          aria-label={`Move ${spec.label}`}
+          aria-label={`Move ${title}`}
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
@@ -164,7 +276,7 @@ function BlockTile({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <button type="button" aria-label={`${spec.label} menu`} className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover/tile:opacity-100">
+              <button type="button" aria-label={`${title} menu`} className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover/tile:opacity-100">
                 <MoreHorizontal className="size-4" />
               </button>
             }
@@ -173,8 +285,8 @@ function BlockTile({
             <DropdownMenuItem onClick={onRefresh} className="whitespace-nowrap">
               <RefreshCw /> Refresh
             </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href={spec.href(state)} />} className="whitespace-nowrap">
-              <ArrowUpRight /> Open {spec.label.toLowerCase()}
+            <DropdownMenuItem render={<Link href={href} />} className="whitespace-nowrap">
+              <ArrowUpRight /> Open {record ? record.label : spec.label.toLowerCase()}
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onRemove} className="whitespace-nowrap">
               <Trash2 /> Remove
@@ -183,12 +295,13 @@ function BlockTile({
         </DropdownMenu>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
-        <BlockBody spec={spec} state={state} session={session} nonce={nonce} />
+        {record ? <RecordBody spec={spec} record={record} session={session} nonce={nonce} /> : <BlockBody spec={spec} state={state} session={session} nonce={nonce} />}
       </div>
-      {/* The corner drags the tile between one column and two, as the analytics tiles do. */}
-      <span
-        role="separator"
-        aria-label={`Resize ${spec.label}`}
+      {/* The corner: the analytics tile's own, to the pixel — drag it right to widen the tile to two columns, left to bring it back. */}
+      <button
+        type="button"
+        aria-label={block.span === 2 ? "Drag to narrow" : "Drag to widen"}
+        title="Drag to resize"
         onPointerDown={(e) => {
           e.preventDefault()
           e.currentTarget.setPointerCapture(e.pointerId)
@@ -202,10 +315,12 @@ function BlockTile({
         }}
         onPointerUp={() => setGrabbed(null)}
         onPointerCancel={() => setGrabbed(null)}
-        className="absolute right-1 bottom-1 hidden h-4 w-4 cursor-col-resize rounded-sm opacity-0 transition-opacity group-hover/tile:opacity-100 lg:block"
+        className="absolute right-1 bottom-1 size-4 cursor-nwse-resize text-muted-foreground/60 hover:text-foreground"
       >
-        <span className="absolute right-1 bottom-1 h-2 w-2 border-r-2 border-b-2 border-muted-foreground/40" />
-      </span>
+        <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
+          <path d="M14 2 2 14M14 8l-6 6M14 14h0" stroke="currentColor" strokeWidth="1.2" fill="none" />
+        </svg>
+      </button>
     </div>
   )
 }
@@ -262,7 +377,7 @@ function Grid() {
     next.splice(to, 0, ...next.splice(from, 1))
     update({ blocks: next })
   }
-  const add = (key: BlockKey) => update({ blocks: [...blocks, { id: `b${Date.now().toString(36)}`, key, span: 1 }] })
+  const add = (key: BlockKey, record?: BlockRecord) => update({ blocks: [...blocks, { id: `b${Date.now().toString(36)}`, key, span: 1, ...(record ? { record } : {}) }] })
   const unused = BLOCKS.filter((spec) => !blocks.some((b) => b.key === spec.key))
 
   // The header's rule (lib/policy/jurisdiction.tsx): a jurisdiction the reader may not open leads to the door.
@@ -296,6 +411,7 @@ function Grid() {
           </Popover>
           <AddBlock
             unused={unused}
+            state={state}
             onAdd={add}
             trigger={
               <Button variant="ghost" size="icon" aria-label="Add a block">
@@ -333,6 +449,7 @@ function Grid() {
               key={`blank-${i}`}
               align="start"
               unused={unused}
+              state={state}
               onAdd={add}
               trigger={
                 <button type="button" aria-label="Add a block" className="flex h-full w-full items-center justify-center rounded-lg border border-dashed text-muted-foreground/60 transition-colors hover:border-ring hover:text-foreground">
