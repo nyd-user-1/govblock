@@ -5,6 +5,7 @@ import { RailsFrame } from "@/components/rails-frame"
 import { RootSearchSection } from "@/components/root-search-section"
 import { SignPage, type SignSearch } from "@/components/sign-page"
 import { RootFooter } from "@/components/root-footer"
+import { BlocksSample } from "@/components/blocks-sample"
 import { RootHashScroll } from "@/components/root-hash-scroll"
 import { SearchRailFilters } from "@/components/search-rail"
 import { StateSection } from "@/components/state-section"
@@ -39,6 +40,8 @@ export default function IndexPage({ searchParams }: { searchParams: SignSearch }
           <SignPage stage="root" searchParams={searchParams} />
           <RootSearchSection />
           <StateSection />
+          {/* Four blocks as they stand on a reader's own home page, from the frozen counts: the root reads nothing. */}
+          <BlocksSample />
           <RootFooter />
           <RootHashScroll />
         </div>

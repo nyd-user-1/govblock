@@ -80,7 +80,9 @@ export function RailsFrame({ children, rail }: { children: React.ReactNode; /** 
             its own (2026-09-17): the Map in the right sheet is a designer
             surface, and the site layout pins any page holding one to the
             viewport, so /research, /state and the rest could not scroll. */}
-        <div className="flex h-[calc(100svh-var(--header-height))] min-w-0 flex-1 flex-col overflow-y-auto px-6">
+        {/* scrollbar-none (Brendan, 2026-09-22): on the root the particle scroller's own box is the page's scroller, and
+            this column's bar flashed across the screen for a beat on every load before the canvas took the height. */}
+        <div className="scrollbar-none flex h-[calc(100svh-var(--header-height))] min-w-0 flex-1 flex-col overflow-y-auto px-6">
           {children}
           <BackToTop />
         </div>

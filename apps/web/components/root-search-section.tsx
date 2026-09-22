@@ -4,7 +4,7 @@ import * as React from "react"
 import { ArrowDownIcon } from "lucide-react"
 import { MotionConfig, motion } from "motion/react"
 
-import { setRail } from "@/components/rail-toggle"
+import { toggleRail } from "@/components/rail-toggle"
 import { JURISDICTIONS_SECTION_ID, SEARCH_SECTION_ID, goToSection } from "@/components/root-sections"
 import { SearchResults } from "@/components/search-page"
 
@@ -34,7 +34,8 @@ export function RootSearchSection() {
       <div className="w-full">
         <React.Suspense fallback={null}>
           {/* The bar's filter icon opens the right rail, where the filters are (app/page.tsx). */}
-          <SearchResults path="/" onFilter={() => setRail("right", false)} />
+          {/* Twenty rows a block here, the rest on /search: the particle field under this page has to carry every row drawn over it (Brendan, 2026-09-22). */}
+          <SearchResults path="/" cap={20} onFilter={() => toggleRail("right")} />
         </React.Suspense>
       </div>
       <MotionConfig reducedMotion="user">

@@ -63,13 +63,12 @@ export type SearchFilterState = {
   status: string[]
 }
 
+/** Committees and topics came out of the results on 2026-09-22, so they are no longer a thing to show or hide. */
 export const SECTIONS: { key: string; label: string }[] = [
   { key: "bills", label: "Bills" },
   { key: "texts", label: "Text" },
   { key: "laws", label: "Laws" },
   { key: "members", label: "Members" },
-  { key: "committees", label: "Committees" },
-  { key: "topics", label: "Topics" },
   { key: "pages", label: "Pages" },
 ]
 

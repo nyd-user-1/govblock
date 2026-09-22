@@ -135,8 +135,12 @@ export function RecordItem({
         </span>
         {layout === "search" ? (
           <>
-            {description && <span data-record-description className="mt-1.5 text-sm text-muted-foreground">{description}</span>}
-            {line && <span data-record-meta className="mt-1 text-sm text-muted-foreground">{line}</span>}
+            {/* Two lines, always two lines (Brendan, 2026-09-22): a bill's description runs to a page of its own —
+                Indiana's SB 285 was forty lines under its own title — and a result that tall buries the rest. The slot
+                keeps its height whether or not there is anything in it, so every row in a block is the same depth and
+                the eye can run down the numbers. The facts sit close under it. */}
+            <span data-record-description className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-sm text-muted-foreground">{description}</span>
+            {line && <span data-record-meta className="mt-0.5 text-sm text-muted-foreground">{line}</span>}
           </>
         ) : stacked ? (
           <>

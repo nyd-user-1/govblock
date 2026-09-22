@@ -6,13 +6,15 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { Skeleton } from "@govblock/ui/components/ny4/skeleton"
 
+import Link from "next/link"
+
 import { SearchDirectory } from "@/components/directory-search"
 import { InputGroupButton } from "@govblock/ui/components/nova/input-group"
 import { memberHref, stateName } from "@/lib/filters"
 import { portraitFor } from "@/lib/imagery"
 import { fmtBill, fmtDate, fmtNumber } from "@/lib/format"
 import { districtLabel, legislativeBody, memberLine } from "@/lib/legislative-body"
-import { isFiltered, readFilters, sectionId, sinceDate, type SearchFilterState } from "@/components/search-filters"
+import { isFiltered, readFilters, sectionId, sinceDate, writeFilters, type SearchFilterState } from "@/components/search-filters"
 import { useSearchRail, type Facets } from "@/components/search-rail"
 import { Highlight } from "@/components/search-highlight"
 import { SearchSection as Section, Snippet } from "@/components/search-sections"
@@ -21,6 +23,7 @@ import { RecordItem, RecordList } from "@/components/policy/record-item"
 import { H3 } from "@/components/typeset"
 import { Button } from "@govblock/ui/components/ny4/button"
 import { NAV_BUTTON } from "@/components/docs-header"
+import { Tabs, TabsContent, TabsContents, TabsList, TabsTrigger } from "@govblock/ui/components/animate-ui/components/animate/tabs"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useLocal } from "@/lib/policy/use-local"
 import { usePolicy } from "@/lib/policy/use-policy"
@@ -176,6 +179,8 @@ type SearchPayload = {
     active: boolean
   }[]
   committees: { committee: string; bills: number; chamber: string; state: string }[]
+  /** Every bill that matches, uncapped: what the count line measures against (2026-09-22). */
+  total?: number
   texts: {
     bill_id: number
     document_id: number
@@ -191,52 +196,11 @@ type SearchPayload = {
 }
 
 /**
- * A block of the results (Brendan, 2026-09-22): the bill page's H3 with its label — Bills, Text, Laws — and, in line
- * with it at the right and the heading's foot level with them, two small buttons in the docs head's style: A to Z,
- * and newest to oldest. Each sorts the rows on a press and turns the sort round on the next; untouched, the rows
- * stand as the search ranked them. (The tabs that stood here for an hour — a jurisdiction each — may come back.) A
- * block with nothing in it is not drawn; one still being read shows its shape.
+ * The three kinds the results are drawn in (Brendan, 2026-09-22): Bills, Text and Laws, as three tabs of one panel
+ * rather than three headings with a rule between them. The sort in the tab row is shared by all three — a press
+ * sorts, a second turns it round, a third leaves the rows as the search ranked them.
  */
 type Sort = { by: "title" | "date"; reversed: boolean } | null
-function Block<T>({ kind, label, rows, titleOf, dateOf, loading = false, children }: { kind: string; label: string; rows: T[]; titleOf: (row: T) => string; dateOf: (row: T) => string | null | undefined; loading?: boolean; children: (row: T) => React.ReactNode }) {
-  const [sort, setSort] = React.useState<Sort>(null)
-  if (!rows.length && !loading) return null
-  const sorted = sort
-    ? [...rows].sort((a, b) => {
-        const order = sort.by === "title" ? titleOf(a).localeCompare(titleOf(b), "en", { sensitivity: "base" }) : (dateOf(b) ?? "").localeCompare(dateOf(a) ?? "")
-        return sort.reversed ? -order : order
-      })
-    : rows
-  const press = (by: "title" | "date") => setSort((s) => (s?.by === by ? (s.reversed ? null : { by, reversed: true }) : { by, reversed: false }))
-  const TitleIcon = sort?.by === "title" && sort.reversed ? ArrowUpAZ : ArrowDownAZ
-  const DateIcon = sort?.by === "date" && sort.reversed ? CalendarArrowUp : CalendarArrowDown
-  return (
-    <section id={sectionId(kind)} className="scroll-mt-[calc(var(--header-height)+2rem)]">
-      <div className="flex items-end justify-between gap-4">
-        <H3 id={`${sectionId(kind)}-heading`} className="my-0">{label}</H3>
-        {!loading && (
-          <div className="flex gap-2">
-            <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "title"} aria-label={sort?.by === "title" && !sort.reversed ? "Sort Z to A" : "Sort A to Z"} onClick={() => press("title")}>
-              <TitleIcon />
-            </Button>
-            <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "date"} aria-label={sort?.by === "date" && !sort.reversed ? "Sort oldest first" : "Sort newest first"} onClick={() => press("date")}>
-              <DateIcon />
-            </Button>
-          </div>
-        )}
-      </div>
-      {loading ? (
-        <div className="mt-4 flex flex-col divide-y divide-border" aria-busy="true">
-          <RowSkeleton />
-          <RowSkeleton />
-          <RowSkeleton />
-        </div>
-      ) : (
-        <RecordList className="mt-4 mb-0">{sorted.map(children)}</RecordList>
-      )}
-    </section>
-  )
-}
 
 /**
  * The search: the bar, the recent searches, the sections. /search draws it under its shell with the rail's filters
@@ -244,7 +208,7 @@ function Block<T>({ kind, label, rows, titleOf, dateOf, loading = false, childre
  * experience on the home page with the search bar and experience from the /search page"). `path` is the page the
  * query is written to, so a search on either page is a link to itself.
  */
-export function SearchResults({ filters: given, onFacets: report, path = "/search", onFilter }: { /** The filters; read off the address when none are passed, as the rail's panel writes them (components/search-rail.tsx). */ filters?: SearchFilterState; /** Where what was found is reported; the rail's store when nothing is passed. */ onFacets?: (facets: Facets) => void; path?: string; /** Pressed, the filter icon in the bar: the root opens its right rail on the filters. No icon without it. */ onFilter?: () => void }) {
+export function SearchResults({ filters: given, onFacets: report, path = "/search", onFilter, cap }: { /** The most rows a block draws, with a way to the rest: the root's twenty (2026-09-22). */ cap?: number; /** The filters; read off the address when none are passed, as the rail's panel writes them (components/search-rail.tsx). */ filters?: SearchFilterState; /** Where what was found is reported; the rail's store when nothing is passed. */ onFacets?: (facets: Facets) => void; path?: string; /** Pressed, the filter icon in the bar: the root opens its right rail on the filters. No icon without it. */ onFilter?: () => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { state, session, resolved } = useJurisdiction()
@@ -340,16 +304,117 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
       )
     : []
   const committees = shown("committees") ? inPlaces(raw.committees) : []
-  const shownTopics = shown("topics") ? topics : []
   const shownPages = shown("pages") ? pages : []
   const byState = <T extends { state: string }>(row: T) => row.state
   const memberGroups = grouped("members", "Members", members, byState, state)
-  const committeeGroups = grouped("committees", "Committees", committees, byState, state)
-  const total = bills.length + members.length + committees.length + texts.length + laws.length + shownTopics.length + shownPages.length
+  // Committees and topics came out of the results (Brendan, 2026-09-22); a committee is found by name in the search's
+  // own dialog, and a topic is a filter rather than a result.
+  const total = bills.length + members.length + texts.length + laws.length + shownPages.length
   // What the reader typed, for the marks below. The Text group gets its
   // highlights from ts_headline; every other group has to find its own.
   const hit = submitted.trim()
-  const held = raw.bills.length + raw.members.length + raw.committees.length + raw.texts.length + law.laws.length + topics.length + pages.length
+
+  // The sort the tab row holds, shared by the three tabs: a press sorts, a second press turns it round, a third
+  // leaves the rows as the search ranked them.
+  const [sort, setSort] = React.useState<Sort>(null)
+  // The tab the reader is on: one is drawn at a time, so it is what the count line counts.
+  const [tab, setTab] = React.useState("bills")
+  React.useEffect(() => {
+    setSort(null)
+    setTab("bills")
+  }, [hit])
+  const press = (by: "title" | "date") => setSort((s) => (s?.by === by ? (s.reversed ? null : { by, reversed: true }) : { by, reversed: false }))
+  const TitleIcon = sort?.by === "title" && sort.reversed ? ArrowUpAZ : ArrowDownAZ
+  const DateIcon = sort?.by === "date" && sort.reversed ? CalendarArrowUp : CalendarArrowDown
+
+  /** Where a capped block sends the reader for the rest: the search page, carrying the query and the filters. */
+  const seeAll = `/search?${writeFilters(new URLSearchParams({ q: hit }), filters)}`
+
+  // What each tab holds, and how a row of it is drawn. The bills and their text read as one shape — the number and
+  // the title on a line, the description or the matched chunk under it, the facts under that — and a law keeps its
+  // citation, cut short, since an act's whole name is a sentence.
+  type Kind = { key: string; label: string; rows: unknown[]; title: (row: never) => string; date: (row: never) => string | null | undefined; render: (row: never) => React.ReactNode }
+  const KINDS: Kind[] = [
+    {
+      key: "bills",
+      label: "Bills",
+      rows: bills,
+      title: ((b: SearchPayload["bills"][number]) => b.title) as Kind["title"],
+      date: ((b: SearchPayload["bills"][number]) => b.last_action_date) as Kind["date"],
+      render: ((bill: SearchPayload["bills"][number]) => (
+        <RecordItem
+          key={bill.bill_id}
+          href={`/bills/${bill.bill_id}?state=${bill.state}`}
+          // The flag, not a chamber seal: these results span every jurisdiction, and which one a row came from is the
+          // first thing a reader needs.
+          avatar={<FlagChip state={bill.state} width={36} />}
+          layout="search"
+          title={<Highlight text={fmtBill(bill.bill_number, bill.state)} query={hit} />}
+          lead={bill.title}
+          // Whichever it has (Brendan, 2026-09-22): the description where it says more than the title, and the title
+          // itself where it does not — a federal bill's title often is its description, and the row stood empty.
+          description={<Highlight text={bill.description && bill.description.trim() !== bill.title.trim() ? bill.description : bill.title} query={hit} />}
+          meta={[bill.last_action_date ? fmtDate(bill.last_action_date) : null, bill.status_desc, bill.committee ? `${bill.committee} Committee` : null]}
+        />
+      )) as Kind["render"],
+    },
+    {
+      key: "texts",
+      label: "Text",
+      rows: texts,
+      title: ((t: SearchPayload["texts"][number]) => t.title) as Kind["title"],
+      date: ((t: SearchPayload["texts"][number]) => t.last_action_date) as Kind["date"],
+      render: ((text: SearchPayload["texts"][number]) => (
+        <RecordItem
+          key={`${text.bill_id}-${text.document_id}`}
+          href={`/bills/${text.bill_id}?state=${text.state}#text`}
+          avatar={<FlagChip state={text.state} width={36} />}
+          layout="search"
+          title={<Highlight text={fmtBill(text.bill_number, text.state)} query={hit} />}
+          lead={text.title}
+          description={<Snippet text={text.snippet} />}
+          meta={[text.last_action_date ? fmtDate(text.last_action_date) : null, text.status_desc, text.committee ? `${text.committee} Committee` : null]}
+        />
+      )) as Kind["render"],
+    },
+    {
+      key: "laws",
+      label: "Laws",
+      rows: laws,
+      title: ((l: FindItem) => l.label) as Kind["title"],
+      date: ((l: FindItem) => l.date) as Kind["date"],
+      render: ((item: FindItem) => (
+        <RecordItem
+          key={item.address}
+          href={item.href}
+          avatar={<FlagChip state={stateOfLaw(item.jurisdiction)} width={36} />}
+          truncateTitle
+          title={<Highlight text={item.label} query={hit} />}
+          description={item.heading ? <Highlight text={item.heading} query={hit} /> : undefined}
+          meta={[stateName(stateOfLaw(item.jurisdiction)) || "United States", item.date ? `As of ${fmtDate(item.date)}` : null]}
+        />
+      )) as Kind["render"],
+    },
+  ]
+  /** A tab's rows in the order the tab row asks for. */
+  const sortRows = (kind: Kind) =>
+    sort
+      ? [...kind.rows].sort((a, b) => {
+          const order =
+            sort.by === "title"
+              ? kind.title(a as never).localeCompare(kind.title(b as never), "en", { sensitivity: "base" })
+              : (kind.date(b as never) ?? "").localeCompare(kind.date(a as never) ?? "")
+          return sort.reversed ? -order : order
+        })
+      : kind.rows
+  // What the page draws, and what the search found in all — the uncapped count of matching bills, which is larger
+  // than any shortlist and is what "of N" means (Brendan, 2026-09-22).
+  // The tab that is open, falling back to the first with anything in it.
+  const open_ = KINDS.find((k) => k.key === tab && k.rows.length) ? tab : (KINDS.find((k) => k.rows.length)?.key ?? "bills")
+  const drawn = KINDS.find((k) => k.key === open_)?.rows.length ?? 0
+  const shown_ = Math.min(cap ?? drawn, drawn)
+  const found = Math.max(data?.total ?? 0, total)
+  const held = raw.bills.length + raw.members.length + raw.texts.length + law.laws.length + pages.length
 
   // The rail's panel reads what the page has, before any filter: how many rows
   // each section holds, and which jurisdictions, committees, chambers,
@@ -366,8 +431,7 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
         ...(bills.length ? [{ id: sectionId("bills"), title: "Bills" }] : []),
         ...(texts.length ? [{ id: sectionId("texts"), title: "Text" }] : []),
         ...(laws.length ? [{ id: sectionId("laws"), title: "Laws" }] : []),
-        ...[...memberGroups, ...committeeGroups].map((g) => ({ id: g.id, title: g.title })),
-        ...(shownTopics.length ? [{ id: sectionId("topics"), title: "Topics" }] : []),
+        ...memberGroups.map((g) => ({ id: g.id, title: g.title })),
         ...(shownPages.length ? [{ id: sectionId("pages"), title: "Pages" }] : []),
       ],
       counts: { bills: raw.bills.length, texts: raw.texts.length, laws: law.laws.length, members: raw.members.length, committees: raw.committees.length, topics: topics.length, pages: pages.length },
@@ -396,12 +460,14 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
         setQuery={(value) => (value === null ? run("") : setQuery(value))}
         placeholder="Search every version of every bill from every jurisdiction."
         onSubmit={() => run(query)}
+        // The filter icon while the bar is empty; once a search has been run the clear cross takes that slot and the
+        // filters are a button in the tab row above the results (Brendan, 2026-09-22).
         tools={
-          onFilter && (
+          onFilter && !query ? (
             <InputGroupButton type="button" aria-label="Filters" size="icon-xs" onClick={onFilter}>
               <SlidersHorizontal />
             </InputGroupButton>
-          )
+          ) : undefined
         }
         className="h-10 rounded-xl bg-background text-[15px] shadow-xs ring-4 ring-muted/60 transition-[box-shadow,border-color] dark:bg-background has-[[data-slot=input-group-control]:focus-visible]:border-ring/60 has-[[data-slot=input-group-control]:focus-visible]:ring-4 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 [&_input]:text-[15px]"
       />
@@ -474,77 +540,66 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {fmtNumber(total)} {total === 1 ? "result" : "results"} for &ldquo;{submitted.trim()}&rdquo;
+            {/* What is on the page, against what there is: the rows are a shortlist, and `total` is every bill that matches. */}
+            {shown_ < found ? `Showing ${fmtNumber(shown_)} of ${fmtNumber(found)}` : fmtNumber(found)}{" "}
+            {found === 1 ? "result" : "results"} for &ldquo;{submitted.trim()}&rdquo;
             {isFiltered(filters) && held > total ? <> · {fmtNumber(held - total)} hidden by the filters</> : null}
           </p>
-          {/* The three blocks, a rule between each, in the bill page's column (Brendan, 2026-09-22). The laws land after the bills and take their place then. */}
-          <div className="typeset w-full [&>hr]:my-8">
-            {[
-              bills.length > 0 && (
-                <Block key={`bills-${hit}`} kind="bills" label="Bills" rows={bills} titleOf={(b) => b.title} dateOf={(b) => b.last_action_date}>
-                  {(bill) => (
-                    <RecordItem
-                      key={bill.bill_id}
-                      href={`/bills/${bill.bill_id}?state=${bill.state}`}
-                      // The flag, not a chamber seal: these results span every
-                      // jurisdiction, and which one a row came from is the first thing
-                      // a reader needs.
-                      avatar={<FlagChip state={bill.state} width={36} />}
-                      // The number and the title on one line, the description under it in the chunk's body, the
-                      // facts under that (Brendan, 2026-09-22). A description that only repeats the title is left out.
-                      layout="search"
-                      title={<Highlight text={fmtBill(bill.bill_number, bill.state)} query={hit} />}
-                      lead={bill.title}
-                      description={bill.description && bill.description.trim() !== bill.title.trim() ? <Highlight text={bill.description} query={hit} /> : undefined}
-                      meta={[
-                        bill.last_action_date ? fmtDate(bill.last_action_date) : null,
-                        bill.status_desc,
-                        bill.committee ? `${bill.committee} Committee` : null,
-                      ]}
-                    />
+          {/* One panel, three tabs (Brendan, 2026-09-22): Bills, Text and Laws where three headings and three rules
+              stood, in the glossary's tabs. The sort buttons and the way into the filters sit in the tab row at the
+              right, so what orders a list and what narrows it are in one place above it. Twenty rows a tab, and the
+              rest a page away. */}
+          {(bills.length > 0 || texts.length > 0 || laws.length > 0 || (law.loading && shown("laws"))) && (
+            <Tabs value={open_} onValueChange={setTab} className="gap-0">
+              <div className="flex items-end justify-between gap-4">
+                <TabsList>
+                  {KINDS.filter((kind) => kind.rows.length > 0 || (kind.key === "laws" && law.loading && shown("laws"))).map((kind) => (
+                    <TabsTrigger key={kind.key} value={kind.key}>
+                      {kind.label} <span className="tabular-nums text-muted-foreground">{fmtNumber(kind.rows.length)}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <div className="flex gap-2">
+                  {/* The filters, where the sort buttons are: the bar's own icon steps aside once a search has been run. */}
+                  {onFilter && (
+                    <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-label="Filters" onClick={onFilter}>
+                      <SlidersHorizontal />
+                    </Button>
                   )}
-                </Block>
-              ),
-              texts.length > 0 && (
-                <Block key={`texts-${hit}`} kind="texts" label="Text" rows={texts} titleOf={(t) => t.title} dateOf={(t) => t.last_action_date}>
-                  {(text) => (
-                    <RecordItem
-                      key={`${text.bill_id}-${text.document_id}`}
-                      href={`/bills/${text.bill_id}?state=${text.state}#text`}
-                      avatar={<FlagChip state={text.state} width={36} />}
-                      // The bill row's shape, the match in the description's place.
-                      layout="search"
-                      title={<Highlight text={fmtBill(text.bill_number, text.state)} query={hit} />}
-                      lead={text.title}
-                      description={<Snippet text={text.snippet} />}
-                      meta={[
-                        text.last_action_date ? fmtDate(text.last_action_date) : null,
-                        text.status_desc,
-                        text.committee ? `${text.committee} Committee` : null,
-                      ]}
-                    />
-                  )}
-                </Block>
-              ),
-              (laws.length > 0 || (law.loading && shown("laws"))) && (
-                <Block key={`laws-${hit}`} kind="laws" label="Laws" rows={laws} titleOf={(l) => l.label} dateOf={(l) => l.date} loading={law.loading && shown("laws")}>
-                  {(item) => (
-                    <RecordItem
-                      key={item.address}
-                      href={item.href}
-                      avatar={<FlagChip state={stateOfLaw(item.jurisdiction)} width={36} />}
-                      truncateTitle
-                      title={<Highlight text={item.label} query={hit} />}
-                      description={item.heading ? <Highlight text={item.heading} query={hit} /> : undefined}
-                      meta={[stateName(stateOfLaw(item.jurisdiction)) || "United States", item.date ? `As of ${fmtDate(item.date)}` : null]}
-                    />
-                  )}
-                </Block>
-              ),
-            ]
-              .filter(Boolean)
-              .flatMap((block, i) => (i ? [<hr key={`rule-${i}`} />, block] : [block]))}
-          </div>
+                  <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "title"} aria-label={sort?.by === "title" && !sort.reversed ? "Sort Z to A" : "Sort A to Z"} onClick={() => press("title")}>
+                    <TitleIcon />
+                  </Button>
+                  <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "date"} aria-label={sort?.by === "date" && !sort.reversed ? "Sort oldest first" : "Sort newest first"} onClick={() => press("date")}>
+                    <DateIcon />
+                  </Button>
+                </div>
+              </div>
+              <TabsContents>
+                {KINDS.map((kind) => (
+                  <TabsContent key={kind.key} value={kind.key} id={sectionId(kind.key)} className="scroll-mt-[calc(var(--header-height)+2rem)]">
+                    {kind.key === "laws" && law.loading && shown("laws") ? (
+                      <div className="mt-4 flex flex-col divide-y divide-border" aria-busy="true">
+                        <RowSkeleton />
+                        <RowSkeleton />
+                        <RowSkeleton />
+                      </div>
+                    ) : (
+                      <>
+                        <RecordList className="mt-4 mb-0">{sortRows(kind).slice(0, cap ?? kind.rows.length).map((row) => kind.render(row as never))}</RecordList>
+                        {/* Twenty is the root's lot: past that the particle field under the page has too much to carry, and the rest are a page away. */}
+                        {/* How many there are, not how many came back: the bills' count is the uncapped one. */}
+                        {cap && kind.rows.length > cap && (
+                          <Link href={seeAll} className="mt-3 inline-block text-sm text-primary no-underline hover:underline">
+                            See all {fmtNumber(kind.key === "bills" ? Math.max(found, kind.rows.length) : kind.rows.length)} {kind.label.toLowerCase()}
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </TabsContent>
+                ))}
+              </TabsContents>
+            </Tabs>
+          )}
           {memberGroups.map((group) => (
           <Section key={group.id} id={group.id} title={group.title} count={group.rows.length}>
             {group.rows.map((member) => (
@@ -572,33 +627,6 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
             ))}
           </Section>
           ))}
-          {committeeGroups.map((group) => (
-          <Section key={group.id} id={group.id} title={group.title} count={group.rows.length}>
-            {group.rows.map((committee) => (
-              <RecordItem
-                key={`${committee.state}-${committee.committee}`}
-                href={`/bills?state=${committee.state}&committee=${encodeURIComponent(committee.committee)}`}
-                avatar={<ChamberSeal state={committee.state} chamber={committee.chamber} size={36} />}
-                title={<Highlight text={committee.committee} query={hit} />}
-                meta={[
-                  stateName(committee.state),
-                  committee.chamber,
-                  `${committee.bills} bills this session`,
-                ]}
-              />
-            ))}
-          </Section>
-          ))}
-          <Section id={sectionId("topics")} title="Topics" count={shownTopics.length}>
-            {shownTopics.map((topic) => (
-              <RecordItem
-                key={topic.value}
-                href={`/bills?state=${state}&subject=${encodeURIComponent(topic.value)}`}
-                title={<Highlight text={topic.value} query={hit} />}
-                meta={[`${topic.count} bills`]}
-              />
-            ))}
-          </Section>
           <Section id={sectionId("pages")} title="Pages" count={shownPages.length}>
             {shownPages.map((page) => (
               <RecordItem key={page.href} href={page.href} title={<Highlight text={page.name} query={hit} />} meta={[page.group]} />

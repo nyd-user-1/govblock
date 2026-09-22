@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { AnalyticsGrid } from "@/components/home/analytics-grid"
+import { BlocksGrid } from "@/components/home/blocks-grid"
 import { HomeColumns } from "@/components/home/home-columns"
 import { HomeSearch } from "@/components/home/home-search"
 import { SearchResults } from "@/components/search-page"
@@ -40,6 +41,8 @@ export function HomeBody({ hotkey = true, search = "page" }: { hotkey?: boolean;
       </div>
       <HomeColumns />
       <AnalyticsGrid />
+      {/* Blocks last (Brendan, 2026-09-22): the Analytics grid's mechanics over the block catalogue, copied rather than shared so nothing here can move a section that is settled. */}
+      <BlocksGrid />
     </>
   )
 }

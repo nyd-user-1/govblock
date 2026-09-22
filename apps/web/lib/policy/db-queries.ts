@@ -2652,7 +2652,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
     .slice(0, 4)
     .map((word) => `%${word}%`)
 
-  const [bills, members, committees, texts] = await Promise.all([
+  const [bills, members, committees, texts, totals] = await Promise.all([
     q<{
       bill_id: number
       bill_number: string
@@ -2895,12 +2895,27 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
           [f.state, f.session, limit, perState, term, HEADLINE_OPTS, limit + 12 + Math.ceil(congressCap / 2), limit + 24 + Math.ceil(congressCap / 2), Math.ceil(congressCap / 2)]
         )
       : Promise.resolve([]),
+    // How many bills match in all, against the shortlist above. The same predicate as `hits`, without the state
+    // exclusion and without the per-jurisdiction caps, counted on the trigram index: the rows are never read.
+    q<{ bills: number }>(
+      `select count(*)::int as bills from "Bills" b
+       where b.session_id >= ${SINCE}
+         and (b.bill_number ilike $1 or b.title ilike $2 or ${numbered ? "((b.state = 'US' and b.bill_number ~* $3) or (b.state <> 'US' and b.bill_number ~* $4))" : "false"})`,
+      numbered ? [numberLike, like, exactUs, exactStates] : [numberLike, like]
+    ),
   ])
 
   return {
     q: term,
     state: f.state,
     session: f.session,
+    /**
+     * Every bill that matches, uncapped (Brendan, 2026-09-22: "Showing 60 of 4,070"). The rows above are a
+     * shortlist — twenty for the reader's jurisdiction, twenty for Congress, two apiece for the other fifty — so
+     * their length says how much is on the page, not how much there is. This says how much there is: the same
+     * predicate over every jurisdiction's sessions since the floor, counted on the trigram index rather than read.
+     */
+    total: n(totals?.[0]?.bills ?? 0),
     bills: bills.map((r) => ({ ...r, bill_id: n(r.bill_id), tier: n(r.tier) })),
     members: members.map((r) => ({ ...r, people_id: n(r.people_id) })),
     committees: committees.map((r) => ({ ...r, bills: n(r.bills), tier: n(r.tier) })),
