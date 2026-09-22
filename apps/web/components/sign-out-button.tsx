@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { ACCOUNT_CACHE_KEY } from "@/lib/auth/use-account"
+import { forgetAccount as emptyAccount } from "@/lib/auth/use-account"
 import { JURISDICTION_KEY } from "@/lib/policy/scope-key"
 import { Button } from "@govblock/ui/components/nova/button"
 
@@ -14,15 +14,19 @@ import { Button } from "@govblock/ui/components/nova/button"
 
 const HOME_STATE_KEY = "govblock:home-state"
 
-/** What the browser forgets at sign-out. The account menu's Logout runs it too (2026-09-14). */
+/**
+ * What the browser forgets at sign-out. The account menu's Logout runs it too (2026-09-14). The account store is
+ * emptied with it (2026-09-22), so the header turns over in the same beat rather than wearing the avatar until the
+ * next hard load. What the device keeps is that it has an account at all: the root greets it with Sign In.
+ */
 export function forgetAccount() {
   try {
     window.localStorage.removeItem(JURISDICTION_KEY)
     window.localStorage.removeItem(HOME_STATE_KEY)
-    window.sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
   } catch {
     // Storage refused; the session still ends.
   }
+  emptyAccount()
 }
 
 export function SignOutButton() {

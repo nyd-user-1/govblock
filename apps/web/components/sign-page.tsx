@@ -30,7 +30,7 @@ async function signInWithGoogleHome() {
 
 async function signOutEverywhere() {
   "use server"
-  await signOut({ redirectTo: "/signed-out" })
+  await signOut({ redirectTo: "/" })
 }
 
 // Auth.js sends its failures to /sign-in because `pages.error` points there.

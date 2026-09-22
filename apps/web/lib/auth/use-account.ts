@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 
 // Who is signed in, on the client, from Auth.js's own `/api/auth/session`.
 // The header's account affordance explains why the session comes over the
@@ -14,10 +14,21 @@ import { useEffect, useState } from "react"
 // without a flash; the server's answer always wins. `ready` says the answer
 // is in — from the cache, or from the server — so a gate can wait for it
 // rather than greet a signed-in reader as a stranger (2026-09-13).
+//
+// One answer for the whole page, in a store (2026-09-22). Each hook used to
+// hold its own copy and read it once on mount, and the header never mounts
+// twice: signing out took the reader to a new page without remounting the
+// header, so the avatar and the home state's flag stayed up as if nothing had
+// happened (Brendan: "the user logged out but it's still showing the elements
+// in the navbar as if they were logged in"). `forgetAccount` now empties the
+// store and every surface reading it turns over in the same beat.
 
 export type Account = { name?: string | null; email?: string | null; image?: string | null; /** The home state from the reader's profile (onboarding, 2026-09-11); null until they have one. */ home?: string | null; /** Set by hand on the profile row (2026-09-14): the gates open, and the cards keep a close cross. */ admin?: boolean } | null
 
 export const ACCOUNT_CACHE_KEY = "govblock:account"
+
+/** This device has signed in at least once (2026-09-22). Outlives the session and the tab: it is what turns Sign Up into Sign In. */
+export const ACCOUNT_KNOWN_KEY = "govblock:account-known"
 
 // The portrait every reader wears until they upload their own (Brendan,
 // 2026-09-11): Gilbert Stuart's George Washington, National Gallery of Art
@@ -37,62 +48,91 @@ function cached(): Account {
   }
 }
 
-/** Writes the tab's cache, for the moment a page learns something the server will only confirm on the next read. */
-export function cacheAccount(patch: Partial<NonNullable<Account>>) {
+/** True where this browser has signed in before; false on the server and on a device that never has. */
+export function knownDevice(): boolean {
   try {
-    const current = cached()
-    if (!current) return
-    sessionStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify({ ...current, ...patch }))
+    return localStorage.getItem(ACCOUNT_KNOWN_KEY) === "1"
   } catch {
-    // Storage refused; the next read asks the server.
+    return false
   }
 }
 
-// One request for every surface that mounts together (2026-09-20): each hook
-// ran its own fetch, and the root sent six at once. The answer is shared only
-// while it is in flight — a surface that mounts later asks again, so signing
-// in or out is seen as it was.
+type Snapshot = { account: Account; ready: boolean }
+
+const SIGNED_OUT: Snapshot = { account: null, ready: false }
+let snapshot: Snapshot = SIGNED_OUT
+let asked = false
+const listeners = new Set<() => void>()
+
+const publish = (next: Snapshot) => {
+  snapshot = next
+  listeners.forEach((l) => l())
+}
+
+const remember = (user: Account) => {
+  try {
+    if (user) {
+      sessionStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(user))
+      localStorage.setItem(ACCOUNT_KNOWN_KEY, "1")
+    } else sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
+  } catch {
+    // Storage refused. The answer still arrived; it just re-fetches next load.
+  }
+}
+
+/** Writes the tab's cache and the store, for the moment a page learns something the server will only confirm on the next read. */
+export function cacheAccount(patch: Partial<NonNullable<Account>>) {
+  const current = snapshot.account ?? cached()
+  if (!current) return
+  const next = { ...current, ...patch }
+  remember(next)
+  publish({ account: next, ready: true })
+}
+
+/**
+ * The session is over: the store, the tab's cache and the jurisdiction this
+ * browser remembers (components/sign-out-button.tsx clears those keys). Called
+ * on the way out, before the server action redirects, so nothing on screen is
+ * still wearing the account when the next page arrives. The device's memory
+ * that it *has* an account is deliberately kept.
+ */
+export function forgetAccount() {
+  remember(null)
+  asked = false
+  publish({ account: null, ready: true })
+}
+
 type Session = { user?: NonNullable<Account> } | null
-let inflight: Promise<Session> | null = null
-const readSession = () =>
-  (inflight ??= fetch("/api/auth/session", { credentials: "same-origin" })
+
+function load() {
+  if (asked) return
+  asked = true
+  const known = cached()
+  if (known) publish({ account: known, ready: true })
+  fetch("/api/auth/session", { credentials: "same-origin" })
     .then((response) => (response.ok ? (response.json() as Promise<Session>) : null))
-    .finally(() => {
-      inflight = null
-    }))
+    .then((session) => {
+      const user = session?.user ? withAvatar(session.user) : null
+      remember(user)
+      publish({ account: user, ready: true })
+    })
+    .catch(() => {
+      // No session endpoint — sign-in is not configured on this deployment.
+      publish({ ...snapshot, ready: true })
+    })
+}
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
 
 export function useAccount(enabled = true): { account: Account; signedIn: boolean; ready: boolean } {
-  const [account, setAccount] = useState<Account>(null)
-  const [ready, setReady] = useState(false)
-
+  const state = useSyncExternalStore(subscribe, () => snapshot, () => SIGNED_OUT)
   useEffect(() => {
-    if (!enabled) return
-    const known = cached()
-    setAccount(known)
-    if (known) setReady(true)
-    let live = true
-    readSession()
-      .then((session) => {
-        if (!live) return
-        const user = session?.user ? withAvatar(session.user) : null
-        setAccount(user)
-        try {
-          if (user) sessionStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(user))
-          else sessionStorage.removeItem(ACCOUNT_CACHE_KEY)
-        } catch {
-          // Storage refused. The answer still arrived; it just re-fetches next load.
-        }
-      })
-      .catch(() => {
-        // No session endpoint — sign-in is not configured on this deployment.
-      })
-      .finally(() => {
-        if (live) setReady(true)
-      })
-    return () => {
-      live = false
-    }
+    if (enabled) load()
   }, [enabled])
-
-  return { account, signedIn: !!account, ready }
+  return { account: state.account, signedIn: !!state.account, ready: state.ready }
 }

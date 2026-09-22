@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { useAccount } from "@/lib/auth/use-account"
+import { knownDevice, useAccount } from "@/lib/auth/use-account"
 import { AccountMenu } from "@/components/account-menu"
 import { Button } from "@govblock/ui/components/nova/button"
 
@@ -37,15 +37,23 @@ export function AccountAffordance() {
   // The session, over the wire, cached in the tab: lib/auth/use-account.ts.
   const { account } = useAccount()
   const pathname = usePathname() ?? "/"
+  // Whether this browser has an account is read after the first paint: the
+  // server has no way to know it, and a button that changed its word under
+  // the reader would be worse than one that arrives a beat late.
+  const [known, setKnown] = React.useState(false)
+  React.useEffect(() => setKnown(knownDevice()), [account])
 
   if (!account) {
-    // On /, /auth, /sign-in and /sign-up the page itself is the invitation (Brendan, 2026-09-13).
-    if (pathname === "/auth" || pathname === "/sign-in" || pathname === "/sign-up" || pathname === "/") return null
+    // On /auth, /sign-in and /sign-up the page itself is the invitation (Brendan, 2026-09-13).
+    if (pathname === "/auth" || pathname === "/sign-in" || pathname === "/sign-up") return null
     // The primary button where the New button stood (Brendan's markup,
-    // 2026-09-07): "Sign In", to the account page.
+    // 2026-09-07). "Sign Up" for a browser that has never signed in, "Sign In"
+    // for one that has (Brendan, 2026-09-22) — including the root, which had
+    // no button at all until then, so a reader who had just signed out had
+    // nowhere to go back in.
     return (
-      <Button render={<Link href="/sign-in" />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
-        Sign In
+      <Button render={<Link href={known ? "/sign-in" : "/sign-up"} />} nativeButton={false} size="sm" className="h-[31px] rounded-lg">
+        {known ? "Sign In" : "Sign Up"}
       </Button>
     )
   }
