@@ -1,9 +1,7 @@
 import { BackToTop } from "@/components/back-to-top"
-import { ChangelogSheet } from "@/components/changelog-v2-body"
 import { DocsSidebar } from "@/components/docs-sidebar"
-import { HomeSheet } from "@/components/home/home-sheet"
-import { MapSheet } from "@/components/map/map-sheet"
 import { RailStrip, RailToggle } from "@/components/rail-toggle"
+import { SearchRailProvider } from "@/components/search-rail"
 import { ManualFetchProvider } from "@/lib/policy/manual-fetch"
 import { railScript } from "@/lib/rail-script"
 import { Sidebar, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
@@ -47,16 +45,23 @@ import { Sidebar, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
 // Map, which takes a second to draw, is a tab further in. The left rail reads
 // nothing either: its Recent Bills and Committees are Congress's committed
 // snapshot until the icon beside its search is pressed.
+// The three sheets come off (Brendan, 2026-09-22: "remove all three sheets
+// from the root page"): the changelog, the Map and the account home are gone
+// from the right, and the right rail is a rail again, the left one's width,
+// holding what the page hands it — the root's search filters, opened by the
+// icon in the search bar (components/search-rail.tsx). A page that hands it
+// nothing has no right rail.
 // The sheet's overrides reach its own sidebar only (the direct child), never a shell inside it: the Map's block shell has a sidebar of its own, and a descendant selector once forced it open and full width (2026-09-14).
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&>[data-slot=sidebar]>[data-slot=sidebar-content]]:flex!"
 const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
 
-export function RailsFrame({ children }: { children: React.ReactNode }) {
+export function RailsFrame({ children, rail }: { children: React.ReactNode; /** The right rail's content; none, no right rail. */ rail?: React.ReactNode }) {
   return (
+    <SearchRailProvider>
     <div className="container-wrapper flex flex-1 flex-col overflow-x-clip px-2">
       {/* Closed by default here (Brendan, 2026-09-13), set before the rails below are laid out; a rail the reader opened stays open. */}
       <script dangerouslySetInnerHTML={{ __html: railScript(true) }} />
-      {/* The site layout pins a page to the viewport while a designer surface is in it, and here that was the Map. The Map is not mounted until its sheet is opened (2026-09-20), so the frame says it itself; without this the page would scroll on to the site's footer until then. */}
+      {/* The site layout pins a page to the viewport while a designer surface is in it, which the Map's sheet was until 2026-09-22; the frame still says so, since the column below scrolls on its own and the page would otherwise scroll on to the site's footer. */}
       <span data-slot="designer" hidden />
       <SidebarProvider
         className="relative min-h-min flex-1 items-start px-0 [--top-spacing:0] lg:[--top-spacing:calc(var(--spacing)*4)] 3xl:fixed:container 3xl:fixed:px-3"
@@ -76,40 +81,24 @@ export function RailsFrame({ children }: { children: React.ReactNode }) {
           {children}
           <BackToTop />
         </div>
-        {/* The right sheet's left edge is half a rem short of the left line, so its own line (left-2) lands on it; closed, 24px stay in view. */}
-        <div className={`${SHEET} right-0 w-[calc(100%-17rem)] [&>[data-slot=sidebar]]:w-full! [[data-rail-left=closed]_&]:w-[calc(100%-0.5rem)] [[data-rail-right=closed]_&]:translate-x-[calc(100%-1.5rem)]`}>
-          <RailStrip side="right" />
-          <Sidebar
-            side="right"
-            collapsible="none"
-            className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-full shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
-          >
-            <div className={LINE} />
-            <RailToggle side="right" />
-            {/* Past the tab's 16px and a little air. */}
-            <div className="scrollbar-none ml-8 h-full min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
-              <ChangelogSheet />
-            </div>
-            {/* The rail within the rail: the whole second screen's width, so its line lands on the second screen's when open. */}
-            <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-2=closed]_&]:bg-transparent`}>
-              <RailStrip side="right-2" />
+        {rail && (
+          // The left sheet mirrored: closed, 24px stay in view — the strip, the line and the tab.
+          <div className={`${SHEET} right-0 [&>[data-slot=sidebar]]:w-72! [[data-rail-right=closed]_&]:translate-x-[calc(var(--spacing)*66)]`}>
+            <RailStrip side="right" />
+            <Sidebar
+              side="right"
+              collapsible="none"
+              className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-72 shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
+            >
               <div className={LINE} />
-              <RailToggle side="right-2" />
-              <div className="ml-8 flex h-full min-h-0 flex-col overflow-hidden py-1 pr-2.5 [[data-rail-right-2=closed]_&]:invisible">
-                <MapSheet />
-              </div>
-              <div className={`${SHEET} right-0 w-full [[data-rail-right-2=closed]_&]:invisible [[data-rail-right-3=closed]_&]:translate-x-[calc(100%-1.5rem)] [[data-rail-right-3=closed]_&]:bg-transparent`}>
-                <RailStrip side="right-3" />
-                <div className={LINE} />
-                <RailToggle side="right-3" />
-                <div className="scrollbar-none ml-8 h-full min-h-0 overflow-x-hidden overflow-y-auto py-1 pr-2.5 [[data-rail-right-3=closed]_&]:invisible">
-                  <HomeSheet />
-                </div>
-              </div>
-            </div>
-          </Sidebar>
-        </div>
+              <RailToggle side="right" />
+              {/* Past the tab's 16px and a little air. */}
+              <div className="scrollbar-none ml-8 h-full min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">{rail}</div>
+            </Sidebar>
+          </div>
+        )}
       </SidebarProvider>
     </div>
+    </SearchRailProvider>
   )
 }

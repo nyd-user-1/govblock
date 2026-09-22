@@ -75,10 +75,17 @@ export function RecordItem({
   description,
   className,
   stacked = false,
+  layout,
   hover = "soft",
   favoriteDetail,
   action,
 }: {
+  /**
+   * "search" (Brendan, 2026-09-22): the number and the title bold on one line, the title cut short before the star
+   * and the arrow; under it the description in the text chunk's muted body, as many lines as it takes; under that
+   * the facts. The search's bill and text rows.
+   */
+  layout?: "search"
   /** Stands where the star does, in its place: /bookmarks's rows carry a bookmark (2026-09-20). */
   action?: React.ReactNode
   href: string
@@ -122,9 +129,14 @@ export function RecordItem({
           {/* The bold slot never wraps: a citation is one token and `PN730-2`
               broken across two lines reads as two different nominations. */}
           <span data-record-title className="shrink-0 whitespace-nowrap">{title}</span>
-          {lead && <span data-record-lead className="min-w-0 truncate font-normal text-muted-foreground">{truncate(lead, 90)}</span>}
+          {lead && <span data-record-lead className={cn("min-w-0 truncate", layout !== "search" && "font-normal text-muted-foreground")}>{layout === "search" ? lead : truncate(lead, 90)}</span>}
         </span>
-        {stacked ? (
+        {layout === "search" ? (
+          <>
+            {description && <span data-record-description className="mt-1.5 text-sm text-muted-foreground">{description}</span>}
+            {line && <span data-record-meta className="mt-1 text-sm text-muted-foreground">{line}</span>}
+          </>
+        ) : stacked ? (
           <>
             {description && <span data-record-description className="mt-2 truncate text-base text-foreground">{description}</span>}
             {line && <span data-record-meta className="mt-1 text-sm text-muted-foreground">{line}</span>}

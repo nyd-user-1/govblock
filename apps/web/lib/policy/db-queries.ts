@@ -2657,6 +2657,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       bill_id: number
       bill_number: string
       title: string
+      description: string | null
       status_desc: string | null
       last_action: string | null
       last_action_date: string | null
@@ -2669,7 +2670,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
       // the chamber, the committee — so /search draws the same item
       // (Brendan, 2026-09-05: "why do these not show text?").
       `with scoped as (
-         select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee, b.state,
+         select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee, b.state,
                 0 as tier, ${exact("b")} as exact,
                 row_number() over (order by ${exact("b")} desc, (b.bill_number ilike $3) desc,
                                             b.last_action_date desc nulls last, b.bill_id desc)::int as rn
@@ -2684,16 +2685,16 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
        -- jurisdiction (loops=52, 969 ms). Materialised, the trgm scan runs
        -- once and the join prunes what it produced: 18 ms.
        hits as materialized (
-         select b.bill_id, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee,
+         select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee,
                 b.state, b.session_id
          from "Bills" b
          where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1` : "false"}
            and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
        ),
        elsewhere as (
-         select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, 1 as tier, exact, rn
+         select bill_id, bill_number, title, description, status_desc, last_action, last_action_date, body, committee, state, 1 as tier, exact, rn
          from (
-           select h.bill_id, h.bill_number, h.title, h.status_desc, h.last_action, h.last_action_date, h.body, h.committee, h.state,
+           select h.bill_id, h.bill_number, h.title, h.description, h.status_desc, h.last_action, h.last_action_date, h.body, h.committee, h.state,
                   ${exact("h")} as exact,
                   row_number() over (partition by h.state
                     order by ${exact("h")} desc, (h.bill_number ilike $3) desc,
@@ -2702,7 +2703,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
          ) ranked
          where ranked.rn <= case when ranked.state = 'US' then $5 else $6 end
        )
-       select bill_id, bill_number, title, status_desc, last_action, last_action_date, body, committee, state, tier
+       select bill_id, bill_number, title, description, status_desc, last_action, last_action_date, body, committee, state, tier
        from (select * from scoped union all select * from elsewhere) hits
        order by tier, (state = 'US') desc, exact desc, rn, state
        limit $7`,
@@ -2802,6 +2803,10 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
           state: string
           bill_number: string
           title: string
+          status_desc: string | null
+          last_action: string | null
+          last_action_date: string | null
+          committee: string | null
           snippet: string
           tier: number
         }>(
@@ -2863,7 +2868,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
              select * from picked order by tier, (state = 'US') desc, state, bill_id desc limit $8
            ),
            snippets as (
-             select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title,
+             select p.tier, p.bill_id, p.document_id, p.state, b.bill_number, b.title, b.status_desc, b.last_action, b.last_action_date, b.committee,
                     ts_headline('english',
                       case when p.head_from <= 1
                            -- the first megabyte, minus New York's scraped preamble
@@ -2882,7 +2887,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
            -- the reader nothing. 2,707 of the 444,220 current-session documents
            -- (0.61%) run past 200 k characters; when one of them matched further
            -- in than that, it is dropped here rather than shown unhighlighted.
-           select tier, bill_id, document_id, state, bill_number, title, snippet
+           select tier, bill_id, document_id, state, bill_number, title, status_desc, last_action, last_action_date, committee, snippet
            from snippets
            where snippet like '%«%'
            order by tier, (state = 'US') desc, state

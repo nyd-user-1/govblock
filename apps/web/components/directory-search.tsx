@@ -13,6 +13,8 @@ export function SearchDirectory({
   setQuery,
   placeholder = "Search",
   onSubmit,
+  className,
+  tools,
 }: {
   query: string
   setQuery: (value: string | null) => void
@@ -23,10 +25,14 @@ export function SearchDirectory({
    * bill text, and a half-typed word was a query of its own.
    */
   onSubmit?: () => void
+  /** The field's own look, where a page wants one: the site search's bar (components/search-page.tsx). */
+  className?: string
+  /** Buttons at the field's right that stay whatever is typed: the site search's filter icon (2026-09-22). */
+  tools?: React.ReactNode
 }) {
   const field = (
     <Field>
-      <InputGroup>
+      <InputGroup className={className}>
         <InputGroupAddon>
           <Search />
         </InputGroupAddon>
@@ -36,6 +42,7 @@ export function SearchDirectory({
             <X />
           </InputGroupButton>
         </InputGroupAddon>
+        {tools && <InputGroupAddon align="inline-end">{tools}</InputGroupAddon>}
       </InputGroup>
     </Field>
   )
