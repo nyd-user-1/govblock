@@ -40,8 +40,11 @@ export function HomeBody({ hotkey = true, search = "page" }: { hotkey?: boolean;
         )}
       </div>
       <HomeColumns />
+      {/* A rule between the sections (Brendan, 2026-09-22), the one the columns already draw between their rows, with the same air either side of it. */}
+      <hr className="my-10 border-0 border-t border-border" />
       <AnalyticsGrid />
-      {/* Blocks last (Brendan, 2026-09-22): the Analytics grid's mechanics over the block catalogue, copied rather than shared so nothing here can move a section that is settled. */}
+      <hr className="my-10 border-0 border-t border-border" />
+      {/* Blocks last: the Analytics grid's mechanics over the block catalogue, copied rather than shared so nothing here can move a section that is settled. */}
       <BlocksGrid />
     </>
   )

@@ -4,6 +4,7 @@ import * as React from "react"
 import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react"
 import { GitBranchIcon, GitCompareArrowsIcon, TypeIcon, VideoIcon } from "lucide-react"
 
+import { AddBlockButton } from "@/components/add-block-button"
 import { BookmarkButton } from "@/components/bookmark-button"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
 import { Button } from "@govblock/ui/components/ny4/button"
@@ -114,7 +115,9 @@ export function DocsCopyPage({
     <Popover>
       <div className="flex items-center gap-2">
         {extra}
-        {!hasMenu && <BookmarkButton {...bookmark} />}
+        {/* The block button leads, then the bookmark (Brendan, 2026-09-22): one keeps the page, the other puts the record on the account home. */}
+        <AddBlockButton title={bookmark.title} />
+        <BookmarkButton {...bookmark} />
         {label && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -133,7 +136,8 @@ export function DocsCopyPage({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <div className={label ? "hidden" : "group/buttons relative flex rounded-lg bg-secondary *:[[data-slot=button]]:focus-visible:relative *:[[data-slot=button]]:focus-visible:z-10"}>
+        {/* Copy page, only where it carries a menu of its own (Brendan, 2026-09-22): alone it was a button on every page that most readers never press. */}
+        <div className={label || !hasMenu ? "hidden" : "group/buttons relative flex rounded-lg bg-secondary *:[[data-slot=button]]:focus-visible:relative *:[[data-slot=button]]:focus-visible:z-10"}>
           <PopoverAnchor />
           <Button variant="secondary" size="sm" className="h-8 shadow-none md:h-7 md:text-[0.8rem]" onClick={() => copyToClipboard(page)}>
             {isCopied ? <IconCheck /> : <IconCopy />}

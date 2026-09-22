@@ -3,22 +3,25 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { ArrowUpRight, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, Maximize2, RefreshCw, Trash2, TrendingUp } from "lucide-react"
 
 import { BLOCKS, DEFAULT_BLOCKS, blockOf, type BlockKey, type BlockRecord, type BlockSpec } from "@/lib/blocks"
+import { EMPTY, readBlocks, useBlocks, writeBlocks, type BlocksSaved } from "@/lib/blocks-store"
 import { doorHref, entitled } from "@/lib/entitlements"
 import { CONGRESS, stateName } from "@/lib/filters"
 import { fmtBill, fmtNumber } from "@/lib/format"
+import { TRENDING } from "@/lib/trending"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { LiveFetch } from "@/lib/policy/manual-fetch"
 import { policyUrl, usePolicy } from "@/lib/policy/use-policy"
 import type { SessionRow } from "@/lib/policy/types"
 import { BlockBody, RecordBody } from "@/components/home/block-body"
+import { BlockDialog } from "@/components/home/block-dialog"
 import { FlagChip } from "@/components/policy/imagery"
 import { StatePicker } from "@/components/state-switcher"
 import { cn } from "@govblock/ui/lib/utils"
 import { Button } from "@govblock/ui/components/nova/button"
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@govblock/ui/components/nova/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@govblock/ui/components/nova/command"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components/nova/popover"
 
@@ -34,12 +37,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components
 // components/home/block-body.tsx, which knows two shapes and nothing else.
 
 const COLUMNS = 4
-const KEY = "govblock:home-blocks"
 
-export type Block = { id: string; key: BlockKey; span: 1 | 2; /** One record rather than the whole table (2026-09-22). */ record?: BlockRecord }
-type Saved = { blocks: Block[]; state: string }
+export type { Block } from "@/lib/blocks-store"
+type Saved = BlocksSaved
+type Block = BlocksSaved["blocks"][number]
 
-const FRESH: Saved = { blocks: [], state: CONGRESS }
+const FRESH: Saved = EMPTY
 
 const fresh = (): Saved => ({
   blocks: DEFAULT_BLOCKS.map((key, i) => ({ id: `b${i + 1}`, key, span: i === 0 ? 2 : 1 })),
@@ -47,23 +50,9 @@ const fresh = (): Saved => ({
 })
 
 function load(): Saved {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return fresh()
-    const saved = JSON.parse(raw) as Partial<Saved>
-    const blocks = (saved.blocks ?? []).filter((b) => blockOf(b.key))
-    return { blocks, state: saved.state ?? CONGRESS }
-  } catch {
-    return fresh()
-  }
-}
-
-function save(saved: Saved) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(saved))
-  } catch {
-    // Storage refused; the layout holds for this page only.
-  }
+  const saved = readBlocks()
+  if (!saved) return fresh()
+  return { blocks: saved.blocks.filter((b) => blockOf(b.key)), state: saved.state }
 }
 
 type Found = { id: string; label: string; detail: string; state: string }
@@ -166,7 +155,20 @@ function AddBlock({ unused, state, onAdd, trigger, align = "end" }: { unused: Bl
             <Command loop shouldFilter={false} className="rounded-none! border-0">
               <CommandInput placeholder={`Find a ${step.label.replace(/s$/, "").toLowerCase()}…`} value={term} onValueChange={setTerm} autoFocus />
               <CommandList className="max-h-64">
-                <CommandEmpty>{loading ? "Looking…" : term.trim().length < 2 ? "Type a name or a number." : "Nothing found."}</CommandEmpty>
+                <CommandEmpty>{loading ? "Looking…" : term.trim().length < 2 ? "" : "Nothing found."}</CommandEmpty>
+                {/* Before a word is typed, what the country is legislating about (Brendan, 2026-09-22): a block can be
+                    added without running a search first. A term fills the field and the records follow. */}
+                {term.trim().length < 2 && (
+                  <CommandGroup heading="Trending">
+                    {TRENDING.map((item) => (
+                      <CommandItem key={item.term} value={item.term} onSelect={() => setTerm(item.term)} className="gap-2">
+                        <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">{item.term}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(item.bills)}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
                 {rows.map((row) => (
                   <CommandItem key={`${row.state}-${row.id}`} value={`${row.label} ${row.detail}`} onSelect={() => take(step.key, { id: row.id, label: row.label, state: row.state })} className="gap-2">
                     <FlagChip state={row.state} width={16} />
@@ -242,6 +244,7 @@ function BlockTile({
 }) {
   const spec = blockOf(block.key)
   const [grabbed, setGrabbed] = React.useState<{ x: number; span: 1 | 2 } | null>(null)
+  const [open, setOpen] = React.useState(false)
   if (!spec) return null
   // A block over one record wears that record's name and leads to its page; over the table, the table's.
   const record = block.record
@@ -259,9 +262,16 @@ function BlockTile({
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <Link href={href} className="truncate text-sm font-medium no-underline hover:underline">
-            {title}
-          </Link>
+          {/* A record opens where it stands; a table's block leads to its page, which is the whole table. */}
+          {record ? (
+            <button type="button" onClick={() => setOpen(true)} className="max-w-full truncate text-left text-sm font-medium hover:underline">
+              {title}
+            </button>
+          ) : (
+            <Link href={href} className="truncate text-sm font-medium no-underline hover:underline">
+              {title}
+            </Link>
+          )}
         </div>
         <button
           type="button"
@@ -285,6 +295,11 @@ function BlockTile({
             <DropdownMenuItem onClick={onRefresh} className="whitespace-nowrap">
               <RefreshCw /> Refresh
             </DropdownMenuItem>
+            {record && (
+              <DropdownMenuItem onClick={() => setOpen(true)} className="whitespace-nowrap">
+                <Maximize2 /> Open here
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem render={<Link href={href} />} className="whitespace-nowrap">
               <ArrowUpRight /> Open {record ? record.label : spec.label.toLowerCase()}
             </DropdownMenuItem>
@@ -296,6 +311,7 @@ function BlockTile({
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {record ? <RecordBody spec={spec} record={record} session={session} nonce={nonce} /> : <BlockBody spec={spec} state={state} session={session} nonce={nonce} />}
+        {record && <BlockDialog spec={spec} record={record} open={open} onOpenChange={setOpen} />}
       </div>
       {/* The corner: the analytics tile's own, to the pixel — drag it right to widen the tile to two columns, left to bring it back. */}
       <button
@@ -344,12 +360,17 @@ function Grid() {
   const [columnWidth, setColumnWidth] = React.useState(0)
   const [dragging, setDragging] = React.useState<string | null>(null)
 
+  const stored = useBlocks()
   React.useEffect(() => {
     setSaved(load())
     setReady(true)
   }, [])
+  // A block added from a record page elsewhere on the site lands here without a reload.
   React.useEffect(() => {
-    if (ready) save(saved)
+    if (ready && stored) setSaved((current) => (JSON.stringify(stored) === JSON.stringify(current) ? current : stored))
+  }, [stored, ready])
+  React.useEffect(() => {
+    if (ready) writeBlocks(saved)
   }, [saved, ready])
   React.useEffect(() => {
     const el = grid.current
