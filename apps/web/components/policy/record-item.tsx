@@ -76,6 +76,7 @@ export function RecordItem({
   className,
   stacked = false,
   layout,
+  truncateTitle = false,
   hover = "soft",
   favoriteDetail,
   action,
@@ -101,6 +102,8 @@ export function RecordItem({
   avatar?: React.ReactNode
   /** The bold slot: a bill number, a citation, a public-law number. */
   title: React.ReactNode
+  /** The bold slot cut short where it is a sentence rather than a token: a law's citation carries its act's whole name (2026-09-22). */
+  truncateTitle?: boolean
   /** Row 1's muted tail — the latest action, one line, truncated. */
   lead?: string | null
   /** Row 2, joined with " · " in the order given. Falsy entries drop out. */
@@ -126,9 +129,8 @@ export function RecordItem({
       <span className="flex min-w-0 flex-1 flex-col">
         {/* pr-14 clears the star and the arrow in the corner. */}
         <span className="flex items-baseline gap-2 pr-14 text-base font-semibold text-foreground">
-          {/* The bold slot never wraps: a citation is one token and `PN730-2`
-              broken across two lines reads as two different nominations. */}
-          <span data-record-title className="shrink-0 whitespace-nowrap">{title}</span>
+          {/* The bold slot never wraps: a citation is one token and `PN730-2` broken across two lines reads as two different nominations. Cut short instead where it is a sentence. */}
+          <span data-record-title className={cn("whitespace-nowrap", truncateTitle ? "min-w-0 truncate" : "shrink-0")}>{title}</span>
           {lead && <span data-record-lead className={cn("min-w-0 truncate", layout !== "search" && "font-normal text-muted-foreground")}>{layout === "search" ? lead : truncate(lead, 90)}</span>}
         </span>
         {layout === "search" ? (

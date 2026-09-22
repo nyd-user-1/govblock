@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, Clock, SlidersHorizontal, X } from "lucide-react"
+import { ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, Clock, SlidersHorizontal, TrendingUp, X } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Skeleton } from "@govblock/ui/components/ny4/skeleton"
@@ -25,6 +25,8 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 import { useLocal } from "@/lib/policy/use-local"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { matchPages } from "@/lib/search-pages"
+import { TRENDING } from "@/lib/trending"
+import { useAccount } from "@/lib/auth/use-account"
 import type { FindItem, FindResponse } from "@/lib/typeset/find"
 import { jurisdictionOf } from "@/lib/xml/address"
 
@@ -247,6 +249,7 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
   const searchParams = useSearchParams()
   const { state, session, resolved } = useJurisdiction()
   const rail = useSearchRail()
+  const { signedIn } = useAccount()
   const filters = React.useMemo(() => given ?? readFilters(new URLSearchParams(searchParams)), [given, searchParams])
   const onFacets = report ?? rail?.setFacets
 
@@ -406,7 +409,8 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
         awaiting.length >= 2 ? <ResultsSkeleton /> : <RecentSkeleton />
       ) : submitted.trim().length < 2 ? (
         <div className="flex flex-col gap-6">
-          {recent.length > 0 && (
+          {/* A reader who has signed in has their own searches; one who has not is shown what the country is legislating about (Brendan, 2026-09-22). */}
+          {signedIn && recent.length > 0 && (
             <section className="flex flex-col">
               <h2 className="text-sm font-medium text-muted-foreground">
                 Recent searches <span className="tabular-nums">({recent.length})</span>
@@ -416,19 +420,40 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
                 {recent.map((term) => (
                   <li key={term} className="group border-b py-0.5 last:border-0">
                     <div className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-foreground">
-                    <button type="button" onClick={() => run(term)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-sm">
-                      <Clock className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{term}</span>
-                    </button>
+                      <button type="button" onClick={() => run(term)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-sm">
+                        <Clock className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{term}</span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Forget ${term}`}
+                        onClick={() => setRecent((previous) => previous.filter((r) => r !== term))}
+                        className="shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 sm:opacity-100"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {!signedIn && (
+            <section className="flex flex-col">
+              <h2 className="text-sm font-medium text-muted-foreground">Trending</h2>
+              <ul className="mt-2 flex flex-col">
+                {TRENDING.map((item) => (
+                  <li key={item.term} className="border-b py-0.5 last:border-0">
                     <button
                       type="button"
-                      aria-label={`Forget ${term}`}
-                      onClick={() => setRecent((previous) => previous.filter((r) => r !== term))}
-                      className="shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 sm:opacity-100"
+                      onClick={() => run(item.term)}
+                      className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted hover:text-foreground"
                     >
-                      <X className="size-3.5" />
+                      <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{item.term}</span>
+                      {/* Why it is here: the jurisdictions whose bills carry it, out of 52. */}
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.places} jurisdictions</span>
                     </button>
-                    </div>
                   </li>
                 ))}
               </ul>
@@ -508,6 +533,7 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
                       key={item.address}
                       href={item.href}
                       avatar={<FlagChip state={stateOfLaw(item.jurisdiction)} width={36} />}
+                      truncateTitle
                       title={<Highlight text={item.label} query={hit} />}
                       description={item.heading ? <Highlight text={item.heading} query={hit} /> : undefined}
                       meta={[stateName(stateOfLaw(item.jurisdiction)) || "United States", item.date ? `As of ${fmtDate(item.date)}` : null]}

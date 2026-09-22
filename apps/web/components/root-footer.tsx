@@ -47,7 +47,8 @@ const FOOT: { href: string; label: string }[] = [
 
 export function RootFooter() {
   return (
-    <footer data-not-typeset="true" className="border-t bg-background text-[15px]">
+    // mt-16 (Brendan, 2026-09-22): the jurisdictions' table ended on the footer's rule with nothing between them.
+    <footer data-not-typeset="true" className="mt-16 border-t bg-background text-[15px]">
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_22rem] lg:px-10">
         <nav aria-label="Site map" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
           {BLOCKS.filter((b) => b.links.length).map((block) => (

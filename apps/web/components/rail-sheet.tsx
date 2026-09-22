@@ -49,7 +49,8 @@ export function RightRailSheet({ children, settings, className }: { children: Re
         <RailResizeHandle />
         <RailToggle side="right" />
         {/* Past the tab's 16px and a little air, as the left rail's content sits past its own. */}
-        <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 scroll-fade gap-6 overflow-x-hidden overflow-y-auto py-1 pr-2.5">
+        {/* pt-12 is the left rail's own (its first group, components/home/home-rail.tsx), so the two rails start on one line (Brendan, 2026-09-22). */}
+        <SidebarContent className="scrollbar-none ml-8 w-auto flex-1 scroll-fade gap-6 overflow-x-hidden overflow-y-auto pt-12 pb-1 pr-2.5">
           {settings ? (
             <RailViews settings={settings}>
               <FavoritesRail />

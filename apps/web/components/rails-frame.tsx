@@ -84,9 +84,8 @@ export function RailsFrame({ children, rail }: { children: React.ReactNode; /** 
           {children}
           <BackToTop />
         </div>
-        {/* pt-[0.6rem]: the page scrolls in its own column here, so the rail's sticky top never
-            engages and it would sit flush under the header — 0.6rem lower everywhere else. */}
-        {rail && <RightRailSheet className="pt-[0.6rem]">{rail}</RightRailSheet>}
+        {/* No offset of its own: the left rail here sits flush under the header too, and the two must start on one line. */}
+        {rail && <RightRailSheet>{rail}</RightRailSheet>}
       </SidebarProvider>
     </div>
     </SearchRailProvider>

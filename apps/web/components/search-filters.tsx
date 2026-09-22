@@ -204,7 +204,7 @@ function Menu({ search, footer, children }: { search?: string; footer?: React.Re
   return (
     <Command loop className="rounded-lg!">
       {search && <CommandInput placeholder={search} autoFocus />}
-      <CommandList className="max-h-[min(22rem,60svh)]">
+      <CommandList className="max-h-[min(22rem,60svh)] pt-1.5">
         <CommandEmpty>Nothing to narrow by.</CommandEmpty>
         {children}
       </CommandList>
