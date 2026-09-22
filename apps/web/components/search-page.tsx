@@ -208,7 +208,7 @@ type Sort = { by: "title" | "date"; reversed: boolean } | null
  * experience on the home page with the search bar and experience from the /search page"). `path` is the page the
  * query is written to, so a search on either page is a link to itself.
  */
-export function SearchResults({ filters: given, onFacets: report, path = "/search", onFilter, cap }: { /** The most rows a block draws, with a way to the rest: the root's twenty (2026-09-22). */ cap?: number; /** The filters; read off the address when none are passed, as the rail's panel writes them (components/search-rail.tsx). */ filters?: SearchFilterState; /** Where what was found is reported; the rail's store when nothing is passed. */ onFacets?: (facets: Facets) => void; path?: string; /** Pressed, the filter icon in the bar: the root opens its right rail on the filters. No icon without it. */ onFilter?: () => void }) {
+export function SearchResults({ filters: given, onFacets: report, path = "/search", onFilter, cap, dropdown = false }: { /** The most rows a block draws, with a way to the rest: the root's twenty (2026-09-22). */ cap?: number; /** The bar carries its own drop-down rather than standing over the page's results (the account home, 2026-09-22). */ dropdown?: boolean; /** The filters; read off the address when none are passed, as the rail's panel writes them (components/search-rail.tsx). */ filters?: SearchFilterState; /** Where what was found is reported; the rail's store when nothing is passed. */ onFacets?: (facets: Facets) => void; path?: string; /** Pressed, the filter icon in the bar: the root opens its right rail on the filters. No icon without it. */ onFilter?: () => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { state, session, resolved } = useJurisdiction()
@@ -319,6 +319,8 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
   const [sort, setSort] = React.useState<Sort>(null)
   // The tab the reader is on: one is drawn at a time, so it is what the count line counts.
   const [tab, setTab] = React.useState("bills")
+  // The drop-down's own state: open while the bar has focus, on the account home.
+  const [open, setOpen] = React.useState(false)
   React.useEffect(() => {
     setSort(null)
     setTab("bills")
@@ -452,188 +454,224 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, law.laws.length, topics.length, pages.length, filters, state])
 
-  return (
-    <div className="flex flex-col gap-6" data-scope-content>
-      {/* The bar wears what the drop-down bar wore (Brendan, 2026-09-22): its height and corners, the grey ring round it, and in use a ring of the ring colour instead of the field's own focus ring. */}
-      <SearchDirectory
-        query={query}
-        setQuery={(value) => (value === null ? run("") : setQuery(value))}
-        placeholder="Search every version of every bill from every jurisdiction."
-        onSubmit={() => run(query)}
-        // The filter icon while the bar is empty; once a search has been run the clear cross takes that slot and the
-        // filters are a button in the tab row above the results (Brendan, 2026-09-22).
-        tools={
-          onFilter && !query ? (
-            <InputGroupButton type="button" aria-label="Filters" size="icon-xs" onClick={onFilter}>
-              <SlidersHorizontal />
-            </InputGroupButton>
-          ) : undefined
-        }
-        className="h-10 rounded-xl bg-background text-[15px] shadow-xs ring-4 ring-muted/60 transition-[box-shadow,border-color] dark:bg-background has-[[data-slot=input-group-control]:focus-visible]:border-ring/60 has-[[data-slot=input-group-control]:focus-visible]:ring-4 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 [&_input]:text-[15px]"
-      />
-      {awaiting !== null && awaiting !== submitted ? (
-        awaiting.length >= 2 ? <ResultsSkeleton /> : <RecentSkeleton />
-      ) : submitted.trim().length < 2 ? (
-        <div className="flex flex-col gap-6">
-          {/* A reader who has signed in has their own searches; one who has not is shown what the country is legislating about (Brendan, 2026-09-22). */}
-          {signedIn && recent.length > 0 && (
-            <section className="flex flex-col">
-              <h2 className="text-sm font-medium text-muted-foreground">
-                Recent searches <span className="tabular-nums">({recent.length})</span>
-              </h2>
-              {/* A row lights as a command row does (Brendan, 2026-09-22), and its cross shows with it. */}
-              <ul className="mt-2 flex flex-col">
-                {recent.map((term) => (
-                  <li key={term} className="group border-b py-0.5 last:border-0">
-                    <div className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-foreground">
-                      <button type="button" onClick={() => run(term)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-sm">
-                        <Clock className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{term}</span>
-                      </button>
+  // The bar wears what the drop-down bar wore (Brendan, 2026-09-22): its height and corners, the grey
+  // ring round it, and in use a ring of the ring colour instead of the field's own focus ring.
+  const bar = (
+        <SearchDirectory
+          query={query}
+          setQuery={(value) => (value === null ? run("") : setQuery(value))}
+          placeholder="Search every version of every bill from every jurisdiction."
+          onSubmit={() => run(query)}
+          // The filter icon while the bar is empty; once a search has been run the clear cross takes that slot and the
+          // filters are a button in the tab row above the results (Brendan, 2026-09-22).
+          tools={
+            onFilter && !query ? (
+              <InputGroupButton type="button" aria-label="Filters" size="icon-xs" onClick={onFilter}>
+                <SlidersHorizontal />
+              </InputGroupButton>
+            ) : undefined
+          }
+          className="h-10 rounded-xl bg-background text-[15px] shadow-xs ring-4 ring-muted/60 transition-[box-shadow,border-color] dark:bg-background has-[[data-slot=input-group-control]:focus-visible]:border-ring/60 has-[[data-slot=input-group-control]:focus-visible]:ring-4 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/15 [&_input]:text-[15px]"
+        />
+  )
+  const body = (
+    <>
+        {awaiting !== null && awaiting !== submitted ? (
+          awaiting.length >= 2 ? <ResultsSkeleton /> : <RecentSkeleton />
+        ) : submitted.trim().length < 2 ? (
+          <div className="flex flex-col gap-6">
+            {/* A reader who has signed in has their own searches; one who has not is shown what the country is legislating about (Brendan, 2026-09-22). */}
+            {signedIn && recent.length > 0 && (
+              <section className="flex flex-col">
+                <h2 className="text-sm font-medium text-muted-foreground">
+                  Recent searches <span className="tabular-nums">({recent.length})</span>
+                </h2>
+                {/* A row lights as a command row does (Brendan, 2026-09-22), and its cross shows with it. */}
+                <ul className="mt-2 flex flex-col">
+                  {recent.map((term) => (
+                    <li key={term} className="group border-b py-0.5 last:border-0">
+                      <div className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted hover:text-foreground">
+                        <button type="button" onClick={() => run(term)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-sm">
+                          <Clock className="size-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{term}</span>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Forget ${term}`}
+                          onClick={() => setRecent((previous) => previous.filter((r) => r !== term))}
+                          className="shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 sm:opacity-100"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {!signedIn && (
+              <section className="flex flex-col">
+                <h2 className="text-sm font-medium text-muted-foreground">Trending</h2>
+                <ul className="mt-2 flex flex-col">
+                  {TRENDING.map((item) => (
+                    <li key={item.term} className="border-b py-0.5 last:border-0">
                       <button
                         type="button"
-                        aria-label={`Forget ${term}`}
-                        onClick={() => setRecent((previous) => previous.filter((r) => r !== term))}
-                        className="shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 sm:opacity-100"
+                        onClick={() => run(item.term)}
+                        className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted hover:text-foreground"
                       >
-                        <X className="size-3.5" />
+                        <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">{item.term}</span>
+                        {/* Why it is here: the bills whose title carries it, this session (Brendan, 2026-09-22 — the jurisdiction count ranked the list, the bill count is what a reader wants beside the words). */}
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(item.bills)} bills</span>
                       </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {!signedIn && (
-            <section className="flex flex-col">
-              <h2 className="text-sm font-medium text-muted-foreground">Trending</h2>
-              <ul className="mt-2 flex flex-col">
-                {TRENDING.map((item) => (
-                  <li key={item.term} className="border-b py-0.5 last:border-0">
-                    <button
-                      type="button"
-                      onClick={() => run(item.term)}
-                      className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">{item.term}</span>
-                      {/* Why it is here: the bills whose title carries it, this session (Brendan, 2026-09-22 — the jurisdiction count ranked the list, the bill count is what a reader wants beside the words). */}
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(item.bills)} bills</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-      ) : (isLoading && !data) || (total === 0 && law.loading) ? (
-        // Nothing is called empty while the laws are still being read.
-        <ResultsSkeleton />
-      ) : total === 0 && held > 0 && isFiltered(filters) ? (
-        <p className="text-sm text-muted-foreground">
-          The filters hide everything found for &ldquo;{submitted.trim()}&rdquo;. Clear them in the rail.
-        </p>
-      ) : total === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nothing in any jurisdiction for &ldquo;{submitted.trim()}&rdquo;.
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">
-            {/* What is on the page, against what there is: the rows are a shortlist, and `total` is every bill that matches. */}
-            {shown_ < found ? `Showing ${fmtNumber(shown_)} of ${fmtNumber(found)}` : fmtNumber(found)}{" "}
-            {found === 1 ? "result" : "results"} for &ldquo;{submitted.trim()}&rdquo;
-            {isFiltered(filters) && held > total ? <> · {fmtNumber(held - total)} hidden by the filters</> : null}
-          </p>
-          {/* One panel, three tabs (Brendan, 2026-09-22): Bills, Text and Laws where three headings and three rules
-              stood, in the glossary's tabs. The sort buttons and the way into the filters sit in the tab row at the
-              right, so what orders a list and what narrows it are in one place above it. Twenty rows a tab, and the
-              rest a page away. */}
-          {(bills.length > 0 || texts.length > 0 || laws.length > 0 || (law.loading && shown("laws"))) && (
-            <Tabs value={open_} onValueChange={setTab} className="gap-0">
-              <div className="flex items-end justify-between gap-4">
-                <TabsList>
-                  {KINDS.filter((kind) => kind.rows.length > 0 || (kind.key === "laws" && law.loading && shown("laws"))).map((kind) => (
-                    <TabsTrigger key={kind.key} value={kind.key}>
-                      {kind.label} <span className="tabular-nums text-muted-foreground">{fmtNumber(kind.rows.length)}</span>
-                    </TabsTrigger>
+                    </li>
                   ))}
-                </TabsList>
-                <div className="flex gap-2">
-                  {/* The filters, where the sort buttons are: the bar's own icon steps aside once a search has been run. */}
-                  {onFilter && (
-                    <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-label="Filters" onClick={onFilter}>
-                      <SlidersHorizontal />
-                    </Button>
-                  )}
-                  <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "title"} aria-label={sort?.by === "title" && !sort.reversed ? "Sort Z to A" : "Sort A to Z"} onClick={() => press("title")}>
-                    <TitleIcon />
-                  </Button>
-                  <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "date"} aria-label={sort?.by === "date" && !sort.reversed ? "Sort oldest first" : "Sort newest first"} onClick={() => press("date")}>
-                    <DateIcon />
-                  </Button>
-                </div>
-              </div>
-              <TabsContents>
-                {KINDS.map((kind) => (
-                  <TabsContent key={kind.key} value={kind.key} id={sectionId(kind.key)} className="scroll-mt-[calc(var(--header-height)+2rem)]">
-                    {kind.key === "laws" && law.loading && shown("laws") ? (
-                      <div className="mt-4 flex flex-col divide-y divide-border" aria-busy="true">
-                        <RowSkeleton />
-                        <RowSkeleton />
-                        <RowSkeleton />
-                      </div>
-                    ) : (
-                      <>
-                        <RecordList className="mt-4 mb-0">{sortRows(kind).slice(0, cap ?? kind.rows.length).map((row) => kind.render(row as never))}</RecordList>
-                        {/* Twenty is the root's lot: past that the particle field under the page has too much to carry, and the rest are a page away. */}
-                        {/* How many there are, not how many came back: the bills' count is the uncapped one. */}
-                        {cap && kind.rows.length > cap && (
-                          <Link href={seeAll} className="mt-3 inline-block text-sm text-primary no-underline hover:underline">
-                            See all {fmtNumber(kind.key === "bills" ? Math.max(found, kind.rows.length) : kind.rows.length)} {kind.label.toLowerCase()}
-                          </Link>
-                        )}
-                      </>
+                </ul>
+              </section>
+            )}
+          </div>
+        ) : (isLoading && !data) || (total === 0 && law.loading) ? (
+          // Nothing is called empty while the laws are still being read.
+          <ResultsSkeleton />
+        ) : total === 0 && held > 0 && isFiltered(filters) ? (
+          <p className="text-sm text-muted-foreground">
+            The filters hide everything found for &ldquo;{submitted.trim()}&rdquo;. Clear them in the rail.
+          </p>
+        ) : total === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nothing in any jurisdiction for &ldquo;{submitted.trim()}&rdquo;.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              {/* What is on the page, against what there is: the rows are a shortlist, and `total` is every bill that matches. */}
+              {shown_ < found ? `Showing ${fmtNumber(shown_)} of ${fmtNumber(found)}` : fmtNumber(found)}{" "}
+              {found === 1 ? "result" : "results"} for &ldquo;{submitted.trim()}&rdquo;
+              {isFiltered(filters) && held > total ? <> · {fmtNumber(held - total)} hidden by the filters</> : null}
+            </p>
+            {/* One panel, three tabs (Brendan, 2026-09-22): Bills, Text and Laws where three headings and three rules
+                stood, in the glossary's tabs. The sort buttons and the way into the filters sit in the tab row at the
+                right, so what orders a list and what narrows it are in one place above it. Twenty rows a tab, and the
+                rest a page away. */}
+            {(bills.length > 0 || texts.length > 0 || laws.length > 0 || (law.loading && shown("laws"))) && (
+              <Tabs value={open_} onValueChange={setTab} className="gap-0">
+                <div className="flex items-end justify-between gap-4">
+                  <TabsList>
+                    {KINDS.filter((kind) => kind.rows.length > 0 || (kind.key === "laws" && law.loading && shown("laws"))).map((kind) => (
+                      <TabsTrigger key={kind.key} value={kind.key}>
+                        {kind.label} <span className="tabular-nums text-muted-foreground">{fmtNumber(kind.rows.length)}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <div className="flex gap-2">
+                    {/* The filters, where the sort buttons are: the bar's own icon steps aside once a search has been run. */}
+                    {onFilter && (
+                      <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-label="Filters" onClick={onFilter}>
+                        <SlidersHorizontal />
+                      </Button>
                     )}
-                  </TabsContent>
-                ))}
-              </TabsContents>
-            </Tabs>
-          )}
-          {memberGroups.map((group) => (
-          <Section key={group.id} id={group.id} title={group.title} count={group.rows.length}>
-            {group.rows.map((member) => (
-              <RecordItem
-                key={member.people_id}
-                href={memberHref(member.people_id, member.state)}
-                avatar={
-                  // The route has always carried the photograph; this page drew
-                  // the seal because it never asked for it.
-                  <span className="relative block">
-                    <MemberPortrait
-                      name={member.name}
-                      photoUrl={portraitFor(member)}
-                      state={member.state}
-                      chamber={member.chamber}
-                      size={36}
-                    />
-                    <PartyDot party={member.party} serving={member.active} className="absolute right-0 bottom-0 size-2.5 ring-2 ring-background" />
-                  </span>
-                }
-                title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
-                meta={[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]}
-                favoriteDetail={memberLine(member)}
-              />
+                    <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "title"} aria-label={sort?.by === "title" && !sort.reversed ? "Sort Z to A" : "Sort A to Z"} onClick={() => press("title")}>
+                      <TitleIcon />
+                    </Button>
+                    <Button variant="secondary" size="icon" className={NAV_BUTTON} aria-pressed={sort?.by === "date"} aria-label={sort?.by === "date" && !sort.reversed ? "Sort oldest first" : "Sort newest first"} onClick={() => press("date")}>
+                      <DateIcon />
+                    </Button>
+                  </div>
+                </div>
+                <TabsContents>
+                  {KINDS.map((kind) => (
+                    <TabsContent key={kind.key} value={kind.key} id={sectionId(kind.key)} className="scroll-mt-[calc(var(--header-height)+2rem)]">
+                      {kind.key === "laws" && law.loading && shown("laws") ? (
+                        <div className="mt-4 flex flex-col divide-y divide-border" aria-busy="true">
+                          <RowSkeleton />
+                          <RowSkeleton />
+                          <RowSkeleton />
+                        </div>
+                      ) : (
+                        <>
+                          <RecordList className="mt-4 mb-0">{sortRows(kind).slice(0, cap ?? kind.rows.length).map((row) => kind.render(row as never))}</RecordList>
+                          {/* Twenty is the root's lot: past that the particle field under the page has too much to carry, and the rest are a page away. */}
+                          {/* How many there are, not how many came back: the bills' count is the uncapped one. */}
+                          {cap && kind.rows.length > cap && (
+                            <Link href={seeAll} className="mt-3 inline-block text-sm text-primary no-underline hover:underline">
+                              See all {fmtNumber(kind.key === "bills" ? Math.max(found, kind.rows.length) : kind.rows.length)} {kind.label.toLowerCase()}
+                            </Link>
+                          )}
+                        </>
+                      )}
+                    </TabsContent>
+                  ))}
+                </TabsContents>
+              </Tabs>
+            )}
+            {memberGroups.map((group) => (
+            <Section key={group.id} id={group.id} title={group.title} count={group.rows.length}>
+              {group.rows.map((member) => (
+                <RecordItem
+                  key={member.people_id}
+                  href={memberHref(member.people_id, member.state)}
+                  avatar={
+                    // The route has always carried the photograph; this page drew
+                    // the seal because it never asked for it.
+                    <span className="relative block">
+                      <MemberPortrait
+                        name={member.name}
+                        photoUrl={portraitFor(member)}
+                        state={member.state}
+                        chamber={member.chamber}
+                        size={36}
+                      />
+                      <PartyDot party={member.party} serving={member.active} className="absolute right-0 bottom-0 size-2.5 ring-2 ring-background" />
+                    </span>
+                  }
+                  title={<Highlight text={`${member.name}${member.active ? "" : " (Ret.)"}`} query={hit} />}
+                  meta={[legislativeBody(member.state, member.chamber), districtLabel(member.state, member.district)]}
+                  favoriteDetail={memberLine(member)}
+                />
+              ))}
+            </Section>
             ))}
-          </Section>
-          ))}
-          <Section id={sectionId("pages")} title="Pages" count={shownPages.length}>
-            {shownPages.map((page) => (
-              <RecordItem key={page.href} href={page.href} title={<Highlight text={page.name} query={hit} />} meta={[page.group]} />
-            ))}
-          </Section>
-        </>
-      )}
+            <Section id={sectionId("pages")} title="Pages" count={shownPages.length}>
+              {shownPages.map((page) => (
+                <RecordItem key={page.href} href={page.href} title={<Highlight text={page.name} query={hit} />} meta={[page.group]} />
+              ))}
+            </Section>
+          </>
+        )}
+    </>
+  )
+
+  // The bar with its own drop-down (Brendan, 2026-09-22): click into it on the account home and what would stand
+  // down the page — the trending rows, and the results once a search has been run — falls under the bar instead,
+  // the way the bar there worked before the search page took its place. Escape closes it, and so does a click past
+  // it; a press inside must not blur the field, or the panel would close before the click landed on a row.
+  if (dropdown)
+    return (
+      <div
+        className="relative w-full"
+        data-scope-content
+        onFocusCapture={() => setOpen(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false)
+        }}
+      >
+        {bar}
+        {open && (
+          <div className="absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded-xl border bg-popover text-left text-popover-foreground shadow-lg" onMouseDown={(event) => event.preventDefault()}>
+            <div className="max-h-[min(32rem,70svh)] overflow-y-auto p-4">{body}</div>
+          </div>
+        )}
+      </div>
+    )
+
+  return (
+    <div className="flex flex-col gap-6" data-scope-content>
+      {bar}
+      {body}
     </div>
   )
 }

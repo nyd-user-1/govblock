@@ -31,7 +31,8 @@ export function HomeBody({ hotkey = true, search = "page" }: { hotkey?: boolean;
           <div className="w-full">
             <LiveFetch>
               <React.Suspense fallback={null}>
-                <SearchResults path="/home" />
+                {/* The bar carries its own drop-down here (Brendan, 2026-09-22): click into it and the trending rows — and the results, once a search has been run — fall under it rather than down the page. */}
+                <SearchResults path="/home" dropdown />
               </React.Suspense>
             </LiveFetch>
           </div>
