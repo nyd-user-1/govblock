@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Star } from "lucide-react"
 
-import { favoritesFor, removeFavorite, updateFavorite, useFavorites, type Favorite } from "@/lib/favorites"
+import { favoritesFor, removeFavorite, section, updateFavorite, useFavorites, type Favorite } from "@/lib/favorites"
 import { memberLine } from "@/lib/legislative-body"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -17,6 +17,12 @@ import { cn } from "@govblock/ui/lib/utils"
 // are more; all of them are on /favorites, which took the chevron's place. The
 // empty line waits for the browser, so a reader with favorites never sees it
 // flash.
+//
+// The root is no section of the site, so there its rail lists every favorite
+// and says what the rail is for above them (Brendan, 2026-09-22: "add the
+// Favorites section to the right rail even for the logged out user"). Nothing
+// here asks who is reading: a favorite is kept in the browser, so it has
+// always worked signed out.
 
 const SHOWN = 3
 
@@ -45,7 +51,9 @@ function useMemberLines(favorites: Favorite[]) {
 export function FavoritesRail({ className }: { className?: string }) {
   const pathname = usePathname() ?? "/"
   const all = useFavorites()
-  const favorites = React.useMemo(() => favoritesFor(all, pathname), [all, pathname])
+  // On the root, all of them: `favoritesFor` keeps a page to its own section, and the root has none.
+  const everywhere = section(pathname) === ""
+  const favorites = React.useMemo(() => (everywhere ? all : favoritesFor(all, pathname)), [all, everywhere, pathname])
   useMemberLines(favorites)
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
@@ -56,32 +64,34 @@ export function FavoritesRail({ className }: { className?: string }) {
           Favorites{favorites.length > SHOWN ? ` · ${favorites.length}` : ""}
         </p>
       </div>
-      {favorites.length === 0
-        ? mounted && <p className="text-[0.8rem] text-muted-foreground">Star an item to keep it here.</p>
-        : favorites.slice(0, SHOWN).map((f) => (
-            <div key={f.href} className="group/fav relative flex items-start gap-2">
-              {f.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={f.image} alt="" className="mt-0.5 size-4 shrink-0 rounded-[3px] object-cover" />
-              )}
-              <Link
-                href={f.href}
-                {...(f.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="flex min-w-0 flex-1 flex-col pr-5 no-underline"
-              >
-                <span className="truncate text-[0.8rem] font-medium text-foreground">{f.title}</span>
-                {f.detail && <span className="truncate text-[0.75rem] text-muted-foreground">{f.detail}</span>}
-              </Link>
-              <button
-                type="button"
-                aria-label={`Remove ${f.title} from favorites`}
-                onClick={() => removeFavorite(f.href)}
-                className="absolute top-0 right-0 inline-flex size-5 items-center justify-center rounded text-yellow-400 opacity-0 transition-opacity group-hover/fav:opacity-100 hover:text-yellow-500 focus-visible:opacity-100 [&_svg]:size-3.5"
-              >
-                <Star className="fill-current" />
-              </button>
-            </div>
-          ))}
+      {/* What the rail is for, where the page is not a section of its own: said above the rows, not only when there are none. */}
+      {mounted && (everywhere || favorites.length === 0) && (
+        <p className="text-[0.8rem] text-muted-foreground">{everywhere ? "Add favorites here" : "Star an item to keep it here."}</p>
+      )}
+      {favorites.slice(0, SHOWN).map((f) => (
+        <div key={f.href} className="group/fav relative flex items-start gap-2">
+          {f.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={f.image} alt="" className="mt-0.5 size-4 shrink-0 rounded-[3px] object-cover" />
+          )}
+          <Link
+            href={f.href}
+            {...(f.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="flex min-w-0 flex-1 flex-col pr-5 no-underline"
+          >
+            <span className="truncate text-[0.8rem] font-medium text-foreground">{f.title}</span>
+            {f.detail && <span className="truncate text-[0.75rem] text-muted-foreground">{f.detail}</span>}
+          </Link>
+          <button
+            type="button"
+            aria-label={`Remove ${f.title} from favorites`}
+            onClick={() => removeFavorite(f.href)}
+            className="absolute top-0 right-0 inline-flex size-5 items-center justify-center rounded text-yellow-400 opacity-0 transition-opacity group-hover/fav:opacity-100 hover:text-yellow-500 focus-visible:opacity-100 [&_svg]:size-3.5"
+          >
+            <Star className="fill-current" />
+          </button>
+        </div>
+      ))}
     </div>
   )
 }

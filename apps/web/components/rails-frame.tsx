@@ -1,10 +1,11 @@
 import { BackToTop } from "@/components/back-to-top"
 import { DocsSidebar } from "@/components/docs-sidebar"
-import { RailStrip, RailToggle } from "@/components/rail-toggle"
+import { RightRailSheet } from "@/components/rail-sheet"
+import { RailStrip } from "@/components/rail-toggle"
 import { SearchRailProvider } from "@/components/search-rail"
 import { ManualFetchProvider } from "@/lib/policy/manual-fetch"
 import { railScript } from "@/lib/rail-script"
-import { Sidebar, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
+import { SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
 
 // Both site rails around a page (Brendan, 2026-09-13): the left one from the
 // records layout, the right one from the docs page shell, mirrored on the
@@ -47,13 +48,15 @@ import { Sidebar, SidebarProvider } from "@govblock/ui/components/ny4/sidebar"
 // snapshot until the icon beside its search is pressed.
 // The three sheets come off (Brendan, 2026-09-22: "remove all three sheets
 // from the root page"): the changelog, the Map and the account home are gone
-// from the right, and the right rail is a rail again, the left one's width,
-// holding what the page hands it — the root's search filters, opened by the
-// icon in the search bar (components/search-rail.tsx). A page that hands it
-// nothing has no right rail.
+// from the right, and the right rail is the one every other page wears
+// (RightRailSheet, components/rail-sheet.tsx) — Favorites at its head, then
+// what the page hands it, which here is the search's filters, opened by the
+// icon in the search bar (components/search-rail.tsx). It was a rail of this
+// file's own for an hour, and it sat where /bills's does not: no resize
+// handle, no Favorites, and its heading under the header rather than clear of
+// it. A page that hands the frame nothing has no right rail.
 // The sheet's overrides reach its own sidebar only (the direct child), never a shell inside it: the Map's block shell has a sidebar of its own, and a descendant selector once forced it open and full width (2026-09-14).
 const SHEET = "absolute inset-y-0 z-40 bg-background transition-[translate,width] duration-500 ease-out [&>[data-slot=sidebar]>[data-slot=sidebar-content]]:flex!"
-const LINE = "absolute top-12 bottom-0 left-2 hidden h-full w-px bg-[linear-gradient(to_bottom,transparent_0%,var(--border)_10%,var(--border)_90%,transparent_100%)] lg:flex"
 
 export function RailsFrame({ children, rail }: { children: React.ReactNode; /** The right rail's content; none, no right rail. */ rail?: React.ReactNode }) {
   return (
@@ -81,22 +84,7 @@ export function RailsFrame({ children, rail }: { children: React.ReactNode; /** 
           {children}
           <BackToTop />
         </div>
-        {rail && (
-          // The left sheet mirrored: closed, 24px stay in view — the strip, the line and the tab.
-          <div className={`${SHEET} right-0 [&>[data-slot=sidebar]]:w-72! [[data-rail-right=closed]_&]:translate-x-[calc(var(--spacing)*66)]`}>
-            <RailStrip side="right" />
-            <Sidebar
-              side="right"
-              collapsible="none"
-              className="sticky top-[calc(var(--header-height)+0.6rem)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-1.2rem)] w-72 shrink-0 overflow-visible overscroll-none bg-transparent lg:flex"
-            >
-              <div className={LINE} />
-              <RailToggle side="right" />
-              {/* Past the tab's 16px and a little air. */}
-              <div className="scrollbar-none ml-8 h-full min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-1 pr-2.5">{rail}</div>
-            </Sidebar>
-          </div>
-        )}
+        {rail && <RightRailSheet>{rail}</RightRailSheet>}
       </SidebarProvider>
     </div>
     </SearchRailProvider>
