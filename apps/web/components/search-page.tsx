@@ -12,7 +12,7 @@ import { memberHref, stateName } from "@/lib/filters"
 import { portraitFor } from "@/lib/imagery"
 import { fmtBill, fmtDate, fmtNumber } from "@/lib/format"
 import { districtLabel, legislativeBody, memberLine } from "@/lib/legislative-body"
-import { isFiltered, readFilters, sectionId, type SearchFilterState } from "@/components/search-filters"
+import { isFiltered, readFilters, sectionId, sinceDate, type SearchFilterState } from "@/components/search-filters"
 import { useSearchRail, type Facets } from "@/components/search-rail"
 import { Highlight } from "@/components/search-highlight"
 import { SearchSection as Section, Snippet } from "@/components/search-sections"
@@ -309,17 +309,34 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
   const pages = matchPages(submitted)
   const raw = { bills: data?.bills ?? [], members: data?.members ?? [], committees: data?.committees ?? [], texts: data?.texts ?? [] }
 
-  // The filters, applied: the jurisdiction in scope alone, one chamber, some
-  // statuses, and only the sections ticked.
-  const inScope = <T extends { state: string }>(rows: T[]) => (filters.scope === "here" ? rows.filter((r) => r.state === state) : rows)
+  // The filters, applied (2026-09-22). A list left empty means every one of
+  // them, so an untouched panel hides nothing. Each filter reads a column the
+  // row already carries and leaves alone the kinds that do not carry it: a
+  // member has no last action, a law has no committee.
+  const inPlaces = <T extends { state: string }>(rows: T[]) => (filters.places.length ? rows.filter((r) => filters.places.includes(r.state)) : rows)
+  const from = sinceDate(filters.since)
+  const fresh = (date: string | null | undefined) => !from || (!!date && date >= from)
+  const inCommittee = (committee: string | null | undefined) => !filters.committees.length || (!!committee && filters.committees.includes(committee))
   const shown = (key: string) => filters.show.length === 0 || filters.show.includes(key)
   const bills = shown("bills")
-    ? inScope(raw.bills).filter((b) => (!filters.chamber || b.body === filters.chamber) && (!filters.status.length || filters.status.includes(b.status_desc ?? "")))
+    ? inPlaces(raw.bills).filter(
+        (b) =>
+          (!filters.chamber || b.body === filters.chamber) &&
+          (!filters.status.length || filters.status.includes(b.status_desc ?? "")) &&
+          fresh(b.last_action_date) &&
+          inCommittee(b.committee)
+      )
     : []
-  const texts = shown("texts") ? inScope(raw.texts) : []
-  const laws = shown("laws") ? (filters.scope === "here" ? law.laws.filter((l) => stateOfLaw(l.jurisdiction) === state) : law.laws) : []
-  const members = shown("members") ? inScope(raw.members) : []
-  const committees = shown("committees") ? inScope(raw.committees) : []
+  const texts = shown("texts") ? inPlaces(raw.texts).filter((t) => fresh(t.last_action_date) && inCommittee(t.committee)) : []
+  const laws = shown("laws") ? (filters.places.length ? law.laws.filter((l) => filters.places.includes(stateOfLaw(l.jurisdiction))) : law.laws) : []
+  const members = shown("members")
+    ? inPlaces(raw.members).filter(
+        (m) =>
+          (!filters.parties.length || filters.parties.includes((m.party ?? "").toUpperCase())) &&
+          (!filters.serving || (filters.serving === "yes") === !!m.active)
+      )
+    : []
+  const committees = shown("committees") ? inPlaces(raw.committees) : []
   const shownTopics = shown("topics") ? topics : []
   const shownPages = shown("pages") ? pages : []
   const byState = <T extends { state: string }>(row: T) => row.state
@@ -331,9 +348,10 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
   const hit = submitted.trim()
   const held = raw.bills.length + raw.members.length + raw.committees.length + raw.texts.length + law.laws.length + topics.length + pages.length
 
-  // The rail's panel reads what the page has, before any filter: how many
-  // rows each section holds, and which chambers and statuses the bills carry.
-  // Its index reads the headings as the page draws them, after the filters.
+  // The rail's panel reads what the page has, before any filter: how many rows
+  // each section holds, and which jurisdictions, committees, chambers,
+  // statuses and parties the results carry, each with its count. Its index
+  // reads the headings as the page draws them, after the filters.
   React.useEffect(() => {
     const tally = (values: (string | null | undefined)[]) => {
       const map = new Map<string, number>()
@@ -350,6 +368,17 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
         ...(shownPages.length ? [{ id: sectionId("pages"), title: "Pages" }] : []),
       ],
       counts: { bills: raw.bills.length, texts: raw.texts.length, laws: law.laws.length, members: raw.members.length, committees: raw.committees.length, topics: topics.length, pages: pages.length },
+      // Every jurisdiction any kind of row came from, the reader's first and Congress next, then by weight.
+      places: tally([
+        ...raw.bills.map((b) => b.state),
+        ...raw.texts.map((t) => t.state),
+        ...raw.members.map((m) => m.state),
+        ...raw.committees.map((c) => c.state),
+        ...law.laws.map((l) => stateOfLaw(l.jurisdiction)),
+      ]).sort((a, b) => Number(b.value === state) - Number(a.value === state) || Number(b.value === "US") - Number(a.value === "US") || b.count - a.count || a.value.localeCompare(b.value)),
+      committees: tally([...raw.bills.map((b) => b.committee), ...raw.texts.map((t) => t.committee)]).slice(0, 12),
+      parties: tally(raw.members.map((m) => (m.party ?? "").toUpperCase())),
+      serving: { yes: raw.members.filter((m) => m.active).length, no: raw.members.filter((m) => !m.active).length },
       chambers: tally(raw.bills.map((b) => b.body)),
       statuses: tally(raw.bills.map((b) => b.status_desc)),
     })

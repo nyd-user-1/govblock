@@ -1,35 +1,57 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Lock, Search } from "lucide-react"
 
-import { stateName } from "@/lib/filters"
+import { partyName, stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
+import { FlagChip } from "@/components/policy/imagery"
+import { SEARCH_SECTION_ID, goToSection } from "@/components/root-sections"
 import { cn } from "@govblock/ui/lib/utils"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
+import { Kbd } from "@govblock/ui/components/nova/kbd"
 import { RadioGroup, RadioGroupItem } from "@govblock/ui/components/nova/radio-group"
 
 // The filter panel in the search's right rail (Brendan, 2026-09-05: "a real
-// filter panel"). Every control narrows the results on the page: which
-// sections show, whether the jurisdiction in scope stands alone, and for the
-// bills, the chamber and the status. The choices live in the URL beside the
-// query, so a filtered search is a link.
+// filter panel"). Every control narrows the results on the page, and the
+// choices live in the URL beside the query, so a filtered search is a link.
 //
-// Drawn in the rail's own vocabulary (Brendan, 2026-09-22: it "doesn't really
-// line up with the design system for the rest of the site"). It wore the Field
-// component's bordered, tinted cards — a stack of boxes no other rail on the
-// site draws. Now it reads as Favorites and Build with GovBlocks do: a small
-// muted heading over plain rows, each row a strip that lights on hover the way
-// a rail link does, the count at the right in tabular figures, and the arrow
-// that means "this goes somewhere" kept for the hover, as a record item keeps
-// it. Nothing about what the controls do has changed.
+// Drawn in the rail's own vocabulary (Brendan, 2026-09-22): it wore the Field
+// component's bordered, tinted cards, which no other rail on the site draws.
+// It reads as Favorites and Build with GovBlocks do — a small muted heading
+// over plain rows, each row a strip that lights on hover, the count at the
+// right in tabular figures, the jump arrow held back until the row is
+// pointed at.
+//
+// What it filters on (Brendan, the same day: "feels like we're leaving out
+// some things that would make for a better search"). Jurisdiction leads,
+// because a search spanning 52 of them is the first thing worth cutting, and
+// it is a list of the jurisdictions actually found rather than the toggle
+// between "every" and "here" that threw that away. Under it: the sections,
+// the age of the latest action, the committee a bill sits in, a member's
+// party and whether they are still serving, the chamber, and the status.
+// Every one reads a column the results already carry.
+//
+// Session is the exception: drawn and locked. The search reads each
+// jurisdiction's current session and nothing earlier, so the control shows
+// what a plan would open rather than pretending to work.
 
 export type SearchFilterState = {
   /** The sections shown; empty means all. */
   show: string[]
-  /** "here" keeps to the jurisdiction in scope; "all" is every jurisdiction. */
-  scope: "all" | "here"
+  /** The jurisdictions kept, by code; empty means every one found. */
+  places: string[]
+  /** How old the latest action may be: "" any time, else a week, a month, a year. */
+  since: "" | "week" | "month" | "year"
+  /** The committees kept; empty means all. */
+  committees: string[]
+  /** The parties kept, by code; empty means all. */
+  parties: string[]
+  /** "" either, "yes" still serving, "no" no longer. */
+  serving: "" | "yes" | "no"
   chamber: string
   status: string[]
 }
@@ -44,16 +66,39 @@ export const SECTIONS: { key: string; label: string }[] = [
   { key: "pages", label: "Pages" },
 ]
 
-export const EMPTY_FILTERS: SearchFilterState = { show: [], scope: "all", chamber: "", status: [] }
+/** The windows the recency filter offers, and how far back each reaches. */
+export const SINCE: { value: SearchFilterState["since"]; label: string; days: number }[] = [
+  { value: "", label: "Any time", days: 0 },
+  { value: "week", label: "Past week", days: 7 },
+  { value: "month", label: "Past month", days: 31 },
+  { value: "year", label: "Past year", days: 365 },
+]
 
-/** The id /search hangs on a section, and the rail jumps to. */
+/** The day a window begins, written as the rows' dates are; "" for any time. */
+export function sinceDate(since: SearchFilterState["since"]): string {
+  const days = SINCE.find((s) => s.value === since)?.days ?? 0
+  if (!days) return ""
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+export const EMPTY_FILTERS: SearchFilterState = { show: [], places: [], since: "", committees: [], parties: [], serving: "", chamber: "", status: [] }
+
+/** The id the search hangs on a section, and the rail jumps to. */
 export const sectionId = (key: string) => `results-${key}`
 
 export function readFilters(params: URLSearchParams): SearchFilterState {
   const list = (key: string) => (params.get(key) ?? "").split(",").map((s) => s.trim()).filter(Boolean)
+  const since = params.get("since")
+  const serving = params.get("serving")
   return {
     show: list("show"),
-    scope: params.get("scope") === "here" ? "here" : "all",
+    places: list("places").map((p) => p.toUpperCase()),
+    since: since === "week" || since === "month" || since === "year" ? since : "",
+    committees: list("committee"),
+    parties: list("party").map((p) => p.toUpperCase()),
+    serving: serving === "yes" || serving === "no" ? serving : "",
     chamber: params.get("chamber") ?? "",
     status: list("status"),
   }
@@ -62,14 +107,29 @@ export function readFilters(params: URLSearchParams): SearchFilterState {
 export function writeFilters(params: URLSearchParams, filters: SearchFilterState) {
   const set = (key: string, value: string) => (value ? params.set(key, value) : params.delete(key))
   set("show", filters.show.join(","))
-  set("scope", filters.scope === "here" ? "here" : "")
+  set("places", filters.places.join(","))
+  set("since", filters.since)
+  set("committee", filters.committees.join(","))
+  set("party", filters.parties.join(","))
+  set("serving", filters.serving)
   set("chamber", filters.chamber)
   set("status", filters.status.join(","))
+  // The toggle these replaced (2026-09-22); an old link still opens, unfiltered.
+  params.delete("scope")
   return params
 }
 
 export function isFiltered(filters: SearchFilterState) {
-  return filters.show.length > 0 || filters.scope === "here" || !!filters.chamber || filters.status.length > 0
+  return (
+    filters.show.length > 0 ||
+    filters.places.length > 0 ||
+    !!filters.since ||
+    filters.committees.length > 0 ||
+    filters.parties.length > 0 ||
+    !!filters.serving ||
+    !!filters.chamber ||
+    filters.status.length > 0
+  )
 }
 
 /** A row in the panel: the control, the label, its count, and the arrow where the row leads somewhere. */
@@ -84,15 +144,12 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-function Row({ id, label, count, checked, onChange, onJump, radio = false }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void; /** A radio rather than a tick: one of the group, not some of it. */ radio?: boolean }) {
+function Row({ id, label, count, checked, onChange, onJump, media }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void; /** A flag before the label: the jurisdiction rows. */ media?: React.ReactNode }) {
   return (
     <div className={ROW}>
       <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
-        {radio ? (
-          <RadioGroupItem value={label} id={id} className="size-3.5 shrink-0" />
-        ) : (
-          <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} className="size-3.5 shrink-0 rounded-[4px]" />
-        )}
+        <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} className="size-3.5 shrink-0 rounded-[4px]" />
+        {media}
         {/* Unticked is said twice — the empty box, and the label going quiet — so the state reads at a glance. */}
         <span className={cn("min-w-0 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
       </label>
@@ -126,46 +183,98 @@ function Choice({ id, value, label, count, checked }: { id: string; value: strin
   )
 }
 
+/** A row that says what a plan would open: the same shape, a lock where the control goes, nothing to press. */
+function Locked({ label }: { label: string }) {
+  return (
+    <div className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px] text-left opacity-60">
+      <Lock className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 truncate text-[0.8rem] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
+
+/**
+ * The way back to the search from a rail open beside something else (Brendan,
+ * 2026-09-22: "otherwise the filter panel is open out of place next to
+ * anything"). The site's quick-search field, as a button: it goes to the root's
+ * search section, where the bar these filters serve lives.
+ */
+function GlobalSearch() {
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  return (
+    <button
+      type="button"
+      onClick={() => (pathname === "/" ? goToSection(SEARCH_SECTION_ID) : router.push(`/#${SEARCH_SECTION_ID}`))}
+      className="flex h-8 w-full items-center gap-2 rounded-lg border bg-background px-2.5 text-[0.8rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      <Search className="size-3.5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate text-left">Global search&hellip;</span>
+      <Kbd className="border bg-background">⌘K</Kbd>
+    </button>
+  )
+}
+
 export function SearchFilters({
   filters,
   onChange,
   here,
   counts,
+  places,
+  committees,
+  parties,
+  serving,
   chambers,
   statuses,
+  sessions = [],
 }: {
   filters: SearchFilterState
   onChange: (next: SearchFilterState) => void
-  /** The jurisdiction in scope. */
+  /** The jurisdiction in scope, for the line that stands where a filter would. */
   here: string
   /** Rows per section, before the filters. */
   counts: Record<string, number>
-  /** The chambers and statuses the bills on the page carry, with their counts. */
+  /** What the results carry, each with its count, before the filters. */
+  places: { value: string; count: number }[]
+  committees: { value: string; count: number }[]
+  parties: { value: string; count: number }[]
+  serving: { yes: number; no: number }
   chambers: { value: string; count: number }[]
   statuses: { value: string; count: number }[]
+  /** The sessions a plan would open; drawn locked. */
+  sessions?: string[]
 }) {
   const toggle = (list: string[], value: string, on: boolean) => (on ? [...new Set([...list, value])] : list.filter((v) => v !== value))
   const showing = (key: string) => filters.show.length === 0 || filters.show.includes(key)
+  /** A list where empty means all: ticking the last one back empties it again. */
+  const pick = (current: string[], every: string[], value: string, on: boolean) => {
+    const next = toggle(current.length ? current : every, value, on)
+    return next.length === every.length ? [] : next
+  }
+  const sectionKeys = SECTIONS.map((s) => s.key)
 
   // Jumping to a section the reader has hidden means showing it again — the
   // ask was to go there, and there is nothing there to go to otherwise. The
   // scroll waits a frame for that section to render.
   const jump = (key: string) => {
-    if (!showing(key)) {
-      const current = filters.show.length ? filters.show : SECTIONS.map((s) => s.key)
-      const next = toggle(current, key, true)
-      onChange({ ...filters, show: next.length === SECTIONS.length ? [] : next })
-    }
+    if (!showing(key)) onChange({ ...filters, show: pick(filters.show, sectionKeys, key, true) })
     const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     requestAnimationFrame(() =>
       document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })
     )
   }
+
+  const placeCodes = places.map((p) => p.value)
+  const committeeNames = committees.map((c) => c.value)
+  const partyCodes = parties.map((p) => p.value)
+  const statusValues = statuses.map((s) => s.value)
+
   return (
     <div className="flex flex-col gap-5 p-4 pt-0 text-sm">
+      <GlobalSearch />
+
       <div className="flex h-6 items-center justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">Filters</p>
-        {/* Clear says how many narrowings it would undo, so the press is never a surprise. */}
         {isFiltered(filters) && (
           <button
             type="button"
@@ -177,6 +286,23 @@ export function SearchFilters({
         )}
       </div>
 
+      {/* First, because a search spanning 52 jurisdictions is the first thing worth cutting. */}
+      {places.length > 1 && (
+        <Group title="Jurisdiction">
+          {places.map((place) => (
+            <Row
+              key={place.value}
+              id={`place-${place.value}`}
+              label={place.value === "US" ? "U.S. Congress" : stateName(place.value) || place.value}
+              count={place.count}
+              media={<FlagChip state={place.value} width={16} />}
+              checked={filters.places.length === 0 || filters.places.includes(place.value)}
+              onChange={(on) => onChange({ ...filters, places: pick(filters.places, placeCodes, place.value, on) })}
+            />
+          ))}
+        </Group>
+      )}
+
       <Group title="Show">
         {SECTIONS.map((section) => (
           <Row
@@ -186,41 +312,64 @@ export function SearchFilters({
             count={counts[section.key]}
             checked={showing(section.key)}
             onJump={() => jump(section.key)}
-            onChange={(on) => {
-              // Unticking the only unticked box empties the list, which means all.
-              const current = filters.show.length ? filters.show : SECTIONS.map((s) => s.key)
-              const next = toggle(current, section.key, on)
-              onChange({ ...filters, show: next.length === SECTIONS.length ? [] : next })
-            }}
+            onChange={(on) => onChange({ ...filters, show: pick(filters.show, sectionKeys, section.key, on) })}
           />
         ))}
       </Group>
 
-      <Group title="Jurisdiction">
-        <RadioGroup value={filters.scope} onValueChange={(value) => onChange({ ...filters, scope: value === "here" ? "here" : "all" })} className="gap-0.5">
-          {[
-            { value: "all", label: "Every jurisdiction" },
-            { value: "here", label: `${stateName(here) || here} only` },
-          ].map((option) => (
-            <Choice key={option.value} id={`scope-${option.value}`} value={option.value} label={option.label} checked={filters.scope === option.value} />
+      {/* The latest action's age. Bills and their text carry the date; laws, members and committees do not, so it leaves them alone. */}
+      <Group title="Last action">
+        <RadioGroup value={filters.since} onValueChange={(value) => onChange({ ...filters, since: (value as SearchFilterState["since"]) || "" })} className="gap-0.5">
+          {SINCE.map((option) => (
+            <Choice key={option.value || "any"} id={`since-${option.value || "any"}`} value={option.value} label={option.label} checked={filters.since === option.value} />
           ))}
         </RadioGroup>
       </Group>
+
+      {committees.length > 1 && (
+        <Group title="Committee">
+          {committees.map((committee) => (
+            <Row
+              key={committee.value}
+              id={`committee-${committee.value.replace(/\W+/g, "-").toLowerCase()}`}
+              label={committee.value}
+              count={committee.count}
+              checked={filters.committees.length === 0 || filters.committees.includes(committee.value)}
+              onChange={(on) => onChange({ ...filters, committees: pick(filters.committees, committeeNames, committee.value, on) })}
+            />
+          ))}
+        </Group>
+      )}
 
       {chambers.length > 1 && (
         <Group title="Chamber">
           <RadioGroup value={filters.chamber} onValueChange={(value) => onChange({ ...filters, chamber: value })} className="gap-0.5">
             {[{ value: "", count: chambers.reduce((sum, c) => sum + c.count, 0), label: "Any chamber" }, ...chambers.map((c) => ({ ...c, label: c.value }))].map((option) => (
-              <Choice
-                key={option.value || "any"}
-                id={`chamber-${option.value || "any"}`}
-                value={option.value}
-                label={option.label}
-                count={option.count}
-                checked={filters.chamber === option.value}
-              />
+              <Choice key={option.value || "any"} id={`chamber-${option.value || "any"}`} value={option.value} label={option.label} count={option.count} checked={filters.chamber === option.value} />
             ))}
           </RadioGroup>
+        </Group>
+      )}
+
+      {(parties.length > 1 || serving.no > 0) && (
+        <Group title="Members">
+          {parties.map((party) => (
+            <Row
+              key={party.value}
+              id={`party-${party.value.toLowerCase()}`}
+              label={partyName(party.value) || party.value}
+              count={party.count}
+              checked={filters.parties.length === 0 || filters.parties.includes(party.value)}
+              onChange={(on) => onChange({ ...filters, parties: pick(filters.parties, partyCodes, party.value, on) })}
+            />
+          ))}
+          {serving.no > 0 && (
+            <RadioGroup value={filters.serving} onValueChange={(value) => onChange({ ...filters, serving: (value as SearchFilterState["serving"]) || "" })} className="mt-0.5 gap-0.5">
+              <Choice id="serving-any" value="" label="Serving or not" checked={filters.serving === ""} />
+              <Choice id="serving-yes" value="yes" label="Still serving" count={serving.yes} checked={filters.serving === "yes"} />
+              <Choice id="serving-no" value="no" label="No longer serving" count={serving.no} checked={filters.serving === "no"} />
+            </RadioGroup>
+          )}
         </Group>
       )}
 
@@ -233,14 +382,28 @@ export function SearchFilters({
               label={status.value}
               count={status.count}
               checked={filters.status.length === 0 || filters.status.includes(status.value)}
-              onChange={(on) => {
-                const current = filters.status.length ? filters.status : statuses.map((s) => s.value)
-                const next = toggle(current, status.value, on)
-                onChange({ ...filters, status: next.length === statuses.length ? [] : next })
-              }}
+              onChange={(on) => onChange({ ...filters, status: pick(filters.status, statusValues, status.value, on) })}
             />
           ))}
         </Group>
+      )}
+
+      {/* Drawn, locked, and honest about it: the search reads each jurisdiction's current session and nothing earlier. */}
+      <Group title="Session">
+        <div className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px]">
+          <span className="size-3.5 shrink-0 rounded-full border-[3.5px] border-primary" />
+          <span className="min-w-0 truncate text-[0.8rem] text-foreground">Current session</span>
+        </div>
+        {(sessions.length ? sessions : ["2025", "2024", "2023", "2022"]).map((session) => (
+          <Locked key={session} label={session} />
+        ))}
+        <Link href="/pricing" className="mt-1 block text-[0.75rem] text-primary no-underline hover:underline">
+          Search earlier sessions with a plan
+        </Link>
+      </Group>
+
+      {!places.length && !counts.bills && (
+        <p className="text-[0.75rem] text-muted-foreground">Search to filter. {stateName(here) || here} leads the results; the rest follow.</p>
       )}
     </div>
   )

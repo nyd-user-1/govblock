@@ -7,7 +7,8 @@ import { DocsPage } from "@/components/docs-page"
 import { DocsTableOfContents } from "@/components/docs-toc"
 import { readFilters, SearchFilters, type SearchFilterState, writeFilters } from "@/components/search-filters"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { SearchResults, type Facets } from "@/components/search-page"
+import { SearchResults } from "@/components/search-page"
+import { NO_FACETS, type Facets } from "@/components/search-rail"
 
 // /search, the page: the shell, the rail's index and filters. The search itself — the bar, the sections, the recent
 // searches — is components/search-page.tsx since 2026-09-22, when the account home took the same search.
@@ -18,7 +19,7 @@ function SearchShell() {
   const searchParams = useSearchParams()
   const { state } = useJurisdiction()
   const filters = React.useMemo(() => readFilters(new URLSearchParams(searchParams)), [searchParams])
-  const [facets, setFacets] = React.useState<Facets>({ headings: [], counts: {}, chambers: [], statuses: [] })
+  const [facets, setFacets] = React.useState<Facets>(NO_FACETS)
   const toc = facets.headings.map((heading) => ({ title: heading.title, url: `#${heading.id}`, depth: 2 }))
   const setFilters = (next: SearchFilterState) => {
     const params = writeFilters(new URLSearchParams(searchParams), next)
@@ -37,7 +38,18 @@ function SearchShell() {
               2026-09-20): the groups the search actually came back with, in
               the order they run down the page. */}
           {toc.length > 0 && <DocsTableOfContents toc={toc} />}
-          <SearchFilters filters={filters} onChange={setFilters} here={state} counts={facets.counts} chambers={facets.chambers} statuses={facets.statuses} />
+          <SearchFilters
+            filters={filters}
+            onChange={setFilters}
+            here={state}
+            counts={facets.counts}
+            places={facets.places}
+            committees={facets.committees}
+            parties={facets.parties}
+            serving={facets.serving}
+            chambers={facets.chambers}
+            statuses={facets.statuses}
+          />
         </>
       }
     >

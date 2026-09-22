@@ -15,9 +15,21 @@ import { useJurisdiction } from "@/lib/policy/jurisdiction"
 // filters themselves ride in the address, as /search's do, so both read the
 // same ones and a filtered search is a link.
 
-export type Facets = { /** The headings on the page, in order, for the rail's index. */ headings: { id: string; title: string }[]; counts: Record<string, number>; chambers: { value: string; count: number }[]; statuses: { value: string; count: number }[] }
+/** What the results carry, before any filter: what the panel draws its rows and counts from. */
+export type Tally = { value: string; count: number }
+export type Facets = {
+  /** The headings on the page, in order, for the rail's index. */
+  headings: { id: string; title: string }[]
+  counts: Record<string, number>
+  places: Tally[]
+  committees: Tally[]
+  parties: Tally[]
+  serving: { yes: number; no: number }
+  chambers: Tally[]
+  statuses: Tally[]
+}
 
-export const NO_FACETS: Facets = { headings: [], counts: {}, chambers: [], statuses: [] }
+export const NO_FACETS: Facets = { headings: [], counts: {}, places: [], committees: [], parties: [], serving: { yes: 0, no: 0 }, chambers: [], statuses: [] }
 
 const Context = React.createContext<{ facets: Facets; setFacets: (facets: Facets) => void } | null>(null)
 
@@ -44,5 +56,18 @@ export function SearchRailFilters({ path }: { path: string }) {
     router.replace(`${path}${params.size ? `?${params}` : ""}`, { scroll: false })
   }
   const facets = rail?.facets ?? NO_FACETS
-  return <SearchFilters filters={filters} onChange={setFilters} here={state} counts={facets.counts} chambers={facets.chambers} statuses={facets.statuses} />
+  return (
+    <SearchFilters
+      filters={filters}
+      onChange={setFilters}
+      here={state}
+      counts={facets.counts}
+      places={facets.places}
+      committees={facets.committees}
+      parties={facets.parties}
+      serving={facets.serving}
+      chambers={facets.chambers}
+      statuses={facets.statuses}
+    />
+  )
 }
