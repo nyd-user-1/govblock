@@ -451,8 +451,8 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
                     >
                       <TrendingUp className="size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 truncate">{item.term}</span>
-                      {/* Why it is here: the jurisdictions whose bills carry it, out of 52. */}
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.places} jurisdictions</span>
+                      {/* Why it is here: the bills whose title carries it, this session (Brendan, 2026-09-22 — the jurisdiction count ranked the list, the bill count is what a reader wants beside the words). */}
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(item.bills)} bills</span>
                     </button>
                   </li>
                 ))}
