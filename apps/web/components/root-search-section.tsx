@@ -24,7 +24,7 @@ export function RootSearchSection() {
         <p className="text-lg tracking-tight">168,336,672 records.</p>
       </div>
       {/* ⌘K stays the header's dialog here: this bar is a screen down the page, and a key that focused it would scroll the reader away from where they were. */}
-      <HomeSearch hotkey={false} />
+      <HomeSearch hotkey={false} examples />
       <MotionConfig reducedMotion="user">
         <motion.button
           type="button"

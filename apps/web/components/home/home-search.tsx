@@ -33,17 +33,19 @@ import { Kbd } from "@govblock/ui/components/nova/kbd"
 // gloss of the grammar ("artificial intelligence /ny — Words, in one state");
 // Brendan, 2026-09-21: "replace them with something that is more illustrative
 // and easier to understand". So each shows the bar as it will stand — the
-// scopes as the chips they become, the rest as typed — and says what comes
-// back, and a click sets the bar just so and drops the results. Congress
-// leads because it is open to a reader who has not signed in; a state's lists
-// wait for one who has. Every one answers with results (checked 2026-09-21).
-type Example = { where?: string; kind?: SearchKind; words?: string; gloss: string }
+// scopes as the chips they become, the rest as typed — and a click sets the
+// bar just so and drops the results. No sentence beside them saying what
+// comes back (Brendan, the same day: "you don't need the extra sentence
+// explaining what it is"): the chips say it. Congress leads because it is
+// open to a reader who has not signed in; a state's lists wait for one who
+// has. Every one answers with results (checked 2026-09-21).
+type Example = { where?: string; kind?: SearchKind; words?: string }
 const EXAMPLES: Example[] = [
-  { where: "US", kind: "members", gloss: "Every member of Congress" },
-  { where: "US", kind: "bills", words: "artificial intelligence", gloss: "This Congress's bills on artificial intelligence" },
-  { where: "NY", kind: "committees", gloss: "Every New York committee" },
-  { words: "@schumer", gloss: "A member, by name" },
-  { words: "/us/usc/t26", gloss: "Title 26 of the U.S. Code" },
+  { where: "US", kind: "members" },
+  { where: "US", kind: "bills", words: "artificial intelligence" },
+  { where: "NY", kind: "committees" },
+  { words: "@schumer" },
+  { words: "/us/usc/t26" },
 ]
 const CHIP = "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-primary"
 
@@ -56,7 +58,7 @@ const NONE: Held = { where: null, kind: null, inCommittee: false }
 const tokensOf = (held: Held) => [held.where ? `/${held.where.toLowerCase()}` : "", held.kind && !held.inCommittee ? `/${held.kind}` : "", held.inCommittee ? "@committee" : ""].filter(Boolean)
 
 /** `hotkey` off leaves ⌘K to the header's dialog, for a bar that is not at the top of its page: the root's section two, the root's frozen sheet. */
-export function HomeSearch({ hotkey = true }: { hotkey?: boolean } = {}) {
+export function HomeSearch({ hotkey = true, examples = false }: { hotkey?: boolean; /** The searches to try under the bar: the root's section two has them, the account home does not (Brendan, 2026-09-21). */ examples?: boolean } = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
@@ -262,13 +264,14 @@ export function HomeSearch({ hotkey = true }: { hotkey?: boolean } = {}) {
           </div>
         )}
       </Command>
+      {examples && (
       <ul className="m-0 flex list-none flex-wrap items-center justify-center gap-2 p-0">
         {EXAMPLES.map((example) => (
-          <li key={example.gloss} className="m-0 p-0">
+          <li key={[example.where, example.kind, example.words].join(" ")} className="m-0 p-0">
             <button
               type="button"
               onClick={() => suggest(example)}
-              className="inline-flex items-center gap-2 rounded-full border bg-background py-1 pr-3 pl-1.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className={cn("inline-flex items-center gap-2 rounded-full border bg-background py-1 pl-1.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:bg-muted hover:text-foreground", example.words ? "pr-3" : "pr-1.5")}
             >
               {example.where && (
                 <span className={CHIP}>
@@ -278,11 +281,11 @@ export function HomeSearch({ hotkey = true }: { hotkey?: boolean } = {}) {
               )}
               {example.kind && <span className={CHIP}>{KIND_LABELS[example.kind]}</span>}
               {example.words && <span className={cn("font-mono font-medium text-foreground", !example.where && "pl-1.5")}>{example.words}</span>}
-              {example.gloss}
             </button>
           </li>
         ))}
       </ul>
+      )}
     </div>
   )
 }
