@@ -34,12 +34,15 @@ function Rows({ children }: { children: React.ReactNode }) {
   return <div className="mt-3 flex flex-col gap-2">{children}</div>
 }
 
-/** The figure a count block leads with, and the sentence under it. */
-function Count({ value, lead }: { value: number | null; lead: string }) {
+/**
+ * The figure a count block leads with, and nothing under it (Brendan,
+ * 2026-09-22): the tile's title already names the table, so "61" under
+ * "Committees" needed no line saying "committees".
+ */
+function Count({ value }: { value: number | null }) {
   return (
     <div className="mt-2 flex flex-col">
       <span className="text-3xl font-semibold tabular-nums">{value == null ? "—" : fmtNumber(value)}</span>
-      <span className="mt-1 text-sm text-muted-foreground">{lead}</span>
     </div>
   )
 }
@@ -122,7 +125,7 @@ export function RecordBody({ spec, record, session, nonce }: { spec: BlockSpec; 
   const rows = committee?.bills ?? []
   return (
     <>
-      <Count value={rows.length} lead="bills before it" />
+      <Count value={rows.length} />
       <Rows>
         {rows.slice(0, 3).map((bill) => (
           <Link key={bill.bill_id} href={`/bills/${bill.bill_id}?state=${bill.state ?? record.state}`} className={`${LINE} no-underline`}>
@@ -154,7 +157,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
       const rows = payload?.rows ?? []
       return (
         <>
-          <Count value={payload?.total ?? null} lead="bills this session" />
+          <Count value={payload?.total ?? null} />
           <Rows>
             {rows.slice(0, 3).map((bill) => (
               <Link key={bill.bill_id} href={`/bills/${bill.bill_id}?state=${bill.state ?? state}`} className={`${LINE} no-underline`}>
@@ -172,7 +175,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
       const top = [...rows].sort((a, b) => b.bills - a.bills).slice(0, 4)
       return (
         <>
-          <Count value={rows.length} lead="committees" />
+          <Count value={rows.length} />
           <Rows>
             {top.map((committee) => {
               const name = committee.committee_name ?? committee.committee ?? ""
@@ -199,7 +202,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
         .slice(0, 3)
       return (
         <>
-          <Count value={rows.length} lead="members sitting" />
+          <Count value={rows.length} />
           <Rows>
             {split.map(([party, n]) => (
               <div key={party} className={LINE}>
@@ -215,7 +218,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
       const rows = (data as SessionRow[] | undefined) ?? []
       return (
         <>
-          <Count value={rows.length} lead="sessions on file" />
+          <Count value={rows.length} />
           <Rows>
             {rows.slice(0, 3).map((row) => (
               <Link key={row.session_id} href={`/bills?state=${state}&session=${row.session_id}`} className={`${LINE} no-underline`}>
@@ -231,7 +234,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
       const top = [...JURISDICTIONS_TABLE].sort((a, b) => b.bills - a.bills).slice(0, 4)
       return (
         <>
-          <Count value={JURISDICTIONS_TABLE.length} lead="legislatures on file" />
+          <Count value={JURISDICTIONS_TABLE.length} />
           <Rows>
             {top.map((row) => (
               <Link key={row.state} href={`/bills/${row.state.toLowerCase()}`} className={`${LINE} no-underline`}>
@@ -247,7 +250,7 @@ export function BlockBody({ spec, state, session, nonce }: { spec: BlockSpec; st
     default: {
       // The metric blocks: votes, amendments, actions, hearings — one figure over the session.
       const metric = data as Metric | undefined
-      return <Count value={metric?.total ?? null} lead={`${spec.table.toLowerCase()} this session`} />
+      return <Count value={metric?.total ?? null} />
     }
   }
 }
