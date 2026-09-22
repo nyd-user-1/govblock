@@ -6,16 +6,24 @@ import { ArrowRight } from "lucide-react"
 
 import { stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
-import { Button } from "@govblock/ui/components/nova/button"
+import { cn } from "@govblock/ui/lib/utils"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
-import { Field, FieldContent, FieldLabel, FieldTitle } from "@govblock/ui/components/nova/field"
 import { RadioGroup, RadioGroupItem } from "@govblock/ui/components/nova/radio-group"
 
-// The filter panel in /search's right rail (Brendan, 2026-09-05: "a real
+// The filter panel in the search's right rail (Brendan, 2026-09-05: "a real
 // filter panel"). Every control narrows the results on the page: which
 // sections show, whether the jurisdiction in scope stands alone, and for the
 // bills, the chamber and the status. The choices live in the URL beside the
 // query, so a filtered search is a link.
+//
+// Drawn in the rail's own vocabulary (Brendan, 2026-09-22: it "doesn't really
+// line up with the design system for the rest of the site"). It wore the Field
+// component's bordered, tinted cards — a stack of boxes no other rail on the
+// site draws. Now it reads as Favorites and Build with GovBlocks do: a small
+// muted heading over plain rows, each row a strip that lights on hover the way
+// a rail link does, the count at the right in tabular figures, and the arrow
+// that means "this goes somewhere" kept for the hover, as a record item keeps
+// it. Nothing about what the controls do has changed.
 
 export type SearchFilterState = {
   /** The sections shown; empty means all. */
@@ -64,48 +72,56 @@ export function isFiltered(filters: SearchFilterState) {
   return filters.show.length > 0 || filters.scope === "here" || !!filters.chamber || filters.status.length > 0
 }
 
+/** A row in the panel: the control, the label, its count, and the arrow where the row leads somewhere. */
+const ROW = "group/row -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px] text-left transition-colors hover:bg-muted"
+
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="h-6 text-xs font-medium text-muted-foreground">{title}</p>
+    <div className="flex flex-col gap-0.5">
+      <p className="mb-1 text-xs font-medium text-muted-foreground">{title}</p>
       {children}
     </div>
   )
 }
 
-function Check({ id, label, count, checked, onChange, onJump }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void }) {
-  const row = (
-    // Full width on its own; sharing the row with the arrow, it yields the 20 px.
-    <FieldLabel htmlFor={id} className={onJump ? "min-w-0 flex-1" : "w-full"}>
-      <Field orientation="horizontal" className="items-center gap-2 py-0.5">
-        <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} />
-        <FieldContent className="min-w-0">
-          <FieldTitle className="flex items-center gap-2 text-[0.8rem] font-normal">
-            <span className="min-w-0 truncate">{label}</span>
-            {count != null && <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(count)}</span>}
-          </FieldTitle>
-        </FieldContent>
-      </Field>
-    </FieldLabel>
-  )
-  if (!onJump) return row
-  // The tick and the jump are two things, so they are two controls. The button
-  // sits outside the FieldLabel on purpose: inside it, every click on the arrow
-  // would also toggle the box the label points at.
+function Row({ id, label, count, checked, onChange, onJump, radio = false }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void; /** A radio rather than a tick: one of the group, not some of it. */ radio?: boolean }) {
   return (
-    <div className="flex w-full items-center gap-1">
-      {row}
-      <button
-        type="button"
-        onClick={onJump}
-        disabled={!count}
-        aria-label={`Go to ${label}`}
-        className="group/jump -mr-1 flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
-      >
-        {/* Right, until it is pointed at: then it turns up and out, which is
-            the arrow the record items already use for "this goes somewhere". */}
-        <ArrowRight className="size-3.5 transition-transform duration-200 group-hover/jump:-rotate-45 group-focus-visible/jump:-rotate-45 motion-reduce:transition-none" />
-      </button>
+    <div className={ROW}>
+      <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+        {radio ? (
+          <RadioGroupItem value={label} id={id} className="size-3.5 shrink-0" />
+        ) : (
+          <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} className="size-3.5 shrink-0 rounded-[4px]" />
+        )}
+        {/* Unticked is said twice — the empty box, and the label going quiet — so the state reads at a glance. */}
+        <span className={cn("min-w-0 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+      </label>
+      {count != null && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(count)}</span>}
+      {onJump && (
+        <button
+          type="button"
+          onClick={onJump}
+          disabled={!count}
+          aria-label={`Go to ${label}`}
+          className="-mr-1 flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0 group-hover/row:opacity-100"
+        >
+          {/* Right, until it is pointed at: then it turns up and out, which is the arrow the record items already use. */}
+          <ArrowRight className="size-3.5 transition-transform duration-200 hover:-rotate-45 motion-reduce:transition-none" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** One of a group: the same row, driven by the radio it holds. */
+function Choice({ id, value, label, count, checked }: { id: string; value: string; label: string; count?: number; checked: boolean }) {
+  return (
+    <div className={ROW}>
+      <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+        <RadioGroupItem value={value} id={id} className="size-3.5 shrink-0" />
+        <span className={cn("min-w-0 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+      </label>
+      {count != null && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(count)}</span>}
     </div>
   )
 }
@@ -146,19 +162,24 @@ export function SearchFilters({
     )
   }
   return (
-    <div className="flex flex-col gap-6 text-sm">
-      <div className="flex items-center">
-        <p className="h-6 text-xs font-medium text-muted-foreground">Filters</p>
+    <div className="flex flex-col gap-5 p-4 pt-0 text-sm">
+      <div className="flex h-6 items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground">Filters</p>
+        {/* Clear says how many narrowings it would undo, so the press is never a surprise. */}
         {isFiltered(filters) && (
-          <Button variant="ghost" size="sm" className="ml-auto h-6 px-2 text-xs text-muted-foreground" onClick={() => onChange(EMPTY_FILTERS)}>
+          <button
+            type="button"
+            onClick={() => onChange(EMPTY_FILTERS)}
+            className="-mr-2 rounded-md px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             Clear
-          </Button>
+          </button>
         )}
       </div>
 
       <Group title="Show">
         {SECTIONS.map((section) => (
-          <Check
+          <Row
             key={section.key}
             id={`show-${section.key}`}
             label={section.label}
@@ -176,38 +197,28 @@ export function SearchFilters({
       </Group>
 
       <Group title="Jurisdiction">
-        <RadioGroup value={filters.scope} onValueChange={(value) => onChange({ ...filters, scope: value === "here" ? "here" : "all" })} className="gap-1">
+        <RadioGroup value={filters.scope} onValueChange={(value) => onChange({ ...filters, scope: value === "here" ? "here" : "all" })} className="gap-0.5">
           {[
             { value: "all", label: "Every jurisdiction" },
             { value: "here", label: `${stateName(here) || here} only` },
           ].map((option) => (
-            <FieldLabel key={option.value} htmlFor={`scope-${option.value}`} className="w-full">
-              <Field orientation="horizontal" className="items-center gap-2 py-0.5">
-                <RadioGroupItem value={option.value} id={`scope-${option.value}`} />
-                <FieldContent>
-                  <FieldTitle className="text-[0.8rem] font-normal">{option.label}</FieldTitle>
-                </FieldContent>
-              </Field>
-            </FieldLabel>
+            <Choice key={option.value} id={`scope-${option.value}`} value={option.value} label={option.label} checked={filters.scope === option.value} />
           ))}
         </RadioGroup>
       </Group>
 
       {chambers.length > 1 && (
         <Group title="Chamber">
-          <RadioGroup value={filters.chamber} onValueChange={(value) => onChange({ ...filters, chamber: value })} className="gap-1">
+          <RadioGroup value={filters.chamber} onValueChange={(value) => onChange({ ...filters, chamber: value })} className="gap-0.5">
             {[{ value: "", count: chambers.reduce((sum, c) => sum + c.count, 0), label: "Any chamber" }, ...chambers.map((c) => ({ ...c, label: c.value }))].map((option) => (
-              <FieldLabel key={option.value || "any"} htmlFor={`chamber-${option.value || "any"}`} className="w-full">
-                <Field orientation="horizontal" className="items-center gap-2 py-0.5">
-                  <RadioGroupItem value={option.value} id={`chamber-${option.value || "any"}`} />
-                  <FieldContent className="min-w-0">
-                    <FieldTitle className="flex items-center gap-2 text-[0.8rem] font-normal">
-                      <span className="min-w-0 truncate">{option.label}</span>
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(option.count)}</span>
-                    </FieldTitle>
-                  </FieldContent>
-                </Field>
-              </FieldLabel>
+              <Choice
+                key={option.value || "any"}
+                id={`chamber-${option.value || "any"}`}
+                value={option.value}
+                label={option.label}
+                count={option.count}
+                checked={filters.chamber === option.value}
+              />
             ))}
           </RadioGroup>
         </Group>
@@ -216,7 +227,7 @@ export function SearchFilters({
       {statuses.length > 1 && (
         <Group title="Status">
           {statuses.map((status) => (
-            <Check
+            <Row
               key={status.value}
               id={`status-${status.value.replace(/\W+/g, "-").toLowerCase()}`}
               label={status.value}

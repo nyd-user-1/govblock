@@ -36,9 +36,9 @@ export function LeftRailSheet() {
  * "put favorites back at the top"). Resizable from its hairline since 2026-09-18 (components/rail-resize.tsx):
  * 18rem until the reader drags it, and closed it still leaves its 24px strip.
  */
-export function RightRailSheet({ children, settings }: { children: React.ReactNode; /** A second view, toggled at the rail's top (components/rail-views.tsx). */ settings?: React.ReactNode }) {
+export function RightRailSheet({ children, settings, className }: { children: React.ReactNode; /** A second view, toggled at the rail's top (components/rail-views.tsx). */ settings?: React.ReactNode; /** The outer sheet's own classes: the root frame pays the 0.6rem its page's inner scroll takes from the sticky top (2026-09-22). */ className?: string }) {
   return (
-    <div className={`${SHEET} right-0 [&>[data-slot=sidebar]]:w-[var(--rail-right-w,18rem)]! [[data-rail-resizing]_&]:transition-none [[data-rail-right=closed]_&]:translate-x-[calc(var(--rail-right-w,18rem)-1.5rem)]`}>
+    <div className={`${className ?? ""} ${SHEET} right-0 [&>[data-slot=sidebar]]:w-[var(--rail-right-w,18rem)]! [[data-rail-resizing]_&]:transition-none [[data-rail-right=closed]_&]:translate-x-[calc(var(--rail-right-w,18rem)-1.5rem)]`}>
       <RailStrip side="right" />
       <Sidebar
         side="right"
