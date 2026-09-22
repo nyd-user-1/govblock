@@ -16,7 +16,11 @@ import { setRail } from "@/components/rail-toggle"
 
 export const RAIL_RIGHT_KEY = "rail:right:width"
 const DEFAULT = 288
-const MIN = 260
+// The left rail's own width (w-72), which the right one may not go under
+// (Brendan, 2026-09-22: "the minimum width of the right rail upon opening
+// matches the left rail"). It was 28px narrower, so a dragged rail opened
+// short of the line the left one holds.
+const MIN = 288
 const MAX_SHARE = 0.45
 
 const current = () => {

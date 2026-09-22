@@ -64,10 +64,8 @@ export function FavoritesRail({ className }: { className?: string }) {
           Favorites{favorites.length > SHOWN ? ` · ${favorites.length}` : ""}
         </p>
       </div>
-      {/* What the rail is for, where the page is not a section of its own: said above the rows, not only when there are none. */}
-      {mounted && (everywhere || favorites.length === 0) && (
-        <p className="text-[0.8rem] text-muted-foreground">{everywhere ? "Add favorites here" : "Star an item to keep it here."}</p>
-      )}
+      {/* The invitation only where there is nothing yet: the line stood above the rows for a day and said what they already showed (Brendan, 2026-09-22). */}
+      {mounted && favorites.length === 0 && <p className="text-[0.8rem] text-muted-foreground">Star an item to keep it here.</p>}
       {favorites.slice(0, SHOWN).map((f) => (
         <div key={f.href} className="group/fav relative flex items-start gap-2">
           {f.image && (

@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
-import { ArrowRight, Lock, Search } from "lucide-react"
+import { ArrowRight, ChevronDown, Lock, Search } from "lucide-react"
 
 import { partyName, stateName } from "@/lib/filters"
 import { fmtNumber } from "@/lib/format"
@@ -12,8 +12,9 @@ import { FlagChip } from "@/components/policy/imagery"
 import { SEARCH_SECTION_ID, goToSection } from "@/components/root-sections"
 import { cn } from "@govblock/ui/lib/utils"
 import { Checkbox } from "@govblock/ui/components/nova/checkbox"
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@govblock/ui/components/nova/command"
 import { Kbd } from "@govblock/ui/components/nova/kbd"
-import { RadioGroup, RadioGroupItem } from "@govblock/ui/components/nova/radio-group"
+import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components/nova/popover"
 
 // The filter panel in the search's right rail (Brendan, 2026-09-05: "a real
 // filter panel"). Every control narrows the results on the page, and the
@@ -21,10 +22,16 @@ import { RadioGroup, RadioGroupItem } from "@govblock/ui/components/nova/radio-g
 //
 // Drawn in the rail's own vocabulary (Brendan, 2026-09-22): it wore the Field
 // component's bordered, tinted cards, which no other rail on the site draws.
-// It reads as Favorites and Build with GovBlocks do — a small muted heading
-// over plain rows, each row a strip that lights on hover, the count at the
-// right in tabular figures, the jump arrow held back until the row is
-// pointed at.
+//
+// Every group is a menu (Brendan, the same day: "let's make them a drop down
+// multi-select so you can see it all"). Open, a jurisdiction search was 52
+// rows long and the panel ran past the rail's foot with the groups under it
+// out of sight; closed into a line each, the whole panel is in view at once
+// and a group opens over the page when it is wanted. The menu is the site's
+// own — the jurisdiction switcher's popover and command list, searchable the
+// way that one is — and inside it the rows are the rail's: a strip that
+// lights on hover, the count at the right in tabular figures, and the jump
+// arrow held back until the row is pointed at.
 //
 // What it filters on (Brendan, the same day: "feels like we're leaving out
 // some things that would make for a better search"). Jurisdiction leads,
@@ -132,65 +139,99 @@ export function isFiltered(filters: SearchFilterState) {
   )
 }
 
-/** A row in the panel: the control, the label, its count, and the arrow where the row leads somewhere. */
-const ROW = "group/row -mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px] text-left transition-colors hover:bg-muted"
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+/** A row inside a menu: the control, the label, its count, and the arrow where the row leads somewhere. */
+function Row({ label, count, checked, onToggle, onJump, media, radio = false }: { label: string; count?: number; checked: boolean; onToggle: () => void; onJump?: () => void; /** A flag before the label: the jurisdiction rows. */ media?: React.ReactNode; /** One of the group rather than some of it: a mark where the box would be. */ radio?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{title}</p>
-      {children}
-    </div>
-  )
-}
-
-function Row({ id, label, count, checked, onChange, onJump, media }: { id: string; label: string; count?: number; checked: boolean; onChange: (next: boolean) => void; onJump?: () => void; /** A flag before the label: the jurisdiction rows. */ media?: React.ReactNode }) {
-  return (
-    <div className={ROW}>
-      <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
-        <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(!!value)} className="size-3.5 shrink-0 rounded-[4px]" />
-        {media}
-        {/* Unticked is said twice — the empty box, and the label going quiet — so the state reads at a glance. */}
-        <span className={cn("min-w-0 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
-      </label>
+    <CommandItem value={label} onSelect={onToggle} className="group/row gap-2.5">
+      {radio ? (
+        <span className={cn("flex size-3.5 shrink-0 items-center justify-center rounded-full border", checked ? "border-[4px] border-primary" : "border-input")} aria-hidden />
+      ) : (
+        <Checkbox checked={checked} tabIndex={-1} aria-hidden className="pointer-events-none size-3.5 shrink-0 rounded-[4px]" />
+      )}
+      {media}
+      <span className={cn("min-w-0 flex-1 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
       {count != null && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(count)}</span>}
       {onJump && (
         <button
           type="button"
-          onClick={onJump}
+          onClick={(event) => {
+            event.stopPropagation()
+            onJump()
+          }}
           disabled={!count}
           aria-label={`Go to ${label}`}
-          className="-mr-1 flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0 group-hover/row:opacity-100"
+          className="-mr-1 flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-0 group-hover/row:opacity-100"
         >
           {/* Right, until it is pointed at: then it turns up and out, which is the arrow the record items already use. */}
           <ArrowRight className="size-3.5 transition-transform duration-200 hover:-rotate-45 motion-reduce:transition-none" />
         </button>
       )}
+    </CommandItem>
+  )
+}
+
+/** The line a closed group stands as: its name, what it is narrowed to, and the chevron. */
+const TRIGGER = "flex h-8 w-full items-center gap-2 rounded-lg border bg-background px-2.5 text-[0.8rem] transition-colors hover:bg-muted data-[popup-open]:bg-muted"
+
+function Group({ title, summary, muted, children, media, disabled = false }: { title: string; summary: string; /** The summary is the untouched one: "All", "Any time". */ muted: boolean; children?: React.ReactNode; media?: React.ReactNode; disabled?: boolean }) {
+  const [open, setOpen] = React.useState(false)
+  const line = (
+    <>
+      {media}
+      <span className={cn("min-w-0 flex-1 truncate text-left", muted ? "text-muted-foreground" : "text-foreground")}>{summary}</span>
+      {disabled ? <Lock className="size-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />}
+    </>
+  )
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-xs font-medium text-muted-foreground">{title}</p>
+      {disabled ? (
+        <div className={cn(TRIGGER, "cursor-not-allowed opacity-60")}>{line}</div>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger render={<button type="button" aria-label={`${title}: ${summary}`} className={TRIGGER} />}>{line}</PopoverTrigger>
+          <PopoverContent align="end" sideOffset={4} className="w-[17rem] p-0" aria-label={title}>
+            {children}
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   )
 }
 
-/** One of a group: the same row, driven by the radio it holds. */
-function Choice({ id, value, label, count, checked }: { id: string; value: string; label: string; count?: number; checked: boolean }) {
+/** The menu inside a group: the rows, searchable where there are enough of them to need it. */
+function Menu({ search, footer, children }: { search?: string; footer?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={ROW}>
-      <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
-        <RadioGroupItem value={value} id={id} className="size-3.5 shrink-0" />
-        <span className={cn("min-w-0 truncate text-[0.8rem]", checked ? "text-foreground" : "text-muted-foreground")}>{label}</span>
-      </label>
-      {count != null && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{fmtNumber(count)}</span>}
+    <Command loop className="rounded-lg!">
+      {search && <CommandInput placeholder={search} autoFocus />}
+      <CommandList className="max-h-[min(22rem,60svh)]">
+        <CommandEmpty>Nothing to narrow by.</CommandEmpty>
+        {children}
+      </CommandList>
+      {footer}
+    </Command>
+  )
+}
+
+/** All / None, under a menu that takes more than one. */
+function Both({ onAll, onNone }: { onAll: () => void; onNone: () => void }) {
+  return (
+    <div className="flex items-center gap-1 border-t p-1">
+      <button type="button" onClick={onAll} className="flex-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        All
+      </button>
+      <button type="button" onClick={onNone} className="flex-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        None
+      </button>
     </div>
   )
 }
 
-/** A row that says what a plan would open: the same shape, a lock where the control goes, nothing to press. */
-function Locked({ label }: { label: string }) {
-  return (
-    <div className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px] text-left opacity-60">
-      <Lock className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 truncate text-[0.8rem] text-muted-foreground">{label}</span>
-    </div>
-  )
+/** What a closed multi-select says: every one of them, or the one chosen, or how many of how many. */
+function summarize(selected: string[], options: { value: string; label: string }[], all = "All") {
+  if (!selected.length || selected.length === options.length) return all
+  if (selected.length === 1) return options.find((o) => o.value === selected[0])?.label ?? selected[0]
+  return `${selected.length} of ${options.length}`
 }
 
 /**
@@ -244,11 +285,11 @@ export function SearchFilters({
   /** The sessions a plan would open; drawn locked. */
   sessions?: string[]
 }) {
-  const toggle = (list: string[], value: string, on: boolean) => (on ? [...new Set([...list, value])] : list.filter((v) => v !== value))
+  const toggle = (list: string[], value: string) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
   const showing = (key: string) => filters.show.length === 0 || filters.show.includes(key)
   /** A list where empty means all: ticking the last one back empties it again. */
-  const pick = (current: string[], every: string[], value: string, on: boolean) => {
-    const next = toggle(current.length ? current : every, value, on)
+  const pick = (current: string[], every: string[], value: string) => {
+    const next = toggle(current.length ? current : every, value)
     return next.length === every.length ? [] : next
   }
   const sectionKeys = SECTIONS.map((s) => s.key)
@@ -257,20 +298,23 @@ export function SearchFilters({
   // ask was to go there, and there is nothing there to go to otherwise. The
   // scroll waits a frame for that section to render.
   const jump = (key: string) => {
-    if (!showing(key)) onChange({ ...filters, show: pick(filters.show, sectionKeys, key, true) })
+    if (!showing(key)) onChange({ ...filters, show: pick(filters.show, sectionKeys, key) })
     const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     requestAnimationFrame(() =>
       document.getElementById(sectionId(key))?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })
     )
   }
 
-  const placeCodes = places.map((p) => p.value)
-  const committeeNames = committees.map((c) => c.value)
-  const partyCodes = parties.map((p) => p.value)
-  const statusValues = statuses.map((s) => s.value)
+  const placeName = (code: string) => (code === "US" ? "U.S. Congress" : stateName(code) || code)
+  const placeOptions = places.map((p) => ({ value: p.value, label: placeName(p.value) }))
+  const sectionOptions = SECTIONS.map((s) => ({ value: s.key, label: s.label }))
+  const committeeOptions = committees.map((c) => ({ value: c.value, label: c.value }))
+  const statusOptions = statuses.map((s) => ({ value: s.value, label: s.value }))
+  const partyOptions = parties.map((p) => ({ value: p.value, label: partyName(p.value) || p.value }))
+  const chosenPlaces = filters.places.length ? filters.places : placeOptions.map((p) => p.value)
 
   return (
-    <div className="flex flex-col gap-5 p-4 pt-0 text-sm">
+    <div className="flex flex-col gap-3 p-4 pt-0 text-sm">
       <GlobalSearch />
 
       <div className="flex h-6 items-center justify-between gap-2">
@@ -286,121 +330,138 @@ export function SearchFilters({
         )}
       </div>
 
-      {/* First, because a search spanning 52 jurisdictions is the first thing worth cutting. */}
+      {/* First, because a search spanning 52 jurisdictions is the first thing worth cutting — and searchable, since it can be all 52. */}
       {places.length > 1 && (
-        <Group title="Jurisdiction">
-          {places.map((place) => (
-            <Row
-              key={place.value}
-              id={`place-${place.value}`}
-              label={place.value === "US" ? "U.S. Congress" : stateName(place.value) || place.value}
-              count={place.count}
-              media={<FlagChip state={place.value} width={16} />}
-              checked={filters.places.length === 0 || filters.places.includes(place.value)}
-              onChange={(on) => onChange({ ...filters, places: pick(filters.places, placeCodes, place.value, on) })}
-            />
-          ))}
+        <Group
+          title="Jurisdiction"
+          summary={summarize(filters.places, placeOptions, "Every jurisdiction")}
+          muted={!filters.places.length}
+          media={filters.places.length === 1 ? <FlagChip state={filters.places[0]} width={16} /> : undefined}
+        >
+          <Menu
+            search="Search jurisdictions…"
+            footer={<Both onAll={() => onChange({ ...filters, places: [] })} onNone={() => onChange({ ...filters, places: [places[0].value] })} />}
+          >
+            {places.map((place) => (
+              <Row
+                key={place.value}
+                label={placeName(place.value)}
+                count={place.count}
+                media={<FlagChip state={place.value} width={16} />}
+                checked={chosenPlaces.includes(place.value)}
+                onToggle={() => onChange({ ...filters, places: pick(filters.places, placeOptions.map((p) => p.value), place.value) })}
+              />
+            ))}
+          </Menu>
         </Group>
       )}
 
-      <Group title="Show">
-        {SECTIONS.map((section) => (
-          <Row
-            key={section.key}
-            id={`show-${section.key}`}
-            label={section.label}
-            count={counts[section.key]}
-            checked={showing(section.key)}
-            onJump={() => jump(section.key)}
-            onChange={(on) => onChange({ ...filters, show: pick(filters.show, sectionKeys, section.key, on) })}
-          />
-        ))}
+      <Group title="Show" summary={summarize(filters.show, sectionOptions)} muted={!filters.show.length}>
+        <Menu footer={<Both onAll={() => onChange({ ...filters, show: [] })} onNone={() => onChange({ ...filters, show: [sectionKeys[0]] })} />}>
+          {SECTIONS.map((section) => (
+            <Row
+              key={section.key}
+              label={section.label}
+              count={counts[section.key]}
+              checked={showing(section.key)}
+              onJump={() => jump(section.key)}
+              onToggle={() => onChange({ ...filters, show: pick(filters.show, sectionKeys, section.key) })}
+            />
+          ))}
+        </Menu>
       </Group>
 
       {/* The latest action's age. Bills and their text carry the date; laws, members and committees do not, so it leaves them alone. */}
-      <Group title="Last action">
-        <RadioGroup value={filters.since} onValueChange={(value) => onChange({ ...filters, since: (value as SearchFilterState["since"]) || "" })} className="gap-0.5">
+      <Group title="Last action" summary={SINCE.find((s) => s.value === filters.since)?.label ?? "Any time"} muted={!filters.since}>
+        <Menu>
           {SINCE.map((option) => (
-            <Choice key={option.value || "any"} id={`since-${option.value || "any"}`} value={option.value} label={option.label} checked={filters.since === option.value} />
+            <Row key={option.value || "any"} label={option.label} radio checked={filters.since === option.value} onToggle={() => onChange({ ...filters, since: option.value })} />
           ))}
-        </RadioGroup>
+        </Menu>
       </Group>
 
       {committees.length > 1 && (
-        <Group title="Committee">
-          {committees.map((committee) => (
-            <Row
-              key={committee.value}
-              id={`committee-${committee.value.replace(/\W+/g, "-").toLowerCase()}`}
-              label={committee.value}
-              count={committee.count}
-              checked={filters.committees.length === 0 || filters.committees.includes(committee.value)}
-              onChange={(on) => onChange({ ...filters, committees: pick(filters.committees, committeeNames, committee.value, on) })}
-            />
-          ))}
+        <Group title="Committee" summary={summarize(filters.committees, committeeOptions)} muted={!filters.committees.length}>
+          <Menu
+            search="Search committees…"
+            footer={<Both onAll={() => onChange({ ...filters, committees: [] })} onNone={() => onChange({ ...filters, committees: [committees[0].value] })} />}
+          >
+            {committees.map((committee) => (
+              <Row
+                key={committee.value}
+                label={committee.value}
+                count={committee.count}
+                checked={filters.committees.length === 0 || filters.committees.includes(committee.value)}
+                onToggle={() => onChange({ ...filters, committees: pick(filters.committees, committeeOptions.map((c) => c.value), committee.value) })}
+              />
+            ))}
+          </Menu>
         </Group>
       )}
 
       {chambers.length > 1 && (
-        <Group title="Chamber">
-          <RadioGroup value={filters.chamber} onValueChange={(value) => onChange({ ...filters, chamber: value })} className="gap-0.5">
-            {[{ value: "", count: chambers.reduce((sum, c) => sum + c.count, 0), label: "Any chamber" }, ...chambers.map((c) => ({ ...c, label: c.value }))].map((option) => (
-              <Choice key={option.value || "any"} id={`chamber-${option.value || "any"}`} value={option.value} label={option.label} count={option.count} checked={filters.chamber === option.value} />
+        <Group title="Chamber" summary={filters.chamber || "Any chamber"} muted={!filters.chamber}>
+          <Menu>
+            <Row label="Any chamber" radio count={chambers.reduce((sum, c) => sum + c.count, 0)} checked={!filters.chamber} onToggle={() => onChange({ ...filters, chamber: "" })} />
+            {chambers.map((chamber) => (
+              <Row key={chamber.value} label={chamber.value} radio count={chamber.count} checked={filters.chamber === chamber.value} onToggle={() => onChange({ ...filters, chamber: chamber.value })} />
             ))}
-          </RadioGroup>
-        </Group>
-      )}
-
-      {(parties.length > 1 || serving.no > 0) && (
-        <Group title="Members">
-          {parties.map((party) => (
-            <Row
-              key={party.value}
-              id={`party-${party.value.toLowerCase()}`}
-              label={partyName(party.value) || party.value}
-              count={party.count}
-              checked={filters.parties.length === 0 || filters.parties.includes(party.value)}
-              onChange={(on) => onChange({ ...filters, parties: pick(filters.parties, partyCodes, party.value, on) })}
-            />
-          ))}
-          {serving.no > 0 && (
-            <RadioGroup value={filters.serving} onValueChange={(value) => onChange({ ...filters, serving: (value as SearchFilterState["serving"]) || "" })} className="mt-0.5 gap-0.5">
-              <Choice id="serving-any" value="" label="Serving or not" checked={filters.serving === ""} />
-              <Choice id="serving-yes" value="yes" label="Still serving" count={serving.yes} checked={filters.serving === "yes"} />
-              <Choice id="serving-no" value="no" label="No longer serving" count={serving.no} checked={filters.serving === "no"} />
-            </RadioGroup>
-          )}
+          </Menu>
         </Group>
       )}
 
       {statuses.length > 1 && (
-        <Group title="Status">
-          {statuses.map((status) => (
-            <Row
-              key={status.value}
-              id={`status-${status.value.replace(/\W+/g, "-").toLowerCase()}`}
-              label={status.value}
-              count={status.count}
-              checked={filters.status.length === 0 || filters.status.includes(status.value)}
-              onChange={(on) => onChange({ ...filters, status: pick(filters.status, statusValues, status.value, on) })}
-            />
-          ))}
+        <Group title="Status" summary={summarize(filters.status, statusOptions)} muted={!filters.status.length}>
+          <Menu
+            search={statuses.length > 8 ? "Search statuses…" : undefined}
+            footer={<Both onAll={() => onChange({ ...filters, status: [] })} onNone={() => onChange({ ...filters, status: [statuses[0].value] })} />}
+          >
+            {statuses.map((status) => (
+              <Row
+                key={status.value}
+                label={status.value}
+                count={status.count}
+                checked={filters.status.length === 0 || filters.status.includes(status.value)}
+                onToggle={() => onChange({ ...filters, status: pick(filters.status, statusOptions.map((s) => s.value), status.value) })}
+              />
+            ))}
+          </Menu>
+        </Group>
+      )}
+
+      {parties.length > 1 && (
+        <Group title="Party" summary={summarize(filters.parties, partyOptions)} muted={!filters.parties.length}>
+          <Menu footer={<Both onAll={() => onChange({ ...filters, parties: [] })} onNone={() => onChange({ ...filters, parties: [parties[0].value] })} />}>
+            {parties.map((party) => (
+              <Row
+                key={party.value}
+                label={partyName(party.value) || party.value}
+                count={party.count}
+                checked={filters.parties.length === 0 || filters.parties.includes(party.value)}
+                onToggle={() => onChange({ ...filters, parties: pick(filters.parties, partyOptions.map((p) => p.value), party.value) })}
+              />
+            ))}
+          </Menu>
+        </Group>
+      )}
+
+      {serving.no > 0 && (
+        <Group title="Members" summary={filters.serving === "yes" ? "Still serving" : filters.serving === "no" ? "No longer serving" : "Serving or not"} muted={!filters.serving}>
+          <Menu>
+            <Row label="Serving or not" radio checked={!filters.serving} onToggle={() => onChange({ ...filters, serving: "" })} />
+            <Row label="Still serving" radio count={serving.yes} checked={filters.serving === "yes"} onToggle={() => onChange({ ...filters, serving: "yes" })} />
+            <Row label="No longer serving" radio count={serving.no} checked={filters.serving === "no"} onToggle={() => onChange({ ...filters, serving: "no" })} />
+          </Menu>
         </Group>
       )}
 
       {/* Drawn, locked, and honest about it: the search reads each jurisdiction's current session and nothing earlier. */}
-      <Group title="Session">
-        <div className="-mx-2 flex w-full items-center gap-2.5 rounded-md px-2 py-[5px]">
-          <span className="size-3.5 shrink-0 rounded-full border-[3.5px] border-primary" />
-          <span className="min-w-0 truncate text-[0.8rem] text-foreground">Current session</span>
-        </div>
-        {(sessions.length ? sessions : ["2025", "2024", "2023", "2022"]).map((session) => (
-          <Locked key={session} label={session} />
-        ))}
-        <Link href="/pricing" className="mt-1 block text-[0.75rem] text-primary no-underline hover:underline">
+      <div className="flex flex-col gap-1">
+        <Group title="Session" summary={`Current session${sessions.length ? "" : ""}`} muted={false} disabled />
+        <Link href="/pricing" className="text-[0.75rem] text-primary no-underline hover:underline">
           Search earlier sessions with a plan
         </Link>
-      </Group>
+      </div>
 
       {!places.length && !counts.bills && (
         <p className="text-[0.75rem] text-muted-foreground">Search to filter. {stateName(here) || here} leads the results; the rest follow.</p>
