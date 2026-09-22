@@ -53,8 +53,133 @@ type MemberRow = { people_id: number; party: string; active?: boolean }
 type SessionRow = { session_id: number; bills: number; title: string }
 type Metric = { total: number; label: string }
 
+
+// The 2x2 tile's draw (Brendan, 2026-09-22: "why not just make that bigger so that it's a card that fits in a 2x2
+// block in the grid?"). It was a dialog over the page for an hour; a tile that grows is the grid's own answer, and
+// there is no second window to keep in step with the record's page.
+
+type Bill = {
+  bill_number: string
+  title: string
+  description?: string | null
+  status_desc?: string | null
+  last_action?: string | null
+  last_action_date?: string | null
+  committee?: string | null
+  body?: string | null
+  sponsor?: string | null
+  sponsor_party?: string | null
+  session_title?: string | null
+  state: string
+}
+type Member = {
+  name: string
+  party: string
+  role: string
+  chamber: string
+  district: string
+  state: string
+  photo_url?: string | null
+  bioguide_id?: string | null
+  email?: string | null
+  bio_long?: string | null
+  prime?: number
+  cosponsor?: number
+}
+type Committee = { bills?: { bill_id: number; bill_number: string; title: string; state: string; status_desc?: string | null }[]; hearings?: unknown[] }
+
+/** A fact, as the record pages set them: the label quiet, the value plain. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  if (!children) return null
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-sm">{children}</span>
+    </div>
+  )
+}
+
+function BillDetail({ bill, record }: { bill: Bill | undefined; record: BlockRecord }) {
+  if (!bill) return <p className="py-8 text-center text-sm text-muted-foreground">Not on file.</p>
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <p className="flex items-baseline gap-2">
+          <span className="text-xl font-semibold">{fmtBill(bill.bill_number, bill.state ?? record.state)}</span>
+          {bill.status_desc && <span className="min-w-0 truncate text-sm text-muted-foreground">{bill.status_desc}</span>}
+        </p>
+        <p className="mt-1 text-sm font-medium">{bill.title}</p>
+      </div>
+      {bill.description && bill.description.trim() !== bill.title.trim() && (
+        <p className="line-clamp-2 text-sm text-muted-foreground">{bill.description}</p>
+      )}
+      <div className="grid grid-cols-3 gap-3 border-t pt-3">
+        <Fact label="Jurisdiction">{stateName(bill.state ?? record.state)}</Fact>
+        <Fact label="Session">{bill.session_title}</Fact>
+        <Fact label="Chamber">{bill.body}</Fact>
+        <Fact label="Committee">{bill.committee}</Fact>
+        <Fact label="Sponsor">{[bill.sponsor, bill.sponsor_party].filter(Boolean).join(" · ")}</Fact>
+        <Fact label="Latest action">{bill.last_action_date ? fmtDate(bill.last_action_date) : null}</Fact>
+      </div>
+      {bill.last_action && (
+        <div className="border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground">What happened last</p>
+          <p className="mt-1 line-clamp-3 text-sm">{bill.last_action}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MemberDetail({ member, record }: { member: Member | undefined; record: BlockRecord }) {
+  if (!member) return <p className="py-8 text-center text-sm text-muted-foreground">Not on file.</p>
+  const state = member.state ?? record.state
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <span className="relative shrink-0">
+          <MemberPortrait name={member.name} photoUrl={portraitFor(member)} state={state} chamber={member.chamber} size={40} />
+          <PartyDot party={member.party} className="absolute right-0 bottom-0 ring-2 ring-background" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium">{member.name}</span>
+          <span className="block truncate text-sm text-muted-foreground">{[legislativeBody(state, member.chamber), districtLabel(state, member.district)].filter(Boolean).join(" · ")}</span>
+        </span>
+      </div>
+      {member.bio_long && <p className="line-clamp-3 text-sm text-muted-foreground">{member.bio_long}</p>}
+      <div className="grid grid-cols-3 gap-3 border-t pt-3">
+        <Fact label="Jurisdiction">{stateName(state)}</Fact>
+        <Fact label="Role">{member.role}</Fact>
+        <Fact label="Party">{member.party}</Fact>
+        <Fact label="Sponsored">{fmtNumber(member.prime ?? 0)}</Fact>
+        <Fact label="Cosponsored">{fmtNumber(member.cosponsor ?? 0)}</Fact>
+        <Fact label="Email">{member.email}</Fact>
+      </div>
+    </div>
+  )
+}
+
+function CommitteeDetail({ committee, record }: { committee: Committee | undefined; record: BlockRecord }) {
+  const rows = committee?.bills ?? []
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground">
+        {fmtNumber(rows.length)} bills before it in {stateName(record.state)}
+      </p>
+      <div className="flex flex-col divide-y border-t">
+        {rows.slice(0, 8).map((bill) => (
+          <Link key={bill.bill_id} href={`/bills/${bill.bill_id}?state=${bill.state ?? record.state}`} className="flex items-baseline gap-2 py-2 text-sm no-underline">
+            <span className="shrink-0 font-medium">{fmtBill(bill.bill_number, bill.state ?? record.state)}</span>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">{bill.title}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /** One record's own tile: the shapes the record pages already use, at a tile's size. */
-export function RecordBody({ spec, record, session, nonce }: { spec: BlockSpec; record: BlockRecord; session: number | null; nonce: number }) {
+export function RecordBody({ spec, record, session, nonce, large = false }: { spec: BlockSpec; record: BlockRecord; session: number | null; nonce: number; /** The 2x2 tile: the record as its own page opens it, rather than the three lines a small tile holds. */ large?: boolean }) {
   const pick = spec.pick
   const { data, isLoading, locked } = usePolicy<unknown>(pick ? pick.resource : null, { state: record.state, session: session ? String(session) : undefined }, { [pick?.param ?? "id"]: record.id, nonce })
 
@@ -65,6 +190,12 @@ export function RecordBody({ spec, record, session, nonce }: { spec: BlockSpec; 
         <LoadingFlag width={28} />
       </div>
     )
+  }
+
+  if (large) {
+    if (pick?.kind === "bills") return <BillDetail bill={data as Bill | undefined} record={record} />
+    if (pick?.kind === "members") return <MemberDetail member={data as Member | undefined} record={record} />
+    return <CommitteeDetail committee={data as Committee | undefined} record={record} />
   }
 
   if (pick?.kind === "bills") {

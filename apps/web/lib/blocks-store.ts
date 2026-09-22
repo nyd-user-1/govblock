@@ -18,7 +18,7 @@ import type { BlockKey, BlockRecord } from "@/lib/blocks"
 export const BLOCKS_KEY = "govblock:home-blocks"
 const CHANGE = "govblock:home-blocks-change"
 
-export type Block = { id: string; key: BlockKey; span: 1 | 2; record?: BlockRecord }
+export type Block = { id: string; key: BlockKey; span: 1 | 2; /** How many rows tall: a record at 2 draws as its own page opens (2026-09-22). */ rows?: 1 | 2; record?: BlockRecord }
 export type BlocksSaved = { blocks: Block[]; state: string }
 
 export const EMPTY: BlocksSaved = { blocks: [], state: CONGRESS }

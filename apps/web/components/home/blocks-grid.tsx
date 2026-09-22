@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, Maximize2, RefreshCw, Trash2, TrendingUp } from "lucide-react"
+import { ArrowUpRight, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, Maximize2, Minimize2, RefreshCw, Trash2, TrendingUp } from "lucide-react"
 
 import { BLOCKS, DEFAULT_BLOCKS, blockOf, type BlockKey, type BlockRecord, type BlockSpec } from "@/lib/blocks"
 import { EMPTY, readBlocks, useBlocks, writeBlocks, type BlocksSaved } from "@/lib/blocks-store"
@@ -16,7 +16,6 @@ import { LiveFetch } from "@/lib/policy/manual-fetch"
 import { policyUrl, usePolicy } from "@/lib/policy/use-policy"
 import type { SessionRow } from "@/lib/policy/types"
 import { BlockBody, RecordBody } from "@/components/home/block-body"
-import { BlockDialog } from "@/components/home/block-dialog"
 import { FlagChip } from "@/components/policy/imagery"
 import { StatePicker } from "@/components/state-switcher"
 import { cn } from "@govblock/ui/lib/utils"
@@ -222,7 +221,7 @@ function BlockTile({
   nonce,
   columnWidth,
   dragging,
-  onSpan,
+  onSize,
   onRemove,
   onRefresh,
   onDragStart,
@@ -235,7 +234,7 @@ function BlockTile({
   nonce: number
   columnWidth: number
   dragging: boolean
-  onSpan: (span: 1 | 2) => void
+  onSize: (size: { span: 1 | 2; rows: 1 | 2 }) => void
   onRemove: () => void
   onRefresh: () => void
   onDragStart: () => void
@@ -243,8 +242,7 @@ function BlockTile({
   onDragEnd: () => void
 }) {
   const spec = blockOf(block.key)
-  const [grabbed, setGrabbed] = React.useState<{ x: number; span: 1 | 2 } | null>(null)
-  const [open, setOpen] = React.useState(false)
+  const [grabbed, setGrabbed] = React.useState<{ x: number; y: number; span: 1 | 2; rows: 1 | 2 } | null>(null)
   if (!spec) return null
   // A block over one record wears that record's name and leads to its page; over the table, the table's.
   const record = block.record
@@ -257,14 +255,20 @@ function BlockTile({
       className={cn(
         "group/tile relative flex flex-col rounded-lg border bg-background p-4 transition-opacity",
         block.span === 2 && "col-span-2",
+        block.rows === 2 && "row-span-2",
         dragging && "opacity-40"
       )}
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          {/* A record opens where it stands; a table's block leads to its page, which is the whole table. */}
+          {/* A record opens where it stands — the tile grows to two by two and draws as the record's page opens; a table's block leads to its page, which is the whole table. */}
           {record ? (
-            <button type="button" onClick={() => setOpen(true)} className="max-w-full truncate text-left text-sm font-medium hover:underline">
+            <button
+              type="button"
+              onClick={() => onSize({ span: block.rows === 2 ? 1 : 2, rows: block.rows === 2 ? 1 : 2 })}
+              aria-expanded={block.rows === 2}
+              className="max-w-full truncate text-left text-sm font-medium hover:underline"
+            >
               {title}
             </button>
           ) : (
@@ -296,8 +300,8 @@ function BlockTile({
               <RefreshCw /> Refresh
             </DropdownMenuItem>
             {record && (
-              <DropdownMenuItem onClick={() => setOpen(true)} className="whitespace-nowrap">
-                <Maximize2 /> Open here
+              <DropdownMenuItem onClick={() => onSize({ span: block.rows === 2 ? 1 : 2, rows: block.rows === 2 ? 1 : 2 })} className="whitespace-nowrap">
+                {block.rows === 2 ? <Minimize2 /> : <Maximize2 />} {block.rows === 2 ? "Collapse" : "Expand"}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem render={<Link href={href} />} className="whitespace-nowrap">
@@ -310,8 +314,7 @@ function BlockTile({
         </DropdownMenu>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
-        {record ? <RecordBody spec={spec} record={record} session={session} nonce={nonce} /> : <BlockBody spec={spec} state={state} session={session} nonce={nonce} />}
-        {record && <BlockDialog spec={spec} record={record} open={open} onOpenChange={setOpen} />}
+        {record ? <RecordBody spec={spec} record={record} session={session} nonce={nonce} large={block.rows === 2} /> : <BlockBody spec={spec} state={state} session={session} nonce={nonce} />}
       </div>
       {/* The corner: the analytics tile's own, to the pixel — drag it right to widen the tile to two columns, left to bring it back. */}
       <button
@@ -321,13 +324,14 @@ function BlockTile({
         onPointerDown={(e) => {
           e.preventDefault()
           e.currentTarget.setPointerCapture(e.pointerId)
-          setGrabbed({ x: e.clientX, span: block.span })
+          setGrabbed({ x: e.clientX, y: e.clientY, span: block.span, rows: block.rows ?? 1 })
         }}
         onPointerMove={(e) => {
           if (!grabbed || !columnWidth) return
-          const moved = e.clientX - grabbed.x
-          const want = Math.min(2, Math.max(1, grabbed.span + Math.round(moved / columnWidth))) as 1 | 2
-          if (want !== block.span) onSpan(want)
+          const span = Math.min(2, Math.max(1, grabbed.span + Math.round((e.clientX - grabbed.x) / columnWidth))) as 1 | 2
+          // A row is the grid's own 224px and the gap under it.
+          const rows = Math.min(2, Math.max(1, grabbed.rows + Math.round((e.clientY - grabbed.y) / 240))) as 1 | 2
+          if (span !== block.span || rows !== (block.rows ?? 1)) onSize({ span, rows })
         }}
         onPointerUp={() => setGrabbed(null)}
         onPointerCancel={() => setGrabbed(null)}
@@ -456,7 +460,7 @@ function Grid() {
               nonce={nonce}
               columnWidth={columnWidth}
               dragging={dragging === block.id}
-              onSpan={(span) => setBlock(block.id, { span })}
+              onSize={(size) => setBlock(block.id, size)}
               onRemove={() => remove(block.id)}
               onRefresh={() => setNonce((n) => n + 1)}
               onDragStart={() => setDragging(block.id)}
