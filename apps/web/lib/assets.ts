@@ -14,7 +14,13 @@
 export const ASSET_BASE = process.env.NEXT_PUBLIC_ASSET_BASE ?? "https://govblock-geo-638175140432.s3.amazonaws.com/public"
 
 // /forms and /reports are pages too; only their files moved.
-const MOVED = /^\/(?:chambers|seals|unite|r)\/|^\/(?:forms|reports)\/[^/]+\.(?:pdf|html)(?:#|$)/
+//
+// The chamber seals came back to the app (Brendan, 2026-09-22): 2.5 MB, and a
+// seal on the bucket is cross-origin, which the root's canvas would not paint
+// (an empty circle where the Senate's should be) — and the seal is what stands
+// in when a member's photograph fails, so it has to be the one image that
+// always loads. The agency seals (/seals) stay on the bucket.
+const MOVED = /^\/(?:seals|unite|r)\/|^\/(?:forms|reports)\/[^/]+\.(?:pdf|html)(?:#|$)/
 
 /** `/chambers/ny.avif` → the bucket's URL for it; any other path unchanged. */
 export const assetUrl = (path: string) => (MOVED.test(path) ? `${ASSET_BASE}${path}` : path)

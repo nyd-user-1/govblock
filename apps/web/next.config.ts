@@ -150,8 +150,8 @@ const nextConfig: NextConfig = {
       // lib/assets.ts); their old addresses follow them there: the registry
       // that v0 and the shadcn CLI fetch, links to the PDFs and reports. Not
       // permanent, so the bucket can move again. /forms and /reports are pages
-      // too, and only their files go.
-      ...["chambers", "seals", "unite", "r"].map((folder) => ({ source: `/${folder}/:path*`, destination: `${ASSET_BASE}/${folder}/:path*`, permanent: false })),
+      // too, and only their files go. The chamber seals came back (2026-09-22).
+      ...["seals", "unite", "r"].map((folder) => ({ source: `/${folder}/:path*`, destination: `${ASSET_BASE}/${folder}/:path*`, permanent: false })),
       { source: "/forms/:file([^/]+\\.pdf)", destination: `${ASSET_BASE}/forms/:file`, permanent: false },
       { source: "/reports/:file([^/]+\\.pdf)", destination: `${ASSET_BASE}/reports/:file`, permanent: false },
       { source: "/reports/:file([^/]+\\.html)", destination: `${ASSET_BASE}/reports/:file`, permanent: false },
