@@ -1,86 +1,90 @@
 {
-  "job": 301,
-  "commit": "e739ddc",
-  "built": "2026-09-22T13:29:33.975000-04:00",
+  "job": 304,
+  "commit": "2222a85",
+  "built": "2026-09-22T19:28:03.603000-04:00",
   "exact": true,
   "cap": 230686720,
-  "total": 198700846,
+  "total": 198921854,
   "parts": [
     {
       "label": "/(records)",
-      "bytes": 13080040
+      "bytes": 13104727
     },
     {
       "label": "/bills",
-      "bytes": 8982452
+      "bytes": 9009668
     },
     {
       "label": "/workspace",
-      "bytes": 6257280
+      "bytes": 6257585
     },
     {
       "label": "/research",
-      "bytes": 4172453
+      "bytes": 4172350
     },
     {
       "label": "/docs",
-      "bytes": 3628390
+      "bytes": 3631811
     },
     {
       "label": "Every other route",
-      "bytes": 49476681
+      "bytes": 49523558
     },
     {
       "label": "Shared server code",
-      "bytes": 70920281
+      "bytes": 70980686
     },
     {
       "label": "Browser code",
-      "bytes": 41032954
+      "bytes": 41091065
     },
     {
       "label": "Everything else",
-      "bytes": 1150315
+      "bytes": 1150404
     }
   ],
   "previous": {
-    "job": 298,
-    "commit": "47c4382",
-    "built": "2026-09-21T17:38:30.774000-04:00",
+    "job": 301,
+    "commit": "e739ddc",
+    "built": "2026-09-22T13:29:33.975000-04:00",
     "exact": true,
-    "total": 175918669,
+    "total": 198700846,
     "parts": [
       {
-        "label": "/bills",
-        "bytes": 8617760
+        "label": "/(records)",
+        "bytes": 13080040
       },
       {
-        "label": "/(records)",
-        "bytes": 8439189
+        "label": "/bills",
+        "bytes": 8982452
       },
       {
         "label": "/workspace",
-        "bytes": 5651445
+        "bytes": 6257280
+      },
+      {
+        "label": "/research",
+        "bytes": 4172453
       },
       {
         "label": "/docs",
-        "bytes": 2862731
+        "bytes": 3628390
       },
       {
         "label": "Every other route",
-        "bytes": 39508352
+        "bytes": 49476681
       },
       {
         "label": "Shared server code",
-        "bytes": 68980759
+        "bytes": 70920281
       },
       {
         "label": "Browser code",
-        "bytes": 40859239
+        "bytes": 41032954
       },
       {
         "label": "Everything else",
-        "bytes": 999194
+        "bytes": 1150315
       }
     ]
   }

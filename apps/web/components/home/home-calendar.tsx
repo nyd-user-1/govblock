@@ -6,7 +6,6 @@ import { CalendarProvider } from "@/components/calendar/calendar-provider"
 import { useWorkspaceSource } from "@/components/calendar/hearing-source"
 import { CalendarPane, ViewToggle, useCalendarTitle } from "@/components/workspace/calendar-embed"
 import { useAccount } from "@/lib/auth/use-account"
-import { LiveFetch } from "@/lib/policy/manual-fetch"
 
 // The account home's Calendar (Brendan, 2026-09-21), under Analytics: the one
 // calendar — /workspace/calendar's — without its rail, at the page's width.
@@ -36,11 +35,10 @@ export function HomeCalendar() {
   return (
     <section id="calendar" className="scroll-mt-24">
       <h2 className="mb-4 text-lg font-semibold">Calendar</h2>
-      <LiveFetch>
-        <CalendarProvider embedded shortcuts={false} readOnly={!signedIn} useSource={useWorkspaceSource}>
-          <Frame />
-        </CalendarProvider>
-      </LiveFetch>
+      {/* No LiveFetch (2026-09-22): the calendar waits for the page's refresh button, as every other panel here does. */}
+      <CalendarProvider embedded shortcuts={false} readOnly={!signedIn} useSource={useWorkspaceSource}>
+        <Frame />
+      </CalendarProvider>
     </section>
   )
 }

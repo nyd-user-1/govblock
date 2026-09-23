@@ -12,7 +12,6 @@ import { CONGRESS, stateName } from "@/lib/filters"
 import { fmtBill, fmtNumber } from "@/lib/format"
 import { TRENDING } from "@/lib/trending"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { LiveFetch } from "@/lib/policy/manual-fetch"
 import { policyUrl, usePolicy } from "@/lib/policy/use-policy"
 import type { SessionRow } from "@/lib/policy/types"
 import { BlockBody, RecordBody } from "@/components/home/block-body"
@@ -346,11 +345,10 @@ function BlockTile({
 }
 
 export function BlocksGrid() {
-  return (
-    <LiveFetch>
-      <Grid />
-    </LiveFetch>
-  )
+  // No LiveFetch (Brendan, 2026-09-22: "make sure it waits for the refresh button for all of its panels"): the
+  // cluster pauses after five idle minutes and the first read after that takes six seconds, so an open tab must
+  // not be what wakes it. The grid draws its shape and waits; the page's refresh button fills it.
+  return <Grid />
 }
 
 function Grid() {

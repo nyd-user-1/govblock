@@ -11,7 +11,6 @@ import { fmtDate, fmtNumber } from "@/lib/format"
 import type { MetricKey, MetricSeries } from "@/lib/policy/metrics"
 import type { SessionRow } from "@/lib/policy/types"
 import { useJurisdiction } from "@/lib/policy/jurisdiction"
-import { LiveFetch } from "@/lib/policy/manual-fetch"
 import { usePolicy } from "@/lib/policy/use-policy"
 import { FlagChip } from "@/components/policy/imagery"
 import { StatePicker } from "@/components/state-switcher"
@@ -346,11 +345,10 @@ function NoData() {
 
 /** The grid reads as the page opens, whatever gate the page is under — its tiles and its list of sessions alike. */
 export function AnalyticsGrid() {
-  return (
-    <LiveFetch>
-      <Grid />
-    </LiveFetch>
-  )
+  // No LiveFetch (Brendan, 2026-09-22: "make sure it waits for the refresh button for all of its panels"): the
+  // cluster pauses after five idle minutes and the first read after that takes six seconds, so an open tab must
+  // not be what wakes it. The grid draws its shape and waits; the page's refresh button fills it.
+  return <Grid />
 }
 
 function Grid() {

@@ -36,7 +36,7 @@ import { jurisdictionOf } from "@/lib/xml/address"
 // Search, as a page: the header menu's pass with the brakes off. Same route,
 // but this page asks for every jurisdiction (`all=1`) and for the bill text
 // itself (`text=1`), so one query string answers in seven sections — bills, text,
-// laws, members, committees, topics, pages — each rendered only when it has rows,
+// laws, members, pages — each rendered only when it has rows,
 // and each row carrying the jurisdiction it actually came from. The laws are the
 // Library's search, asked beside the policy search (useLawSearch below).
 
@@ -264,14 +264,9 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
     all: 1,
     text: 1,
   })
-  const { data: subjects } = usePolicy<{ value: string; count: number }[]>(resolved ? "subjects" : null, scope)
+  // The subject list came off with the Topics section (2026-09-22): it was read the moment the page resolved, which
+  // on the account home meant an open tab waking a paused cluster to fill a section nothing draws.
   const law = useLawSearch(submitted.trim(), state, active)
-
-  const topics = React.useMemo(() => {
-    const t = submitted.trim().toLowerCase()
-    if (t.length < 2 || !subjects) return []
-    return subjects.filter((s) => s.value.toLowerCase().includes(t)).slice(0, 12)
-  }, [subjects, submitted])
 
   const pages = matchPages(submitted)
   const raw = { bills: data?.bills ?? [], members: data?.members ?? [], committees: data?.committees ?? [], texts: data?.texts ?? [] }
@@ -436,7 +431,7 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
         ...memberGroups.map((g) => ({ id: g.id, title: g.title })),
         ...(shownPages.length ? [{ id: sectionId("pages"), title: "Pages" }] : []),
       ],
-      counts: { bills: raw.bills.length, texts: raw.texts.length, laws: law.laws.length, members: raw.members.length, committees: raw.committees.length, topics: topics.length, pages: pages.length },
+      counts: { bills: raw.bills.length, texts: raw.texts.length, laws: law.laws.length, members: raw.members.length, committees: raw.committees.length, pages: pages.length },
       // Every jurisdiction any kind of row came from, the reader's first and Congress next, then by weight.
       places: tally([
         ...raw.bills.map((b) => b.state),
@@ -452,7 +447,7 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
       statuses: tally(raw.bills.map((b) => b.status_desc)),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, law.laws.length, topics.length, pages.length, filters, state])
+  }, [data, law.laws.length, pages.length, filters, state])
 
   // The bar wears what the drop-down bar wore (Brendan, 2026-09-22): its height and corners, the grey
   // ring round it, and in use a ring of the ring colour instead of the field's own focus ring.
