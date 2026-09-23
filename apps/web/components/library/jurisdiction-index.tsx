@@ -38,7 +38,10 @@ export function JurisdictionIndex({
   return (
     <DocsPage title={title} description={description} slug={slug} previous={previous} next={next}>
       {children}
-      <H2>All Jurisdictions</H2>
+      {/* The heading earns its place only where prose runs above the list and the
+          reader needs the break. On /laws the grid is the whole page and the title
+          already names it, so it said nothing twice (Brendan, 2026-09-22). */}
+      {children ? <H2>All Jurisdictions</H2> : null}
       <div data-not-typeset="true" className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-x-8 lg:gap-x-16 lg:gap-y-6 xl:gap-x-20">
         {JURISDICTIONS.map((j) => (
           <Link key={j.code} href={`${base}/${j.code.toLowerCase()}`} className="-mx-2 inline-flex items-center gap-2 rounded-md px-2 py-1 text-lg font-medium underline-offset-4 transition-colors hover:bg-muted hover:underline md:text-base">

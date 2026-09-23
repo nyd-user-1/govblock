@@ -69,14 +69,14 @@ import {
   type DepthInitial,
 } from "@/components/policy/bill-depth"
 import { BillLobbyingBlock } from "@/components/policy/bill-lobbying"
-import { H2, H3 } from "@/components/typeset"
+import { H3 } from "@/components/typeset"
 
-// A bill's own page, on the member page's design (2026-09-05): the session's
-// heading over the sentence, the text, the progress bar and the CRS Summary; the
-// rule; the session again as the record — Sponsors, Committees, Reports,
-// Actions, Votes, Amendments, Related bills, Titles, Cost estimate — then
-// Classification, and the constitutional authority statement last. One derived sentence under every heading; every
-// list, table and grid in the same frame.
+// A bill's own page, on the member page's design (2026-09-05): the Summary's
+// sentence, the text, the progress bar and the CRS Summary, then the record —
+// Sponsors, Committees, Reports, Actions, Votes, Amendments, Related bills,
+// Titles, Cost estimate — the lobbying, the classification, and the
+// constitutional authority statement last. One rule between every section and
+// the next; every list, table and grid in the same frame.
 //
 // Every bill in the policy database has a page. The twelve committed under
 // lib/data are prerendered at build time and stand in if the database is
@@ -292,15 +292,15 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                   </>
                 }
               />
-              <div className="typeset w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
-                {/* h1 the number, h2 Summary and Record, h3 the parts — Brendan,
-                    2026-09-05: "note the progression, h1, h2, h3". Summary is
-                    the one sentence; Record opens on Text. */}
-                <H2>Summary</H2>
+              {/* h1 the number and h3 every section under it, each cut from the
+                  next by a rule (Brendan, 2026-09-22). The grouping headings —
+                  Record, Lobbying, Classification — named what the headings under
+                  them already said, and the rule does the dividing they were
+                  standing in for. */}
+              <div className="typeset typeset-ruled w-full flex-1 pb-16 *:data-[slot=alert]:first:mt-0 sm:pb-0">
+                <H3>Summary</H3>
                 <BillSummaryLead facts={facts} />
 
-                <hr />
-                <H2>Record</H2>
                 <H3>Text</H3>
                 <BillTextBlock
                   bill={number}
@@ -317,7 +317,6 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
                     rungs of its own, and it was called a tracker). One bar, on the glossary's normalized stages
                     (components/policy/bill-depth.tsx). */}
                 <H3>Progress</H3>
-                <p>The progress bar shows how far this legislation has moved through the legislative process.</p>
                 <PreviewFrame>
                   <BillProgressBar progress={bill.progress ?? []} history={bill.history} statusDesc={bill.status_desc ?? null} statusDate={bill.status_date ? day(bill.status_date) : null} framed />
                 </PreviewFrame>
@@ -325,18 +324,18 @@ export default async function BillRoute({ params }: { params: Promise<{ id: stri
 
                 <BillSponsorsBlock sponsors={bill.sponsors} state={bill.state} bill={number} />
                 <BillCommitteesBlock bill={number} state={bill.state} referrals={bill.referrals} counts={committeeCounts} />
-                <BillReportsBlock bill={number} />
+                <BillReportsBlock />
                 <BillActionsBlock history={bill.history} rollCalls={bill.rollCalls} bill={number} />
                 <BillVotesBlock rollCalls={bill.rollCalls} federal={federalVotes} bill={number} billNumber={bill.bill_number} state={bill.state} />
-                <BillAmendmentsBlock bill={number} />
-                <BillRelatedBlock bill={number} />
-                <BillTitlesBlock bill={number} />
-                <BillCostEstimates bill={number} />
+                <BillAmendmentsBlock />
+                <BillRelatedBlock />
+                <BillTitlesBlock />
+                <BillCostEstimates />
 
-                <BillLobbyingBlock bill={number} data={lobbying} />
+                <BillLobbyingBlock data={lobbying} />
 
                 <BillSubjects bill={number} chamber={chamber} state={bill.state} />
-                <BillNotes bill={number} />
+                <BillNotes />
 
               </div>
               {(neighbours.previous || neighbours.next) && (

@@ -490,3 +490,21 @@
     margin-block-start: 0;
   }
 }
+
+@layer components {
+  /*
+   * Ruled sections (Brendan, 2026-09-22): a page whose headings each open a
+   * section of their own is cut section from section, with 45px clear either
+   * side of the rule — 2.4 flows, which is what a typeset `hr` already keeps
+   * above itself.
+   *
+   * The rule is the heading's own top border rather than an element between
+   * the sections, so a section that draws nothing takes its rule with it and
+   * no page is left with two rules in a row or one hanging off the end.
+   */
+  .typeset-ruled > :where(h2, h3):not(:first-child) {
+    border-block-start: 1px solid var(--typeset-rule);
+    margin-block-start: calc(var(--typeset-flow) * 2.4);
+    padding-block-start: calc(var(--typeset-flow) * 2.4);
+  }
+}

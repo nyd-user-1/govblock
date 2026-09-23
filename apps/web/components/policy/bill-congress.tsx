@@ -13,7 +13,7 @@ import { billRef, congressGovHref, day, stageRank, summaryBlocks, type SummaryBl
 import { useCongress } from "@/lib/policy/use-congress"
 import { Button } from "@govblock/ui/components/nova/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@govblock/ui/components/nova/dropdown-menu"
-import { H2, H3 } from "@/components/typeset"
+import { H3 } from "@/components/typeset"
 import { useBillDepth } from "@/components/policy/bill-depth"
 import { VoteTable, type VoteTableRow } from "@/components/policy/bill-tables"
 import { PagedList } from "@/components/policy/paged-list"
@@ -31,9 +31,10 @@ import { DocsTableOfContents } from "@/components/docs-toc"
 // amendments offered to it, the bills it travels with, the names it goes by,
 // the committee reports filed on it, and — when it became law — its citation.
 //
-// Since 2026-09-05 the page reads like the member page: one sentence under
-// every heading, derived from the rows beneath it, and every list or table in
-// the same frame with the same footer. The path names one bill, so every read
+// Since 2026-09-05 the page reads like the member page: every list or table in
+// the same frame with the same footer, under a heading of its own. The derived
+// sentence that stood under each heading came off on 2026-09-22 — it said what
+// the rows beneath it were about to say. The path names one bill, so every read
 // here is made in that bill's own jurisdiction rather than the reader's: a
 // federal bill's amendments are federal records whoever is looking at them.
 // The page fetches every family on the server and hands the rows in, so the
@@ -275,6 +276,11 @@ export type BillFacts = {
  * when, how many stand with them, where it went, and where it stands. Every
  * value is on the bill's own row; the cosponsor count is congress.gov's where
  * the bill is federal, because that source knows who joined and who withdrew.
+ *
+ * Plain prose throughout (Brendan, 2026-09-22). The bill, the sponsor and the
+ * committee were copy chips, and four grey boxes in the page's first sentence
+ * read as a form rather than a sentence; every one of them is a link or a chip
+ * further down the page, where there is one at a time.
  */
 export function BillSummaryLead({ facts }: { facts: BillFacts }) {
   const c = use()
@@ -287,15 +293,10 @@ export function BillSummaryLead({ facts }: { facts: BillFacts }) {
   const law = c?.law?.number ? `${c.law.type ?? "Public Law"} ${c.law.number}` : null
   return (
     <p>
-      <Chip>{facts.number}</Chip>
+      {facts.number}
       {facts.title ? <>, {titleClause(facts.title)},</> : null} was introduced in {chamber}
       {introduced ? <> on {fmtDate(introduced)}</> : null}
-      {who ? (
-        <>
-          {" "}
-          by <Chip>{who}</Chip>
-        </>
-      ) : null}
+      {who ? <> by {who}</> : null}
       {cosponsors ? (
         <>
           {" "}
@@ -303,13 +304,7 @@ export function BillSummaryLead({ facts }: { facts: BillFacts }) {
         </>
       ) : null}
       .{" "}
-      {facts.committee ? (
-        <>
-          It was referred to <Chip>{facts.committee}</Chip>, and{" "}
-        </>
-      ) : (
-        "It "
-      )}
+      {facts.committee ? <>It was referred to {facts.committee}, and </> : "It "}
       {facts.lastActionDate ? (
         <>
           last saw action on {fmtDate(facts.lastActionDate)}
@@ -323,7 +318,7 @@ export function BillSummaryLead({ facts }: { facts: BillFacts }) {
       {law ? (
         <>
           {" "}
-          It is now <Chip>{law}</Chip>.
+          It is now {law}.
         </>
       ) : null}
     </p>
@@ -398,13 +393,6 @@ export function BillSummaries({ fallback, chamber }: { fallback: React.ReactNode
   return (
     <>
       <H3>CRS Summary</H3>
-      <p>
-        The summaries are the Congressional Research Service&rsquo;s, one per stage.{" "}
-        <a href={congressGovHref("bill", billRef(c.billNumber)?.type ?? "HR", billRef(c.billNumber)?.number ?? "")} target="_blank" rel="noopener noreferrer">
-          Read them in full
-        </a>
-        .
-      </p>
       <div className="steps mb-0 pt-2 [counter-reset:step] md:ml-4 md:border-l md:pl-8 [&>h3]:step">
         {c.summaries.map((summary, index) => {
           const stage = summary.actionDesc ?? "Summary"
@@ -667,7 +655,7 @@ export function BillVotesBlock({
 const chamberOfType = (type: string | null | undefined) => (/^S/i.test(String(type ?? "")) ? "Senate" : "House")
 
 /** Every amendment offered to the bill, on the record row, paged. */
-export function BillAmendmentsBlock({ bill }: { bill: string }) {
+export function BillAmendmentsBlock() {
   const c = use()
   if (!c?.onCongress || !c.amendmentTotal) return null
   const more = async (offset: number, limit: number) => {
@@ -678,10 +666,6 @@ export function BillAmendmentsBlock({ bill }: { bill: string }) {
   return (
     <>
       <H3>Amendments</H3>
-      <p>
-        {fmtNumber(c.amendmentTotal)} {c.amendmentTotal === 1 ? "amendment has" : "amendments have"} been offered to <Chip>{bill}</Chip>
-        {c.amendments[0]?.latestAction?.actionDate ? <>, the latest acted on {fmtDate(c.amendments[0].latestAction.actionDate)}</> : null}.
-      </p>
       {c.amendments.length ? (
         <PreviewFrame>
           <PagedList
@@ -721,17 +705,13 @@ const relationOf = (row: Related) => {
 }
 
 /** The bills this one travels with, as bill rows, linking here when we hold them. */
-export function BillRelatedBlock({ bill }: { bill: string }) {
+export function BillRelatedBlock() {
   const c = use()
   if (!c?.related.length) return null
   const rows = c.related.map(asRelated)
   return (
     <>
       <H3>Related bills</H3>
-      <p>
-        {fmtNumber(rows.length)} {rows.length === 1 ? "bill is" : "bills are"} related to <Chip>{bill}</Chip>
-        {rows.length === 1 && relationOf(rows[0]) && !/^related bill$/i.test(relationOf(rows[0]) ?? "") ? <>, as {relationOf(rows[0])}</> : null}.
-      </p>
       <PreviewFrame>
         <PagedList
           items={rows}
@@ -758,22 +738,13 @@ export function BillRelatedBlock({ bill }: { bill: string }) {
 }
 
 /** The committee reports filed on the bill. */
-export function BillReportsBlock({ bill }: { bill: string }) {
+export function BillReportsBlock() {
   const c = use()
   if (!c?.reports.length) return null
   const rows = c.reports
   return (
     <>
       <H3>Reports</H3>
-      <p>
-        {rows.length} committee {rows.length === 1 ? "report has" : "reports have"} been filed on <Chip>{bill}</Chip>
-        {rows[0]?.citation ? (
-          <>
-            , the latest <Chip>{rows[0].citation}</Chip>
-          </>
-        ) : null}
-        .
-      </p>
       <ul>
         {rows.map((report) => (
           <li key={report.citation}>
@@ -793,17 +764,12 @@ export function BillReportsBlock({ bill }: { bill: string }) {
 }
 
 /** The names the bill goes by. */
-export function BillTitlesBlock({ bill }: { bill: string }) {
+export function BillTitlesBlock() {
   const c = use()
   if (!c?.titles.length) return null
-  const short = c.titles.filter((t) => /short/i.test(t.titleType ?? "")).length
   return (
     <>
       <H3>Titles</H3>
-      <p>
-        <Chip>{bill}</Chip> goes by {fmtNumber(c.titles.length)} {c.titles.length === 1 ? "title" : "titles"}
-        {short ? <>, {fmtNumber(short)} of them short titles</> : null}.
-      </p>
       <ul>
         {c.titles.map((row, index) => (
           <li key={`${row.titleType}-${index}`}>
@@ -943,28 +909,29 @@ export function BillToc({
   const c = use()
   const depth = useBillDepth()
   const toc = React.useMemo(() => {
+    // Every section stands at the same level now that the grouping headings
+    // are gone (Brendan, 2026-09-22), so the rail is one flat list in the
+    // order the page draws them.
     const items: [string, 2 | 3, string?][] = [
       ["Summary", 2],
-      ["Record", 2],
-      ["Text", 3],
+      ["Text", 2],
     ]
     // The progress bar is on every bill, not Congress's alone (2026-09-21).
-    items.push(["Progress", 3])
-    if (c?.summaries.length) items.push(["CRS Summary", 3])
-    items.push(["Sponsors", 3])
+    items.push(["Progress", 2])
+    if (c?.summaries.length) items.push(["CRS Summary", 2])
+    items.push(["Sponsors", 2])
     const known = depth?.committees.some((row) => row.activity && row.activity.toLowerCase() !== "unknown")
-    if (known || (!depth?.committees.length && committees)) items.push(["Committees", 3])
-    if (c?.reports.length) items.push(["Reports", 3])
-    items.push([depth?.onCongress ? "Actions" : "History", 3], ["Votes", 3])
-    if (c?.amendmentTotal) items.push(["Amendments", 3])
-    if (c?.related.length) items.push(["Related bills", 3])
-    if (c?.titles.length) items.push(["Titles", 3])
-    if (depth?.cbo.length) items.push(["Cost estimate", 3])
-    if (lobbying) items.push(["Lobbying", 2], ["Clients", 3], ["Firms", 3], ["Lobbyists", 3], ["Filings", 3])
-    if (depth?.policyArea || depth?.subjects.length) items.push(["Classification", 2])
-    if (depth?.policyArea) items.push(["CRS Subjects", 3])
-    if (depth?.subjects.length) items.push(["Legislative Subjects", 3])
-    if (depth?.record?.constitutionalAuthorityStatementText) items.push(["Constitutional authority", 2])
+    if (known || (!depth?.committees.length && committees)) items.push(["Committees", 2])
+    if (c?.reports.length) items.push(["Reports", 2])
+    items.push([depth?.onCongress ? "Actions" : "History", 2], ["Votes", 2])
+    if (c?.amendmentTotal) items.push(["Amendments", 2])
+    if (c?.related.length) items.push(["Related bills", 2])
+    if (c?.titles.length) items.push(["Titles", 2])
+    if (depth?.cbo.length) items.push(["Cost estimate", 2])
+    if (lobbying) items.push(["Lobbying Clients", 2, "clients"], ["Lobbying Firms", 2, "firms"], ["Lobbyists", 2], ["Filings", 2])
+    if (depth?.policyArea) items.push(["CRS Subjects", 2])
+    if (depth?.subjects.length) items.push(["Legislative Subjects", 2])
+    if (depth?.record?.constitutionalAuthorityStatementText) items.push(["Constitutional Authority", 2])
     if (depth?.record?.notes?.length) items.push(["Notes", 2])
     return items.map(([title, d, id]) => ({ title, url: `#${id ?? title.replace(/\s+/g, "-").toLowerCase()}`, depth: d }))
   }, [session, committees, lobbying, c, depth])

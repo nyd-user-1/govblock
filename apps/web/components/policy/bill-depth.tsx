@@ -15,7 +15,7 @@ import { ChamberSeal } from "@/components/policy/imagery"
 import { ActionTable, type ActionTableRow } from "@/components/policy/bill-tables"
 import { CardBlock } from "@/components/policy/card-block"
 import { PreviewFrame } from "@/components/preview-frame"
-import { H2, H3 } from "@/components/typeset"
+import { H3 } from "@/components/typeset"
 import { Chip } from "@/components/chip"
 import { cn } from "@govblock/ui/lib/utils"
 
@@ -23,9 +23,9 @@ import { cn } from "@govblock/ui/lib/utils"
 // every action with the stage and the roll call it produced, the committees that
 // touched it, what it is about, what it costs, and who wrote it.
 //
-// A section of the page in the page's own voice — an H2, a Table or a list, and
-// an honest sentence when we have nothing. Every one of these renders when empty
-// and says what *we* lack, never what the bill lacks.
+// A section of the page in the page's own voice — a heading over a table or a
+// list, and an honest sentence when we have nothing. Every one of these renders
+// when empty and says what *we* lack, never what the bill lacks.
 
 export type Action = {
   actionDate?: string | null
@@ -657,9 +657,13 @@ function ChipBlock({ file, chips, lit, chamber, state }: { file: string; chips: 
 }
 
 /**
- * Classification, a section of its own at the foot of the page (Brendan,
- * 2026-09-05): CRS's policy areas in one box — the whole vocabulary, this
- * bill's own lit and first — and its legislative subjects in another.
+ * CRS's own classification of the bill, at the foot of the page (2026-09-05):
+ * its policy areas in one box — the whole vocabulary, this bill's own lit and
+ * first — and its legislative subjects in another.
+ *
+ * Two sections rather than a section holding two (Brendan, 2026-09-22): the
+ * "Classification" heading and its sentence said what CRS Subjects and
+ * Legislative Subjects say for themselves, one heading down.
  */
 export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: string | null; state: string }) {
   const c = use()
@@ -670,52 +674,15 @@ export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: 
   const areas = area ? [area, ...c.policyAreas.filter((name) => name !== area)] : c.policyAreas
   return (
     <>
-      <hr />
-      <H2>Classification</H2>
-      <p>
-        {area ? (
-          <>
-            The Congressional Research Service files <Chip>{bill}</Chip> under <Chip>{area}</Chip>
-            {areas.length > 1 ? <>, one of its {fmtNumber(areas.length)} policy areas</> : null}
-            {subjects.length ? (
-              <>
-                , and gives it {fmtNumber(subjects.length)} legislative {subjects.length === 1 ? "subject" : "subjects"}
-              </>
-            ) : null}
-            .
-          </>
-        ) : (
-          <>
-            The Congressional Research Service gives <Chip>{bill}</Chip> {fmtNumber(subjects.length)} legislative {subjects.length === 1 ? "subject" : "subjects"}.
-          </>
-        )}
-      </p>
       {area && (
         <>
           <H3>CRS Subjects</H3>
-          <p>
-            CRS assigns every bill one policy area
-            {areas.length > 1 ? <> from its {fmtNumber(areas.length)}</> : null}; <Chip>{bill}</Chip>&rsquo;s is <Chip>{area}</Chip>.
-          </p>
           <ChipBlock file={chipFile(bill, "policy-areas")} chips={areas} lit={area} chamber={chamber} state={state} />
         </>
       )}
       {subjects.length > 0 && (
         <>
           <H3>Legislative Subjects</H3>
-          <p>
-            <Chip>{bill}</Chip> carries {fmtNumber(subjects.length)} of CRS&rsquo;s legislative {subjects.length === 1 ? "subject" : "subjects"}
-            {subjects.length > 1 ? (
-              <>
-                , from <Chip>{subjects[0]}</Chip> to <Chip>{subjects[subjects.length - 1]}</Chip>
-              </>
-            ) : (
-              <>
-                : <Chip>{subjects[0]}</Chip>
-              </>
-            )}
-            .
-          </p>
           <ChipBlock file={chipFile(bill, "subjects")} chips={subjects} chamber={chamber} state={state} />
         </>
       )}
@@ -729,7 +696,7 @@ export function BillSubjects({ bill, chamber, state }: { bill: string; chamber: 
  * Lane B measured this — the metadata is free and the figures behind it are
  * behind DataDome. Printing a number we cannot fetch would be inventing one.
  */
-export function BillCostEstimates({ bill }: { bill: string }) {
+export function BillCostEstimates() {
   const c = use()
   if (!c?.onCongress) return null
   const rows = c.cbo ?? []
@@ -737,10 +704,6 @@ export function BillCostEstimates({ bill }: { bill: string }) {
   return (
     <>
       <H3>Cost estimate</H3>
-      <p>
-        The Congressional Budget Office has filed {rows.length} {rows.length === 1 ? "estimate" : "estimates"} for <Chip>{bill}</Chip>
-        {rows[0].pubDate ? <>, the latest on {fmtDate(easternDay(rows[0].pubDate))}</> : null}.
-      </p>
       <ul>
         {rows.map((row) => (
           <li key={row.url}>
@@ -804,7 +767,7 @@ function CopyCorner({ text }: { text: string }) {
   )
 }
 
-export function BillNotes({ bill }: { bill: string }) {
+export function BillNotes() {
   const c = use()
   if (!c?.onCongress) return null
   const authority = c.record?.constitutionalAuthorityStatementText
@@ -814,11 +777,7 @@ export function BillNotes({ bill }: { bill: string }) {
     <>
       {authority && (
         <>
-          <hr />
-          <H2>Constitutional authority</H2>
-          <p>
-            The clause the sponsor cites as Congress&rsquo;s power to enact <Chip>{bill}</Chip>, as entered in the Congressional Record.
-          </p>
+          <H3>Constitutional Authority</H3>
           <div className="group/pre relative">
             <pre className="text-sm whitespace-pre-wrap">{stripTags(authority)}</pre>
             <CopyCorner text={stripTags(authority)} />
@@ -827,11 +786,7 @@ export function BillNotes({ bill }: { bill: string }) {
       )}
       {notes.length > 0 && (
         <>
-          <hr />
-          <H2>Notes</H2>
-          <p>
-            congress.gov carries {notes.length} {notes.length === 1 ? "note" : "notes"} on <Chip>{bill}</Chip>.
-          </p>
+          <H3>Notes</H3>
           <ul>
             {notes.map((note, index) => (
               <li key={index}>

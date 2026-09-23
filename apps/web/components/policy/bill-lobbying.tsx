@@ -2,9 +2,8 @@ import Link from "next/link"
 
 import { fmtCompact, fmtNumber, truncate } from "@/lib/format"
 import type { BillLobbying } from "@/lib/policy/lobbying-queries"
-import { Chip } from "@/components/chip"
 import { TableBlock } from "@/components/policy/table-block"
-import { H2, H3, Table } from "@/components/typeset"
+import { H3, Table } from "@/components/typeset"
 
 // What was spent to be heard on a bill, as OpenSecrets' bill-lobbying page
 // shows it: who hired whom, who they named, what they filed it under, and the
@@ -16,49 +15,29 @@ import { H2, H3, Table } from "@/components/typeset"
 // across every issue and every bill the filing names; the statute asks for no
 // breakdown. So the column is labelled for what it is and never summed as
 // though it were the price of this bill.
+//
+// Four sections rather than one holding four (Brendan, 2026-09-22): the
+// "Lobbying" heading and the paragraph counting the clients, firms, lobbyists
+// and filings said what the four tables under it say row by row, so Clients and
+// Firms carry the word instead.
 
 const money = (value: number | null | undefined) => (value == null ? "—" : fmtCompact(value))
+
+/** Five rows before See more, not the ten a table gets elsewhere: four of these stand one after another (Brendan, 2026-09-22). */
+const SHOWN = 5
 
 const lobbyistHref = (name: string) => `/lobbying/lobbyists/${encodeURIComponent(name)}`
 const firmHref = (name: string) => `/lobbying/firms/${encodeURIComponent(name)}`
 const clientHref = (name: string) => `/lobbying/clients/${encodeURIComponent(name)}`
 
-export function BillLobbyingBlock({ bill, data }: { bill: string; data: BillLobbying | null }) {
+export function BillLobbyingBlock({ data }: { data: BillLobbying | null }) {
   if (!data || !data.summary.filings) return null
-  const { summary, clients, firms, lobbyists, issues, documents } = data
-  const years = summary.first_year && summary.last_year && summary.first_year !== summary.last_year ? `${summary.first_year} to ${summary.last_year}` : String(summary.last_year ?? "")
+  const { clients, firms, lobbyists, documents } = data
 
   return (
     <>
-      <hr />
-      <H2 id="lobbying">Lobbying</H2>
-      <p>
-        <code>{fmtNumber(summary.clients)}</code> {summary.clients === 1 ? "client" : "clients"} hired{" "}
-        <code>{fmtNumber(summary.firms)}</code> {summary.firms === 1 ? "firm" : "firms"} and{" "}
-        <code>{fmtNumber(summary.lobbyists)}</code> registered {summary.lobbyists === 1 ? "lobbyist" : "lobbyists"} who named{" "}
-        <Chip>{bill}</Chip> in <code>{fmtNumber(summary.filings)}</code> quarterly {summary.filings === 1 ? "filing" : "filings"}
-        {years ? `, ${years}` : ""}. Reported under the Lobbying Disclosure Act; a filing&rsquo;s income covers everything its
-        registrant worked that quarter, so the amounts below are the filings&rsquo;, not this bill&rsquo;s.
-      </p>
-
-      {issues.length > 0 && (
-        <p>
-          Filed under{" "}
-          {issues.slice(0, 8).map((row, index) => (
-            <span key={row.issue_code}>
-              {index > 0 && ", "}
-              {row.issue ?? row.issue_code}
-            </span>
-          ))}
-          .
-        </p>
-      )}
-
-      <H3 id="clients">Clients</H3>
-      <p>
-        Who paid to be heard, by how many filings named the bill. {clients.length < summary.clients ? `The ${fmtNumber(clients.length)} that filed most often, of ${fmtNumber(summary.clients)}.` : ""}
-      </p>
-      <TableBlock rows={clients.length}>
+      <H3 id="clients">Lobbying Clients</H3>
+      <TableBlock rows={clients.length} shown={SHOWN}>
       <Table>
         <thead>
           <tr>
@@ -87,9 +66,8 @@ export function BillLobbyingBlock({ bill, data }: { bill: string; data: BillLobb
       </Table>
       </TableBlock>
 
-      <H3 id="firms">Firms</H3>
-      <p>Registrants who filed on the bill, by filings.</p>
-      <TableBlock rows={firms.length}>
+      <H3 id="firms">Lobbying Firms</H3>
+      <TableBlock rows={firms.length} shown={SHOWN}>
       <Table>
         <thead>
           <tr>
@@ -115,10 +93,7 @@ export function BillLobbyingBlock({ bill, data }: { bill: string; data: BillLobb
       </TableBlock>
 
       <H3 id="lobbyists">Lobbyists</H3>
-      <p>
-        Named on the filings that cite the bill. {lobbyists.length < summary.lobbyists ? `The ${fmtNumber(lobbyists.length)} named most often, of ${fmtNumber(summary.lobbyists)}.` : ""}
-      </p>
-      <TableBlock rows={lobbyists.length}>
+      <TableBlock rows={lobbyists.length} shown={SHOWN}>
       <Table>
         <thead>
           <tr>
@@ -144,8 +119,7 @@ export function BillLobbyingBlock({ bill, data }: { bill: string; data: BillLobb
       </TableBlock>
 
       <H3 id="filings">Filings</H3>
-      <p>The documents themselves, on the Senate&rsquo;s Lobbying Disclosure site, largest reported first.</p>
-      <TableBlock rows={documents.length}>
+      <TableBlock rows={documents.length} shown={SHOWN}>
       <Table>
         <thead>
           <tr>
