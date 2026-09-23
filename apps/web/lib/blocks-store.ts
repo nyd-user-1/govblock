@@ -18,7 +18,20 @@ import type { BlockKey, BlockRecord } from "@/lib/blocks"
 export const BLOCKS_KEY = "govblock:home-blocks"
 const CHANGE = "govblock:home-blocks-change"
 
-export type Block = { id: string; key: BlockKey; span: 1 | 2; /** How many rows tall: a record at 2 draws as its own page opens (2026-09-22). */ rows?: 1 | 2; record?: BlockRecord }
+export type Block = {
+  id: string
+  key: BlockKey
+  span: 1 | 2
+  /** How many rows tall: a record at 2 draws as its own page opens (2026-09-22). */
+  rows?: 1 | 2
+  /** The cell it stands on, counted from zero. A block keeps its column when a
+      neighbour is taken off the grid, and a hole beside a tall block stays a
+      hole (Brendan, 2026-09-22). A block saved before the grid had cells, or
+      added from a record page, has none and is flowed into the first that fits. */
+  col?: number
+  row?: number
+  record?: BlockRecord
+}
 export type BlocksSaved = { blocks: Block[]; state: string }
 
 export const EMPTY: BlocksSaved = { blocks: [], state: CONGRESS }

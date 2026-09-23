@@ -33,24 +33,117 @@ import { Popover, PopoverContent, PopoverTrigger } from "@govblock/ui/components
 // +, picks a table, and it lands in their grid; the layout and the
 // jurisdiction live in this browser, as Analytics' do. What a block draws is
 // components/home/block-body.tsx, which knows two shapes and nothing else.
+//
+// The grid is four columns of cells, and every block owns the one it stands on
+// (Brendan, 2026-09-22). It held an order instead and let CSS place the blocks,
+// which is why a block could not be dragged into the fourth column, why the +
+// there added to the third, and why taking one off pulled the rest back. An
+// empty cell is drawn as a + and takes a drop, so the holes a two-by-two leaves
+// beside it are places to put something rather than gaps.
 
 const COLUMNS = 4
 
 export type { Block } from "@/lib/blocks-store"
 type Saved = BlocksSaved
 type Block = BlocksSaved["blocks"][number]
+type Cell = { col: number; row: number }
+type Placed = Block & Cell
 
 const FRESH: Saved = EMPTY
+
+const wide = (b: Block) => b.span
+const high = (b: Block) => b.rows ?? 1
 
 const fresh = (): Saved => ({
   blocks: DEFAULT_BLOCKS.map((key, i) => ({ id: `b${i + 1}`, key, span: i === 0 ? 2 : 1 })),
   state: CONGRESS,
 })
 
+/**
+ * Where each block stands (Brendan, 2026-09-22). The grid held an order and let
+ * CSS decide the cells, which is why a block could not be dragged past the last
+ * one, why the + in the fourth column added to the third, and why taking a block
+ * off pulled the rest back a column. Every block owns a cell now.
+ *
+ * A block that has no cell yet — one saved before this, or added from a record
+ * page elsewhere on the site — takes the first it fits in, scanning left to
+ * right and down, which is where the CSS grid would have put it.
+ */
+function layout(blocks: Block[]): Placed[] {
+  const taken = new Set<string>()
+  const mark = (col: number, row: number, w: number, h: number) => {
+    for (let r = row; r < row + h; r++) for (let c = col; c < col + w; c++) taken.add(`${r}:${c}`)
+  }
+  const open = (col: number, row: number, w: number, h: number) => {
+    if (col < 0 || row < 0 || col + w > COLUMNS) return false
+    for (let r = row; r < row + h; r++) for (let c = col; c < col + w; c++) if (taken.has(`${r}:${c}`)) return false
+    return true
+  }
+  const cells = new Map<string, Cell>()
+  // The blocks that know their cell claim it first, so nothing flowed can take it.
+  for (const b of blocks) {
+    if (b.col == null || b.row == null || !open(b.col, b.row, wide(b), high(b))) continue
+    mark(b.col, b.row, wide(b), high(b))
+    cells.set(b.id, { col: b.col, row: b.row })
+  }
+  for (const b of blocks) {
+    if (cells.has(b.id)) continue
+    for (let i = 0; ; i++) {
+      const row = Math.floor(i / COLUMNS)
+      const col = i % COLUMNS
+      if (!open(col, row, wide(b), high(b))) continue
+      mark(col, row, wide(b), high(b))
+      cells.set(b.id, { col, row })
+      break
+    }
+  }
+  return blocks.map((b) => ({ ...b, ...(cells.get(b.id) as Cell) }))
+}
+
+/** The cells no block stands on, so a hole beside a tall block is a place to add rather than a gap. */
+function gaps(placed: Placed[]): Cell[] {
+  const taken = new Set<string>()
+  for (const b of placed) for (let r = b.row; r < b.row + high(b); r++) for (let c = b.col; c < b.col + wide(b); c++) taken.add(`${r}:${c}`)
+  let rows = placed.reduce((deepest, b) => Math.max(deepest, b.row + high(b)), 0)
+  const free = () => {
+    const out: Cell[] = []
+    for (let r = 0; r < rows; r++) for (let c = 0; c < COLUMNS; c++) if (!taken.has(`${r}:${c}`)) out.push({ col: c, row: r })
+    return out
+  }
+  let out = free()
+  // A grid with nowhere left to add gets a row, as an empty grid gets its first.
+  if (!out.length) {
+    rows += 1
+    out = free()
+  }
+  return out
+}
+
+/** True where every block sits inside the four columns and no two stand on the same cell. */
+function holds(blocks: Block[]) {
+  const taken = new Set<string>()
+  for (const b of blocks) {
+    if (b.col == null || b.row == null) continue
+    if (b.col + wide(b) > COLUMNS) return false
+    for (let r = b.row; r < b.row + high(b); r++)
+      for (let c = b.col; c < b.col + wide(b); c++) {
+        if (taken.has(`${r}:${c}`)) return false
+        taken.add(`${r}:${c}`)
+      }
+  }
+  return true
+}
+
+const sits = (cell: Cell, w: number, h: number): React.CSSProperties => ({
+  gridColumn: `${cell.col + 1} / span ${w}`,
+  gridRow: `${cell.row + 1} / span ${h}`,
+})
+
 function load(): Saved {
   const saved = readBlocks()
-  if (!saved) return fresh()
-  return { blocks: saved.blocks.filter((b) => blockOf(b.key)), state: saved.state }
+  const base = saved ? { blocks: saved.blocks.filter((b) => blockOf(b.key)), state: saved.state } : fresh()
+  // Every block leaves with a cell of its own, so the first thing taken off the grid moves nothing else.
+  return { ...base, blocks: layout(base.blocks) }
 }
 
 type Found = { id: string; label: string; detail: string; state: string }
@@ -227,7 +320,7 @@ function BlockTile({
   onDragEnter,
   onDragEnd,
 }: {
-  block: Block
+  block: Placed
   state: string
   session: number | null
   nonce: number
@@ -251,12 +344,8 @@ function BlockTile({
     <div
       onDragEnter={onDragEnter}
       onDragOver={(e) => e.preventDefault()}
-      className={cn(
-        "group/tile relative flex flex-col rounded-lg border bg-background p-4 transition-opacity",
-        block.span === 2 && "col-span-2",
-        block.rows === 2 && "row-span-2",
-        dragging && "opacity-40"
-      )}
+      style={sits(block, wide(block), high(block))}
+      className={cn("group/tile relative flex flex-col rounded-lg border bg-background p-4 transition-opacity", dragging && "opacity-40")}
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -367,9 +456,10 @@ function Grid() {
     setSaved(load())
     setReady(true)
   }, [])
-  // A block added from a record page elsewhere on the site lands here without a reload.
+  // A block added from a record page elsewhere on the site lands here without a
+  // reload, and takes a cell of its own on the way in.
   React.useEffect(() => {
-    if (ready && stored) setSaved((current) => (JSON.stringify(stored) === JSON.stringify(current) ? current : stored))
+    if (ready && stored) setSaved((current) => (JSON.stringify(stored) === JSON.stringify(current) ? current : { ...stored, blocks: layout(stored.blocks) }))
   }, [stored, ready])
   React.useEffect(() => {
     if (ready) writeBlocks(saved)
@@ -385,6 +475,8 @@ function Grid() {
   }, [])
 
   const { blocks, state } = saved
+  const placed = layout(blocks)
+  const blanks = gaps(placed)
   const { data: sessionRows } = usePolicy<SessionRow[]>("sessions", { state })
   const sessions = Array.isArray(sessionRows) ? sessionRows : []
   const session = (sessions.find((row) => Number(row.bills) > 0) ?? sessions[0])?.session_id ?? null
@@ -392,15 +484,21 @@ function Grid() {
   const update = (next: Partial<Saved>) => setSaved((current) => ({ ...current, ...next }))
   const setBlock = (id: string, patch: Partial<Block>) => update({ blocks: blocks.map((b) => (b.id === id ? { ...b, ...patch } : b)) })
   const remove = (id: string) => update({ blocks: blocks.filter((b) => b.id !== id) })
-  const moveTo = (id: string, onto: string) => {
-    const from = blocks.findIndex((b) => b.id === id)
-    const to = blocks.findIndex((b) => b.id === onto)
-    if (from < 0 || to < 0 || from === to) return
-    const next = [...blocks]
-    next.splice(to, 0, ...next.splice(from, 1))
-    update({ blocks: next })
+  /** Drops a block on an empty cell; dropping it on another swaps the two. A move that would overlap or run past the fourth column is not made. */
+  const moveTo = (id: string, cell: Cell) => {
+    const next = blocks.map((b) => (b.id === id ? { ...b, ...cell } : b))
+    if (holds(next)) update({ blocks: next })
   }
-  const add = (key: BlockKey, record?: BlockRecord) => update({ blocks: [...blocks, { id: `b${Date.now().toString(36)}`, key, span: 1, ...(record ? { record } : {}) }] })
+  const swap = (id: string, onto: string) => {
+    const from = placed.find((b) => b.id === id)
+    const to = placed.find((b) => b.id === onto)
+    if (!from || !to || from.id === to.id) return
+    const next = blocks.map((b) => (b.id === from.id ? { ...b, col: to.col, row: to.row } : b.id === to.id ? { ...b, col: from.col, row: from.row } : b))
+    if (holds(next)) update({ blocks: next })
+  }
+  // A block added from a blank cell lands on that cell; one added from the header's + takes the first that fits.
+  const add = (key: BlockKey, record?: BlockRecord, cell?: Cell) =>
+    update({ blocks: [...blocks, { id: `b${Date.now().toString(36)}`, key, span: 1, ...(cell ?? {}), ...(record ? { record } : {}) }] })
   const unused = BLOCKS.filter((spec) => !blocks.some((b) => b.key === spec.key))
 
   // The header's rule (lib/policy/jurisdiction.tsx): a jurisdiction the reader may not open leads to the door.
@@ -411,9 +509,6 @@ function Grid() {
     if (allowed !== "open") return router.push(doorHref(allowed))
     update({ state: code })
   }
-
-  const used = blocks.reduce((sum, b) => sum + b.span, 0) % COLUMNS
-  const blanks = used === 0 ? 0 : COLUMNS - used
 
   return (
     <section id="blocks" className="scroll-mt-24">
@@ -449,7 +544,7 @@ function Grid() {
       </div>
       <div ref={grid} className="grid auto-rows-[224px] grid-cols-4 gap-4">
         {ready &&
-          blocks.map((block) => (
+          placed.map((block) => (
             <BlockTile
               key={block.id}
               block={block}
@@ -458,28 +553,36 @@ function Grid() {
               nonce={nonce}
               columnWidth={columnWidth}
               dragging={dragging === block.id}
-              onSize={(size) => setBlock(block.id, size)}
+              // Growing at the right-hand edge shifts the block left rather than off the grid.
+              onSize={(size) => setBlock(block.id, { ...size, col: Math.min(block.col, COLUMNS - size.span) })}
               onRemove={() => remove(block.id)}
               onRefresh={() => setNonce((n) => n + 1)}
               onDragStart={() => setDragging(block.id)}
-              onDragEnter={() => dragging && dragging !== block.id && moveTo(dragging, block.id)}
+              onDragEnter={() => dragging && dragging !== block.id && swap(dragging, block.id)}
               onDragEnd={() => setDragging(null)}
             />
           ))}
+        {/* Every empty cell is both a place to add and a place to drop, which is how a block reaches the fourth column. */}
         {ready &&
-          Array.from({ length: blocks.length === 0 ? COLUMNS : blanks }, (_, i) => (
-            <AddBlock
-              key={`blank-${i}`}
-              align="start"
-              unused={unused}
-              state={state}
-              onAdd={add}
-              trigger={
-                <button type="button" aria-label="Add a block" className="flex h-full w-full items-center justify-center rounded-lg border border-dashed text-muted-foreground/60 transition-colors hover:border-ring hover:text-foreground">
-                  <Plus className="size-6" />
-                </button>
-              }
-            />
+          blanks.map((cell) => (
+            <div
+              key={`blank-${cell.row}-${cell.col}`}
+              style={sits(cell, 1, 1)}
+              onDragEnter={() => dragging && moveTo(dragging, cell)}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              <AddBlock
+                align="start"
+                unused={unused}
+                state={state}
+                onAdd={(key, record) => add(key, record, cell)}
+                trigger={
+                  <button type="button" aria-label="Add a block" className="flex h-full w-full items-center justify-center rounded-lg border border-dashed text-muted-foreground/60 transition-colors hover:border-ring hover:text-foreground">
+                    <Plus className="size-6" />
+                  </button>
+                }
+              />
+            </div>
           ))}
       </div>
     </section>

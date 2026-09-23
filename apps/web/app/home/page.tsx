@@ -1,4 +1,3 @@
-import { HomeCalendar } from "@/components/home/home-calendar"
 import { HomeBody } from "@/components/home/home-main"
 import { HomeToc } from "@/components/home/home-toc"
 import { WidePage } from "@/components/wide-page"
@@ -20,8 +19,6 @@ export default function HomePage() {
       <RefreshButton className="fixed right-4 bottom-4 z-40 size-8 rounded-full shadow-sm" />
       <WidePage rail={<HomeToc />}>
         <HomeBody />
-        {/* Under Analytics, and on this page alone: the root's frozen sheet of the same body has no calendar to freeze. */}
-        <HomeCalendar />
       </WidePage>
     </ManualFetchProvider>
   )
