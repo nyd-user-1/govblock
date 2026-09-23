@@ -227,9 +227,13 @@ async function dispatch(resource: string, sp: URLSearchParams) {
           committees: [],
           texts: [],
         }
+      // The panel's Jurisdiction filter, asked of the query rather than of the
+      // rows it sent back (Brendan, 2026-09-22).
+      const places = (sp.get("places") ?? "").split(",").map((code) => code.trim()).filter(Boolean)
       return searchAll(f, term, Math.min(int(sp.get("limit"), 8), 20), {
         text,
         all,
+        places,
       })
     }
     case "states":

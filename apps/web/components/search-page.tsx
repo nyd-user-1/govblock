@@ -263,6 +263,10 @@ export function SearchResults({ filters: given, onFacets: report, path = "/searc
     limit: 20,
     all: 1,
     text: 1,
+    // The jurisdiction filter goes to the query (Brendan, 2026-09-22). Held
+    // back, it could only hide rows from a shortlist that carries two a
+    // jurisdiction, and the count beside them was the whole country's.
+    ...(filters.places.length ? { places: filters.places.join(",") } : {}),
   })
   // The subject list came off with the Topics section (2026-09-22): it was read the moment the page resolved, which
   // on the account home meant an open tab waking a paused cluster to fill a section nothing draws.

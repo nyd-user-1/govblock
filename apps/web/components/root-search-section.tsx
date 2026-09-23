@@ -6,6 +6,7 @@ import { MotionConfig, motion } from "motion/react"
 
 import { toggleRail } from "@/components/rail-toggle"
 import { JURISDICTIONS_SECTION_ID, SEARCH_SECTION_ID, goToSection } from "@/components/root-sections"
+import { RootTrending } from "@/components/root-trending"
 import { SearchResults } from "@/components/search-page"
 
 // The root's section two (Brendan, 2026-09-21): the heading and the search, a
@@ -24,18 +25,24 @@ export function RootSearchSection() {
     // the difference, and the bar follows the heading down. Section three lands the same way
     // (components/state-section.tsx). The section is a screen and a half tall, so Jurisdictions waits below the fold
     // and the results have the screen to run into.
-    // The column is the docs page's, as the hero's and section three's are (Brendan, 2026-09-22): max-w-160 and its side padding (DOCS_COLUMN, components/docs-header.tsx), not the account home's wider one.
-    <section id={SEARCH_SECTION_ID} className="mx-auto flex min-h-[calc(150svh-var(--header-height))] w-full max-w-160 min-w-0 scroll-mt-0 flex-col items-center justify-start gap-8 px-4 pt-[calc(200px-var(--header-height))] pb-16 md:px-0">
+    // The column is the account home's 64rem, as section three's and the year's are (Brendan, 2026-09-22) — max-w-5xl
+    // and its side padding (WIDE_COLUMN, components/wide-page.tsx). It was the docs page's 40rem until the year of
+    // days went in below and the root's lower half stopped agreeing with itself.
+    <section id={SEARCH_SECTION_ID} className="mx-auto flex min-h-[calc(150svh-var(--header-height))] w-full max-w-5xl min-w-0 scroll-mt-0 flex-col items-center justify-start gap-8 px-4 pt-[calc(200px-var(--header-height))] pb-16 md:px-6">
       {/* The count is the database's own estimate of its rows, every table, read 2026-09-21; nothing is queried here. The words are Brendan's (2026-09-22). */}
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-4xl font-bold tracking-tight">One Search</h1>
         <p className="text-xl tracking-tight text-muted-foreground">More than 168,336,672 records.</p>
       </div>
-      <div className="w-full">
+      <div className="flex w-full flex-col gap-8">
         <React.Suspense fallback={null}>
           {/* The bar's filter icon opens the right rail, where the filters are (app/page.tsx). */}
           {/* Twenty rows a block here, the rest on /search: the particle field under this page has to carry every row drawn over it (Brendan, 2026-09-22). */}
           <SearchResults path="/" cap={20} dropdown onFilter={() => toggleRail("right")} />
+        </React.Suspense>
+        {/* What the country is legislating about, under the bar it fills (Brendan, 2026-09-22); it stands down once a search is running. */}
+        <React.Suspense fallback={null}>
+          <RootTrending />
         </React.Suspense>
       </div>
       <MotionConfig reducedMotion="user">

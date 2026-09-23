@@ -5,7 +5,6 @@ import { RailsFrame } from "@/components/rails-frame"
 import { RootSearchSection } from "@/components/root-search-section"
 import { SignPage, type SignSearch } from "@/components/sign-page"
 import { RootFooter } from "@/components/root-footer"
-import { BlocksSample } from "@/components/blocks-sample"
 import { RootHashScroll } from "@/components/root-hash-scroll"
 import { SearchRailFilters } from "@/components/search-rail"
 import { StateSection } from "@/components/state-section"
@@ -21,6 +20,12 @@ import { StateSection } from "@/components/state-section"
 // Three sections and a footer (Brendan, 2026-09-21): the hero, whose arrow
 // goes down to the account home's greeting and search as section two, whose
 // own arrow goes on to /state's table as section three; then the site footer.
+// Section two carries the trending cards under its bar since 2026-09-22
+// (components/root-trending.tsx): sixteen subjects, each with the one
+// legislature arguing about it hardest, and pressing one runs that search
+// scoped to that jurisdiction. Two fourth sections were tried below the
+// jurisdictions' table that evening — a sample of the Blocks grid, then a year
+// of legislative days as a heatmap — and neither stayed.
 //
 // The right rail holds the search's filters (Brendan, 2026-09-22), opened by
 // the icon in the search bar; the three sheets that were there are gone.
@@ -40,8 +45,6 @@ export default function IndexPage({ searchParams }: { searchParams: SignSearch }
           <SignPage stage="root" searchParams={searchParams} />
           <RootSearchSection />
           <StateSection />
-          {/* Four blocks as they stand on a reader's own home page, from the frozen counts: the root reads nothing. */}
-          <BlocksSample />
           <RootFooter />
           <RootHashScroll />
         </div>

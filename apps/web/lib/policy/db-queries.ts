@@ -2594,7 +2594,21 @@ export const HEADLINE_OPTS = "MaxFragments=1,MaxWords=34,MinWords=16,StartSel=«
 // `FlagChip state={state}` from the page's scope and links to `?state=${state}`,
 // so turning this on for the menu without changing those two lines would put a
 // New York flag on an Arizona bill. It stays off until the menu opts in.
-export type SearchOptions = { text?: boolean; all?: boolean; perState?: number }
+export type SearchOptions = {
+  text?: boolean
+  all?: boolean
+  perState?: number
+  /**
+   * Jurisdictions to search, as two-letter codes; every one of them when empty
+   * (Brendan, 2026-09-22). The panel's Jurisdiction filter used to be applied
+   * to the rows after they arrived, which could only ever hide what the query
+   * had already fetched — and the query fetches two rows a jurisdiction. A
+   * search for California's wildfire bills drew those two and counted all 313
+   * in the country. Named here, the shortlist is drawn from these jurisdictions
+   * and the count is taken within them, so the rows and the number agree.
+   */
+  places?: string[]
+}
 
 /** Congress's bill letters as typed, to the letters LegiScan stores them under. */
 const FEDERAL_LETTERS: Record<string, string> = { hr: "HB", s: "SB", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR", hres: "HR", sres: "SR" }
@@ -2633,9 +2647,15 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
   const { numberLike, numbered, exactUs, exactStates } = billNumberMatch(term)
   const exact = (alias: string) =>
     numbered ? `((${alias}.state = 'US' and ${alias}.bill_number ~* $8) or (${alias}.state <> 'US' and ${alias}.bill_number ~* $9))` : "false"
+  // The named jurisdictions, as a literal list. Two letters each or they are
+  // dropped, so nothing a reader types reaches the statement.
+  const places = [...new Set((options.places ?? []).map((p) => String(p).toUpperCase()))].filter((p) => /^[A-Z]{2}$/.test(p))
+  const inPlaces = places.length ? `b.state in (${places.map((p) => `'${p}'`).join(", ")})` : ""
   // Two rows a jurisdiction: enough that a reader sees the answer is national,
   // few enough that 51 other jurisdictions cannot bury the one they are in.
-  const perState = options.all ? (options.perState ?? 2) : 0
+  // A search narrowed to a jurisdiction wants that jurisdiction's rows instead,
+  // so the cap comes off and each named one gets the whole limit.
+  const perState = options.all ? (places.length ? limit : (options.perState ?? 2)) : 0
   const elsewhereCap = options.all ? Math.max(limit * 2, 24) : 0
   // Congress is a group of its own on /search, ahead of the reader's state and
   // of everyone else (Brendan, 2026-09-20), so it gets the scoped group's cap
@@ -2675,7 +2695,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
                 row_number() over (order by ${exact("b")} desc, (b.bill_number ilike $3) desc,
                                             b.last_action_date desc nulls last, b.bill_id desc)::int as rn
          from "Bills" b
-         where b.state = $1 and b.session_id = $2
+         where b.state = $1 and b.session_id = $2${places.length ? ` and ${inPlaces}` : ""}
            and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
          order by rn
          limit $5
@@ -2688,7 +2708,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
          select b.bill_id, b.bill_number, b.title, b.description, b.status_desc, b.last_action, b.last_action_date, b.body, b.committee,
                 b.state, b.session_id
          from "Bills" b
-         where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1` : "false"}
+         where ${options.all ? `b.session_id >= ${SINCE} and b.state <> $1${places.length ? ` and ${inPlaces}` : ""}` : "false"}
            and (b.bill_number ilike $3 or b.title ilike $4 or ${exact("b")})
        ),
        elsewhere as (
@@ -2899,7 +2919,7 @@ export async function searchAll(f: Resolved, term: string, limit = 8, options: S
     // exclusion and without the per-jurisdiction caps, counted on the trigram index: the rows are never read.
     q<{ bills: number }>(
       `select count(*)::int as bills from "Bills" b
-       where b.session_id >= ${SINCE}
+       where b.session_id >= ${SINCE}${places.length ? ` and ${inPlaces}` : ""}
          and (b.bill_number ilike $1 or b.title ilike $2 or ${numbered ? "((b.state = 'US' and b.bill_number ~* $3) or (b.state <> 'US' and b.bill_number ~* $4))" : "false"})`,
       numbered ? [numberLike, like, exactUs, exactStates] : [numberLike, like]
     ),
