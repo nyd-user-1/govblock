@@ -13,9 +13,9 @@ import { SearchResults } from "@/components/search-page"
 // hero's circle again, goes on to section three, Jurisdictions.
 //
 // The search is /search's (Brendan, 2026-09-22), as the account home's is:
-// the bar, the recent searches under it, and on Enter the sections — bills,
-// text, laws, members, committees, topics, pages — down the page, the query
-// in the address (/?q=). The drop-down bar and the searches to try under it
+// the bar, and under it — in a drop-down of the bar's own, as on the account
+// home — the trending rows, and on Enter the sections: bills, text, laws,
+// members, pages, with the query in the address (/?q=). The drop-down bar and the searches to try under it
 // stood here for a day.
 export function RootSearchSection() {
   return (
@@ -35,7 +35,7 @@ export function RootSearchSection() {
         <React.Suspense fallback={null}>
           {/* The bar's filter icon opens the right rail, where the filters are (app/page.tsx). */}
           {/* Twenty rows a block here, the rest on /search: the particle field under this page has to carry every row drawn over it (Brendan, 2026-09-22). */}
-          <SearchResults path="/" cap={20} onFilter={() => toggleRail("right")} />
+          <SearchResults path="/" cap={20} dropdown onFilter={() => toggleRail("right")} />
         </React.Suspense>
       </div>
       <MotionConfig reducedMotion="user">
